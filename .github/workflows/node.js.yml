@@ -39,4 +39,4 @@ jobs:
         run: pnpm --filter="...[origin/main]" run lint
 
       - name: Run Biome for the whole repo
-        run: pnpm biome ci .
+        run: pnpm biome ci src
