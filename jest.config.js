@@ -3,7 +3,6 @@ export default {
 	testEnvironment: "jsdom",
 	setupFilesAfterEnv: ["@testing-library/jest-dom"],
 	moduleNameMapper: {
-		"^@repo/ui/(.*)$": "<rootDir>/packages/ui/src/$1",
 	},
 	transform: {
 		"^.+\\.(ts|tsx)$": "ts-jest",

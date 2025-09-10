@@ -1,8 +1,8 @@
 {
 	"files": [],
 	"references": [
-		{ "path": "packages/account-manager-app" },
-		{ "path": "packages/branchmanager-app" },
-		{ "path": "packages/cashier-app" }
+		{ "path": "frontend/account-manager-app"},
+		{ "path": "frontend/branchmanager-app"},
+		{ "path": "frontend/cashier-app"}
 	]
 }
