@@ -12,5 +12,5 @@ export default {
 	collectCoverage: true,
 	coverageReporters: ["lcov", "text"],
 	coverageDirectory: "coverage",
-	coveragePathIgnorePatterns: ["/node_modules/", "/dist/", "/packages/ui/src/Button/", ],
+	coveragePathIgnorePatterns: ["/node_modules/", "/dist/"],
 };
