@@ -12,8 +12,5 @@ export default {
 	collectCoverage: true,
 	coverageReporters: ["lcov", "text"],
 	coverageDirectory: "coverage",
-	coveragePathIgnorePatterns: [
-		"/node_modules/",
-		"/dist/",
-	],
+	coveragePathIgnorePatterns: ["/node_modules/", "/dist/"],
 };
