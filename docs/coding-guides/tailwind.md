@@ -1,49 +1,44 @@
 # Tailwind CSS Guide
 
-This guide covers our approach to using Tailwind CSS to ensure styling is consistent, scalable, and performant.
+This guide covers our approach to using Tailwind CSS to ensure styling is consistent and scalable within each application.
 
 ## 1. Philosophy: Utility-First
 
 We favor composing utilities directly in JSX over writing custom CSS. This keeps styling co-located with components and avoids a complex, abstract CSS codebase.
 
-## 2. `tailwind.config.js`
+## 2. Configuration
 
-- **Location**: Each app will have its own `tailwind.config.js`, but it should `require()` a shared base configuration from `packages/ui` to ensure consistency.
-- **Theme**: All theme values (colors, spacing, fonts) are defined in the shared theme file. Use semantic names (`bg-primary`, `text-accent`).
-- **Extending**: Add custom utilities or variants using the `plugins` array in the config.
+- **Location**: Each application under the `frontend/` directory has its own `tailwind.config.mjs` and `postcss.config.mjs` files. This allows for app-specific theme customizations if necessary.
+- **Theme**: All theme values (colors, spacing, fonts) are defined within each app's `tailwind.config.mjs`. To maintain consistency, it is recommended to align the theme configuration across all applications.
 
 ## 3. Tailwind vs. CSS Modules
 
-- **Tailwind First**: Always implement a design with utility classes first.
+- **Tailwind First**: Always try to implement a design with utility classes first.
 - **Use CSS Modules When**:
-  - Dealing with complex, state-based styling that would be unreadable with conditional utilities (`clsx`).
+  - Dealing with complex, state-based styling that would be unreadable with conditional utilities.
   - Styling third-party components that don't accept a `className` prop.
   - Applying styles based on dynamic content where utilities are not possible.
+  - The component logic involves complex styling that is better encapsulated in a separate CSS file. The `Button.module.css` is a good example of this.
 
 ## 4. Theming & Dark Mode
 
-- **CSS Variables**: Define theme colors as CSS variables in a global CSS file.
-- **Dark Mode**: Use Tailwind’s `dark:` variant for dark mode styles. A `useTheme` hook connected to our Zustand store will toggle a `dark` class on the `<html>` element.
+- **CSS Variables**: For theming, a future goal is to define theme colors as CSS variables in a global CSS file.
+- **Dark Mode**: The current setup uses Tailwind’s `dark:` variant. A mechanism to toggle a `dark` class on the `<html>` element will be required to enable this functionality across an application.
 
 ```html
-<!-- App.tsx -->
-<html className={theme}>
-  ...
-  <div class="bg-white dark:bg-gray-900">
-    <h1 class="text-gray-900 dark:text-white">...</h1>
-  </div>
-</html>
+<!-- Example of dark mode classes -->
+<div class="bg-white dark:bg-gray-900">
+  <h1 class="text-gray-900 dark:text-white">...</h1>
+</div>
 ```
 
-## 5. Globals and Directory Structure
+## 5. Global Styles
 
-- A single `globals.css` file will reside in `packages/ui/src/styles/`.
-- This file will contain base styles, CSS variable definitions, and any `@apply` directives for truly global classes.
-- Each application will import this global stylesheet in its root layout file.
+Each application has its own set of global styles defined in files like `src/index.css` and `src/App.css`. These files are suitable for base styles, font definitions, and any styles that need to be applied globally within that specific app.
 
 ## 6. Performance & Optimization
 
-- **Purging**: Tailwind CSS automatically removes unused styles in production builds by scanning your template files. Ensure the `content` array in `tailwind.config.js` correctly points to all files containing Tailwind classes.
+- **Purging**: Tailwind CSS automatically removes unused styles in production builds by scanning your template files. Ensure the `content` array in `tailwind.config.mjs` correctly points to all files containing Tailwind classes.
 - **Bundle Size**: Avoid adding a large number of custom utilities or base styles, as this can increase the final CSS bundle size.
 
 ## 7. Accessibility
@@ -51,8 +46,3 @@ We favor composing utilities directly in JSX over writing custom CSS. This keeps
 - **Focus Rings**: Ensure all interactive elements have visible focus rings. Use Tailwind's `focus-visible` variant.
 - **Contrast**: Use tools to check that text has sufficient color contrast against its background, meeting WCAG AA standards.
 - **`sr-only`**: For visually hidden labels or text that should be available to screen readers, use the `sr-only` class.
-
-## 8. Testing Styles
-
-- While we don't test CSS properties directly, we can test that the correct classes are applied based on component props or state.
-- Use `toHaveClass()` from `@testing-library/jest-dom` to assert that an element has the expected Tailwind utility classes.

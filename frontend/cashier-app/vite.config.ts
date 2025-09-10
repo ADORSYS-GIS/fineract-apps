@@ -1,7 +1,10 @@
-import react from "@vitejs/plugin-react-swc";
-import { defineConfig } from "vite";
+import { defineConfig, mergeConfig } from "vite";
+import { baseViteConfig } from "../../packages/config/vite.config.base";
 
-// https://vite.dev/config/
-export default defineConfig({
-	plugins: [react()],
-});
+// https://vitejs.dev/config/
+export default mergeConfig(
+	baseViteConfig,
+	defineConfig({
+		// App-specific config goes here
+	}),
+);

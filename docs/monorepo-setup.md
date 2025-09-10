@@ -12,7 +12,7 @@ Your initial approach was not a monorepo. It was a "monorepo-in-name-only"—a c
 
 ## 2. The Solution: A `pnpm` Workspace
 
-A true monorepo uses a workspace manager. We use `pnpm workspaces`. This treats all the projects in the `packages/` directory as a single, cohesive system.
+A true monorepo uses a workspace manager. We use `pnpm workspaces`. This treats all the projects in the `frontend/` directory as a single, cohesive system.
 
 **The core benefits we now have are:**
 -   **Single Lockfile**: One `pnpm-lock.yaml` at the root manages dependencies for the *entire* project, eliminating version conflicts.
@@ -27,9 +27,9 @@ The transformation into a proper monorepo involved these key changes:
 This file was created at the root:
 ```yaml
 packages:
-  - 'packages/*'
+  - 'frontend/*'
 ```
--   **Why?** This is the declaration. It explicitly tells `pnpm` that this is a workspace and that every folder inside `/packages` is a package to be managed. This is the single most important file for enabling monorepo functionality.
+-   **Why?** This is the declaration. It explicitly tells `pnpm` that this is a workspace and that every folder inside `/frontend` is a package to be managed. This is the single most important file for enabling monorepo functionality.
 
 ### B. The Root `package.json` Was Gutted
 Your old root `package.json` contained application dependencies. This was incorrect.

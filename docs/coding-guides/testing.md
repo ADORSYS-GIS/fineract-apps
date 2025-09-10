@@ -5,10 +5,13 @@ This guide outlines our strategy for testing to ensure our applications are reli
 ## 1. Core Philosophy & Tools
 
 - **Guiding Principle**: Test user behavior, not implementation details.
-- **Test Runner**: **Jest**
-- **Component/Hook Testing**: **React Testing Library (RTL)**
-- **E2E Testing**: **Cypress**
-- **Accessibility Testing**: **`jest-axe`**
+- **Test Runner**: **Jest** (configured at the root level).
+- **DOM Testing Library**: **React Testing Library (RTL)**.
+
+Future considerations for testing include:
+- **E2E Testing**: A framework like **Cypress** will be evaluated for critical user flows.
+- **Accessibility Testing**: A tool like **`jest-axe`** will be integrated to catch accessibility violations.
+- **API Mocking**: **Mock Service Worker (MSW)** is the recommended approach for mocking API responses at the network level.
 
 ## 2. Unit & Integration Testing (Jest + RTL)
 
@@ -16,7 +19,7 @@ This guide outlines our strategy for testing to ensure our applications are reli
 
 - **AAA Pattern**: Structure tests using Arrange, Act, Assert.
 - **Queries**: Use user-facing queries like `getByRole`, `getByLabelText`, and `getByText`. Avoid implementation-specific queries like `getByTestId` unless absolutely necessary.
-- **User Interaction**: Use `@testing-library/user-event` for simulating user interactions as it provides a more realistic event simulation than `fireEvent`.
+- **User Interaction**: When simulating user events, prefer `@testing-library/user-event` over `fireEvent` as it provides a more realistic event simulation. (Note: `@testing-library/user-event` is not yet a dependency).
 
 ### Testing Custom Hooks
 
@@ -38,48 +41,32 @@ test('should increment counter', () => {
 });
 ```
 
-### Testing TanStack Query
+### Testing Asynchronous Code
 
-- **Mocking**: Use **Mock Service Worker (MSW)** to mock API responses at the network level. This ensures tests are environment-agnostic and reliable.
-- **Wrapper**: Wrap your component with a `QueryClientProvider` in your tests. It's best to create a shared custom render function for this.
-- **Testing States**: Test for `isLoading`, `isSuccess`, and `isError` states.
+- When testing components that fetch data, use Jest's mocking capabilities (`jest.fn()`, `jest.spyOn()`) to mock the fetch call and its response.
+- Test for `isLoading`, `isSuccess`, and `isError` states by asserting that the correct UI is rendered in each case.
 
+## 3. Test Utilities
+
+To avoid repetitive setup in test files (e.g., wrapping components in providers), it is recommended to create a custom `render` function within each application's test directory.
+
+**Example (`/frontend/[app-name]/src/test-utils.tsx`):**
 ```tsx
-test('displays user data on successful fetch', async () => {
-  renderWithClient(<UserComponent />);
-  expect(screen.getByText(/loading/i)).toBeInTheDocument();
-  expect(await screen.findByText(/John Doe/i)).toBeInTheDocument();
-});
+import React, { ReactElement } from 'react';
+import { render, RenderOptions } from '@testing-library/react';
+
+// Add providers here as they are introduced to the project
+const AllTheProviders: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  return (
+    <>{children}</>
+  );
+};
+
+const customRender = (
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>,
+) => render(ui, { wrapper: AllTheProviders, ...options });
+
+export * from '@testing-library/react';
+export { customRender as render };
 ```
-
-### Testing Error States
-
-- Ensure your MSW handlers can return error responses (e.g., 404, 500).
-- Write tests that assert the correct error UI (error messages, disabled buttons) is displayed when an API call fails.
-
-## 3. Accessibility Testing
-
-- Use `jest-axe` to automatically test for WCAG violations in your rendered components.
-- Add accessibility checks to your shared testing utilities to run on every test.
-
-```tsx
-import { render } from './test-utils'; // Your custom render
-import { axe } from 'jest-axe';
-
-test('should have no accessibility violations', async () => {
-  const { container } = render(<MyComponent />);
-  const results = await axe(container);
-  expect(results).toHaveNoViolations();
-});
-```
-
-## 4. Shared Testing Utilities
-
-- Create a `test-utils.tsx` file in `packages/ui/src` to export a custom render function.
-- This function should wrap the rendered component in all necessary providers (`QueryClientProvider`, `ThemeProvider`, etc.) to avoid repetitive setup in every test file.
-
-## 5. End-to-End (E2E) Testing
-
-- **Framework**: **Cypress**
-- **Scope**: E2E tests will cover critical user flows from end to end (e.g., login, creating a client, completing a transaction). They are not for testing every component state; that is the job of unit/integration tests.
-- **Setup**: A `cypress.config.ts` and support files will be added to the root of each application package (`packages/apps/[app-name]`).

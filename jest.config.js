@@ -1,10 +1,15 @@
+/** @type {import('ts-jest').JestConfigWithTsJest} */
 export default {
 	preset: "ts-jest",
 	testEnvironment: "jsdom",
-	setupFilesAfterEnv: ["@testing-library/jest-dom"],
-	moduleNameMapper: {},
+	roots: ["<rootDir>/frontend", "<rootDir>/packages"],
+	moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
 	transform: {
 		"^.+\\.(ts|tsx)$": "ts-jest",
 	},
-	testMatch: ["<rootDir>/packages/**/?(*.)+(spec|test).[jt]s?(x)"],
+	moduleNameMapper: {
+		"^@fineract-apps/(.*)$": "<rootDir>/packages/$1/src",
+	},
+	setupFilesAfterEnv: ["@testing-library/jest-dom"],
+	testPathIgnorePatterns: ["/node_modules/", "/dist/"],
 };

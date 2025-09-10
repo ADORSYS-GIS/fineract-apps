@@ -8,6 +8,17 @@ This document provides TypeScript coding conventions to ensure our code is clean
 - **Variables, Functions, Hooks**: `camelCase` (`clientData`, `useAuth`).
 - **Interfaces**: **Do not** use the `I` prefix (e.g., `ComponentProps`, not `IComponentProps`).
 - **`const` over `let`**: Prefer `const` by default unless a variable needs to be reassigned.
+- **Imports**: Avoid namespace imports (`import * as Name from 'module'`). Prefer named or default imports for better clarity and to ensure tree-shaking works effectively.
+
+  ```ts
+  // Avoid
+  import * as React from 'react';
+  const ref = React.useRef();
+
+  // Prefer
+  import React, { useRef } from 'react';
+  const ref = useRef();
+  ```
 
 ## 2. Immutability
 
@@ -29,7 +40,7 @@ const updatedUser = { ...user, name: 'Jane' };
 
 - **`async/await`**: Always prefer `async/await` over `Promise.then()` chains for cleaner, more readable asynchronous code.
 - **Error Handling**: All `async` functions that can fail (especially API calls) **must** be wrapped in a `try...catch` block to handle errors gracefully.
-- **Logging**: Use a dedicated logging service for capturing errors in production. In development, `console.error` is acceptable.
+- **Logging**: For now, `console.error` is acceptable for logging errors during development. A dedicated logging service should be considered for production environments.
 
 ```ts
 async function fetchUser(id: string) {
@@ -37,7 +48,6 @@ async function fetchUser(id: string) {
     const user = await apiClient.get(`/users/${id}`);
     return user;
   } catch (error) {
-    // In a real app, use a logging service
     console.error('Failed to fetch user:', error);
     throw error; // Re-throw to allow UI to handle it
   }
@@ -46,18 +56,21 @@ async function fetchUser(id: string) {
 
 ## 4. Typing React Patterns
 
-- **Component Props**: Define props with an `interface` or `type`. Use `React.FC` (FunctionComponent) for component definitions to get automatic `children` typing and other benefits.
-- **Optional & Default Props**: Prefer default parameter values over the deprecated `defaultProps`.
+- **Component Props**: Define props with an `interface` or `type`. **Do not use `React.FC` or `React.FunctionComponent`**. This practice is discouraged as it has several drawbacks, including implicitly providing `children` and issues with generics.
+
+- **Typing Components Correctly**: Type props directly on the function declaration.
 
   ```tsx
+  import React, { ReactNode } from 'react';
+
   interface ButtonProps {
     variant?: 'primary' | 'secondary'; // Optional prop
     onClick: () => void;
-    children: React.ReactNode;
+    children: ReactNode;
   }
 
-  export const Button: React.FC<ButtonProps> = ({ variant = 'primary', onClick, children }) => {
-    // `variant` will default to 'primary' if not provided
+  // Correct: Type props directly on the component function.
+  export const Button = ({ variant = 'primary', onClick, children }: ButtonProps) => {
     return <button className={variant} onClick={onClick}>{children}</button>;
   };
   ```
@@ -68,13 +81,11 @@ async function fetchUser(id: string) {
 
 - **Utility Types**: Leverage built-in utility types like `Partial<T>`, `Pick<T, K>`, `Omit<T, K>`, and `ReturnType<T>` to create new types from existing ones without boilerplate.
 - **Generics**: Use generics to create reusable, type-safe functions, hooks, or components.
-- **Type Guards**: Use `typeof`, `instanceof`, or custom predicate functions (`value is Type`) to narrow types within conditional blocks. Avoid the non-null assertion operator (`!`).
+- **Type Guards**: Use `typeof`, `instanceof`, or custom predicate functions (`value is Type`) to narrow types within conditional blocks. Avoid the non-null assertion operator (`!`) where possible.
 
 ## 6. Tooling & Enforcement
 
-- **`tsconfig.json`**: A base `tsconfig.json` in `packages/config/tsconfig` enforces strict type checking across the monorepo.
-- **ESLint/Prettier**: Configuration is centralized. Key ESLint rules to enforce these standards include:
-  - `@typescript-eslint/no-explicit-any`: Disallows using the `any` type.
-  - `@typescript-eslint/explicit-function-return-type`: Requires explicit return types on functions.
-  - `no-floating-promises`: Requires that every `Promise` is handled correctly (e.g., with `await` or `.catch()`).
-  - Rules to enforce immutability (e.g., from `eslint-plugin-functional`).
+- **`tsconfig.base.json`**: A base `tsconfig.base.json` in the root enforces strict type checking across the monorepo.
+- **Biome**: We use [Biome](https://biomejs.dev/) as an all-in-one tool for linting and formatting. It is configured in the `biome.json` file at the project root.
+  - Key lint rules are enabled under the `linter` section of `biome.json` to enforce code quality and type safety, such as `noExplicitAny`.
+  - Run `pnpm lint` to check for violations and `pnpm format` to format the codebase.

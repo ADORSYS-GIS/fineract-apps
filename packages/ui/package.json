@@ -1,0 +1,21 @@
+{
+	"name": "@fineract-apps/ui",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"build": "vite build",
+		"dev": "vite"
+	},
+	"dependencies": {
+		"react": "^19.1.1",
+		"react-dom": "^19.1.1"
+	},
+	"devDependencies": {
+		"vite": "^7.1.2",
+		"typescript": "~5.8.3",
+		"@vitejs/plugin-react-swc": "^4.0.0"
+	}
+}
