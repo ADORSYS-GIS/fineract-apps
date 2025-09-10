@@ -9,4 +9,11 @@ export default {
 		"^.+\\.(ts|tsx)$": "ts-jest",
 	},
 	testMatch: ["<rootDir>/packages/**/?(*.)+(spec|test).[jt]s?(x)"],
+	collectCoverage: true,
+	coverageReporters: ["lcov", "text"],
+	coverageDirectory: "coverage",
+	coveragePathIgnorePatterns: [
+		"/node_modules/",
+		"/dist/",
+	],
 };
