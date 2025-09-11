@@ -68,6 +68,9 @@ importers:
 
   frontend/account-manager-app:
     dependencies:
+      '@fineract-apps/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       react:
         specifier: ^19.1.1
         version: 19.1.1
