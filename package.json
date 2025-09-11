@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "pnpm --parallel --filter \"./frontend/*\" dev",
-		"build": "pnpm --filter \"./frontend/*\" build",
+		"build": "pnpm --filter \"./packages/ui\" build && pnpm --filter \"./frontend/*\" build",
 		"lint": "biome check .",
 		"format": "biome format --write .",
 		"fix": "pnpm format && pnpm biome check --write .",
