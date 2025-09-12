@@ -1,5 +1,5 @@
+import { baseViteConfig } from "@fineract-apps/config/vite.config.base";
 import { defineConfig, mergeConfig } from "vite";
-import { baseViteConfig } from "../../packages/config/vite.config.base";
 
 // https://vitejs.dev/config/
 export default mergeConfig(

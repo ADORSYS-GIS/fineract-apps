@@ -28,8 +28,9 @@ This file was created at the root:
 ```yaml
 packages:
   - 'frontend/*'
+  - 'packages/*'
 ```
--   **Why?** This is the declaration. It explicitly tells `pnpm` that this is a workspace and that every folder inside `/frontend` is a package to be managed. This is the single most important file for enabling monorepo functionality.
+-   **Why?** This is the declaration. It explicitly tells `pnpm` that this is a workspace and that every folder inside `/frontend` and `/packages` is a package to be managed. This is the single most important file for enabling monorepo functionality.
 
 ### B. The Root `package.json` Was Gutted
 Your old root `package.json` contained application dependencies. This was incorrect.
@@ -68,4 +69,41 @@ When you run `pnpm install` at the root, `pnpm` reads the `package.json` from *e
     pnpm add -D vitest --filter branchmanager-app
     ```
 
-This structure is not a suggestion; it is the required workflow for this project to succeed.
+## 5. The Latest Refinements: True Decoupling
+
+The initial monorepo setup was a huge improvement, but the recent changes have taken it to a professional-grade level. Here's what was done and why it's critically important:
+
+### A. Shared Packages as True Dependencies
+
+**The Old Way (Incorrect):**
+```javascript
+// in cashier-app/vite.config.ts
+import { baseViteConfig } from "../../packages/config/vite.config.base";
+```
+
+**The New Way (Correct):**
+```javascript
+// in cashier-app/vite.config.ts
+import { baseViteConfig } from "@fineract-apps/config/vite.config.base";
+```
+
+**Why this matters:**
+
+-   **No More Relative Path Hell:** The old way created a brittle, tightly coupled system. If you moved a file, you'd have to fix a chain of `../..` imports.
+-   **Clarity and Intent:** The new way makes it crystal clear that `cashier-app` has a dependency on the `@fineract-apps/config` package. It treats your internal packages like any other third-party dependency.
+-   **Scalability:** This is how you build a monorepo that can grow. You can now easily add more apps and packages without creating a tangled mess of relative paths.
+
+To achieve this, we did two things:
+1.  Created a `package.json` for the `@fineract-apps/config` package and defined its `exports`.
+2.  Added `@fineract-apps/config` and `@fineract-apps/ui` to the `devDependencies` and `dependencies` of the apps using the `workspace:*` protocol.
+
+### B. Eliminating Unnecessary Configuration
+
+We deleted the `tailwind.config.mjs` files from each of the frontend apps.
+
+**Why this matters:**
+
+-   **Staying Current:** Tailwind CSS v4 is designed to be zero-config by default. The old config files were boilerplate from an outdated setup. This shows an understanding of the tools you are using.
+-   **Simplicity:** Less configuration means less to maintain and less to go wrong.
+
+These recent changes are not just "nice to have." They are essential for building a robust, scalable, and maintainable monorepo. This is the standard you should aim for in all your projects.

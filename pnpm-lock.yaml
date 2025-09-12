@@ -69,7 +69,7 @@ importers:
   frontend/account-manager-app:
     dependencies:
       '@fineract-apps/ui':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/ui
       react:
         specifier: ^19.1.1
@@ -77,24 +77,44 @@ importers:
       react-dom:
         specifier: ^19.1.1
         version: 19.1.1(react@19.1.1)
+    devDependencies:
+      '@fineract-apps/config':
+        specifier: workspace:*
+        version: link:../../packages/config
 
   frontend/branchmanager-app:
     dependencies:
+      '@fineract-apps/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       react:
         specifier: ^19.1.1
         version: 19.1.1
       react-dom:
         specifier: ^19.1.1
         version: 19.1.1(react@19.1.1)
+    devDependencies:
+      '@fineract-apps/config':
+        specifier: workspace:*
+        version: link:../../packages/config
 
   frontend/cashier-app:
     dependencies:
+      '@fineract-apps/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       react:
         specifier: ^19.1.1
         version: 19.1.1
       react-dom:
         specifier: ^19.1.1
         version: 19.1.1(react@19.1.1)
+    devDependencies:
+      '@fineract-apps/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+
+  packages/config: {}
 
   packages/ui:
     dependencies:

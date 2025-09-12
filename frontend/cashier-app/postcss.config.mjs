@@ -1,4 +1,4 @@
-import basePostcssConfig from "../../packages/config/postcss.config.base.mjs";
+import basePostcssConfig from "@fineract-apps/config/postcss.config.base.mjs";
 
 export default {
 	...basePostcssConfig,
