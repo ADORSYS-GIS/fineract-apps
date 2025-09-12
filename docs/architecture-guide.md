@@ -40,18 +40,15 @@ graph TD;
     subgraph "Shared Configuration (@fineract-apps/config)"
         BaseVite[vite.config.base.js]
         BaseTS[tsconfig.base.json]
-        BasePostCSS[postcss.config.base.mjs]
     end
 
     subgraph "App/Package Configuration"
         AppVite[vite.config.ts]
         AppTS[tsconfig.json]
-        AppPostCSS[postcss.config.mjs]
     end
 
     BaseVite --> AppVite;
     BaseTS --> AppTS;
-    BasePostCSS --> AppPostCSS;
 ```
 
 This setup allows for centralized management of common settings while providing flexibility for project-specific overrides. The shared configurations are imported as modules, thanks to the pnpm workspace setup.

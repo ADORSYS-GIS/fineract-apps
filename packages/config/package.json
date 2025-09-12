@@ -4,8 +4,6 @@
 	"private": true,
 	"type": "module",
 	"exports": {
-		"./postcss.config.base.mjs": "./postcss.config.base.mjs",
-		"./tailwind.config.base.mjs": "./tailwind.config.base.mjs",
 		"./tsconfig.base.json": "./tsconfig.base.json",
 		"./vite.config.base": "./vite.config.base.js"
 	}

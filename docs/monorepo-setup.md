@@ -99,11 +99,11 @@ To achieve this, we did two things:
 
 ### B. Eliminating Unnecessary Configuration
 
-We deleted the `tailwind.config.mjs` files from each of the frontend apps.
+We deleted the `tailwind.config.mjs` files and all `postcss.config.mjs` files from each of the frontend apps and the root. We also removed `postcss` and `autoprefixer` dependencies.
 
 **Why this matters:**
 
--   **Staying Current:** Tailwind CSS v4 is designed to be zero-config by default. The old config files were boilerplate from an outdated setup. This shows an understanding of the tools you are using.
--   **Simplicity:** Less configuration means less to maintain and less to go wrong.
+-   **Staying Current:** Tailwind CSS v4 is designed to be zero-config by default and integrates directly with Vite via `@tailwindcss/vite`. The old config files and PostCSS dependencies were boilerplate from an outdated setup. This shows an understanding of the tools you are using.
+-   **Simplicity:** Less configuration and fewer dependencies mean less to maintain and less to go wrong.
 
 These recent changes are not just "nice to have." They are essential for building a robust, scalable, and maintainable monorepo. This is the standard you should aim for in all your projects.
