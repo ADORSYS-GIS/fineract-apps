@@ -1,4 +1,5 @@
 import { Button } from "@fineract-apps/ui";
+
 function App() {
 	return (
 		<div style={{ padding: "20px" }}>
