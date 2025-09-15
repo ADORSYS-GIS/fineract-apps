@@ -1,10 +1,18 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { baseViteConfig } from "@fineract-apps/config/vite.config.base";
 import { defineConfig, mergeConfig } from "vite";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 // https://vitejs.dev/config/
 export default mergeConfig(
 	baseViteConfig,
 	defineConfig({
-		// App-specific config goes here
+		resolve: {
+			alias: {
+				"@": path.resolve(__dirname, "./src"),
+			},
+		},
 	}),
 );
