@@ -1,5 +1,5 @@
 {
-	"extends": "../../packages/config/tsconfig.base.json",
+	"extends": "@fineract-apps/config/tsconfig.base.json",
 	"compilerOptions": {
 		"composite": true,
 		"jsx": "react-jsx",
