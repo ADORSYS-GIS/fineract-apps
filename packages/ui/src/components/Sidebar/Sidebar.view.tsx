@@ -1,12 +1,15 @@
 import { LogOut } from "lucide-react";
 import React from "react";
 import { SidebarProps } from "./Sidebar.types";
+import { useSidebar } from "./useSidebar";
 
 export const SidebarView: React.FC<SidebarProps> = ({
 	menuItems,
 	onLogout,
 	className,
 }) => {
+	const { activeLink, handleClick } = useSidebar(menuItems);
+
 	return (
 		<aside
 			className={`h-screen w-64 bg-white shadow-lg flex flex-col justify-between ${className}`}
@@ -18,11 +21,15 @@ export const SidebarView: React.FC<SidebarProps> = ({
 			<nav className="flex-1 px-2 space-y-2">
 				{menuItems.map((item) => {
 					const Icon = item.icon;
+					const isActive = activeLink === item.link;
 					return (
 						<a
 							key={item.link}
 							href={item.link}
-							className="flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+							onClick={() => handleClick(item.link)}
+							className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition ${
+								isActive ? "bg-blue-50 text-blue-600" : ""
+							}`}
 						>
 							{Icon && <Icon className="w-5 h-5" />}
 							<span>{item.name}</span>
