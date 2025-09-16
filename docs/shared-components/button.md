@@ -127,6 +127,8 @@ This section is for developers who need to understand, maintain, or modify the `
 
 The `Button` is a reusable component built with React and styled with Tailwind CSS. It follows the project's "Container/Hook/View" pattern to separate logic from presentation.
 
+It leverages a **semantic color theming system** defined in `packages/ui/src/styles.css`. This means the button uses color tokens (e.g., `bg-primary`, `text-foreground`) that describe the *purpose* of the color rather than its literal value. This approach ensures consistency, maintainability, and easy rebranding across the application.
+
 ### Dependencies
 
 The component relies on a few key libraries:
@@ -150,7 +152,7 @@ The component's code is organized in the `packages/ui/src/components/Button/` di
 
 ### File Breakdown
 
-- **`Button.view.tsx`**: This is the core presentational component. It uses `cva` (from `class-variance-authority`) to define all the CSS classes for the different variants and sizes. It also handles the logic for displaying the `Loader2` icon when `isLoading` is true.
+- **`Button.view.tsx`**: This is the core presentational component. It uses `cva` (from `class-variance-authority`) to define all the CSS classes for the different variants and sizes. Crucially, it uses our **semantic color tokens** (e.g., `bg-primary`, `text-primary-foreground`, `border-border`) which are defined in `packages/ui/src/styles.css`. This decouples the component's styling from specific color values, making it highly themeable. It also handles the logic for displaying the `Loader2` icon when `isLoading` is true.
 
 - **`Button.types.ts`**: Defines the `ButtonProps` interface. It extends the standard React button attributes and adds our custom props like `variant`, `size`, and `isLoading` by using `VariantProps<typeof buttonVariants>`.
 

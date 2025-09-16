@@ -9,17 +9,15 @@ export const buttonVariants = cva(
 	{
 		variants: {
 			variant: {
-				default:
-					"bg-slate-900 text-slate-50 hover:bg-slate-900/90 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-50/90",
+				default: "bg-primary text-primary-foreground hover:bg-primary/90",
 				destructive:
-					"bg-red-500 text-slate-50 hover:bg-red-500/90 dark:bg-red-900 dark:text-slate-50 dark:hover:bg-red-900/90",
+					"bg-destructive text-destructive-foreground hover:bg-destructive/80",
 				outline:
-					"border border-slate-200 bg-transparent hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-50",
+					"border border-border bg-transparent hover:bg-accent hover:text-accent-foreground",
 				secondary:
-					"bg-slate-100 text-slate-900 hover:bg-slate-100/80 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-800/80",
-				ghost:
-					"hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50",
-				link: "text-slate-900 underline-offset-4 hover:underline dark:text-slate-50",
+					"bg-secondary text-secondary-foreground hover:bg-secondary/80",
+				ghost: "hover:bg-accent hover:text-accent-foreground",
+				link: "text-foreground underline-offset-4 hover:underline hover:text-primary",
 			},
 			size: {
 				default: "h-10 py-2 px-4",
@@ -43,7 +41,7 @@ export const ButtonView = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				disabled={isLoading}
 				{...props}
 			>
-				{isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+				{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 				{children}
 			</button>
 		);
