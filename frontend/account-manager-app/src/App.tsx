@@ -1,4 +1,3 @@
-import "@fineract-apps/ui/styles.css";
 import { Button } from "@fineract-apps/ui";
 
 function App() {
