@@ -20,8 +20,8 @@ export const SidebarView: React.FC<SidebarProps> = ({
 					const Icon = item.icon;
 					return (
 						<a
-							key={item.link} 
-        					href={item.link}
+							key={item.link}
+							href={item.link}
 							className="flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
 						>
 							{Icon && <Icon className="w-5 h-5" />}
