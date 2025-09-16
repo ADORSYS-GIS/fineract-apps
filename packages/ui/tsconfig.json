@@ -4,9 +4,7 @@
 		"composite": true,
 		"outDir": "./dist",
 		"noEmit": false,
-		"allowImportingTsExtensions": false,
-		"jsx": "react-jsx",
-		"lib": ["es2022", "dom", "esnext"]
+		"allowImportingTsExtensions": false
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", "dist"]
