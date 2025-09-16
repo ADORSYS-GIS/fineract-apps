@@ -80,6 +80,43 @@ You can combine these props to create the exact button you need.
 <Button variant="secondary" size="sm" isLoading>Saving...</Button>
 ```
 
+### Responsiveness
+
+The Button component is fully responsive. You can use Tailwind's responsive utility classes (like `md:`, `lg:`, etc.) directly in the `className` prop to change the button's styles at different screen sizes.
+
+Here are a few common examples:
+
+**1. Full-width on Mobile, Fixed-width on Desktop**
+
+This is a common pattern for buttons in forms.
+
+```tsx
+<Button className="w-full md:w-auto">Submit</Button>
+```
+
+**2. Icon-only on Mobile, Icon and Text on Desktop**
+
+This saves space on small screens. You can use a `<span>` with responsive display classes for the text.
+
+```tsx
+import { Check } from "lucide-react";
+
+<Button>
+  <Check className="h-4 w-4" />
+  <span className="hidden md:inline md:ml-2">Approve</span>
+</Button>
+```
+
+**3. Different Padding on Different Screen Sizes**
+
+You can override the default padding of a size variant to make a button more touch-friendly on smaller screens.
+
+```tsx
+<Button size="lg" className="px-4 md:px-8">
+  Get Started
+</Button>
+```
+
 ---
 
 ## 2. Technical Guide
