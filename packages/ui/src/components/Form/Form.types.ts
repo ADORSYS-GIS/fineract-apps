@@ -1,45 +1,58 @@
+// packages/ui/src/components/Form/Form.types.ts
 import React from "react";
 
+/**
+ * Generic map for form values.
+ */
 export type Values = Record<string, unknown>;
 
-export type ValidationFn<T = Values> = (
-	value: T[keyof T],
+/**
+ * Validator receives the field value and the entire values map.
+ * Returns a string error or undefined when valid.
+ */
+export type ValidationFn<T extends Values = Values> = (
+	value: T[keyof T] | undefined,
 	values?: T,
 ) => string | undefined;
 
-export interface ValidationSchema<T = Values> {
-	[field: string]: ValidationFn<T>;
-}
+export type ValidationSchema<T extends Values = Values> = Partial<
+	Record<keyof T & string, ValidationFn<T>>
+>;
 
-export interface UseFormProps<T = Values> {
+export interface UseFormProps<T extends Values = Values> {
 	initialValues?: T;
 	validationSchema?: ValidationSchema<T>;
 	onSubmit?: (values: T) => void | Promise<void>;
 }
 
-export interface UseFormReturn<T = Values> {
+export interface UseFormReturn<T extends Values = Values> {
 	values: T;
-	errors: Record<keyof T & string, string>;
-	touched: Record<keyof T & string, boolean>;
+	errors: Partial<Record<keyof T & string, string>>;
+	touched: Partial<Record<keyof T & string, boolean>>;
 	isSubmitting: boolean;
 	isValid: boolean;
 	setValue: <K extends keyof T>(name: K, value: T[K]) => void;
-	setError: (name: keyof T & string, error: string) => void;
-	validateField: (name: keyof T & string, value?: T[keyof T]) => void;
+	setError: (name: keyof T & string, error?: string) => void;
+	validateField: (
+		name: keyof T & string,
+		value?: T[keyof T],
+	) => string | undefined;
 	validateForm: () => boolean;
-	handleSubmit: (e: React.FormEvent) => void;
+	handleSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
 	reset: () => void;
 }
 
-export type FormContextType<T = Values> = UseFormReturn<T>;
+export type FormContextType<T extends Values = Values> = UseFormReturn<T>;
 
-export interface FormProps<T = Values>
+export interface FormProps<T extends Values = Values>
 	extends Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit"> {
 	initialValues?: T;
 	validationSchema?: ValidationSchema<T>;
 	onSubmit?: (values: T) => void | Promise<void>;
 	children: React.ReactNode;
 }
+
+/* Input-related types */
 
 export type InputType =
 	| "text"
@@ -57,11 +70,14 @@ export interface InputOption {
 }
 
 export interface InputProps
-	extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
+	extends Omit<
+		React.InputHTMLAttributes<HTMLInputElement>,
+		"size" | "onChange"
+	> {
 	name: string;
 	label?: string;
 	type?: InputType;
-	options?: InputOption[]; // for select, radio
+	options?: InputOption[]; // for select or radio
 	helperText?: string;
 	error?: string;
 	size?: "sm" | "md" | "lg";

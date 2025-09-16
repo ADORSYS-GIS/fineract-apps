@@ -1,34 +1,54 @@
-import { useCallback, useState } from "react";
+// packages/ui/src/components/Form/useForm.ts
+import { useCallback, useMemo, useState } from "react";
 import { UseFormProps, UseFormReturn, Values } from "./Form.types";
 
+/**
+ * A small, generic useForm hook.
+ *
+ * Strongly typed: no `any`. All errors / touched are keyed by field names (strings).
+ */
 export const useForm = <T extends Values = Values>({
 	initialValues = {} as T,
 	validationSchema = {},
 	onSubmit,
 }: UseFormProps<T> = {}): UseFormReturn<T> => {
 	const [values, setValues] = useState<T>(initialValues);
-	const [errors, setErrors] = useState<Record<keyof T & string, string>>(
-		{} as Record<keyof T & string, string>,
-	);
-	const [touched, setTouched] = useState<Record<keyof T & string, boolean>>(
-		{} as Record<keyof T & string, boolean>,
-	);
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof T & string, string>>
+	>({});
+	const [touched, setTouched] = useState<
+		Partial<Record<keyof T & string, boolean>>
+	>({});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const validateField = useCallback(
 		(name: keyof T & string, value?: T[keyof T]) => {
 			const validator = validationSchema[name];
-			if (!validator) return;
-			const val = value !== undefined ? value : values[name];
-			const error = validator(val, values);
+			if (!validator) {
+				// no validator -> clear error (if any)
+				setErrors((prev) => {
+					if (prev && Object.hasOwn(prev, name)) {
+						const copy = { ...prev };
+						delete copy[name];
+						return copy;
+					}
+					return prev;
+				});
+				return undefined;
+			}
+
+			const val = value === undefined ? values[name as keyof T] : value;
+			const error = validator(val as T[keyof T], values);
 			setErrors((prev) => {
+				const copy = { ...(prev || {}) };
 				if (error) {
-					const newState = { ...prev };
-					delete newState[name];
-					return newState;
+					copy[name] = error;
+				} else {
+					delete copy[name];
 				}
-				return { ...prev, [name]: error };
+				return copy;
 			});
+			return error;
 		},
 		[validationSchema, values],
 	);
@@ -37,34 +57,63 @@ export const useForm = <T extends Values = Values>({
 		<K extends keyof T>(name: K, value: T[K]) => {
 			setValues((prev) => ({ ...prev, [name]: value }));
 			setTouched((prev) => ({ ...prev, [name]: true }));
-			if (validationSchema[name as string])
+			if (validationSchema[name as string]) {
+				// validate with the new value
 				validateField(name as string, value);
+			} else {
+				// if there's no validator, ensure any previous error is removed
+				setErrors((prev) => {
+					if (prev && Object.hasOwn(prev, name as string)) {
+						const copy = { ...prev };
+						delete copy[name as string];
+						return copy;
+					}
+					return prev;
+				});
+			}
 		},
-		[validationSchema, validateField],
+		[validateField, validationSchema],
 	);
 
-	const setError = useCallback((name: keyof T & string, error: string) => {
-		setErrors((prev) => ({ ...prev, [name]: error }));
+	const setError = useCallback((name: keyof T & string, error?: string) => {
+		setErrors((prev) => {
+			const copy = { ...(prev || {}) };
+			if (error) copy[name] = error;
+			else delete copy[name];
+			return copy;
+		});
 	}, []);
 
 	const validateForm = useCallback(() => {
-		let valid = true;
 		const newErrors: Partial<Record<keyof T & string, string>> = {};
-		Object.keys(validationSchema).forEach((name) => {
-			const error = validationSchema[name](values[name as keyof T], values);
-			if (error) {
-				newErrors[name as keyof T & string] = error;
-				valid = false;
-			}
-		});
-		setErrors(newErrors as Record<keyof T & string, string>);
-		return valid;
+		(Object.keys(validationSchema) as Array<keyof T & string>).forEach(
+			(name) => {
+				const validator = validationSchema[name];
+				if (!validator) return;
+				const value = values[name as keyof T];
+				const err = validator(value as T[keyof T], values);
+				if (err) {
+					newErrors[name] = err;
+				}
+			},
+		);
+
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
 	}, [validationSchema, values]);
 
 	const handleSubmit = useCallback(
-		async (e: React.FormEvent) => {
+		async (e: React.FormEvent<HTMLFormElement>) => {
 			e.preventDefault();
+			// mark all fields as touched
+			const allTouched: Partial<Record<keyof T & string, boolean>> = {};
+			Object.keys(values).forEach((k) => {
+				allTouched[k as keyof T & string] = true;
+			});
+			setTouched(allTouched);
+
 			if (!validateForm()) return;
+
 			setIsSubmitting(true);
 			try {
 				if (onSubmit) await onSubmit(values);
@@ -72,17 +121,20 @@ export const useForm = <T extends Values = Values>({
 				setIsSubmitting(false);
 			}
 		},
-		[validateForm, onSubmit, values],
+		[onSubmit, validateForm, values],
 	);
 
 	const reset = useCallback(() => {
 		setValues(initialValues);
-		setErrors({} as Record<keyof T & string, string>);
-		setTouched({} as Record<keyof T & string, boolean>);
+		setErrors({});
+		setTouched({});
 		setIsSubmitting(false);
 	}, [initialValues]);
 
-	const isValid = Object.keys(errors).length === 0;
+	const isValid = useMemo(
+		() => Object.keys(errors || {}).length === 0,
+		[errors],
+	);
 
 	return {
 		values,

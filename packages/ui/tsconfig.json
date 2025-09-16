@@ -5,7 +5,8 @@
 		"outDir": "./dist",
 		"noEmit": false,
 		"allowImportingTsExtensions": false,
-		"jsx": "react-jsx"
+		"jsx": "react-jsx",
+		"lib": ["es2022", "dom", "esnext"]
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", "dist"]
