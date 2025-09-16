@@ -16,12 +16,12 @@ export const SidebarView: React.FC<SidebarProps> = ({
 
 			{/* Menu */}
 			<nav className="flex-1 px-2 space-y-2">
-				{menuItems.map((item, index) => {
+				{menuItems.map((item) => {
 					const Icon = item.icon;
 					return (
 						<a
-							key={index}
-							href={item.link}
+							key={item.link} 
+        					href={item.link}
 							className="flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
 						>
 							{Icon && <Icon className="w-5 h-5" />}
