@@ -5,6 +5,10 @@
 	"type": "module",
 	"main": "./src/index.ts",
 	"types": "./src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./styles.css": "./src/styles.css"
+	},
 	"scripts": {
 		"build": "vite build",
 		"dev": "vite"
@@ -15,6 +19,9 @@
 		"react-dom": "^19.1.1"
 	},
 	"devDependencies": {
+		"@fineract-apps/config": "workspace:*",
+		"vite": "^7.1.2",
+		"typescript": "~5.8.3",
 		"@vitejs/plugin-react-swc": "^4.0.0",
 		"typescript": "~5.8.3",
 		"vite": "^7.1.2",

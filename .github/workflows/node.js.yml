@@ -36,7 +36,7 @@ jobs:
         run: pnpm --filter="...[origin/main]" run build
 
       - name: Lint affected projects
-        run: pnpm --filter="...[origin/main]" run lint
+        run: pnpm --filter="...[origin/main]" run lint --if-present
 
       - name: Run Biome for the whole repo
-        run: pnpm biome ci frontend/**/src
+        run: pnpm biome ci .

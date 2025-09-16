@@ -1,7 +1,10 @@
+import { fileURLToPath } from "node:url";
+import { baseViteConfig } from "@fineract-apps/config/vite.config.base";
 import { resolve } from "path";
 import { defineConfig, mergeConfig } from "vite";
 import { libInjectCss } from "vite-plugin-lib-inject-css";
-import { baseViteConfig } from "../config/vite.config.base";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default mergeConfig(
 	baseViteConfig,
