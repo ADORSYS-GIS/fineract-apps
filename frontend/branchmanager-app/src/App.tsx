@@ -1,14 +1,14 @@
-import { Sidebar, menuBranchManager } from "@fineract-apps/ui"; // Use branch manager menu
+import { menuBranchManager, Sidebar } from "@fineract-apps/ui"; // Use branch manager menu
 
 function App() {
-  const handleLogout = () => alert("Logout clicked!"); // Logout handler
+	const handleLogout = () => alert("Logout clicked!"); // Logout handler
 
-  return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      {/* Sidebar with dynamic menu */}
-      <Sidebar menuItems={menuBranchManager} onLogout={handleLogout} />
-    </div>
-  );
+	return (
+		<div style={{ display: "flex", height: "100vh" }}>
+			{/* Sidebar with dynamic menu */}
+			<Sidebar menuItems={menuBranchManager} onLogout={handleLogout} />
+		</div>
+	);
 }
 
 export default App;

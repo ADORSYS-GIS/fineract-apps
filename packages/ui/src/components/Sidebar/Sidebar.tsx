@@ -4,8 +4,8 @@ import { SidebarView } from "./Sidebar.view";
 import { useSidebar } from "./useSidebar";
 
 export const Sidebar: React.FC<SidebarProps> = (props) => {
-  const hookProps = useSidebar();
-  return <SidebarView {...props} {...hookProps} />;
+	const hookProps = useSidebar();
+	return <SidebarView {...props} {...hookProps} />;
 };
 
 Sidebar.displayName = "Sidebar";
