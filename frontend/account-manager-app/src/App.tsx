@@ -1,12 +1,21 @@
-import { menuAccountManager, Sidebar } from "@fineract-apps/ui";
+import "@fineract-apps/ui/styles.css";
+import { Button } from "@fineract-apps/ui";
 
 function App() {
-	const handleLogout = () => alert("Logout clicked!");
-
 	return (
-		<div style={{ display: "flex", height: "100vh" }}>
-			{/* Sidebar with dynamic menu */}
-			<Sidebar menuItems={menuAccountManager} onLogout={handleLogout} />
+		<div style={{ padding: "20px" }}>
+			<h1>Account Manager App</h1>
+			<p>
+				This button is a shared component from the '@fineract-apps/ui' package.
+			</p>
+			<Button>Click me!</Button>
+			<Button>Click me!</Button>
+
+			<Button>Click me!</Button>
+
+			<Button>Click me!</Button>
+
+			<Button className="bg-red-500">Click me!</Button>
 		</div>
 	);
 }
