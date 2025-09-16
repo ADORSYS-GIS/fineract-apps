@@ -6,7 +6,8 @@
 		"noEmit": true,
 		"allowImportingTsExtensions": true,
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"@fineract-apps/ui/*": ["../../packages/ui/*"]
 		}
 	},
 	"include": ["src"],

@@ -1,14 +1,14 @@
-import { Button } from "@fineract-apps/ui";
+import { Sidebar, menuCashier } from "@fineract-apps/ui"; // Use cashier menu
 
 function App() {
-	return (
-		<div style={{ padding: "20px" }}>
-			<h1>Account Manager App</h1>
-			<p>This button is a shared component from the '@repo/ui' package.</p>
-			<Button>test</Button>
-			<Button className="bg-red-500">test</Button>
-		</div>
-	);
+  const handleLogout = () => alert("Logout clicked!"); // Logout handler
+
+  return (
+    <div style={{ display: "flex", height: "100vh" }}>
+      {/* Sidebar with dynamic menu */}
+      <Sidebar menuItems={menuCashier} onLogout={handleLogout} />
+	</div>
+  );
 }
 
 export default App;

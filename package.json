@@ -11,7 +11,10 @@
 		"fix": "pnpm format && pnpm biome check --write .",
 		"test": "jest",
 		"test:coverage": "jest --coverage",
-		"prepare": "husky"
+		"prepare": "husky",
+		"start:account": "pnpm --filter account-manager-app dev",
+  		"start:branch": "pnpm --filter branch-manager-app dev",
+  		"start:cashier": "pnpm --filter cashier-app dev"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.3",
