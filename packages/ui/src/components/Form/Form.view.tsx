@@ -31,7 +31,7 @@ export function Form<T extends Values = Values>({
 	children,
 	className,
 	...rest
-}: FormProps<T>) {
+}: Readonly<FormProps<T>>) {
 	const form = useForm<T>({ initialValues, validationSchema, onSubmit });
 
 	return (
@@ -84,9 +84,9 @@ export const Input: React.FC<InputProps> = ({
 	...rest
 }) => {
 	const form = useFormContext();
-	const value = form.values[name as keyof typeof form.values];
-	const touched = form.touched[name as keyof typeof form.touched];
-	const errorFromForm = form.errors[name as keyof typeof form.errors];
+	const value = form.values[name];
+	const touched = form.touched[name];
+	const errorFromForm = form.errors[name];
 	const error = errorProp ?? errorFromForm;
 	const id = `form-input-${name}`;
 
@@ -117,28 +117,22 @@ export const Input: React.FC<InputProps> = ({
 	) => {
 		if (type === "checkbox") {
 			const target = e.target as HTMLInputElement;
-			form.setValue(name as keyof typeof form.values, target.checked);
+			form.setValue(name, target.checked);
 		} else if (type === "number") {
 			const target = e.target as HTMLInputElement;
 			const parsed = target.value === "" ? "" : Number(target.value);
-			form.setValue(
-				name as keyof typeof form.values,
-				parsed as unknown as typeof value,
-			);
+			form.setValue(name, parsed as unknown as typeof value);
 		} else {
-			form.setValue(
-				name as keyof typeof form.values,
-				e.target.value as unknown as typeof value,
-			);
+			form.setValue(name, e.target.value as unknown as typeof value);
 		}
 
 		if (errorFromForm) {
-			form.validateField(name as keyof typeof form.values);
+			form.validateField(name);
 		}
 	};
 
 	const handleBlur = () => {
-		form.validateField(name as keyof typeof form.values);
+		form.validateField(name);
 	};
 
 	const commonProps = {
@@ -210,9 +204,7 @@ export const Input: React.FC<InputProps> = ({
 				{...(commonProps as React.InputHTMLAttributes<HTMLInputElement>)}
 				type={type}
 				value={
-					typeof value === "string" || typeof value === "number"
-						? (value as string | number)
-						: ""
+					typeof value === "string" || typeof value === "number" ? value : ""
 				}
 				onChange={handleChange as React.ChangeEventHandler<HTMLInputElement>}
 				className={cx(inputBase, sizeClass, variantClass, errorClass)}

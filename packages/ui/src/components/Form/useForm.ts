@@ -37,8 +37,8 @@ export const useForm = <T extends Values = Values>({
 				return undefined;
 			}
 
-			const val = value === undefined ? values[name as keyof T] : value;
-			const error = validator(val as T[keyof T], values);
+			const val = value ?? values[name as keyof T];
+			const error = validator(val, values);
 			setErrors((prev) => {
 				const copy = { ...(prev || {}) };
 				if (error) {
@@ -91,7 +91,7 @@ export const useForm = <T extends Values = Values>({
 				const validator = validationSchema[name];
 				if (!validator) return;
 				const value = values[name as keyof T];
-				const err = validator(value as T[keyof T], values);
+				const err = validator(value, values);
 				if (err) {
 					newErrors[name] = err;
 				}
