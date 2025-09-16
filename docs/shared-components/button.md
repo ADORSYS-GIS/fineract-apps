@@ -145,6 +145,7 @@ The component's code is organized in the `packages/ui/src/components/Button/` di
 /Button
 ├── Button.test.tsx     # Unit tests
 ├── Button.types.ts     # TypeScript type definitions
+├── Button.variants.ts  # Defines the button's CVA variants
 ├── Button.view.tsx     # The presentational component (View)
 ├── index.tsx           # The main component entry file (Container)
 └── useButton.ts        # Logic and state management (Hook)
@@ -152,9 +153,11 @@ The component's code is organized in the `packages/ui/src/components/Button/` di
 
 ### File Breakdown
 
-- **`Button.view.tsx`**: This is the core presentational component. It uses `cva` (from `class-variance-authority`) to define all the CSS classes for the different variants and sizes. Crucially, it uses our **semantic color tokens** (e.g., `bg-primary`, `text-primary-foreground`, `border-border`) which are defined in `packages/ui/src/styles.css`. This decouples the component's styling from specific color values, making it highly themeable. It also handles the logic for displaying the `Loader2` icon when `isLoading` is true.
+- **`Button.view.tsx`**: This is the core presentational component. It imports `buttonVariants` from `Button.variants.ts` and uses our **semantic color tokens** (e.g., `bg-primary`, `text-primary-foreground`, `border-border`) which are defined in `packages/ui/src/styles.css`. This decouples the component's styling from specific color values, making it highly themeable. It also handles the logic for displaying the `Loader2` icon when `isLoading` is true.
 
-- **`Button.types.ts`**: Defines the `ButtonProps` interface. It extends the standard React button attributes and adds our custom props like `variant`, `size`, and `isLoading` by using `VariantProps<typeof buttonVariants>`.
+- **`Button.types.ts`**: Defines the `ButtonProps` interface. It extends the standard React button attributes and adds our custom props like `variant`, `size`, and `isLoading` by using `VariantProps<typeof buttonVariants>`. `buttonVariants` is imported from `Button.variants.ts`.
+
+- **`Button.variants.ts`**: This file defines the `buttonVariants` using `cva` (from `class-variance-authority`). It centralizes all the styling logic for the button's different variants and sizes, breaking the circular dependency between `Button.types.ts` and `Button.view.tsx`.
 
 - **`index.tsx`**: This is the public face of the component. It follows the container pattern, taking all the props and passing them down to the `ButtonView`.
 
