@@ -1,5 +1,4 @@
 import { LucideIcon } from "lucide-react";
-import React from "react";
 
 export interface MenuItem {
 	name: string;
