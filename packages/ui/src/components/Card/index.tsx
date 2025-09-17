@@ -3,9 +3,9 @@ import { CardView } from "./Card.view";
 import { useCard } from "./useCard";
 
 export const Card = (props: CardProps) => {
-  console.log(props);
+	console.log(props);
 
-  const { handleClick, isLoading } = useCard(props);
+	const { handleClick, isLoading } = useCard(props);
 
-  return <CardView {...props} onClick={handleClick} loading={isLoading} />;
+	return <CardView {...props} onClick={handleClick} loading={isLoading} />;
 };

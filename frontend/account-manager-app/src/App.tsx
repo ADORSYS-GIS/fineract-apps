@@ -16,7 +16,6 @@ function App() {
 			<Button>Click me!</Button>
 
 			<Button className="bg-red-500">Click me!</Button>
-			
 		</div>
 	);
 }

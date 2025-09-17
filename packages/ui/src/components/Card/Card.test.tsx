@@ -44,8 +44,6 @@
 // 		expect(screen.getByTestId("test-media")).toBeInTheDocument();
 // 	});
 
-
-
 // 	test("applies hover effect when hoverable is true", () => {
 // 		const { container } = render(
 // 			<Card title="Test Card" hoverable>
