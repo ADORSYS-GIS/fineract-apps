@@ -63,6 +63,14 @@ export const CardView = ({
 			className={`${baseClasses} ${loading ? "opacity-50 animate-pulse" : ""}`}
 			aria-label={ariaLabel}
 			onClick={onClick}
+			role="button"
+			tabIndex={0}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					onClick?.();
+				}
+			}}
 		>
 			{media && <div className="mb-2 text-green-500">{media}</div>}
 			{title && <div className="font-semibold text-gray-800">{title}</div>}

@@ -4,7 +4,7 @@ import { Bell, Menu, X } from "lucide-react";
 import { NavbarProps } from "./Navbar.types";
 
 export const NavbarView = ({
-	logo = "BankerPro",
+	logo,
 	userName,
 	userId,
 	onLogout,
@@ -14,6 +14,7 @@ export const NavbarView = ({
 	profileImage,
 	className,
 }: NavbarProps) => {
+	const effectiveLogo = logo ?? "BankerPro";
 	return (
 		<header
 			className={`flex justify-between items-center bg-white border-b border-gray-200 px-6 py-3 shadow-sm ${className || ""}`}
@@ -23,7 +24,9 @@ export const NavbarView = ({
 				<div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-3">
 					<span className="text-white font-bold text-sm">B</span>
 				</div>
-				<span className="font-semibold text-gray-900 text-lg">{logo}</span>
+				<span className="font-semibold text-gray-900 text-lg">
+					{effectiveLogo}
+				</span>
 			</div>
 
 			{/* Right side - User info and actions */}
