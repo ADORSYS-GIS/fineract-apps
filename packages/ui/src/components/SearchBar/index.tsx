@@ -57,7 +57,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
 					highlightedIndex,
 					getInputProps,
 					getItemProps,
-					getMenuProps
+					getMenuProps,
 				}}
 			/>
 		);
