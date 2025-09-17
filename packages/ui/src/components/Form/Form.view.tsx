@@ -92,19 +92,19 @@ export const Input: React.FC<InputProps> = ({
 
 	const inputBase =
 		"block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2";
-	const sizeClass =
-		size === "sm"
-			? "text-sm py-1"
-			: size === "lg"
-				? "text-lg py-3"
-				: "text-base py-2";
+	let sizeClass = "text-base py-2";
+	if (size === "sm") {
+		sizeClass = "text-sm py-1";
+	} else if (size === "lg") {
+		sizeClass = "text-lg py-3";
+	}
 
-	const variantClass =
-		variant === "filled"
-			? "bg-green-50 border-green-200 focus:ring-green-300"
-			: variant === "standard"
-				? "border-transparent focus:ring-0"
-				: "bg-white border-green-200 focus:ring-green-300";
+	let variantClass = "bg-white border-green-200 focus:ring-green-300";
+	if (variant === "filled") {
+		variantClass = "bg-green-50 border-green-200 focus:ring-green-300";
+	} else if (variant === "standard") {
+		variantClass = "border-transparent focus:ring-0";
+	}
 
 	const errorClass =
 		error && touched ? "border-red-400 focus:ring-red-200" : "";
@@ -121,9 +121,9 @@ export const Input: React.FC<InputProps> = ({
 		} else if (type === "number") {
 			const target = e.target as HTMLInputElement;
 			const parsed = target.value === "" ? "" : Number(target.value);
-			form.setValue(name, parsed as unknown as typeof value);
+			form.setValue(name, parsed);
 		} else {
-			form.setValue(name, e.target.value as unknown as typeof value);
+			form.setValue(name, e.target.value);
 		}
 
 		if (errorFromForm) {
@@ -141,8 +141,15 @@ export const Input: React.FC<InputProps> = ({
 		onBlur: handleBlur,
 		disabled,
 		"aria-invalid": !!(error && touched),
-		"aria-describedby":
-			error && touched ? `${id}-error` : helperText ? `${id}-hint` : undefined,
+		"aria-describedby": (() => {
+			if (error && touched) {
+				return `${id}-error`;
+			} else if (helperText) {
+				return `${id}-hint`;
+			} else {
+				return undefined;
+			}
+		})(),
 		...rest,
 	} as const;
 
