@@ -9,7 +9,7 @@ describe("Card", () => {
 		expect(screen.getByText("Test Content")).toBeInTheDocument();
 	});
 
-	test("applies custom class name", () => {
+	test("applies custom class names", () => {
 		const { container } = render(
 			<Card title="Test Card" className="custom-class">
 				Test Content
