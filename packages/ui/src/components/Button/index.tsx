@@ -1,5 +1,5 @@
 // /frontend/shared/src/components/ui/Button/index.tsx
-
+import React from "react";
 import { ButtonProps } from "./Button.types";
 import { ButtonView } from "./Button.view";
 
