@@ -1,74 +1,8 @@
 // packages/ui/src/components/Form/useForm.ts
 import { useCallback, useMemo, useReducer, useState } from "react";
 import { UseFormProps, UseFormReturn, Values } from "./Form.types";
-
-type FormState<T extends Values> = {
-	values: T;
-	errors: Partial<Record<keyof T & string, string>>;
-	touched: Partial<Record<keyof T & string, boolean>>;
-};
-
-type FormAction<T extends Values> =
-	| { type: "SET_VALUES"; payload: T }
-	| { type: "SET_FIELD_VALUE"; payload: { name: keyof T; value: T[keyof T] } }
-	| { type: "SET_ERRORS"; payload: Partial<Record<keyof T & string, string>> }
-	| {
-			type: "SET_FIELD_ERROR";
-			payload: { name: keyof T & string; error?: string };
-	  }
-	| { type: "SET_TOUCHED"; payload: Partial<Record<keyof T & string, boolean>> }
-	| {
-			type: "SET_FIELD_TOUCHED";
-			payload: { name: keyof T & string; touched: boolean };
-	  }
-	| { type: "RESET"; payload: T };
-
-const createFormReducer =
-	<T extends Values>() =>
-	(state: FormState<T>, action: FormAction<T>): FormState<T> => {
-		switch (action.type) {
-			case "SET_VALUES":
-				return { ...state, values: action.payload };
-			case "SET_FIELD_VALUE":
-				return {
-					...state,
-					values: {
-						...state.values,
-						[action.payload.name]: action.payload.value,
-					},
-				};
-			case "SET_ERRORS":
-				return { ...state, errors: action.payload };
-			case "SET_FIELD_ERROR": {
-				const { name, error } = action.payload;
-				const newErrors = { ...state.errors };
-				if (error) {
-					newErrors[name] = error;
-				} else {
-					delete newErrors[name];
-				}
-				return { ...state, errors: newErrors };
-			}
-			case "SET_TOUCHED":
-				return { ...state, touched: action.payload };
-			case "SET_FIELD_TOUCHED":
-				return {
-					...state,
-					touched: {
-						...state.touched,
-						[action.payload.name]: action.payload.touched,
-					},
-				};
-			case "RESET":
-				return {
-					values: action.payload,
-					errors: {},
-					touched: {},
-				};
-			default:
-				return state;
-		}
-	};
+import { createFormReducer } from "./formReducer";
+import { validateField, validateForm } from "./validation";
 
 export const useForm = <T extends Values = Values>({
 	initialValues = {} as T,
@@ -85,11 +19,9 @@ export const useForm = <T extends Values = Values>({
 
 	const { values, errors, touched } = state;
 
-	const validateField = useCallback(
-		(name: keyof T & string, value?: T[keyof T]) => {
-			const validator = validationSchema[name];
-			const val = value ?? values[name];
-			const error = validator ? validator(val, values) : undefined;
+	const handleFieldValidation = useCallback(
+		(name: keyof T & string) => {
+			const error = validateField(name, values, validationSchema);
 			dispatch({ type: "SET_FIELD_ERROR", payload: { name, error } });
 			return error;
 		},
@@ -103,31 +35,23 @@ export const useForm = <T extends Values = Values>({
 				type: "SET_FIELD_TOUCHED",
 				payload: { name: name as string, touched: true },
 			});
-			validateField(name as string, value);
+			handleFieldValidation(name as string);
 		},
-		[validateField],
+		[handleFieldValidation],
 	);
 
 	const setError = useCallback((name: keyof T & string, error?: string) => {
 		dispatch({ type: "SET_FIELD_ERROR", payload: { name, error } });
 	}, []);
 
-	const validateForm = useCallback(() => {
-		const newErrors: Partial<Record<keyof T & string, string>> = {};
-		let isValid = true;
-		for (const name in validationSchema) {
-			if (Object.hasOwn(validationSchema, name)) {
-				const fieldName = name as keyof T & string;
-				const err = validateField(fieldName, values[fieldName]);
-				if (err) {
-					newErrors[fieldName] = err;
-					isValid = false;
-				}
-			}
-		}
+	const handleFormValidation = useCallback(() => {
+		const { errors: newErrors, isValid } = validateForm(
+			values,
+			validationSchema,
+		);
 		dispatch({ type: "SET_ERRORS", payload: newErrors });
 		return isValid;
-	}, [validationSchema, values, validateField]);
+	}, [validationSchema, values]);
 
 	const handleSubmit = useCallback(
 		async (e: React.FormEvent<HTMLFormElement>) => {
@@ -138,7 +62,7 @@ export const useForm = <T extends Values = Values>({
 			);
 			dispatch({ type: "SET_TOUCHED", payload: allTouched });
 
-			if (!validateForm()) return;
+			if (!handleFormValidation()) return;
 
 			setIsSubmitting(true);
 			try {
@@ -147,7 +71,7 @@ export const useForm = <T extends Values = Values>({
 				setIsSubmitting(false);
 			}
 		},
-		[onSubmit, validateForm, values],
+		[onSubmit, handleFormValidation, values],
 	);
 
 	const reset = useCallback(() => {
@@ -165,8 +89,8 @@ export const useForm = <T extends Values = Values>({
 		isValid,
 		setValue,
 		setError,
-		validateField,
-		validateForm,
+		validateField: handleFieldValidation,
+		validateForm: handleFormValidation,
 		handleSubmit,
 		reset,
 	};

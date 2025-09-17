@@ -67,6 +67,16 @@ export const Input: React.FC<InputProps> = ({
 		form.validateField(name);
 	};
 
+	const getAriaDescribedBy = () => {
+		if (error && touched) {
+			return `${id}-error`;
+		}
+		if (helperText) {
+			return `${id}-hint`;
+		}
+		return undefined;
+	};
+
 	const commonProps = {
 		...rest,
 		id,
@@ -74,63 +84,64 @@ export const Input: React.FC<InputProps> = ({
 		onBlur: handleBlur,
 		disabled,
 		"aria-invalid": !!(error && touched),
-		"aria-describedby":
-			error && touched ? `${id}-error` : helperText ? `${id}-hint` : undefined,
+		"aria-describedby": getAriaDescribedBy(),
 	};
+
+	const renderDefaultInput = () => (
+		<TextInput
+			commonProps={commonProps}
+			type={type}
+			value={value}
+			handleChange={handleChange as React.ChangeEventHandler<HTMLInputElement>}
+			inputClasses={inputClasses}
+		/>
+	);
+
+	const renderTextarea = () => (
+		<TextAreaInput
+			commonProps={commonProps}
+			value={value}
+			handleChange={
+				handleChange as React.ChangeEventHandler<HTMLTextAreaElement>
+			}
+			inputClasses={inputClasses}
+		/>
+	);
+
+	const renderSelect = () => (
+		<SelectInput
+			commonProps={commonProps}
+			value={value}
+			handleChange={handleChange as React.ChangeEventHandler<HTMLSelectElement>}
+			inputClasses={inputClasses}
+			options={options ?? []}
+			label={label}
+		/>
+	);
+
+	const renderCheckboxRadio = () => (
+		<CheckboxRadioInput
+			commonProps={commonProps}
+			type={type as "checkbox" | "radio"}
+			value={value}
+			handleChange={handleChange as React.ChangeEventHandler<HTMLInputElement>}
+			label={label}
+			error={error}
+			touched={touched}
+		/>
+	);
 
 	const renderControl = () => {
 		switch (type) {
 			case "textarea":
-				return (
-					<TextAreaInput
-						commonProps={commonProps}
-						value={value}
-						handleChange={
-							handleChange as React.ChangeEventHandler<HTMLTextAreaElement>
-						}
-						inputClasses={inputClasses}
-					/>
-				);
+				return renderTextarea();
 			case "select":
-				return (
-					<SelectInput
-						commonProps={commonProps}
-						value={value}
-						handleChange={
-							handleChange as React.ChangeEventHandler<HTMLSelectElement>
-						}
-						inputClasses={inputClasses}
-						options={options ?? []}
-						label={label}
-					/>
-				);
+				return renderSelect();
 			case "checkbox":
 			case "radio":
-				return (
-					<CheckboxRadioInput
-						commonProps={commonProps}
-						type={type}
-						value={value}
-						handleChange={
-							handleChange as React.ChangeEventHandler<HTMLInputElement>
-						}
-						label={label}
-						error={error}
-						touched={touched}
-					/>
-				);
+				return renderCheckboxRadio();
 			default:
-				return (
-					<TextInput
-						commonProps={commonProps}
-						type={type}
-						value={value}
-						handleChange={
-							handleChange as React.ChangeEventHandler<HTMLInputElement>
-						}
-						inputClasses={inputClasses}
-					/>
-				);
+				return renderDefaultInput();
 		}
 	};
 

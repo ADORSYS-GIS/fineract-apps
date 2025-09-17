@@ -1,7 +1,6 @@
 // packages/ui/src/components/Form/Input.components.tsx
 import React from "react";
 import { InputOption } from "./Form.types";
-import { cx } from "./util";
 
 export type CommonInputProps = {
 	id: string;
@@ -84,10 +83,9 @@ export const CheckboxRadioInput: React.FC<{
 			type={type}
 			checked={Boolean(value)}
 			onChange={handleChange}
-			className={cx(
-				"h-4 w-4 rounded",
-				error && touched ? "border-red-400" : "border-green-500",
-			)}
+			className={`h-4 w-4 rounded ${
+				error && touched ? "border-red-400" : "border-green-500"
+			}`}
 		/>
 		{label && (
 			<label htmlFor={commonProps.id} className="ml-2 text-sm font-medium">
