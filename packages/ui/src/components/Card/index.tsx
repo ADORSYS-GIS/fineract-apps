@@ -5,13 +5,7 @@ import { CardView } from "./Card.view";
 import { useCard } from "./useCard";
 
 export const Card = (props: CardProps) => {
-	const { isCollapsed, toggleCollapse } = useCard(props);
+	const { props: normalizedProps } = useCard(props);
 
-	return (
-		<CardView
-			{...props}
-			isCollapsed={isCollapsed}
-			onToggleCollapse={toggleCollapse}
-		/>
-	);
+	return <CardView {...normalizedProps} />;
 };

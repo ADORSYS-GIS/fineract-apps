@@ -6,8 +6,8 @@ export interface NavbarProps {
 	userName: string;
 	userId: string;
 	onLogout: () => void;
-	onToggleMenu: () => void;
-	isMenuOpen: boolean;
+	onToggleMenu?: () => void;
+	isMenuOpen?: boolean;
 	notifications?: number | ReactNode;
 	profileImage?: string; // URL or path to profile image
 	className?: string;

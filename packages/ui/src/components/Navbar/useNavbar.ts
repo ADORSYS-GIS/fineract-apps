@@ -1,10 +1,21 @@
 // /frontend/shared/src/components/ui/Navbar/useNavbar.ts
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { NavbarProps } from "./Navbar.types";
 
-export const useNavbar = () => {
-	const [isMenuOpen, setIsMenuOpen] = useState(false);
+export const useNavbar = (
+	props?: Pick<NavbarProps, "isMenuOpen" | "onToggleMenu">,
+) => {
+	const isControlled = props?.isMenuOpen !== undefined;
+	const [internalOpen, setInternalOpen] = useState(false);
+	const effectiveOpen = isControlled ? !!props?.isMenuOpen : internalOpen;
 
-	const toggleMenu = () => setIsMenuOpen((prev) => !prev);
+	const toggleMenu = useCallback(() => {
+		if (isControlled) {
+			props?.onToggleMenu?.();
+		} else {
+			setInternalOpen((prev) => !prev);
+		}
+	}, [isControlled, props]);
 
-	return { isMenuOpen, toggleMenu };
+	return { isMenuOpen: effectiveOpen, toggleMenu };
 };
