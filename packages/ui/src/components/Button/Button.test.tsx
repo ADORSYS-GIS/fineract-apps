@@ -1,22 +1,32 @@
-// // /frontend/shared/src/components/ui/Button/Button.test.tsx
-// import { render, screen, fireEvent } from '@testing-library/react';
-// import { Button } from './index';
+import { render, screen } from "@testing-library/react";
+import { Button } from "./";
+import "@testing-library/jest-dom";
 
-// test('renders button with text', () => {
-//   render(<Button>Click Me</Button>);
-//   expect(screen.getByText('Click Me')).not;
-// });
+describe("Button", () => {
+	it("should render the button with the children", () => {
+		render(<Button>Click me</Button>);
+		expect(screen.getByText("Click me")).toBeInTheDocument();
+	});
 
-// test('calls onClick when clicked', () => {
-//   const handleClick = jest.fn();
-//   render(<Button onClick={handleClick}>Click Me</Button>);
-//   fireEvent.click(screen.getByText('Click Me'));
-//   expect(handleClick).toHaveBeenCalledTimes(1);
-// });
+	it("should apply the default variant and size classes", () => {
+		render(<Button>Click me</Button>);
+		expect(screen.getByRole("button")).toHaveClass("h-10 py-2 px-4");
+	});
 
-// test('does not call onClick when disabled', () => {
-//   const handleClick = jest.fn();
-//   render(<Button disabled onClick={handleClick}>Click Me</Button>);
-//   fireEvent.click(screen.getByText('Click Me'));
-//   expect(handleClick).not.toHaveBeenCalled();
-// });
+	it("should apply the specified variant and size classes", () => {
+		render(
+			<Button variant="destructive" size="sm">
+				Delete
+			</Button>,
+		);
+		const button = screen.getByRole("button");
+		expect(button).toHaveClass("h-9 px-3");
+	});
+
+	it("should be disabled and show a loader when isLoading is true", () => {
+		render(<Button isLoading>Loading</Button>);
+		const button = screen.getByRole("button");
+		expect(button).toBeDisabled();
+		expect(button.querySelector(".animate-spin")).toBeInTheDocument();
+	});
+});

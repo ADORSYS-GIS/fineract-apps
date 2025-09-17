@@ -2,10 +2,11 @@
 
 import { ButtonProps } from "./Button.types";
 import { ButtonView } from "./Button.view";
-import { useButton } from "./useButton";
 
-export const Button = (props: ButtonProps) => {
-	const { handleClick, isDisabled } = useButton(props);
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+	({ ...props }, ref) => {
+		return <ButtonView {...props} ref={ref} />;
+	},
+);
 
-	return <ButtonView {...props} onClick={handleClick} disabled={isDisabled} />;
-};
+Button.displayName = "Button";

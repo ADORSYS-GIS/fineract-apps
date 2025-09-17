@@ -1,9 +1,9 @@
-// /frontend/shared/src/components/ui/Button/Button.types.ts
-import { ButtonHTMLAttributes, ReactNode } from "react";
+import { type VariantProps } from "class-variance-authority";
+import React from "react";
+import { buttonVariants } from "./Button.variants";
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-	variant?: "primary" | "secondary" | "danger";
-	size?: "small" | "medium" | "large";
-	children: ReactNode;
-	className?: string;
+export interface ButtonProps
+	extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+		VariantProps<typeof buttonVariants> {
+	isLoading?: boolean;
 }
