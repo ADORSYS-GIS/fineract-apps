@@ -1,53 +1,96 @@
 // packages/ui/src/components/Form/useForm.ts
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import { UseFormProps, UseFormReturn, Values } from "./Form.types";
 
-/**
- * A small, generic useForm hook.
- *
- * Strongly typed: no `any`. All errors / touched are keyed by field names (strings).
- */
+type FormState<T extends Values> = {
+	values: T;
+	errors: Partial<Record<keyof T & string, string>>;
+	touched: Partial<Record<keyof T & string, boolean>>;
+};
+
+type FormAction<T extends Values> =
+	| { type: "SET_VALUES"; payload: T }
+	| { type: "SET_FIELD_VALUE"; payload: { name: keyof T; value: T[keyof T] } }
+	| { type: "SET_ERRORS"; payload: Partial<Record<keyof T & string, string>> }
+	| {
+			type: "SET_FIELD_ERROR";
+			payload: { name: keyof T & string; error?: string };
+	  }
+	| { type: "SET_TOUCHED"; payload: Partial<Record<keyof T & string, boolean>> }
+	| {
+			type: "SET_FIELD_TOUCHED";
+			payload: { name: keyof T & string; touched: boolean };
+	  }
+	| { type: "RESET"; payload: T };
+
+const createFormReducer =
+	<T extends Values>() =>
+	(state: FormState<T>, action: FormAction<T>): FormState<T> => {
+		switch (action.type) {
+			case "SET_VALUES":
+				return { ...state, values: action.payload };
+			case "SET_FIELD_VALUE":
+				return {
+					...state,
+					values: {
+						...state.values,
+						[action.payload.name]: action.payload.value,
+					},
+				};
+			case "SET_ERRORS":
+				return { ...state, errors: action.payload };
+			case "SET_FIELD_ERROR": {
+				const { name, error } = action.payload;
+				const newErrors = { ...state.errors };
+				if (error) {
+					newErrors[name] = error;
+				} else {
+					delete newErrors[name];
+				}
+				return { ...state, errors: newErrors };
+			}
+			case "SET_TOUCHED":
+				return { ...state, touched: action.payload };
+			case "SET_FIELD_TOUCHED":
+				return {
+					...state,
+					touched: {
+						...state.touched,
+						[action.payload.name]: action.payload.touched,
+					},
+				};
+			case "RESET":
+				return {
+					values: action.payload,
+					errors: {},
+					touched: {},
+				};
+			default:
+				return state;
+		}
+	};
+
 export const useForm = <T extends Values = Values>({
 	initialValues = {} as T,
 	validationSchema = {},
 	onSubmit,
 }: UseFormProps<T> = {}): UseFormReturn<T> => {
-	const [values, setValues] = useState<T>(initialValues);
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof T & string, string>>
-	>({});
-	const [touched, setTouched] = useState<
-		Partial<Record<keyof T & string, boolean>>
-	>({});
+	const formReducer = useMemo(() => createFormReducer<T>(), []);
+	const [state, dispatch] = useReducer(formReducer, {
+		values: initialValues,
+		errors: {},
+		touched: {},
+	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	const { values, errors, touched } = state;
 
 	const validateField = useCallback(
 		(name: keyof T & string, value?: T[keyof T]) => {
 			const validator = validationSchema[name];
-			if (!validator) {
-				// no validator -> clear error (if any)
-				setErrors((prev) => {
-					if (prev && Object.hasOwn(prev, name)) {
-						const copy = { ...prev };
-						delete copy[name];
-						return copy;
-					}
-					return prev;
-				});
-				return undefined;
-			}
-
-			const val = value ?? values[name as keyof T];
-			const error = validator(val, values);
-			setErrors((prev) => {
-				const copy = { ...(prev || {}) };
-				if (error) {
-					copy[name] = error;
-				} else {
-					delete copy[name];
-				}
-				return copy;
-			});
+			const val = value ?? values[name];
+			const error = validator ? validator(val, values) : undefined;
+			dispatch({ type: "SET_FIELD_ERROR", payload: { name, error } });
 			return error;
 		},
 		[validationSchema, values],
@@ -55,62 +98,45 @@ export const useForm = <T extends Values = Values>({
 
 	const setValue = useCallback(
 		<K extends keyof T>(name: K, value: T[K]) => {
-			setValues((prev) => ({ ...prev, [name]: value }));
-			setTouched((prev) => ({ ...prev, [name]: true }));
-			if (validationSchema[name as string]) {
-				// validate with the new value
-				validateField(name as string, value);
-			} else {
-				// if there's no validator, ensure any previous error is removed
-				setErrors((prev) => {
-					if (prev && Object.hasOwn(prev, name as string)) {
-						const copy = { ...prev };
-						delete copy[name as string];
-						return copy;
-					}
-					return prev;
-				});
-			}
+			dispatch({ type: "SET_FIELD_VALUE", payload: { name, value } });
+			dispatch({
+				type: "SET_FIELD_TOUCHED",
+				payload: { name: name as string, touched: true },
+			});
+			validateField(name as string, value);
 		},
-		[validateField, validationSchema],
+		[validateField],
 	);
 
 	const setError = useCallback((name: keyof T & string, error?: string) => {
-		setErrors((prev) => {
-			const copy = { ...(prev || {}) };
-			if (error) copy[name] = error;
-			else delete copy[name];
-			return copy;
-		});
+		dispatch({ type: "SET_FIELD_ERROR", payload: { name, error } });
 	}, []);
 
 	const validateForm = useCallback(() => {
 		const newErrors: Partial<Record<keyof T & string, string>> = {};
-		(Object.keys(validationSchema) as Array<keyof T & string>).forEach(
-			(name) => {
-				const validator = validationSchema[name];
-				if (!validator) return;
-				const value = values[name as keyof T];
-				const err = validator(value, values);
+		let isValid = true;
+		for (const name in validationSchema) {
+			if (Object.hasOwn(validationSchema, name)) {
+				const fieldName = name as keyof T & string;
+				const err = validateField(fieldName, values[fieldName]);
 				if (err) {
-					newErrors[name] = err;
+					newErrors[fieldName] = err;
+					isValid = false;
 				}
-			},
-		);
-
-		setErrors(newErrors);
-		return Object.keys(newErrors).length === 0;
-	}, [validationSchema, values]);
+			}
+		}
+		dispatch({ type: "SET_ERRORS", payload: newErrors });
+		return isValid;
+	}, [validationSchema, values, validateField]);
 
 	const handleSubmit = useCallback(
 		async (e: React.FormEvent<HTMLFormElement>) => {
 			e.preventDefault();
-			// mark all fields as touched
-			const allTouched: Partial<Record<keyof T & string, boolean>> = {};
-			Object.keys(values).forEach((k) => {
-				allTouched[k as keyof T & string] = true;
-			});
-			setTouched(allTouched);
+			const allTouched = Object.keys(values).reduce(
+				(acc, key) => ({ ...acc, [key]: true }),
+				{},
+			);
+			dispatch({ type: "SET_TOUCHED", payload: allTouched });
 
 			if (!validateForm()) return;
 
@@ -125,16 +151,11 @@ export const useForm = <T extends Values = Values>({
 	);
 
 	const reset = useCallback(() => {
-		setValues(initialValues);
-		setErrors({});
-		setTouched({});
+		dispatch({ type: "RESET", payload: initialValues });
 		setIsSubmitting(false);
 	}, [initialValues]);
 
-	const isValid = useMemo(
-		() => Object.keys(errors || {}).length === 0,
-		[errors],
-	);
+	const isValid = useMemo(() => Object.keys(errors).length === 0, [errors]);
 
 	return {
 		values,

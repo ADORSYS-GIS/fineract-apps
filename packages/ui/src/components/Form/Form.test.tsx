@@ -1,6 +1,6 @@
 // packages/ui/src/components/Form/Form.test.tsx
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { Form, Input } from "./Form.view";
+import { Form, Input } from ".";
 
 describe("Form and Input - basic behaviour", () => {
 	it("renders input and submits value", async () => {

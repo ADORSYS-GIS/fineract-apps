@@ -11,8 +11,8 @@ export type {
 export {
 	Form,
 	FormWarning,
-	Input,
 	SubmitButton,
 	useFormContext,
 } from "./Form.view";
+export { Input } from "./Input.view";
 export { useForm } from "./useForm";

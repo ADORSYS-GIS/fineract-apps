@@ -5,8 +5,11 @@ import {
 	FormWarning,
 	Input,
 	SubmitButton,
-} from "../../../packages/ui/src/components/Form"; // index.tsx in same folder
-import { ValidationFn } from "../../../packages/ui/src/components/Form/Form.types";
+} from "../../../packages/ui/src/components/Form";
+import {
+	ValidationFn,
+	Values,
+} from "../../../packages/ui/src/components/Form/Form.types";
 
 export type RegistrationValues = {
 	username: string;
@@ -35,17 +38,21 @@ function ageFromIsoDate(iso: string): number {
 }
 
 /** Validation functions typed to accept unknowns from generic Form */
-const required: ValidationFn<RegistrationValues> = (v) =>
+const required: ValidationFn<RegistrationValues> = (
+	v: string | boolean | undefined,
+) =>
 	!v || (typeof v === "string" && v.trim() === "") ? "Required" : undefined;
 
 const minLength =
 	(n: number): ValidationFn<RegistrationValues> =>
-	(v) =>
+	(v: Values[keyof Values]) =>
 		typeof v === "string" && v.length < n
 			? `Must be at least ${n} characters`
 			: undefined;
 
-const emailValidator: ValidationFn<RegistrationValues> = (v) => {
+const emailValidator: ValidationFn<RegistrationValues> = (
+	v: Values[keyof Values],
+) => {
 	const s = typeof v === "string" ? v : "";
 	if (!s) return "Required";
 	// OWASP-recommended regex for email validation to prevent ReDoS
