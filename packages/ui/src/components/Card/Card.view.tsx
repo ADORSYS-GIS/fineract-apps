@@ -50,8 +50,8 @@ export const CardView = ({
     ${background}
     ${roundedMap[rounded]}
     ${paddingMap[padding]}
-    ${widthMap[width || "full"]}
-    ${heightMap[height || "auto"]}
+    ${widthMap[width ?? "full"]}
+    ${heightMap[height ?? "auto"]}
     inline-flex flex-col items-center justify-center text-center
     m-2
     ${hoverable ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
@@ -62,15 +62,17 @@ export const CardView = ({
 		<div
 			className={`${baseClasses} ${loading ? "opacity-50 animate-pulse" : ""}`}
 			aria-label={ariaLabel}
-			onClick={onClick}
-			role="button"
-			tabIndex={0}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					onClick?.();
-				}
-			}}
+			{...(onClick && {
+				onClick,
+				role: "button",
+				tabIndex: 0,
+				onKeyUp: (e: React.KeyboardEvent) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						onClick();
+					}
+				},
+			})}
 		>
 			{media && <div className="mb-2 text-green-500">{media}</div>}
 			{title && <div className="font-semibold text-gray-800">{title}</div>}

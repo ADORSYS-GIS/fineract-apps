@@ -17,7 +17,7 @@ export const NavbarView = ({
 	const effectiveLogo = logo ?? "BankerPro";
 	return (
 		<header
-			className={`flex justify-between items-center bg-white border-b border-gray-200 px-6 py-3 shadow-sm ${className || ""}`}
+			className={`flex justify-between items-center bg-white border-b border-gray-200 px-6 py-3 shadow-sm ${className ?? ""}`}
 		>
 			{/* Left side - Logo */}
 			<div className="flex items-center">
@@ -34,10 +34,7 @@ export const NavbarView = ({
 				{/* Notifications - Desktop */}
 				{notifications && (
 					<div className="relative hidden md:block">
-						<Bell
-							size={20}
-							className="text-gray-600 hover:text-gray-800 cursor-pointer"
-						/>
+						<Bell size={20} className="text-gray-600 hover:text-gray-800" />
 						{typeof notifications === "number" && notifications > 0 && (
 							<span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center font-medium">
 								{notifications > 99 ? "99+" : notifications}
@@ -85,7 +82,7 @@ export const NavbarView = ({
 					{isMenuOpen ? <X size={20} /> : <Menu size={20} />}
 				</button>
 
-				{/* Mobile Dropdown Menu */}
+				{/* Mobile Dropdown Menu  */}
 				{isMenuOpen && (
 					<div className="absolute top-full right-4 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-2 md:hidden z-50">
 						{/* User Info - Mobile */}
