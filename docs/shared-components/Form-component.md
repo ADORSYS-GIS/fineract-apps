@@ -128,3 +128,11 @@ const validationSchema = {
 The `Form` and `Input` components can be customized using `className` props, which will be merged with the default styles.
 
 For more advanced customizations, you can build your own input components using the `useFormContext` hook to access the form's state and methods.
+
+### Customizing the Submit Button
+
+The `SubmitButton` is a wrapper around the reusable `Button` component, so you can pass any `Button` props to it to customize its appearance and behavior. For example, you can change its `variant`, `size`, or add an icon.
+
+```tsx
+<SubmitButton label="Register" variant="destructive" size="lg" />
+```

@@ -12,7 +12,7 @@ describe("Form and Input - basic behaviour", () => {
 			</Form>,
 		);
 
-		const input = screen.getByLabelText(/email/i) as HTMLInputElement;
+		const input = screen.getByLabelText(/email/i);
 		fireEvent.change(input, { target: { value: "test@example.com" } });
 		fireEvent.click(screen.getByText(/submit/i));
 

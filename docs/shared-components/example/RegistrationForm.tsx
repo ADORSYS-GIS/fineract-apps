@@ -38,9 +38,9 @@ function ageFromIsoDate(iso: string): number {
 }
 
 /** Validation functions typed to accept unknowns from generic Form */
-const required: ValidationFn<RegistrationValues> = (
-	v: string | boolean | undefined,
-) =>
+type FieldValue = string | boolean | undefined;
+
+const required: ValidationFn<RegistrationValues> = (v: FieldValue) =>
 	!v || (typeof v === "string" && v.trim() === "") ? "Required" : undefined;
 
 const minLength =
@@ -83,16 +83,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 			if (r) return r;
 			return minLength(8)(v as string);
 		},
-		confirmPassword: (
-			v: string | boolean | undefined,
-			values?: RegistrationValues,
-		) => {
+		confirmPassword: (v: FieldValue, values?: RegistrationValues) => {
 			const r = required(v);
 			if (r) return r;
 			const pv = values?.password ?? "";
 			return v === pv ? undefined : "Passwords must match";
 		},
-		dob: (v: string | boolean | undefined) => {
+		dob: (v: FieldValue) => {
 			const r = required(v);
 			if (r) return r;
 			const age = ageFromIsoDate(typeof v === "string" ? v : "");
@@ -141,13 +138,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 				type="password"
 				helperText="Repeat your password"
 			/>
-			<Input
-				name="dob"
-				label="Date of birth"
-				type="text"
-				placeholder="yyyy-mm-dd"
-				helperText="Format: yyyy-mm-dd"
-			/>
+			<Input name="dob" label="Date of birth" type="date" />
 			<Input
 				name="acceptTerms"
 				type="checkbox"
@@ -162,7 +153,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 			</div>
 
 			<div className="mt-6 flex justify-end">
-				<SubmitButton label="Register" />
+				<SubmitButton label="Register" variant="destructive" />
 			</div>
 		</Form>
 	);

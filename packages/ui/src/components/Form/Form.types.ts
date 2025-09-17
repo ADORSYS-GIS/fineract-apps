@@ -59,7 +59,8 @@ export type InputType =
 	| "textarea"
 	| "select"
 	| "checkbox"
-	| "radio";
+	| "radio"
+	| "date";
 
 export interface InputOption {
 	label: string;

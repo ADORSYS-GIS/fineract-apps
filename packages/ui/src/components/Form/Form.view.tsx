@@ -1,5 +1,7 @@
 // packages/ui/src/components/Form/Form.view.tsx
 import React, { createContext, useContext } from "react";
+import { Button } from "../Button";
+import { ButtonProps } from "../Button/Button.types";
 import { FormContextType, FormProps, Values } from "./Form.types";
 import { useForm } from "./useForm";
 
@@ -103,27 +105,18 @@ export const FormWarning: React.FC<{
 	);
 };
 
-/**
- * Simple submit button that picks disabled state from form.
- */
-export const SubmitButton: React.FC<{ label?: string; className?: string }> = ({
-	label = "Submit",
-	className,
-}) => {
+export const SubmitButton: React.FC<
+	{ label?: string } & Omit<ButtonProps, "type" | "isLoading" | "children">
+> = ({ label = "Submit", variant, ...buttonProps }) => {
 	const form = useFormContext();
 	return (
-		<button
+		<Button
 			type="submit"
-			disabled={form.isSubmitting}
-			className={cx(
-				"inline-flex items-center px-4 py-2 rounded-md text-white font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1",
-				form.isSubmitting
-					? "bg-green-300 cursor-not-allowed"
-					: "bg-green-600 hover:bg-green-700",
-				className,
-			)}
+			isLoading={form.isSubmitting}
+			variant={variant}
+			{...buttonProps}
 		>
-			{form.isSubmitting ? "Submitting…" : label}
-		</button>
+			{label}
+		</Button>
 	);
 };
