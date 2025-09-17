@@ -1,13 +1,11 @@
-import React from "react";
+// /frontend/shared/src/components/ui/Button/index.tsx
+
 import { ButtonProps } from "./Button.types";
 import { ButtonView } from "./Button.view";
 import { useButton } from "./useButton";
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-	(props, ref) => {
-		const hookProps = useButton();
-		return <ButtonView {...props} {...hookProps} ref={ref} />;
-	},
-);
+export const Button = (props: ButtonProps) => {
+	const { handleClick, isDisabled } = useButton(props);
 
-Button.displayName = "Button";
+	return <ButtonView {...props} onClick={handleClick} disabled={isDisabled} />;
+};
