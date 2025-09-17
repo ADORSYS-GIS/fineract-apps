@@ -1,11 +1,11 @@
-// /frontend/shared/src/components/ui/Card/index.tsx
-
 import { CardProps } from "./Card.types";
 import { CardView } from "./Card.view";
 import { useCard } from "./useCard";
 
 export const Card = (props: CardProps) => {
-	const { props: normalizedProps } = useCard(props);
+  console.log(props);
 
-	return <CardView {...normalizedProps} />;
+  const { handleClick, isLoading } = useCard(props);
+
+  return <CardView {...props} onClick={handleClick} loading={isLoading} />;
 };
