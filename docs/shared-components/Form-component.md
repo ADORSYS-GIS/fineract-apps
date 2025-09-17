@@ -355,7 +355,11 @@ See the `RegistrationForm.tsx` file in the example folder for a working example 
 
 You can import the registration form using
 ```
-import RegistrationForm from "@fineract-apps/ui/src/components/Form/example/RegistrationForm";
+import { RegistrationForm } from "../../../docs/shared-components/example/RegistrationForm";
+
+//And then:
+
+{/* <RegistrationForm></RegistrationForm> */}
 ```
 
 ---

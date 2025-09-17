@@ -1,7 +1,12 @@
 // packages/ui/src/components/Form/RegistrationForm.tsx
 import React from "react";
-import { Form, FormWarning, Input, SubmitButton } from ".."; // index.tsx in same folder
-import { ValidationFn } from "../Form.types";
+import {
+	Form,
+	FormWarning,
+	Input,
+	SubmitButton,
+} from "../../../packages/ui/src/components/Form"; // index.tsx in same folder
+import { ValidationFn } from "../../../packages/ui/src/components/Form/Form.types";
 
 export type RegistrationValues = {
 	username: string;
@@ -43,8 +48,11 @@ const minLength =
 const emailValidator: ValidationFn<RegistrationValues> = (v) => {
 	const s = typeof v === "string" ? v : "";
 	if (!s) return "Required";
-	// simple email regex for example purposes
-	const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+	// OWASP-recommended regex for email validation to prevent ReDoS
+	const ok =
+		/^[a-zA-Z0-9_+&*-]+(?:\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,7}$/.test(
+			s,
+		);
 	return ok ? undefined : "Invalid email";
 };
 
