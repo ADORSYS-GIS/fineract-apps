@@ -1,7 +1,7 @@
 # Card Component
 
 ## Overview
-A flexible container for displaying content in a card format with various customization options.
+A flexible and customizable container for displaying content in a card format.
 
 ## Basic Usage
 ```tsx
@@ -12,38 +12,41 @@ import { User } from 'lucide-react';
   title="User Profile"
   media={<User size={24} />}
   hoverable
+  variant="primary"
+  size="md"
 >
-  View and edit user profile information
+  View and edit user profile information.
 </Card>
 ```
 ## Props
 
 ### Core
-
 - `title`: Text for the card header (`ReactNode`).
 - `children`: Main content (**required**, `ReactNode`).
 - `footer`: Optional footer content (`ReactNode`).
 - `media`: Icon or image displayed at the top (`ReactNode`).
 
-### Layout
-
-- `background`: Background color class (e.g., `bg-gray-100`).
-- `width`: Card width — options: `full` | `half` | `third` | `quarter`.
-- `height`: Card height — options: `none` | `sm` | `md` | `lg` | `full`.
-- `rounded`: Border radius class (e.g., `rounded-md`).
-- `padding`: Inner spacing class (e.g., `p-4`).
+### Styling
+- `variant`: The visual style of the card.
+  - `default`: Standard card with a white background.
+  - `primary`: Card with a primary theme color background.
+  - `transparent`: Card with a transparent background.
+- `size`: The size of the card, affecting padding and text size.
+  - `sm`: Small
+  - `md`: Medium
+  - `lg`: Large
+- `className`: Additional CSS classes for custom styling.
 
 ### Behavior
-
 - `hoverable`: Enables hover effects (`boolean`).
 - `onClick`: Click handler function.
-- `loading`: Shows loading state (`boolean`).
+- `loading`: Shows a loading state (`boolean`).
+- `ariaLabel`: ARIA label for accessibility.
 
 ---
 
 ## Best Practices
-
 - Keep content concise and focused.
-- Maintain consistent spacing.
-- Ensure high contrast for readability.
-- Apply hover effects for interactive cards.
+- Maintain consistent spacing and alignment.
+- Ensure high contrast for readability, especially with custom variants.
+- Apply hover effects for interactive cards to provide clear feedback.

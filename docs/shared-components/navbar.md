@@ -1,52 +1,53 @@
 # Navbar Component
 
 ## Overview
-Responsive navigation bar with user info, notifications, and mobile support.
+A responsive and customizable navigation bar with support for user info, notifications, and mobile layouts.
 
 ## Basic Usage
 ```tsx
 import { Navbar } from "@fineract-apps/ui";
+import { Bell, UserCircle } from 'lucide-react';
 
 <Navbar 
-  userName="John Doe"
-  userId="user123"
-  onLogout={handleLogout}
-  onToggleMenu={toggleMenu}
-  isMenuOpen={isMenuOpen}
-  notifications={3}
+  logo={<div>MyApp</div>}
+  links={<a href="#">Dashboard</a>}
+  notifications={<Bell />}
+  userSection={<UserCircle />}
+  actions={<button>Logout</button>}
+  onToggleMenu={() => {}}
+  isMenuOpen={false}
+  variant="primary"
+  size="md"
 />
 ```
 ## Props
 
-### Required
+### Core
+- `logo`: Custom logo or brand name (`ReactNode`).
+- `links`: Navigation links (`ReactNode`).
+- `notifications`: Notification indicator or component (`ReactNode`).
+- `userSection`: Component for user profile and actions (`ReactNode`).
+- `actions`: Additional action buttons or elements (`ReactNode`).
 
-- `userName`: User's display name
-- `userId`: User identifier
-- `onLogout`: Logout handler function
-- `onToggleMenu`: Function to toggle mobile menu
-- `isMenuOpen`: Boolean controlling visibility of mobile menu
+### Behavior
+- `onToggleMenu`: Function to toggle the mobile menu.
+- `isMenuOpen`: Boolean controlling the visibility of the mobile menu.
 
-### Optional
-
-- `logo`: Custom logo (`ReactNode`, default: `''`)
-- `notifications`: Notification count or custom component
-- `profileImage`: URL to user’s profile image
-- `className`: Additional CSS classes for custom styling
-
----
-
-## Features
-
-- Responsive design
-- Mobile-friendly collapsible menu
-- Notification badge support
-- Fully customizable appearance via props and classes
+### Styling
+- `variant`: The visual style of the navbar.
+  - `default`: Standard navbar with a white background.
+  - `primary`: Navbar with a primary theme color background.
+  - `transparent`: Navbar with a transparent background.
+- `size`: The size of the navbar, affecting padding and text size.
+  - `sm`: Small
+  - `md`: Medium
+  - `lg`: Large
+- `className`: Additional CSS classes for custom styling.
 
 ---
 
 ## Best Practices
-
-- Keep navigation items minimal and focused
-- Ensure full mobile responsiveness — test on multiple screen sizes
-- Test accessibility with screen readers (e.g., add `aria-label`s where needed)
-- Maintain consistent styling across your app using `className` or design tokens
+- Keep navigation items minimal and focused for clarity.
+- Ensure full mobile responsiveness by testing on multiple screen sizes.
+- Use ARIA labels and roles to ensure accessibility.
+- Maintain consistent styling across your app by using design tokens or `className`.

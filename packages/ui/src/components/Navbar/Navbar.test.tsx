@@ -74,6 +74,9 @@ describe("Navbar", () => {
 				userSection={<div>User</div>}
 			/>,
 		);
-		expect(container.firstChild).toHaveClass("bg-white", "border-white");
+		expect(container.firstChild).toHaveClass(
+			"bg-[var(--color-navbar-primary)]",
+			"border-[var(--color-navbar-primary-border)]",
+		);
 	});
 });

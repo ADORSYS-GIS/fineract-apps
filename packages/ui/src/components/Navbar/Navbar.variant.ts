@@ -1,4 +1,3 @@
-// Navbar.styles.ts
 import { cva } from "class-variance-authority";
 
 export const navbarVariant = cva(
@@ -7,7 +6,8 @@ export const navbarVariant = cva(
 		variants: {
 			variant: {
 				default: "bg-white border-gray-200",
-				primary: "bg-white border border-white text-white",
+				primary:
+					"bg-[var(--color-navbar-primary)] border-b border-[var(--color-navbar-primary-border)] text-[var(--color-navbar-primary-text)]",
 				transparent: "bg-transparent border-transparent",
 			},
 			size: {

@@ -1,4 +1,3 @@
-// Navbar.types.ts
 import { ReactNode } from "react";
 
 export type NavbarVariant = "default" | "primary" | "transparent";

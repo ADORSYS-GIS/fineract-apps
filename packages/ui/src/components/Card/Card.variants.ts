@@ -1,4 +1,3 @@
-// /frontend/shared/src/components/ui/Card/Card.variants.ts
 import { cva } from "class-variance-authority";
 
 export const cardVariants = cva(

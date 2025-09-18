@@ -1,12 +1,11 @@
-// index.tsx
-
+import React from "react";
 import { NavbarProps } from "./Navbar.types";
 import { NavbarView } from "./Navbar.view";
-import { useNavbar } from "./useNavbar";
 
-export const Navbar = (props: NavbarProps) => {
-	const { isMenuOpen, toggleMenu } = useNavbar(props);
-	return (
-		<NavbarView {...props} isMenuOpen={isMenuOpen} onToggleMenu={toggleMenu} />
-	);
-};
+export const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
+	({ ...props }, ref) => {
+		return <NavbarView {...props} ref={ref} />;
+	},
+);
+
+Navbar.displayName = "Navbar";

@@ -1,11 +1,11 @@
+import React from "react";
 import { CardProps } from "./Card.types";
 import { CardView } from "./Card.view";
-import { useCard } from "./useCard";
 
-export const Card = (props: CardProps) => {
-	console.log(props);
+export const Card = React.forwardRef<HTMLDivElement, CardProps>(
+	({ ...props }, ref) => {
+		return <CardView {...props} ref={ref} />;
+	},
+);
 
-	const { handleClick, isLoading } = useCard(props);
-
-	return <CardView {...props} onClick={handleClick} loading={isLoading} />;
-};
+Card.displayName = "Card";
