@@ -15,6 +15,7 @@ export default {
 	moduleNameMapper: {
 		"^@/(.*)$": "<rootDir>/packages/ui/src/$1",
 		"^@fineract-apps/(.*)$": "<rootDir>/packages/$1/src",
+		"^@/(.*)$": "<rootDir>/packages/ui/src/$1",
 	},
 	setupFilesAfterEnv: ["@testing-library/jest-dom"],
 	testPathIgnorePatterns: ["/node_modules/", "/dist/"],
