@@ -39,7 +39,7 @@ export function SearchBarView({
 	getInputProps,
 	getItemProps,
 	highlightedIndex,
-}: SearchBarViewProps) {
+}: Readonly<SearchBarViewProps>) {
 	const showButton = variant === "withButton" || showSearchButton;
 
 	return (
