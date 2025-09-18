@@ -4,6 +4,21 @@ import { cn } from "../../lib/utils";
 import { NavbarProps } from "./Navbar.types";
 import { navbarVariant } from "./Navbar.variant";
 
+const MobileMenuButton = ({
+	isOpen,
+	onClick,
+}: {
+	isOpen?: boolean;
+	onClick?: () => void;
+}) => (
+	<button
+		onClick={onClick}
+		className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+	>
+		{isOpen ? <X size={20} /> : <Menu size={20} />}
+	</button>
+);
+
 export const NavbarView = React.forwardRef<HTMLElement, NavbarProps>(
 	(
 		{
@@ -38,14 +53,7 @@ export const NavbarView = React.forwardRef<HTMLElement, NavbarProps>(
 					{notifications}
 					<div className="hidden md:flex items-center gap-3">{userSection}</div>
 					<div className="hidden md:flex items-center gap-2">{actions}</div>
-
-					{/* Mobile toggle */}
-					<button
-						onClick={onToggleMenu}
-						className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-					>
-						{isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-					</button>
+					<MobileMenuButton isOpen={isMenuOpen} onClick={onToggleMenu} />
 				</div>
 			</header>
 		);

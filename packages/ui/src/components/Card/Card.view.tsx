@@ -26,17 +26,19 @@ export const CardView = React.forwardRef<HTMLDivElement, CardProps>(
 			className,
 		);
 
+		const handleKeyUp = (e: KeyboardEvent) => {
+			if (onClick && (e.key === "Enter" || e.key === " ")) {
+				e.preventDefault();
+				onClick();
+			}
+		};
+
 		const interactiveProps = onClick
 			? {
 					onClick,
 					role: "button" as const,
 					tabIndex: 0,
-					onKeyUp: (e: KeyboardEvent) => {
-						if (e.key === "Enter" || e.key === " ") {
-							e.preventDefault();
-							onClick();
-						}
-					},
+					onKeyUp: handleKeyUp,
 				}
 			: {};
 
