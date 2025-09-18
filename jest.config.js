@@ -13,6 +13,7 @@ export default {
 		],
 	},
 	moduleNameMapper: {
+		"^@/(.*)$": "<rootDir>/packages/ui/src/$1",
 		"^@fineract-apps/(.*)$": "<rootDir>/packages/$1/src",
 	},
 	setupFilesAfterEnv: ["@testing-library/jest-dom"],

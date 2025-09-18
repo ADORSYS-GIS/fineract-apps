@@ -1,6 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Card } from "./index";
 import "@testing-library/jest-dom";
+import { ClassValue } from "clsx";
+
+jest.mock("@/lib/utils", () => ({
+	cn: (...args: ClassValue[]) => args.filter(Boolean).join(" "),
+}));
 
 describe("Card", () => {
 	test("renders card with title and content", () => {

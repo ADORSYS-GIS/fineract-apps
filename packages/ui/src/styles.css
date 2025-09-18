@@ -36,13 +36,11 @@
 	--color-card-muted: #f1f5f9;
 
 	/* ========== NAVBAR COLORS ========== */
-	--color-navbar-bg: #ffffff;
-	--color-navbar-fg: #0f172a;
+	--color-navbar: #ffffff;
+	--color-navbar-foreground: #0f172a;
 	--color-navbar-border: #e2e8f0;
-
-	--color-navbar-primary-bg: #1e293b;
-	--color-navbar-primary-fg: #f8fafc;
-
-	--color-navbar-transparent-bg: transparent;
-	--color-navbar-transparent-fg: #0f172a;
+	--color-navbar-primary: #1e293b;
+	--color-navbar-primary-foreground: #f8fafc;
+	--color-navbar-transparent: transparent;
+	--color-navbar-transparent-foreground: #0f172a;
 }

@@ -5,10 +5,10 @@ export const navbarVariant = cva(
 	{
 		variants: {
 			variant: {
-				default: "bg-white border-gray-200",
+				default: "bg-navbar border-navbar-border",
 				primary:
-					"bg-[var(--color-navbar-primary)] border-b border-[var(--color-navbar-primary-border)] text-[var(--color-navbar-primary-text)]",
-				transparent: "bg-transparent border-transparent",
+					"bg-navbar-primary border-navbar-primary text-navbar-primary-foreground",
+				transparent: "bg-navbar-transparent border-transparent",
 			},
 			size: {
 				sm: "py-2 text-sm",

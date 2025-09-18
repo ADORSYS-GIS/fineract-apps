@@ -1,5 +1,5 @@
 import React, { type KeyboardEvent } from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import { CardProps } from "./Card.types";
 import { cardVariants } from "./Card.variants";
 

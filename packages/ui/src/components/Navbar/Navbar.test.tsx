@@ -75,8 +75,9 @@ describe("Navbar", () => {
 			/>,
 		);
 		expect(container.firstChild).toHaveClass(
-			"bg-[var(--color-navbar-primary)]",
-			"border-[var(--color-navbar-primary-border)]",
+			"bg-navbar-primary",
+			"border-navbar-primary",
+			"text-navbar-primary-foreground",
 		);
 	});
 });
