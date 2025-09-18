@@ -5,4 +5,3 @@ export { Navbar } from "./components/Navbar";
 
 // Sidebar component and types
 export * from "./components/Sidebar";
-
