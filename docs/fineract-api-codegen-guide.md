@@ -51,26 +51,50 @@ To use the generated hooks in a frontend application (e.g., `cashier-app`), you 
 
 ### Step 1: Add the Dependency
 
-From the **root of the monorepo**, run the following command:
+Open the `package.json` file of the application you want to use the client in (e.g., `frontend/cashier-app/package.json`) and add the following line to the `dependencies` section:
 
-```bash
-# pnpm add @fineract-apps/fineract-api --filter <your-app-name>
-pnpm add @fineract-apps/fineract-api --filter cashier-app
+```json
+    "@fineract-apps/fineract-api": "workspace:*"
 ```
 
-### Step 2: Import and Use the Hooks
+### Step 2: Install Dependencies
 
-You can now import any hook directly from the package in your components:
+After manually editing a `package.json` file, you must run `pnpm install` from the root of the monorepo to update the lockfile and link the packages correctly.
+
+```bash
+pnpm install
+```
+
+### Step 3: Import and Use the Hooks
+
+You can now import any hook or type directly from the package in your components.
+
+Here is a real-world example of using the `useDefaultServiceGetApplicationWadl` hook in `App.tsx`:
 
 ```tsx
-import { useQuery } from '@fineract-apps/fineract-api';
+import "@fineract-apps/ui/styles.css";
+import { Button } from "@fineract-apps/ui";
+import { useDefaultServiceGetApplicationWadl } from "@fineract-apps/fineract-api";
 
-function UserProfile() {
-  const { data, isLoading } = useGetUserDetails({ userId: 123 });
+function App() {
+  const { data, isLoading, error } = useDefaultServiceGetApplicationWadl();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div>Loading API Schema...</div>;
   }
 
-  return <div>Hello, {data?.username}</div>;
+  if (error) {
+    return <div>Error fetching API Schema!</div>;
+  }
+
+  return (
+    <div style={{ padding: "20px" }}>
+      <h1>Cashier App</h1>
+      <Button>Shared Button</Button>
+      <h2>Fineract API WADL:</h2>
+      <pre>{JSON.stringify(data, null, 2)}</pre>
+    </div>
+  );
 }
+
+export default App;

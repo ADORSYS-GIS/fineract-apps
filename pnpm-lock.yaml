@@ -62,6 +62,9 @@ importers:
 
   frontend/account-manager-app:
     dependencies:
+      '@fineract-apps/fineract-api':
+        specifier: workspace:*
+        version: link:../../packages/fineract-api
       '@fineract-apps/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -93,6 +96,9 @@ importers:
 
   frontend/branchmanager-app:
     dependencies:
+      '@fineract-apps/fineract-api':
+        specifier: workspace:*
+        version: link:../../packages/fineract-api
       '@fineract-apps/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -124,6 +130,9 @@ importers:
 
   frontend/cashier-app:
     dependencies:
+      '@fineract-apps/fineract-api':
+        specifier: workspace:*
+        version: link:../../packages/fineract-api
       '@fineract-apps/ui':
         specifier: workspace:*
         version: link:../../packages/ui
