@@ -1,21 +1,17 @@
-import { AppLayout, Navbar } from "@fineract-apps/ui";
-import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
+import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 
 function RootLayout() {
+	const handleLogout = () => alert("Logout clicked!");
 	return (
 		<AppLayout
+			sidebar={<Sidebar menuItems={menuCashier} onLogout={handleLogout} />}
 			navbar={
 				<Navbar
 					logo={<h1 className="text-lg font-bold">Cashier</h1>}
-					links={
-						<div className="flex items-center gap-4">
-							<Link to="/" className="text-sm font-medium">
-								Dashboard
-							</Link>
-						</div>
-					}
+					links={null}
 					notifications={<Bell />}
 					userSection={
 						<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
