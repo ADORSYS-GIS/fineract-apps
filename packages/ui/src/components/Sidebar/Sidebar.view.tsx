@@ -1,14 +1,32 @@
 import { LogOut } from "lucide-react";
 import React from "react";
-import { SidebarProps } from "./Sidebar.types";
+import { MenuItem, SidebarProps } from "./Sidebar.types";
 import { useSidebar } from "./useSidebar";
 
 export const SidebarView: React.FC<SidebarProps> = ({
-	menuItems,
+	menuItems = [],
 	onLogout,
 	className,
 }) => {
 	const { activeLink, handleClick } = useSidebar(menuItems);
+
+	const renderMenuItem = (item: MenuItem) => {
+		const Icon = item.icon;
+		const isActive = activeLink === item.link;
+		return (
+			<a
+				key={item.link}
+				href={item.link}
+				onClick={() => handleClick(item.link)}
+				className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition ${
+					isActive ? "bg-blue-50 text-blue-600" : ""
+				}`}
+			>
+				{Icon && <Icon className="w-5 h-5" />}
+				<span>{item.name}</span>
+			</a>
+		);
+	};
 
 	return (
 		<aside
@@ -19,23 +37,7 @@ export const SidebarView: React.FC<SidebarProps> = ({
 
 			{/* Menu */}
 			<nav className="flex-1 px-2 space-y-2">
-				{menuItems.map((item) => {
-					const Icon = item.icon;
-					const isActive = activeLink === item.link;
-					return (
-						<a
-							key={item.link}
-							href={item.link}
-							onClick={() => handleClick(item.link)}
-							className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition ${
-								isActive ? "bg-blue-50 text-blue-600" : ""
-							}`}
-						>
-							{Icon && <Icon className="w-5 h-5" />}
-							<span>{item.name}</span>
-						</a>
-					);
-				})}
+				{menuItems.map(renderMenuItem)}
 			</nav>
 
 			{/* Logout */}

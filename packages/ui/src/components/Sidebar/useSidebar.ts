@@ -1,13 +1,17 @@
-// useSidebar.ts
 import { useState } from "react";
 import { MenuItem } from "./Sidebar.types";
 
-export const useSidebar = (menuItems: MenuItem[]) => {
-	const [activeLink, setActiveLink] = useState<string | null>(null);
+export type UseSidebarReturn = {
+	activeLink: string | null;
+	handleClick: (link: string) => void;
+};
 
-	const handleClick = (link: string) => {
-		setActiveLink(link);
-	};
+export const useSidebar = (menuItems: MenuItem[] = []): UseSidebarReturn => {
+	const [activeLink, setActiveLink] = useState<string | null>(
+		menuItems.length > 0 ? menuItems[0].link : null,
+	);
 
-	return { menuItems, activeLink, handleClick };
+	const handleClick = (link: string) => setActiveLink(link);
+
+	return { activeLink, handleClick };
 };
