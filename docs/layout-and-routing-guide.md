@@ -12,16 +12,19 @@ The foundation of the application layout is a set of shared, reusable components
 
 ### 2.1. `AppLayout` Component
 
-The `AppLayout` component is the main container for all application content. It is responsible for arranging the `Navbar`, the upcoming `Sidebar`, and the main content area.
+The `AppLayout` component is the main container for all application content. It is responsible for arranging the `Navbar`, `Sidebar`, and the main content area.
 
 **Usage:**
 
 ```tsx
-import { AppLayout, Navbar } from "@fineract-apps/ui";
+import { AppLayout, Navbar, Sidebar, menuAccountManager } from "@fineract-apps/ui";
 
 function RootLayout() {
+  const handleLogout = () => alert("Logout clicked!");
+
   return (
     <AppLayout
+      sidebar={<Sidebar menuItems={menuAccountManager} onLogout={handleLogout} />}
       navbar={<Navbar logo={<div>My App</div>} />}
     >
       {/* Main content goes here */}
@@ -44,9 +47,14 @@ The `Navbar` component provides a consistent header for all applications. It is 
 *   `variant`: The visual style of the navbar (`default`, `primary`, `transparent`).
 *   `size`: The size of the navbar (`sm`, `md`, `lg`).
 
-### 2.3. `Sidebar` Component (Upcoming)
+### 2.3. `Sidebar` Component
 
-A `Sidebar` component will be added to the `@fineract-apps/ui` library to provide a consistent navigation panel for all applications. It will be integrated into the `AppLayout` component.
+The `Sidebar` component provides a consistent navigation panel for all applications. It is integrated into the `AppLayout` component.
+
+**Props:**
+
+*   `menuItems`: An array of `MenuItem` objects that define the navigation links.
+*   `onLogout`: A function to be called when the logout button is clicked.
 
 ## 3. Routing with TanStack Router
 
