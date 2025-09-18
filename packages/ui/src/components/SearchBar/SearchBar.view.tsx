@@ -168,7 +168,7 @@ export function SearchBarView({
 					showButton={showButton}
 					handleClear={handleClear}
 					handleSearch={handleSearch}
-					size={size || "md"}
+					size={size}
 				/>
 			</div>
 
