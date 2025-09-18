@@ -26,7 +26,7 @@ export const validateField = <T extends Values>(
 		if (error instanceof z.ZodError) {
 			// Find the error for the specific field
 			const fieldError = error.errors.find((err) => err.path[0] === name);
-			return fieldError?.message || "Invalid value";
+			return fieldError?.message ?? "Invalid value";
 		}
 		return "Validation error";
 	}
