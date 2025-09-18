@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MenuItem } from "./Sidebar.types";
 import { SidebarView } from "./Sidebar.view";
+import "@testing-library/jest-dom";
 
 const menuItems: MenuItem[] = [
 	{ name: "Home", link: "/home" },
