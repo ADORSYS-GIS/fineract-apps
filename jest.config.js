@@ -14,6 +14,7 @@ export default {
 	},
 	moduleNameMapper: {
 		"^@fineract-apps/(.*)$": "<rootDir>/packages/$1/src",
+		"\\.(svg)$": "<rootDir>/__mocks__/svgMock.js",
 	},
 	setupFilesAfterEnv: ["@testing-library/jest-dom"],
 	testPathIgnorePatterns: ["/node_modules/", "/dist/"],

@@ -47,7 +47,7 @@ describe("Form and Input - basic behaviour", () => {
 
 		await waitFor(() => {
 			const alert = screen.getByRole("alert");
-			expect(alert).toHaveTextContent("Required");
+			expect(alert.textContent).toBe("Required");
 		});
 	});
 });
