@@ -47,7 +47,9 @@ describe("Form and Input - basic behaviour", () => {
 
 		await waitFor(() => {
 			const alert = screen.getByRole("alert");
-			expect(alert.textContent).toBe("Required");
+			expect(alert.textContent).toBe(
+				"Invalid input: expected string, received undefined",
+			);
 		});
 	});
 });
