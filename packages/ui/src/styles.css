@@ -1,3 +1,31 @@
 @import "tailwindcss";
 
 @source "./**/*.{html,js,ts,jsx,tsx}";
+
+@theme {
+	/* ========== COLORS ========== */
+
+	/* Primary Brand Colors */
+	--color-primary: #1e293b;
+	--color-primary-foreground: #f8fafc;
+
+	/* Destructive / Error */
+	--color-destructive: #ef4444;
+	--color-destructive-foreground: #f8fafc;
+
+	/* Secondary / Subtle Actions */
+	--color-secondary: #f1f5f9;
+	--color-secondary-foreground: #0f172a;
+
+	/* Accent / Hover States */
+	--color-accent: #f1f5f9;
+	--color-accent-foreground: #0f172a;
+
+	/* Backgrounds & Surfaces */
+	--color-background: #ffffff;
+	--color-foreground: #0f172a;
+
+	/* Borders & Focus Rings */
+	--color-border: #e2e8f0;
+	--color-ring: #e2e8f0;
+}
