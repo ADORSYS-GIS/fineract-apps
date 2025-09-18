@@ -3,30 +3,50 @@ import { MenuItem } from "./Sidebar.types";
 import { SidebarView } from "./Sidebar.view";
 
 const menuItems: MenuItem[] = [
-	{ name: "Home", link: "/home", icon: undefined },
-	{ name: "Profile", link: "/profile", icon: undefined },
+	{ name: "Home", link: "/home" },
+	{ name: "Profile", link: "/profile" },
 ];
 
 describe("SidebarView", () => {
-	it("should render the logo", () => {
-		const onLogout = jest.fn();
-		render(<SidebarView menuItems={menuItems} onLogout={onLogout} />);
+	const activeLink = "/home";
+	const handleClick = jest.fn();
+	const onLogout = jest.fn();
+
+	it("renders the logo", () => {
+		render(
+			<SidebarView
+				menuItems={menuItems}
+				onLogout={onLogout}
+				activeLink={activeLink}
+				handleClick={handleClick}
+			/>,
+		);
 		expect(screen.getByText("OnlineBank")).toBeInTheDocument();
 	});
 
-	it("should render menu items", () => {
-		const onLogout = jest.fn();
-		render(<SidebarView menuItems={menuItems} onLogout={onLogout} />);
+	it("renders menu items", () => {
+		render(
+			<SidebarView
+				menuItems={menuItems}
+				onLogout={onLogout}
+				activeLink={activeLink}
+				handleClick={handleClick}
+			/>,
+		);
 		expect(screen.getByText("Home")).toBeInTheDocument();
 		expect(screen.getByText("Profile")).toBeInTheDocument();
 	});
 
-	it("should render the logout button and trigger click", () => {
-		const onLogout = jest.fn();
-		render(<SidebarView menuItems={menuItems} onLogout={onLogout} />);
-		const logoutBtn = screen.getByText("Logout");
-		expect(logoutBtn).toBeInTheDocument();
-		fireEvent.click(logoutBtn);
+	it("renders the logout button and triggers click", () => {
+		render(
+			<SidebarView
+				menuItems={menuItems}
+				onLogout={onLogout}
+				activeLink={activeLink}
+				handleClick={handleClick}
+			/>,
+		);
+		fireEvent.click(screen.getByText("Logout"));
 		expect(onLogout).toHaveBeenCalled();
 	});
 });
