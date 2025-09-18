@@ -4,7 +4,10 @@ import { SidebarView } from "./Sidebar.view";
 import { useSidebar } from "./useSidebar";
 
 export const Sidebar: React.FC<SidebarProps> = (props) => {
-	const hookProps = useSidebar();
+	// ensure we always pass an array to the hook (avoid undefined)
+	const menuItems = props.menuItems ?? [];
+	const hookProps = useSidebar(menuItems);
+
 	return <SidebarView {...props} {...hookProps} />;
 };
 
