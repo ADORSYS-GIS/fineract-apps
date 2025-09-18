@@ -94,12 +94,16 @@ export function SearchBarView({
 			</div>
 
 			{/* Suggestions Dropdown */}
-			{isOpen && items.length > 0 && (
-				<ul
-					{...getMenuProps()}
-					className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
-				>
-					{items.map((item, index) => (
+			<ul
+				{...getMenuProps()}
+				className={cn(
+					"absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto",
+					!(isOpen && items.length > 0) && "hidden",
+				)}
+			>
+				{isOpen &&
+					items.length > 0 &&
+					items.map((item, index) => (
 						<li
 							key={item.id}
 							{...getItemProps({ item, index })}
@@ -113,8 +117,7 @@ export function SearchBarView({
 							{item.label}
 						</li>
 					))}
-				</ul>
-			)}
+			</ul>
 		</div>
 	);
 }
