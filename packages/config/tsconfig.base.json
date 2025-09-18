@@ -17,11 +17,7 @@
 		"strict": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
-		"noFallthroughCasesInSwitch": true,
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["packages/ui/src/*"]
-		}
+		"noFallthroughCasesInSwitch": true
 	},
 	"exclude": ["node_modules"]
 }
