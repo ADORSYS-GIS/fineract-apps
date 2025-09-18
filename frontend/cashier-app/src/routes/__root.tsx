@@ -1,4 +1,10 @@
-import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
+import {
+	AppLayout,
+	Button,
+	menuCashier,
+	Navbar,
+	Sidebar,
+} from "@fineract-apps/ui";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
@@ -18,11 +24,7 @@ function RootLayout() {
 							<UserCircle className="w-5 h-5 text-gray-600" />
 						</div>
 					}
-					actions={
-						<button className="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded-md">
-							Logout
-						</button>
-					}
+					actions={<Button onClick={handleLogout}>Logout</Button>}
 					onToggleMenu={() => {
 						/* noop */
 					}}

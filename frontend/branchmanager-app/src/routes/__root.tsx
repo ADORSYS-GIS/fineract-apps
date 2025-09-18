@@ -1,5 +1,6 @@
 import {
 	AppLayout,
+	Button,
 	menuBranchManager,
 	Navbar,
 	Sidebar,
@@ -25,11 +26,7 @@ function RootLayout() {
 							<UserCircle className="w-5 h-5 text-gray-600" />
 						</div>
 					}
-					actions={
-						<button className="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded-md">
-							Logout
-						</button>
-					}
+					actions={<Button onClick={handleLogout}>Logout</Button>}
 					onToggleMenu={() => {
 						/* noop */
 					}}
