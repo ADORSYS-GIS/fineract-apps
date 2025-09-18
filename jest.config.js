@@ -8,7 +8,7 @@ export default {
 		"^.+\\.(ts|tsx)$": [
 			"ts-jest",
 			{
-				tsconfig: "<rootDir>/packages/config/tsconfig.base.json",
+				tsconfig: "<rootDir>/packages/config/tsconfig.jest.json",
 			},
 		],
 	},
