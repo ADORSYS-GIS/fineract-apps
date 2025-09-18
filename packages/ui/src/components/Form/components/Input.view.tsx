@@ -1,51 +1,8 @@
 import { ErrorMessage, Field, useField } from "formik";
 import React, { useId } from "react";
 import { InputProps } from "../Form.types";
+import { inputVariants } from "./Input.variants";
 
-const getInputClasses = (
-	size: "sm" | "md" | "lg",
-	variant: "outlined" | "filled" | "standard",
-	error?: string,
-	touched?: boolean,
-) => {
-	const baseClasses =
-		"w-full px-3 py-2 transition-all duration-200 ease-in-out rounded-md focus:outline-none";
-
-	const sizeClasses = {
-		sm: "text-sm",
-		md: "text-base",
-		lg: "text-lg",
-	};
-
-	const variantClasses = {
-		outlined: `border ${
-			error && touched
-				? "border-red-500 focus:ring-red-500"
-				: "border-gray-300 focus:border-green-500 focus:ring-green-500"
-		} focus:ring-1`,
-		filled: `bg-gray-100 ${
-			error && touched
-				? "border-red-500 focus:ring-red-500"
-				: "border-transparent focus:border-green-500 focus:ring-green-500"
-		} focus:ring-1`,
-		standard: `border-b ${
-			error && touched
-				? "border-red-500 focus:border-red-500"
-				: "border-gray-300 focus:border-green-500"
-		} rounded-none`,
-	};
-
-	return `${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]}`;
-};
-
-/**
- * Beautiful green-themed Input component supporting:
- * - text, email, number, textarea, select, checkbox, radio
- * - helper text
- * - controlled error display (uses touched to avoid early errors)
- *
- * Styling uses Tailwind-like utility classes. Adjust if not using Tailwind.
- */
 export const Input: React.FC<InputProps> = ({
 	name,
 	label,
@@ -66,7 +23,11 @@ export const Input: React.FC<InputProps> = ({
 	const reactId = useId();
 	const id = `form-input-${name}-${reactId}`;
 
-	const inputClasses = getInputClasses(size, variant, error, touched);
+	const inputClasses = inputVariants({
+		size,
+		variant,
+		error: !!(error && touched),
+	});
 
 	const renderControl = () => {
 		const fieldProps = {

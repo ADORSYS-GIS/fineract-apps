@@ -1,176 +1,118 @@
 # Form Component Developer Guide
 
-## Overview
-
-The Form component is a powerful, reusable form system built on top of **Formik**. It leverages Formik for robust state management and **Zod** for type-safe validation. This combination provides a seamless developer experience for creating complex forms with minimal boilerplate.
-
-Key features include:
--   **Powered by Formik:** Manages form state, submission, and validation lifecycle.
--   **Zod Validation:** Write schemas once for both type safety and validation.
--   **Reusable Inputs:** A single `<Input />` component for all standard HTML input types.
--   **Automatic State Handling:** `<SubmitButton />` automatically tracks submission status.
--   **Styled and Accessible:** Clean UI with accessibility in mind.
+This guide provides a comprehensive overview of the `Form` component, its features, and how to use it effectively in your application.
 
 ## Getting Started
 
-### Installation
-The Form component is part of the main UI library.
+### Basic Form Structure
 
-```bash
-pnpm add @fineract-apps/ui
-```
+To create a form, you need to wrap your input fields with the `Form` component. The `Form` component requires three essential props: `initialValues`, `validationSchema`, and `onSubmit`.
 
-### Required Dependencies
-Ensure your project has the following peer dependencies installed:
+-   `initialValues`: An object that defines the initial state of your form fields.
+-   `validationSchema`: A Zod schema that defines the validation rules for your form.
+-   `onSubmit`: A function that is called when the form is submitted and the data is valid.
 
--   `react`
--   `formik`
--   `zod`
--   `zod-formik-adapter` (to connect Zod schemas to Formik)
--   `tailwindcss` (for styling)
-
-## Basic Usage
-
-Here's a simple example of a login form.
+Here's how to get the basic frame of the form:
 
 ```tsx
-import React from "react";
+import { Form } from "@fineract-apps/ui";
 import { z } from "zod";
-import { Form, Input, SubmitButton } from "@fineract-apps/ui";
 
-// 1. Define a validation schema with Zod
-const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
+const MyForm = () => {
+	const handleSubmit = (values) => {
+		console.log(values);
+	};
 
-// 2. Infer the type from the schema for type safety
-type LoginFormData = z.infer<typeof loginSchema>;
-
-const initialValues: LoginFormData = {
-  email: "",
-  password: "",
+	return (
+		<Form
+			initialValues={{}}
+			validationSchema={z.object({})}
+			onSubmit={handleSubmit}
+		>
+			{/* Your form fields will go here */}
+		</Form>
+	);
 };
-
-export default function LoginForm() {
-  const handleSubmit = (values: LoginFormData) => {
-    console.log("Form submitted:", values);
-    // Handle API submission logic here
-    return new Promise(resolve => setTimeout(resolve, 1000));
-  };
-
-  return (
-    // 3. Wrap your inputs with the Form component
-    <Form
-      initialValues={initialValues}
-      validationSchema={loginSchema}
-      onSubmit={handleSubmit}
-    >
-      <h2>Login</h2>
-      <Input
-        name="email"
-        label="Email Address"
-        type="email"
-        placeholder="Enter your email"
-      />
-      <Input
-        name="password"
-        label="Password"
-        type="password"
-        placeholder="Enter your password"
-      />
-      <SubmitButton label="Log In" />
-    </Form>
-  );
-}
 ```
 
-## Core Components
+### Adding a Single Field
 
-### `<Form />`
-The main wrapper that provides the Formik context to all child components.
-
-| Prop               | Type                               | Description                                             |
-| ------------------ | ---------------------------------- | ------------------------------------------------------- |
-| `initialValues`    | `object`                           | **Required.** The initial values of your form fields.   |
-| `validationSchema` | `z.ZodSchema`                      | A Zod schema used for validation.                       |
-| `onSubmit`         | `(values: T) => void \| Promise<any>` | **Required.** A function to handle form submission.     |
-
-### `<Input />`
-A versatile component that renders the appropriate input field based on the `type` prop. It automatically connects to the Formik state via its `name` prop.
-
-| Prop         | Type                                       | Description                                                                 |
-| ------------ | ------------------------------------------ | --------------------------------------------------------------------------- |
-| `name`       | `string`                                   | **Required.** The field name. Must match a key in `initialValues`.          |
-| `label`      | `string`                                   | The label displayed for the input.                                          |
-| `type`       | `string`                                   | Input type, e.g., `text`, `email`, `password`, `select`, `checkbox`, `radio`. |
-| `options`    | `{ label: string, value: any }[]`          | **Required for `select` and `radio` types.** The options to display.        |
-| `helperText` | `string`                                   | Text displayed below the input to guide the user.                           |
-| `size`       | `"sm" \| "md" \| "lg"`                     | The visual size of the input (default: `md`).                               |
-| `variant`    | `"outlined" \| "filled" \| "standard"`     | The visual style of the input (default: `outlined`).                        |
-
-### `<SubmitButton />`
-A button that is automatically aware of the form's submission state. It will be disabled and show a loading indicator while the `onSubmit` function is pending.
-
-| Prop      | Type     | Description                               |
-| --------- | -------- | ----------------------------------------- |
-| `label`   | `string` | The text to display on the button.        |
-| `variant` | `string` | The button's visual style (e.g., `primary`). |
-
-### `<FormWarning />`
-A styled component to display important notices or warnings within a form.
-
-| Prop       | Type     | Description                        |
-| ---------- | -------- | ---------------------------------- |
-| `title`    | `string` | The title of the warning box.      |
-| `children` | `node`   | The content/message of the warning. |
-
-## Advanced Usage
-
-### Accessing Formik State with `useFormContext`
-In some cases, you may need to access the Formik state from a child component (e.g., to conditionally render fields). The `useFormContext` hook (which is an alias for Formik's `useFormikContext`) provides access to the full Formik bag of properties and helpers.
+To add a field to your form, use the `Form.Input` component. It requires a `name` prop that corresponds to a key in your `initialValues` and `validationSchema`.
 
 ```tsx
-import { useFormContext } from "@fineract-apps/ui";
-
-function CharacterCount() {
-  const { values } = useFormContext<{ message: string }>();
-  const count = values.message.length;
-
-  return <p>Character count: {count}</p>;
-}
-
-// Inside your form:
-<Form {...props}>
-  <Input name="message" type="textarea" />
-  <CharacterCount />
-  <SubmitButton />
-</Form>
+<Form.Input name="username" label="Username" type="text" />
 ```
+
+### Adding a Warning Box
+
+You can add a warning box to your form using the `Form.Warning` component. This is useful for displaying important information or alerts to the user.
+
+```tsx
+<Form.Warning title="Important Notice">
+	Please review your information carefully before submitting.
+</Form.Warning>
+```
+
+### Implementing a Submit Button
+
+The `Form.SubmitButton` component provides a convenient way to add a submit button to your form. It automatically handles the form's submission state, displaying a loading indicator when the form is being processed.
+
+```tsx
+<Form.SubmitButton label="Submit Form" />
+```
+
+## Form Validation
+
+Form validation is handled using Zod, a powerful and flexible schema validation library. You define your validation rules in a Zod schema and pass it to the `validationSchema` prop of the `Form` component.
+
+### Creating a Validation Schema
+
+Here's an example of how to create a validation schema for a simple login form:
+
+```tsx
+import { z } from "zod";
+
+const loginSchema = z.object({
+	email: z.string().email("Please enter a valid email address."),
+	password: z.string().min(8, "Password must be at least 8 characters long."),
+});
+```
+
+### Displaying Validation Errors
+
+Validation errors are automatically displayed below each input field when the user interacts with the form.
+
+## Using the Form in Your Application
+
+To use the `Form` component in your application, you need to import it and its related components from the `@fineract-apps/ui` package.
+
+### Necessary Imports
+
+Here are the essential imports for creating a form:
+
+```tsx
+import { Form } from "@fineract-apps/ui";
+import { z } from "zod";
+```
+
+For each feature, you'll need the following imports:
+
+-   **Input Field**: `Form.Input`
+-   **Submit Button**: `Form.SubmitButton`
+-   **Warning Box**: `Form.Warning`
 
 ## Customization
-You can pass a `className` prop to any of the Form components to apply custom Tailwind CSS classes for styling overrides.
 
-**Styling the Form container:**
+### Styling and Theming
+
+The `Form` component and its sub-components are styled using Tailwind CSS. You can customize the appearance of the form by overriding the default styles with your own utility classes.
+
+### Customizing Button Colors
+
+The `Form.SubmitButton` component is built on top of the `Button` component, which means you can customize its appearance using the same props. For example, you can change the button's color by passing a `variant` prop:
+
 ```tsx
-<Form className="max-w-lg p-8 bg-gray-50">
-  {/* ... */}
-</Form>
+<Form.SubmitButton label="Submit" variant="primary" />
 ```
 
-**Styling an Input:**
-```tsx
-<Input
-  name="email"
-  size="lg"
-  variant="filled"
-  className="rounded-full"
-/>
-```
-
-## Examples
-For complete, working examples of different forms, please see the `examples/` directory.
-- `SimpleForm.tsx`
-- `LoginForm.tsx`
-- `RegistrationForm.tsx`
-- `ContactForm.tsx`
+This developer guide provides a solid foundation for using the `Form` component. For more advanced use cases and customization options, refer to the source code and the documentation for the underlying libraries, such as Formik and Zod.
