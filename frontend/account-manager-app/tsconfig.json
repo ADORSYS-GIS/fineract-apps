@@ -9,6 +9,6 @@
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src", "../../docs/shared-components/Form/examples"],
+	"include": ["src"],
 	"references": [{ "path": "../../packages/ui" }]
 }
