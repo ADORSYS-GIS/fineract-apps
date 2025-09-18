@@ -1,12 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Card } from "./index";
 import "@testing-library/jest-dom";
-import { type ClassValue } from "clsx";
-
-// Mock the cn utility function directly to avoid path alias issues in CI
-jest.mock("@/lib/utils", () => ({
-	cn: (...args: ClassValue[]) => args.filter(Boolean).join(" "),
-}));
 
 describe("Card", () => {
 	test("renders card with title and content", () => {
