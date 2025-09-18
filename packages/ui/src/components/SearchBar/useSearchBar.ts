@@ -18,30 +18,62 @@ export function useSearchBar({
 	suggestionProvider,
 	onSearch,
 	onSuggestionSelect,
+	isLoading: externalIsLoading,
 	minChars = 2,
 	debounceMs = 250,
 	maxSuggestions = 8,
 }: SearchBarProps) {
 	const [items, setItems] = useState<Suggestion[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
+	const [internalIsLoading, setInternalIsLoading] = useState(false);
 	const [inputValue, setInputValue] = useState("");
 	const abortRef = useRef<AbortController | null>(null);
+
+	const isLoading = externalIsLoading ?? internalIsLoading;
 
 	// Debounce the input value for suggestions
 	const debouncedInputValue = useDebouncedValue(inputValue, debounceMs);
 
+	// Setup downshift
+	const {
+		isOpen,
+		getMenuProps,
+		getInputProps,
+		getItemProps,
+		highlightedIndex,
+		closeMenu,
+		reset,
+	} = useCombobox({
+		items,
+		inputValue,
+		onSelectedItemChange: ({ selectedItem }) => {
+			if (selectedItem) {
+				onSuggestionSelect?.(selectedItem);
+				setInputValue(selectedItem.label);
+			}
+		},
+		onInputValueChange: ({ inputValue: newValue }) => {
+			setInputValue(newValue ?? "");
+		},
+		itemToString: (item) => (item ? item.label : ""),
+	});
+
 	// Fetch or filter suggestions when debounced input changes
 	useEffect(() => {
-		if (!suggestionProvider && !externalSuggestions) return;
+		if (!suggestionProvider && !externalSuggestions) {
+			setItems([]);
+			closeMenu();
+			return;
+		}
 		if (debouncedInputValue.length < minChars) {
 			setItems([]);
+			closeMenu();
 			return;
 		}
 
 		let cancelled = false;
 
 		const fetchSuggestions = async () => {
-			setIsLoading(true);
+			setInternalIsLoading(true);
 			try {
 				if (suggestionProvider) {
 					// Abort previous request
@@ -69,11 +101,13 @@ export function useSearchBar({
 					}
 				}
 			} catch (err) {
+				// Do not log AbortError
 				if (err instanceof Error && err.name === "AbortError") return;
+
 				console.error("SearchBar suggestion fetch error:", err);
 				if (!cancelled) setItems([]);
 			} finally {
-				if (!cancelled) setIsLoading(false);
+				if (!cancelled) setInternalIsLoading(false);
 			}
 		};
 
@@ -88,38 +122,16 @@ export function useSearchBar({
 		suggestionProvider,
 		minChars,
 		maxSuggestions,
+		closeMenu,
 	]);
-
-	// Setup downshift
-	const {
-		isOpen,
-		getMenuProps,
-		getInputProps,
-		getItemProps,
-		getComboboxProps,
-		highlightedIndex,
-		reset,
-	} = useCombobox({
-		items,
-		inputValue,
-		onSelectedItemChange: ({ selectedItem }) => {
-			if (selectedItem) {
-				onSuggestionSelect?.(selectedItem);
-				setInputValue(selectedItem.label);
-			}
-		},
-		onInputValueChange: ({ inputValue: newValue }) => {
-			setInputValue(newValue ?? "");
-		},
-		itemToString: (item) => (item ? item.label : ""),
-	});
 
 	// Handle search submission
 	const handleSearch = useCallback(() => {
 		if (onSearch) {
 			onSearch(inputValue);
 		}
-	}, [inputValue, onSearch]);
+		closeMenu();
+	}, [inputValue, onSearch, closeMenu]);
 
 	// Handle clear
 	const handleClear = useCallback(() => {
@@ -139,7 +151,6 @@ export function useSearchBar({
 		getMenuProps,
 		getInputProps,
 		getItemProps,
-		getComboboxProps,
 		highlightedIndex,
 	};
 }

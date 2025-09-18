@@ -42,33 +42,33 @@ function App() {
 				/>
 			</div>
 
-			<h2 className="mt-8 mb-4 text-lg font-semibold">Simple Variant</h2>
+			<h2 className="mt-8 mb-4 text-lg font-semibold">Simple Usage</h2>
 			<div style={{ maxWidth: 320 }}>
 				<SearchBar
-					variant="simple"
 					size="sm"
 					placeholder="Quick search"
 					onSearch={handleSearch}
 				/>
 			</div>
 
-			<h2 className="mt-8 mb-4 text-lg font-semibold">With Button Variant</h2>
+			<h2 className="mt-8 mb-4 text-lg font-semibold">With Search Button</h2>
 			<div style={{ maxWidth: 420 }}>
 				<SearchBar
 					variant="withButton"
 					placeholder="Search with button"
 					onSearch={handleSearch}
-					showSearchButton
 				/>
 			</div>
 
-			<h2 className="mt-8 mb-4 text-lg font-semibold">Expandable Variant</h2>
-			<div className="flex justify-end" style={{ maxWidth: 420 }}>
+			<h2 className="mt-8 mb-4 text-lg font-semibold">Static Suggestions</h2>
+			<div style={{ maxWidth: 420 }}>
 				<SearchBar
-					variant="expandable"
-					size="sm"
-					placeholder="Click to expand"
+					placeholder="Search from list"
+					suggestions={mockSuggestions}
 					onSearch={handleSearch}
+					onSuggestionSelect={(suggestion) =>
+						console.log("Selected:", suggestion)
+					}
 				/>
 			</div>
 

@@ -1,198 +1,120 @@
-import { forwardRef } from "react";
+import { Loader2, Search, X } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { SearchBarViewProps } from "./SearchBar.types";
-import { searchBarVariants } from "./SearchBar.variants";
+import {
+	buttonVariants,
+	inputVariants,
+	searchBarVariants,
+} from "./SearchBar.styles";
+import type { SearchBarProps, Suggestion } from "./SearchBar.types";
 
-export const SearchBarView = forwardRef<HTMLInputElement, SearchBarViewProps>(
-	(
-		{
-			className = "",
-			placeholder = "Search",
-			showClear = true,
-			onClear,
-			items,
-			isLoading,
-			inputValue,
-			variant,
-			size,
-			showSearchButton,
-			onSearch,
-			comboboxProps,
-		},
-		ref,
-	) => {
-		const handleSearchClick = () => {
-			if (onSearch) onSearch(inputValue);
-		};
+interface SearchBarViewProps extends SearchBarProps {
+	inputValue: string;
+	handleSearch: () => void;
+	handleClear: () => void;
+	isOpen: boolean;
+	items: Suggestion[];
+	getMenuProps: () => Record<string, unknown>;
+	getInputProps: () => Record<string, unknown>;
+	getItemProps: (options: {
+		item: Suggestion;
+		index: number;
+	}) => Record<string, unknown>;
+	highlightedIndex: number;
+}
 
-		return (
-			<div className={cn("relative", className)}>
-				<div
-					className={cn(
-						searchBarVariants({ variant, size }),
-						"focus-within:ring-2 focus-within:ring-primary/20",
-					)}
-				>
-					{/* Search Icon */}
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						className={cn(
-							"text-gray-400",
-							size === "sm" ? "h-4 w-4" : "h-5 w-5",
-							size === "lg" ? "h-6 w-6" : "",
-							variant === "expandable" ? "mr-0" : "mr-2",
-						)}
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							strokeWidth={2}
-							d="M21 21l-4.35-4.35"
-						/>
-						<circle
-							cx="11"
-							cy="11"
-							r="6"
-							stroke="currentColor"
-							strokeWidth={2}
-							fill="none"
-						/>
-					</svg>
+export function SearchBarView({
+	variant = "default",
+	size = "md",
+	className,
+	placeholder = "Search...",
+	showClear = true,
+	showSearchButton = false,
+	isLoading = false,
+	inputValue,
+	handleSearch,
+	handleClear,
+	isOpen,
+	items,
+	getMenuProps,
+	getInputProps,
+	getItemProps,
+	highlightedIndex,
+}: SearchBarViewProps) {
+	const showButton = variant === "withButton" || showSearchButton;
 
-					{/* Input */}
-					<input
-						{...comboboxProps.getInputProps({
-							ref,
-							placeholder,
-							"aria-label": placeholder,
-							className: cn(
-								"flex-1 bg-transparent outline-none placeholder-gray-400",
-								variant === "expandable" ? "w-0 focus:w-full pl-2" : "w-full",
-								"transition-all duration-200",
-							),
-						})}
-					/>
+	return (
+		<div className="relative w-full">
+			{/* Input Container */}
+			<div className={cn(searchBarVariants({ variant, size }), className)}>
+				<Search className="ml-3 h-4 w-4 text-gray-400 flex-shrink-0" />
 
-					{/* Loading Spinner */}
+				<input
+					{...getInputProps()}
+					placeholder={placeholder}
+					className={cn(inputVariants({ size }))}
+					onKeyDown={(e) => {
+						if (e.key === "Enter") {
+							e.preventDefault();
+							handleSearch();
+						}
+					}}
+				/>
+
+				{/* Loading/Clear/Search Button */}
+				<div className="flex items-center">
 					{isLoading && (
-						<div className="ml-2 animate-spin text-gray-400">
-							<svg
-								className={cn(
-									size === "sm" ? "h-3 w-3" : "h-4 w-4",
-									size === "lg" ? "h-5 w-5" : "",
-								)}
-								viewBox="0 0 24 24"
-							>
-								<circle
-									className="opacity-25"
-									cx="12"
-									cy="12"
-									r="10"
-									stroke="currentColor"
-									strokeWidth="4"
-									fill="none"
-								/>
-								<path
-									className="opacity-75"
-									fill="currentColor"
-									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-								/>
-							</svg>
-						</div>
+						<Loader2
+							className="mr-2 h-4 w-4 animate-spin text-gray-400"
+							data-testid="loading-spinner"
+						/>
 					)}
 
-					{/* Clear Button */}
-					{showClear && inputValue && (
+					{!isLoading && showClear && inputValue && (
 						<button
 							type="button"
-							aria-label="clear search"
-							className={cn(
-								"ml-2 text-gray-500 hover:text-gray-700",
-								size === "sm" ? "text-sm" : "text-base",
-								size === "lg" ? "text-lg" : "",
-							)}
-							onClick={onClear}
+							onClick={handleClear}
+							className="mr-2 p-1 hover:bg-gray-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+							aria-label="Clear search"
 						>
-							✕
+							<X className="h-3 w-3 text-gray-400" />
 						</button>
 					)}
 
-					{/* Search Button */}
-					{showSearchButton && variant === "withButton" && (
+					{showButton && (
 						<button
 							type="button"
-							aria-label="search"
-							onClick={handleSearchClick}
-							className={cn(
-								"ml-2 px-4 py-2 bg-primary text-primary-foreground rounded-md",
-								"hover:bg-primary/90 transition-colors duration-200",
-								size === "sm" ? "text-sm" : "text-base",
-								size === "lg" ? "text-lg" : "",
-							)}
+							onClick={handleSearch}
+							className={cn(buttonVariants({ size }))}
+							aria-label="Search"
 						>
-							Search
+							<Search className="h-4 w-4" />
 						</button>
 					)}
 				</div>
-
-				{/* Suggestions Dropdown */}
-				<ul
-					{...comboboxProps.getMenuProps()}
-					className={cn(
-						"absolute left-0 right-0 mt-1 bg-white rounded-md shadow-lg",
-						"overflow-auto z-50 border border-border",
-						size === "sm" ? "max-h-60" : "max-h-72",
-						size === "lg" ? "max-h-80" : "",
-						!comboboxProps.isOpen && "hidden",
-					)}
-				>
-					{comboboxProps.isOpen &&
-						items.map((item, index) => (
-							<li
-								key={item.id}
-								{...comboboxProps.getItemProps({
-									item,
-									index,
-									className: cn(
-										"px-3 py-2 cursor-pointer transition-colors duration-150",
-										comboboxProps.highlightedIndex === index
-											? "bg-accent text-accent-foreground"
-											: "hover:bg-accent/50",
-									),
-								})}
-							>
-								<div className="md:flex md:justify-between md:items-center">
-									<div
-										className={cn(
-											"font-medium",
-											size === "sm" ? "text-sm" : "text-base",
-											size === "lg" ? "text-lg" : "",
-										)}
-									>
-										{item.label}
-									</div>
-									{item.id && (
-										<div
-											className={cn(
-												"text-muted-foreground",
-												size === "sm" ? "text-xs" : "text-sm",
-												size === "lg" ? "text-base" : "",
-												"md:ml-4",
-											)}
-										>
-											{item.id}
-										</div>
-									)}
-								</div>
-							</li>
-						))}
-				</ul>
 			</div>
-		);
-	},
-);
 
-SearchBarView.displayName = "SearchBarView";
+			{/* Suggestions Dropdown */}
+			{isOpen && items.length > 0 && (
+				<ul
+					{...getMenuProps()}
+					className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
+				>
+					{items.map((item, index) => (
+						<li
+							key={item.id}
+							{...getItemProps({ item, index })}
+							className={cn(
+								"px-4 py-3 cursor-pointer text-sm transition-colors border-b border-gray-100 last:border-b-0",
+								highlightedIndex === index
+									? "bg-blue-50 text-blue-900"
+									: "hover:bg-gray-50",
+							)}
+						>
+							{item.label}
+						</li>
+					))}
+				</ul>
+			)}
+		</div>
+	);
+}

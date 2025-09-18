@@ -1,6 +1,6 @@
 # Search Bar Component
 
-A versatile search component that provides a consistent search experience across all applications in the Fineract ecosystem. It supports various features like suggestions, async search, keyboard navigation, and multiple visual variants.
+A clean and focused search component that provides a consistent search experience across all applications in the Fineract ecosystem. It supports the two most essential use cases: default search and search with button.
 
 ## Features
 
@@ -10,9 +10,8 @@ A versatile search component that provides a consistent search experience across
 - **Accessibility**: ARIA compliant using Downshift
 - **Loading States**: Visual feedback during async operations
 - **Clear/Reset**: Optional clear button functionality
-- **Multiple Variants**: Simple, with button, and expandable styles
-- **Responsive Design**: Adapts to different screen sizes
-- **Theme Integration**: Uses semantic color tokens
+- **Two Core Variants**: Default and with button styles
+- **Customizable**: Easy to extend with custom styling
 
 ## Installation
 
@@ -23,9 +22,16 @@ The SearchBar component is part of the `@fineract-apps/ui` package and is automa
 ```tsx
 import { SearchBar } from "@fineract-apps/ui";
 
-// Simple search
+// Default search
 <SearchBar 
   placeholder="Search accounts"
+  onSearch={(value) => console.log('Searching for:', value)}
+/>
+
+// With search button
+<SearchBar
+  variant="withButton"
+  placeholder="Search with button"
   onSearch={(value) => console.log('Searching for:', value)}
 />
 
@@ -52,6 +58,9 @@ import { SearchBar } from "@fineract-apps/ui";
       label: item.displayName
     }));
   }}
+  onSuggestionSelect={(suggestion) => {
+    navigate(`/accounts/${suggestion.id}`);
+  }}
 />
 ```
 
@@ -59,37 +68,27 @@ import { SearchBar } from "@fineract-apps/ui";
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| \`variant\` | \`"default" \| "simple" \| "withButton" \| "expandable"\` | \`"default"\` | The visual style variant |
+| \`variant\` | \`"default" \| "withButton"\` | \`"default"\` | The visual style variant |
 | \`size\` | \`"sm" \| "md" \| "lg"\` | \`"md"\` | The size of the search bar |
-| \`placeholder\` | \`string\` | \`"Search"\` | Placeholder text |
+| \`placeholder\` | \`string\` | \`"Search..."\` | Placeholder text |
+| \`className\` | \`string\` | - | Additional CSS classes |
 | \`onSearch\` | \`(value: string) => void\` | - | Called when search is triggered |
 | \`showClear\` | \`boolean\` | \`true\` | Whether to show the clear button |
-| \`onClear\` | \`() => void\` | - | Called when clear button is clicked |
+| \`showSearchButton\` | \`boolean\` | \`false\` | Whether to show search button |
 | \`suggestions\` | \`Suggestion[]\` | - | Array of suggestions for client-side filtering |
 | \`suggestionProvider\` | \`(query: string, signal?: AbortSignal) => Promise<Suggestion[]>\` | - | Async function to fetch suggestions |
+| \`onSuggestionSelect\` | \`(suggestion: Suggestion) => void\` | - | Called when a suggestion is selected |
+| \`isLoading\` | \`boolean\` | \`false\` | Shows loading indicator |
 | \`minChars\` | \`number\` | \`2\` | Minimum characters before showing suggestions |
 | \`debounceMs\` | \`number\` | \`250\` | Debounce delay for suggestions in ms |
 | \`maxSuggestions\` | \`number\` | \`8\` | Maximum number of suggestions to show |
-| \`onSuggestionSelect\` | \`(suggestion: Suggestion) => void\` | - | Called when a suggestion is selected |
-| \`isLoading\` | \`boolean\` | \`false\` | Shows loading indicator |
-| \`showSearchButton\` | \`boolean\` | \`false\` | Shows search button (for withButton variant) |
 
 ## Variants
 
 ### Default
 Standard search bar with icon and optional clear button.
 ```tsx
-<SearchBar placeholder="Search" />
-```
-
-### Simple
-Compact version for space-constrained areas.
-```tsx
-<SearchBar 
-  variant="simple"
-  size="sm"
-  placeholder="Quick search"
-/>
+<SearchBar placeholder="Search accounts" />
 ```
 
 ### With Button
@@ -97,19 +96,16 @@ Includes a search button, useful for explicit search actions.
 ```tsx
 <SearchBar
   variant="withButton"
-  showSearchButton
   placeholder="Search with button"
 />
 ```
 
-### Expandable
-Collapses to an icon and expands on focus, great for navigation bars.
+### Different Sizes
+Control the size of the search bar:
 ```tsx
-<SearchBar
-  variant="expandable"
-  size="sm"
-  placeholder="Click to expand"
-/>
+<SearchBar size="sm" placeholder="Small search" />
+<SearchBar size="md" placeholder="Medium search" />
+<SearchBar size="lg" placeholder="Large search" />
 ```
 
 ## Accessibility
@@ -163,18 +159,22 @@ const [loading, setLoading] = useState(false);
 />
 ```
 
-### Expandable in Navigation
+### Customization
 ```tsx
-<nav className="flex items-center justify-between">
-  <Logo />
-  <SearchBar
-    variant="expandable"
-    size="sm"
-    placeholder="Search"
-    className="max-w-xs"
-  />
-  <UserMenu />
-</nav>
+// Custom styling
+<SearchBar
+  placeholder="Custom search"
+  className="max-w-md mx-auto"
+  size="lg"
+/>
+
+// Different configurations
+<SearchBar
+  variant="withButton"
+  showClear={false}
+  debounceMs={500}
+  minChars={3}
+/>
 ```
 
 ## Technical Details
@@ -210,14 +210,14 @@ const handleSuggestions = async (query: string, signal?: AbortSignal) => {
 />
 ```
 
-3. **Responsive Design**: Use appropriate variants:
+3. **Responsive Design**: Use appropriate sizes and styling:
 ```tsx
 <SearchBar
-  variant="default"
-  className="hidden md:flex" // Hide on mobile
+  size="md"
+  className="hidden md:block" // Hide on mobile
 />
 <SearchBar
-  variant="expandable"
-  className="flex md:hidden" // Show on mobile
+  size="sm"
+  className="block md:hidden" // Show on mobile
 />
 ```
