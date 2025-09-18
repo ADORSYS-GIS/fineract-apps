@@ -92,7 +92,6 @@ export const RegistrationForm: React.FC = () => {
 					label="First Name"
 					type="text"
 					placeholder="Enter your first name"
-					required
 				/>
 
 				<Input
@@ -100,7 +99,6 @@ export const RegistrationForm: React.FC = () => {
 					label="Last Name"
 					type="text"
 					placeholder="Enter your last name"
-					required
 				/>
 			</div>
 
@@ -110,7 +108,6 @@ export const RegistrationForm: React.FC = () => {
 				type="email"
 				placeholder="Enter your email"
 				helperText="We'll use this for account verification"
-				required
 			/>
 
 			<Input
@@ -119,7 +116,6 @@ export const RegistrationForm: React.FC = () => {
 				type="password"
 				placeholder="Create a strong password"
 				helperText="Must contain uppercase, lowercase, and number"
-				required
 			/>
 
 			<Input
@@ -127,17 +123,15 @@ export const RegistrationForm: React.FC = () => {
 				label="Confirm Password"
 				type="password"
 				placeholder="Confirm your password"
-				required
 			/>
 
-			<Input name="dateOfBirth" label="Date of Birth" type="date" required />
+			<Input name="dateOfBirth" label="Date of Birth" type="date" />
 
 			<Input
 				name="gender"
 				label="Gender"
 				type="radio"
 				options={genderOptions}
-				required
 			/>
 
 			<Input
@@ -145,14 +139,12 @@ export const RegistrationForm: React.FC = () => {
 				label="Country"
 				type="select"
 				options={countryOptions}
-				required
 			/>
 
 			<Input
 				name="terms"
 				label="I agree to the Terms of Service and Privacy Policy"
 				type="checkbox"
-				required
 			/>
 
 			<Input

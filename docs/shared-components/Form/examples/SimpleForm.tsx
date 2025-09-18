@@ -42,7 +42,6 @@ export const SimpleForm: React.FC = () => {
 				label="Full Name"
 				type="text"
 				placeholder="Enter your name"
-				required
 			/>
 
 			<Input
@@ -50,7 +49,6 @@ export const SimpleForm: React.FC = () => {
 				label="Email Address"
 				type="email"
 				placeholder="Enter your email"
-				required
 			/>
 
 			<Input
@@ -58,7 +56,6 @@ export const SimpleForm: React.FC = () => {
 				label="Age"
 				type="number"
 				placeholder="Enter your age"
-				required
 			/>
 
 			<div className="flex justify-center mt-6">

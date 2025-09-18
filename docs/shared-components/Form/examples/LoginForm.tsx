@@ -49,7 +49,6 @@ export const LoginForm: React.FC = () => {
 				type="email"
 				placeholder="Enter your email"
 				helperText="We'll never share your email with anyone else."
-				required
 			/>
 
 			<Input
@@ -58,7 +57,6 @@ export const LoginForm: React.FC = () => {
 				type="password"
 				placeholder="Enter your password"
 				helperText="Password must be at least 6 characters long."
-				required
 			/>
 
 			<Input name="rememberMe" label="Remember me" type="checkbox" />

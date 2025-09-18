@@ -58,7 +58,6 @@ export const SurveyForm: React.FC = () => {
 				label="How would you rate our service?"
 				type="radio"
 				options={ratingOptions}
-				required
 			/>
 
 			<Input
@@ -67,7 +66,6 @@ export const SurveyForm: React.FC = () => {
 				type="textarea"
 				placeholder="Please share your thoughts..."
 				helperText="Your feedback helps us improve our service"
-				required
 			/>
 
 			<Input

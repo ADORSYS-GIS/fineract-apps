@@ -1,14 +1,42 @@
+import { ErrorMessage, Field, useField } from "formik";
 import React, { useId } from "react";
-import { useFormContext } from "../Form.view";
-import { InputProps } from "../types/Form.types";
-import { getInputClasses } from "../utils/util";
-import {
-	CheckboxInput,
-	RadioGroupInput,
-	SelectInput,
-	TextAreaInput,
-	TextInput,
-} from "./Input.components";
+import { InputProps } from "../Form.types";
+
+const getInputClasses = (
+	size: "sm" | "md" | "lg",
+	variant: "outlined" | "filled" | "standard",
+	error?: string,
+	touched?: boolean,
+) => {
+	const baseClasses =
+		"w-full px-3 py-2 transition-all duration-200 ease-in-out rounded-md focus:outline-none";
+
+	const sizeClasses = {
+		sm: "text-sm",
+		md: "text-base",
+		lg: "text-lg",
+	};
+
+	const variantClasses = {
+		outlined: `border ${
+			error && touched
+				? "border-red-500 focus:ring-red-500"
+				: "border-gray-300 focus:border-green-500 focus:ring-green-500"
+		} focus:ring-1`,
+		filled: `bg-gray-100 ${
+			error && touched
+				? "border-red-500 focus:ring-red-500"
+				: "border-transparent focus:border-green-500 focus:ring-green-500"
+		} focus:ring-1`,
+		standard: `border-b ${
+			error && touched
+				? "border-red-500 focus:border-red-500"
+				: "border-gray-300 focus:border-green-500"
+		} rounded-none`,
+	};
+
+	return `${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]}`;
+};
 
 /**
  * Beautiful green-themed Input component supporting:
@@ -30,10 +58,8 @@ export const Input: React.FC<InputProps> = ({
 	disabled,
 	...rest
 }) => {
-	const form = useFormContext();
-	const value = form.values[name];
-	const touched = form.touched[name];
-	const errorFromForm = form.errors[name];
+	const [_field, meta] = useField(name);
+	const { touched, error: errorFromForm } = meta;
 	const error = errorProp ?? errorFromForm;
 
 	// Generate unique ID using React's useId hook
@@ -42,147 +68,76 @@ export const Input: React.FC<InputProps> = ({
 
 	const inputClasses = getInputClasses(size, variant, error, touched);
 
-	const getChangeValue = (
-		e: React.ChangeEvent<
-			HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-		>,
-	) => {
-		const target = e.target as HTMLInputElement;
-		switch (type) {
-			case "checkbox":
-				return target.checked;
-			case "number":
-				return target.value === "" ? "" : Number(target.value);
-			case "radio":
-				// For radio buttons, return the value of the selected option
-				return target.value;
-			default:
-				return target.value;
-		}
-	};
-
-	const handleChange = (
-		e: React.ChangeEvent<
-			HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-		>,
-	) => {
-		form.setValue(name, getChangeValue(e));
-	};
-
-	const handleBlur: React.FocusEventHandler = () => {
-		form.validateField(name);
-	};
-
-	const getAriaDescribedBy = () => {
-		if (error && touched) {
-			return `${id}-error`;
-		}
-		if (helperText) {
-			return `${id}-hint`;
-		}
-		return undefined;
-	};
-
-	const commonProps = {
-		...rest,
-		id,
-		name,
-		onBlur: handleBlur,
-		disabled,
-		"aria-invalid": !!(error && touched),
-		"aria-describedby": getAriaDescribedBy(),
-	};
-
-	const renderDefaultInput = () => (
-		<TextInput
-			commonProps={commonProps}
-			type={type}
-			value={value}
-			handleChange={handleChange as React.ChangeEventHandler<HTMLInputElement>}
-			inputClasses={inputClasses}
-		/>
-	);
-
-	const renderTextarea = () => (
-		<TextAreaInput
-			commonProps={commonProps}
-			value={value}
-			handleChange={
-				handleChange as React.ChangeEventHandler<HTMLTextAreaElement>
-			}
-			inputClasses={inputClasses}
-		/>
-	);
-
-	const renderSelect = () => (
-		<SelectInput
-			commonProps={commonProps}
-			value={value}
-			handleChange={handleChange as React.ChangeEventHandler<HTMLSelectElement>}
-			inputClasses={inputClasses}
-			options={options ?? []}
-			label={label}
-		/>
-	);
-
-	const renderCheckbox = () => (
-		<CheckboxInput
-			commonProps={commonProps}
-			value={value}
-			handleChange={handleChange as React.ChangeEventHandler<HTMLInputElement>}
-			label={label}
-			error={error}
-			touched={touched}
-		/>
-	);
-
-	const renderRadioGroup = () => (
-		<RadioGroupInput
-			commonProps={commonProps}
-			value={value}
-			handleChange={handleChange as React.ChangeEventHandler<HTMLInputElement>}
-			options={options ?? []}
-			label={label}
-			error={error}
-			touched={touched}
-		/>
-	);
-
 	const renderControl = () => {
-		switch (type) {
-			case "textarea":
-				return renderTextarea();
-			case "select":
-				return renderSelect();
-			case "checkbox":
-				return renderCheckbox();
-			case "radio":
-				return renderRadioGroup();
-			default:
-				return renderDefaultInput();
-		}
-	};
+		const fieldProps = {
+			name,
+			id,
+			className: inputClasses,
+			disabled,
+			...rest,
+		};
 
-	const renderMessage = () => {
-		if (error && touched) {
+		if (type === "select") {
 			return (
-				<p
-					id={`${id}-error`}
-					role="alert"
-					className="mt-1 text-sm text-red-600"
-				>
-					{error}
-				</p>
+				<Field as="select" {...fieldProps}>
+					<option value="">{`Choose a ${label ?? "value"}`}</option>
+					{options?.map((opt) => (
+						<option key={String(opt.value)} value={String(opt.value)}>
+							{opt.label}
+						</option>
+					))}
+				</Field>
 			);
 		}
-		if (helperText) {
+
+		if (type === "textarea") {
+			return <Field as="textarea" {...fieldProps} />;
+		}
+
+		if (type === "checkbox") {
+			const { ...restProps } = fieldProps;
 			return (
-				<p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">
-					{helperText}
-				</p>
+				<div className="flex items-center">
+					<Field
+						type="checkbox"
+						{...restProps}
+						className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+					/>
+					{label && (
+						<label htmlFor={id} className="ml-2 block text-sm font-medium">
+							{label}
+						</label>
+					)}
+				</div>
 			);
 		}
-		return null;
+
+		if (type === "radio") {
+			return (
+				<div className="space-y-2">
+					{label && <legend className="text-sm font-medium">{label}</legend>}
+					{options?.map((option) => (
+						<div key={String(option.value)} className="flex items-center">
+							<Field
+								type="radio"
+								name={name}
+								value={String(option.value)}
+								id={`${id}-${option.value}`}
+								className="h-4 w-4 border-gray-300 text-green-600 focus:ring-green-500"
+							/>
+							<label
+								htmlFor={`${id}-${option.value}`}
+								className="ml-2 block text-sm font-medium"
+							>
+								{option.label}
+							</label>
+						</div>
+					))}
+				</div>
+			);
+		}
+
+		return <Field type={type} {...fieldProps} />;
 	};
 
 	return (
@@ -196,7 +151,22 @@ export const Input: React.FC<InputProps> = ({
 				</label>
 			)}
 			{renderControl()}
-			{renderMessage()}
+			<ErrorMessage name={name}>
+				{(msg) => (
+					<p
+						id={`${id}-error`}
+						role="alert"
+						className="mt-1 text-sm text-red-600"
+					>
+						{msg}
+					</p>
+				)}
+			</ErrorMessage>
+			{helperText && !(touched && error) && (
+				<p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">
+					{helperText}
+				</p>
+			)}
 		</div>
 	);
 };

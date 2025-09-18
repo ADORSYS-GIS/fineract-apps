@@ -1,4 +1,10 @@
-import { Form, FormWarning, Input, SubmitButton } from "@fineract-apps/ui";
+import {
+	Form,
+	FormTitle,
+	FormWarning,
+	Input,
+	SubmitButton,
+} from "@fineract-apps/ui";
 import React from "react";
 import { z } from "zod";
 
@@ -40,7 +46,7 @@ export const ContactForm: React.FC = () => {
 			validationSchema={contactSchema}
 			onSubmit={handleSubmit}
 		>
-			<h2 className="text-2xl font-bold text-center">Contact Us</h2>
+			<FormTitle>Contact Us</FormTitle>
 
 			<FormWarning title="Response Time">
 				We typically respond within 24 hours during business days.
@@ -51,7 +57,6 @@ export const ContactForm: React.FC = () => {
 				label="Full Name"
 				type="text"
 				placeholder="Enter your full name"
-				required
 			/>
 
 			<Input
@@ -60,7 +65,6 @@ export const ContactForm: React.FC = () => {
 				type="email"
 				placeholder="Enter your email"
 				helperText="We'll use this to respond to your message"
-				required
 			/>
 
 			<Input
@@ -68,7 +72,6 @@ export const ContactForm: React.FC = () => {
 				label="Subject"
 				type="text"
 				placeholder="What's this about?"
-				required
 			/>
 
 			<Input
@@ -77,7 +80,6 @@ export const ContactForm: React.FC = () => {
 				type="textarea"
 				placeholder="Tell us more..."
 				helperText="Please provide as much detail as possible"
-				required
 			/>
 
 			<Input

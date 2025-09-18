@@ -1,16 +1,16 @@
-import React, { createContext, useContext } from "react";
+import {
+	Formik,
+	Form as FormikForm,
+	FormikHelpers,
+	useFormikContext,
+} from "formik";
+import React from "react";
+import { toFormikValidationSchema } from "zod-formik-adapter";
 import { cn } from "../../lib/utils";
 import { Button } from "../Button";
 import { ButtonProps } from "../Button/Button.types";
 import WarningIcon from "../icons/warning.svg";
-import { useForm } from "./hooks/useForm";
-import { FormContextType, FormProps, Values } from "./types/Form.types";
-
-/**
- * Form context. We'll store it as FormContextType<Values> for runtime,
- * and cast generically when consuming.
- */
-const FormContext = createContext<FormContextType<Values> | null>(null);
+import { FormProps, Values } from "./Form.types";
 
 /**
  * Top-level Form component.
@@ -28,12 +28,23 @@ export function Form<T extends Values = Values>({
 	className,
 	...rest
 }: Readonly<FormProps<T>>) {
-	const form = useForm<T>({ initialValues, validationSchema, onSubmit });
+	const handleSubmit = async (values: T, _formikHelpers: FormikHelpers<T>) => {
+		if (onSubmit) {
+			await onSubmit(values);
+		}
+	};
 
 	return (
-		<FormContext.Provider value={form as unknown as FormContextType<Values>}>
-			<form
-				onSubmit={form.handleSubmit}
+		<Formik<T>
+			initialValues={initialValues ?? ({} as T)}
+			validationSchema={
+				validationSchema
+					? toFormikValidationSchema(validationSchema)
+					: undefined
+			}
+			onSubmit={handleSubmit}
+		>
+			<FormikForm
 				noValidate
 				className={cn(
 					"w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md space-y-6",
@@ -42,21 +53,31 @@ export function Form<T extends Values = Values>({
 				{...rest}
 			>
 				{children}
-			</form>
-		</FormContext.Provider>
+			</FormikForm>
+		</Formik>
 	);
 }
 
 /**
+ * Form Title component
+ */
+export const FormTitle: React.FC<{
+	children?: React.ReactNode;
+	className?: string;
+}> = ({ children, className }) => {
+	return (
+		<h2
+			className={cn("text-2xl font-bold text-center text-green-600", className)}
+		>
+			{children}
+		</h2>
+	);
+};
+
+/**
  * Hook to consume typed form context inside inputs/components.
  */
-export function useFormContext<T extends Values = Values>() {
-	const ctx = useContext(FormContext);
-	if (!ctx) {
-		throw new Error("useFormContext must be used within a Form provider");
-	}
-	return ctx as unknown as FormContextType<T>;
-}
+export const useFormContext = useFormikContext;
 
 /**
  * Optional warning/notice block styled similar to your screenshot.
@@ -96,11 +117,11 @@ export const FormWarning: React.FC<{
 export const SubmitButton: React.FC<
 	{ label?: string } & Omit<ButtonProps, "type" | "isLoading" | "children">
 > = ({ label = "Submit", variant, ...buttonProps }) => {
-	const form = useFormContext();
+	const { isSubmitting } = useFormikContext();
 	return (
 		<Button
 			type="submit"
-			isLoading={form.isSubmitting}
+			isLoading={isSubmitting}
 			variant={variant}
 			{...buttonProps}
 		>
