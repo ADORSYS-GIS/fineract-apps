@@ -37,28 +37,28 @@ const MyForm = () => {
 
 ### Adding a Single Field
 
-To add a field to your form, use the `Form.Input` component. It requires a `name` prop that corresponds to a key in your `initialValues` and `validationSchema`.
+To add a field to your form, use the `Input` component. It requires a `name` prop that corresponds to a key in your `initialValues` and `validationSchema`.
 
 ```tsx
-<Form.Input name="username" label="Username" type="text" />
+<Input name="username" label="Username" type="text" />
 ```
 
 ### Adding a Warning Box
 
-You can add a warning box to your form using the `Form.Warning` component. This is useful for displaying important information or alerts to the user.
+You can add a warning box to your form using the `FormWarning` component. This is useful for displaying important information or alerts to the user.
 
 ```tsx
-<Form.Warning title="Important Notice">
+<FormWarning title="Important Notice">
 	Please review your information carefully before submitting.
-</Form.Warning>
+</FormWarning>
 ```
 
 ### Implementing a Submit Button
 
-The `Form.SubmitButton` component provides a convenient way to add a submit button to your form. It automatically handles the form's submission state, displaying a loading indicator when the form is being processed.
+The `SubmitButton` component provides a convenient way to add a submit button to your form. It automatically handles the form's submission state, displaying a loading indicator when the form is being processed.
 
 ```tsx
-<Form.SubmitButton label="Submit Form" />
+<SubmitButton label="Submit Form" />
 ```
 
 ## Form Validation
@@ -91,15 +91,15 @@ To use the `Form` component in your application, you need to import it and its r
 Here are the essential imports for creating a form:
 
 ```tsx
-import { Form } from "@fineract-apps/ui";
+import { Form, Input, SubmitButton, FormWarning } from "@fineract-apps/ui";
 import { z } from "zod";
 ```
 
 For each feature, you'll need the following imports:
 
--   **Input Field**: `Form.Input`
--   **Submit Button**: `Form.SubmitButton`
--   **Warning Box**: `Form.Warning`
+-   **Input Field**: `Input`
+-   **Submit Button**: `SubmitButton`
+-   **Warning Box**: `FormWarning`
 
 ## Customization
 
@@ -109,10 +109,10 @@ The `Form` component and its sub-components are styled using Tailwind CSS. You c
 
 ### Customizing Button Colors
 
-The `Form.SubmitButton` component is built on top of the `Button` component, which means you can customize its appearance using the same props. For example, you can change the button's color by passing a `variant` prop:
+The `SubmitButton` component is built on top of the `Button` component, which means you can customize its appearance using the same props. For example, you can change the button's color by passing a `variant` prop:
 
 ```tsx
-<Form.SubmitButton label="Submit" variant="primary" />
+<SubmitButton label="Submit" variant="primary" />
 ```
 
-This developer guide provides a solid foundation for using the `Form` component. For more advanced use cases and customization options, refer to the source code and the documentation for the underlying libraries, such as Formik and Zod.
+This developer guide provides a solid foundation for using the `Form` component. For more advanced use cases and customizFormik and Zod.ation options, refer to the source code and the documentation for the underlying libraries, such as 
