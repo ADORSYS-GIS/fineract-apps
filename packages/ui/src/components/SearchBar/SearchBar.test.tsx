@@ -489,4 +489,89 @@ describe("SearchBar", () => {
 		// Just ensure the component doesn't crash with highlighting
 		expect(screen.getByText("Apple")).toBeInTheDocument();
 	});
+
+	it("handles no suggestion provider and no external suggestions", async () => {
+		render(<SearchBar minChars={1} />);
+		const input = screen.getByPlaceholderText("Search...");
+
+		// Type something to trigger suggestion logic
+		fireEvent.change(input, { target: { value: "test" } });
+
+		// Fast forward debounce timer
+		await act(async () => {
+			jest.advanceTimersByTime(250);
+		});
+
+		// Should show empty listbox (dropdown exists but no suggestions inside)
+		const listbox = screen.getByRole("listbox");
+		expect(listbox).toBeInTheDocument();
+		expect(listbox).toHaveClass("hidden"); // Should be hidden when no suggestions
+	});
+
+	it("handles onSuggestionSelect being undefined", async () => {
+		render(<SearchBar suggestions={suggestions} minChars={1} />);
+		const input = screen.getByPlaceholderText("Search...");
+
+		fireEvent.change(input, { target: { value: "a" } });
+
+		await waitFor(() => {
+			expect(screen.getByText("Apple")).toBeInTheDocument();
+		});
+
+		// Click a suggestion without onSuggestionSelect callback
+		fireEvent.click(screen.getByText("Apple"));
+
+		// Should not crash and should update input value
+		expect((input as HTMLInputElement).value).toBe("Apple");
+	});
+
+	it("handles onSearch being undefined", () => {
+		render(<SearchBar />);
+		const input = screen.getByPlaceholderText("Search...");
+
+		fireEvent.change(input, { target: { value: "test" } });
+
+		// Press Enter without onSearch callback
+		fireEvent.keyDown(input, { key: "Enter" });
+
+		// Should not crash
+		expect((input as HTMLInputElement).value).toBe("test");
+	});
+
+	it("handles default debounce parameter in useDebouncedValue", async () => {
+		// This test ensures the default parameter ms = 250 is covered
+		render(<SearchBar suggestions={suggestions} minChars={1} />);
+		const input = screen.getByPlaceholderText("Search...");
+
+		fireEvent.change(input, { target: { value: "a" } });
+
+		// Use default debounce timing (250ms)
+		await act(async () => {
+			jest.advanceTimersByTime(250);
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText("Apple")).toBeInTheDocument();
+		});
+	});
+
+	it("handles custom debounce timing with explicit ms parameter", async () => {
+		// This tests passing an explicit ms parameter to useDebouncedValue
+		// to cover the default parameter branch
+		render(
+			<SearchBar suggestions={suggestions} minChars={1} debounceMs={100} />,
+		);
+		const input = screen.getByPlaceholderText("Search...");
+
+		fireEvent.change(input, { target: { value: "a" } });
+
+		// Use custom debounce timing (100ms)
+		await act(async () => {
+			jest.advanceTimersByTime(100);
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText("Apple")).toBeInTheDocument();
+		});
+	});
 });

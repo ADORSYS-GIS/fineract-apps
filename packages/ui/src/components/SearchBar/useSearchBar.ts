@@ -1,7 +1,14 @@
 import { useCombobox } from "downshift";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { SearchBarProps, Suggestion } from "./SearchBar.types";
+import { useCallback, useEffect, useState } from "react";
+import type { SearchBarProps } from "./SearchBar.types";
+import { useSuggestions } from "./useSuggestions";
 
+/**
+ * Custom hook for debouncing a value
+ * @param value - The value to debounce
+ * @param ms - Debounce delay in milliseconds
+ * @returns The debounced value
+ */
 function useDebouncedValue<T>(value: T, ms = 250) {
 	const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -13,6 +20,13 @@ function useDebouncedValue<T>(value: T, ms = 250) {
 	return debouncedValue;
 }
 
+/**
+ * Main search bar hook that orchestrates all search functionality.
+ * Handles input state, suggestion management, and user interactions.
+ *
+ * @param props - SearchBar configuration props
+ * @returns Object containing all search bar state and handlers
+ */
 export function useSearchBar({
 	suggestions: externalSuggestions,
 	suggestionProvider,
@@ -22,18 +36,24 @@ export function useSearchBar({
 	minChars = 2,
 	debounceMs = 250,
 	maxSuggestions = 8,
-}: SearchBarProps) {
-	const [items, setItems] = useState<Suggestion[]>([]);
-	const [internalIsLoading, setInternalIsLoading] = useState(false);
+}: Readonly<SearchBarProps>) {
 	const [inputValue, setInputValue] = useState("");
-	const abortRef = useRef<AbortController | null>(null);
+
+	// Debounce the input value to prevent excessive API calls
+	const debouncedInputValue = useDebouncedValue(inputValue, debounceMs);
+
+	// Handle suggestion fetching with the extracted hook
+	const { items, isLoading: internalIsLoading } = useSuggestions({
+		query: debouncedInputValue,
+		suggestionProvider,
+		externalSuggestions,
+		maxSuggestions,
+		minChars,
+	});
 
 	const isLoading = externalIsLoading ?? internalIsLoading;
 
-	// Debounce the input value for suggestions
-	const debouncedInputValue = useDebouncedValue(inputValue, debounceMs);
-
-	// Setup downshift
+	// Setup downshift for accessibility and keyboard navigation
 	const {
 		isOpen,
 		getMenuProps,
@@ -57,112 +77,13 @@ export function useSearchBar({
 		itemToString: (item) => (item ? item.label : ""),
 	});
 
-	// Helper functions to reduce complexity
-	const shouldFetchSuggestions = useCallback(() => {
-		return (
-			(suggestionProvider || externalSuggestions) &&
-			debouncedInputValue.length >= minChars
-		);
-	}, [
-		suggestionProvider,
-		externalSuggestions,
-		debouncedInputValue.length,
-		minChars,
-	]);
-
-	const clearSuggestionsAndCloseMenu = useCallback(() => {
-		setItems([]);
-		closeMenu();
-	}, [closeMenu]);
-
-	const fetchProviderSuggestions = useCallback(
-		async (query: string, signal: AbortSignal): Promise<Suggestion[]> => {
-			if (!suggestionProvider) return [];
-			const results = await suggestionProvider(query, signal);
-			return results.slice(0, maxSuggestions);
-		},
-		[suggestionProvider, maxSuggestions],
-	);
-
-	const filterExternalSuggestions = useCallback(
-		(query: string): Suggestion[] => {
-			if (!externalSuggestions) return [];
-			const lowerQuery = query.toLowerCase();
-			const filtered = externalSuggestions.filter(
-				(s) =>
-					String(s.label).toLowerCase().includes(lowerQuery) ||
-					String(s.id).toLowerCase().includes(lowerQuery),
-			);
-			return filtered.slice(0, maxSuggestions);
-		},
-		[externalSuggestions, maxSuggestions],
-	);
-
-	// Fetch or filter suggestions when debounced input changes
-	useEffect(() => {
-		if (!shouldFetchSuggestions()) {
-			clearSuggestionsAndCloseMenu();
-			return;
-		}
-
-		let cancelled = false;
-
-		const fetchSuggestions = async () => {
-			setInternalIsLoading(true);
-			try {
-				let results: Suggestion[] = [];
-
-				if (suggestionProvider) {
-					// Abort previous request
-					abortRef.current?.abort();
-					const ac = new AbortController();
-					abortRef.current = ac;
-
-					results = await fetchProviderSuggestions(
-						debouncedInputValue,
-						ac.signal,
-					);
-				} else {
-					results = filterExternalSuggestions(debouncedInputValue);
-				}
-
-				if (!cancelled) {
-					setItems(results);
-				}
-			} catch (err) {
-				// Do not log AbortError
-				if (err instanceof Error && err.name === "AbortError") return;
-
-				console.error("SearchBar suggestion fetch error:", err);
-				if (!cancelled) setItems([]);
-			} finally {
-				if (!cancelled) setInternalIsLoading(false);
-			}
-		};
-
-		fetchSuggestions();
-		return () => {
-			cancelled = true;
-			abortRef.current?.abort();
-		};
-	}, [
-		shouldFetchSuggestions,
-		clearSuggestionsAndCloseMenu,
-		fetchProviderSuggestions,
-		filterExternalSuggestions,
-		debouncedInputValue,
-		suggestionProvider,
-	]);
-
 	// Handle search submission
 	const handleSearch = useCallback(() => {
-		if (onSearch) {
-			onSearch(inputValue);
-		}
+		onSearch?.(inputValue);
 		closeMenu();
 	}, [inputValue, onSearch, closeMenu]);
 
-	// Handle clear
+	// Handle input clearing
 	const handleClear = useCallback(() => {
 		setInputValue("");
 		reset();
@@ -170,12 +91,11 @@ export function useSearchBar({
 
 	return {
 		inputValue,
-		setInputValue,
 		handleSearch,
 		handleClear,
 		isLoading,
 		items,
-		// Downshift props
+		// Downshift props for accessibility and keyboard navigation
 		isOpen,
 		getMenuProps,
 		getInputProps,
