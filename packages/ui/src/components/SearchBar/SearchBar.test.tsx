@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SearchBar } from "./index";
 import { Suggestion } from "./SearchBar.types";
