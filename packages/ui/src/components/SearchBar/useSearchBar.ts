@@ -57,16 +57,51 @@ export function useSearchBar({
 		itemToString: (item) => (item ? item.label : ""),
 	});
 
+	// Helper functions to reduce complexity
+	const shouldFetchSuggestions = useCallback(() => {
+		return (
+			(suggestionProvider || externalSuggestions) &&
+			debouncedInputValue.length >= minChars
+		);
+	}, [
+		suggestionProvider,
+		externalSuggestions,
+		debouncedInputValue.length,
+		minChars,
+	]);
+
+	const clearSuggestionsAndCloseMenu = useCallback(() => {
+		setItems([]);
+		closeMenu();
+	}, [closeMenu]);
+
+	const fetchProviderSuggestions = useCallback(
+		async (query: string, signal: AbortSignal): Promise<Suggestion[]> => {
+			if (!suggestionProvider) return [];
+			const results = await suggestionProvider(query, signal);
+			return results.slice(0, maxSuggestions);
+		},
+		[suggestionProvider, maxSuggestions],
+	);
+
+	const filterExternalSuggestions = useCallback(
+		(query: string): Suggestion[] => {
+			if (!externalSuggestions) return [];
+			const lowerQuery = query.toLowerCase();
+			const filtered = externalSuggestions.filter(
+				(s) =>
+					String(s.label).toLowerCase().includes(lowerQuery) ||
+					String(s.id).toLowerCase().includes(lowerQuery),
+			);
+			return filtered.slice(0, maxSuggestions);
+		},
+		[externalSuggestions, maxSuggestions],
+	);
+
 	// Fetch or filter suggestions when debounced input changes
 	useEffect(() => {
-		if (!suggestionProvider && !externalSuggestions) {
-			setItems([]);
-			closeMenu();
-			return;
-		}
-		if (debouncedInputValue.length < minChars) {
-			setItems([]);
-			closeMenu();
+		if (!shouldFetchSuggestions()) {
+			clearSuggestionsAndCloseMenu();
 			return;
 		}
 
@@ -75,30 +110,24 @@ export function useSearchBar({
 		const fetchSuggestions = async () => {
 			setInternalIsLoading(true);
 			try {
+				let results: Suggestion[] = [];
+
 				if (suggestionProvider) {
 					// Abort previous request
 					abortRef.current?.abort();
 					const ac = new AbortController();
 					abortRef.current = ac;
 
-					const results = await suggestionProvider(
+					results = await fetchProviderSuggestions(
 						debouncedInputValue,
 						ac.signal,
 					);
-					if (!cancelled) {
-						setItems(results.slice(0, maxSuggestions));
-					}
-				} else if (externalSuggestions) {
-					// Client-side filtering
-					const query = debouncedInputValue.toLowerCase();
-					const filtered = externalSuggestions.filter(
-						(s) =>
-							String(s.label).toLowerCase().includes(query) ||
-							String(s.id).toLowerCase().includes(query),
-					);
-					if (!cancelled) {
-						setItems(filtered.slice(0, maxSuggestions));
-					}
+				} else {
+					results = filterExternalSuggestions(debouncedInputValue);
+				}
+
+				if (!cancelled) {
+					setItems(results);
 				}
 			} catch (err) {
 				// Do not log AbortError
@@ -117,12 +146,12 @@ export function useSearchBar({
 			abortRef.current?.abort();
 		};
 	}, [
+		shouldFetchSuggestions,
+		clearSuggestionsAndCloseMenu,
+		fetchProviderSuggestions,
+		filterExternalSuggestions,
 		debouncedInputValue,
-		externalSuggestions,
 		suggestionProvider,
-		minChars,
-		maxSuggestions,
-		closeMenu,
 	]);
 
 	// Handle search submission

@@ -7,6 +7,107 @@ import {
 } from "./SearchBar.styles";
 import type { SearchBarProps, Suggestion } from "./SearchBar.types";
 
+// Helper components to reduce complexity
+interface ActionButtonsProps {
+	isLoading: boolean;
+	showClear: boolean;
+	inputValue: string;
+	showButton: boolean;
+	handleClear: () => void;
+	handleSearch: () => void;
+	size: "sm" | "md" | "lg";
+}
+
+function ActionButtons({
+	isLoading,
+	showClear,
+	inputValue,
+	showButton,
+	handleClear,
+	handleSearch,
+	size,
+}: ActionButtonsProps) {
+	return (
+		<div className="flex items-center">
+			{isLoading && (
+				<Loader2
+					className="mr-2 h-4 w-4 animate-spin text-gray-400"
+					data-testid="loading-spinner"
+				/>
+			)}
+
+			{!isLoading && showClear && inputValue && (
+				<button
+					type="button"
+					onClick={handleClear}
+					className="mr-2 p-1 hover:bg-gray-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+					aria-label="Clear search"
+				>
+					<X className="h-3 w-3 text-gray-400" />
+				</button>
+			)}
+
+			{showButton && (
+				<button
+					type="button"
+					onClick={handleSearch}
+					className={cn(buttonVariants({ size }))}
+					aria-label="Search"
+				>
+					<Search className="h-4 w-4" />
+				</button>
+			)}
+		</div>
+	);
+}
+
+interface SuggestionListProps {
+	isOpen: boolean;
+	items: Suggestion[];
+	getMenuProps: () => Record<string, unknown>;
+	getItemProps: (options: {
+		item: Suggestion;
+		index: number;
+	}) => Record<string, unknown>;
+	highlightedIndex: number;
+}
+
+function SuggestionList({
+	isOpen,
+	items,
+	getMenuProps,
+	getItemProps,
+	highlightedIndex,
+}: SuggestionListProps) {
+	const shouldShowSuggestions = isOpen && items.length > 0;
+
+	return (
+		<ul
+			{...getMenuProps()}
+			className={cn(
+				"absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto",
+				!shouldShowSuggestions && "hidden",
+			)}
+		>
+			{shouldShowSuggestions &&
+				items.map((item, index) => (
+					<li
+						key={item.id}
+						{...getItemProps({ item, index })}
+						className={cn(
+							"px-4 py-3 cursor-pointer text-sm transition-colors border-b border-gray-100 last:border-b-0",
+							highlightedIndex === index
+								? "bg-blue-50 text-blue-900"
+								: "hover:bg-gray-50",
+						)}
+					>
+						{item.label}
+					</li>
+				))}
+		</ul>
+	);
+}
+
 interface SearchBarViewProps extends SearchBarProps {
 	inputValue: string;
 	handleSearch: () => void;
@@ -60,64 +161,24 @@ export function SearchBarView({
 					}}
 				/>
 
-				{/* Loading/Clear/Search Button */}
-				<div className="flex items-center">
-					{isLoading && (
-						<Loader2
-							className="mr-2 h-4 w-4 animate-spin text-gray-400"
-							data-testid="loading-spinner"
-						/>
-					)}
-
-					{!isLoading && showClear && inputValue && (
-						<button
-							type="button"
-							onClick={handleClear}
-							className="mr-2 p-1 hover:bg-gray-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-							aria-label="Clear search"
-						>
-							<X className="h-3 w-3 text-gray-400" />
-						</button>
-					)}
-
-					{showButton && (
-						<button
-							type="button"
-							onClick={handleSearch}
-							className={cn(buttonVariants({ size }))}
-							aria-label="Search"
-						>
-							<Search className="h-4 w-4" />
-						</button>
-					)}
-				</div>
+				<ActionButtons
+					isLoading={isLoading}
+					showClear={showClear}
+					inputValue={inputValue}
+					showButton={showButton}
+					handleClear={handleClear}
+					handleSearch={handleSearch}
+					size={size || "md"}
+				/>
 			</div>
 
-			{/* Suggestions Dropdown */}
-			<ul
-				{...getMenuProps()}
-				className={cn(
-					"absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto",
-					!(isOpen && items.length > 0) && "hidden",
-				)}
-			>
-				{isOpen &&
-					items.length > 0 &&
-					items.map((item, index) => (
-						<li
-							key={item.id}
-							{...getItemProps({ item, index })}
-							className={cn(
-								"px-4 py-3 cursor-pointer text-sm transition-colors border-b border-gray-100 last:border-b-0",
-								highlightedIndex === index
-									? "bg-blue-50 text-blue-900"
-									: "hover:bg-gray-50",
-							)}
-						>
-							{item.label}
-						</li>
-					))}
-			</ul>
+			<SuggestionList
+				isOpen={isOpen}
+				items={items}
+				getMenuProps={getMenuProps}
+				getItemProps={getItemProps}
+				highlightedIndex={highlightedIndex}
+			/>
 		</div>
 	);
 }
