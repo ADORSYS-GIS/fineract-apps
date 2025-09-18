@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Card } from "./index";
+import "@testing-library/jest-dom";
 
 describe("Card", () => {
 	test("renders card with title and content", () => {

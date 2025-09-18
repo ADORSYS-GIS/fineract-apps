@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Navbar } from "./index";
+import "@testing-library/jest-dom";
 
 describe("Navbar", () => {
 	test("renders logo when provided", () => {
