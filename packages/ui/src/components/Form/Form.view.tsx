@@ -1,22 +1,16 @@
-// packages/ui/src/components/Form/Form.view.tsx
 import React, { createContext, useContext } from "react";
+import { cn } from "../../lib/utils";
 import { Button } from "../Button";
 import { ButtonProps } from "../Button/Button.types";
-import { FormContextType, FormProps, Values } from "./Form.types";
-import { useForm } from "./useForm";
+import WarningIcon from "../icons/warning.svg";
+import { useForm } from "./hooks/useForm";
+import { FormContextType, FormProps, Values } from "./types/Form.types";
 
 /**
  * Form context. We'll store it as FormContextType<Values> for runtime,
  * and cast generically when consuming.
  */
 const FormContext = createContext<FormContextType<Values> | null>(null);
-
-/**
- * Simple classNames helper.
- */
-function cx(...parts: Array<string | false | null | undefined>) {
-	return parts.filter(Boolean).join(" ");
-}
 
 /**
  * Top-level Form component.
@@ -41,8 +35,8 @@ export function Form<T extends Values = Values>({
 			<form
 				onSubmit={form.handleSubmit}
 				noValidate
-				className={cx(
-					"w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md",
+				className={cn(
+					"w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md space-y-6",
 					className,
 				)}
 				{...rest}
@@ -74,25 +68,19 @@ export const FormWarning: React.FC<{
 }> = ({ title = "Requires Branch Manager Approval", children, className }) => {
 	return (
 		<div
-			className={cx(
-				"rounded-md bg-yellow-50 p-4 border border-yellow-100",
+			className={cn(
+				"rounded-md bg-yellow-50 p-4 border border-yellow-100 mb-6",
 				className,
 			)}
 		>
 			<div className="flex">
 				<div className="flex-shrink-0">
-					<svg
+					<img
+						src={WarningIcon}
+						alt=""
 						className="h-5 w-5 text-yellow-600"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-						aria-hidden
-					>
-						<path
-							fillRule="evenodd"
-							d="M8.258 3.099c.365-.773 1.46-.773 1.825 0l6.518 13.8A1 1 0 0 1 15.825 18H4.175a1 1 0 0 1-.775-1.101l4.858-13.8zM11 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-1-7a1 1 0 0 0-.993.883L9 8v3a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1z"
-							clipRule="evenodd"
-						/>
-					</svg>
+						aria-hidden="true"
+					/>
 				</div>
 				<div className="ml-3">
 					<h3 className="text-sm font-semibold text-yellow-800">{title}</h3>

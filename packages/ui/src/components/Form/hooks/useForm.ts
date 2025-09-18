@@ -1,12 +1,15 @@
-// packages/ui/src/components/Form/useForm.ts
 import { useCallback, useMemo, useReducer, useState } from "react";
-import { UseFormProps, UseFormReturn, Values } from "./Form.types";
+import { UseFormProps, UseFormReturn, Values } from "../types/Form.types";
+import {
+	getSchemaFields,
+	validateField,
+	validateForm,
+} from "../utils/validation";
 import { createFormReducer } from "./formReducer";
-import { validateField, validateForm } from "./validation";
 
 export const useForm = <T extends Values = Values>({
 	initialValues = {} as T,
-	validationSchema = {},
+	validationSchema,
 	onSubmit,
 }: UseFormProps<T> = {}): UseFormReturn<T> => {
 	const formReducer = useMemo(() => createFormReducer<T>(), []);
@@ -21,6 +24,8 @@ export const useForm = <T extends Values = Values>({
 
 	const handleFieldValidation = useCallback(
 		(name: keyof T & string) => {
+			if (!validationSchema) return undefined;
+
 			const error = validateField(name, values, validationSchema);
 			dispatch({ type: "SET_FIELD_ERROR", payload: { name, error } });
 			return error;
@@ -45,6 +50,8 @@ export const useForm = <T extends Values = Values>({
 	}, []);
 
 	const handleFormValidation = useCallback(() => {
+		if (!validationSchema) return true;
+
 		const { errors: newErrors, isValid } = validateForm(
 			values,
 			validationSchema,
@@ -56,11 +63,24 @@ export const useForm = <T extends Values = Values>({
 	const handleSubmit = useCallback(
 		async (e: React.FormEvent<HTMLFormElement>) => {
 			e.preventDefault();
-			const allTouched = Object.keys(values).reduce(
-				(acc, key) => ({ ...acc, [key]: true }),
-				{},
-			);
-			dispatch({ type: "SET_TOUCHED", payload: allTouched });
+
+			// Fix: Mark all validated fields as touched before submit
+			// This ensures error messages are shown for all fields with validation errors
+			if (validationSchema) {
+				const allFields = getSchemaFields(validationSchema);
+				const allTouched = allFields.reduce(
+					(acc, fieldName) => ({ ...acc, [fieldName]: true }),
+					{},
+				);
+				dispatch({ type: "SET_TOUCHED", payload: allTouched });
+			} else {
+				// Fallback: mark all fields in values as touched
+				const allTouched = Object.keys(values).reduce(
+					(acc, key) => ({ ...acc, [key]: true }),
+					{},
+				);
+				dispatch({ type: "SET_TOUCHED", payload: allTouched });
+			}
 
 			if (!handleFormValidation()) return;
 
@@ -71,7 +91,7 @@ export const useForm = <T extends Values = Values>({
 				setIsSubmitting(false);
 			}
 		},
-		[onSubmit, handleFormValidation, values],
+		[onSubmit, handleFormValidation, values, validationSchema],
 	);
 
 	const reset = useCallback(() => {

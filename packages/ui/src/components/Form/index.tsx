@@ -1,12 +1,5 @@
 // packages/ui/src/components/Form/index.tsx
-export type {
-	FormProps,
-	InputOption,
-	InputProps,
-	ValidationFn,
-	ValidationSchema,
-	Values,
-} from "./Form.types";
+export { Input } from "./components/Input.view";
 
 export {
 	Form,
@@ -14,5 +7,11 @@ export {
 	SubmitButton,
 	useFormContext,
 } from "./Form.view";
-export { Input } from "./Input.view";
-export { useForm } from "./useForm";
+export { useForm } from "./hooks/useForm";
+export type {
+	FormProps,
+	InputOption,
+	InputProps,
+	ValidationSchema,
+	Values,
+} from "./types/Form.types";

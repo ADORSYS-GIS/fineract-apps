@@ -1,5 +1,5 @@
-// packages/ui/src/components/Form/Form.types.ts
 import React from "react";
+import { z } from "zod";
 
 /**
  * Generic map for form values.
@@ -7,24 +7,22 @@ import React from "react";
 export type Values = Record<string, unknown>;
 
 /**
- * Validator receives the field value and the entire values map.
- * Returns a string error or undefined when valid.
+ * Form validation schema using Zod
  */
-export type ValidationFn<T extends Values = Values> = (
-	value: T[keyof T] | undefined,
-	values?: T,
-) => string | undefined;
+export type ValidationSchema<T extends Values = Values> = z.ZodSchema<T>;
 
-export type ValidationSchema<T extends Values = Values> = Partial<
-	Record<keyof T & string, ValidationFn<T>>
->;
-
+/**
+ * Form configuration interface
+ */
 export interface UseFormProps<T extends Values = Values> {
 	initialValues?: T;
 	validationSchema?: ValidationSchema<T>;
 	onSubmit?: (values: T) => void | Promise<void>;
 }
 
+/**
+ * Form state and methods interface
+ */
 export interface UseFormReturn<T extends Values = Values> {
 	values: T;
 	errors: Partial<Record<keyof T & string, string>>;
@@ -39,8 +37,14 @@ export interface UseFormReturn<T extends Values = Values> {
 	reset: () => void;
 }
 
+/**
+ * Form context type
+ */
 export type FormContextType<T extends Values = Values> = UseFormReturn<T>;
 
+/**
+ * Form component props interface
+ */
 export interface FormProps<T extends Values = Values>
 	extends Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit"> {
 	initialValues?: T;
@@ -51,6 +55,9 @@ export interface FormProps<T extends Values = Values>
 
 /* Input-related types */
 
+/**
+ * Supported input types
+ */
 export type InputType =
 	| "text"
 	| "password"
@@ -62,11 +69,17 @@ export type InputType =
 	| "radio"
 	| "date";
 
+/**
+ * Input option interface for select and radio inputs
+ */
 export interface InputOption {
 	label: string;
 	value: string | number | boolean;
 }
 
+/**
+ * Input component props interface
+ */
 export interface InputProps
 	extends Omit<
 		React.InputHTMLAttributes<HTMLInputElement>,
@@ -83,12 +96,18 @@ export interface InputProps
 	theme?: "light" | "dark";
 }
 
-export type FormState<T extends Values> = {
+/**
+ * Form state interface
+ */
+export interface FormState<T extends Values> {
 	values: T;
 	errors: Partial<Record<keyof T & string, string>>;
 	touched: Partial<Record<keyof T & string, boolean>>;
-};
+}
 
+/**
+ * Form action types
+ */
 export type FormAction<T extends Values> =
 	| { type: "SET_VALUES"; payload: T }
 	| { type: "SET_FIELD_VALUE"; payload: { name: keyof T; value: T[keyof T] } }

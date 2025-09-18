@@ -1,6 +1,5 @@
-// packages/ui/src/components/Form/Input.components.tsx
 import React from "react";
-import { InputOption } from "./Form.types";
+import { InputOption } from "../types/Form.types";
 
 export type CommonInputProps = {
 	id: string;
@@ -68,19 +67,18 @@ export const SelectInput: React.FC<{
 	</select>
 );
 
-export const CheckboxRadioInput: React.FC<{
+export const CheckboxInput: React.FC<{
 	commonProps: CommonInputProps & Record<string, unknown>;
-	type: "checkbox" | "radio";
 	value: unknown;
 	handleChange: React.ChangeEventHandler<HTMLInputElement>;
 	label?: string;
 	error?: string;
 	touched?: boolean;
-}> = ({ commonProps, type, value, handleChange, label, error, touched }) => (
+}> = ({ commonProps, value, handleChange, label, error, touched }) => (
 	<div className="flex items-center">
 		<input
 			{...(commonProps as React.InputHTMLAttributes<HTMLInputElement>)}
-			type={type}
+			type="checkbox"
 			checked={Boolean(value)}
 			onChange={handleChange}
 			className={`h-4 w-4 rounded ${
@@ -91,6 +89,49 @@ export const CheckboxRadioInput: React.FC<{
 			<label htmlFor={commonProps.id} className="ml-2 text-sm font-medium">
 				{label}
 			</label>
+		)}
+	</div>
+);
+
+export const RadioGroupInput: React.FC<{
+	commonProps: CommonInputProps & Record<string, unknown>;
+	value: unknown;
+	handleChange: React.ChangeEventHandler<HTMLInputElement>;
+	options: InputOption[];
+	label?: string;
+	error?: string;
+	touched?: boolean;
+}> = ({ commonProps, value, handleChange, options, label, error, touched }) => (
+	<div className="space-y-2">
+		{label && (
+			<fieldset>
+				<legend className="text-sm font-medium text-gray-700 mb-2">
+					{label}
+				</legend>
+				<div className="space-y-2">
+					{options.map((option) => {
+						const optionId = `${commonProps.id}-${option.value}`;
+						return (
+							<div key={String(option.value)} className="flex items-center">
+								<input
+									{...(commonProps as React.InputHTMLAttributes<HTMLInputElement>)}
+									id={optionId}
+									type="radio"
+									value={String(option.value)}
+									checked={String(value) === String(option.value)}
+									onChange={handleChange}
+									className={`h-4 w-4 ${
+										error && touched ? "border-red-400" : "border-green-500"
+									}`}
+								/>
+								<label htmlFor={optionId} className="ml-2 text-sm font-medium">
+									{option.label}
+								</label>
+							</div>
+						);
+					})}
+				</div>
+			</fieldset>
 		)}
 	</div>
 );

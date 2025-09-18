@@ -1,14 +1,14 @@
-// packages/ui/src/components/Form/Input.view.tsx
-import React from "react";
-import { InputProps } from "./Form.types";
-import { useFormContext } from "./Form.view";
+import React, { useId } from "react";
+import { useFormContext } from "../Form.view";
+import { InputProps } from "../types/Form.types";
+import { getInputClasses } from "../utils/util";
 import {
-	CheckboxRadioInput,
+	CheckboxInput,
+	RadioGroupInput,
 	SelectInput,
 	TextAreaInput,
 	TextInput,
 } from "./Input.components";
-import { getInputClasses } from "./util";
 
 /**
  * Beautiful green-themed Input component supporting:
@@ -35,7 +35,10 @@ export const Input: React.FC<InputProps> = ({
 	const touched = form.touched[name];
 	const errorFromForm = form.errors[name];
 	const error = errorProp ?? errorFromForm;
-	const id = `form-input-${name}`;
+
+	// Generate unique ID using React's useId hook
+	const reactId = useId();
+	const id = `form-input-${name}-${reactId}`;
 
 	const inputClasses = getInputClasses(size, variant, error, touched);
 
@@ -50,6 +53,9 @@ export const Input: React.FC<InputProps> = ({
 				return target.checked;
 			case "number":
 				return target.value === "" ? "" : Number(target.value);
+			case "radio":
+				// For radio buttons, return the value of the selected option
+				return target.value;
 			default:
 				return target.value;
 		}
@@ -119,12 +125,23 @@ export const Input: React.FC<InputProps> = ({
 		/>
 	);
 
-	const renderCheckboxRadio = () => (
-		<CheckboxRadioInput
+	const renderCheckbox = () => (
+		<CheckboxInput
 			commonProps={commonProps}
-			type={type as "checkbox" | "radio"}
 			value={value}
 			handleChange={handleChange as React.ChangeEventHandler<HTMLInputElement>}
+			label={label}
+			error={error}
+			touched={touched}
+		/>
+	);
+
+	const renderRadioGroup = () => (
+		<RadioGroupInput
+			commonProps={commonProps}
+			value={value}
+			handleChange={handleChange as React.ChangeEventHandler<HTMLInputElement>}
+			options={options ?? []}
 			label={label}
 			error={error}
 			touched={touched}
@@ -138,8 +155,9 @@ export const Input: React.FC<InputProps> = ({
 			case "select":
 				return renderSelect();
 			case "checkbox":
+				return renderCheckbox();
 			case "radio":
-				return renderCheckboxRadio();
+				return renderRadioGroup();
 			default:
 				return renderDefaultInput();
 		}
@@ -169,7 +187,7 @@ export const Input: React.FC<InputProps> = ({
 
 	return (
 		<div className="mb-4">
-			{type !== "checkbox" && label && (
+			{type !== "checkbox" && type !== "radio" && label && (
 				<label
 					htmlFor={id}
 					className="block text-sm font-medium text-gray-700 mb-1"

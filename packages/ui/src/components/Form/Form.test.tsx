@@ -1,12 +1,21 @@
 // packages/ui/src/components/Form/Form.test.tsx
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { z } from "zod";
 import { Form, Input } from ".";
 
 describe("Form and Input - basic behaviour", () => {
 	it("renders input and submits value", async () => {
 		const handleSubmit = jest.fn();
+		const schema = z.object({
+			email: z.string().email(),
+		});
+
 		render(
-			<Form initialValues={{ email: "" }} onSubmit={handleSubmit}>
+			<Form
+				initialValues={{ email: "" }}
+				validationSchema={schema}
+				onSubmit={handleSubmit}
+			>
 				<Input name="email" label="Email" type="email" />
 				<button type="submit">Submit</button>
 			</Form>,
@@ -23,15 +32,12 @@ describe("Form and Input - basic behaviour", () => {
 	});
 
 	it("shows error message on validation fail", async () => {
-		const validationSchema = {
-			email: (v: unknown) => {
-				const s = typeof v === "string" ? v : "";
-				return !s ? "Required" : undefined;
-			},
-		};
+		const schema = z.object({
+			email: z.string().min(1, "Required"),
+		});
 
 		render(
-			<Form initialValues={{ email: "" }} validationSchema={validationSchema}>
+			<Form initialValues={{ email: "" }} validationSchema={schema}>
 				<Input name="email" label="Email" type="email" />
 				<button type="submit">Submit</button>
 			</Form>,

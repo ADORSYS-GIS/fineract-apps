@@ -1,5 +1,5 @@
 // packages/ui/src/components/Form/formReducer.ts
-import { FormAction, FormState, Values } from "./Form.types";
+import { FormAction, FormState, Values } from "../types/Form.types";
 
 const setFieldValue = <T extends Values>(
 	state: FormState<T>,

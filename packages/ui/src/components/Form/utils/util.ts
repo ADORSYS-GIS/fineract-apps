@@ -1,11 +1,4 @@
-// packages/ui/src/components/Form/util.ts
-
-/**
- * Simple classNames helper.
- */
-export function cx(...parts: Array<string | false | null | undefined>) {
-	return parts.filter(Boolean).join(" ");
-}
+import { cn } from "../../../lib/utils";
 
 /**
  * Generates Tailwind CSS classes for form inputs based on their state.
@@ -39,7 +32,7 @@ export function getInputClasses(
 	const errorClasses =
 		error && touched ? "border-red-400 focus:ring-red-200" : "";
 
-	return cx(
+	return cn(
 		baseClasses,
 		sizeClasses[size],
 		variantClasses[variant],
