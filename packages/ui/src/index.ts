@@ -6,4 +6,5 @@ export {
 	Input,
 	SubmitButton,
 } from "./components/Form";
+export { SearchBar } from "./components/SearchBar";
 export * from "./components/Sidebar";
