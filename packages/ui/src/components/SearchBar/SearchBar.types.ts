@@ -4,13 +4,17 @@ import { searchBarVariants } from "./SearchBar.styles";
 export interface Suggestion {
 	id: string;
 	label: string;
+	value?: string; // Optional for backward compatibility
 }
 
 export interface SearchBarProps extends VariantProps<typeof searchBarVariants> {
 	// Core functionality
+	value?: string;
+	onValueChange?: (value: string) => void;
 	onSearch?: (value: string) => void;
 	placeholder?: string;
 	className?: string;
+	disabled?: boolean;
 
 	// Suggestions
 	suggestions?: Suggestion[];
