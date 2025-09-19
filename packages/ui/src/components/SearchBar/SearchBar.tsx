@@ -1,6 +1,6 @@
 import { useCombobox } from "downshift";
 import { Loader2, Search, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	cn,
 	debounce,
@@ -10,6 +10,13 @@ import {
 } from "../../lib/utils";
 import { searchBarVariants, suggestionItemVariants } from "./SearchBar.styles";
 import type { SearchBarProps, Suggestion } from "./SearchBar.types";
+
+// Helper functions to reduce cognitive complexity
+const shouldShowSuggestions = (isOpen: boolean, items: Suggestion[]) =>
+	isOpen && items.length > 0;
+
+const shouldPerformSearch = (query: string, minChars: number) =>
+	query.trim() && query.length >= minChars;
 
 /**
  * Simple, reusable SearchBar component
@@ -47,29 +54,18 @@ export function SearchBar({
 		setQuery(value);
 	}, [value]);
 
-	// Search logic
-	const performSearch = async (searchQuery: string) => {
-		abortRef.current?.abort();
-
-		if (!searchQuery.trim() || searchQuery.length < minChars) {
-			setItems([]);
-			setLoading(false);
-			return;
-		}
-
-		if (suggestionProvider) {
+	// Extract async search logic
+	const performAsyncSearch = useCallback(
+		async (searchQuery: string, controller: AbortController) => {
 			setLoading(true);
-			const controller = new AbortController();
-			abortRef.current = controller;
 
 			try {
-				const results = await suggestionProvider(
+				const results = await suggestionProvider!(
 					searchQuery,
 					controller.signal,
 				);
 				if (!controller.signal.aborted) {
 					setItems(limitResults(results, maxSuggestions));
-					setLoading(false);
 				}
 			} catch (error) {
 				if (!shouldIgnoreError(error)) {
@@ -77,18 +73,50 @@ export function SearchBar({
 				}
 				if (!controller.signal.aborted) {
 					setItems([]);
+				}
+			} finally {
+				if (!controller.signal.aborted) {
 					setLoading(false);
 				}
 			}
-		} else {
+		},
+		[suggestionProvider, maxSuggestions],
+	);
+
+	// Extract client-side search logic
+	const performClientSearch = useCallback(
+		(searchQuery: string) => {
 			const filtered = filterByQuery(
 				suggestions,
 				searchQuery,
 				(item) => item.label,
 			);
 			setItems(limitResults(filtered, maxSuggestions));
-		}
-	};
+		},
+		[suggestions, maxSuggestions],
+	);
+
+	// Simplified search logic
+	const performSearch = useCallback(
+		async (searchQuery: string) => {
+			abortRef.current?.abort();
+
+			if (!shouldPerformSearch(searchQuery, minChars)) {
+				setItems([]);
+				setLoading(false);
+				return;
+			}
+
+			if (suggestionProvider) {
+				const controller = new AbortController();
+				abortRef.current = controller;
+				await performAsyncSearch(searchQuery, controller);
+			} else {
+				performClientSearch(searchQuery);
+			}
+		},
+		[minChars, suggestionProvider, performAsyncSearch, performClientSearch],
+	);
 
 	// Debounced search
 	const debouncedSearch = debounce(performSearch, debounceMs);
@@ -100,6 +128,33 @@ export function SearchBar({
 	// Cleanup
 	useEffect(() => () => abortRef.current?.abort(), []);
 
+	// Extract clear functionality
+	const handleClear = useCallback(() => {
+		setQuery("");
+		setItems([]);
+		onValueChange?.("");
+	}, [onValueChange]);
+
+	// Extract input value change handler
+	const handleInputChange = useCallback(
+		({ inputValue }: { inputValue?: string }) => {
+			const newValue = inputValue ?? "";
+			setQuery(newValue);
+			onValueChange?.(newValue);
+		},
+		[onValueChange],
+	);
+
+	// Extract selection handler
+	const handleSelection = useCallback(
+		({ selectedItem }: { selectedItem?: Suggestion | null }) => {
+			if (selectedItem) {
+				onSuggestionSelect?.(selectedItem);
+			}
+		},
+		[onSuggestionSelect],
+	);
+
 	// Downshift for accessibility
 	const {
 		isOpen,
@@ -110,17 +165,19 @@ export function SearchBar({
 	} = useCombobox({
 		items,
 		itemToString: (item) => item?.label ?? "",
-		onInputValueChange: ({ inputValue }) => {
-			const newValue = inputValue ?? "";
-			setQuery(newValue);
-			onValueChange?.(newValue);
-		},
-		onSelectedItemChange: ({ selectedItem }) => {
-			if (selectedItem) {
-				onSuggestionSelect?.(selectedItem);
+		onInputValueChange: handleInputChange,
+		onSelectedItemChange: handleSelection,
+	});
+
+	// Extract key handler (after highlightedIndex is available)
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (e.key === "Enter" && highlightedIndex === -1) {
+				onSearch?.(query);
 			}
 		},
-	});
+		[onSearch, query, highlightedIndex],
+	);
 
 	return (
 		<div className={cn("relative w-full", className)}>
@@ -134,11 +191,7 @@ export function SearchBar({
 						disabled,
 						className:
 							"flex-1 bg-transparent border-0 outline-none text-sm placeholder:text-muted-foreground",
-						onKeyDown: (e) => {
-							if (e.key === "Enter" && highlightedIndex === -1) {
-								onSearch?.(query);
-							}
-						},
+						onKeyDown: handleKeyDown,
 						...props,
 					})}
 				/>
@@ -150,12 +203,9 @@ export function SearchBar({
 				{showClear && query && (
 					<button
 						type="button"
-						onClick={() => {
-							setQuery("");
-							setItems([]);
-							onValueChange?.("");
-						}}
+						onClick={handleClear}
 						className="p-1 hover:bg-accent rounded transition-colors"
+						aria-label="Clear input"
 					>
 						<X className="h-3 w-3" />
 					</button>
@@ -178,7 +228,7 @@ export function SearchBar({
 				{...getMenuProps()}
 				className={cn(
 					"absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto bg-popover border rounded-md shadow-lg",
-					(!isOpen || items.length === 0) && "hidden",
+					!shouldShowSuggestions(isOpen, items) && "hidden",
 				)}
 			>
 				{items.map((item, index) => (
