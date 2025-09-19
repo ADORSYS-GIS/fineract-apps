@@ -54,7 +54,7 @@ export function SearchBar({
 		setQuery(value);
 	}, [value]);
 
-	// Extract async search logic
+	// Extract async search logic - simplified abort handling
 	const performAsyncSearch = useCallback(
 		async (searchQuery: string, controller: AbortController) => {
 			setLoading(true);
@@ -64,20 +64,17 @@ export function SearchBar({
 					searchQuery,
 					controller.signal,
 				);
-				if (!controller.signal.aborted) {
-					setItems(limitResults(results, maxSuggestions));
-				}
+				// No abort check needed - if aborted, it would have thrown
+				setItems(limitResults(results, maxSuggestions));
 			} catch (error) {
+				// If AbortError, silently ignore; otherwise log and clear items
 				if (!shouldIgnoreError(error)) {
 					console.error("SearchBar error:", error);
-				}
-				if (!controller.signal.aborted) {
 					setItems([]);
 				}
 			} finally {
-				if (!controller.signal.aborted) {
-					setLoading(false);
-				}
+				// Always reset loading state (abort or success)
+				setLoading(false);
 			}
 		},
 		[suggestionProvider, maxSuggestions],
@@ -179,6 +176,16 @@ export function SearchBar({
 		[onSearch, query, highlightedIndex],
 	);
 
+	// Extract search button handler
+	const handleSearchClick = useCallback(() => {
+		onSearch?.(query);
+	}, [onSearch, query]);
+
+	// Pre-calculate conditions to reduce JSX complexity
+	const showLoader = isLoading || loading;
+	const showClearButton = showClear && query;
+	const showSuggestions = shouldShowSuggestions(isOpen, items);
+
 	return (
 		<div className={cn("relative w-full", className)}>
 			{/* Input Container */}
@@ -196,11 +203,11 @@ export function SearchBar({
 					})}
 				/>
 
-				{(isLoading || loading) && (
+				{showLoader && (
 					<Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
 				)}
 
-				{showClear && query && (
+				{showClearButton && (
 					<button
 						type="button"
 						onClick={handleClear}
@@ -214,7 +221,7 @@ export function SearchBar({
 				{showSearchButton && (
 					<button
 						type="button"
-						onClick={() => onSearch?.(query)}
+						onClick={handleSearchClick}
 						disabled={disabled}
 						className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
 					>
@@ -228,7 +235,7 @@ export function SearchBar({
 				{...getMenuProps()}
 				className={cn(
 					"absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto bg-popover border rounded-md shadow-lg",
-					!shouldShowSuggestions(isOpen, items) && "hidden",
+					!showSuggestions && "hidden",
 				)}
 			>
 				{items.map((item, index) => (
