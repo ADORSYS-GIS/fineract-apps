@@ -1,5 +1,10 @@
-// Button component and types
 export { Button } from "./components/Button";
+export {
+	Form,
+	FormTitle,
+	FormWarning,
+	Input,
+	SubmitButton,
+} from "./components/Form";
 export { SearchBar } from "./components/SearchBar";
-// Sidebar component and types
 export * from "./components/Sidebar";
