@@ -1,4 +1,5 @@
 // Button component and types
 export { Button } from "./components/Button";
-// Sidebar component and types
-export * from "./components/Sidebar";
+export { Card } from "./components/Card";
+export { Navbar } from "./components/Navbar";
+export { Sidebar } from "./components/Sidebar";
