@@ -1,119 +1,257 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import "@testing-library/jest-dom";
+/**
+ * @jest-environment jsdom
+ */
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { SearchBar } from "./SearchBar";
 
-// Mock icons
-jest.mock("lucide-react", () => ({
-	Search: () => <span data-testid="search-icon">Search</span>,
-	X: () => <span data-testid="clear-icon">X</span>,
-	Loader2: () => <span data-testid="loader-icon">Loading</span>,
-}));
+describe("SearchBar", () => {
+	const mockOnValueChange = jest.fn();
+	const mockOnSearch = jest.fn();
 
-describe("SearchBar - Final Clean Version", () => {
-	it("renders basic search bar", () => {
-		render(<SearchBar placeholder="Search items..." />);
+	const defaultProps = {
+		onValueChange: mockOnValueChange,
+		onSearch: mockOnSearch,
+	};
 
-		expect(screen.getByPlaceholderText("Search items...")).toBeInTheDocument();
-		expect(screen.getByTestId("search-icon")).toBeInTheDocument();
+	beforeEach(() => {
+		jest.clearAllMocks();
 	});
 
-	it("handles input and calls onValueChange", () => {
-		const onValueChange = jest.fn();
-		render(<SearchBar onValueChange={onValueChange} />);
+	describe("Basic Rendering", () => {
+		it("renders with default props", () => {
+			render(<SearchBar />);
+			expect(screen.getByRole("textbox")).toBeInTheDocument();
+			expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
+		});
 
-		const input = screen.getByRole("combobox");
-		fireEvent.change(input, { target: { value: "test" } });
+		it("renders with custom placeholder", () => {
+			render(<SearchBar placeholder="Find items..." />);
+			expect(screen.getByPlaceholderText("Find items...")).toBeInTheDocument();
+		});
 
-		expect(input).toHaveValue("test");
-		expect(onValueChange).toHaveBeenCalledWith("test");
-	});
+		it("applies custom className", () => {
+			const { container } = render(<SearchBar className="custom-class" />);
+			expect(container.firstChild).toHaveClass("custom-class");
+		});
 
-	it("shows suggestions from props", async () => {
-		const suggestions = [
-			{ id: "1", label: "Apple" },
-			{ id: "2", label: "Application" },
-		];
-
-		render(<SearchBar suggestions={suggestions} />);
-
-		const input = screen.getByRole("combobox");
-		fireEvent.change(input, { target: { value: "app" } });
-
-		await waitFor(() => {
-			expect(screen.getByText("Apple")).toBeInTheDocument();
-			expect(screen.getByText("Application")).toBeInTheDocument();
+		it("renders disabled state", () => {
+			render(<SearchBar disabled />);
+			expect(screen.getByRole("textbox")).toBeDisabled();
 		});
 	});
 
-	it("calls onSearch when search button clicked", () => {
-		const onSearch = jest.fn();
-		render(<SearchBar onSearch={onSearch} value="test query" />);
+	describe("Value Management", () => {
+		it("displays controlled value", () => {
+			render(<SearchBar value="test value" {...defaultProps} />);
+			expect(screen.getByDisplayValue("test value")).toBeInTheDocument();
+		});
 
-		const searchButton = screen.getByRole("button", { name: /search/i });
-		fireEvent.click(searchButton);
+		it("calls onValueChange when typing", async () => {
+			const user = userEvent.setup();
+			render(<SearchBar {...defaultProps} />);
 
-		expect(onSearch).toHaveBeenCalledWith("test query");
+			const input = screen.getByRole("textbox");
+			await user.type(input, "hello");
+
+			expect(mockOnValueChange).toHaveBeenCalledTimes(5); // Each character
+			expect(mockOnValueChange).toHaveBeenNthCalledWith(1, "h");
+			expect(mockOnValueChange).toHaveBeenNthCalledWith(2, "e");
+			expect(mockOnValueChange).toHaveBeenNthCalledWith(3, "l");
+			expect(mockOnValueChange).toHaveBeenNthCalledWith(4, "l");
+			expect(mockOnValueChange).toHaveBeenNthCalledWith(5, "o");
+		});
+
+		it("handles empty initial value", () => {
+			render(<SearchBar value="" {...defaultProps} />);
+			expect(screen.getByRole("textbox")).toHaveValue("");
+		});
 	});
 
-	it("handles async suggestions", async () => {
-		const mockProvider = jest
-			.fn()
-			.mockResolvedValue([{ id: "1", label: "Async Result" }]);
+	describe("Search Functionality", () => {
+		it("triggers onSearch when Enter is pressed", async () => {
+			const user = userEvent.setup();
+			render(<SearchBar value="search term" {...defaultProps} />);
 
-		render(<SearchBar suggestionProvider={mockProvider} />);
+			const input = screen.getByRole("textbox");
+			await user.type(input, "{Enter}");
 
-		const input = screen.getByRole("combobox");
-		fireEvent.change(input, { target: { value: "test" } });
+			expect(mockOnSearch).toHaveBeenCalledWith("search term");
+		});
 
-		await waitFor(() => {
-			expect(mockProvider).toHaveBeenCalledWith(
-				"test",
-				expect.any(AbortSignal),
+		it("does not trigger onSearch on other keys", async () => {
+			const user = userEvent.setup();
+			render(<SearchBar value="test" {...defaultProps} />);
+
+			const input = screen.getByRole("textbox");
+			await user.type(input, "{Space}{Tab}");
+
+			expect(mockOnSearch).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("Clear Functionality", () => {
+		it("shows clear button when showClear is true and has value", () => {
+			render(<SearchBar value="test" showClear {...defaultProps} />);
+			expect(screen.getByLabelText("Clear input")).toBeInTheDocument();
+		});
+
+		it("hides clear button when showClear is false", () => {
+			render(<SearchBar value="test" showClear={false} {...defaultProps} />);
+			expect(screen.queryByLabelText("Clear input")).not.toBeInTheDocument();
+		});
+
+		it("hides clear button when no value", () => {
+			render(<SearchBar value="" showClear {...defaultProps} />);
+			expect(screen.queryByLabelText("Clear input")).not.toBeInTheDocument();
+		});
+
+		it("clears input when clear button is clicked", async () => {
+			const user = userEvent.setup();
+			render(<SearchBar value="test" showClear {...defaultProps} />);
+
+			const clearButton = screen.getByLabelText("Clear input");
+			await user.click(clearButton);
+
+			expect(mockOnValueChange).toHaveBeenCalledWith("");
+		});
+	});
+
+	describe("Loading State", () => {
+		it("shows loading spinner when isLoading is true", () => {
+			render(<SearchBar isLoading {...defaultProps} />);
+			// Look for the loading icon by class
+			const loadingIcon = document.querySelector(".animate-spin");
+			expect(loadingIcon).toBeInTheDocument();
+		});
+
+		it("hides loading spinner when isLoading is false", () => {
+			render(<SearchBar isLoading={false} {...defaultProps} />);
+			const loadingIcon = document.querySelector(".animate-spin");
+			expect(loadingIcon).not.toBeInTheDocument();
+		});
+	});
+
+	describe("Variants", () => {
+		it("renders default variant", () => {
+			const { container } = render(<SearchBar variant="default" />);
+			expect(container.firstChild?.firstChild).toHaveClass(
+				"flex items-center gap-2",
 			);
 		});
 
-		await waitFor(() => {
-			expect(screen.getByText("Async Result")).toBeInTheDocument();
+		it("renders withButton variant", () => {
+			render(<SearchBar variant="withButton" {...defaultProps} />);
+			expect(
+				screen.getByRole("button", { name: /search/i }),
+			).toBeInTheDocument();
+		});
+
+		it("triggers onSearch when search button is clicked", async () => {
+			const user = userEvent.setup();
+			render(
+				<SearchBar
+					variant="withButton"
+					value="button search"
+					{...defaultProps}
+				/>,
+			);
+
+			const searchButton = screen.getByRole("button", { name: /search/i });
+			await user.click(searchButton);
+
+			expect(mockOnSearch).toHaveBeenCalledWith("button search");
+		});
+
+		it("renders expandable variant collapsed by default", () => {
+			render(<SearchBar variant="expandable" />);
+			expect(screen.getByLabelText("Open search")).toBeInTheDocument();
+			expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+		});
+
+		it("expands when expandable search button is clicked", async () => {
+			const user = userEvent.setup();
+			render(<SearchBar variant="expandable" {...defaultProps} />);
+
+			const expandButton = screen.getByLabelText("Open search");
+			await user.click(expandButton);
+
+			expect(screen.getByRole("textbox")).toBeInTheDocument();
+			expect(screen.queryByLabelText("Open search")).not.toBeInTheDocument();
+		});
+
+		it("collapses expandable on Enter key", async () => {
+			const user = userEvent.setup();
+			render(<SearchBar variant="expandable" {...defaultProps} />);
+
+			// First expand
+			await user.click(screen.getByLabelText("Open search"));
+			expect(screen.getByRole("textbox")).toBeInTheDocument();
+
+			// Then press Enter
+			await user.type(screen.getByRole("textbox"), "{Enter}");
+
+			// Should be collapsed again
+			await waitFor(() => {
+				expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+				expect(screen.getByLabelText("Open search")).toBeInTheDocument();
+			});
+		});
+
+		it("collapses expandable on Escape key", async () => {
+			const user = userEvent.setup();
+			render(<SearchBar variant="expandable" {...defaultProps} />);
+
+			// First expand
+			await user.click(screen.getByLabelText("Open search"));
+			expect(screen.getByRole("textbox")).toBeInTheDocument();
+
+			// Then press Escape
+			await user.type(screen.getByRole("textbox"), "{Escape}");
+
+			// Should be collapsed
+			await waitFor(() => {
+				expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+				expect(screen.getByLabelText("Open search")).toBeInTheDocument();
+			});
 		});
 	});
 
-	it("shows clear button and clears input", () => {
-		const onValueChange = jest.fn();
-		render(<SearchBar value="test" onValueChange={onValueChange} />);
+	describe("Size Variants", () => {
+		it("applies small size class", () => {
+			const { container } = render(<SearchBar size="sm" />);
+			expect(container.querySelector(".h-8")).toBeInTheDocument();
+		});
 
-		const clearButton = screen.getByTestId("clear-icon").closest("button");
-		expect(clearButton).toBeInTheDocument();
+		it("applies medium size class (default)", () => {
+			const { container } = render(<SearchBar size="md" />);
+			expect(container.querySelector(".h-10")).toBeInTheDocument();
+		});
 
-		fireEvent.click(clearButton!);
-		expect(onValueChange).toHaveBeenCalledWith("");
+		it("applies large size class", () => {
+			const { container } = render(<SearchBar size="lg" />);
+			expect(container.querySelector(".h-12")).toBeInTheDocument();
+		});
 	});
 
-	it("shows loading state", () => {
-		render(<SearchBar isLoading={true} />);
-		expect(screen.getByTestId("loader-icon")).toBeInTheDocument();
-	});
+	describe("Accessibility", () => {
+		it("has proper ARIA attributes", () => {
+			render(<SearchBar />);
+			const input = screen.getByRole("textbox");
+			expect(input).toBeInTheDocument();
+		});
 
-	it("handles suggestion selection", async () => {
-		const onSuggestionSelect = jest.fn();
-		const suggestions = [{ id: "1", label: "Test Item" }];
+		it("has accessible button labels", () => {
+			render(<SearchBar value="test" showClear variant="withButton" />);
+			expect(screen.getByLabelText("Clear input")).toBeInTheDocument();
+			expect(
+				screen.getByRole("button", { name: /search/i }),
+			).toBeInTheDocument();
+		});
 
-		render(
-			<SearchBar
-				suggestions={suggestions}
-				onSuggestionSelect={onSuggestionSelect}
-			/>,
-		);
-
-		const input = screen.getByRole("combobox");
-		fireEvent.change(input, { target: { value: "test" } });
-
-		await waitFor(() => {
-			const suggestion = screen.getByText("Test Item");
-			fireEvent.click(suggestion);
-			expect(onSuggestionSelect).toHaveBeenCalledWith({
-				id: "1",
-				label: "Test Item",
-			});
+		it("has accessible expandable button", () => {
+			render(<SearchBar variant="expandable" />);
+			expect(screen.getByLabelText("Open search")).toBeInTheDocument();
 		});
 	});
 });

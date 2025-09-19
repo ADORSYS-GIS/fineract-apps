@@ -1,36 +1,24 @@
 import type { VariantProps } from "class-variance-authority";
-import { searchBarVariants } from "./SearchBar.styles";
+import { SearchBarVariants } from "./SearchBar.styles";
 
-export interface Suggestion {
-	id: string;
-	label: string;
-	value?: string; // Optional for backward compatibility
-}
-
-export interface SearchBarProps extends VariantProps<typeof searchBarVariants> {
-	// Core functionality
+/**
+ * Props for SearchBar component
+ */
+export interface SearchBarProps extends VariantProps<typeof SearchBarVariants> {
+	/** Current search value (controlled) */
 	value?: string;
+	/** Callback when search value changes */
 	onValueChange?: (value: string) => void;
+	/** Callback when search is executed (Enter key or search button) */
 	onSearch?: (value: string) => void;
+	/** Input placeholder text */
 	placeholder?: string;
+	/** Additional CSS classes */
 	className?: string;
+	/** Whether the input is disabled */
 	disabled?: boolean;
-
-	// Suggestions
-	suggestions?: Suggestion[];
-	suggestionProvider?: (
-		query: string,
-		signal?: AbortSignal,
-	) => Promise<Suggestion[]>;
-	onSuggestionSelect?: (suggestion: Suggestion) => void;
-
-	// UI states
+	/** Loading state (external) */
 	isLoading?: boolean;
+	/** Whether to show clear button */
 	showClear?: boolean;
-	showSearchButton?: boolean;
-
-	// Configuration
-	minChars?: number;
-	debounceMs?: number;
-	maxSuggestions?: number;
 }

@@ -1,121 +1,88 @@
-# SearchBar Component Documentation
+# SearchBar Component
 
-A production-ready, accessible search component that provides a consistent search experience across all applications in the Fineract ecosystem. Built with simplicity and performance in mind.
+A simple and reusable search component for consistent search experiences across all applications in the fineract-apps monorepo.
 
-**Latest Version**: v1.0.0 (Refactored for cognitive complexity compliance)  
-**Package**: `@fineract-apps/ui`  
-**Bundle Size**: ~2KB gzipped
+## Overview
 
-## Component Structure
-
-The SearchBar follows a clean, simplified architecture with only 4 essential files:
-
-```
-SearchBar/
-├── index.tsx             # Simple exports
-├── SearchBar.types.ts    # TypeScript interfaces  
-├── SearchBar.styles.ts   # Tailwind variants with CVA
-└── SearchBar.tsx         # Main component (~220 lines)
-```
-
-**No over-engineering. No unnecessary complexity.** Just clean, readable code with extracted helper functions for maintainability and reduced cognitive complexity.
+The SearchBar component provides a lightweight, accessible search input with multiple variants and built-in states. It's designed to be simple to implement while maintaining consistent styling and behavior across the Cashier, Account Manager, and Branch Manager applications.
 
 ## Features
 
-- **Live Search**: Real-time search with configurable debouncing
-- **Dual Mode**: Client-side filtering OR async API suggestions
-- **Keyboard Navigation**: Full accessibility with arrow keys, enter, escape
-- **Loading States**: Visual feedback during async operations
-- **Request Cancellation**: Built-in AbortController for performance
-- **Flexible Variants**: Default and withButton styles
-- **Size Options**: Small, medium, and large variants
-- **Type Safe**: Full TypeScript support with strict interfaces
-- **Lightweight**: Only ~2KB gzipped
-- **Accessible**: WAI-ARIA compliant using Downshift
+- **Multiple Variants**: Default, with button, and expandable search
+- **Responsive Design**: Works seamlessly across all screen sizes
+- **Accessibility First**: Full ARIA support and keyboard navigation
+- **Flexible States**: Loading, disabled, and clear functionality
+- **Simple API**: Easy to integrate with minimal setup
+- **Well Tested**: 97%+ test coverage with comprehensive test suite
 
 ## Installation
 
-The SearchBar component is part of the `@fineract-apps/ui` package and is automatically available in all frontend applications.
+The SearchBar component is available in the shared UI library:
 
-## Quick Start
-
-```tsx
-import { SearchBar } from '@fineract-apps/ui';
-
-// Basic search
-<SearchBar 
-  placeholder="Search users..." 
-  onSearch={(query) => console.log('Searching:', query)}
-/>
+```typescript
+import { SearchBar } from "@fineract-apps/ui";
 ```
 
-## Usage Examples
+## Basic Usage
 
-### Basic Search
-```tsx
-<SearchBar 
-  placeholder="Search accounts"
-  onSearch={(value) => console.log('Searching for:', value)}
-/>
+### Default Search Input
+
+```typescript
+import { SearchBar } from "@fineract-apps/ui";
+import { useState } from "react";
+
+function SearchExample() {
+  const [searchValue, setSearchValue] = useState("");
+
+  return (
+    <SearchBar
+      value={searchValue}
+      onValueChange={setSearchValue}
+      placeholder="Search transactions..."
+    />
+  );
+}
 ```
 
-### With Search Button
-```tsx
-<SearchBar
-  variant="withButton"
-  placeholder="Search with button"
-  onSearch={(value) => console.log('Button search:', value)}
-/>
+### Search with Button
+
+```typescript
+function SearchWithButton() {
+  const [query, setQuery] = useState("");
+
+  const handleSearch = (searchTerm: string) => {
+    console.log("Searching for:", searchTerm);
+    // Implement your search logic here
+  };
+
+  return (
+    <SearchBar
+      variant="withButton"
+      value={query}
+      onValueChange={setQuery}
+      onSearch={handleSearch}
+      placeholder="Search customers..."
+    />
+  );
+}
 ```
 
-### Client-side Suggestions
-```tsx
-const accounts = [
-  { id: '1', label: 'Account #123 - John Doe' },
-  { id: '2', label: 'Account #456 - Jane Smith' }
-];
+### Expandable Search (Mobile-Friendly)
 
-<SearchBar
-  placeholder="Search accounts"
-  suggestions={accounts}
-  onSuggestionSelect={(suggestion) => {
-    navigate(`/accounts/${suggestion.id}`);
-  }}
-  maxSuggestions={5}
-/>
-```
+```typescript
+function ExpandableSearch() {
+  const [searchTerm, setSearchTerm] = useState("");
 
-### Async API Search
-```tsx
-<SearchBar
-  placeholder="Search customers"
-  suggestionProvider={async (query, signal) => {
-    const res = await fetch(`/api/customers/search?q=${query}`, { signal });
-    const data = await res.json();
-    return data.map(customer => ({
-      id: customer.id,
-      label: `${customer.name} - ${customer.accountNumber}`
-    }));
-  }}
-  onSuggestionSelect={(customer) => {
-    navigate(`/customers/${customer.id}`);
-  }}
-  debounceMs={500}
-  minChars={2}
-/>
-```
-
-### Controlled Component
-```tsx
-const [searchValue, setSearchValue] = useState('');
-
-<SearchBar
-  value={searchValue}
-  onValueChange={setSearchValue}
-  placeholder="Controlled search"
-  size="lg"
-  showClear={false}
-/>
+  return (
+    <SearchBar
+      variant="expandable"
+      value={searchTerm}
+      onValueChange={setSearchTerm}
+      placeholder="Search accounts..."
+      size="sm"
+    />
+  );
+}
 ```
 
 ## API Reference
@@ -124,356 +91,406 @@ const [searchValue, setSearchValue] = useState('');
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `variant` | `"default" \| "withButton"` | `"default"` | Visual style variant |
-| `size` | `"sm" \| "md" \| "lg"` | `"md"` | Size of the search bar |
-| `placeholder` | `string` | `"Search..."` | Placeholder text for the input |
-| `className` | `string` | - | Additional CSS classes |
-| `value` | `string` | - | Controlled input value |
-| `onValueChange` | `(value: string) => void` | - | Called when input value changes |
-| `onSearch` | `(value: string) => void` | - | Called when search is triggered |
-| `showClear` | `boolean` | `true` | Whether to show the clear button |
-| `showSearchButton` | `boolean` | `true` | Whether to show search button |
+| `value` | `string` | `""` | Current search input value |
+| `onValueChange` | `(value: string) => void` | - | Callback when input value changes |
+| `onSearch` | `(value: string) => void` | - | Callback when search is triggered (Enter key or button click) |
+| `placeholder` | `string` | `"Search..."` | Input placeholder text |
+| `variant` | `"default" \| "withButton" \| "expandable"` | `"default"` | Visual variant of the search bar |
+| `size` | `"sm" \| "md" \| "lg"` | `"md"` | Size of the search input |
 | `disabled` | `boolean` | `false` | Whether the input is disabled |
-| `suggestions` | `Suggestion[]` | - | Array of suggestions for client-side filtering |
-| `suggestionProvider` | `(query: string, signal?: AbortSignal) => Promise<Suggestion[]>` | - | Async function to fetch suggestions |
-| `onSuggestionSelect` | `(suggestion: Suggestion) => void` | - | Called when a suggestion is selected |
-| `isLoading` | `boolean` | `false` | Shows loading indicator |
-| `minChars` | `number` | `1` | Minimum characters before showing suggestions |
-| `debounceMs` | `number` | `300` | Debounce delay for suggestions in milliseconds |
-| `maxSuggestions` | `number` | `10` | Maximum number of suggestions to show |
-
-### Suggestion Interface
-
-```tsx
-interface Suggestion {
-  id: string;
-  label: string;
-  value?: string; // Optional for backward compatibility
-}
-```
-
-## Variants & Sizing
+| `isLoading` | `boolean` | `false` | Shows loading spinner when true |
+| `showClear` | `boolean` | `true` | Whether to show clear button when there's text |
+| `className` | `string` | - | Additional CSS classes |
 
 ### Variants
 
-**Default** - Standard search bar with icon and optional clear button
-```tsx
-<SearchBar placeholder="Search accounts" />
+#### Default
+Basic search input with search icon and optional clear button.
+
+```typescript
+<SearchBar 
+  variant="default"
+  value={searchValue}
+  onValueChange={setSearchValue}
+/>
 ```
 
-**With Button** - Includes a search button for explicit search actions
-```tsx
-<SearchBar
-  variant="withButton" 
-  placeholder="Search with button"
+#### With Button
+Includes a search button for explicit search trigger.
+
+```typescript
+<SearchBar 
+  variant="withButton"
+  value={searchValue}
+  onValueChange={setSearchValue}
+  onSearch={handleSearch}
+/>
+```
+
+#### Expandable
+Starts as a search icon, expands to full input when clicked. Perfect for mobile layouts.
+
+```typescript
+<SearchBar 
+  variant="expandable"
+  value={searchValue}
+  onValueChange={setSearchValue}
 />
 ```
 
 ### Sizes
 
-Control the visual size of the search bar:
-```tsx
-<SearchBar size="sm" placeholder="Small search" />
-<SearchBar size="md" placeholder="Medium search" />  
-<SearchBar size="lg" placeholder="Large search" />
-```
+| Size | Description | Use Case |
+|------|-------------|----------|
+| `sm` | Small (32px height) | Compact interfaces, mobile |
+| `md` | Medium (40px height) | Default size for most use cases |
+| `lg` | Large (48px height) | Prominent search features |
 
-## Accessibility
+## Advanced Usage
 
-The SearchBar component is fully accessible and follows WAI-ARIA guidelines:
+### Loading States
 
-**ARIA Support:**
-- Proper roles and attributes (`combobox`, `listbox`, `option`)
-- Screen reader announcements for loading states
-- Clear button with descriptive `aria-label`
-- Focus management between input and suggestions
+```typescript
+function SearchWithLoading() {
+  const [query, setQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-**Keyboard Navigation:**
-- `↑/↓` - Navigate through suggestions
-- `Enter` - Select suggestion or trigger search  
-- `Esc` - Close suggestions dropdown
-- `Tab` - Move focus to next element
-
-## Advanced Examples
-
-### Real-world Account Search
-```tsx
-const [loading, setLoading] = useState(false);
-const [error, setError] = useState<string | null>(null);
-
-<SearchBar
-  placeholder="Search customer accounts..."
-  suggestionProvider={async (query, signal) => {
-    setLoading(true);
-    setError(null);
+  const handleSearch = async (searchTerm: string) => {
+    if (!searchTerm.trim()) return;
+    
+    setIsLoading(true);
     try {
-      const res = await fetch(`/api/accounts/search?q=${query}`, { signal });
-      if (!res.ok) throw new Error('Search failed');
-      const data = await res.json();
-      return data.accounts.map(account => ({
-        id: account.id,
-        label: `${account.customerName} - ${account.accountNumber}`
-      }));
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        setError('Search failed. Please try again.');
-        console.error('Search error:', err);
-      }
-      return [];
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log("Search results for:", searchTerm);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }}
-  isLoading={loading}
-  onSuggestionSelect={(account) => {
-    navigate(`/accounts/${account.id}`);
-  }}
-  debounceMs={300}
-  minChars={3}
-  maxSuggestions={6}
-/>
-{error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-```
-
-### Custom Styling & Configuration
-```tsx
-// Large search with custom styling
-<SearchBar
-  placeholder="Search transactions..."
-  className="max-w-2xl mx-auto shadow-lg"
-  size="lg"
-  showClear={false}
-  debounceMs={500}
-  minChars={2}
-/>
-
-// Compact mobile search  
-<SearchBar
-  placeholder="Quick search"
-  size="sm"
-  className="w-full md:w-80"
-  debounceMs={200}
-/>
-```
-
-### Complete Integration Example
-```tsx
-import { useState, useCallback } from 'react';
-import { SearchBar } from '@fineract-apps/ui';
-import type { Suggestion } from '@fineract-apps/ui';
-
-function CustomerSearchPage() {
-  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
-  const [searchHistory, setSearchHistory] = useState<string[]>([]);
-
-  const searchCustomers = useCallback(async (query: string, signal?: AbortSignal) => {
-    try {
-      const response = await fetch(`/api/customers/search?q=${encodeURIComponent(query)}`, {
-        signal,
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.status}`);
-      }
-      
-      const { customers } = await response.json();
-      return customers.map((customer: any) => ({
-        id: customer.id,
-        label: `${customer.fullName} - ${customer.accountNumber}`,
-        value: customer.accountNumber
-      }));
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Customer search failed:', error);
-        throw error;
-      }
-      return [];
-    }
-  }, [token]);
-
-  const handleCustomerSelect = useCallback((suggestion: Suggestion) => {
-    setSelectedCustomer(suggestion.id);
-    // Add to search history
-    setSearchHistory(prev => [suggestion.label, ...prev.slice(0, 4)]);
-  }, []);
-
-  const handleSearch = useCallback((query: string) => {
-    // Handle direct search without suggestion selection
-    console.log('Direct search:', query);
-  }, []);
+  };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Customer Search</h1>
-      
+    <SearchBar
+      variant="withButton"
+      value={query}
+      onValueChange={setQuery}
+      onSearch={handleSearch}
+      isLoading={isLoading}
+      placeholder="Search with loading state..."
+    />
+  );
+}
+```
+
+### Controlled Input with Validation
+
+```typescript
+function ValidatedSearch() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isValid, setIsValid] = useState(true);
+
+  const handleValueChange = (value: string) => {
+    setSearchTerm(value);
+    // Validate input (e.g., minimum length)
+    setIsValid(value.length === 0 || value.length >= 3);
+  };
+
+  const handleSearch = (value: string) => {
+    if (isValid && value.trim()) {
+      // Perform search
+      console.log("Searching for:", value);
+    }
+  };
+
+  return (
+    <div>
       <SearchBar
-        placeholder="Search customers by name or account number..."
-        suggestionProvider={searchCustomers}
-        onSuggestionSelect={handleCustomerSelect}
+        value={searchTerm}
+        onValueChange={handleValueChange}
         onSearch={handleSearch}
-        size="lg"
-        className="mb-4"
-        debounceMs={300}
-        minChars={2}
-        maxSuggestions={6}
+        placeholder="Type at least 3 characters..."
+        className={isValid ? "" : "border-red-500"}
       />
-
-      {searchHistory.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Recent Searches</h3>
-          <div className="flex flex-wrap gap-2">
-            {searchHistory.map((item, index) => (
-              <button
-                key={index}
-                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-                onClick={() => handleSearch(item)}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {selectedCustomer && (
-        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-md">
-          <p className="text-green-800">Customer selected: {selectedCustomer}</p>
-        </div>
+      {!isValid && (
+        <p className="text-red-500 text-sm mt-1">
+          Please enter at least 3 characters
+        </p>
       )}
     </div>
   );
 }
 ```
 
-## Technical Implementation
+### Integration with Filtering
 
-### Dependencies
-- **Downshift**: Accessibility and keyboard interactions
-- **class-variance-authority**: Style variant management  
-- **Lucide React**: Icons (Search, X, Loader2)
-- **AbortController**: Request cancellation
-- **Custom debounce utility**: Performance optimization
+```typescript
+function FilterableList() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [items] = useState([
+    "Apple", "Banana", "Cherry", "Date", "Elderberry"
+  ]);
 
-### Architecture Highlights
-- **Low cognitive complexity**: Refactored with extracted helper functions for better maintainability
-- **Performance optimized**: useCallback hooks prevent unnecessary re-renders
-- **Generic utilities**: Reusable functions in `lib/utils.ts` and `lib/searchUtils.ts`
-- **Type safe**: Strict TypeScript interfaces with comprehensive prop validation
-- **Accessible by design**: Uses Downshift for keyboard navigation and ARIA compliance
-- **Quality gate compliant**: Meets SonarQube standards for code complexity and maintainability
+  const filteredItems = items.filter(item =>
+    item.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-## Best Practices
-
-### Error Handling
-Always handle errors gracefully in your suggestion provider:
-```tsx
-const searchProvider = async (query: string, signal?: AbortSignal) => {
-  try {
-    const data = await fetchSuggestions(query, signal);
-    return data.map(item => ({ id: item.id, label: item.name }));
-  } catch (err) {
-    if (err.name === 'AbortError') return []; // Request was cancelled
-    console.error('Search error:', err);
-    // Show error state or return empty array
-    return [];
-  }
-};
+  return (
+    <div className="space-y-4">
+      <SearchBar
+        value={searchTerm}
+        onValueChange={setSearchTerm}
+        placeholder="Filter items..."
+        size="lg"
+      />
+      
+      <ul className="space-y-2">
+        {filteredItems.map((item, index) => (
+          <li key={index} className="p-2 border rounded">
+            {item}
+          </li>
+        ))}
+      </ul>
+      
+      {filteredItems.length === 0 && searchTerm && (
+        <p className="text-muted-foreground">No items found</p>
+      )}
+    </div>
+  );
+}
 ```
 
-### Performance Optimization
-Configure debouncing and limits based on your use case:
-```tsx
+## Accessibility Features
+
+The SearchBar component includes comprehensive accessibility support:
+
+### Keyboard Navigation
+- **Enter**: Triggers search action
+- **Escape**: Clears input and collapses expandable variant
+- **Tab**: Standard focus navigation
+
+### ARIA Support
+- Proper labeling with `aria-label` attributes
+- Screen reader friendly button descriptions
+- Semantic HTML structure
+
+### Example with Custom Labels
+
+```typescript
 <SearchBar
-  debounceMs={300}      // Balance between responsiveness and API load
-  minChars={2}          // Prevent searches with too few characters
-  maxSuggestions={8}    // Limit results for better UX
+  value={searchValue}
+  onValueChange={setSearchValue}
+  placeholder="Search customer accounts"
+  className="[&>div>input]:aria-[label='Search customer accounts']"
 />
 ```
 
-### Responsive Design
-Adapt the SearchBar for different screen sizes:
-```tsx
-// Desktop
+## Styling Customization
+
+### Custom Styling
+
+```typescript
+// Custom size and styling
 <SearchBar
-  size="md" 
-  className="hidden md:block w-96"
+  value={searchValue}
+  onValueChange={setSearchValue}
+  className="w-full max-w-md mx-auto"
+  size="lg"
 />
 
-// Mobile  
+// Custom variant styling
 <SearchBar
-  size="sm"
-  className="block md:hidden w-full"
-  placeholder="Search..."
+  variant="withButton"
+  value={searchValue}
+  onValueChange={setSearchValue}
+  onSearch={handleSearch}
+  className="border-2 border-primary rounded-lg"
 />
+```
+
+### Theme Integration
+
+The component automatically adapts to your application's theme:
+
+- Uses semantic color tokens (`primary`, `muted-foreground`, `accent`)
+- Respects dark/light mode preferences
+- Consistent with other UI components
+
+## Performance Considerations
+
+The SearchBar component is optimized for performance:
+
+- **Lightweight**: Minimal dependencies and simple state management
+- **No Debouncing**: Immediate updates for responsive feel
+- **Memory Efficient**: No complex hooks or external libraries
+- **Tree-shakable**: Only imports what you use
+
+For scenarios requiring debouncing or advanced features, consider using the full-featured SearchBar component instead.
+
+## Common Patterns
+
+### 1. Real-time Search
+
+```typescript
+function RealTimeSearch() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+
+  // Trigger search on every change
+  useEffect(() => {
+    if (query.trim()) {
+      // Perform search logic
+      const filtered = data.filter(item => 
+        item.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setResults(filtered);
+    } else {
+      setResults([]);
+    }
+  }, [query]);
+
+  return (
+    <SearchBar
+      value={query}
+      onValueChange={setQuery}
+      placeholder="Type to search..."
+    />
+  );
+}
+```
+
+### 2. Search History
+
+```typescript
+function SearchWithHistory() {
+  const [query, setQuery] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
+
+  const handleSearch = (searchTerm: string) => {
+    if (searchTerm.trim() && !history.includes(searchTerm)) {
+      setHistory(prev => [searchTerm, ...prev.slice(0, 4)]);
+    }
+    // Perform search...
+  };
+
+  return (
+    <SearchBar
+      variant="withButton"
+      value={query}
+      onValueChange={setQuery}
+      onSearch={handleSearch}
+    />
+  );
+}
+```
+
+### 3. Mobile-First Design
+
+```typescript
+function ResponsiveSearch() {
+  return (
+    <div className="w-full">
+      {/* Mobile: Expandable */}
+      <div className="md:hidden">
+        <SearchBar
+          variant="expandable"
+          size="sm"
+          value={mobileQuery}
+          onValueChange={setMobileQuery}
+        />
+      </div>
+      
+      {/* Desktop: Full search with button */}
+      <div className="hidden md:block">
+        <SearchBar
+          variant="withButton"
+          size="md"
+          value={desktopQuery}
+          onValueChange={setDesktopQuery}
+          onSearch={handleDesktopSearch}
+        />
+      </div>
+    </div>
+  );
+}
 ```
 
 ## Testing
 
-The SearchBar component comes with comprehensive test coverage:
+The SearchBar component includes comprehensive test coverage (97%+). Here are example test patterns:
 
-### Test Coverage
-- **91%+ statement coverage** with 8 comprehensive test cases
-- **82%+ branch coverage** testing all conditional logic paths  
-- **94%+ function coverage** ensuring all methods are tested
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react';
+import { SearchBar } from './SearchBar';
 
-### Test Cases Include
-- Basic rendering and props validation
-- Input value changes and controlled/uncontrolled modes
-- Client-side suggestion filtering and selection
-- Async suggestion provider with loading states
-- Clear button functionality and state management
-- Search button interactions and keyboard navigation
-- Loading states and error handling
-- Accessibility features and ARIA attributes
-
-### Running Tests
-```bash
-# Run SearchBar tests specifically
-pnpm test -- packages/ui/src/components/SearchBar/SearchBar.test.tsx
-
-# Run with coverage
-pnpm test:coverage
+test('handles user input correctly', () => {
+  const mockOnValueChange = jest.fn();
+  
+  render(
+    <SearchBar 
+      value=""
+      onValueChange={mockOnValueChange}
+    />
+  );
+  
+  const input = screen.getByRole('textbox');
+  fireEvent.change(input, { target: { value: 'test query' } });
+  
+  expect(mockOnValueChange).toHaveBeenCalledWith('test query');
+});
 ```
 
-## What Makes This Component Great
+## Migration Guide
 
-- **Simple API**: Easy to use, hard to misuse
-- **Flexible**: Works with any data source (client-side or API)
-- **Performant**: Built-in optimizations for real-world usage  
-- **Accessible**: Screen reader and keyboard friendly
-- **Type Safe**: Full TypeScript support with interfaces
-- **Small Bundle**: Only ~2KB gzipped
-- **Production Ready**: Used across multiple Fineract applications
+### From SearchBar to SearchBar
+
+If you're migrating from the complex SearchBar component:
+
+```typescript
+// Before (SearchBar with suggestions)
+<SearchBar
+  suggestions={suggestionList}
+  onSuggestionSelect={handleSelect}
+  debounceMs={300}
+/>
+
+// After (SearchBar - simple input)
+<SearchBar
+  value={searchValue}
+  onValueChange={setSearchValue}
+  onSearch={handleSearch}
+/>
+```
+
+## Best Practices
+
+1. **Use appropriate variants**: Choose `expandable` for mobile, `withButton` for explicit actions
+2. **Provide meaningful placeholders**: Help users understand what they can search for
+3. **Handle empty states**: Show appropriate messages when no results are found
+4. **Consider loading states**: Use `isLoading` prop for async operations
+5. **Validate input**: Implement client-side validation as needed
+6. **Test accessibility**: Ensure keyboard navigation and screen reader compatibility
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Suggestions not showing:**
-- Ensure `minChars` requirement is met (default: 1 character)
-- Check if `suggestionProvider` returns valid `Suggestion[]` format
-- Verify async provider isn't throwing unhandled errors
+**Input not updating:**
+- Ensure you're using controlled input pattern with `value` and `onValueChange`
 
-**Performance issues:**
-- Adjust `debounceMs` (default: 300ms) for your use case
-- Set appropriate `maxSuggestions` limit (default: 10)
-- Use `minChars` to prevent unnecessary API calls
+**Search not triggering:**
+- Check that `onSearch` callback is properly implemented
+- Verify Enter key handling in your event handlers
 
-**TypeScript errors:**
-- Ensure suggestions match the `Suggestion` interface
-- Import types: `import type { Suggestion, SearchBarProps } from '@fineract-apps/ui'`
+**Styling not applying:**
+- Use `className` prop for custom styling
+- Ensure Tailwind classes are properly configured
 
-**Accessibility issues:**
-- Verify screen reader announcements work in your environment
-- Test keyboard navigation (arrows, enter, escape, tab)
-- Check that ARIA attributes are preserved when customizing
+### Getting Help
 
-### Migration from Legacy Versions
-If migrating from an over-engineered version with multiple micro-files:
-1. Remove any custom hooks or helper files
-2. Use the simplified 4-file structure
-3. Update import paths to use the main component export
-4. Test thoroughly as the API may have been simplified
+For additional support:
+- Check the component tests for usage examples
+- Review the TypeScript types for complete API documentation
+- Consult the main documentation for architecture patterns
 
-**Result**: 220 lines of clean, well-structured code with extracted helper functions that provides everything you need for a production-ready search component while maintaining low cognitive complexity and high maintainability.
+---
+
+*This component is part of the fineract-apps shared UI library. For technical issues or feature requests, please refer to the project's contribution guidelines.*

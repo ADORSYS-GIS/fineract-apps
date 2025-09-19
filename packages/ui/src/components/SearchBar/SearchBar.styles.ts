@@ -1,9 +1,14 @@
 import { cva } from "class-variance-authority";
 
-export const searchBarVariants = cva(
+export const SearchBarVariants = cva(
 	"flex items-center gap-2 px-3 border border-border rounded-lg bg-background focus-within:ring-2 focus-within:ring-ring transition-colors",
 	{
 		variants: {
+			variant: {
+				default: "",
+				withButton: "pr-2",
+				expandable: "transition-all duration-300",
+			},
 			size: {
 				sm: "h-8 text-sm",
 				md: "h-10 text-base",
@@ -11,6 +16,7 @@ export const searchBarVariants = cva(
 			},
 		},
 		defaultVariants: {
+			variant: "default",
 			size: "md",
 		},
 	},
@@ -27,6 +33,21 @@ export const suggestionItemVariants = cva(
 		},
 		defaultVariants: {
 			highlighted: false,
+		},
+	},
+);
+
+export const expandableContainerVariants = cva(
+	"transition-all duration-300 ease-in-out overflow-hidden",
+	{
+		variants: {
+			expanded: {
+				true: "w-full max-w-md",
+				false: "w-10",
+			},
+		},
+		defaultVariants: {
+			expanded: false,
 		},
 	},
 );
