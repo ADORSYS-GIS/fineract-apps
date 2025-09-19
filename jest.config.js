@@ -8,12 +8,13 @@ export default {
 		"^.+\\.(ts|tsx)$": [
 			"ts-jest",
 			{
-				tsconfig: "<rootDir>/packages/config/tsconfig.base.json",
+				tsconfig: "<rootDir>/packages/config/tsconfig.jest.json",
 			},
 		],
 	},
 	moduleNameMapper: {
 		"^@fineract-apps/(.*)$": "<rootDir>/packages/$1/src",
+		"\\.(svg)$": "<rootDir>/__mocks__/svgMock.js",
 	},
 	setupFilesAfterEnv: ["@testing-library/jest-dom"],
 	testPathIgnorePatterns: ["/node_modules/", "/dist/"],
