@@ -1,5 +1,5 @@
 import type { VariantProps } from "class-variance-authority";
-import { SearchBarVariants } from "./SearchBar.styles";
+import { SearchBarVariants } from "./SearchBar.variants";
 
 /**
  * Props for SearchBar component

@@ -1,11 +1,12 @@
 import { Loader2, Search, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
+import { Button } from "../Button";
+import type { SearchBarProps } from "./SearchBar.types";
 import {
 	expandableContainerVariants,
 	SearchBarVariants,
-} from "./SearchBar.styles";
-import type { SearchBarProps } from "./SearchBar.types";
+} from "./SearchBar.variants";
 
 /**
  * SearchBar - A simple and reusable search component
@@ -78,10 +79,12 @@ export function SearchBar(props: Readonly<SearchBarProps>) {
 			<div className={cn("relative", className)}>
 				<div className={expandableContainerVariants({ expanded })}>
 					{!expanded ? (
-						<button
+						<Button
 							type="button"
 							onClick={handleExpandableClick}
 							disabled={disabled}
+							variant="ghost"
+							size="sm"
 							className={cn(
 								SearchBarVariants({ variant, size }),
 								"cursor-pointer justify-center",
@@ -89,7 +92,7 @@ export function SearchBar(props: Readonly<SearchBarProps>) {
 							aria-label="Open search"
 						>
 							<Search className="h-4 w-4 text-muted-foreground" />
-						</button>
+						</Button>
 					) : (
 						<div className={SearchBarVariants({ variant, size })}>
 							<Search className="h-4 w-4 text-muted-foreground" />
@@ -107,14 +110,16 @@ export function SearchBar(props: Readonly<SearchBarProps>) {
 								<Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
 							)}
 							{showClearButton && (
-								<button
+								<Button
 									type="button"
 									onClick={handleClear}
-									className="p-1 hover:bg-accent rounded transition-colors"
+									variant="ghost"
+									size="sm"
+									className="p-1 h-auto w-auto hover:bg-accent"
 									aria-label="Clear input"
 								>
 									<X className="h-3 w-3" />
-								</button>
+								</Button>
 							)}
 						</div>
 					)}
@@ -141,24 +146,27 @@ export function SearchBar(props: Readonly<SearchBarProps>) {
 					<Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
 				)}
 				{showClearButton && (
-					<button
+					<Button
 						type="button"
 						onClick={handleClear}
-						className="p-1 hover:bg-accent rounded transition-colors"
+						variant="ghost"
+						size="sm"
+						className="p-1 h-auto w-auto hover:bg-accent"
 						aria-label="Clear input"
 					>
 						<X className="h-3 w-3" />
-					</button>
+					</Button>
 				)}
 				{showSearchButton && (
-					<button
+					<Button
 						type="button"
 						onClick={handleSearchClick}
 						disabled={disabled}
-						className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+						size="sm"
+						className="px-3 py-1 text-sm"
 					>
 						Search
-					</button>
+					</Button>
 				)}
 			</div>
 		</div>
