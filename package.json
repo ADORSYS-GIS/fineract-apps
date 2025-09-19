@@ -11,7 +11,9 @@
 		"fix": "pnpm format && pnpm biome check --write .",
 		"test": "jest",
 		"test:coverage": "jest --coverage",
-		"prepare": "husky"
+		"prepare": "husky",
+		"postinstall": "pnpm codegen",
+		"codegen": "pnpm --filter @fineract-apps/fineract-api codegen"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.3",

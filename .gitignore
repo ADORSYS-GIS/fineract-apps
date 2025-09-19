@@ -3,3 +3,6 @@ dist
 tsconfig.tsbuildinfo
 .idea
 coverage
+
+# Fineract API
+packages/fineract-api/src/generated

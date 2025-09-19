@@ -4,7 +4,11 @@
 		"composite": true,
 		"outDir": "./dist",
 		"noEmit": false,
-		"allowImportingTsExtensions": false
+		"allowImportingTsExtensions": false,
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./src/*"]
+		}
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", "dist"]
