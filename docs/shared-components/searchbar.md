@@ -323,8 +323,6 @@ The SearchBar component is optimized for performance:
 - **Memory Efficient**: No complex hooks or external libraries
 - **Tree-shakable**: Only imports what you use
 
-For scenarios requiring debouncing or advanced features, consider using the full-featured SearchBar component instead.
-
 ## Common Patterns
 
 ### 1. Real-time Search
@@ -436,28 +434,6 @@ test('handles user input correctly', () => {
   
   expect(mockOnValueChange).toHaveBeenCalledWith('test query');
 });
-```
-
-## Migration Guide
-
-### From SearchBar to SearchBar
-
-If you're migrating from the complex SearchBar component:
-
-```typescript
-// Before (SearchBar with suggestions)
-<SearchBar
-  suggestions={suggestionList}
-  onSuggestionSelect={handleSelect}
-  debounceMs={300}
-/>
-
-// After (SearchBar - simple input)
-<SearchBar
-  value={searchValue}
-  onValueChange={setSearchValue}
-  onSearch={handleSearch}
-/>
 ```
 
 ## Best Practices

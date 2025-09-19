@@ -16,13 +16,11 @@
 	"dependencies": {
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
-		"downshift": "^9.0.10",
 		"formik": "^2.4.6",
 		"lucide-react": "^0.544.0",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
 		"tailwind-merge": "^3.3.1",
-		"use-debounce": "^10.0.6",
 		"zod": "^4.1.9",
 		"zod-formik-adapter": "2.0.0"
 	},
