@@ -28,4 +28,19 @@
 	/* Borders & Focus Rings */
 	--color-border: #e2e8f0;
 	--color-ring: #e2e8f0;
+
+	/* ========== CARD COLORS ========== */
+	--color-card: #ffffff;
+	--color-card-foreground: #0f172a;
+	--color-card-border: #e2e8f0;
+	--color-card-muted: #f1f5f9;
+
+	/* ========== NAVBAR COLORS ========== */
+	--color-navbar: #ffffff;
+	--color-navbar-foreground: #0f172a;
+	--color-navbar-border: #e2e8f0;
+	--color-navbar-primary: #1e293b;
+	--color-navbar-primary-foreground: #f8fafc;
+	--color-navbar-transparent: transparent;
+	--color-navbar-transparent-foreground: #0f172a;
 }
