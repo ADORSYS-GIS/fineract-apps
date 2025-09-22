@@ -1,6 +1,7 @@
 import { Menu, X } from "lucide-react";
 import React from "react";
 import { cn } from "../../lib/utils";
+import { Button } from "../Button";
 import { NavbarProps } from "./Navbar.types";
 import { navbarVariant } from "./Navbar.variant";
 
@@ -11,12 +12,9 @@ const MobileMenuButton = ({
 	isOpen?: boolean;
 	onClick?: () => void;
 }) => (
-	<button
-		onClick={onClick}
-		className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-	>
+	<Button variant="ghost" size="sm" onClick={onClick} className="md:hidden">
 		{isOpen ? <X size={20} /> : <Menu size={20} />}
-	</button>
+	</Button>
 );
 
 export const NavbarView = React.forwardRef<HTMLElement, NavbarProps>(
