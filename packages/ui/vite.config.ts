@@ -10,11 +10,6 @@ export default mergeConfig(
 	baseViteConfig,
 	defineConfig({
 		plugins: [libInjectCss()],
-		resolve: {
-			alias: {
-				"@": resolve(__dirname, "src"),
-			},
-		},
 		build: {
 			lib: {
 				entry: resolve(__dirname, "src/index.ts"),

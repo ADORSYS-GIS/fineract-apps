@@ -10,12 +10,9 @@ export default mergeConfig(
 	baseViteConfig,
 	defineConfig({
 		resolve: {
-			alias: [
-				{
-					find: /^@\/(.*)$/,
-					replacement: path.resolve(__dirname, "../../packages/ui/src/$1"),
-				},
-			],
+			alias: {
+				"@": path.resolve(__dirname, "./src"),
+			},
 		},
 	}),
 );
