@@ -32,4 +32,7 @@
 	/* Muted colors for subtle elements */
 	--color-muted: #f8fafc;
 	--color-muted-foreground: #64748b;
+
+	/* Input border */
+	--color-input: #e2e8f0;
 }

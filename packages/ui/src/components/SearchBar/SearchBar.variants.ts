@@ -1,7 +1,7 @@
 import { cva } from "class-variance-authority";
 
 export const SearchBarVariants = cva(
-	"flex items-center gap-2 px-3 border border-border rounded-lg bg-background focus-within:ring-2 focus-within:ring-ring transition-colors",
+	"flex items-center gap-2 px-3 border border-border rounded-lg bg-background text-foreground focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background transition-colors disabled:cursor-not-allowed disabled:opacity-50",
 	{
 		variants: {
 			variant: {
@@ -10,9 +10,9 @@ export const SearchBarVariants = cva(
 				expandable: "transition-all duration-300",
 			},
 			size: {
-				sm: "h-8 text-sm",
-				md: "h-10 text-base",
-				lg: "h-12 text-lg",
+				sm: "h-8 text-sm px-2",
+				md: "h-10 text-sm px-3",
+				lg: "h-11 text-base px-4",
 			},
 		},
 		defaultVariants: {
@@ -23,12 +23,12 @@ export const SearchBarVariants = cva(
 );
 
 export const suggestionItemVariants = cva(
-	"px-4 py-2 text-sm cursor-pointer transition-colors",
+	"px-4 py-2 text-sm cursor-pointer transition-colors text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
 	{
 		variants: {
 			highlighted: {
 				true: "bg-accent text-accent-foreground",
-				false: "hover:bg-accent/50",
+				false: "hover:bg-accent hover:text-accent-foreground",
 			},
 		},
 		defaultVariants: {

@@ -1,37 +1,25 @@
 # SearchBar Component
 
-A simple and reusable search component for consistent search experiences across all applications in the fineract-apps monorepo.
+A reusable search input component with multiple variants for different use cases.
 
 ## Overview
 
-The SearchBar component provides a lightweight, accessible search input with multiple variants and built-in states. It's designed to be simple to implement while maintaining consistent styling and behavior across the Cashier, Account Manager, and Branch Manager applications.
-
-## Features
-
-- **Multiple Variants**: Default, with button, and expandable search
-- **Responsive Design**: Works seamlessly across all screen sizes
-- **Accessibility First**: Full ARIA support and keyboard navigation
-- **Flexible States**: Loading, disabled, and clear functionality
-- **Simple API**: Easy to integrate with minimal setup
-- **Well Tested**: 97%+ test coverage with comprehensive test suite
+The SearchBar component provides a search input with search icon, optional clear functionality, and loading states. It comes in three variants to handle different UI scenarios.
 
 ## Installation
 
-The SearchBar component is available in the shared UI library:
-
 ```typescript
 import { SearchBar } from "@fineract-apps/ui";
+import "@fineract-apps/ui/styles.css";
 ```
 
-## Basic Usage
+## Variants
 
-### Default Search Input
+### Default
+A standard search input with search icon and clear button. Updates the value as you type.
 
 ```typescript
-import { SearchBar } from "@fineract-apps/ui";
-import { useState } from "react";
-
-function SearchExample() {
+function BasicSearch() {
   const [searchValue, setSearchValue] = useState("");
 
   return (
@@ -44,7 +32,8 @@ function SearchExample() {
 }
 ```
 
-### Search with Button
+### With Button
+Adds a "Search" button for explicit search actions. Good for triggered searches rather than real-time filtering.
 
 ```typescript
 function SearchWithButton() {
@@ -52,7 +41,7 @@ function SearchWithButton() {
 
   const handleSearch = (searchTerm: string) => {
     console.log("Searching for:", searchTerm);
-    // Implement your search logic here
+    // Your search logic here
   };
 
   return (
@@ -67,7 +56,8 @@ function SearchWithButton() {
 }
 ```
 
-### Expandable Search (Mobile-Friendly)
+### Expandable
+Starts as a search icon, expands into a full input when clicked. Useful for mobile layouts or when space is limited.
 
 ```typescript
 function ExpandableSearch() {
@@ -78,77 +68,42 @@ function ExpandableSearch() {
       variant="expandable"
       value={searchTerm}
       onValueChange={setSearchTerm}
-      placeholder="Search accounts..."
-      size="sm"
+      placeholder="Quick search..."
     />
   );
 }
 ```
 
-## API Reference
+## Props
 
-### Props
+The SearchBar is designed to work seamlessly with TanStack Query for backend integration. Use `onValueChange` for real-time filtering of local data, and `onSearch` for triggered API calls when working with server-side search endpoints.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `value` | `string` | `""` | Current search input value |
-| `onValueChange` | `(value: string) => void` | - | Callback when input value changes |
-| `onSearch` | `(value: string) => void` | - | Callback when search is triggered (Enter key or button click) |
-| `placeholder` | `string` | `"Search..."` | Input placeholder text |
-| `variant` | `"default" \| "withButton" \| "expandable"` | `"default"` | Visual variant of the search bar |
+| `value` | `string` | `""` | Current search input value - control this with React state |
+| `onValueChange` | `(value: string) => void` | - | Called on every keystroke - use for real-time filtering or updating search state |
+| `onSearch` | `(value: string) => void` | - | Called when user presses Enter or clicks search button - use to trigger TanStack Query refetch |
+| `placeholder` | `string` | `"Search..."` | Descriptive placeholder text to guide users (e.g., "Search customers by name...") |
+| `variant` | `"default" \| "withButton" \| "expandable"` | `"default"` | Choose based on UX: `default` for filtering, `withButton` for explicit searches, `expandable` for mobile |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | Size of the search input |
 | `disabled` | `boolean` | `false` | Whether the input is disabled |
 | `isLoading` | `boolean` | `false` | Shows loading spinner when true |
 | `showClear` | `boolean` | `true` | Whether to show clear button when there's text |
 | `className` | `string` | - | Additional CSS classes |
 
-### Variants
+## Sizes
 
-#### Default
-Basic search input with search icon and optional clear button.
+| Size | Height | Use Case |
+|------|--------|----------|
+| `sm` | 32px | Compact interfaces, mobile |
+| `md` | 40px | Default size for most use cases |
+| `lg` | 44px | Prominent search features |
 
-```typescript
-<SearchBar 
-  variant="default"
-  value={searchValue}
-  onValueChange={setSearchValue}
-/>
-```
+## Common Usage Patterns
 
-#### With Button
-Includes a search button for explicit search trigger.
+### Loading State
 
-```typescript
-<SearchBar 
-  variant="withButton"
-  value={searchValue}
-  onValueChange={setSearchValue}
-  onSearch={handleSearch}
-/>
-```
-
-#### Expandable
-Starts as a search icon, expands to full input when clicked. Perfect for mobile layouts.
-
-```typescript
-<SearchBar 
-  variant="expandable"
-  value={searchValue}
-  onValueChange={setSearchValue}
-/>
-```
-
-### Sizes
-
-| Size | Description | Use Case |
-|------|-------------|----------|
-| `sm` | Small (32px height) | Compact interfaces, mobile |
-| `md` | Medium (40px height) | Default size for most use cases |
-| `lg` | Large (48px height) | Prominent search features |
-
-## Advanced Usage
-
-### Loading States
+Show a spinner while performing async search operations. Use the `isLoading` prop to display loading feedback to users.
 
 ```typescript
 function SearchWithLoading() {
@@ -156,16 +111,10 @@ function SearchWithLoading() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = async (searchTerm: string) => {
-    if (!searchTerm.trim()) return;
-    
     setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log("Search results for:", searchTerm);
-    } finally {
-      setIsLoading(false);
-    }
+    // Your async search logic
+    await fetchResults(searchTerm);
+    setIsLoading(false);
   };
 
   return (
@@ -175,240 +124,107 @@ function SearchWithLoading() {
       onValueChange={setQuery}
       onSearch={handleSearch}
       isLoading={isLoading}
-      placeholder="Search with loading state..."
+      placeholder="Search..."
     />
   );
 }
 ```
 
-### Controlled Input with Validation
+### Real-time Filtering
 
-```typescript
-function ValidatedSearch() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isValid, setIsValid] = useState(true);
-
-  const handleValueChange = (value: string) => {
-    setSearchTerm(value);
-    // Validate input (e.g., minimum length)
-    setIsValid(value.length === 0 || value.length >= 3);
-  };
-
-  const handleSearch = (value: string) => {
-    if (isValid && value.trim()) {
-      // Perform search
-      console.log("Searching for:", value);
-    }
-  };
-
-  return (
-    <div>
-      <SearchBar
-        value={searchTerm}
-        onValueChange={handleValueChange}
-        onSearch={handleSearch}
-        placeholder="Type at least 3 characters..."
-        className={isValid ? "" : "border-red-500"}
-      />
-      {!isValid && (
-        <p className="text-red-500 text-sm mt-1">
-          Please enter at least 3 characters
-        </p>
-      )}
-    </div>
-  );
-}
-```
-
-### Integration with Filtering
+Filter a list of items as the user types. The search updates immediately without needing to press Enter or click a button.
 
 ```typescript
 function FilterableList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [items] = useState([
-    "Apple", "Banana", "Cherry", "Date", "Elderberry"
-  ]);
+  const [items] = useState(["Apple", "Banana", "Cherry"]);
 
   const filteredItems = items.filter(item =>
     item.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="space-y-4">
+    <div>
       <SearchBar
         value={searchTerm}
         onValueChange={setSearchTerm}
         placeholder="Filter items..."
-        size="lg"
       />
       
-      <ul className="space-y-2">
+      <ul>
         {filteredItems.map((item, index) => (
-          <li key={index} className="p-2 border rounded">
-            {item}
-          </li>
+          <li key={index}>{item}</li>
         ))}
       </ul>
-      
-      {filteredItems.length === 0 && searchTerm && (
-        <p className="text-muted-foreground">No items found</p>
-      )}
     </div>
   );
 }
 ```
 
-## Accessibility Features
+## Keyboard Navigation
 
-The SearchBar component includes comprehensive accessibility support:
-
-### Keyboard Navigation
 - **Enter**: Triggers search action
 - **Escape**: Clears input and collapses expandable variant
-- **Tab**: Standard focus navigation
+- **Tab**: Focus navigation between elements
 
-### ARIA Support
-- Proper labeling with `aria-label` attributes
-- Screen reader friendly button descriptions
-- Semantic HTML structure
+## Styling
 
-### Example with Custom Labels
+Add custom styles using the `className` prop:
 
 ```typescript
 <SearchBar
   value={searchValue}
   onValueChange={setSearchValue}
-  placeholder="Search customer accounts"
-  className="[&>div>input]:aria-[label='Search customer accounts']"
-/>
-```
-
-## Styling Customization
-
-### Custom Styling
-
-```typescript
-// Custom size and styling
-<SearchBar
-  value={searchValue}
-  onValueChange={setSearchValue}
-  className="w-full max-w-md mx-auto"
+  className="w-full max-w-md"
   size="lg"
 />
-
-// Custom variant styling
-<SearchBar
-  variant="withButton"
-  value={searchValue}
-  onValueChange={setSearchValue}
-  onSearch={handleSearch}
-  className="border-2 border-primary rounded-lg"
-/>
 ```
 
-### Theme Integration
 
-The component automatically adapts to your application's theme:
 
-- Uses semantic color tokens (`primary`, `muted-foreground`, `accent`)
-- Respects dark/light mode preferences
-- Consistent with other UI components
+## Integration with Button Component
 
-## Performance Considerations
+### Button Usage Details
 
-The SearchBar component is optimized for performance:
+The SearchBar internally uses the Button component for all interactive elements:
 
-- **Lightweight**: Minimal dependencies and simple state management
-- **No Debouncing**: Immediate updates for responsive feel
-- **Memory Efficient**: No complex hooks or external libraries
-- **Tree-shakable**: Only imports what you use
-
-## Common Patterns
-
-### 1. Real-time Search
-
+#### Clear Button (X)
 ```typescript
-function RealTimeSearch() {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-
-  // Trigger search on every change
-  useEffect(() => {
-    if (query.trim()) {
-      // Perform search logic
-      const filtered = data.filter(item => 
-        item.name.toLowerCase().includes(query.toLowerCase())
-      );
-      setResults(filtered);
-    } else {
-      setResults([]);
-    }
-  }, [query]);
-
-  return (
-    <SearchBar
-      value={query}
-      onValueChange={setQuery}
-      placeholder="Type to search..."
-    />
-  );
-}
+// Rendered when showClear={true} and there's input value
+<Button
+  variant="ghost"
+  size="sm" 
+  className="p-1 h-auto w-auto hover:bg-accent"
+  aria-label="Clear input"
+>
+  <X className="h-3 w-3" />
+</Button>
 ```
 
-### 2. Search History
-
+#### Search Button (withButton variant)
 ```typescript
-function SearchWithHistory() {
-  const [query, setQuery] = useState("");
-  const [history, setHistory] = useState<string[]>([]);
-
-  const handleSearch = (searchTerm: string) => {
-    if (searchTerm.trim() && !history.includes(searchTerm)) {
-      setHistory(prev => [searchTerm, ...prev.slice(0, 4)]);
-    }
-    // Perform search...
-  };
-
-  return (
-    <SearchBar
-      variant="withButton"
-      value={query}
-      onValueChange={setQuery}
-      onSearch={handleSearch}
-    />
-  );
-}
+// Rendered when variant="withButton"
+<Button
+  size="sm"
+  className="px-3 py-1 text-sm"
+  onClick={handleSearch}
+  disabled={disabled}
+>
+  Search
+</Button>
 ```
 
-### 3. Mobile-First Design
-
+#### Expandable Trigger Button
 ```typescript
-function ResponsiveSearch() {
-  return (
-    <div className="w-full">
-      {/* Mobile: Expandable */}
-      <div className="md:hidden">
-        <SearchBar
-          variant="expandable"
-          size="sm"
-          value={mobileQuery}
-          onValueChange={setMobileQuery}
-        />
-      </div>
-      
-      {/* Desktop: Full search with button */}
-      <div className="hidden md:block">
-        <SearchBar
-          variant="withButton"
-          size="md"
-          value={desktopQuery}
-          onValueChange={setDesktopQuery}
-          onSearch={handleDesktopSearch}
-        />
-      </div>
-    </div>
-  );
-}
+// Rendered when variant="expandable" and not expanded
+<Button
+  variant="ghost"
+  size="sm"
+  className="cursor-pointer justify-center"
+  aria-label="Open search"
+>
+  <Search className="h-4 w-4 text-muted-foreground" />
+</Button>
 ```
 
 ## Testing
@@ -434,16 +250,48 @@ test('handles user input correctly', () => {
   
   expect(mockOnValueChange).toHaveBeenCalledWith('test query');
 });
+
+test('button interactions work correctly', () => {
+  const mockOnSearch = jest.fn();
+  
+  render(
+    <SearchBar 
+      variant="withButton"
+      value="test"
+      onValueChange={() => {}}
+      onSearch={mockOnSearch}
+    />
+  );
+  
+  const searchButton = screen.getByRole('button', { name: /search/i });
+  fireEvent.click(searchButton);
+  
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+});
 ```
 
 ## Best Practices
 
-1. **Use appropriate variants**: Choose `expandable` for mobile, `withButton` for explicit actions
-2. **Provide meaningful placeholders**: Help users understand what they can search for
-3. **Handle empty states**: Show appropriate messages when no results are found
-4. **Consider loading states**: Use `isLoading` prop for async operations
-5. **Validate input**: Implement client-side validation as needed
-6. **Test accessibility**: Ensure keyboard navigation and screen reader compatibility
+### Component Usage
+1. **Use appropriate variants**: Choose `expandable` for mobile/compact layouts, `withButton` for explicit search actions, `default` for real-time filtering
+2. **Size selection**: Use `sm` for compact interfaces, `md` for standard layouts, `lg` for prominent search features
+3. **Provide meaningful placeholders**: Help users understand what they can search for (e.g., "Search customers by name or ID...")
+
+### State Management
+4. **Handle empty states**: Show appropriate messages when no results are found
+5. **Loading states**: Always use `isLoading` prop during async operations to provide user feedback
+6. **Controlled inputs**: Always use controlled pattern with `value` and `onValueChange` for predictable behavior
+
+### Accessibility & UX
+7. **Keyboard navigation**: Test Enter key for search, Escape for clearing/closing, Tab for focus management
+8. **ARIA labels**: Provide descriptive labels for screen readers
+9. **Error handling**: Implement proper validation and error messaging
+10. **Performance**: Consider debouncing for expensive search operations (implement in your handler, not in the component)
+
+### Styling & Theme
+11. **Consistent theming**: Rely on CSS variables rather than custom classes when possible
+12. **Button consistency**: Let the integrated Button component handle all interactive styling
+13. **Responsive design**: Use different variants for different screen sizes
 
 ## Troubleshooting
 
@@ -451,21 +299,50 @@ test('handles user input correctly', () => {
 
 **Input not updating:**
 - Ensure you're using controlled input pattern with `value` and `onValueChange`
+- Check that `onValueChange` callback is properly implemented
+- Verify state updates are not being blocked by parent components
 
 **Search not triggering:**
-- Check that `onSearch` callback is properly implemented
-- Verify Enter key handling in your event handlers
+- Check that `onSearch` callback is properly implemented for `withButton` variant
+- Verify Enter key handling works (should trigger automatically)
+- Ensure the input has focus when pressing Enter
 
-**Styling not applying:**
-- Use `className` prop for custom styling
-- Ensure Tailwind classes are properly configured
+**Buttons not working:**
+- Verify Button component is properly imported in your app
+- Check that CSS variables are defined in your theme
+- Ensure `@fineract-apps/ui/styles.css` is imported
+
+**Styling issues:**
+- Import UI library styles: `import "@fineract-apps/ui/styles.css"`
+- Check that CSS variables are properly defined in your theme
+- Use `className` prop for additional custom styling
+- Verify Tailwind CSS is configured correctly
+
+**Focus/accessibility problems:**
+- Test keyboard navigation (Tab, Enter, Escape)
+- Verify ARIA labels are working with screen readers
+- Check focus-visible states are appearing correctly
+
+**TypeScript errors:**
+- Ensure proper prop types are used
+- Check that `onValueChange` signature matches `(value: string) => void`
+- Verify `onSearch` callback signature matches `(value: string) => void`
+
+### Performance Issues
+
+**Slow search responses:**
+- Implement debouncing in your search handler (not in the component)
+- Consider using `isLoading` state during async operations
+- Avoid heavy operations in `onValueChange` callbacks
 
 ### Getting Help
 
 For additional support:
-- Check the component tests for usage examples
-- Review the TypeScript types for complete API documentation
-- Consult the main documentation for architecture patterns
+- Check the component tests for comprehensive usage examples
+- Review the TypeScript types for complete API documentation  
+- Consult the architecture guide for integration patterns
+- See the Button component docs for styling details
+- Check the CSS variables in `styles.css` for theming options
 
 ---
 

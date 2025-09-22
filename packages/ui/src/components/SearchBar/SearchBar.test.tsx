@@ -230,7 +230,7 @@ describe("SearchBar", () => {
 
 		it("applies large size class", () => {
 			const { container } = render(<SearchBar size="lg" />);
-			expect(container.querySelector(".h-12")).toBeInTheDocument();
+			expect(container.querySelector(".h-11")).toBeInTheDocument();
 		});
 	});
 
