@@ -20,6 +20,7 @@ const MobileMenuButton = ({
 export const NavbarView = React.forwardRef<HTMLElement, NavbarProps>(
 	(
 		{
+			sidebarToggle,
 			logo,
 			links,
 			notifications,
@@ -42,6 +43,7 @@ export const NavbarView = React.forwardRef<HTMLElement, NavbarProps>(
 			<header className={classes} ref={ref}>
 				{/* Left side */}
 				<div className="flex items-center gap-6">
+					{sidebarToggle}
 					{logo && <div className="flex items-center gap-2">{logo}</div>}
 					<nav className="hidden md:flex gap-4">{links}</nav>
 				</div>
