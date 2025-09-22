@@ -5,3 +5,6 @@ tsconfig.tsbuildinfo
 coverage
 # TanStack Router
 .tanstack/
+
+# Fineract API
+packages/fineract-api/src/generated
