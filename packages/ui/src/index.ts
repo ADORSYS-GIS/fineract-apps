@@ -1,4 +1,5 @@
 export { Button } from "./components/Button";
+export { Card } from "./components/Card";
 export {
 	Form,
 	FormTitle,
@@ -7,4 +8,5 @@ export {
 	SubmitButton,
 } from "./components/Form";
 export { SearchBar } from "./components/SearchBar";
+export { Navbar } from "./components/Navbar";
 export * from "./components/Sidebar";
