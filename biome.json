@@ -3,7 +3,13 @@
 	"vcs": { "enabled": false, "clientKind": "git", "useIgnoreFile": false },
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!**/node_modules", "!**/dist", "!**/routeTree.gen.ts"]
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!**/dist",
+			"!packages/fineract-api/**",
+			"!**/routeTree.gen.ts"
+		]
 	},
 	"formatter": { "enabled": true, "indentStyle": "tab" },
 	"linter": {
