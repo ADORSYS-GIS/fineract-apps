@@ -5,6 +5,7 @@ export type NavbarSize = "sm" | "md" | "lg";
 
 export interface NavbarProps {
 	logo?: ReactNode;
+	sidebarToggle?: ReactNode;
 	links?: ReactNode; // nav links area (desktop)
 	userSection?: ReactNode; // user info / avatar / menu
 	actions?: ReactNode; // action buttons
