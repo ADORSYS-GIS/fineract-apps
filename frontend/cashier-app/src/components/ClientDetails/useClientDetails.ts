@@ -86,7 +86,7 @@ export const useClientDetails = (clientId: number) => {
 		onError: (err: ApiError) => {
 			const body = err.body as { errors?: { defaultUserMessage: string }[] };
 			const apiError = body?.errors?.[0]?.defaultUserMessage;
-			setTransactionError(apiError || "An unexpected error occurred.");
+			setTransactionError(apiError ?? "An unexpected error occurred.");
 		},
 	});
 	const handleDeposit = (accountId: number) => {

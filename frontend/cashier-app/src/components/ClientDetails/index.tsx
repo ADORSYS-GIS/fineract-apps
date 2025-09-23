@@ -9,6 +9,7 @@ export function ClientDetails() {
 		clientAccounts,
 		clientImage,
 		isLoading,
+		isClientImageLoading,
 		isError,
 		isImageModalOpen,
 		isTransactionModalOpen,
@@ -38,6 +39,7 @@ export function ClientDetails() {
 			client={client}
 			clientAccounts={clientAccounts}
 			clientImage={clientImage}
+			isClientImageLoading={isClientImageLoading}
 			isImageModalOpen={isImageModalOpen}
 			isTransactionModalOpen={isTransactionModalOpen}
 			transactionType={transactionType}
