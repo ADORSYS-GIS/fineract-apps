@@ -8,6 +8,9 @@ import {
 	SearchBarVariants,
 } from "./SearchBar.variants";
 
+// Reusable search icon with consistent styling
+const SearchIcon = () => <Search className="h-4 w-4 text-muted-foreground" />;
+
 /**
  * SearchBar - A simple and reusable search component
  *
@@ -91,11 +94,11 @@ export function SearchBar(props: Readonly<SearchBarProps>) {
 							)}
 							aria-label="Open search"
 						>
-							<Search className="h-4 w-4 text-muted-foreground" />
+							<SearchIcon />
 						</Button>
 					) : (
 						<div className={SearchBarVariants({ variant, size })}>
-							<Search className="h-4 w-4 text-muted-foreground" />
+							<SearchIcon />
 							<input
 								type="text"
 								value={value}
@@ -132,7 +135,7 @@ export function SearchBar(props: Readonly<SearchBarProps>) {
 	return (
 		<div className={cn("relative w-full", className)}>
 			<div className={SearchBarVariants({ variant, size })}>
-				<Search className="h-4 w-4 text-muted-foreground" />
+				<SearchIcon />
 				<input
 					type="text"
 					value={value}
