@@ -6,22 +6,22 @@ import "@fineract-apps/ui/styles.css";
 import { OpenAPI } from "@fineract-apps/fineract-api";
 import type { AxiosRequestConfig } from "axios";
 import "./index.css";
+import { queryClient } from "./query-client.ts";
 import { routeTree } from "./routeTree.gen.ts";
 import { authStore } from "./store/auth.ts";
-import { queryClient } from "./query-client.ts";
 
 OpenAPI.interceptors.request.use((config: AxiosRequestConfig) => {
-  const { isAuthenticated, base64EncodedAuthenticationKey } = authStore.state;
+	const { isAuthenticated, base64EncodedAuthenticationKey } = authStore.state;
 
-  if (isAuthenticated && base64EncodedAuthenticationKey) {
-    config.headers = {
-      ...config.headers,
-      Authorization: `Basic ${base64EncodedAuthenticationKey}`,
-      'Fineract-Platform-TenantId': 'default',
-    };
-  }
+	if (isAuthenticated && base64EncodedAuthenticationKey) {
+		config.headers = {
+			...config.headers,
+			Authorization: `Basic ${base64EncodedAuthenticationKey}`,
+			"Fineract-Platform-TenantId": "default",
+		};
+	}
 
-  return config;
+	return config;
 });
 
 // Create a new router instance from the generated route tree

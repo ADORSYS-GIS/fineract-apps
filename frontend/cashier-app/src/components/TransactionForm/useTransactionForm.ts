@@ -1,15 +1,15 @@
 import {
-  type TransactionFormData,
-  transactionSchema,
+	type TransactionFormData,
+	transactionSchema,
 } from "./TransactionForm.types";
 
 export const useTransactionForm = () => {
-  const initialValues: TransactionFormData = {
-    amount: "",
-  };
+	const initialValues: TransactionFormData = {
+		amount: "",
+	};
 
-  return {
-    initialValues,
-    validationSchema: transactionSchema,
-  };
+	return {
+		initialValues,
+		validationSchema: transactionSchema,
+	};
 };

@@ -61,11 +61,9 @@ The `useClientDetails` hook is responsible for constructing and sending the corr
       "transactionDate": "23 September 2025",
       "transactionAmount": 2000.00,
       "paymentTypeId": 1,
-      "note": "Client deposit"
+      "paymentTypeId": 1
     }
     ```
-    -   The `note` is dynamically generated based on the transaction type (e.g., "Client deposit" or "Client withdrawal").
-    -   A type assertion (`as any`) was used for the `requestBody`. This was a deliberate choice to work around a discrepancy where the generated API client's types did not include the `note` field, which the API requires. This is a temporary measure that should be revisited if the API client is regenerated.
 
 ## 4. User Experience (UX) Considerations
 

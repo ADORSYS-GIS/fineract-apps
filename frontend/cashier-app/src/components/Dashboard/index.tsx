@@ -1,24 +1,24 @@
-import { DashboardView } from './Dashboard.view';
-import { useDashboard } from './useDashboard';
+import { DashboardView } from "./Dashboard.view";
+import { useDashboard } from "./useDashboard";
 
 interface DashboardContainerProps {
-  readonly onToggleMenu?: () => void;
-  readonly isMenuOpen?: boolean;
+	readonly onToggleMenu?: () => void;
+	readonly isMenuOpen?: boolean;
 }
 
 export function Dashboard({
-  onToggleMenu,
-  isMenuOpen,
+	onToggleMenu,
+	isMenuOpen,
 }: DashboardContainerProps) {
-  const { onLogout, query, onQueryChange } = useDashboard();
+	const { onLogout, query, onQueryChange } = useDashboard();
 
-  return (
-    <DashboardView
-      onToggleMenu={onToggleMenu}
-      isMenuOpen={isMenuOpen}
-      onLogout={onLogout}
-      query={query}
-      onQueryChange={onQueryChange}
-    />
-  );
+	return (
+		<DashboardView
+			onToggleMenu={onToggleMenu}
+			isMenuOpen={isMenuOpen}
+			onLogout={onLogout}
+			query={query}
+			onQueryChange={onQueryChange}
+		/>
+	);
 }
