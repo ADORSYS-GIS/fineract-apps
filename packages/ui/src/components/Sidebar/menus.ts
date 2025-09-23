@@ -17,6 +17,9 @@ export const menuAccountManager = [
 export const menuBranchManager = [
 	{ name: "Dashboard", link: "/dashboard", icon: Home },
 	{ name: "Branches", link: "/branches", icon: Users },
+	{ name: "Staff", link: "/staff/assign", icon: Users },
+	{ name: "Fund", link: "/fund", icon: Users },
+
 	{ name: "Reports", link: "/reports", icon: FileText },
 	{ name: "Settings", link: "/settings", icon: Settings },
 ];

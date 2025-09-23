@@ -9,38 +9,201 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as FundRouteImport } from './routes/fund'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as BranchesRouteImport } from './routes/branches'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StaffAssignRouteImport } from './routes/staff.assign'
+import { Route as FundsSettleRouteImport } from './routes/funds.settle'
+import { Route as FundsAllocateRouteImport } from './routes/funds.allocate'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FundRoute = FundRouteImport.update({
+  id: '/fund',
+  path: '/fund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BranchesRoute = BranchesRouteImport.update({
+  id: '/branches',
+  path: '/branches',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffAssignRoute = StaffAssignRouteImport.update({
+  id: '/staff/assign',
+  path: '/staff/assign',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FundsSettleRoute = FundsSettleRouteImport.update({
+  id: '/funds/settle',
+  path: '/funds/settle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FundsAllocateRoute = FundsAllocateRouteImport.update({
+  id: '/funds/allocate',
+  path: '/funds/allocate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/branches': typeof BranchesRoute
+  '/dashboard': typeof DashboardRoute
+  '/fund': typeof FundRoute
+  '/login': typeof LoginRoute
+  '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
+  '/funds/allocate': typeof FundsAllocateRoute
+  '/funds/settle': typeof FundsSettleRoute
+  '/staff/assign': typeof StaffAssignRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/branches': typeof BranchesRoute
+  '/dashboard': typeof DashboardRoute
+  '/fund': typeof FundRoute
+  '/login': typeof LoginRoute
+  '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
+  '/funds/allocate': typeof FundsAllocateRoute
+  '/funds/settle': typeof FundsSettleRoute
+  '/staff/assign': typeof StaffAssignRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/branches': typeof BranchesRoute
+  '/dashboard': typeof DashboardRoute
+  '/fund': typeof FundRoute
+  '/login': typeof LoginRoute
+  '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
+  '/funds/allocate': typeof FundsAllocateRoute
+  '/funds/settle': typeof FundsSettleRoute
+  '/staff/assign': typeof StaffAssignRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/branches'
+    | '/dashboard'
+    | '/fund'
+    | '/login'
+    | '/reports'
+    | '/settings'
+    | '/funds/allocate'
+    | '/funds/settle'
+    | '/staff/assign'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/branches'
+    | '/dashboard'
+    | '/fund'
+    | '/login'
+    | '/reports'
+    | '/settings'
+    | '/funds/allocate'
+    | '/funds/settle'
+    | '/staff/assign'
+  id:
+    | '__root__'
+    | '/'
+    | '/branches'
+    | '/dashboard'
+    | '/fund'
+    | '/login'
+    | '/reports'
+    | '/settings'
+    | '/funds/allocate'
+    | '/funds/settle'
+    | '/staff/assign'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BranchesRoute: typeof BranchesRoute
+  DashboardRoute: typeof DashboardRoute
+  FundRoute: typeof FundRoute
+  LoginRoute: typeof LoginRoute
+  ReportsRoute: typeof ReportsRoute
+  SettingsRoute: typeof SettingsRoute
+  FundsAllocateRoute: typeof FundsAllocateRoute
+  FundsSettleRoute: typeof FundsSettleRoute
+  StaffAssignRoute: typeof StaffAssignRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fund': {
+      id: '/fund'
+      path: '/fund'
+      fullPath: '/fund'
+      preLoaderRoute: typeof FundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/branches': {
+      id: '/branches'
+      path: '/branches'
+      fullPath: '/branches'
+      preLoaderRoute: typeof BranchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +211,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/assign': {
+      id: '/staff/assign'
+      path: '/staff/assign'
+      fullPath: '/staff/assign'
+      preLoaderRoute: typeof StaffAssignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/funds/settle': {
+      id: '/funds/settle'
+      path: '/funds/settle'
+      fullPath: '/funds/settle'
+      preLoaderRoute: typeof FundsSettleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/funds/allocate': {
+      id: '/funds/allocate'
+      path: '/funds/allocate'
+      fullPath: '/funds/allocate'
+      preLoaderRoute: typeof FundsAllocateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BranchesRoute: BranchesRoute,
+  DashboardRoute: DashboardRoute,
+  FundRoute: FundRoute,
+  LoginRoute: LoginRoute,
+  ReportsRoute: ReportsRoute,
+  SettingsRoute: SettingsRoute,
+  FundsAllocateRoute: FundsAllocateRoute,
+  FundsSettleRoute: FundsSettleRoute,
+  StaffAssignRoute: StaffAssignRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
