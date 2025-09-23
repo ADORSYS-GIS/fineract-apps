@@ -111,13 +111,13 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 				</div>
 				<div className="p-6">
 					<div className="flex flex-col md:flex-row gap-8 items-start">
-						<button
-							type="button"
-							className="flex-shrink-0 mx-auto md:mx-0 cursor-pointer appearance-none bg-transparent border-none p-0 text-left"
+						<Button
+							variant="ghost"
+							className="flex-shrink-0 mx-auto md:mx-0 cursor-pointer appearance-none bg-transparent border-none p-0 text-left h-auto"
 							onClick={onOpenImageModal}
 						>
 							{renderClientImage()}
-						</button>
+						</Button>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 flex-grow">
 							<div className="flex flex-col">
 								<p className="text-sm font-medium text-gray-500">Name</p>
@@ -189,13 +189,14 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 							className="object-contain w-full h-full"
 						/>
 						<form method="dialog">
-							<button
+							<Button
+								variant="ghost"
 								type="submit"
-								className="absolute top-4 right-4 text-white text-2xl bg-transparent border-none cursor-pointer"
+								className="absolute top-4 right-4 text-white text-2xl bg-transparent border-none cursor-pointer hover:bg-black/20 h-auto"
 								aria-label="Close"
 							>
 								&times;
-							</button>
+							</Button>
 						</form>
 					</div>
 				</dialog>
