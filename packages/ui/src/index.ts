@@ -10,4 +10,5 @@ export {
 	SubmitButton,
 } from "./components/Form";
 export { Navbar } from "./components/Navbar";
+export { SearchBar } from "./components/SearchBar";
 export * from "./components/Sidebar";
