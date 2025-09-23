@@ -39,33 +39,6 @@ export const SearchBarVariants = cva(baseSearchBarClasses, {
 	},
 });
 
-export const suggestionItemVariants = cva(
-	`
-	px-4
-	py-2
-	text-sm
-	cursor-pointer
-	transition-colors
-	text-foreground
-	focus-visible:outline-none
-	focus-visible:ring-2
-	focus-visible:ring-ring
-	focus-visible:ring-offset-2
-	ring-offset-background
-	`,
-	{
-		variants: {
-			highlighted: {
-				true: "bg-accent text-accent-foreground",
-				false: "hover:bg-accent hover:text-accent-foreground",
-			},
-		},
-		defaultVariants: {
-			highlighted: false,
-		},
-	},
-);
-
 export const expandableContainerVariants = cva(
 	"transition-all duration-300 ease-in-out overflow-hidden",
 	{
