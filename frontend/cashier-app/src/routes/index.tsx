@@ -1,9 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from '@tanstack/react-router';
+import { authStore } from '@/store/auth';
 
-function HomePage() {
-	return <div>Welcome to the Cashier Home Page!</div>;
-}
-
-export const Route = createFileRoute("/")({
-	component: HomePage,
+export const Route = createFileRoute('/')({
+  beforeLoad: () => {
+    if (authStore.state.isAuthenticated) {
+      throw redirect({
+        to: '/dashboard',
+        search: { query: '' },
+      });
+    } else {
+      throw redirect({
+        to: '/login',
+      });
+    }
+  },
 });

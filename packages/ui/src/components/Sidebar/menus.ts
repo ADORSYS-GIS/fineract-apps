@@ -23,7 +23,5 @@ export const menuBranchManager = [
 
 export const menuCashier = [
 	{ name: "Dashboard", link: "/dashboard", icon: Home },
-	{ name: "Payments", link: "/payments", icon: Send },
-	{ name: "Receipts", link: "/receipts", icon: FileText },
 	{ name: "Settings", link: "/settings", icon: Settings },
 ];
