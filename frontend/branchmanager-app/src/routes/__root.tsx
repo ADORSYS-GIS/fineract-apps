@@ -14,7 +14,11 @@ function RootLayout() {
 	return (
 		<AppLayout
 			sidebar={
-				<Sidebar menuItems={menuBranchManager} onLogout={handleLogout} />
+				<Sidebar
+					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
+					menuItems={menuBranchManager}
+					onLogout={handleLogout}
+				/>
 			}
 			navbar={
 				<Navbar

@@ -1,5 +1,5 @@
-import { Button, SearchBar } from "@fineract-apps/ui";
-import { createFileRoute } from "@tanstack/react-router";
+import { Button, Card, SearchBar } from "@fineract-apps/ui";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
 type Approval = {
@@ -56,80 +56,38 @@ function DashboardPage() {
 				</h1>
 			</div>
 
-			{/* <Card className="bg-red-50 border-red-200">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0">
-            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-100 text-red-600">!</span>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-red-800">Critical Alerts & Notifications</h3>
-            <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between rounded-lg bg-white p-4 border border-red-200">
-                <div>
-                  <p className="font-semibold text-gray-800">Approval Reminder: Large Withdrawal</p>
-                  <p className="text-sm text-gray-600">Customer John Doe requires approval for a $25,000 withdrawal.</p>
-                </div>
-                <a className="text-sm font-bold text-green-600 hover:underline whitespace-nowrap" href="#">View Details</a>
-              </div>
-              <div className="flex items-center justify-between rounded-lg bg-white p-4 border border-red-200">
-                <div>
-                  <p className="font-semibold text-gray-800">System Alert: Fraud Detection</p>
-                  <p className="text-sm text-gray-600">Unusual activity detected on account ending in ****5678. Immediate review required.</p>
-                </div>
-                <a className="text-sm font-bold text-green-600 hover:underline whitespace-nowrap" href="#">Investigate</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card> */}
-
-			{/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        <Card>
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-800">Pending Savings Accounts</h3>
-            <div className="flex items-center justify-center rounded-full bg-yellow-100 h-12 w-12">
-              <span className="text-xl font-bold text-yellow-800">12</span>
-            </div>
-          </div>
-          <p className="mt-2 text-gray-600">New savings account applications requiring your approval.</p>
-          <a className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-green-600 hover:underline" href="#">
-            <span>Review Applications</span>
-            <span>→</span>
-          </a>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-800">Pending Loan Applications</h3>
-            <div className="flex items-center justify-center rounded-full bg-yellow-100 h-12 w-12">
-              <span className="text-xl font-bold text-yellow-800">8</span>
-            </div>
-          </div>
-          <p className="mt-2 text-gray-600">Loan requests awaiting your review and decision.</p>
-          <a className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-green-600 hover:underline" href="#">
-            <span>Review Applications</span>
-            <span>→</span>
-          </a>
-        </Card>
-      </div> */}
-
-			{/* <div className="mt-8 border-b border-gray-200 px-1 flex gap-6 overflow-x-auto">
-        <Link to="/dashboard" className="flex flex-col items-center justify-center border-b-[3px] border-green-500 text-green-600 pb-3 pt-2 text-sm font-bold">
-          Approve New Accounts/Loans
-        </Link>
-        <Link to="/staff/assign" className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold">
-          Manage Staff
-        </Link>
-        <Link to="/funds/allocate" className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold">
-          Allocate Funds
-        </Link>
-        <Link to="/funds/settle" className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold">
-          Settle Funds
-        </Link>
-        <Link to="/reports" className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold">
-          Generate Reports
-        </Link>
-      </div> */}
+			<div className="mt-8 border-b border-gray-200 px-1 flex gap-6 overflow-x-auto">
+				<Link
+					to="/dashboard"
+					className="flex flex-col items-center justify-center border-b-[3px] border-green-500 text-green-600 pb-3 pt-2 text-sm font-bold"
+				>
+					Approve New Accounts/Loans
+				</Link>
+				<Link
+					to="/staff/assign"
+					className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
+				>
+					Manage Staff
+				</Link>
+				<Link
+					to="/funds/allocate"
+					className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
+				>
+					Allocate Funds
+				</Link>
+				<Link
+					to="/funds/settle"
+					className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
+				>
+					Settle Funds
+				</Link>
+				<Link
+					to="/reports"
+					className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
+				>
+					Generate Reports
+				</Link>
+			</div>
 
 			<div className="mt-6 flex items-center justify-between gap-4">
 				<h2 className="text-[22px] font-bold text-gray-900">

@@ -2,17 +2,12 @@ import {
 	CreditCard,
 	FileText,
 	Home,
+	PlusCircle,
 	Send,
 	Settings,
 	Users,
 } from "lucide-react";
-import type { ElementType } from "react";
-
-interface MenuItem {
-	name: string;
-	link: string;
-	icon: ElementType;
-}
+import { MenuItem } from "./Sidebar.types";
 
 export const menuAccountManager: MenuItem[] = [
 	{ name: "Dashboard", link: "/dashboard", icon: Home },

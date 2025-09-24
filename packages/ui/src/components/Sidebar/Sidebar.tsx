@@ -4,6 +4,7 @@ import { SidebarView } from "./Sidebar.view";
 import { useSidebar } from "./useSidebar";
 
 export const Sidebar: React.FC<SidebarProps> = ({
+	logo,
 	menuItems = [],
 	...rest
 }) => {
@@ -11,6 +12,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
 	return (
 		<SidebarView
+			logo={logo}
 			menuItems={menuItems}
 			activeLink={activeLink}
 			handleClick={handleClick}

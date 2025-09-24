@@ -8,6 +8,7 @@ type SidebarViewProps = SidebarProps & {
 };
 
 export const SidebarView: React.FC<SidebarViewProps> = ({
+	logo,
 	menuItems = [],
 	onLogout,
 	className,
@@ -18,7 +19,7 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 		className={`h-screen w-64 bg-white shadow-lg flex flex-col justify-between ${className}`}
 	>
 		{/* Logo */}
-		<div className="p-4 text-2xl font-bold text-blue-600">OnlineBank</div>
+		<div className="p-4">{logo}</div>
 
 		{/* Menu */}
 		<nav className="flex-1 px-2 space-y-2">

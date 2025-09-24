@@ -1,4 +1,5 @@
 import { LucideIcon } from "lucide-react";
+import React from "react";
 
 export interface MenuItem {
 	name: string;
@@ -7,6 +8,7 @@ export interface MenuItem {
 }
 
 export interface SidebarProps {
+	logo?: React.ReactNode;
 	menuItems: MenuItem[];
 	onLogout?: () => void;
 	className?: string;
