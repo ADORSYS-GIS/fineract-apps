@@ -23,5 +23,4 @@ export const menuBranchManager = [
 
 export const menuCashier = [
 	{ name: "Dashboard", link: "/dashboard", icon: Home },
-	{ name: "Settings", link: "/settings", icon: Settings },
 ];
