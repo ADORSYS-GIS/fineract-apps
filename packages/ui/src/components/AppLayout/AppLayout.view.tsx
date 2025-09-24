@@ -22,9 +22,9 @@ export const AppLayoutView = React.forwardRef<HTMLDivElement, AppLayoutProps>(
 					/>
 				)}
 				<div
-					className={`fixed inset-y-0 left-0 z-20 w-64 md:relative md:flex ${
-						isSidebarOpen ? "flex" : "hidden"
-					}`}
+					className={`fixed inset-y-0 left-0 z-20 w-64 transform transition-transform md:relative md:translate-x-0 ${
+						isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+					} md:flex`}
 				>
 					{sidebar}
 				</div>

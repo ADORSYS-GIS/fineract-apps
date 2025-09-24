@@ -51,8 +51,8 @@ export const NavbarView = React.forwardRef<HTMLElement, NavbarProps>(
 				{/* Right side */}
 				<div className="flex items-center gap-4">
 					{notifications}
-					<div className="hidden md:flex items-center gap-3">{userSection}</div>
-					<div className="hidden md:flex items-center gap-2">{actions}</div>
+					<div className="flex items-center gap-3">{userSection}</div>
+					<div className="flex items-center gap-2">{actions}</div>
 					<MobileMenuButton isOpen={isMenuOpen} onClick={onToggleMenu} />
 				</div>
 			</header>
