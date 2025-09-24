@@ -5,7 +5,7 @@
 	"main": "./src/index.ts",
 	"types": "./src/index.ts",
 	"scripts": {
-		"codegen": "openapi-rq -i ./fineract.json -o ./src/generated -c axios"
+       "codegen": "openapi-rq -i ./fineract.json -o ./src/generated -c axios && node scripts/add-ts-nocheck.mjs"
 	},
 	"dependencies": {
 		"@tanstack/react-query": "^5.51.1",
