@@ -1,5 +1,5 @@
-import { Button, Card, SearchBar } from "@fineract-apps/ui";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Button, SearchBar } from "@fineract-apps/ui";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
 type Approval = {

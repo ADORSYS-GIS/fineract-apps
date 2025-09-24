@@ -19,6 +19,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffAssignRouteImport } from './routes/staff.assign'
 import { Route as FundsSettleRouteImport } from './routes/funds.settle'
 import { Route as FundsAllocateRouteImport } from './routes/funds.allocate'
+import { Route as CreateAccountRouteImport } from './routes/create.account'
+import { Route as CreateAccountSavingsRouteImport } from './routes/create.account.savings'
+import { Route as CreateAccountLoanRouteImport } from './routes/create.account.loan'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -70,6 +73,21 @@ const FundsAllocateRoute = FundsAllocateRouteImport.update({
   path: '/funds/allocate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CreateAccountRoute = CreateAccountRouteImport.update({
+  id: '/create/account',
+  path: '/create/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateAccountSavingsRoute = CreateAccountSavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
+  getParentRoute: () => CreateAccountRoute,
+} as any)
+const CreateAccountLoanRoute = CreateAccountLoanRouteImport.update({
+  id: '/loan',
+  path: '/loan',
+  getParentRoute: () => CreateAccountRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -79,9 +97,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
   '/funds/settle': typeof FundsSettleRoute
   '/staff/assign': typeof StaffAssignRoute
+  '/create/account/loan': typeof CreateAccountLoanRoute
+  '/create/account/savings': typeof CreateAccountSavingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,9 +112,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
   '/funds/settle': typeof FundsSettleRoute
   '/staff/assign': typeof StaffAssignRoute
+  '/create/account/loan': typeof CreateAccountLoanRoute
+  '/create/account/savings': typeof CreateAccountSavingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,9 +128,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
   '/funds/settle': typeof FundsSettleRoute
   '/staff/assign': typeof StaffAssignRoute
+  '/create/account/loan': typeof CreateAccountLoanRoute
+  '/create/account/savings': typeof CreateAccountSavingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -118,9 +145,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reports'
     | '/settings'
+    | '/create/account'
     | '/funds/allocate'
     | '/funds/settle'
     | '/staff/assign'
+    | '/create/account/loan'
+    | '/create/account/savings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -130,9 +160,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reports'
     | '/settings'
+    | '/create/account'
     | '/funds/allocate'
     | '/funds/settle'
     | '/staff/assign'
+    | '/create/account/loan'
+    | '/create/account/savings'
   id:
     | '__root__'
     | '/'
@@ -142,9 +175,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reports'
     | '/settings'
+    | '/create/account'
     | '/funds/allocate'
     | '/funds/settle'
     | '/staff/assign'
+    | '/create/account/loan'
+    | '/create/account/savings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -155,6 +191,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
+  CreateAccountRoute: typeof CreateAccountRouteWithChildren
   FundsAllocateRoute: typeof FundsAllocateRoute
   FundsSettleRoute: typeof FundsSettleRoute
   StaffAssignRoute: typeof StaffAssignRoute
@@ -232,8 +269,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FundsAllocateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/create/account': {
+      id: '/create/account'
+      path: '/create/account'
+      fullPath: '/create/account'
+      preLoaderRoute: typeof CreateAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create/account/savings': {
+      id: '/create/account/savings'
+      path: '/savings'
+      fullPath: '/create/account/savings'
+      preLoaderRoute: typeof CreateAccountSavingsRouteImport
+      parentRoute: typeof CreateAccountRoute
+    }
+    '/create/account/loan': {
+      id: '/create/account/loan'
+      path: '/loan'
+      fullPath: '/create/account/loan'
+      preLoaderRoute: typeof CreateAccountLoanRouteImport
+      parentRoute: typeof CreateAccountRoute
+    }
   }
 }
+
+interface CreateAccountRouteChildren {
+  CreateAccountLoanRoute: typeof CreateAccountLoanRoute
+  CreateAccountSavingsRoute: typeof CreateAccountSavingsRoute
+}
+
+const CreateAccountRouteChildren: CreateAccountRouteChildren = {
+  CreateAccountLoanRoute: CreateAccountLoanRoute,
+  CreateAccountSavingsRoute: CreateAccountSavingsRoute,
+}
+
+const CreateAccountRouteWithChildren = CreateAccountRoute._addFileChildren(
+  CreateAccountRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -243,6 +315,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
+  CreateAccountRoute: CreateAccountRouteWithChildren,
   FundsAllocateRoute: FundsAllocateRoute,
   FundsSettleRoute: FundsSettleRoute,
   StaffAssignRoute: StaffAssignRoute,

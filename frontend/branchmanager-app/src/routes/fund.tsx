@@ -1,3 +1,4 @@
+import { Card } from "@fineract-apps/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/fund")({
@@ -6,19 +7,30 @@ export const Route = createFileRoute("/fund")({
 
 function RouteComponent() {
 	return (
-		<div>
-			<Link
-				to="/funds/allocate"
-				className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
-			>
-				Allocate Funds
-			</Link>
-			<Link
-				to="/funds/settle"
-				className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
-			>
-				Settle Funds
-			</Link>
+		<div className="mt-4">
+			{/* Section title */}
+			<h1 className="text-2xl font-bold text-gray-900">Fund Management</h1>
+
+			{/* Cards for sub-features */}
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+				<Card className="hoverable cursor-pointer">
+					<Link
+						to="/funds/allocate"
+						className="block w-full h-full p-4 text-center font-medium text-gray-700 hover:text-green-600"
+					>
+						Allocate Funds
+					</Link>
+				</Card>
+
+				<Card className="hoverable cursor-pointer">
+					<Link
+						to="/funds/settle"
+						className="block w-full h-full p-4 text-center font-medium text-gray-700 hover:text-green-600"
+					>
+						Settle Funds
+					</Link>
+				</Card>
+			</div>
 		</div>
 	);
 }
