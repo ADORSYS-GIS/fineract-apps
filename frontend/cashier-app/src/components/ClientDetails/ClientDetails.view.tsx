@@ -1,17 +1,11 @@
 import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { formatDateArray } from "@/utils/date";
 import { SavingsAccountCard } from "../SavingsAccountCard";
 import { TransactionForm } from "../TransactionForm";
 import { ClientDetailsViewProps } from "./ClientDetails.types";
 
-const formatDateArray = (dateArray: number[] | undefined) => {
-	if (!dateArray || dateArray.length < 3) {
-		return null;
-	}
-	const date = new Date(dateArray[0], dateArray[1] - 1, dateArray[2]);
-	return `${String(date.getDate()).padStart(2, "0")} ${date.toLocaleString("en", { month: "long" })} ${date.getFullYear()}`;
-};
 export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 	client,
 	clientAccounts,
@@ -161,18 +155,25 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 					</div>
 				</div>
 				<div className="border-t border-gray-200 px-6 py-6">
-					<h3 className="text-xl font-semibold text-gray-800 mb-4">
-						Savings Accounts
-					</h3>
-					<div className="space-y-4">
-						{clientAccounts?.savingsAccounts?.map((account) => (
-							<SavingsAccountCard
-								key={account.id}
-								account={account}
-								onDeposit={onDeposit}
-								onWithdraw={onWithdraw}
-							/>
-						))}
+					<h3 className="text-xl text-gray-700 mb-4">Savings Accounts</h3>
+					<div className="border border-gray-500 rounded-lg overflow-hidden">
+						<div className="hidden md:grid grid-cols-5 gap-4 p-4 border-b border-gray-500 items-center text-gray-500">
+							<div>Account No.</div>
+							<div>Savings Product</div>
+							<div>Last Active</div>
+							<div>Balance</div>
+							<div>Actions</div>
+						</div>
+						<div className="divide-y divide-gray-500">
+							{clientAccounts?.savingsAccounts?.map((account) => (
+								<SavingsAccountCard
+									key={account.id}
+									account={account}
+									onDeposit={onDeposit}
+									onWithdraw={onWithdraw}
+								/>
+							))}
+						</div>
 					</div>
 				</div>
 			</div>

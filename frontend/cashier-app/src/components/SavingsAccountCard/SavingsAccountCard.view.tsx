@@ -1,9 +1,10 @@
 import { Button } from "@fineract-apps/ui";
+import { formatCurrency } from "@/utils/currency";
+import { formatDateArray } from "@/utils/date";
 import { SavingsAccountCardViewProps } from "./SavingsAccountCard.types";
 
 export const SavingsAccountCardView: React.FC<SavingsAccountCardViewProps> = ({
-	account,
-	accountBalance,
+	accountDetails,
 	isLoading,
 	isError,
 	onDeposit,
@@ -25,18 +26,40 @@ export const SavingsAccountCardView: React.FC<SavingsAccountCardViewProps> = ({
 
 	return (
 		<div
-			key={account.id}
-			className="p-4 border rounded-lg flex justify-between items-center"
+			key={accountDetails?.id}
+			className="block md:grid md:grid-cols-5 md:gap-4 p-4 md:items-center text-gray-700"
 		>
-			<div>
-				<p className="font-semibold">{account.productName}</p>
-				<p className="text-sm text-gray-600">Account No: {account.accountNo}</p>
-				<p className="text-sm text-gray-600">Balance: {accountBalance}</p>
+			<div className="flex justify-between md:block">
+				<span className="font-semibold md:hidden">Account No.: </span>
+				<span>{accountDetails?.accountNo}</span>
 			</div>
-			{account.status?.active && (
-				<div className="flex gap-2">
-					<Button onClick={() => onDeposit(account.id!)}>Deposit</Button>
-					<Button onClick={() => onWithdraw(account.id!)} variant="outline">
+			<div className="flex justify-between md:block">
+				<span className="font-semibold md:hidden">Savings Product: </span>
+				<span>{accountDetails?.savingsProductName}</span>
+			</div>
+			<div className="flex justify-between md:block">
+				<span className="font-semibold md:hidden">Last Active: </span>
+				<span>
+					{formatDateArray(
+						accountDetails?.lastActiveTransactionDate as unknown as
+							| number[]
+							| undefined,
+					) || "N/A"}
+				</span>
+			</div>
+			<div className="flex justify-between md:block">
+				<span className="font-semibold md:hidden">Balance: </span>
+				<span>{formatCurrency(accountDetails?.summary?.accountBalance)}</span>
+			</div>
+			{accountDetails?.status?.active && (
+				<div className="flex flex-col gap-2 mt-4 md:mt-0">
+					<Button onClick={() => onDeposit(accountDetails?.id!)}>
+						Deposit
+					</Button>
+					<Button
+						onClick={() => onWithdraw(accountDetails?.id!)}
+						variant="outline"
+					>
 						Withdrawal
 					</Button>
 				</div>

@@ -7,14 +7,13 @@ export const SavingsAccountCard: React.FC<SavingsAccountCardProps> = ({
 	onDeposit,
 	onWithdraw,
 }) => {
-	const { accountBalance, isLoading, isError } = useSavingsAccountCard(
+	const { accountDetails, isLoading, isError } = useSavingsAccountCard(
 		account.id!,
 	);
 
 	return (
 		<SavingsAccountCardView
-			account={account}
-			accountBalance={accountBalance}
+			accountDetails={accountDetails}
 			isLoading={isLoading}
 			isError={isError}
 			onDeposit={() => onDeposit(account.id!)}

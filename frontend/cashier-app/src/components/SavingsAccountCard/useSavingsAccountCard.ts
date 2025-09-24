@@ -16,6 +16,7 @@ export const useSavingsAccountCard = (accountId: number) => {
 	});
 
 	return {
+		accountDetails,
 		accountBalance: accountDetails?.summary?.accountBalance,
 		isLoading,
 		isError,

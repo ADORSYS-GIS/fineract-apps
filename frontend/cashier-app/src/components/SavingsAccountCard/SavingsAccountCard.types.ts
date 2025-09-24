@@ -1,4 +1,7 @@
-import { GetClientsSavingsAccounts } from "@fineract-apps/fineract-api";
+import {
+	GetClientsSavingsAccounts,
+	GetV1SavingsaccountsByAccountIdResponse,
+} from "@fineract-apps/fineract-api";
 
 export interface SavingsAccountCardProps {
 	account: GetClientsSavingsAccounts;
@@ -7,8 +10,7 @@ export interface SavingsAccountCardProps {
 }
 
 export interface SavingsAccountCardViewProps {
-	account: GetClientsSavingsAccounts;
-	accountBalance: number | undefined;
+	accountDetails: GetV1SavingsaccountsByAccountIdResponse | undefined;
 	isLoading: boolean;
 	isError: boolean;
 	onDeposit: (accountId: number) => void;
