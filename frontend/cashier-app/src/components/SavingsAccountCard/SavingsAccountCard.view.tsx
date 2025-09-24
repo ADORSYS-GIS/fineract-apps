@@ -44,7 +44,7 @@ export const SavingsAccountCardView: React.FC<SavingsAccountCardViewProps> = ({
 						accountDetails?.lastActiveTransactionDate as unknown as
 							| number[]
 							| undefined,
-					) || "N/A"}
+					) ?? "N/A"}
 				</span>
 			</div>
 			<div className="flex justify-between md:block">
