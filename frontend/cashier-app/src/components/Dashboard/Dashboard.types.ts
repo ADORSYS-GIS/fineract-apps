@@ -8,5 +8,5 @@ export interface DashboardViewProps {
 	readonly onQueryChange: (query: string) => void;
 	readonly isDropdownOpen: boolean;
 	readonly toggleDropdown: () => void;
-	readonly dropdownRef: React.RefObject<HTMLDivElement>;
+	readonly dropdownRef: React.Ref<HTMLDivElement>;
 }

@@ -10,7 +10,14 @@ export function Dashboard({
 	onToggleMenu,
 	isMenuOpen,
 }: DashboardContainerProps) {
-	const { onLogout, query, onQueryChange } = useDashboard();
+	const {
+		onLogout,
+		query,
+		onQueryChange,
+		isDropdownOpen,
+		toggleDropdown,
+		dropdownRef,
+	} = useDashboard();
 
 	return (
 		<DashboardView
@@ -19,6 +26,9 @@ export function Dashboard({
 			onLogout={onLogout}
 			query={query}
 			onQueryChange={onQueryChange}
+			isDropdownOpen={isDropdownOpen}
+			toggleDropdown={toggleDropdown}
+			dropdownRef={dropdownRef}
 		/>
 	);
 }
