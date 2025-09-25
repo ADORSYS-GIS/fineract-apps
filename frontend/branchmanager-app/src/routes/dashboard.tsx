@@ -1,5 +1,5 @@
-import { Button, Card, SearchBar } from "@fineract-apps/ui";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Button, SearchBar } from "@fineract-apps/ui";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
 type Approval = {
@@ -56,38 +56,7 @@ function DashboardPage() {
 				</h1>
 			</div>
 
-			<div className="mt-8 border-b border-gray-200 px-1 flex gap-6 overflow-x-auto">
-				<Link
-					to="/dashboard"
-					className="flex flex-col items-center justify-center border-b-[3px] border-green-500 text-green-600 pb-3 pt-2 text-sm font-bold"
-				>
-					Approve New Accounts/Loans
-				</Link>
-				<Link
-					to="/staff/assign"
-					className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
-				>
-					Manage Staff
-				</Link>
-				<Link
-					to="/funds/allocate"
-					className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
-				>
-					Allocate Funds
-				</Link>
-				<Link
-					to="/funds/settle"
-					className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
-				>
-					Settle Funds
-				</Link>
-				<Link
-					to="/reports"
-					className="flex flex-col items-center justify-center border-b-[3px] border-transparent text-gray-500 hover:text-green-600 hover:border-green-500 pb-3 pt-2 text-sm font-bold"
-				>
-					Generate Reports
-				</Link>
-			</div>
+			{/* Horizontal menu removed (duplicated with sidebar) */}
 
 			<div className="mt-6 flex items-center justify-between gap-4">
 				<h2 className="text-[22px] font-bold text-gray-900">
