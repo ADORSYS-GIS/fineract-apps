@@ -17,7 +17,8 @@
 		"@tanstack/react-router-devtools": "^1.131.44",
 		"lucide-react": "^0.544.0",
 		"react": "^19.1.1",
-		"react-dom": "^19.1.1"
+		"react-dom": "^19.1.1",
+		"zod": "^4.1.9"
 	},
 	"devDependencies": {
 		"@fineract-apps/config": "workspace:*",
