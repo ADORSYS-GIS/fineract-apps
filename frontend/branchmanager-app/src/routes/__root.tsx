@@ -15,10 +15,22 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 
 function RootLayout() {
-	const handleLogout = () => alert("Logout clicked!");
+	const handleLogout = () => {
+		try {
+			localStorage.removeItem("bm_auth");
+		} catch {
+			/* noop */
+		}
+		navigate({ to: "/login" });
+	};
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
+
+	// Render login route without the app frame
+	if (currentPath === "/login") {
+		return <Outlet />;
+	}
 	return (
 		<AppLayout
 			sidebar={

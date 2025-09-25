@@ -8,7 +8,7 @@ function LoginPage() {
 	const initialValues: LoginValues = { username: "", password: "" };
 
 	return (
-		<div className="min-h-[80vh] flex items-center justify-center px-4">
+		<div className="min-h-screen flex items-center justify-center px-4 bg-white">
 			<Card className="w-full max-w-md p-6 bg-white">
 				<div className="text-center mb-6">
 					<div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
@@ -23,7 +23,11 @@ function LoginPage() {
 				<Form<LoginValues>
 					initialValues={initialValues}
 					onSubmit={() => {
-						// TODO: Wire to auth later. For now, navigate to dashboard
+						try {
+							localStorage.setItem("bm_auth", "1");
+						} catch {
+							/* noop */
+						}
 						navigate({ to: "/dashboard" });
 					}}
 					className="space-y-2"
@@ -37,12 +41,12 @@ function LoginPage() {
 						placeholder="Password"
 					/>
 					<div className="flex items-center justify-end">
-						<a
+						<button
+							type="button"
 							className="text-sm font-medium text-green-600 hover:underline"
-							href="#"
 						>
 							Forgot your password?
-						</a>
+						</button>
 					</div>
 					<Button type="submit" className="w-full rounded-full">
 						Login
