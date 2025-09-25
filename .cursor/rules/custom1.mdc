@@ -1,0 +1,5 @@
+---
+description: tasks involving creating an api call
+alwaysApply: false
+--- 
+Always leverage tanStack query to create our api calls. Obey the rules and best practices of our tanStack router.

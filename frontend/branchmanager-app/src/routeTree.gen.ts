@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as LoginRouteImport } from './routes/login'
@@ -20,9 +21,15 @@ import { Route as StaffAssignRouteImport } from './routes/staff.assign'
 import { Route as FundsSettleRouteImport } from './routes/funds.settle'
 import { Route as FundsAllocateRouteImport } from './routes/funds.allocate'
 import { Route as CreateAccountRouteImport } from './routes/create.account'
+import { Route as StaffStaffStaffIdRouteImport } from './routes/staff/staff.$staffId'
 import { Route as CreateAccountSavingsRouteImport } from './routes/create.account.savings'
 import { Route as CreateAccountLoanRouteImport } from './routes/create.account.loan'
 
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -59,9 +66,9 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffAssignRoute = StaffAssignRouteImport.update({
-  id: '/staff/assign',
-  path: '/staff/assign',
-  getParentRoute: () => rootRouteImport,
+  id: '/assign',
+  path: '/assign',
+  getParentRoute: () => StaffRoute,
 } as any)
 const FundsSettleRoute = FundsSettleRouteImport.update({
   id: '/funds/settle',
@@ -77,6 +84,11 @@ const CreateAccountRoute = CreateAccountRouteImport.update({
   id: '/create/account',
   path: '/create/account',
   getParentRoute: () => rootRouteImport,
+} as any)
+const StaffStaffStaffIdRoute = StaffStaffStaffIdRouteImport.update({
+  id: '/staff/$staffId',
+  path: '/staff/$staffId',
+  getParentRoute: () => StaffRoute,
 } as any)
 const CreateAccountSavingsRoute = CreateAccountSavingsRouteImport.update({
   id: '/savings',
@@ -97,12 +109,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/staff': typeof StaffRouteWithChildren
   '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
   '/funds/settle': typeof FundsSettleRoute
   '/staff/assign': typeof StaffAssignRoute
   '/create/account/loan': typeof CreateAccountLoanRoute
   '/create/account/savings': typeof CreateAccountSavingsRoute
+  '/staff/staff/$staffId': typeof StaffStaffStaffIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -112,12 +126,14 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/staff': typeof StaffRouteWithChildren
   '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
   '/funds/settle': typeof FundsSettleRoute
   '/staff/assign': typeof StaffAssignRoute
   '/create/account/loan': typeof CreateAccountLoanRoute
   '/create/account/savings': typeof CreateAccountSavingsRoute
+  '/staff/staff/$staffId': typeof StaffStaffStaffIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -128,12 +144,14 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/staff': typeof StaffRouteWithChildren
   '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
   '/funds/settle': typeof FundsSettleRoute
   '/staff/assign': typeof StaffAssignRoute
   '/create/account/loan': typeof CreateAccountLoanRoute
   '/create/account/savings': typeof CreateAccountSavingsRoute
+  '/staff/staff/$staffId': typeof StaffStaffStaffIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -145,12 +163,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/reports'
     | '/settings'
+    | '/staff'
     | '/create/account'
     | '/funds/allocate'
     | '/funds/settle'
     | '/staff/assign'
     | '/create/account/loan'
     | '/create/account/savings'
+    | '/staff/staff/$staffId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -160,12 +180,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/reports'
     | '/settings'
+    | '/staff'
     | '/create/account'
     | '/funds/allocate'
     | '/funds/settle'
     | '/staff/assign'
     | '/create/account/loan'
     | '/create/account/savings'
+    | '/staff/staff/$staffId'
   id:
     | '__root__'
     | '/'
@@ -175,12 +197,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/reports'
     | '/settings'
+    | '/staff'
     | '/create/account'
     | '/funds/allocate'
     | '/funds/settle'
     | '/staff/assign'
     | '/create/account/loan'
     | '/create/account/savings'
+    | '/staff/staff/$staffId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -191,14 +215,21 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
+  StaffRoute: typeof StaffRouteWithChildren
   CreateAccountRoute: typeof CreateAccountRouteWithChildren
   FundsAllocateRoute: typeof FundsAllocateRoute
   FundsSettleRoute: typeof FundsSettleRoute
-  StaffAssignRoute: typeof StaffAssignRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -250,10 +281,10 @@ declare module '@tanstack/react-router' {
     }
     '/staff/assign': {
       id: '/staff/assign'
-      path: '/staff/assign'
+      path: '/assign'
       fullPath: '/staff/assign'
       preLoaderRoute: typeof StaffAssignRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof StaffRoute
     }
     '/funds/settle': {
       id: '/funds/settle'
@@ -276,6 +307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/staff/$staffId': {
+      id: '/staff/staff/$staffId'
+      path: '/staff/$staffId'
+      fullPath: '/staff/staff/$staffId'
+      preLoaderRoute: typeof StaffStaffStaffIdRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/create/account/savings': {
       id: '/create/account/savings'
       path: '/savings'
@@ -292,6 +330,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface StaffRouteChildren {
+  StaffAssignRoute: typeof StaffAssignRoute
+  StaffStaffStaffIdRoute: typeof StaffStaffStaffIdRoute
+}
+
+const StaffRouteChildren: StaffRouteChildren = {
+  StaffAssignRoute: StaffAssignRoute,
+  StaffStaffStaffIdRoute: StaffStaffStaffIdRoute,
+}
+
+const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 
 interface CreateAccountRouteChildren {
   CreateAccountLoanRoute: typeof CreateAccountLoanRoute
@@ -315,10 +365,10 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
+  StaffRoute: StaffRouteWithChildren,
   CreateAccountRoute: CreateAccountRouteWithChildren,
   FundsAllocateRoute: FundsAllocateRoute,
   FundsSettleRoute: FundsSettleRoute,
-  StaffAssignRoute: StaffAssignRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

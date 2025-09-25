@@ -34,31 +34,7 @@ function StaffAssignPage() {
 						onValueChange={setSearch}
 						placeholder="Filter staff..."
 					/>
-					<div className="mt-4 space-y-3">
-						{[
-							{ name: "Sarah Miller", role: "Cashier" },
-							{ name: "David Lee", role: "Cashier" },
-							{ name: "Emily Chen", role: "Cashier" },
-						]
-							.filter(
-								(s) =>
-									s.name.toLowerCase().indexOf(search.toLowerCase()) !== -1,
-							)
-							.map((s) => (
-								<div
-									key={s.name}
-									className="flex items-center justify-between p-3 rounded-md border border-gray-200 bg-gray-50"
-								>
-									<div>
-										<p className="font-medium text-gray-800">{s.name}</p>
-										<p className="text-sm text-gray-500">{s.role}</p>
-									</div>
-									<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-										Available
-									</span>
-								</div>
-							))}
-					</div>
+					<div className="mt-4 text-gray-500">No data.</div>
 				</Card>
 
 				<Card
@@ -70,60 +46,7 @@ function StaffAssignPage() {
 						onValueChange={setSearchTellers}
 						placeholder="Filter tellers..."
 					/>
-					<div className="mt-4 space-y-3">
-						{[
-							{
-								name: "Teller 1 - Main Counter",
-								assigned: true,
-								cashier: { name: "John Doe", role: "Cashier" },
-							},
-							{ name: "Teller 2 - Drive-Thru", assigned: false },
-						]
-							.filter(
-								(teller) =>
-									teller.name
-										.toLowerCase()
-										.indexOf(searchTellers.toLowerCase()) !== -1,
-							)
-							.map((teller) =>
-								teller.assigned ? (
-									<div
-										key={teller.name}
-										className="p-4 rounded-md border border-gray-200"
-									>
-										<div className="flex items-center justify-between mb-3">
-											<h3 className="font-semibold text-gray-700">
-												{teller.name}
-											</h3>
-											<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-												Assigned
-											</span>
-										</div>
-										<div className="flex items-center justify-between p-3 rounded-md border border-dashed border-gray-300 bg-white">
-											<div>
-												<p className="font-medium text-gray-800">
-													{teller.cashier?.name}
-												</p>
-												<p className="text-sm text-gray-500">
-													{teller.cashier?.role}
-												</p>
-											</div>
-											<Button variant="destructive">Remove</Button>
-										</div>
-									</div>
-								) : (
-									<div
-										key={teller.name}
-										className="p-4 rounded-md border border-dashed border-gray-300 min-h-[100px] flex items-center justify-center text-gray-400"
-									>
-										<div className="text-center">
-											<p className="text-sm">Drop Cashier Here</p>
-											<p className="text-xs">{teller.name}</p>
-										</div>
-									</div>
-								),
-							)}
-					</div>
+					<div className="mt-4 text-gray-500">No data.</div>
 				</Card>
 				<div className="lg:col-span-2">
 					<Card className="h-full">
@@ -149,56 +72,11 @@ function StaffAssignPage() {
 									</tr>
 								</thead>
 								<tbody>
-									{[
-										{
-											id: "Teller 1",
-											location: "Main Counter",
-											cashier: "John Doe",
-											time: "09:15 AM",
-											assigned: true,
-										},
-										{
-											id: "Teller 5",
-											location: "Walk-in",
-											cashier: "Unassigned",
-											time: "-",
-											assigned: false,
-										},
-									]
-										.filter(
-											(assignment) =>
-												assignment.id
-													.toLowerCase()
-													.indexOf(searchAssignments.toLowerCase()) !== -1 ||
-												assignment.location
-													.toLowerCase()
-													.indexOf(searchAssignments.toLowerCase()) !== -1 ||
-												assignment.cashier
-													.toLowerCase()
-													.indexOf(searchAssignments.toLowerCase()) !== -1,
-										)
-										.map((assignment) => (
-											<tr key={assignment.id} className="bg-white border-b">
-												<td className="px-6 py-4 font-medium text-gray-900">
-													{assignment.id}
-												</td>
-												<td className="px-6 py-4">{assignment.location}</td>
-												<td
-													className={`px-6 py-4 ${!assignment.assigned ? "text-gray-400 italic" : ""}`}
-												>
-													{assignment.cashier}
-												</td>
-												<td className="px-6 py-4">{assignment.time}</td>
-												<td className="px-6 py-4 text-right">
-													<a
-														className="font-medium text-blue-600 hover:underline"
-														href="#"
-													>
-														{assignment.assigned ? "Reassign" : "Assign"}
-													</a>
-												</td>
-											</tr>
-										))}
+									<tr className="bg-white border-b">
+										<td className="px-6 py-4 text-gray-500" colSpan={5}>
+											No assignments.
+										</td>
+									</tr>
 								</tbody>
 							</table>
 						</div>
