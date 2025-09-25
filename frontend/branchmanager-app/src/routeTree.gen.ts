@@ -11,11 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FundRouteImport } from './routes/fund'
 import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as BranchesRouteImport } from './routes/branches'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as StaffAssignRouteImport } from './routes/staff.assign'
@@ -38,11 +36,6 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -56,11 +49,6 @@ const FundRoute = FundRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BranchesRoute = BranchesRouteImport.update({
-  id: '/branches',
-  path: '/branches',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -121,11 +109,9 @@ const CreateAccountLoanRoute = CreateAccountLoanRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/branches': typeof BranchesRoute
   '/dashboard': typeof DashboardRoute
   '/fund': typeof FundRoute
   '/login': typeof LoginRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/staff': typeof StaffRouteWithChildren
   '/create/account': typeof CreateAccountRouteWithChildren
@@ -141,11 +127,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/branches': typeof BranchesRoute
   '/dashboard': typeof DashboardRoute
   '/fund': typeof FundRoute
   '/login': typeof LoginRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
@@ -160,11 +144,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/branches': typeof BranchesRoute
   '/dashboard': typeof DashboardRoute
   '/fund': typeof FundRoute
   '/login': typeof LoginRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/staff': typeof StaffRouteWithChildren
   '/create/account': typeof CreateAccountRouteWithChildren
@@ -182,11 +164,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/branches'
     | '/dashboard'
     | '/fund'
     | '/login'
-    | '/reports'
     | '/settings'
     | '/staff'
     | '/create/account'
@@ -202,11 +182,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/branches'
     | '/dashboard'
     | '/fund'
     | '/login'
-    | '/reports'
     | '/settings'
     | '/create/account'
     | '/funds/allocate'
@@ -220,11 +198,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/branches'
     | '/dashboard'
     | '/fund'
     | '/login'
-    | '/reports'
     | '/settings'
     | '/staff'
     | '/create/account'
@@ -241,11 +217,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BranchesRoute: typeof BranchesRoute
   DashboardRoute: typeof DashboardRoute
   FundRoute: typeof FundRoute
   LoginRoute: typeof LoginRoute
-  ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   StaffRoute: typeof StaffRouteWithChildren
   CreateAccountRoute: typeof CreateAccountRouteWithChildren
@@ -269,13 +243,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -295,13 +262,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/branches': {
-      id: '/branches'
-      path: '/branches'
-      fullPath: '/branches'
-      preLoaderRoute: typeof BranchesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -428,11 +388,9 @@ const CreateAccountRouteWithChildren = CreateAccountRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BranchesRoute: BranchesRoute,
   DashboardRoute: DashboardRoute,
   FundRoute: FundRoute,
   LoginRoute: LoginRoute,
-  ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   StaffRoute: StaffRouteWithChildren,
   CreateAccountRoute: CreateAccountRouteWithChildren,

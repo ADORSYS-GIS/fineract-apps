@@ -1,11 +1,12 @@
 import {
 	useTellerCashManagementServiceGetV1Tellers,
 	useTellerCashManagementServiceGetV1TellersByTellerIdCashiers,
+	useTellerCashManagementServiceGetV1TellersByTellerIdCashiersByCashierIdTransactionsTemplate,
 	useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdSettle,
 } from "@fineract-apps/fineract-api";
 import { Button, Card, Form, Input } from "@fineract-apps/ui";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 type SettleValues = {
 	tellerId: string;
@@ -73,11 +74,22 @@ function SettleFundsPage() {
 
 	const firstTellerId = tellerOptions[0]?.id ?? null;
 
+	// Step 1 pickers for teller and cashier
+	const [pickerTellerId, setPickerTellerId] = useState<number | null>(
+		firstTellerId,
+	);
+	const [pickerCashierId, setPickerCashierId] = useState<number | null>(null);
+	const [selectedTellerId, setSelectedTellerId] = useState<number | null>(null);
+	const [selectedCashierId, setSelectedCashierId] = useState<number | null>(
+		null,
+	);
+	const hasSelection = selectedTellerId !== null && selectedCashierId !== null;
+
 	const { data: cashiersResp, isLoading: loadingCashiers } =
 		useTellerCashManagementServiceGetV1TellersByTellerIdCashiers(
-			{ tellerId: Number(firstTellerId ?? 0) },
-			["tellers", firstTellerId, "cashiers"],
-			{ enabled: firstTellerId !== null, staleTime: 30_000 },
+			{ tellerId: Number(pickerTellerId ?? 0) },
+			["tellers", pickerTellerId, "cashiers"],
+			{ enabled: pickerTellerId !== null, staleTime: 30_000 },
 		);
 
 	const cashierOptions = useMemo(() => {
@@ -92,6 +104,32 @@ function SettleFundsPage() {
 	const settleMutation =
 		useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdSettle();
 
+	// Fetch transactions template for dynamic currency options
+	const { data: template, isLoading: loadingTemplate } =
+		useTellerCashManagementServiceGetV1TellersByTellerIdCashiersByCashierIdTransactionsTemplate(
+			{
+				tellerId: Number(selectedTellerId ?? 0),
+				cashierId: Number(selectedCashierId ?? 0),
+			},
+			["tellers", selectedTellerId, "cashiers", selectedCashierId, "template"],
+			{ enabled: hasSelection },
+		);
+
+	const currencyOptions = useMemo(() => {
+		const options =
+			(
+				template as unknown as
+					| { currencyOptions?: { code: string; displayLabel?: string }[] }
+					| undefined
+			)?.currencyOptions ?? [];
+		return options.map((c) => ({
+			label: c.displayLabel ?? c.code,
+			value: c.code,
+		}));
+	}, [template]);
+
+	const defaultCurrencyCode = currencyOptions[0]?.value ?? "XAF";
+
 	return (
 		<div className="px-6 py-6">
 			<header className="mb-6">
@@ -105,88 +143,154 @@ function SettleFundsPage() {
 
 			<div className="grid grid-cols-1 gap-6 max-w-3xl">
 				<Card>
-					<h2 className="text-xl font-bold text-gray-800 mb-4">Settle Funds</h2>
-					<Form<SettleValues>
-						initialValues={initialValues}
-						onSubmit={async (values) => {
-							const tellerId = Number(values.tellerId || firstTellerId || 0);
-							const cashierId = Number(values.cashierId || 0);
-							if (!tellerId || !cashierId) return;
-							const payload = {
-								currencyCode: String(values.currencyCode || "XAF"),
-								dateFormat: "dd MMMM yyyy",
-								locale: "en",
-								txnAmount: Number(values.amount || 0),
-								txnDate: formatDateToLongDayMonthYear(
-									String(values.date || ""),
-								),
-								txnNote: String(values.notes || ""),
-							};
-							await settleMutation.mutateAsync({
-								cashierId,
-								tellerId,
-								requestBody: payload,
-							});
-							alert("Funds settled successfully");
-						}}
-						className="bg-transparent shadow-none p-0"
-					>
-						<Input
-							name="tellerId"
-							label="Teller"
-							type="select"
-							options={[
-								{ label: "Select Teller", value: "" },
-								...tellerOptions.map((t) => ({
-									label: t.name ?? `Teller ${t.id}`,
-									value: String(t.id),
-								})),
-							]}
-							disabled={loadingTellers}
-						/>
-						<Input
-							name="cashierId"
-							label="Cashier"
-							type="select"
-							options={[
-								{ label: "Select Cashier", value: "" },
-								...cashierOptions.map((c) => ({
-									label: c.staffName ?? c.description ?? `Cashier ${c.id}`,
-									value: String(c.id),
-								})),
-							]}
-							disabled={loadingCashiers}
-						/>
-						<Input
-							name="amount"
-							label="Amount"
-							type="number"
-							placeholder="0.00"
-						/>
-						<Input
-							name="currencyCode"
-							label="Currency"
-							type="select"
-							options={[
-								{ label: "XAF", value: "XAF" },
-								{ label: "USD", value: "USD" },
-								{ label: "EUR", value: "EUR" },
-							]}
-						/>
-						<Input name="date" label="Date" type="date" />
-						<Input
-							name="notes"
-							label="Notes"
-							type="textarea"
-							placeholder="Add optional notes..."
-						/>
+					<h2 className="text-xl font-bold text-gray-800 mb-4">
+						Select Teller and Cashier
+					</h2>
+					<div className="space-y-4">
+						<div>
+							<label
+								htmlFor="teller-picker"
+								className="block text-sm font-medium text-gray-700 mb-1"
+							>
+								Teller
+							</label>
+							<select
+								id="teller-picker"
+								className="w-full border rounded-md px-3 py-2"
+								value={pickerTellerId ?? ""}
+								onChange={(e) => {
+									const val = e.target.value ? Number(e.target.value) : null;
+									setPickerTellerId(val);
+									setPickerCashierId(null);
+								}}
+								disabled={loadingTellers}
+							>
+								<option value="">Select Teller</option>
+								{tellerOptions.map((t) => (
+									<option key={t.id} value={t.id}>
+										{t.name ?? `Teller ${t.id}`}
+									</option>
+								))}
+							</select>
+						</div>
+						<div>
+							<label
+								htmlFor="cashier-picker"
+								className="block text-sm font-medium text-gray-700 mb-1"
+							>
+								Cashier
+							</label>
+							<select
+								id="cashier-picker"
+								className="w-full border rounded-md px-3 py-2"
+								value={pickerCashierId ?? ""}
+								onChange={(e) => {
+									const val = e.target.value ? Number(e.target.value) : null;
+									setPickerCashierId(val);
+								}}
+								disabled={loadingCashiers}
+							>
+								<option value="">Select Cashier</option>
+								{cashierOptions.map((c) => (
+									<option key={c.id} value={c.id}>
+										{c.staffName ?? c.description ?? `Cashier ${c.id}`}
+									</option>
+								))}
+							</select>
+						</div>
 						<div className="flex justify-end pt-2">
-							<Button type="submit" disabled={settleMutation.isPending}>
-								{settleMutation.isPending ? "Settling..." : "Settle Funds"}
+							<Button
+								onClick={() => {
+									if (!pickerTellerId || !pickerCashierId) return;
+									setSelectedTellerId(pickerTellerId);
+									setSelectedCashierId(pickerCashierId);
+								}}
+								disabled={!pickerTellerId || !pickerCashierId}
+							>
+								Continue
 							</Button>
 						</div>
-					</Form>
+					</div>
 				</Card>
+
+				{hasSelection && (
+					<Card>
+						<h2 className="text-xl font-bold text-gray-800 mb-4">
+							Settle Funds
+						</h2>
+						{loadingTemplate ? (
+							<div>Loading template...</div>
+						) : (
+							<Form<SettleValues>
+								initialValues={{
+									...initialValues,
+									currencyCode: defaultCurrencyCode,
+								}}
+								onSubmit={async (values) => {
+									const tellerId = Number(selectedTellerId || 0);
+									const cashierId = Number(selectedCashierId || 0);
+									if (!tellerId || !cashierId) return;
+									const payload = {
+										currencyCode: String(
+											values.currencyCode || defaultCurrencyCode,
+										),
+										dateFormat: "dd MMMM yyyy",
+										locale: "en",
+										txnAmount: Number(values.amount || 0),
+										txnDate: formatDateToLongDayMonthYear(
+											String(values.date || ""),
+										),
+										txnNote: String(values.notes || ""),
+									};
+									await settleMutation.mutateAsync({
+										cashierId,
+										tellerId,
+										requestBody: payload,
+									});
+									alert("Funds settled successfully");
+								}}
+								className="bg-transparent shadow-none p-0"
+							>
+								<div className="grid grid-cols-1 gap-4">
+									<Input
+										name="amount"
+										label="Amount"
+										type="number"
+										placeholder="0.00"
+									/>
+									<Input
+										name="currencyCode"
+										label="Currency"
+										type="select"
+										options={currencyOptions}
+									/>
+									<Input name="date" label="Date" type="date" />
+									<Input
+										name="notes"
+										label="Notes"
+										type="textarea"
+										placeholder="Add optional notes..."
+									/>
+								</div>
+								<div className="flex items-center justify-between pt-2">
+									<Button
+										type="button"
+										variant="outline"
+										onClick={() => {
+											setSelectedTellerId(null);
+											setSelectedCashierId(null);
+										}}
+									>
+										Change selection
+									</Button>
+									<Button type="submit" disabled={settleMutation.isPending}>
+										{settleMutation.isPending ? "Settling..." : "Settle Funds"}
+									</Button>
+								</div>
+							</Form>
+						)}
+					</Card>
+				)}
 			</div>
 		</div>
 	);
