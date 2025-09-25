@@ -57,6 +57,6 @@ function StaffDetailPage() {
 	);
 }
 
-export const Route = createFileRoute("/staff/staff/$staffId")({
+export const Route = createFileRoute("/staff/$staffId")({
 	component: StaffDetailPage,
 });

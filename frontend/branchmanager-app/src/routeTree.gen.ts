@@ -18,10 +18,10 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BranchesRouteImport } from './routes/branches'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffAssignRouteImport } from './routes/staff.assign'
+import { Route as StaffStaffIdRouteImport } from './routes/staff.$staffId'
 import { Route as FundsSettleRouteImport } from './routes/funds.settle'
 import { Route as FundsAllocateRouteImport } from './routes/funds.allocate'
 import { Route as CreateAccountRouteImport } from './routes/create.account'
-import { Route as StaffStaffStaffIdRouteImport } from './routes/staff/staff.$staffId'
 import { Route as CreateAccountSavingsRouteImport } from './routes/create.account.savings'
 import { Route as CreateAccountLoanRouteImport } from './routes/create.account.loan'
 
@@ -70,6 +70,11 @@ const StaffAssignRoute = StaffAssignRouteImport.update({
   path: '/assign',
   getParentRoute: () => StaffRoute,
 } as any)
+const StaffStaffIdRoute = StaffStaffIdRouteImport.update({
+  id: '/$staffId',
+  path: '/$staffId',
+  getParentRoute: () => StaffRoute,
+} as any)
 const FundsSettleRoute = FundsSettleRouteImport.update({
   id: '/funds/settle',
   path: '/funds/settle',
@@ -84,11 +89,6 @@ const CreateAccountRoute = CreateAccountRouteImport.update({
   id: '/create/account',
   path: '/create/account',
   getParentRoute: () => rootRouteImport,
-} as any)
-const StaffStaffStaffIdRoute = StaffStaffStaffIdRouteImport.update({
-  id: '/staff/$staffId',
-  path: '/staff/$staffId',
-  getParentRoute: () => StaffRoute,
 } as any)
 const CreateAccountSavingsRoute = CreateAccountSavingsRouteImport.update({
   id: '/savings',
@@ -113,10 +113,10 @@ export interface FileRoutesByFullPath {
   '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
   '/funds/settle': typeof FundsSettleRoute
+  '/staff/$staffId': typeof StaffStaffIdRoute
   '/staff/assign': typeof StaffAssignRoute
   '/create/account/loan': typeof CreateAccountLoanRoute
   '/create/account/savings': typeof CreateAccountSavingsRoute
-  '/staff/staff/$staffId': typeof StaffStaffStaffIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -130,10 +130,10 @@ export interface FileRoutesByTo {
   '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
   '/funds/settle': typeof FundsSettleRoute
+  '/staff/$staffId': typeof StaffStaffIdRoute
   '/staff/assign': typeof StaffAssignRoute
   '/create/account/loan': typeof CreateAccountLoanRoute
   '/create/account/savings': typeof CreateAccountSavingsRoute
-  '/staff/staff/$staffId': typeof StaffStaffStaffIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -148,10 +148,10 @@ export interface FileRoutesById {
   '/create/account': typeof CreateAccountRouteWithChildren
   '/funds/allocate': typeof FundsAllocateRoute
   '/funds/settle': typeof FundsSettleRoute
+  '/staff/$staffId': typeof StaffStaffIdRoute
   '/staff/assign': typeof StaffAssignRoute
   '/create/account/loan': typeof CreateAccountLoanRoute
   '/create/account/savings': typeof CreateAccountSavingsRoute
-  '/staff/staff/$staffId': typeof StaffStaffStaffIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -167,10 +167,10 @@ export interface FileRouteTypes {
     | '/create/account'
     | '/funds/allocate'
     | '/funds/settle'
+    | '/staff/$staffId'
     | '/staff/assign'
     | '/create/account/loan'
     | '/create/account/savings'
-    | '/staff/staff/$staffId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -184,10 +184,10 @@ export interface FileRouteTypes {
     | '/create/account'
     | '/funds/allocate'
     | '/funds/settle'
+    | '/staff/$staffId'
     | '/staff/assign'
     | '/create/account/loan'
     | '/create/account/savings'
-    | '/staff/staff/$staffId'
   id:
     | '__root__'
     | '/'
@@ -201,10 +201,10 @@ export interface FileRouteTypes {
     | '/create/account'
     | '/funds/allocate'
     | '/funds/settle'
+    | '/staff/$staffId'
     | '/staff/assign'
     | '/create/account/loan'
     | '/create/account/savings'
-    | '/staff/staff/$staffId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -286,6 +286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffAssignRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/staff/$staffId': {
+      id: '/staff/$staffId'
+      path: '/$staffId'
+      fullPath: '/staff/$staffId'
+      preLoaderRoute: typeof StaffStaffIdRouteImport
+      parentRoute: typeof StaffRoute
+    }
     '/funds/settle': {
       id: '/funds/settle'
       path: '/funds/settle'
@@ -307,13 +314,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/staff/staff/$staffId': {
-      id: '/staff/staff/$staffId'
-      path: '/staff/$staffId'
-      fullPath: '/staff/staff/$staffId'
-      preLoaderRoute: typeof StaffStaffStaffIdRouteImport
-      parentRoute: typeof StaffRoute
-    }
     '/create/account/savings': {
       id: '/create/account/savings'
       path: '/savings'
@@ -332,13 +332,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface StaffRouteChildren {
+  StaffStaffIdRoute: typeof StaffStaffIdRoute
   StaffAssignRoute: typeof StaffAssignRoute
-  StaffStaffStaffIdRoute: typeof StaffStaffStaffIdRoute
 }
 
 const StaffRouteChildren: StaffRouteChildren = {
+  StaffStaffIdRoute: StaffStaffIdRoute,
   StaffAssignRoute: StaffAssignRoute,
-  StaffStaffStaffIdRoute: StaffStaffStaffIdRoute,
 }
 
 const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)

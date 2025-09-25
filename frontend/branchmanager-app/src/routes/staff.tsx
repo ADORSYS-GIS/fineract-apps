@@ -1,6 +1,6 @@
 import { useStaffServiceGetV1Staff } from "@fineract-apps/fineract-api";
 import { Card, SearchBar } from "@fineract-apps/ui";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useState } from "react";
 
 function StaffListPage() {
@@ -19,6 +19,8 @@ function StaffListPage() {
 					<p className="text-gray-500">All staff in your branch</p>
 				</div>
 			</div>
+
+			<Outlet />
 
 			<Card title={<span className="text-xl">Staff Directory</span>}>
 				<SearchBar
