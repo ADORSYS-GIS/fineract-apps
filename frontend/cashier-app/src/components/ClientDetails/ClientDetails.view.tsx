@@ -25,6 +25,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 	selectedAccount,
 }) => {
 	const dialogRef = useRef<HTMLDialogElement>(null);
+	console.log(client);
 
 	useEffect(() => {
 		const dialogNode = dialogRef.current;
@@ -150,6 +151,18 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 								<p className="mt-1 text-lg text-gray-900">
 									{formatDateArray(activatedOnDate)}
 								</p>
+							</div>
+							<div className="flex flex-col">
+								<p className="text-sm font-medium text-gray-500">Email</p>
+								<p className="mt-1 text-lg text-gray-900">
+									{client.emailAddress}
+								</p>
+							</div>
+							<div className="flex flex-col">
+								<p className="text-sm font-medium text-gray-500">
+									Phone Number
+								</p>
+								<p className="mt-1 text-lg text-gray-900">{client.mobileNo}</p>
 							</div>
 						</div>
 					</div>

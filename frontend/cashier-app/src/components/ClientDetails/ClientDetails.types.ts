@@ -6,8 +6,12 @@ import {
 	TransactionFormData,
 	TransactionType,
 } from "../TransactionForm/TransactionForm.types";
+export type Client = GetClientsClientIdResponse & {
+	mobileNo?: string;
+};
+
 export interface ClientDetailsViewProps {
-	client: GetClientsClientIdResponse;
+	client: Client;
 	clientAccounts: GetClientsClientIdAccountsResponse | undefined;
 	clientImage: string | undefined;
 	isClientImageLoading: boolean;
