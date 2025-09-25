@@ -4,6 +4,7 @@ import {
 } from "@fineract-apps/fineract-api";
 import { Form, FormTitle, Input, SubmitButton } from "@fineract-apps/ui";
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { z } from "zod";
 
 const schema = z.object({
@@ -34,6 +35,21 @@ function StaffAssignFormPage() {
 
 	const { data: tellers, isLoading: isLoadingTellers } =
 		useTellerCashManagementServiceGetV1Tellers({}, ["tellers"]);
+
+	type TellerOption = { id: number; name?: string };
+
+	const tellerOptions = useMemo(() => {
+		if (!Array.isArray(tellers)) {
+			return [] as TellerOption[];
+		}
+		return tellers.filter((item): item is TellerOption => {
+			if (typeof item !== "object" || item === null) {
+				return false;
+			}
+			const candidate = item as { id?: unknown; name?: unknown };
+			return typeof candidate.id === "number";
+		});
+	}, [tellers]);
 
 	const mutation =
 		useTellerCashManagementServicePostV1TellersByTellerIdCashiers();
@@ -75,10 +91,10 @@ function StaffAssignFormPage() {
 						label="Teller"
 						type="select"
 						disabled={isLoadingTellers}
-						options={(Array.isArray(tellers)
-							? (tellers as Array<{ id: number; name?: string }>)
-							: []
-						).map((t) => ({ value: t.id, label: t.name ?? `Teller ${t.id}` }))}
+						options={tellerOptions.map((t) => ({
+							value: t.id,
+							label: t.name ?? `Teller ${t.id}`,
+						}))}
 					/>
 					<Input
 						name="staffId"

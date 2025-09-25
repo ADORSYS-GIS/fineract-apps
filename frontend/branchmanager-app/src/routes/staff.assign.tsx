@@ -4,7 +4,7 @@ import {
 	useTellerCashManagementServiceGetV1TellersByTellerIdCashiers,
 } from "@fineract-apps/fineract-api";
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 type TellerAssignment = {
@@ -37,6 +37,7 @@ function StaffAssignPage() {
 	const [searchTellers, setSearchTellers] = useState("");
 	const [searchAssignments, setSearchAssignments] = useState("");
 	const [selectedTellerId, setSelectedTellerId] = useState<number | null>(null);
+	const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
 
 	const {
 		data: staff,
@@ -71,11 +72,39 @@ function StaffAssignPage() {
 		});
 	}, [tellers]);
 
+	type StaffItem = {
+		id: number;
+		displayName?: string;
+		firstname?: string;
+		lastname?: string;
+		officeName?: string;
+		mobileNo?: string;
+	};
+
+	const staffItems = useMemo(() => {
+		if (!Array.isArray(staff)) {
+			return [] as StaffItem[];
+		}
+		return staff.filter((member): member is StaffItem => {
+			if (typeof member !== "object" || member === null) {
+				return false;
+			}
+			const candidate = member as { id?: unknown };
+			return typeof candidate.id === "number";
+		});
+	}, [staff]);
+
 	useEffect(() => {
 		if (!selectedTellerId && tellerItems.length > 0) {
 			setSelectedTellerId(tellerItems[0].id);
 		}
 	}, [tellerItems, selectedTellerId]);
+
+	useEffect(() => {
+		if (!selectedStaffId && staffItems.length > 0) {
+			setSelectedStaffId(staffItems[0].id);
+		}
+	}, [staffItems, selectedStaffId]);
 
 	const filteredTellers = useMemo(() => {
 		const q = searchTellers.toLowerCase();
@@ -107,6 +136,15 @@ function StaffAssignPage() {
 		});
 	}, [assignments, searchAssignments]);
 
+	const navigate = useNavigate();
+
+	const handleNewAssignmentClick = () => {
+		if (!selectedStaffId) {
+			return;
+		}
+		navigate({ to: `/staff/${selectedStaffId}/assign` });
+	};
+
 	return (
 		<div className="px-6 py-6">
 			<div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
@@ -119,12 +157,16 @@ function StaffAssignPage() {
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
-					<Button>New Assignment</Button>
-					<Button>Save Assignments</Button>
+					<Button
+						onClick={handleNewAssignmentClick}
+						disabled={!selectedStaffId}
+					>
+						New Assignment
+					</Button>
 				</div>
 			</div>
 
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 grid-auto-rows-1fr">
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 				<Card
 					className="h-full"
 					title={<span className="text-xl">Available Staff</span>}
@@ -143,31 +185,39 @@ function StaffAssignPage() {
 						)}
 						{!isLoading &&
 							!isError &&
-							Array.isArray(staff) &&
-							staff
+							staffItems
 								.filter((s) =>
 									(s.displayName || `${s.firstname} ${s.lastname}`)
 										.toLowerCase()
 										.includes(search.toLowerCase()),
 								)
-								.map((s) => (
-									<div
-										key={s.id}
-										className="flex items-center justify-between p-3 rounded-md border border-gray-200 bg-white"
-									>
-										<div>
-											<p className="font-medium text-gray-800">
-												{s.displayName || `${s.firstname} ${s.lastname}`}
-											</p>
-											<p className="text-sm text-gray-500">
-												{s.officeName || ""}
-											</p>
-										</div>
-										<span className="text-sm text-gray-500">
-											{s.mobileNo || "-"}
-										</span>
-									</div>
-								))}
+								.map((s) => {
+									const isSelected = selectedStaffId === s.id;
+									return (
+										<button
+											key={s.id}
+											type="button"
+											onClick={() => setSelectedStaffId(s.id)}
+											className={`w-full flex items-center justify-between p-3 rounded-md border bg-white text-left transition ${
+												isSelected
+													? "border-gray-400 shadow-sm"
+													: "border-gray-200 hover:border-gray-300"
+											}`}
+										>
+											<div>
+												<p className="font-medium text-gray-800">
+													{s.displayName || `${s.firstname} ${s.lastname}`}
+												</p>
+												<p className="text-sm text-gray-500">
+													{s.officeName || ""}
+												</p>
+											</div>
+											<span className="text-sm text-gray-500">
+												{s.mobileNo || "-"}
+											</span>
+										</button>
+									);
+								})}
 					</div>
 				</Card>
 
@@ -211,8 +261,8 @@ function StaffAssignPage() {
 						))}
 					</div>
 				</Card>
-				<div className="lg:col-span-2">
-					<Card className="h-full">
+				<div className="col-span-1 lg:col-span-2">
+					<Card className="h-full w-full">
 						<div className="flex justify-between">
 							<h2 className="text-xl font-bold text-gray-800 mb-3">
 								Current Assignments
