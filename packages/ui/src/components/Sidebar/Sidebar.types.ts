@@ -12,4 +12,8 @@ export interface SidebarProps {
 	menuItems: MenuItem[];
 	onLogout?: () => void;
 	className?: string;
+	/** Optional current path to control active highlighting */
+	activePath?: string;
+	/** Optional navigation handler to use SPA navigation */
+	onNavigate?: (to: string) => void;
 }

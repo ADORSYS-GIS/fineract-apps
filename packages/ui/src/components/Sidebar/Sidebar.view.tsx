@@ -14,6 +14,7 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 	className,
 	activeLink,
 	handleClick,
+	onNavigate,
 }) => (
 	<aside
 		className={`h-screen w-64 bg-white shadow-lg flex flex-col justify-between ${className}`}
@@ -30,7 +31,13 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 					<a
 						key={item.link}
 						href={item.link}
-						onClick={() => handleClick(item.link)}
+						onClick={(e) => {
+							if (onNavigate) {
+								e.preventDefault();
+								onNavigate(item.link);
+							}
+							handleClick(item.link);
+						}}
 						className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition ${
 							isActive ? "bg-blue-50 text-blue-600" : ""
 						}`}

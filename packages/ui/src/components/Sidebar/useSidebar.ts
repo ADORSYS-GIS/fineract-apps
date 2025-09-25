@@ -1,11 +1,18 @@
 // useSidebar.ts
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MenuItem } from "./Sidebar.types";
 
-export const useSidebar = (menuItems: MenuItem[] = []) => {
+export const useSidebar = (
+	menuItems: MenuItem[] = [],
+	activePath?: string | null,
+) => {
 	const [activeLink, setActiveLink] = useState<string | null>(
-		menuItems.length > 0 ? menuItems[0].link : null,
+		activePath ?? (menuItems.length > 0 ? menuItems[0].link : null),
 	);
+
+	useEffect(() => {
+		if (activePath) setActiveLink(activePath);
+	}, [activePath]);
 
 	const handleClick = (link: string) => setActiveLink(link);
 

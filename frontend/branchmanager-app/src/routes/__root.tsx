@@ -5,12 +5,20 @@ import {
 	Navbar,
 	Sidebar,
 } from "@fineract-apps/ui";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	Outlet,
+	useNavigate,
+	useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 
 function RootLayout() {
 	const handleLogout = () => alert("Logout clicked!");
+	const navigate = useNavigate();
+	const routerState = useRouterState();
+	const currentPath = routerState.location.pathname;
 	return (
 		<AppLayout
 			sidebar={
@@ -18,6 +26,8 @@ function RootLayout() {
 					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
 					menuItems={menuBranchManager}
 					onLogout={handleLogout}
+					activePath={currentPath}
+					onNavigate={(to) => navigate({ to })}
 				/>
 			}
 			navbar={
