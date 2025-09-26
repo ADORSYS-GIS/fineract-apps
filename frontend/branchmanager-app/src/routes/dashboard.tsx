@@ -6,7 +6,7 @@ function DashboardPage() {
 	const [query, setQuery] = useState("");
 
 	return (
-		<div className="px-6 py-6 md:px-10">
+		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
 			<div className="flex flex-wrap items-center justify-between gap-3 mb-6">
 				<h1 className="text-2xl md:text-3xl font-bold text-gray-900">
 					Branch Manager Dashboard
@@ -15,7 +15,7 @@ function DashboardPage() {
 
 			{/* Horizontal menu removed (duplicated with sidebar) */}
 
-			<div className="mt-6 flex items-center justify-between gap-4">
+			<div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
 				<h2 className="text-[22px] font-bold text-gray-900">
 					Pending Approvals
 				</h2>
