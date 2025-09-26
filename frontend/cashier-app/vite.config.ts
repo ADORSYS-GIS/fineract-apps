@@ -21,5 +21,14 @@ export default mergeConfig(
 				"@": path.resolve(__dirname, "./src"),
 			},
 		},
+		server: {
+			proxy: {
+				"/fineract-provider": {
+					target: "https://localhost",
+					changeOrigin: true,
+					secure: false,
+				},
+			},
+		},
 	}),
 );
