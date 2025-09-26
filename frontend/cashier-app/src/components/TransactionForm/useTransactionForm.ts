@@ -6,6 +6,7 @@ import {
 export const useTransactionForm = () => {
 	const initialValues: TransactionFormData = {
 		amount: "",
+		receiptNumber: "",
 	};
 
 	return {

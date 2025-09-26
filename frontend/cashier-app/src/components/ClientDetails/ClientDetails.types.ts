@@ -1,17 +1,18 @@
 import {
 	GetClientsClientIdAccountsResponse,
 	GetClientsClientIdResponse,
+	PostSavingsAccountTransactionsRequest,
 } from "@fineract-apps/fineract-api";
 import {
 	TransactionFormData,
 	TransactionType,
 } from "../TransactionForm/TransactionForm.types";
-export type Client = GetClientsClientIdResponse & {
-	mobileNo?: string;
+export type TransactionRequestBody = PostSavingsAccountTransactionsRequest & {
+	receiptNumber?: string;
 };
 
 export interface ClientDetailsViewProps {
-	client: Client;
+	client: GetClientsClientIdResponse;
 	clientAccounts: GetClientsClientIdAccountsResponse | undefined;
 	clientImage: string | undefined;
 	isClientImageLoading: boolean;

@@ -1,7 +1,6 @@
 import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { formatDateArray } from "@/utils/date";
 import { SavingsAccountCard } from "../SavingsAccountCard";
 import { TransactionForm } from "../TransactionForm";
 import { ClientDetailsViewProps } from "./ClientDetails.types";
@@ -51,10 +50,6 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 	}, [isImageModalOpen, onCloseImageModal]);
 
 	const status = client.status as { value?: string };
-	const submittedOnDate = client.timeline
-		?.submittedOnDate as unknown as number[];
-	const activatedOnDate = client.timeline
-		?.activatedOnDate as unknown as number[];
 	const renderClientImage = () => {
 		if (isClientImageLoading) {
 			return (
@@ -133,36 +128,12 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 								</p>
 							</div>
 							<div className="flex flex-col">
-								<p className="text-sm font-medium text-gray-500">Client ID</p>
-								<p className="mt-1 text-lg text-gray-900">{client.id}</p>
-							</div>
-							<div className="flex flex-col">
 								<p className="text-sm font-medium text-gray-500">
-									Submitted On
+									Activated By
 								</p>
 								<p className="mt-1 text-lg text-gray-900">
-									{formatDateArray(submittedOnDate)}
+									{client.timeline?.activatedByUsername || "N/A"}
 								</p>
-							</div>
-							<div className="flex flex-col">
-								<p className="text-sm font-medium text-gray-500">
-									Activated On
-								</p>
-								<p className="mt-1 text-lg text-gray-900">
-									{formatDateArray(activatedOnDate)}
-								</p>
-							</div>
-							<div className="flex flex-col">
-								<p className="text-sm font-medium text-gray-500">Email</p>
-								<p className="mt-1 text-lg text-gray-900">
-									{client.emailAddress}
-								</p>
-							</div>
-							<div className="flex flex-col">
-								<p className="text-sm font-medium text-gray-500">
-									Phone Number
-								</p>
-								<p className="mt-1 text-lg text-gray-900">{client.mobileNo}</p>
 							</div>
 						</div>
 					</div>

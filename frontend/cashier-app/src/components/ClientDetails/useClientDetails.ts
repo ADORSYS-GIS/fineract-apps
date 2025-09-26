@@ -9,6 +9,7 @@ import {
 	TransactionFormData,
 	TransactionType,
 } from "../TransactionForm/TransactionForm.types";
+import { TransactionRequestBody } from "./ClientDetails.types";
 import { useClientImage } from "./useClientImage";
 
 export const useClientDetails = (clientId: number) => {
@@ -70,7 +71,8 @@ export const useClientDetails = (clientId: number) => {
 						transactionDate,
 						transactionAmount,
 						paymentTypeId: 1,
-					},
+						receiptNumber: body.receiptNumber,
+					} as TransactionRequestBody,
 				},
 			);
 		},
