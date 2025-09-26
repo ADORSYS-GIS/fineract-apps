@@ -9,38 +9,238 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StaffRouteImport } from './routes/staff'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as FundRouteImport } from './routes/fund'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StaffIndexRouteImport } from './routes/staff.index'
+import { Route as StaffStaffIdRouteImport } from './routes/staff.$staffId'
+import { Route as FundsSettleRouteImport } from './routes/funds.settle'
+import { Route as FundsAllocateRouteImport } from './routes/funds.allocate'
+import { Route as ApproveAccountRouteImport } from './routes/approve.account'
+import { Route as StaffStaffIdIndexRouteImport } from './routes/staff.$staffId.index'
+import { Route as StaffStaffIdAssignRouteImport } from './routes/staff.$staffId.assign'
+import { Route as ApproveSavingsAccountRouteImport } from './routes/approve.savings.account'
 
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FundRoute = FundRouteImport.update({
+  id: '/fund',
+  path: '/fund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffIndexRoute = StaffIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffStaffIdRoute = StaffStaffIdRouteImport.update({
+  id: '/$staffId',
+  path: '/$staffId',
+  getParentRoute: () => StaffRoute,
+} as any)
+const FundsSettleRoute = FundsSettleRouteImport.update({
+  id: '/funds/settle',
+  path: '/funds/settle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FundsAllocateRoute = FundsAllocateRouteImport.update({
+  id: '/funds/allocate',
+  path: '/funds/allocate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApproveAccountRoute = ApproveAccountRouteImport.update({
+  id: '/approve/account',
+  path: '/approve/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffStaffIdIndexRoute = StaffStaffIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StaffStaffIdRoute,
+} as any)
+const StaffStaffIdAssignRoute = StaffStaffIdAssignRouteImport.update({
+  id: '/assign',
+  path: '/assign',
+  getParentRoute: () => StaffStaffIdRoute,
+} as any)
+const ApproveSavingsAccountRoute = ApproveSavingsAccountRouteImport.update({
+  id: '/approve/savings/account',
+  path: '/approve/savings/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/fund': typeof FundRoute
+  '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
+  '/staff': typeof StaffRouteWithChildren
+  '/approve/account': typeof ApproveAccountRoute
+  '/funds/allocate': typeof FundsAllocateRoute
+  '/funds/settle': typeof FundsSettleRoute
+  '/staff/$staffId': typeof StaffStaffIdRouteWithChildren
+  '/staff/': typeof StaffIndexRoute
+  '/approve/savings/account': typeof ApproveSavingsAccountRoute
+  '/staff/$staffId/assign': typeof StaffStaffIdAssignRoute
+  '/staff/$staffId/': typeof StaffStaffIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/fund': typeof FundRoute
+  '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
+  '/approve/account': typeof ApproveAccountRoute
+  '/funds/allocate': typeof FundsAllocateRoute
+  '/funds/settle': typeof FundsSettleRoute
+  '/staff': typeof StaffIndexRoute
+  '/approve/savings/account': typeof ApproveSavingsAccountRoute
+  '/staff/$staffId/assign': typeof StaffStaffIdAssignRoute
+  '/staff/$staffId': typeof StaffStaffIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/fund': typeof FundRoute
+  '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
+  '/staff': typeof StaffRouteWithChildren
+  '/approve/account': typeof ApproveAccountRoute
+  '/funds/allocate': typeof FundsAllocateRoute
+  '/funds/settle': typeof FundsSettleRoute
+  '/staff/$staffId': typeof StaffStaffIdRouteWithChildren
+  '/staff/': typeof StaffIndexRoute
+  '/approve/savings/account': typeof ApproveSavingsAccountRoute
+  '/staff/$staffId/assign': typeof StaffStaffIdAssignRoute
+  '/staff/$staffId/': typeof StaffStaffIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/fund'
+    | '/login'
+    | '/settings'
+    | '/staff'
+    | '/approve/account'
+    | '/funds/allocate'
+    | '/funds/settle'
+    | '/staff/$staffId'
+    | '/staff/'
+    | '/approve/savings/account'
+    | '/staff/$staffId/assign'
+    | '/staff/$staffId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/fund'
+    | '/login'
+    | '/settings'
+    | '/approve/account'
+    | '/funds/allocate'
+    | '/funds/settle'
+    | '/staff'
+    | '/approve/savings/account'
+    | '/staff/$staffId/assign'
+    | '/staff/$staffId'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/fund'
+    | '/login'
+    | '/settings'
+    | '/staff'
+    | '/approve/account'
+    | '/funds/allocate'
+    | '/funds/settle'
+    | '/staff/$staffId'
+    | '/staff/'
+    | '/approve/savings/account'
+    | '/staff/$staffId/assign'
+    | '/staff/$staffId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
+  FundRoute: typeof FundRoute
+  LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRoute
+  StaffRoute: typeof StaffRouteWithChildren
+  ApproveAccountRoute: typeof ApproveAccountRoute
+  FundsAllocateRoute: typeof FundsAllocateRoute
+  FundsSettleRoute: typeof FundsSettleRoute
+  ApproveSavingsAccountRoute: typeof ApproveSavingsAccountRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fund': {
+      id: '/fund'
+      path: '/fund'
+      fullPath: '/fund'
+      preLoaderRoute: typeof FundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +248,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/': {
+      id: '/staff/'
+      path: '/'
+      fullPath: '/staff/'
+      preLoaderRoute: typeof StaffIndexRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/staff/$staffId': {
+      id: '/staff/$staffId'
+      path: '/$staffId'
+      fullPath: '/staff/$staffId'
+      preLoaderRoute: typeof StaffStaffIdRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/funds/settle': {
+      id: '/funds/settle'
+      path: '/funds/settle'
+      fullPath: '/funds/settle'
+      preLoaderRoute: typeof FundsSettleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/funds/allocate': {
+      id: '/funds/allocate'
+      path: '/funds/allocate'
+      fullPath: '/funds/allocate'
+      preLoaderRoute: typeof FundsAllocateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/approve/account': {
+      id: '/approve/account'
+      path: '/approve/account'
+      fullPath: '/approve/account'
+      preLoaderRoute: typeof ApproveAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/$staffId/': {
+      id: '/staff/$staffId/'
+      path: '/'
+      fullPath: '/staff/$staffId/'
+      preLoaderRoute: typeof StaffStaffIdIndexRouteImport
+      parentRoute: typeof StaffStaffIdRoute
+    }
+    '/staff/$staffId/assign': {
+      id: '/staff/$staffId/assign'
+      path: '/assign'
+      fullPath: '/staff/$staffId/assign'
+      preLoaderRoute: typeof StaffStaffIdAssignRouteImport
+      parentRoute: typeof StaffStaffIdRoute
+    }
+    '/approve/savings/account': {
+      id: '/approve/savings/account'
+      path: '/approve/savings/account'
+      fullPath: '/approve/savings/account'
+      preLoaderRoute: typeof ApproveSavingsAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface StaffStaffIdRouteChildren {
+  StaffStaffIdAssignRoute: typeof StaffStaffIdAssignRoute
+  StaffStaffIdIndexRoute: typeof StaffStaffIdIndexRoute
+}
+
+const StaffStaffIdRouteChildren: StaffStaffIdRouteChildren = {
+  StaffStaffIdAssignRoute: StaffStaffIdAssignRoute,
+  StaffStaffIdIndexRoute: StaffStaffIdIndexRoute,
+}
+
+const StaffStaffIdRouteWithChildren = StaffStaffIdRoute._addFileChildren(
+  StaffStaffIdRouteChildren,
+)
+
+interface StaffRouteChildren {
+  StaffStaffIdRoute: typeof StaffStaffIdRouteWithChildren
+  StaffIndexRoute: typeof StaffIndexRoute
+}
+
+const StaffRouteChildren: StaffRouteChildren = {
+  StaffStaffIdRoute: StaffStaffIdRouteWithChildren,
+  StaffIndexRoute: StaffIndexRoute,
+}
+
+const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
+  FundRoute: FundRoute,
+  LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRoute,
+  StaffRoute: StaffRouteWithChildren,
+  ApproveAccountRoute: ApproveAccountRoute,
+  FundsAllocateRoute: FundsAllocateRoute,
+  FundsSettleRoute: FundsSettleRoute,
+  ApproveSavingsAccountRoute: ApproveSavingsAccountRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

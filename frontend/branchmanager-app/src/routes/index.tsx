@@ -1,9 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
-function HomePage() {
-	return <div>Welcome to the Branch Manager Home Page!</div>;
+function RedirectToDashboard() {
+	let isAuthenticated = false;
+	try {
+		isAuthenticated = localStorage.getItem("bm_auth") === "1";
+	} catch {
+		isAuthenticated = false;
+	}
+	if (!isAuthenticated) {
+		return <Navigate to="/login" />;
+	}
+	return <Navigate to="/dashboard" />;
 }
 
 export const Route = createFileRoute("/")({
-	component: HomePage,
+	component: RedirectToDashboard,
 });

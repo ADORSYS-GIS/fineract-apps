@@ -5,16 +5,42 @@ import {
 	Navbar,
 	Sidebar,
 } from "@fineract-apps/ui";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	Outlet,
+	useNavigate,
+	useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 
 function RootLayout() {
-	const handleLogout = () => alert("Logout clicked!");
+	const handleLogout = () => {
+		try {
+			localStorage.removeItem("bm_auth");
+		} catch {
+			/* noop */
+		}
+		navigate({ to: "/login" });
+	};
+	const navigate = useNavigate();
+	const routerState = useRouterState();
+	const currentPath = routerState.location.pathname;
+
+	// Render login route without the app frame
+	if (currentPath === "/login") {
+		return <Outlet />;
+	}
 	return (
 		<AppLayout
 			sidebar={
-				<Sidebar menuItems={menuBranchManager} onLogout={handleLogout} />
+				<Sidebar
+					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
+					menuItems={menuBranchManager}
+					onLogout={handleLogout}
+					activePath={currentPath}
+					onNavigate={(to) => navigate({ to })}
+				/>
 			}
 			navbar={
 				<Navbar
