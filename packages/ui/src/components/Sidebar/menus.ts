@@ -1,16 +1,7 @@
-import {
-	CreditCard,
-	FileText,
-	Home,
-	Send,
-	Settings,
-	Users,
-} from "lucide-react";
+import { FileText, Home, Send, Settings, Users } from "lucide-react";
 
 export const menuAccountManager = [
 	{ name: "Dashboard", link: "/dashboard", icon: Home },
-	{ name: "Accounts", link: "/accounts", icon: CreditCard },
-	{ name: "Transactions", link: "/transactions", icon: Send },
 	{ name: "Settings", link: "/settings", icon: Settings },
 ];
 

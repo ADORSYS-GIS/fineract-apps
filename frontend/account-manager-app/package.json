@@ -9,13 +9,21 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
+		"@fineract-apps/fineract-api": "workspace:*",
+		"@fineract-apps/ui": "workspace:*",
+		"@hookform/resolvers": "^5.2.2",
+		"@tanstack/react-query": "^5.90.1",
 		"@tanstack/react-router": "^1.131.44",
 		"@tanstack/react-router-devtools": "^1.131.44",
+		"axios": "^1.12.2",
+		"date-fns": "^4.1.0",
+		"formik": "^2.4.6",
 		"lucide-react": "^0.544.0",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
-		"@fineract-apps/ui": "workspace:*",
-		"@fineract-apps/fineract-api": "workspace:*"
+		"react-hook-form": "^7.63.0",
+		"zod": "^3.25.76",
+		"zod-formik-adapter": "^1.2.0"
 	},
 	"devDependencies": {
 		"@fineract-apps/config": "workspace:*",

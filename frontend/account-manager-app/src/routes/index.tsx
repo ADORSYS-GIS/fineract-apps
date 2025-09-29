@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-function HomePage() {
-	return <div>Welcome to the Account Manager Home Page!</div>;
-}
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-	component: HomePage,
+	beforeLoad: () => {
+		throw redirect({
+			to: "/dashboard",
+		});
+	},
 });

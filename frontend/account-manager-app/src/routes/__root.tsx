@@ -5,12 +5,32 @@ import {
 	Navbar,
 	Sidebar,
 } from "@fineract-apps/ui";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import {
+	createRootRouteWithContext,
+	Outlet,
+	useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 
+export const Route = createRootRouteWithContext()({
+	component: RootLayout,
+});
+
 function RootLayout() {
 	const handleLogout = () => alert("Logout clicked!");
+	const { location } = useRouterState();
+
+	// Don't render the layout on the login page
+	if (location.pathname === "/login") {
+		return (
+			<>
+				<Outlet />
+				<TanStackRouterDevtools />
+			</>
+		);
+	}
+
 	return (
 		<AppLayout
 			sidebar={
@@ -41,7 +61,3 @@ function RootLayout() {
 		</AppLayout>
 	);
 }
-
-export const Route = createRootRoute({
-	component: RootLayout,
-});
