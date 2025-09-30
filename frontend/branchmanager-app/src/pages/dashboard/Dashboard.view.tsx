@@ -62,7 +62,7 @@ export const DashboardView = ({
 						<SearchBar
 							value={searchAssignments}
 							onValueChange={setSearchAssignments}
-							placeholder="Filter by staff or description..."
+							placeholder="Filter by staff, teller or description..."
 						/>
 					</div>
 					<div className="overflow-x-auto">

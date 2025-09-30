@@ -65,7 +65,8 @@ export function useDashboard() {
 		return array.filter(
 			(c) =>
 				(c.staffName ?? "").toLowerCase().includes(q) ||
-				(c.description ?? "").toLowerCase().includes(q),
+				(c.description ?? "").toLowerCase().includes(q) ||
+				(c.tellerName ?? "").toLowerCase().includes(q),
 		);
 	}, [assignmentsResp, searchAssignments]);
 
