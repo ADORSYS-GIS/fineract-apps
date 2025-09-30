@@ -27,6 +27,7 @@ import { Route as TellersTellerIdCashiersRouteImport } from './routes/tellers.$t
 import { Route as TellersTellerIdAssignRouteImport } from './routes/tellers.$tellerId.assign'
 import { Route as ApproveSavingsAccountRouteImport } from './routes/approve.savings.account'
 import { Route as TellersTellerIdCashiersCashierIdRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId'
+import { Route as TellersTellerIdCashiersCashierIdIndexRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId.index'
 import { Route as TellersTellerIdCashiersCashierIdSettleRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId.settle'
 import { Route as TellersTellerIdCashiersCashierIdAllocateRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId.allocate'
 
@@ -121,6 +122,12 @@ const TellersTellerIdCashiersCashierIdRoute =
     path: '/$cashierId',
     getParentRoute: () => TellersTellerIdCashiersRoute,
   } as any)
+const TellersTellerIdCashiersCashierIdIndexRoute =
+  TellersTellerIdCashiersCashierIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => TellersTellerIdCashiersCashierIdRoute,
+  } as any)
 const TellersTellerIdCashiersCashierIdSettleRoute =
   TellersTellerIdCashiersCashierIdSettleRouteImport.update({
     id: '/settle',
@@ -155,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/tellers/$tellerId/cashiers/$cashierId': typeof TellersTellerIdCashiersCashierIdRouteWithChildren
   '/tellers/$tellerId/cashiers/$cashierId/allocate': typeof TellersTellerIdCashiersCashierIdAllocateRoute
   '/tellers/$tellerId/cashiers/$cashierId/settle': typeof TellersTellerIdCashiersCashierIdSettleRoute
+  '/tellers/$tellerId/cashiers/$cashierId/': typeof TellersTellerIdCashiersCashierIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -170,9 +178,9 @@ export interface FileRoutesByTo {
   '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
   '/staff/$staffId': typeof StaffStaffIdIndexRoute
   '/tellers/$tellerId': typeof TellersTellerIdIndexRoute
-  '/tellers/$tellerId/cashiers/$cashierId': typeof TellersTellerIdCashiersCashierIdRouteWithChildren
   '/tellers/$tellerId/cashiers/$cashierId/allocate': typeof TellersTellerIdCashiersCashierIdAllocateRoute
   '/tellers/$tellerId/cashiers/$cashierId/settle': typeof TellersTellerIdCashiersCashierIdSettleRoute
+  '/tellers/$tellerId/cashiers/$cashierId': typeof TellersTellerIdCashiersCashierIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/tellers/$tellerId/cashiers/$cashierId': typeof TellersTellerIdCashiersCashierIdRouteWithChildren
   '/tellers/$tellerId/cashiers/$cashierId/allocate': typeof TellersTellerIdCashiersCashierIdAllocateRoute
   '/tellers/$tellerId/cashiers/$cashierId/settle': typeof TellersTellerIdCashiersCashierIdSettleRoute
+  '/tellers/$tellerId/cashiers/$cashierId/': typeof TellersTellerIdCashiersCashierIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/tellers/$tellerId/cashiers/$cashierId'
     | '/tellers/$tellerId/cashiers/$cashierId/allocate'
     | '/tellers/$tellerId/cashiers/$cashierId/settle'
+    | '/tellers/$tellerId/cashiers/$cashierId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -235,9 +245,9 @@ export interface FileRouteTypes {
     | '/tellers/$tellerId/cashiers'
     | '/staff/$staffId'
     | '/tellers/$tellerId'
-    | '/tellers/$tellerId/cashiers/$cashierId'
     | '/tellers/$tellerId/cashiers/$cashierId/allocate'
     | '/tellers/$tellerId/cashiers/$cashierId/settle'
+    | '/tellers/$tellerId/cashiers/$cashierId'
   id:
     | '__root__'
     | '/'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/tellers/$tellerId/cashiers/$cashierId'
     | '/tellers/$tellerId/cashiers/$cashierId/allocate'
     | '/tellers/$tellerId/cashiers/$cashierId/settle'
+    | '/tellers/$tellerId/cashiers/$cashierId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -401,6 +412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TellersTellerIdCashiersCashierIdRouteImport
       parentRoute: typeof TellersTellerIdCashiersRoute
     }
+    '/tellers/$tellerId/cashiers/$cashierId/': {
+      id: '/tellers/$tellerId/cashiers/$cashierId/'
+      path: '/'
+      fullPath: '/tellers/$tellerId/cashiers/$cashierId/'
+      preLoaderRoute: typeof TellersTellerIdCashiersCashierIdIndexRouteImport
+      parentRoute: typeof TellersTellerIdCashiersCashierIdRoute
+    }
     '/tellers/$tellerId/cashiers/$cashierId/settle': {
       id: '/tellers/$tellerId/cashiers/$cashierId/settle'
       path: '/settle'
@@ -445,6 +463,7 @@ const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 interface TellersTellerIdCashiersCashierIdRouteChildren {
   TellersTellerIdCashiersCashierIdAllocateRoute: typeof TellersTellerIdCashiersCashierIdAllocateRoute
   TellersTellerIdCashiersCashierIdSettleRoute: typeof TellersTellerIdCashiersCashierIdSettleRoute
+  TellersTellerIdCashiersCashierIdIndexRoute: typeof TellersTellerIdCashiersCashierIdIndexRoute
 }
 
 const TellersTellerIdCashiersCashierIdRouteChildren: TellersTellerIdCashiersCashierIdRouteChildren =
@@ -453,6 +472,8 @@ const TellersTellerIdCashiersCashierIdRouteChildren: TellersTellerIdCashiersCash
       TellersTellerIdCashiersCashierIdAllocateRoute,
     TellersTellerIdCashiersCashierIdSettleRoute:
       TellersTellerIdCashiersCashierIdSettleRoute,
+    TellersTellerIdCashiersCashierIdIndexRoute:
+      TellersTellerIdCashiersCashierIdIndexRoute,
   }
 
 const TellersTellerIdCashiersCashierIdRouteWithChildren =

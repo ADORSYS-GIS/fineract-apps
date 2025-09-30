@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CashierDetail } from "../pages/cashier-detail/CashierDetail";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+
+function CashierDetailLayout() {
+	return <Outlet />;
+}
 
 export const Route = createFileRoute("/tellers/$tellerId/cashiers/$cashierId")({
-	component: CashierDetail,
+	component: CashierDetailLayout,
 });
