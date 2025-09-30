@@ -18,7 +18,7 @@ export const menuAccountManager: MenuItem[] = [
 export const menuBranchManager: MenuItem[] = [
 	{ name: "Dashboard", link: "/dashboard", icon: Home },
 	{ name: "Staff", link: "/staff", icon: Users },
-	{ name: "Fund", link: "/fund", icon: Users },
+	{ name: "Tellers/Cashiers", link: "/tellers_cashiers", icon: Users },
 	{ name: "Pending", link: "/approve/account", icon: Users },
 	{ name: "Settings", link: "/settings", icon: Settings },
 ];
