@@ -1,8 +1,9 @@
 import {
+	TellerCashManagementService,
 	useTellerCashManagementServiceGetV1Tellers,
-	useTellerCashManagementServiceGetV1TellersByTellerIdCashiers,
 } from "@fineract-apps/fineract-api";
-import { useEffect, useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
 type TellerItem = { id: number; name?: string };
 
@@ -20,9 +21,6 @@ type TellerAssignment = {
 export function useDashboard() {
 	const [query, setQuery] = useState("");
 	const [searchAssignments, setSearchAssignments] = useState("");
-	const [selectedTellerId, setSelectedTellerIdState] = useState<number | null>(
-		null,
-	);
 
 	const { data: tellers } = useTellerCashManagementServiceGetV1Tellers(
 		{},
@@ -41,37 +39,39 @@ export function useDashboard() {
 		});
 	}, [tellers]);
 
-	useEffect(() => {
-		if (!selectedTellerId && tellerItems.length > 0)
-			setSelectedTellerIdState(tellerItems[0].id);
-	}, [tellerItems, selectedTellerId]);
+	const assignmentQueries = useQueries({
+		queries: tellerItems.map((teller) => ({
+			queryKey: ["tellers", teller.id, "cashiers"],
+			queryFn: () =>
+				TellerCashManagementService.getV1TellersByTellerIdCashiers({
+					tellerId: teller.id,
+				}),
+			staleTime: 30_000,
+		})),
+	});
 
-	const {
-		data: assignmentsResp,
-		isLoading: loadingAssignments,
-		isError: assignmentsError,
-		error: assignmentsErrorObj,
-	} = useTellerCashManagementServiceGetV1TellersByTellerIdCashiers(
-		{ tellerId: Number(selectedTellerId ?? 0) },
-		["tellers", selectedTellerId, "cashiers"],
-		{ enabled: selectedTellerId !== null, staleTime: 30_000 },
-	);
+	type QueryData = {
+		cashiers?: TellerAssignment[];
+	};
 
 	const assignments: TellerAssignment[] = useMemo(() => {
-		const list: unknown = (assignmentsResp as unknown as { cashiers?: unknown })
-			?.cashiers;
-		const array = Array.isArray(list) ? (list as TellerAssignment[]) : [];
+		const allAssignments = assignmentQueries.flatMap((query) => {
+			if (!query.data || !(query.data as QueryData).cashiers) return [];
+			return (query.data as QueryData).cashiers ?? [];
+		});
 		const q = searchAssignments.toLowerCase();
-		return array.filter(
-			(c) =>
+		return allAssignments.filter(
+			(c: TellerAssignment) =>
 				(c.staffName ?? "").toLowerCase().includes(q) ||
 				(c.description ?? "").toLowerCase().includes(q) ||
 				(c.tellerName ?? "").toLowerCase().includes(q),
 		);
-	}, [assignmentsResp, searchAssignments]);
+	}, [assignmentQueries, searchAssignments]);
 
+	const loadingAssignments = assignmentQueries.some((query) => query.isLoading);
+	const assignmentsError = assignmentQueries.find((query) => query.isError);
 	const assignmentsErrorMsg = assignmentsError
-		? ((assignmentsErrorObj as Error)?.message ?? "Error")
+		? (assignmentsError.error?.message ?? "Error")
 		: undefined;
 
 	return {

@@ -1,6 +1,6 @@
 import { useStaffServiceGetV1Staff } from "@fineract-apps/fineract-api";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type StaffItem = {
 	id: number;
@@ -13,9 +13,6 @@ type StaffItem = {
 
 export function useStaffPage() {
 	const [search, setSearch] = useState("");
-	const [selectedStaffId, setSelectedStaffIdState] = useState<number | null>(
-		null,
-	);
 
 	const {
 		data: staff,
@@ -35,19 +32,13 @@ export function useStaffPage() {
 		});
 	}, [staff]);
 
-	useEffect(() => {
-		if (!selectedStaffId && staffItems.length > 0)
-			setSelectedStaffIdState(staffItems[0].id);
-	}, [staffItems, selectedStaffId]);
-
 	const staffErrorMsg = isError
 		? ((error as Error)?.message ?? "Error")
 		: undefined;
 
 	const navigate = useNavigate();
-	const onNewAssignment = () => {
-		if (!selectedStaffId) return;
-		navigate({ to: `/staff/${selectedStaffId}/assign` });
+	const onStaffClick = (staffId: number) => {
+		navigate({ to: `/staff/${staffId}` });
 	};
 
 	return {
@@ -60,8 +51,6 @@ export function useStaffPage() {
 		),
 		isLoadingStaff: isLoading,
 		staffError: staffErrorMsg,
-		selectedStaffId,
-		setSelectedStaffId: (id: number) => setSelectedStaffIdState(id),
-		onNewAssignment,
+		onStaffClick,
 	};
 }

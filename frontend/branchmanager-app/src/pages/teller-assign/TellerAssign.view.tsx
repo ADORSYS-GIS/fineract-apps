@@ -1,17 +1,17 @@
 import { Form, FormTitle, Input, SubmitButton } from "@fineract-apps/ui";
-import type { FormValues, TellerOption } from "./StaffAssign.types";
+import type { FormValues, StaffOption } from "./TellerAssign.types";
 
-export const StaffAssignView = ({
+export const TellerAssignView = ({
 	initialValues,
-	tellerOptions,
-	isLoadingTellers,
+	staffOptions,
+	isLoadingStaff,
 	onSubmit,
 	isSubmitting,
 	submitLabel = "Assign",
 }: {
 	initialValues: FormValues;
-	tellerOptions: TellerOption[];
-	isLoadingTellers: boolean;
+	staffOptions: StaffOption[];
+	isLoadingStaff: boolean;
 	onSubmit: (values: FormValues) => Promise<void> | void;
 	isSubmitting: boolean;
 	submitLabel?: string;
@@ -23,19 +23,19 @@ export const StaffAssignView = ({
 				<div className="grid grid-cols-1 gap-4">
 					<Input
 						name="tellerId"
-						label="Teller"
-						type="select"
-						disabled={isLoadingTellers}
-						options={tellerOptions.map((t) => ({
-							value: t.id,
-							label: t.name ?? `Teller ${t.id}`,
-						}))}
+						label="Teller ID"
+						disabled
+						helperText="Prefilled from selected teller"
 					/>
 					<Input
 						name="staffId"
-						label="Staff ID"
-						disabled
-						helperText="Prefilled from selected staff"
+						label="Staff"
+						type="select"
+						disabled={isLoadingStaff}
+						options={staffOptions.map((s) => ({
+							value: s.id,
+							label: s.displayName ?? `Staff ${s.id}`,
+						}))}
 					/>
 					<Input
 						name="description"

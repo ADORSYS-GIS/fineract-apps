@@ -1,4 +1,4 @@
-import { Button, Card, SearchBar } from "@fineract-apps/ui";
+import { Card, SearchBar } from "@fineract-apps/ui";
 
 type StaffItem = {
 	id: number;
@@ -15,34 +15,21 @@ export const StaffView = ({
 	staffItems,
 	isLoadingStaff,
 	staffError,
-	selectedStaffId,
-	setSelectedStaffId,
-	onNewAssignment,
+	onStaffClick,
 }: {
 	search: string;
 	setSearch: (v: string) => void;
 	staffItems: StaffItem[];
 	isLoadingStaff: boolean;
 	staffError?: string;
-	selectedStaffId: number | null;
-	setSelectedStaffId: (id: number) => void;
-	onNewAssignment: () => void;
+	onStaffClick: (id: number) => void;
 }) => {
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
 			<div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
 				<div>
-					<h1 className="text-2xl font-bold text-gray-900">
-						Manage Staff Assignments
-					</h1>
-					<p className="text-gray-500">
-						Assign cashiers to tellers using the interface.
-					</p>
-				</div>
-				<div className="flex items-center gap-2">
-					<Button onClick={onNewAssignment} disabled={!selectedStaffId}>
-						New Assignment
-					</Button>
+					<h1 className="text-2xl font-bold text-gray-900">Manage Staff</h1>
+					<p className="text-gray-500">View and manage staff members.</p>
 				</div>
 			</div>
 
@@ -62,7 +49,6 @@ export const StaffView = ({
 						{!isLoadingStaff &&
 							!staffError &&
 							staffItems.map((s) => {
-								const isSelected = selectedStaffId === s.id;
 								const name =
 									s.displayName ||
 									`${s.firstname ?? ""} ${s.lastname ?? ""}`.trim();
@@ -70,8 +56,8 @@ export const StaffView = ({
 									<button
 										key={s.id}
 										type="button"
-										onClick={() => setSelectedStaffId(s.id)}
-										className={`w-full flex items-center justify-between p-3 rounded-md border bg-white text-left transition ${isSelected ? "border-gray-400 shadow-sm" : "border-gray-200 hover:border-gray-300"}`}
+										onClick={() => onStaffClick(s.id)}
+										className="w-full flex items-center justify-between p-3 rounded-md border bg-white text-left transition border-gray-200 hover:border-gray-300"
 									>
 										<div>
 											<p className="font-medium text-gray-800">{name}</p>

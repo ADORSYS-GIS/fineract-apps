@@ -9,21 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TellersRouteImport } from './routes/tellers'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as FundRouteImport } from './routes/fund'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TellersIndexRouteImport } from './routes/tellers.index'
 import { Route as StaffIndexRouteImport } from './routes/staff.index'
+import { Route as TellersCreateRouteImport } from './routes/tellers.create'
+import { Route as TellersTellerIdRouteImport } from './routes/tellers.$tellerId'
 import { Route as StaffStaffIdRouteImport } from './routes/staff.$staffId'
-import { Route as FundsSettleRouteImport } from './routes/funds.settle'
-import { Route as FundsAllocateRouteImport } from './routes/funds.allocate'
 import { Route as ApproveAccountRouteImport } from './routes/approve.account'
+import { Route as TellersTellerIdIndexRouteImport } from './routes/tellers.$tellerId.index'
 import { Route as StaffStaffIdIndexRouteImport } from './routes/staff.$staffId.index'
-import { Route as StaffStaffIdAssignRouteImport } from './routes/staff.$staffId.assign'
+import { Route as TellersTellerIdCashiersRouteImport } from './routes/tellers.$tellerId.cashiers'
+import { Route as TellersTellerIdAssignRouteImport } from './routes/tellers.$tellerId.assign'
 import { Route as ApproveSavingsAccountRouteImport } from './routes/approve.savings.account'
+import { Route as TellersTellerIdCashiersCashierIdRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId'
+import { Route as TellersTellerIdCashiersCashierIdSettleRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId.settle'
+import { Route as TellersTellerIdCashiersCashierIdAllocateRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId.allocate'
 
+const TellersRoute = TellersRouteImport.update({
+  id: '/tellers',
+  path: '/tellers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffRoute = StaffRouteImport.update({
   id: '/staff',
   path: '/staff',
@@ -39,11 +50,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FundRoute = FundRouteImport.update({
-  id: '/fund',
-  path: '/fund',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -54,158 +60,228 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TellersIndexRoute = TellersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TellersRoute,
+} as any)
 const StaffIndexRoute = StaffIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => StaffRoute,
+} as any)
+const TellersCreateRoute = TellersCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TellersRoute,
+} as any)
+const TellersTellerIdRoute = TellersTellerIdRouteImport.update({
+  id: '/$tellerId',
+  path: '/$tellerId',
+  getParentRoute: () => TellersRoute,
 } as any)
 const StaffStaffIdRoute = StaffStaffIdRouteImport.update({
   id: '/$staffId',
   path: '/$staffId',
   getParentRoute: () => StaffRoute,
 } as any)
-const FundsSettleRoute = FundsSettleRouteImport.update({
-  id: '/funds/settle',
-  path: '/funds/settle',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FundsAllocateRoute = FundsAllocateRouteImport.update({
-  id: '/funds/allocate',
-  path: '/funds/allocate',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApproveAccountRoute = ApproveAccountRouteImport.update({
   id: '/approve/account',
   path: '/approve/account',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TellersTellerIdIndexRoute = TellersTellerIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TellersTellerIdRoute,
 } as any)
 const StaffStaffIdIndexRoute = StaffStaffIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => StaffStaffIdRoute,
 } as any)
-const StaffStaffIdAssignRoute = StaffStaffIdAssignRouteImport.update({
+const TellersTellerIdCashiersRoute = TellersTellerIdCashiersRouteImport.update({
+  id: '/cashiers',
+  path: '/cashiers',
+  getParentRoute: () => TellersTellerIdRoute,
+} as any)
+const TellersTellerIdAssignRoute = TellersTellerIdAssignRouteImport.update({
   id: '/assign',
   path: '/assign',
-  getParentRoute: () => StaffStaffIdRoute,
+  getParentRoute: () => TellersTellerIdRoute,
 } as any)
 const ApproveSavingsAccountRoute = ApproveSavingsAccountRouteImport.update({
   id: '/approve/savings/account',
   path: '/approve/savings/account',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TellersTellerIdCashiersCashierIdRoute =
+  TellersTellerIdCashiersCashierIdRouteImport.update({
+    id: '/$cashierId',
+    path: '/$cashierId',
+    getParentRoute: () => TellersTellerIdCashiersRoute,
+  } as any)
+const TellersTellerIdCashiersCashierIdSettleRoute =
+  TellersTellerIdCashiersCashierIdSettleRouteImport.update({
+    id: '/settle',
+    path: '/settle',
+    getParentRoute: () => TellersTellerIdCashiersCashierIdRoute,
+  } as any)
+const TellersTellerIdCashiersCashierIdAllocateRoute =
+  TellersTellerIdCashiersCashierIdAllocateRouteImport.update({
+    id: '/allocate',
+    path: '/allocate',
+    getParentRoute: () => TellersTellerIdCashiersCashierIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/fund': typeof FundRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/tellers': typeof TellersRouteWithChildren
   '/approve/account': typeof ApproveAccountRoute
-  '/funds/allocate': typeof FundsAllocateRoute
-  '/funds/settle': typeof FundsSettleRoute
   '/staff/$staffId': typeof StaffStaffIdRouteWithChildren
+  '/tellers/$tellerId': typeof TellersTellerIdRouteWithChildren
+  '/tellers/create': typeof TellersCreateRoute
   '/staff/': typeof StaffIndexRoute
+  '/tellers/': typeof TellersIndexRoute
   '/approve/savings/account': typeof ApproveSavingsAccountRoute
-  '/staff/$staffId/assign': typeof StaffStaffIdAssignRoute
+  '/tellers/$tellerId/assign': typeof TellersTellerIdAssignRoute
+  '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
   '/staff/$staffId/': typeof StaffStaffIdIndexRoute
+  '/tellers/$tellerId/': typeof TellersTellerIdIndexRoute
+  '/tellers/$tellerId/cashiers/$cashierId': typeof TellersTellerIdCashiersCashierIdRouteWithChildren
+  '/tellers/$tellerId/cashiers/$cashierId/allocate': typeof TellersTellerIdCashiersCashierIdAllocateRoute
+  '/tellers/$tellerId/cashiers/$cashierId/settle': typeof TellersTellerIdCashiersCashierIdSettleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/fund': typeof FundRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/approve/account': typeof ApproveAccountRoute
-  '/funds/allocate': typeof FundsAllocateRoute
-  '/funds/settle': typeof FundsSettleRoute
+  '/tellers/create': typeof TellersCreateRoute
   '/staff': typeof StaffIndexRoute
+  '/tellers': typeof TellersIndexRoute
   '/approve/savings/account': typeof ApproveSavingsAccountRoute
-  '/staff/$staffId/assign': typeof StaffStaffIdAssignRoute
+  '/tellers/$tellerId/assign': typeof TellersTellerIdAssignRoute
+  '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
   '/staff/$staffId': typeof StaffStaffIdIndexRoute
+  '/tellers/$tellerId': typeof TellersTellerIdIndexRoute
+  '/tellers/$tellerId/cashiers/$cashierId': typeof TellersTellerIdCashiersCashierIdRouteWithChildren
+  '/tellers/$tellerId/cashiers/$cashierId/allocate': typeof TellersTellerIdCashiersCashierIdAllocateRoute
+  '/tellers/$tellerId/cashiers/$cashierId/settle': typeof TellersTellerIdCashiersCashierIdSettleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/fund': typeof FundRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/staff': typeof StaffRouteWithChildren
+  '/tellers': typeof TellersRouteWithChildren
   '/approve/account': typeof ApproveAccountRoute
-  '/funds/allocate': typeof FundsAllocateRoute
-  '/funds/settle': typeof FundsSettleRoute
   '/staff/$staffId': typeof StaffStaffIdRouteWithChildren
+  '/tellers/$tellerId': typeof TellersTellerIdRouteWithChildren
+  '/tellers/create': typeof TellersCreateRoute
   '/staff/': typeof StaffIndexRoute
+  '/tellers/': typeof TellersIndexRoute
   '/approve/savings/account': typeof ApproveSavingsAccountRoute
-  '/staff/$staffId/assign': typeof StaffStaffIdAssignRoute
+  '/tellers/$tellerId/assign': typeof TellersTellerIdAssignRoute
+  '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
   '/staff/$staffId/': typeof StaffStaffIdIndexRoute
+  '/tellers/$tellerId/': typeof TellersTellerIdIndexRoute
+  '/tellers/$tellerId/cashiers/$cashierId': typeof TellersTellerIdCashiersCashierIdRouteWithChildren
+  '/tellers/$tellerId/cashiers/$cashierId/allocate': typeof TellersTellerIdCashiersCashierIdAllocateRoute
+  '/tellers/$tellerId/cashiers/$cashierId/settle': typeof TellersTellerIdCashiersCashierIdSettleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/dashboard'
-    | '/fund'
     | '/login'
     | '/settings'
     | '/staff'
+    | '/tellers'
     | '/approve/account'
-    | '/funds/allocate'
-    | '/funds/settle'
     | '/staff/$staffId'
+    | '/tellers/$tellerId'
+    | '/tellers/create'
     | '/staff/'
+    | '/tellers/'
     | '/approve/savings/account'
-    | '/staff/$staffId/assign'
+    | '/tellers/$tellerId/assign'
+    | '/tellers/$tellerId/cashiers'
     | '/staff/$staffId/'
+    | '/tellers/$tellerId/'
+    | '/tellers/$tellerId/cashiers/$cashierId'
+    | '/tellers/$tellerId/cashiers/$cashierId/allocate'
+    | '/tellers/$tellerId/cashiers/$cashierId/settle'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dashboard'
-    | '/fund'
     | '/login'
     | '/settings'
     | '/approve/account'
-    | '/funds/allocate'
-    | '/funds/settle'
+    | '/tellers/create'
     | '/staff'
+    | '/tellers'
     | '/approve/savings/account'
-    | '/staff/$staffId/assign'
+    | '/tellers/$tellerId/assign'
+    | '/tellers/$tellerId/cashiers'
     | '/staff/$staffId'
+    | '/tellers/$tellerId'
+    | '/tellers/$tellerId/cashiers/$cashierId'
+    | '/tellers/$tellerId/cashiers/$cashierId/allocate'
+    | '/tellers/$tellerId/cashiers/$cashierId/settle'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
-    | '/fund'
     | '/login'
     | '/settings'
     | '/staff'
+    | '/tellers'
     | '/approve/account'
-    | '/funds/allocate'
-    | '/funds/settle'
     | '/staff/$staffId'
+    | '/tellers/$tellerId'
+    | '/tellers/create'
     | '/staff/'
+    | '/tellers/'
     | '/approve/savings/account'
-    | '/staff/$staffId/assign'
+    | '/tellers/$tellerId/assign'
+    | '/tellers/$tellerId/cashiers'
     | '/staff/$staffId/'
+    | '/tellers/$tellerId/'
+    | '/tellers/$tellerId/cashiers/$cashierId'
+    | '/tellers/$tellerId/cashiers/$cashierId/allocate'
+    | '/tellers/$tellerId/cashiers/$cashierId/settle'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
-  FundRoute: typeof FundRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   StaffRoute: typeof StaffRouteWithChildren
+  TellersRoute: typeof TellersRouteWithChildren
   ApproveAccountRoute: typeof ApproveAccountRoute
-  FundsAllocateRoute: typeof FundsAllocateRoute
-  FundsSettleRoute: typeof FundsSettleRoute
   ApproveSavingsAccountRoute: typeof ApproveSavingsAccountRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tellers': {
+      id: '/tellers'
+      path: '/tellers'
+      fullPath: '/tellers'
+      preLoaderRoute: typeof TellersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff': {
       id: '/staff'
       path: '/staff'
@@ -227,13 +303,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/fund': {
-      id: '/fund'
-      path: '/fund'
-      fullPath: '/fund'
-      preLoaderRoute: typeof FundRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -248,12 +317,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tellers/': {
+      id: '/tellers/'
+      path: '/'
+      fullPath: '/tellers/'
+      preLoaderRoute: typeof TellersIndexRouteImport
+      parentRoute: typeof TellersRoute
+    }
     '/staff/': {
       id: '/staff/'
       path: '/'
       fullPath: '/staff/'
       preLoaderRoute: typeof StaffIndexRouteImport
       parentRoute: typeof StaffRoute
+    }
+    '/tellers/create': {
+      id: '/tellers/create'
+      path: '/create'
+      fullPath: '/tellers/create'
+      preLoaderRoute: typeof TellersCreateRouteImport
+      parentRoute: typeof TellersRoute
+    }
+    '/tellers/$tellerId': {
+      id: '/tellers/$tellerId'
+      path: '/$tellerId'
+      fullPath: '/tellers/$tellerId'
+      preLoaderRoute: typeof TellersTellerIdRouteImport
+      parentRoute: typeof TellersRoute
     }
     '/staff/$staffId': {
       id: '/staff/$staffId'
@@ -262,26 +352,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffStaffIdRouteImport
       parentRoute: typeof StaffRoute
     }
-    '/funds/settle': {
-      id: '/funds/settle'
-      path: '/funds/settle'
-      fullPath: '/funds/settle'
-      preLoaderRoute: typeof FundsSettleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/funds/allocate': {
-      id: '/funds/allocate'
-      path: '/funds/allocate'
-      fullPath: '/funds/allocate'
-      preLoaderRoute: typeof FundsAllocateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/approve/account': {
       id: '/approve/account'
       path: '/approve/account'
       fullPath: '/approve/account'
       preLoaderRoute: typeof ApproveAccountRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/tellers/$tellerId/': {
+      id: '/tellers/$tellerId/'
+      path: '/'
+      fullPath: '/tellers/$tellerId/'
+      preLoaderRoute: typeof TellersTellerIdIndexRouteImport
+      parentRoute: typeof TellersTellerIdRoute
     }
     '/staff/$staffId/': {
       id: '/staff/$staffId/'
@@ -290,12 +373,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffStaffIdIndexRouteImport
       parentRoute: typeof StaffStaffIdRoute
     }
-    '/staff/$staffId/assign': {
-      id: '/staff/$staffId/assign'
+    '/tellers/$tellerId/cashiers': {
+      id: '/tellers/$tellerId/cashiers'
+      path: '/cashiers'
+      fullPath: '/tellers/$tellerId/cashiers'
+      preLoaderRoute: typeof TellersTellerIdCashiersRouteImport
+      parentRoute: typeof TellersTellerIdRoute
+    }
+    '/tellers/$tellerId/assign': {
+      id: '/tellers/$tellerId/assign'
       path: '/assign'
-      fullPath: '/staff/$staffId/assign'
-      preLoaderRoute: typeof StaffStaffIdAssignRouteImport
-      parentRoute: typeof StaffStaffIdRoute
+      fullPath: '/tellers/$tellerId/assign'
+      preLoaderRoute: typeof TellersTellerIdAssignRouteImport
+      parentRoute: typeof TellersTellerIdRoute
     }
     '/approve/savings/account': {
       id: '/approve/savings/account'
@@ -304,16 +394,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApproveSavingsAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tellers/$tellerId/cashiers/$cashierId': {
+      id: '/tellers/$tellerId/cashiers/$cashierId'
+      path: '/$cashierId'
+      fullPath: '/tellers/$tellerId/cashiers/$cashierId'
+      preLoaderRoute: typeof TellersTellerIdCashiersCashierIdRouteImport
+      parentRoute: typeof TellersTellerIdCashiersRoute
+    }
+    '/tellers/$tellerId/cashiers/$cashierId/settle': {
+      id: '/tellers/$tellerId/cashiers/$cashierId/settle'
+      path: '/settle'
+      fullPath: '/tellers/$tellerId/cashiers/$cashierId/settle'
+      preLoaderRoute: typeof TellersTellerIdCashiersCashierIdSettleRouteImport
+      parentRoute: typeof TellersTellerIdCashiersCashierIdRoute
+    }
+    '/tellers/$tellerId/cashiers/$cashierId/allocate': {
+      id: '/tellers/$tellerId/cashiers/$cashierId/allocate'
+      path: '/allocate'
+      fullPath: '/tellers/$tellerId/cashiers/$cashierId/allocate'
+      preLoaderRoute: typeof TellersTellerIdCashiersCashierIdAllocateRouteImport
+      parentRoute: typeof TellersTellerIdCashiersCashierIdRoute
+    }
   }
 }
 
 interface StaffStaffIdRouteChildren {
-  StaffStaffIdAssignRoute: typeof StaffStaffIdAssignRoute
   StaffStaffIdIndexRoute: typeof StaffStaffIdIndexRoute
 }
 
 const StaffStaffIdRouteChildren: StaffStaffIdRouteChildren = {
-  StaffStaffIdAssignRoute: StaffStaffIdAssignRoute,
   StaffStaffIdIndexRoute: StaffStaffIdIndexRoute,
 }
 
@@ -333,16 +442,78 @@ const StaffRouteChildren: StaffRouteChildren = {
 
 const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 
+interface TellersTellerIdCashiersCashierIdRouteChildren {
+  TellersTellerIdCashiersCashierIdAllocateRoute: typeof TellersTellerIdCashiersCashierIdAllocateRoute
+  TellersTellerIdCashiersCashierIdSettleRoute: typeof TellersTellerIdCashiersCashierIdSettleRoute
+}
+
+const TellersTellerIdCashiersCashierIdRouteChildren: TellersTellerIdCashiersCashierIdRouteChildren =
+  {
+    TellersTellerIdCashiersCashierIdAllocateRoute:
+      TellersTellerIdCashiersCashierIdAllocateRoute,
+    TellersTellerIdCashiersCashierIdSettleRoute:
+      TellersTellerIdCashiersCashierIdSettleRoute,
+  }
+
+const TellersTellerIdCashiersCashierIdRouteWithChildren =
+  TellersTellerIdCashiersCashierIdRoute._addFileChildren(
+    TellersTellerIdCashiersCashierIdRouteChildren,
+  )
+
+interface TellersTellerIdCashiersRouteChildren {
+  TellersTellerIdCashiersCashierIdRoute: typeof TellersTellerIdCashiersCashierIdRouteWithChildren
+}
+
+const TellersTellerIdCashiersRouteChildren: TellersTellerIdCashiersRouteChildren =
+  {
+    TellersTellerIdCashiersCashierIdRoute:
+      TellersTellerIdCashiersCashierIdRouteWithChildren,
+  }
+
+const TellersTellerIdCashiersRouteWithChildren =
+  TellersTellerIdCashiersRoute._addFileChildren(
+    TellersTellerIdCashiersRouteChildren,
+  )
+
+interface TellersTellerIdRouteChildren {
+  TellersTellerIdAssignRoute: typeof TellersTellerIdAssignRoute
+  TellersTellerIdCashiersRoute: typeof TellersTellerIdCashiersRouteWithChildren
+  TellersTellerIdIndexRoute: typeof TellersTellerIdIndexRoute
+}
+
+const TellersTellerIdRouteChildren: TellersTellerIdRouteChildren = {
+  TellersTellerIdAssignRoute: TellersTellerIdAssignRoute,
+  TellersTellerIdCashiersRoute: TellersTellerIdCashiersRouteWithChildren,
+  TellersTellerIdIndexRoute: TellersTellerIdIndexRoute,
+}
+
+const TellersTellerIdRouteWithChildren = TellersTellerIdRoute._addFileChildren(
+  TellersTellerIdRouteChildren,
+)
+
+interface TellersRouteChildren {
+  TellersTellerIdRoute: typeof TellersTellerIdRouteWithChildren
+  TellersCreateRoute: typeof TellersCreateRoute
+  TellersIndexRoute: typeof TellersIndexRoute
+}
+
+const TellersRouteChildren: TellersRouteChildren = {
+  TellersTellerIdRoute: TellersTellerIdRouteWithChildren,
+  TellersCreateRoute: TellersCreateRoute,
+  TellersIndexRoute: TellersIndexRoute,
+}
+
+const TellersRouteWithChildren =
+  TellersRoute._addFileChildren(TellersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
-  FundRoute: FundRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   StaffRoute: StaffRouteWithChildren,
+  TellersRoute: TellersRouteWithChildren,
   ApproveAccountRoute: ApproveAccountRoute,
-  FundsAllocateRoute: FundsAllocateRoute,
-  FundsSettleRoute: FundsSettleRoute,
   ApproveSavingsAccountRoute: ApproveSavingsAccountRoute,
 }
 export const routeTree = rootRouteImport

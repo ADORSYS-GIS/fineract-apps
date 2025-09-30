@@ -1,9 +1,9 @@
 import {
-	useTellerCashManagementServiceGetV1Tellers,
+	useStaffServiceGetV1Staff,
 	useTellerCashManagementServicePostV1TellersByTellerIdCashiers,
 } from "@fineract-apps/fineract-api";
 import { useMemo } from "react";
-import type { FormValues, TellerOption } from "./StaffAssign.types";
+import type { FormValues, StaffOption } from "./TellerAssign.types";
 
 function formatToFineractDate(value: string): string {
 	const date = new Date(value + "T00:00:00");
@@ -14,25 +14,27 @@ function formatToFineractDate(value: string): string {
 	});
 }
 
-export function useStaffAssign(staffIdNum: number | null) {
-	const { data: tellers, isLoading: isLoadingTellers } =
-		useTellerCashManagementServiceGetV1Tellers({}, ["tellers"]);
+export function useTellerAssign(tellerIdNum: number | null) {
+	const { data: staff, isLoading: isLoadingStaff } = useStaffServiceGetV1Staff(
+		{ status: "all" },
+		["staff", "all"],
+	);
 
-	const tellerOptions: TellerOption[] = useMemo(() => {
-		if (!Array.isArray(tellers)) return [];
-		return tellers.filter((t): t is TellerOption => {
-			if (typeof t !== "object" || t === null) return false;
-			const r = t as { id?: unknown; name?: unknown };
+	const staffOptions: StaffOption[] = useMemo(() => {
+		if (!Array.isArray(staff)) return [];
+		return staff.filter((s): s is StaffOption => {
+			if (typeof s !== "object" || s === null) return false;
+			const r = s as { id?: unknown; displayName?: unknown };
 			return typeof r.id === "number";
 		});
-	}, [tellers]);
+	}, [staff]);
 
 	const mutation =
 		useTellerCashManagementServicePostV1TellersByTellerIdCashiers();
 
 	const initialValues: FormValues = {
-		tellerId: "",
-		staffId: String(staffIdNum || ""),
+		tellerId: String(tellerIdNum || ""),
+		staffId: "",
 		description: "",
 		startDate: "",
 		endDate: "",
@@ -57,8 +59,8 @@ export function useStaffAssign(staffIdNum: number | null) {
 
 	return {
 		initialValues,
-		tellerOptions,
-		isLoadingTellers,
+		staffOptions,
+		isLoadingStaff,
 		onSubmit,
 		isSubmitting: mutation.isPending,
 		error: mutation.error,
