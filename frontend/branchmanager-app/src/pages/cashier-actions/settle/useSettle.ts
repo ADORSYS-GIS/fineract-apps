@@ -2,6 +2,7 @@ import {
 	useTellerCashManagementServiceGetV1TellersByTellerIdCashiersByCashierIdTransactionsTemplate,
 	useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdSettle,
 } from "@fineract-apps/fineract-api";
+import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { FormValues } from "./Settle.types";
 
@@ -16,7 +17,7 @@ function formatToFineractDate(value: string): string {
 
 export function useSettle(tellerId: number, cashierId: number) {
 	const initialValues: FormValues = {
-		amount: "",
+		amount: 0,
 		currencyCode: "XAF",
 		date: "",
 		notes: "",
@@ -49,6 +50,8 @@ export function useSettle(tellerId: number, cashierId: number) {
 
 	const defaultCurrencyCode = currencyOptions[0]?.value ?? "XAF";
 
+	const navigate = useNavigate();
+
 	const onSubmit = async (values: FormValues) => {
 		await mutation.mutateAsync({
 			tellerId,
@@ -62,6 +65,8 @@ export function useSettle(tellerId: number, cashierId: number) {
 				locale: "en",
 			},
 		});
+		alert("Cash settled successfully");
+		navigate({ to: "/tellers/" });
 	};
 
 	return {

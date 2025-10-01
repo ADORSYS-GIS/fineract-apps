@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const allocateSchema = z.object({
-	amount: z.string().min(1, "Amount is required"),
+	amount: z.coerce.number().gt(0, "Amount must be greater than 0"),
 	currencyCode: z.string().min(1, "Currency is required"),
 	date: z.string().min(1, "Date is required"),
 	notes: z.string().optional(),
