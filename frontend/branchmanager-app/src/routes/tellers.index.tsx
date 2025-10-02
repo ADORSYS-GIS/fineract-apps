@@ -39,7 +39,7 @@ function TellersListPage() {
 					<p className="text-gray-500">Manage tellers and their assignments.</p>
 				</div>
 				<Link to="/tellers/create">
-					<Button>Create New Teller</Button>
+					<Button>+ Create Teller</Button>
 				</Link>
 			</div>
 

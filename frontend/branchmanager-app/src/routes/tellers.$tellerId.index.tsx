@@ -60,7 +60,7 @@ function TellerDetailPage() {
 				</Button>
 			</div>
 			<Card
-				className="h-full"
+				className="h-full w-full"
 				title={<span className="text-xl">Assigned Cashiers</span>}
 			>
 				<SearchBar
@@ -68,43 +68,74 @@ function TellerDetailPage() {
 					onValueChange={setSearch}
 					placeholder="Filter cashiers..."
 				/>
-				<div className="mt-4 space-y-3">
-					{isLoading && <div>Loading...</div>}
-					{isError && (
-						<div className="text-red-600">{(error as Error)?.message}</div>
-					)}
-					{!isLoading &&
-						!isError &&
-						cashiers &&
-						cashiers.map((cashier: Cashier) => (
-							<button
-								key={cashier.id}
-								type="button"
-								onClick={() =>
-									navigate({
-										to: "/tellers/$tellerId/cashiers/$cashierId",
-										params: { tellerId, cashierId: String(cashier.id) },
-									})
-								}
-								className="w-full flex items-center justify-between p-3 rounded-md border bg-white text-left transition border-gray-200 hover:border-gray-300"
-							>
-								<div>
-									<p className="font-medium text-gray-800">
-										{cashier.staffName}
-									</p>
-									<p className="text-sm text-gray-500">{cashier.description}</p>
-								</div>
-								<span className="text-sm text-gray-500">
-									{Array.isArray(cashier.startDate)
-										? cashier.startDate.join("-")
-										: cashier.startDate}{" "}
-									-{" "}
-									{Array.isArray(cashier.endDate)
-										? cashier.endDate.join("-")
-										: cashier.endDate}
-								</span>
-							</button>
-						))}
+				<div className="overflow-x-auto mt-4">
+					<table className="w-full text-sm text-left text-gray-500">
+						<thead className="text-xs text-gray-700 uppercase bg-gray-50">
+							<tr>
+								<th className="px-6 py-3">Staff Name</th>
+								<th className="px-6 py-3">Description</th>
+								<th className="px-6 py-3">Start Date</th>
+								<th className="px-6 py-3">End Date</th>
+							</tr>
+						</thead>
+						<tbody>
+							{isLoading && (
+								<tr className="bg-white border-b">
+									<td className="px-6 py-4 text-gray-500" colSpan={4}>
+										Loading...
+									</td>
+								</tr>
+							)}
+							{isError && (
+								<tr className="bg-white border-b">
+									<td className="px-6 py-4 text-red-600" colSpan={4}>
+										{(error as Error)?.message}
+									</td>
+								</tr>
+							)}
+							{!isLoading &&
+								!isError &&
+								cashiers &&
+								(cashiers.length > 0 ? (
+									cashiers.map((cashier: Cashier) => (
+										<tr
+											key={cashier.id}
+											className="bg-white border-b hover:bg-gray-50 cursor-pointer"
+											onClick={() =>
+												navigate({
+													to: "/tellers/$tellerId/cashiers/$cashierId",
+													params: {
+														tellerId,
+														cashierId: String(cashier.id),
+													},
+												})
+											}
+										>
+											<td className="px-6 py-4 font-medium text-gray-900">
+												{cashier.staffName}
+											</td>
+											<td className="px-6 py-4">{cashier.description}</td>
+											<td className="px-6 py-4">
+												{Array.isArray(cashier.startDate)
+													? cashier.startDate.join("-")
+													: cashier.startDate}
+											</td>
+											<td className="px-6 py-4">
+												{Array.isArray(cashier.endDate)
+													? cashier.endDate.join("-")
+													: cashier.endDate}
+											</td>
+										</tr>
+									))
+								) : (
+									<tr className="bg-white border-b">
+										<td className="px-6 py-4 text-gray-500" colSpan={4}>
+											No cashiers assigned.
+										</td>
+									</tr>
+								))}
+						</tbody>
+					</table>
 				</div>
 			</Card>
 		</div>

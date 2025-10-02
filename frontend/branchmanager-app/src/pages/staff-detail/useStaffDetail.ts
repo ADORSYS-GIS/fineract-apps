@@ -8,7 +8,8 @@ export function useStaffDetail(staffId: number) {
 	const detail: StaffDetailData | undefined = useMemo(() => {
 		if (!data) return undefined;
 		return {
-			title: data.displayName || `${data.firstname} ${data.lastname}`,
+			firstname: data.firstname ?? "",
+			lastname: data.lastname ?? "",
 			externalId: data.externalId,
 			mobileNo: data.mobileNo,
 			officeName: data.officeName,
