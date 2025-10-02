@@ -1,10 +1,4 @@
-import {
-	AppLayout,
-	Button,
-	menuCashier,
-	Navbar,
-	Sidebar,
-} from "@fineract-apps/ui";
+import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
 import { Bell, UserCircle } from "lucide-react";
 import { ClientSearch } from "../ClientSearch";
 import { DashboardViewProps } from "./Dashboard.types";
@@ -12,7 +6,6 @@ import { DashboardViewProps } from "./Dashboard.types";
 export function DashboardView({
 	query,
 	onQueryChange,
-	onLogout,
 }: Readonly<DashboardViewProps>) {
 	return (
 		<AppLayout
@@ -25,7 +18,6 @@ export function DashboardView({
 							<UserCircle className="w-5 h-5 text-gray-600" />
 						</div>
 					}
-					actions={<Button onClick={onLogout}>Logout</Button>}
 					variant="primary"
 					size="md"
 				/>

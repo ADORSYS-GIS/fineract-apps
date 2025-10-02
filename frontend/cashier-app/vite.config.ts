@@ -10,6 +10,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 export default mergeConfig(
 	baseViteConfig,
 	defineConfig({
+		base: "/cashier/",
 		plugins: [
 			tanstackRouter({
 				target: "react",
@@ -21,14 +22,6 @@ export default mergeConfig(
 				"@": path.resolve(__dirname, "./src"),
 			},
 		},
-		server: {
-			proxy: {
-				"/fineract-provider": {
-					target: "https://localhost",
-					changeOrigin: true,
-					secure: false,
-				},
-			},
-		},
+		server: {},
 	}),
 );

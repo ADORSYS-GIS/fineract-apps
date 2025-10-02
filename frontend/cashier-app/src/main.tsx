@@ -3,29 +3,16 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import "@fineract-apps/ui/styles.css";
-import { OpenAPI } from "@fineract-apps/fineract-api";
-import type { AxiosRequestConfig } from "axios";
 import "./index.css";
 import { queryClient } from "./query-client.ts";
 import { routeTree } from "./routeTree.gen.ts";
-import { authStore } from "./store/auth.ts";
-
-OpenAPI.interceptors.request.use((config: AxiosRequestConfig) => {
-	const { isAuthenticated, base64EncodedAuthenticationKey } = authStore.state;
-
-	if (isAuthenticated && base64EncodedAuthenticationKey) {
-		config.headers = {
-			...config.headers,
-			Authorization: `Basic ${base64EncodedAuthenticationKey}`,
-			"Fineract-Platform-TenantId": "default",
-		};
-	}
-
-	return config;
-});
 
 // Create a new router instance from the generated route tree
-const router = createRouter({ routeTree, context: { queryClient } });
+const router = createRouter({
+	routeTree,
+	context: { queryClient },
+	basepath: "/cashier",
+});
 
 // Register the router instance for type safety (important for TypeScript)
 declare module "@tanstack/react-router" {

@@ -1,7 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { Route } from "@/routes/dashboard";
-import { login, logout } from "@/store/auth";
 
 export const useDashboard = () => {
 	const { query } = Route.useSearch();
@@ -11,13 +9,8 @@ export const useDashboard = () => {
 		navigate({ search: { query: newQuery } });
 	};
 
-	useEffect(() => {
-		login("bWlmb3M6cGFzc3dvcmQ=");
-	}, []);
-
 	return {
 		query,
 		onQueryChange,
-		onLogout: logout,
 	};
 };
