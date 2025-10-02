@@ -1,10 +1,34 @@
-import { useTellersServicePostV1Tellers } from "@fineract-apps/fineract-api";
+import {
+	useOfficesServiceGetV1Offices,
+	useTellerCashManagementServicePostV1Tellers,
+} from "@fineract-apps/fineract-api";
 import { useNavigate } from "@tanstack/react-router";
-import { TellerCreateFormValues } from "./TellerCreate.types";
+import { useMemo } from "react";
+import type { TellerCreateFormValues } from "./TellerCreate.types";
 
-export const useTellerCreate = (
-	officeOptions: { label: string; value: number }[],
-) => {
+function formatToFineractDate(value: string): string {
+	const date = new Date(value + "T00:00:00");
+	return date.toLocaleDateString("en-GB", {
+		day: "2-digit",
+		month: "long",
+		year: "numeric",
+	});
+}
+
+export function useTellerCreate() {
+	const navigate = useNavigate();
+	const { data: offices, isLoading: loadingOffices } =
+		useOfficesServiceGetV1Offices({}, ["offices"]);
+
+	const officeOptions = useMemo(() => {
+		if (!Array.isArray(offices))
+			return [] as { label: string; value: number }[];
+		return offices.map((o) => ({
+			label: o.name ?? `Office ${o.id}`,
+			value: o.id as number,
+		}));
+	}, [offices]);
+
 	const initialValues: TellerCreateFormValues = {
 		officeId: officeOptions[0]?.value ?? 0,
 		name: "",
@@ -14,32 +38,33 @@ export const useTellerCreate = (
 		status: 300,
 	};
 
-	const { mutate: createTeller } = usePostTellers();
-	const navigate = useNavigate();
-	const onSubmit = (values: TellerCreateFormValues) => {
-		const getStatus = (status: number) => {
-			if (status === 300) return "ACTIVE";
-			if (status === 400) return "INACTIVE";
-			return "INVALID";
-		};
-		createTeller({
-			body: {
-				officeId: values.officeId,
+	const { mutateAsync, isPending, error, isSuccess } =
+		useTellerCashManagementServicePostV1Tellers();
+
+	const onSubmit = async (values: TellerCreateFormValues) => {
+		await mutateAsync({
+			requestBody: {
+				officeId: Number(values.officeId),
 				name: values.name,
-				description: values.description,
-				startDate: values.startDate,
-				status: getStatus(values.status),
+				description: values.description ?? "",
+				startDate: formatToFineractDate(values.startDate),
+				endDate: formatToFineractDate(values.endDate),
+				status: Number(values.status),
 				dateFormat: "dd MMMM yyyy",
 				locale: "en",
 			},
 		});
 		alert("Teller created successfully");
-		navigate({ to: "/tellers" });
+		navigate({ to: "/tellers/" });
 	};
 
 	return {
 		initialValues,
 		officeOptions,
+		loadingOffices,
 		onSubmit,
+		isSubmitting: isPending,
+		error,
+		isSuccess,
 	};
-};
+}
