@@ -9,7 +9,7 @@ import { routeTree } from "./routeTree.gen.ts";
 import { configureApi } from "./services/api";
 
 // Create a new router instance from the generated route tree
-const router = createRouter({ routeTree });
+const router = createRouter({ routeTree, basepath: "/branch" });
 
 // Configure API client
 const queryClient = new QueryClient();

@@ -1,6 +1,5 @@
 import {
 	AppLayout,
-	Button,
 	menuBranchManager,
 	Navbar,
 	Sidebar,
@@ -15,29 +14,15 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 
 function RootLayout() {
-	const handleLogout = () => {
-		try {
-			localStorage.removeItem("bm_auth");
-		} catch {
-			/* noop */
-		}
-		navigate({ to: "/login" });
-	};
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
-
-	// Render login route without the app frame
-	if (currentPath === "/login") {
-		return <Outlet />;
-	}
 	return (
 		<AppLayout
 			sidebar={
 				<Sidebar
 					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
 					menuItems={menuBranchManager}
-					onLogout={handleLogout}
 					activePath={currentPath}
 					onNavigate={(to) => navigate({ to })}
 				/>
@@ -52,7 +37,6 @@ function RootLayout() {
 							<UserCircle className="w-5 h-5 text-gray-600" />
 						</div>
 					}
-					actions={<Button onClick={handleLogout}>Logout</Button>}
 					onToggleMenu={() => {
 						/* noop */
 					}}

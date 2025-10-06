@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TellersRouteImport } from './routes/tellers'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TellersIndexRouteImport } from './routes/tellers.index'
@@ -44,11 +43,6 @@ const StaffRoute = StaffRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -144,7 +138,6 @@ const TellersTellerIdCashiersCashierIdAllocateRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/staff': typeof StaffRouteWithChildren
   '/tellers': typeof TellersRouteWithChildren
@@ -167,7 +160,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/approve/account': typeof ApproveAccountRoute
   '/tellers/create': typeof TellersCreateRoute
@@ -186,7 +178,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/staff': typeof StaffRouteWithChildren
   '/tellers': typeof TellersRouteWithChildren
@@ -211,7 +202,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
-    | '/login'
     | '/settings'
     | '/staff'
     | '/tellers'
@@ -234,7 +224,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
-    | '/login'
     | '/settings'
     | '/approve/account'
     | '/tellers/create'
@@ -252,7 +241,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
-    | '/login'
     | '/settings'
     | '/staff'
     | '/tellers'
@@ -276,7 +264,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
-  LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   StaffRoute: typeof StaffRouteWithChildren
   TellersRoute: typeof TellersRouteWithChildren
@@ -305,13 +292,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -530,7 +510,6 @@ const TellersRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
-  LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   StaffRoute: StaffRouteWithChildren,
   TellersRoute: TellersRouteWithChildren,
