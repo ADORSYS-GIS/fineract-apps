@@ -1,7 +1,7 @@
-import { GetTellersTellerIdCashiersCashierIdResponse } from "@fineract-apps/fineract-api";
+import { GetTellersTellerIdCashiersCashiersIdSummaryAndTransactionsResponse } from "@fineract-apps/fineract-api";
 
 export type CashierDetailViewProps = {
-	data: GetTellersTellerIdCashiersCashierIdResponse;
+	data: GetTellersTellerIdCashiersCashiersIdSummaryAndTransactionsResponse;
 	isLoading: boolean;
 	error: Error | null;
 };
