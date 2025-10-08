@@ -17,6 +17,7 @@
 		"@tanstack/react-store": "^0.7.7",
 		"@tanstack/store": "^0.7.7",
 		"axios": "^1.12.2",
+		"date-fns": "^4.1.0",
 		"formik": "^2.4.6",
 		"lucide-react": "^0.544.0",
 		"react": "^19.1.1",

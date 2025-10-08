@@ -3,7 +3,9 @@ import { z } from "zod";
 import { Dashboard } from "@/components/Dashboard";
 
 const dashboardSearchSchema = z.object({
-	query: z.string().catch(""),
+	query: z.string().optional().catch(""),
+	page: z.number().int().positive().optional().catch(1),
+	limit: z.number().int().positive().optional().catch(10),
 });
 
 export const Route = createFileRoute("/dashboard/")({

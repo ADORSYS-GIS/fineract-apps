@@ -12,5 +12,6 @@ The Cashier App is a modern, performant, and maintainable application built on a
 *   **[API Integration](./api-integration.md)**: A detailed explanation of how the application communicates with the Fineract backend, including authentication and data fetching patterns.
 *   **[Component Architecture](./component-architecture.md)**: An overview of our component design patterns, including the Logic-View separation and the use of our shared UI library.
 *   **[Transactions: Deposits and Withdrawals](./transactions.md)**: A detailed guide to the implementation of the deposit and withdrawal features.
+*   **[Cashier Transaction Summary](./cashier-transaction-summary.md)**: A detailed guide to the implementation of the cashier transaction summary features.
 
 This documentation is intended to be a living document. As the application evolves, so too will this documentation. All team members are encouraged to contribute and keep it up-to-date.

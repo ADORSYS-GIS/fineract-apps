@@ -70,7 +70,7 @@ export const useClientDetails = (clientId: number) => {
 						dateFormat: "dd MMMM yyyy",
 						transactionDate,
 						transactionAmount,
-						paymentTypeId: 1,
+						paymentTypeId: 5,
 						receiptNumber: body.receiptNumber,
 					} as TransactionRequestBody,
 				},

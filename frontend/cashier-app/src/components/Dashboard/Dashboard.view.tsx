@@ -1,5 +1,6 @@
 import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
 import { Bell, UserCircle } from "lucide-react";
+import { CashierTransactionSummary } from "../CashierTransactionSummary";
 import { ClientSearch } from "../ClientSearch";
 import { DashboardViewProps } from "./Dashboard.types";
 
@@ -24,7 +25,10 @@ export function DashboardView({
 			}
 			sidebar={<Sidebar menuItems={menuCashier} />}
 		>
-			<ClientSearch query={query} onQueryChange={onQueryChange} />
+			<div className="flex flex-col gap-4">
+				<ClientSearch query={query} onQueryChange={onQueryChange} />
+				<CashierTransactionSummary />
+			</div>
 		</AppLayout>
 	);
 }
