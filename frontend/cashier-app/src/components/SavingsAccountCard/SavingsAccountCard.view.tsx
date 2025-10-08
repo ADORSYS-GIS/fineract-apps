@@ -1,6 +1,6 @@
 import { Button } from "@fineract-apps/ui";
+import { format } from "date-fns";
 import { formatCurrency } from "@/utils/currency";
-import { formatDateArray } from "@/utils/date";
 import { SavingsAccountCardViewProps } from "./SavingsAccountCard.types";
 
 export const SavingsAccountCardView: React.FC<SavingsAccountCardViewProps> = ({
@@ -24,6 +24,14 @@ export const SavingsAccountCardView: React.FC<SavingsAccountCardViewProps> = ({
 		);
 	}
 
+	const dateArray = accountDetails?.lastActiveTransactionDate as
+		| number[]
+		| undefined;
+	const formattedDate =
+		dateArray && dateArray.length >= 3
+			? format(new Date(dateArray[0], dateArray[1] - 1, dateArray[2]), "PPP")
+			: "N/A";
+
 	return (
 		<div
 			key={accountDetails?.id}
@@ -39,13 +47,7 @@ export const SavingsAccountCardView: React.FC<SavingsAccountCardViewProps> = ({
 			</div>
 			<div className="flex justify-between md:block">
 				<span className="font-semibold md:hidden">Last Active: </span>
-				<span>
-					{formatDateArray(
-						accountDetails?.lastActiveTransactionDate as unknown as
-							| number[]
-							| undefined,
-					) ?? "N/A"}
-				</span>
+				<span>{formattedDate}</span>
 			</div>
 			<div className="flex justify-between md:block">
 				<span className="font-semibold md:hidden">Balance: </span>
