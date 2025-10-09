@@ -2,6 +2,7 @@ import {
 	useTellerCashManagementServiceGetV1TellersByTellerIdCashiersByCashierIdTransactionsTemplate,
 	useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdAllocate,
 } from "@fineract-apps/fineract-api";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { FormValues } from "./Allocate.types";

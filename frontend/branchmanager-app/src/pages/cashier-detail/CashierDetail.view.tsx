@@ -6,6 +6,9 @@ export const CashierDetailView = ({
 	data,
 	isLoading,
 	error,
+	page = 1,
+	pageSize = 20,
+	total = 0,
 }: CashierDetailViewProps) => {
 	const navigate = useNavigate();
 
@@ -105,6 +108,84 @@ export const CashierDetailView = ({
 								)}
 							</tbody>
 						</table>
+					</div>
+					{/* Pagination Controls */}
+					<div className="flex items-center justify-between mt-3">
+						<div className="text-sm text-gray-600">
+							{total ? (
+								<span>
+									Showing{" "}
+									{(page - 1) * pageSize +
+										Math.min(transactions.length ? 1 : 0, 1)}
+									-{(page - 1) * pageSize + transactions.length} of {total}
+								</span>
+							) : null}
+						</div>
+						<div className="flex items-center gap-2">
+							<select
+								className="border rounded px-2 py-1 text-sm"
+								value={pageSize}
+								onChange={(e) =>
+									navigate({
+										to: "/tellers/$tellerId/cashiers/$cashierId",
+										params: {
+											tellerId: String(data.tellerId),
+											cashierId: String(data.cashierId),
+										},
+										search: (prev) => ({
+											...prev,
+											pageSize: Number(e.target.value),
+											page: 1,
+										}),
+									})
+								}
+							>
+								{[10, 20, 50, 100].map((s) => (
+									<option key={s} value={s}>
+										{s} / page
+									</option>
+								))}
+							</select>
+							<Button
+								variant="secondary"
+								disabled={page <= 1}
+								onClick={() =>
+									navigate({
+										to: "/tellers/$tellerId/cashiers/$cashierId",
+										params: {
+											tellerId: String(data.tellerId),
+											cashierId: String(data.cashierId),
+										},
+										search: (prev) => ({
+											...prev,
+											page: Math.max(1, page - 1),
+										}),
+									})
+								}
+							>
+								Previous
+							</Button>
+							<Button
+								variant="secondary"
+								disabled={
+									total
+										? page * pageSize >= total
+										: transactions.length < pageSize
+								}
+								onClick={() =>
+									navigate({
+										to: "/tellers/$tellerId/cashiers/$cashierId",
+										params: {
+											tellerId: String(data.tellerId),
+											cashierId: String(data.cashierId),
+										},
+										search: (prev) => ({ ...prev, page: page + 1 }),
+									})
+								}
+							>
+								Next
+							</Button>
+						</div>
 					</div>
 				</Card>
 

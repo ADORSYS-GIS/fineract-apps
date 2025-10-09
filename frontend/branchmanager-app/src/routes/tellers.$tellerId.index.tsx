@@ -1,7 +1,7 @@
 import { useTellerCashManagementServiceGetV1TellersByTellerIdCashiers } from "@fineract-apps/fineract-api";
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 interface Cashier {
 	id: number;
@@ -15,8 +15,12 @@ interface Cashier {
 
 function TellerDetailPage() {
 	const { tellerId } = Route.useParams();
+	const { page, pageSize, q } = Route.useSearch<{
+		page: number;
+		pageSize: number;
+		q: string;
+	}>();
 	const navigate = useNavigate();
-	const [search, setSearch] = useState("");
 
 	const {
 		data: cashiersResponse,
@@ -34,12 +38,22 @@ function TellerDetailPage() {
 	const cashiers = useMemo(() => {
 		if (!cashiersResponse || !(cashiersResponse as CashiersResponse)?.cashiers)
 			return [];
-		return (cashiersResponse as CashiersResponse)?.cashiers?.filter(
-			(cashier: Cashier) =>
-				cashier.staffName.toLowerCase().includes(search.toLowerCase()) ||
-				cashier.description.toLowerCase().includes(search.toLowerCase()),
-		);
-	}, [cashiersResponse, search]);
+		const filtered =
+			(cashiersResponse as CashiersResponse)?.cashiers?.filter(
+				(cashier: Cashier) => {
+					const staff = (cashier.staffName ?? "").toLowerCase();
+					const desc = (cashier.description ?? "").toLowerCase();
+					const query = (q ?? "").toLowerCase();
+					return staff.includes(query) || desc.includes(query);
+				},
+			) ?? [];
+		return filtered;
+	}, [cashiersResponse, q]);
+
+	const total = cashiers.length;
+	const start = (page - 1) * pageSize;
+	const end = start + pageSize;
+	const pageItems = cashiers.slice(start, end);
 
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
@@ -64,8 +78,14 @@ function TellerDetailPage() {
 				title={<span className="text-xl">Assigned Cashiers</span>}
 			>
 				<SearchBar
-					value={search}
-					onValueChange={setSearch}
+					value={q}
+					onValueChange={(value) =>
+						navigate({
+							to: "/tellers/$tellerId/",
+							params: { tellerId },
+							search: (prev) => ({ ...prev, q: value, page: 1 }),
+						})
+					}
 					placeholder="Filter cashiers..."
 				/>
 				<div className="overflow-x-auto mt-4">
@@ -96,8 +116,8 @@ function TellerDetailPage() {
 							{!isLoading &&
 								!isError &&
 								cashiers &&
-								(cashiers.length > 0 ? (
-									cashiers.map((cashier: Cashier) => (
+								(pageItems.length > 0 ? (
+									pageItems.map((cashier: Cashier) => (
 										<tr
 											key={cashier.id}
 											className="bg-white border-b hover:bg-gray-50 cursor-pointer"
@@ -137,6 +157,69 @@ function TellerDetailPage() {
 						</tbody>
 					</table>
 				</div>
+				{/* Pagination Controls */}
+				<div className="flex items-center justify-between mt-4">
+					<div className="text-sm text-gray-600">
+						{total ? (
+							<span>
+								Showing {total ? start + (pageItems.length ? 1 : 0) : 0}-
+								{start + pageItems.length} of {total}
+							</span>
+						) : null}
+					</div>
+					<div className="flex items-center gap-2">
+						<select
+							className="border rounded px-2 py-1 text-sm"
+							value={pageSize}
+							onChange={(e) =>
+								navigate({
+									to: "/tellers/$tellerId/",
+									params: { tellerId },
+									search: (prev) => ({
+										...prev,
+										pageSize: Number(e.target.value),
+										page: 1,
+									}),
+								})
+							}
+						>
+							{[10, 20, 50, 100].map((s) => (
+								<option key={s} value={s}>
+									{s} / page
+								</option>
+							))}
+						</select>
+						<Button
+							variant="secondary"
+							disabled={page <= 1}
+							onClick={() =>
+								navigate({
+									to: "/tellers/$tellerId/",
+									params: { tellerId },
+									search: (prev) => ({
+										...prev,
+										page: Math.max(1, page - 1),
+									}),
+								})
+							}
+						>
+							Previous
+						</Button>
+						<Button
+							variant="secondary"
+							disabled={page * pageSize >= total}
+							onClick={() =>
+								navigate({
+									to: "/tellers/$tellerId/",
+									params: { tellerId },
+									search: (prev) => ({ ...prev, page: page + 1 }),
+								})
+							}
+						>
+							Next
+						</Button>
+					</div>
+				</div>
 			</Card>
 		</div>
 	);
@@ -144,4 +227,11 @@ function TellerDetailPage() {
 
 export const Route = createFileRoute("/tellers/$tellerId/")({
 	component: TellerDetailPage,
+	validateSearch: (search: Record<string, unknown>) => {
+		return {
+			page: typeof search.page === "number" ? search.page : 1,
+			pageSize: typeof search.pageSize === "number" ? search.pageSize : 20,
+			q: typeof search.q === "string" ? search.q : "",
+		} as { page: number; pageSize: number; q: string };
+	},
 });

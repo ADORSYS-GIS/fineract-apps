@@ -4,15 +4,26 @@ import { useCashierDetail } from "./useCashierDetail";
 
 export const CashierDetail = () => {
 	const { tellerId, cashierId } = Route.useParams();
+	const { page, pageSize } = Route.useSearch<{
+		page: number;
+		pageSize: number;
+	}>();
 	const { data, isLoading, error } = useCashierDetail(
 		Number(tellerId),
 		Number(cashierId),
+		{
+			limit: pageSize,
+			offset: (page - 1) * pageSize,
+		},
 	);
 	return (
 		<CashierDetailView
 			data={data || {}}
 			isLoading={isLoading}
 			error={error as Error | null}
+			page={page}
+			pageSize={pageSize}
+			total={data?.cashierTransactions?.totalFilteredRecords}
 		/>
 	);
 };

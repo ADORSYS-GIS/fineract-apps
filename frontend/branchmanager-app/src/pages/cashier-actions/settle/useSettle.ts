@@ -2,6 +2,7 @@ import {
 	useTellerCashManagementServiceGetV1TellersByTellerIdCashiersByCashierIdTransactionsTemplate,
 	useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdSettle,
 } from "@fineract-apps/fineract-api";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { FormValues } from "./Settle.types";
@@ -51,6 +52,7 @@ export function useSettle(tellerId: number, cashierId: number) {
 	const defaultCurrencyCode = currencyOptions[0]?.value ?? "XAF";
 
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 
 	const onSubmit = async (values: FormValues) => {
 		await mutation.mutateAsync({
@@ -65,6 +67,20 @@ export function useSettle(tellerId: number, cashierId: number) {
 				locale: "en",
 			},
 		});
+		// Invalidate relevant queries so detail & lists reflect latest balances/transactions
+		queryClient.invalidateQueries({
+			queryKey: [
+				"tellers",
+				tellerId,
+				"cashiers",
+				cashierId,
+				"summary-transactions",
+			],
+		});
+		queryClient.invalidateQueries({
+			queryKey: ["tellers", tellerId, "cashiers"],
+		});
+		queryClient.invalidateQueries({ queryKey: ["tellers"] });
 		alert("Cash settled successfully");
 		navigate({ to: "/tellers/" });
 	};
