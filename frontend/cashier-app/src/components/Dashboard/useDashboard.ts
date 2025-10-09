@@ -9,8 +9,15 @@ export const useDashboard = () => {
 		navigate({ search: { query: newQuery } });
 	};
 
+	const onLogout = () => {
+		window.location.href = `/cashier/callback?logout=${encodeURIComponent(
+			window.location.origin + "/cashier/",
+		)}`;
+	};
+
 	return {
 		query,
 		onQueryChange,
+		onLogout,
 	};
 };

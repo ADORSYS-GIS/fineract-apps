@@ -7,6 +7,7 @@ import { DashboardViewProps } from "./Dashboard.types";
 export function DashboardView({
 	query,
 	onQueryChange,
+	onLogout,
 }: Readonly<DashboardViewProps>) {
 	return (
 		<AppLayout
@@ -23,7 +24,7 @@ export function DashboardView({
 					size="md"
 				/>
 			}
-			sidebar={<Sidebar menuItems={menuCashier} />}
+			sidebar={<Sidebar menuItems={menuCashier} onLogout={onLogout} />}
 		>
 			<div className="flex flex-col gap-4">
 				<ClientSearch query={query} onQueryChange={onQueryChange} />
