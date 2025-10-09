@@ -15,5 +15,6 @@ export const useClientImage = (clientId: string) => {
 			throw new Error("API did not return a valid image string.");
 		},
 		enabled: !!clientId,
+		staleTime: Infinity,
 	});
 };
