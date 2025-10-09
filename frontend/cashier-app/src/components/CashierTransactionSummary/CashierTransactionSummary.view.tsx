@@ -1,9 +1,9 @@
 import { Button, Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
-import { format } from "date-fns";
 import { AlertTriangle } from "lucide-react";
 import { Route } from "@/routes/dashboard/index.tsx";
 import { formatCurrency } from "@/utils/currency";
+import { extractClientNameFromTxnNote } from "@/utils/transaction";
 import { CashierTransactionSummaryViewProps } from "./CashierTransactionSummary.types";
 
 const LoadingSkeleton = () => (
@@ -129,7 +129,7 @@ export function CashierTransactionSummaryView({
 						<thead className="text-xs text-gray-700 uppercase bg-gray-50">
 							<tr>
 								<th scope="col" className="px-6 py-3">
-									Date
+									Client
 								</th>
 								<th scope="col" className="px-6 py-3">
 									Amount
@@ -149,7 +149,7 @@ export function CashierTransactionSummaryView({
 									className="bg-white border-b hover:bg-gray-50"
 								>
 									<td className="px-6 py-4">
-										{item.txnDate ? format(new Date(item.txnDate), "PPP") : ""}
+										{extractClientNameFromTxnNote(item.txnNote)}
 									</td>
 									<td className="px-6 py-4">
 										{formatCurrency(item.txnAmount ?? 0)}
