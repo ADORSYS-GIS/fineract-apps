@@ -14,6 +14,7 @@ export const useCashierTransactionSummary = () => {
 	const { data: userDetails, isLoading: isUserDetailsLoading } = useQuery({
 		queryKey: ["userDetails"],
 		queryFn: () => FetchAuthenticatedUserDetailsService.getV1Userdetails(),
+		staleTime: Infinity,
 	});
 	const staffId = userDetails?.staffId;
 	const officeId = userDetails?.officeId;
@@ -21,6 +22,7 @@ export const useCashierTransactionSummary = () => {
 	const { data: currencies, isLoading: isCurrenciesLoading } = useQuery({
 		queryKey: ["currencies"],
 		queryFn: () => CurrencyService.getV1Currencies(),
+		staleTime: Infinity,
 	});
 	const currencyCode = currencies?.selectedCurrencyOptions?.[0]?.code;
 
@@ -61,6 +63,7 @@ export const useCashierTransactionSummary = () => {
 			);
 		},
 		enabled: !!staffId && !!officeId,
+		staleTime: Infinity,
 	});
 
 	const tellerId = cashierInfo?.tellerId;
