@@ -16,7 +16,7 @@ export function TellerCreate() {
 
 	const handleSubmit = async (values: TellerCreateFormValues) => {
 		tellerCreateSchema.parse(values);
-		await onSubmit(values);
+		onSubmit(values);
 	};
 
 	return (

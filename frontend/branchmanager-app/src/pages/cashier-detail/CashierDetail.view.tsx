@@ -28,40 +28,44 @@ export const CashierDetailView = ({
 			: "-";
 
 	return (
-		<div className="flex justify-center p-4 sm:p-6">
-			<div className="w-full max-w-4xl">
+		<div className="flex justify-center p-4 sm:p-6 lg:p-8">
+			<div className="w-full max-w-5xl">
 				<Card className="w-full">
 					<div className="p-6">
-						<h1 className="text-2xl font-bold mb-2">{data.cashierName}</h1>
-						<p className="text-gray-500 mb-4">
+						<h1 className="text-2xl sm:text-3xl font-bold mb-2">
+							{data.cashierName}
+						</h1>
+						<p className="text-gray-500 mb-6">
 							{data.officeName} • {data.tellerName}
 						</p>
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-							<div>
+						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
+							<div className="p-4 bg-gray-50 rounded-lg">
 								<p className="font-semibold text-gray-600">Net Cash</p>
-								<p className="text-gray-800">{formatAmount(data.netCash)}</p>
+								<p className="text-gray-800 text-lg font-bold">
+									{formatAmount(data.netCash)}
+								</p>
 							</div>
-							<div>
+							<div className="p-4 bg-gray-50 rounded-lg">
 								<p className="font-semibold text-gray-600">Cash Allocations</p>
-								<p className="text-gray-800">
+								<p className="text-gray-800 text-lg font-bold">
 									{formatAmount(data.sumCashAllocation)}
 								</p>
 							</div>
-							<div>
+							<div className="p-4 bg-gray-50 rounded-lg">
 								<p className="font-semibold text-gray-600">Cash Settlements</p>
-								<p className="text-gray-800">
+								<p className="text-gray-800 text-lg font-bold">
 									{formatAmount(data.sumCashSettlement)}
 								</p>
 							</div>
-							<div>
+							<div className="p-4 bg-gray-50 rounded-lg">
 								<p className="font-semibold text-gray-600">Inward Cash</p>
-								<p className="text-gray-800">
+								<p className="text-gray-800 text-lg font-bold">
 									{formatAmount(data.sumInwardCash)}
 								</p>
 							</div>
-							<div>
+							<div className="p-4 bg-gray-50 rounded-lg">
 								<p className="font-semibold text-gray-600">Outward Cash</p>
-								<p className="text-gray-800">
+								<p className="text-gray-800 text-lg font-bold">
 									{formatAmount(data.sumOutwardCash)}
 								</p>
 							</div>
@@ -70,8 +74,8 @@ export const CashierDetailView = ({
 				</Card>
 
 				<Card
-					className="w-full mt-4"
-					title={<span className="text-lg">Transactions</span>}
+					className="w-full mt-6"
+					title={<span className="text-xl font-bold">Transactions</span>}
 				>
 					<div className="overflow-x-auto">
 						<table className="w-full text-sm text-left text-gray-500">
@@ -158,7 +162,8 @@ export const CashierDetailView = ({
 										},
 										search: (prev) => ({
 											...prev,
-											page: Math.max(1, page - 1),
+											page: Math.max(1, (prev?.page ?? 1) - 1),
+											pageSize: prev?.pageSize ?? 20,
 										}),
 									})
 								}
@@ -179,7 +184,11 @@ export const CashierDetailView = ({
 											tellerId: String(data.tellerId),
 											cashierId: String(data.cashierId),
 										},
-										search: (prev) => ({ ...prev, page: page + 1 }),
+										search: (prev) => ({
+											...prev,
+											page: (prev?.page ?? 1) + 1,
+											pageSize: prev?.pageSize ?? 20,
+										}),
 									})
 								}
 							>

@@ -25,11 +25,13 @@ export const StaffView = ({
 	onStaffClick: (id: number) => void;
 }) => {
 	return (
-		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
-			<div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
 				<div>
-					<h1 className="text-2xl font-bold text-gray-900">Manage Staff</h1>
-					<p className="text-gray-500">View and manage staff members.</p>
+					<h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+						Manage Staff
+					</h1>
+					<p className="text-gray-500 mt-1">View and manage staff members.</p>
 				</div>
 			</div>
 
@@ -42,12 +44,12 @@ export const StaffView = ({
 						value={search}
 						onValueChange={setSearch}
 						placeholder="Filter staff..."
+						className="max-w-sm"
 					/>
 					<div className="mt-4 space-y-3">
 						{isLoadingStaff && <div>Loading...</div>}
 						{staffError && <div className="text-red-600">{staffError}</div>}
-						{!isLoadingStaff &&
-							!staffError &&
+						{!isLoadingStaff && !staffError && staffItems.length > 0 ? (
 							staffItems.map((s) => {
 								const name =
 									s.displayName ||
@@ -70,7 +72,12 @@ export const StaffView = ({
 										</span>
 									</button>
 								);
-							})}
+							})
+						) : (
+							<div className="text-center py-10">
+								<p>No staff members found.</p>
+							</div>
+						)}
 					</div>
 				</Card>
 			</div>

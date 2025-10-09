@@ -1,4 +1,4 @@
-import { Card, SearchBar } from "@fineract-apps/ui";
+import { Button, Card, SearchBar } from "@fineract-apps/ui";
 
 type TellerAssignment = {
 	id: number;
@@ -20,6 +20,10 @@ type Props = {
 	assignments: TellerAssignment[];
 	loadingAssignments: boolean;
 	assignmentsError?: string;
+	page: number;
+	limit: number;
+	total: number;
+	setPage: (page: number) => void;
 };
 
 export const DashboardView = ({
@@ -31,6 +35,10 @@ export const DashboardView = ({
 	assignments,
 	loadingAssignments,
 	assignmentsError,
+	page,
+	limit,
+	total,
+	setPage,
 }: Props) => {
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
@@ -118,6 +126,20 @@ export const DashboardView = ({
 									))}
 							</tbody>
 						</table>
+					</div>
+					<div className="flex justify-center mt-4">
+						<Button onClick={() => setPage(page - 1)} disabled={page === 1}>
+							Previous
+						</Button>
+						<span className="mx-4">
+							Page {page} of {Math.ceil(total / limit)}
+						</span>
+						<Button
+							onClick={() => setPage(page + 1)}
+							disabled={page * limit >= total}
+						>
+							Next
+						</Button>
 					</div>
 				</Card>
 			</div>

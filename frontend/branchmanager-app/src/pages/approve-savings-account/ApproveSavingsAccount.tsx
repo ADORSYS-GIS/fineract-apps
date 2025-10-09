@@ -33,6 +33,9 @@ export const ApproveSavingsAccount = () => {
 			items={list.items}
 			isLoading={list.isLoading}
 			isError={list.isError}
+			page={list.page}
+			limit={list.limit}
+			total={list.total}
 		/>
 	);
 };

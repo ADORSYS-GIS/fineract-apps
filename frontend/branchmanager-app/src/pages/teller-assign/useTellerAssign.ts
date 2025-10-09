@@ -1,7 +1,8 @@
 import {
-	useStaffServiceGetV1Staff,
+	StaffService,
 	useTellerCashManagementServicePostV1TellersByTellerIdCashiers,
 } from "@fineract-apps/fineract-api";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { FormValues, StaffOption } from "./TellerAssign.types";
 
@@ -14,11 +15,15 @@ function formatToFineractDate(value: string): string {
 	});
 }
 
-export function useTellerAssign(tellerIdNum: number | null) {
-	const { data: staff, isLoading: isLoadingStaff } = useStaffServiceGetV1Staff(
-		{ status: "all" },
-		["staff", "all"],
-	);
+export function useTellerAssign(
+	tellerIdNum: number | null,
+	onSuccess: () => void,
+) {
+	const { data: staff, isLoading: isLoadingStaff } = useQuery({
+		queryKey: ["staff", "all"],
+		queryFn: async () =>
+			(await StaffService.getV1Staff({ status: "all" })) ?? [],
+	});
 
 	const staffOptions: StaffOption[] = useMemo(() => {
 		if (!Array.isArray(staff)) return [];
@@ -43,18 +48,23 @@ export function useTellerAssign(tellerIdNum: number | null) {
 
 	const onSubmit = async (values: FormValues) => {
 		const tellerId = Number(values.tellerId);
-		await mutation.mutateAsync({
-			tellerId,
-			requestBody: {
-				staffId: Number(values.staffId),
-				description: values.description ?? "",
-				startDate: formatToFineractDate(values.startDate),
-				endDate: formatToFineractDate(values.endDate),
-				isFullDay: values.isFullDay,
-				dateFormat: "dd MMMM yyyy",
-				locale: "en",
+		await mutation.mutateAsync(
+			{
+				tellerId,
+				requestBody: {
+					staffId: Number(values.staffId),
+					description: values.description ?? "",
+					startDate: formatToFineractDate(values.startDate),
+					endDate: formatToFineractDate(values.endDate),
+					isFullDay: values.isFullDay,
+					dateFormat: "dd MMMM yyyy",
+					locale: "en",
+				},
 			},
-		});
+			{
+				onSuccess,
+			},
+		);
 	};
 
 	return {

@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
+import { Toaster } from "react-hot-toast";
 
 function RootLayout() {
 	const navigate = useNavigate();
@@ -47,6 +48,7 @@ function RootLayout() {
 			}
 		>
 			<Outlet />
+			<Toaster />
 			<TanStackRouterDevtools />
 		</AppLayout>
 	);

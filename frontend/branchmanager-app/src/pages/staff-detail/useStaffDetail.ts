@@ -1,10 +1,14 @@
-import { useStaffServiceGetV1StaffByStaffId } from "@fineract-apps/fineract-api";
+import { StaffService } from "@fineract-apps/fineract-api";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { StaffDetailData } from "./StaffDetail.view";
 
 export function useStaffDetail(staffId: number) {
-	const { data, isLoading, isError, error } =
-		useStaffServiceGetV1StaffByStaffId({ staffId }, ["staff", staffId]);
+	const { data, isLoading, isError, error } = useQuery({
+		queryKey: ["staff", staffId],
+		queryFn: async () =>
+			(await StaffService.getV1StaffByStaffId({ staffId })) ?? null,
+	});
 	const detail: StaffDetailData | undefined = useMemo(() => {
 		if (!data) return undefined;
 		return {
@@ -22,6 +26,6 @@ export function useStaffDetail(staffId: number) {
 	return {
 		data: detail,
 		isLoading,
-		error: isError ? ((error as Error)?.message ?? "Error") : undefined,
+		error: isError ? (error?.message ?? "Error") : undefined,
 	};
 }

@@ -1,10 +1,11 @@
 import {
-	useTellerCashManagementServiceGetV1TellersByTellerIdCashiersByCashierIdTransactionsTemplate,
+	TellerCashManagementService,
 	useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdAllocate,
 } from "@fineract-apps/fineract-api";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { toast } from "react-hot-toast";
 import { FormValues } from "./Allocate.types";
 
 function formatToFineractDate(value: string): string {
@@ -27,14 +28,16 @@ export function useAllocate(tellerId: number, cashierId: number) {
 	const mutation =
 		useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdAllocate();
 
-	const { data: template, isLoading: loadingTemplate } =
-		useTellerCashManagementServiceGetV1TellersByTellerIdCashiersByCashierIdTransactionsTemplate(
-			{
-				tellerId,
-				cashierId,
-			},
-			["tellers", tellerId, "cashiers", cashierId, "template"],
-		);
+	const { data: template, isLoading: loadingTemplate } = useQuery({
+		queryKey: ["tellers", tellerId, "cashiers", cashierId, "template"],
+		queryFn: async () =>
+			(await TellerCashManagementService.getV1TellersByTellerIdCashiersByCashierIdTransactionsTemplate(
+				{
+					tellerId,
+					cashierId,
+				},
+			)) ?? [],
+	});
 
 	const currencyOptions = useMemo(() => {
 		const options =
@@ -53,8 +56,8 @@ export function useAllocate(tellerId: number, cashierId: number) {
 
 	const navigate = useNavigate();
 
-	const onSubmit = async (values: FormValues) => {
-		await mutation.mutateAsync({
+	const onSubmit = (values: FormValues) => {
+		const promise = mutation.mutateAsync({
 			tellerId,
 			cashierId,
 			requestBody: {
@@ -66,8 +69,14 @@ export function useAllocate(tellerId: number, cashierId: number) {
 				locale: "en",
 			},
 		});
-		alert("Cash allocated successfully");
-		navigate({ to: "/tellers/" });
+		toast.promise(promise, {
+			loading: "Allocating cash...",
+			success: () => {
+				navigate({ to: "/tellers", search: { page: 1, pageSize: 10, q: "" } });
+				return "Cash allocated successfully";
+			},
+			error: "Failed to allocate cash",
+		});
 	};
 
 	return {

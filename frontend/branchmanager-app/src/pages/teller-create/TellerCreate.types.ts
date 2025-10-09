@@ -5,7 +5,7 @@ export const tellerCreateSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	description: z.string().optional(),
 	startDate: z.string().min(1, "Start date is required"),
-	endDate: z.string().min(1, "End date is required"),
+	endDate: z.string().optional(),
 	// status must be numeric: 300 (Active), 400 (Inactive)
 	status: z.coerce
 		.number()

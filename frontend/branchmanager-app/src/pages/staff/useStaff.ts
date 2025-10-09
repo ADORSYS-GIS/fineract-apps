@@ -1,4 +1,5 @@
-import { useStaffServiceGetV1Staff } from "@fineract-apps/fineract-api";
+import { StaffService } from "@fineract-apps/fineract-api";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
@@ -19,7 +20,10 @@ export function useStaffPage() {
 		isLoading,
 		isError,
 		error,
-	} = useStaffServiceGetV1Staff({ status: "all" }, ["staff", "all"], {
+	} = useQuery({
+		queryKey: ["staff", "all"],
+		queryFn: async () =>
+			(await StaffService.getV1Staff({ status: "all" })) ?? [],
 		staleTime: 60_000,
 	});
 
@@ -32,9 +36,7 @@ export function useStaffPage() {
 		});
 	}, [staff]);
 
-	const staffErrorMsg = isError
-		? ((error as Error)?.message ?? "Error")
-		: undefined;
+	const staffErrorMsg = isError ? (error?.message ?? "Error") : undefined;
 
 	const navigate = useNavigate();
 	const onStaffClick = (staffId: number) => {

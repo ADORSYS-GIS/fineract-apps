@@ -1,11 +1,6 @@
-import {
-	TellerCashManagementService,
-	useTellerCashManagementServiceGetV1Tellers,
-} from "@fineract-apps/fineract-api";
-import { useQueries } from "@tanstack/react-query";
+import { TellerCashManagementService } from "@fineract-apps/fineract-api";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-
-type TellerItem = { id: number; name?: string };
 
 type TellerAssignment = {
 	id: number;
@@ -21,58 +16,68 @@ type TellerAssignment = {
 export function useDashboard() {
 	const [query, setQuery] = useState("");
 	const [searchAssignments, setSearchAssignments] = useState("");
+	const [page, setPage] = useState(1);
+	const limit = 10;
 
-	const { data: tellers } = useTellerCashManagementServiceGetV1Tellers(
-		{},
-		["tellers"],
-		{
-			staleTime: 60_000,
-		},
-	);
-
-	const tellerItems: TellerItem[] = useMemo(() => {
-		if (!Array.isArray(tellers)) return [];
-		return tellers.filter((i): i is TellerItem => {
-			if (typeof i !== "object" || i === null) return false;
-			const rec = i as { id?: unknown; name?: unknown };
-			return typeof rec.id === "number";
-		});
-	}, [tellers]);
-
-	const assignmentQueries = useQueries({
-		queries: tellerItems.map((teller) => ({
-			queryKey: ["tellers", teller.id, "cashiers"],
-			queryFn: () =>
-				TellerCashManagementService.getV1TellersByTellerIdCashiers({
-					tellerId: teller.id,
-				}),
-			staleTime: 30_000,
-		})),
+	const { data: tellersData, isLoading: isLoadingTellers } = useQuery({
+		queryKey: ["tellers"],
+		queryFn: () => TellerCashManagementService.getV1Tellers(),
 	});
 
-	type QueryData = {
-		cashiers?: TellerAssignment[];
-	};
+	const assignmentsQueries = useQueries({
+		queries:
+			tellersData?.map((teller) => ({
+				queryKey: ["tellerCashiers", teller.id],
+				queryFn: () =>
+					TellerCashManagementService.getV1TellersByTellerIdCashiers({
+						tellerId: teller.id as number,
+					}),
+				enabled: !!tellersData,
+			})) ?? [],
+	});
 
-	const assignments: TellerAssignment[] = useMemo(() => {
-		const allAssignments = assignmentQueries.flatMap((query) => {
-			if (!query.data || !(query.data as QueryData).cashiers) return [];
-			return (query.data as QueryData).cashiers ?? [];
+	const { assignments, isLoading, isError } = useMemo(() => {
+		const isLoading =
+			isLoadingTellers || assignmentsQueries.some((q) => q.isLoading);
+		const isError = assignmentsQueries.some((q) => q.isError);
+
+		if (isLoading || isError || !tellersData) {
+			return { assignments: [], isLoading, isError };
+		}
+
+		const combinedAssignments = tellersData.flatMap((teller, index) => {
+			const queryResult = assignmentsQueries[index];
+			if (queryResult.isSuccess && queryResult.data) {
+				return (
+					queryResult.data.cashiers?.map((assignment) => ({
+						...assignment,
+						tellerName: teller.name,
+					})) ?? []
+				);
+			}
+			return [];
 		});
-		const q = searchAssignments.toLowerCase();
-		return allAssignments.filter(
-			(c: TellerAssignment) =>
-				(c.staffName ?? "").toLowerCase().includes(q) ||
-				(c.description ?? "").toLowerCase().includes(q) ||
-				(c.tellerName ?? "").toLowerCase().includes(q),
-		);
-	}, [assignmentQueries, searchAssignments]);
 
-	const loadingAssignments = assignmentQueries.some((query) => query.isLoading);
-	const assignmentsError = assignmentQueries.find((query) => query.isError);
-	const assignmentsErrorMsg = assignmentsError
-		? (assignmentsError.error?.message ?? "Error")
-		: undefined;
+		return { assignments: combinedAssignments, isLoading, isError };
+	}, [tellersData, assignmentsQueries, isLoadingTellers]);
+
+	const filteredAssignments = useMemo(() => {
+		if (!assignments) return [];
+		const q = searchAssignments.toLowerCase();
+		return (assignments as unknown as TellerAssignment[])
+			.filter(
+				(c: TellerAssignment) =>
+					(c.staffName ?? "").toLowerCase().includes(q) ||
+					(c.description ?? "").toLowerCase().includes(q) ||
+					(c.tellerName ?? "").toLowerCase().includes(q),
+			)
+			.sort((a: TellerAssignment, b: TellerAssignment) => a.id - b.id);
+	}, [assignments, searchAssignments]);
+
+	const paginatedAssignments = useMemo(
+		() => filteredAssignments.slice((page - 1) * limit, page * limit),
+		[filteredAssignments, page],
+	);
 
 	return {
 		title: "Branch Manager Dashboard",
@@ -80,8 +85,12 @@ export function useDashboard() {
 		setQuery,
 		searchAssignments,
 		setSearchAssignments,
-		assignments,
-		loadingAssignments,
-		assignmentsError: assignmentsErrorMsg,
+		assignments: paginatedAssignments,
+		loadingAssignments: isLoading,
+		assignmentsError: isError ? "Error fetching assignments" : undefined,
+		page,
+		limit,
+		total: filteredAssignments.length,
+		setPage,
 	};
 }

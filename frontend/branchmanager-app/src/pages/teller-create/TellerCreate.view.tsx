@@ -8,25 +8,26 @@ export function TellerCreateView({
 	loadingOffices,
 	onSubmit,
 	isSubmitting,
-}: {
+}: Readonly<{
 	initialValues: TellerCreateFormValues;
 	officeOptions: { label: string; value: number }[];
 	loadingOffices: boolean;
 	onSubmit: (values: TellerCreateFormValues) => Promise<void> | void;
 	isSubmitting: boolean;
-}) {
+}>) {
 	const navigate = useNavigate({ from: "/tellers/create" });
 	return (
-		<div className="flex justify-center items-start pt-8 px-4">
-			<div className="w-full max-w-4xl">
+		<div className="flex justify-center items-start pt-8 px-4 sm:px-6 lg:px-8">
+			<div className="w-full max-w-2xl">
 				<Card>
-					<div className="p-8">
+					<div className="p-6 sm:p-8">
+						<h2 className="text-2xl font-bold mb-6">Create Teller</h2>
 						<Form<TellerCreateFormValues>
 							initialValues={initialValues}
 							onSubmit={onSubmit}
 						>
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-								<div className="md:col-span-2">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+								<div className="sm:col-span-2">
 									<Input
 										name="name"
 										label="Teller Name *"
@@ -52,7 +53,7 @@ export function TellerCreateView({
 										{ label: "Inactive", value: 400 },
 									]}
 								/>
-								<div className="md:col-span-2">
+								<div className="sm:col-span-2">
 									<Input
 										name="description"
 										label="Description"
@@ -62,10 +63,15 @@ export function TellerCreateView({
 								<Input name="startDate" label="Start Date *" type="date" />
 								<Input name="endDate" label="End Date" type="date" />
 							</div>
-							<div className="mt-8 flex justify-end gap-4">
+							<div className="mt-8 flex flex-col sm:flex-row justify-end gap-4">
 								<Button
 									variant="outline"
-									onClick={() => navigate({ to: "/tellers" })}
+									onClick={() =>
+										navigate({
+											to: "/tellers",
+											search: { page: 1, pageSize: 10, q: "" },
+										})
+									}
 								>
 									Cancel
 								</Button>

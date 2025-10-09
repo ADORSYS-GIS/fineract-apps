@@ -12,24 +12,17 @@ interface Teller {
 }
 
 function TellersListPage() {
-	const { page, pageSize, q } = Route.useSearch<{
-		page: number;
-		pageSize: number;
-		q: string;
-	}>();
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(20);
+	const [q, setQ] = useState("");
 	const {
 		data: tellers,
 		isLoading,
 		isError,
 		error,
-	} = useTellerCashManagementServiceGetV1Tellers(
-		undefined,
-		["tellers", { page, pageSize, q }],
-		{
-			staleTime: 60_000,
-			keepPreviousData: true,
-		},
-	);
+	} = useTellerCashManagementServiceGetV1Tellers(undefined, ["tellers"], {
+		staleTime: 60_000,
+	});
 	const navigate = useNavigate();
 	const [selectedTellerId, setSelectedTellerId] = useState<number | null>(null);
 
@@ -56,7 +49,7 @@ function TellersListPage() {
 					<p className="text-gray-500">Manage tellers and their assignments.</p>
 				</div>
 				<Link to="/tellers/create">
-					<Button>+ Create Teller</Button>
+					<Button>Create Teller</Button>
 				</Link>
 			</div>
 
@@ -67,12 +60,10 @@ function TellersListPage() {
 				>
 					<SearchBar
 						value={q}
-						onValueChange={(value) =>
-							navigate({
-								to: "/tellers/",
-								search: (prev) => ({ ...prev, q: value, page: 1 }),
-							})
-						}
+						onValueChange={(value) => {
+							setQ(value);
+							setPage(1);
+						}}
 						placeholder="Filter tellers..."
 					/>
 					<div className="mt-4 space-y-3">
@@ -93,6 +84,11 @@ function TellersListPage() {
 											navigate({
 												to: "/tellers/$tellerId",
 												params: { tellerId: String(teller.id) },
+												search: {
+													page,
+													pageSize,
+													q,
+												},
 											});
 										}}
 										className={`w-full flex items-center justify-between p-3 rounded-md border bg-white text-left transition ${isSelected ? "border-gray-400 shadow-sm" : "border-gray-200 hover:border-gray-300"}`}
@@ -113,27 +109,20 @@ function TellersListPage() {
 					{/* Pagination Controls */}
 					<div className="flex items-center justify-between mt-4">
 						<div className="text-sm text-gray-600">
-							{total ? (
+							{pageItems.length > 0 && (
 								<span>
-									Showing {total ? start + (pageItems.length ? 1 : 0) : 0}-
-									{start + pageItems.length} of {total}
+									Showing {start + 1}-{start + pageItems.length} of {total}
 								</span>
-							) : null}
+							)}
 						</div>
 						<div className="flex items-center gap-2">
 							<select
 								className="border rounded px-2 py-1 text-sm"
 								value={pageSize}
-								onChange={(e) =>
-									navigate({
-										to: "/tellers/",
-										search: (prev) => ({
-											...prev,
-											pageSize: Number(e.target.value),
-											page: 1,
-										}),
-									})
-								}
+								onChange={(e) => {
+									setPageSize(Number(e.target.value));
+									setPage(1);
+								}}
 							>
 								{[10, 20, 50, 100].map((s) => (
 									<option key={s} value={s}>
@@ -144,27 +133,14 @@ function TellersListPage() {
 							<Button
 								variant="secondary"
 								disabled={page <= 1}
-								onClick={() =>
-									navigate({
-										to: "/tellers/",
-										search: (prev) => ({
-											...prev,
-											page: Math.max(1, page - 1),
-										}),
-									})
-								}
+								onClick={() => setPage((prev) => Math.max(1, prev - 1))}
 							>
 								Previous
 							</Button>
 							<Button
 								variant="secondary"
 								disabled={page * pageSize >= total}
-								onClick={() =>
-									navigate({
-										to: "/tellers/",
-										search: (prev) => ({ ...prev, page: page + 1 }),
-									})
-								}
+								onClick={() => setPage((prev) => prev + 1)}
 							>
 								Next
 							</Button>
@@ -178,11 +154,4 @@ function TellersListPage() {
 
 export const Route = createFileRoute("/tellers/")({
 	component: TellersListPage,
-	validateSearch: (search: Record<string, unknown>) => {
-		return {
-			page: typeof search.page === "number" ? search.page : 1,
-			pageSize: typeof search.pageSize === "number" ? search.pageSize : 20,
-			q: typeof search.q === "string" ? search.q : "",
-		} as { page: number; pageSize: number; q: string };
-	},
 });

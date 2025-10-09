@@ -11,32 +11,66 @@ export const ApproveSavingsAccountListView = ({
 	items,
 	isLoading,
 	isError,
+	page,
+	limit,
+	total,
 }: {
 	title: string;
 	items: ApproveSavingsAccountListItem[];
 	isLoading: boolean;
 	isError: boolean;
+	page: number;
+	limit: number;
+	total: number;
 }) => (
-	<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
-		<h1 className="text-2xl font-bold mb-6">{title}</h1>
+	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+		<h1 className="text-2xl sm:text-3xl font-bold mb-6">{title}</h1>
 		{isLoading && <div>Loading...</div>}
 		{isError && <div>Error fetching accounts</div>}
-		{!isLoading && !isError && (
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-				{items.map((account) => (
+		{!isLoading && !isError && items.length > 0 && (
+			<>
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+					{items.map((account) => (
+						<Link
+							key={account.id}
+							to="/approve/savings/account"
+							search={{ accountId: account.id }}
+						>
+							<Card className="p-4 cursor-pointer hover:shadow-lg h-full">
+								<h2 className="font-bold text-lg">
+									{account.savingsProductName}
+								</h2>
+								<p className="text-sm">Client: {account.clientName}</p>
+								<p className="text-sm">Account No: {account.accountNo}</p>
+								<p className="text-sm">Status: {account.status}</p>
+							</Card>
+						</Link>
+					))}
+				</div>
+				<div className="flex flex-wrap justify-center items-center mt-6 space-x-2">
 					<Link
-						key={account.id}
 						to="/approve/savings/account"
-						search={{ accountId: account.id }}
+						search={{ page: page - 1, limit }}
+						disabled={page === 1}
 					>
-						<Card className="p-4 cursor-pointer hover:shadow-lg">
-							<h2 className="font-bold">{account.savingsProductName}</h2>
-							<p>Client: {account.clientName}</p>
-							<p>Account No: {account.accountNo}</p>
-							<p>Status: {account.status}</p>
-						</Card>
+						<Button disabled={page === 1}>Previous</Button>
 					</Link>
-				))}
+					<span className="mx-2 text-sm">
+						Page {page} of {Math.ceil(total / limit)}
+					</span>
+					<Link
+						to="/approve/savings/account"
+						search={{ page: page + 1, limit }}
+						disabled={page * limit >= total}
+					>
+						<Button disabled={page * limit >= total}>Next</Button>
+					</Link>
+				</div>
+			</>
+		)}
+		{!isLoading && !isError && items.length === 0 && (
+			<div className="text-center py-10">
+				<p>No pending savings accounts to approve.</p>
 			</div>
 		)}
 	</div>
@@ -53,10 +87,10 @@ export const ApproveSavingsAccountDetailView = ({
 	submitting: boolean;
 	onBack: () => void;
 }) => (
-	<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
+	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
 		<div className="flex justify-center">
-			<Card className="p-4 mt-4 w-full max-w-md">
-				<h2 className="font-bold text-xl mb-4 text-center">
+			<Card className="p-4 sm:p-6 mt-4 w-full max-w-lg">
+				<h2 className="font-bold text-xl sm:text-2xl mb-4 text-center">
 					{data.productName}
 				</h2>
 				<p>
