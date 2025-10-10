@@ -10,8 +10,13 @@ export const TellerAssign = () => {
 	const tellerIdNum = Number(tellerId);
 	const handleSuccess = () => {
 		navigate({
-			to: "/tellers/$tellerId/cashiers",
+			to: "/tellers/$tellerId",
 			params: { tellerId },
+			search: {
+				page: 1,
+				pageSize: 20,
+				q: "",
+			},
 		});
 	};
 	const {
