@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import {
 	type TellerCreateFormValues,
 	tellerCreateSchema,
@@ -20,12 +21,15 @@ export function TellerCreate() {
 	};
 
 	return (
-		<TellerCreateView
-			initialValues={initialValues}
-			officeOptions={officeOptions}
-			loadingOffices={loadingOffices}
-			onSubmit={handleSubmit}
-			isSubmitting={isSubmitting}
-		/>
+		<div>
+			<PageHeader title="Create Teller" />
+			<TellerCreateView
+				initialValues={initialValues}
+				officeOptions={officeOptions}
+				loadingOffices={loadingOffices}
+				onSubmit={handleSubmit}
+				isSubmitting={isSubmitting}
+			/>
+		</div>
 	);
 }

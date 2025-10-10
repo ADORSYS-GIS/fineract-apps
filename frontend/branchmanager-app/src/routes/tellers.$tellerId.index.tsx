@@ -2,6 +2,7 @@ import { useTellerCashManagementServiceGetV1TellersByTellerIdCashiers } from "@f
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { PageHeader } from "@/components/PageHeader";
 
 interface Cashier {
 	id: number;
@@ -54,11 +55,7 @@ function TellerDetailPage() {
 
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
-			<div className="flex justify-between items-center mb-4">
-				<div>
-					<h1 className="text-2xl font-bold">Teller Details</h1>
-					<p className="text-gray-500">Details for teller ID: {tellerId}</p>
-				</div>
+			<PageHeader to="/tellers/" title="Teller Details">
 				<Button
 					onClick={() =>
 						navigate({
@@ -69,7 +66,7 @@ function TellerDetailPage() {
 				>
 					New Assignment
 				</Button>
-			</div>
+			</PageHeader>
 			<Card
 				className="h-full w-full"
 				title={<span className="text-xl">Assigned Cashiers</span>}

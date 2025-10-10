@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { PageHeader } from "@/components/PageHeader";
 import { Route } from "../../routes/tellers.$tellerId.assign";
 import { type FormValues, tellerAssignSchema } from "./TellerAssign.types";
 import { TellerAssignView } from "./TellerAssign.view";
@@ -36,13 +37,16 @@ export const TellerAssign = () => {
 	};
 
 	return (
-		<TellerAssignView
-			initialValues={initialValues}
-			staffOptions={staffOptions}
-			isLoadingStaff={isLoadingStaff}
-			onSubmit={handleSubmit}
-			isSubmitting={isSubmitting}
-			submitLabel="Assign"
-		/>
+		<div>
+			<PageHeader title="Assign Teller" />
+			<TellerAssignView
+				initialValues={initialValues}
+				staffOptions={staffOptions}
+				isLoadingStaff={isLoadingStaff}
+				onSubmit={handleSubmit}
+				isSubmitting={isSubmitting}
+				submitLabel="Assign"
+			/>
+		</div>
 	);
 };

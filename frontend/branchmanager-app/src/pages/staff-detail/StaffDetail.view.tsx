@@ -23,9 +23,6 @@ export const StaffDetailView = ({
 	return (
 		<div className="flex justify-center pt-16 px-4">
 			<div className="w-full max-w-2xl mx-auto">
-				<h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-					Staff Details
-				</h1>
 				{isLoading && <div>Loading...</div>}
 				{error && <div className="text-red-600">{error}</div>}
 				{!isLoading && !error && data && (

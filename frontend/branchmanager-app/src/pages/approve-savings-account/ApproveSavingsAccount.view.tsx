@@ -7,7 +7,6 @@ import type {
 } from "./ApproveSavingsAccount.types";
 
 export const ApproveSavingsAccountListView = ({
-	title,
 	items,
 	isLoading,
 	isError,
@@ -15,7 +14,6 @@ export const ApproveSavingsAccountListView = ({
 	limit,
 	total,
 }: {
-	title: string;
 	items: ApproveSavingsAccountListItem[];
 	isLoading: boolean;
 	isError: boolean;
@@ -24,7 +22,6 @@ export const ApproveSavingsAccountListView = ({
 	total: number;
 }) => (
 	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
-		<h1 className="text-2xl sm:text-3xl font-bold mb-6">{title}</h1>
 		{isLoading && <div>Loading...</div>}
 		{isError && <div>Error fetching accounts</div>}
 		{!isLoading && !isError && items.length > 0 && (

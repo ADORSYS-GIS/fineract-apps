@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { Route } from "../../../routes/tellers.$tellerId.cashiers.$cashierId.allocate";
 import { allocateSchema, type FormValues } from "./Allocate.types";
 import { AllocateView } from "./Allocate.view";
@@ -15,17 +16,20 @@ export const Allocate = () => {
 
 	const handleSubmit = async (values: FormValues) => {
 		allocateSchema.parse(values);
-		await onSubmit(values);
+		onSubmit(values);
 	};
 
 	return (
-		<AllocateView
-			initialValues={initialValues}
-			currencyOptions={currencyOptions}
-			isLoading={loadingTemplate}
-			onSubmit={handleSubmit}
-			isSubmitting={isSubmitting}
-			submitLabel="Allocate"
-		/>
+		<div>
+			<PageHeader title="Allocate Funds" />
+			<AllocateView
+				initialValues={initialValues}
+				currencyOptions={currencyOptions}
+				isLoading={loadingTemplate}
+				onSubmit={handleSubmit}
+				isSubmitting={isSubmitting}
+				submitLabel="Allocate"
+			/>
+		</div>
 	);
 };

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { Route } from "../../../routes/tellers.$tellerId.cashiers.$cashierId.settle";
 import { type FormValues, settleSchema } from "./Settle.types";
 import { SettleView } from "./Settle.view";
@@ -15,17 +16,20 @@ export const Settle = () => {
 
 	const handleSubmit = async (values: FormValues) => {
 		settleSchema.parse(values);
-		await onSubmit(values);
+		onSubmit(values);
 	};
 
 	return (
-		<SettleView
-			initialValues={initialValues}
-			currencyOptions={currencyOptions}
-			isLoading={loadingTemplate}
-			onSubmit={handleSubmit}
-			isSubmitting={isSubmitting}
-			submitLabel="Settle"
-		/>
+		<div>
+			<PageHeader title="Settle Funds" />
+			<SettleView
+				initialValues={initialValues}
+				currencyOptions={currencyOptions}
+				isLoading={loadingTemplate}
+				onSubmit={handleSubmit}
+				isSubmitting={isSubmitting}
+				submitLabel="Settle"
+			/>
+		</div>
 	);
 };

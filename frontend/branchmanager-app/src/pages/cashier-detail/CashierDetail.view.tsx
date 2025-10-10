@@ -32,12 +32,6 @@ export const CashierDetailView = ({
 			<div className="w-full max-w-5xl">
 				<Card className="w-full">
 					<div className="p-6">
-						<h1 className="text-2xl sm:text-3xl font-bold mb-2">
-							{data.cashierName}
-						</h1>
-						<p className="text-gray-500 mb-6">
-							{data.officeName} • {data.tellerName}
-						</p>
 						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
 							<div className="p-4 bg-gray-50 rounded-lg">
 								<p className="font-semibold text-gray-600">Net Cash</p>
@@ -197,43 +191,6 @@ export const CashierDetailView = ({
 						</div>
 					</div>
 				</Card>
-
-				<div className="flex justify-end gap-4 mt-4">
-					<Button
-						onClick={() =>
-							navigate({
-								to: "/tellers/$tellerId/cashiers/$cashierId/settle",
-								params: {
-									tellerId: String(data.tellerId),
-									cashierId: String(data.cashierId),
-								},
-								search: {
-									page,
-									pageSize,
-								},
-							})
-						}
-					>
-						Settle
-					</Button>
-					<Button
-						onClick={() =>
-							navigate({
-								to: "/tellers/$tellerId/cashiers/$cashierId/allocate",
-								params: {
-									tellerId: String(data.tellerId),
-									cashierId: String(data.cashierId),
-								},
-								search: {
-									page,
-									pageSize,
-								},
-							})
-						}
-					>
-						Allocate
-					</Button>
-				</div>
 			</div>
 		</div>
 	);
