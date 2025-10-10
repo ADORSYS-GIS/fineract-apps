@@ -15,11 +15,7 @@ interface Cashier {
 
 function TellerDetailPage() {
 	const { tellerId } = Route.useParams();
-	const { page, pageSize, q } = Route.useSearch<{
-		page: number;
-		pageSize: number;
-		q: string;
-	}>();
+	const { page, pageSize, q } = Route.useSearch();
 	const navigate = useNavigate();
 
 	const {
@@ -54,6 +50,7 @@ function TellerDetailPage() {
 	const start = (page - 1) * pageSize;
 	const end = start + pageSize;
 	const pageItems = cashiers.slice(start, end);
+	const startingIndexOffset = pageItems.length ? 1 : 0;
 
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
@@ -81,9 +78,12 @@ function TellerDetailPage() {
 					value={q}
 					onValueChange={(value) =>
 						navigate({
-							to: "/tellers/$tellerId/",
-							params: { tellerId },
-							search: (prev) => ({ ...prev, q: value, page: 1 }),
+							from: Route.fullPath,
+							search: {
+								page: 1,
+								pageSize,
+								q: value,
+							},
 						})
 					}
 					placeholder="Filter cashiers..."
@@ -128,6 +128,10 @@ function TellerDetailPage() {
 														tellerId,
 														cashierId: String(cashier.id),
 													},
+													search: {
+														page: 1,
+														pageSize: 10,
+													},
 												})
 											}
 										>
@@ -162,8 +166,8 @@ function TellerDetailPage() {
 					<div className="text-sm text-gray-600">
 						{total ? (
 							<span>
-								Showing {total ? start + (pageItems.length ? 1 : 0) : 0}-
-								{start + pageItems.length} of {total}
+								Showing {start + startingIndexOffset}-{start + pageItems.length}{" "}
+								of {total}
 							</span>
 						) : null}
 					</div>
@@ -173,13 +177,12 @@ function TellerDetailPage() {
 							value={pageSize}
 							onChange={(e) =>
 								navigate({
-									to: "/tellers/$tellerId/",
-									params: { tellerId },
-									search: (prev) => ({
-										...prev,
-										pageSize: Number(e.target.value),
+									from: Route.fullPath,
+									search: {
 										page: 1,
-									}),
+										pageSize: Number(e.target.value),
+										q,
+									},
 								})
 							}
 						>
@@ -194,12 +197,12 @@ function TellerDetailPage() {
 							disabled={page <= 1}
 							onClick={() =>
 								navigate({
-									to: "/tellers/$tellerId/",
-									params: { tellerId },
-									search: (prev) => ({
-										...prev,
+									from: Route.fullPath,
+									search: {
 										page: Math.max(1, page - 1),
-									}),
+										pageSize,
+										q,
+									},
 								})
 							}
 						>
@@ -210,9 +213,12 @@ function TellerDetailPage() {
 							disabled={page * pageSize >= total}
 							onClick={() =>
 								navigate({
-									to: "/tellers/$tellerId/",
-									params: { tellerId },
-									search: (prev) => ({ ...prev, page: page + 1 }),
+									from: Route.fullPath,
+									search: {
+										page: page + 1,
+										pageSize,
+										q,
+									},
 								})
 							}
 						>
@@ -232,6 +238,6 @@ export const Route = createFileRoute("/tellers/$tellerId/")({
 			page: typeof search.page === "number" ? search.page : 1,
 			pageSize: typeof search.pageSize === "number" ? search.pageSize : 20,
 			q: typeof search.q === "string" ? search.q : "",
-		} as { page: number; pageSize: number; q: string };
+		};
 	},
 });

@@ -207,6 +207,10 @@ export const CashierDetailView = ({
 									tellerId: String(data.tellerId),
 									cashierId: String(data.cashierId),
 								},
+								search: {
+									page,
+									pageSize,
+								},
 							})
 						}
 					>
@@ -219,6 +223,10 @@ export const CashierDetailView = ({
 								params: {
 									tellerId: String(data.tellerId),
 									cashierId: String(data.cashierId),
+								},
+								search: {
+									page,
+									pageSize,
 								},
 							})
 						}
