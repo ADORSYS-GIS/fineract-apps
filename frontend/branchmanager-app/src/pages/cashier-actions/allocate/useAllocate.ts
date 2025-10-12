@@ -1,8 +1,5 @@
-import {
-	TellerCashManagementService,
-	useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdAllocate,
-} from "@fineract-apps/fineract-api";
-import { useQuery } from "@tanstack/react-query";
+import { TellerCashManagementService } from "@fineract-apps/fineract-api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { toast } from "react-hot-toast";
@@ -25,9 +22,7 @@ export function useAllocate(tellerId: number, cashierId: number) {
 		notes: "",
 	};
 
-	const mutation =
-		useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdAllocate();
-
+	const queryClient = useQueryClient();
 	const { data: template, isLoading: loadingTemplate } = useQuery({
 		queryKey: ["tellers", tellerId, "cashiers", cashierId, "template"],
 		queryFn: async () =>
@@ -56,27 +51,37 @@ export function useAllocate(tellerId: number, cashierId: number) {
 
 	const navigate = useNavigate();
 
+	const mutation = useMutation({
+		mutationFn: async (values: FormValues) => {
+			return TellerCashManagementService.postV1TellersByTellerIdCashiersByCashierIdAllocate(
+				{
+					tellerId,
+					cashierId,
+					requestBody: {
+						txnAmount: Number(values.amount),
+						currencyCode: values.currencyCode,
+						txnDate: formatToFineractDate(values.date),
+						txnNote: values.notes ?? "",
+						dateFormat: "dd MMMM yyyy",
+						locale: "en",
+					},
+				},
+			);
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["tellers", tellerId, "cashiers"],
+			});
+			navigate({ to: "/tellers", search: { page: 1, pageSize: 10, q: "" } });
+			toast.success("Cash allocated successfully");
+		},
+		onError: () => {
+			toast.error("Failed to allocate cash");
+		},
+	});
+
 	const onSubmit = (values: FormValues) => {
-		const promise = mutation.mutateAsync({
-			tellerId,
-			cashierId,
-			requestBody: {
-				txnAmount: Number(values.amount),
-				currencyCode: values.currencyCode,
-				txnDate: formatToFineractDate(values.date),
-				txnNote: values.notes ?? "",
-				dateFormat: "dd MMMM yyyy",
-				locale: "en",
-			},
-		});
-		toast.promise(promise, {
-			loading: "Allocating cash...",
-			success: () => {
-				navigate({ to: "/tellers", search: { page: 1, pageSize: 10, q: "" } });
-				return "Cash allocated successfully";
-			},
-			error: "Failed to allocate cash",
-		});
+		mutation.mutate(values);
 	};
 
 	return {

@@ -1,8 +1,8 @@
 import {
 	StaffService,
-	useTellerCashManagementServicePostV1TellersByTellerIdCashiers,
+	TellerCashManagementService,
 } from "@fineract-apps/fineract-api";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { FormValues, StaffOption } from "./TellerAssign.types";
 
@@ -34,8 +34,32 @@ export function useTellerAssign(
 		});
 	}, [staff]);
 
-	const mutation =
-		useTellerCashManagementServicePostV1TellersByTellerIdCashiers();
+	const queryClient = useQueryClient();
+
+	const mutation = useMutation({
+		mutationFn: async (values: FormValues) => {
+			const tellerId = Number(values.tellerId);
+			return TellerCashManagementService.postV1TellersByTellerIdCashiers({
+				tellerId,
+				requestBody: {
+					staffId: Number(values.staffId),
+					description: values.description ?? "",
+					startDate: formatToFineractDate(values.startDate),
+					endDate: formatToFineractDate(values.endDate),
+					isFullDay: values.isFullDay,
+					dateFormat: "dd MMMM yyyy",
+					locale: "en",
+				},
+			});
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["tellers"] });
+			onSuccess();
+		},
+		onError: () => {
+			// You can add a toast or error feedback here if wanted
+		},
+	});
 
 	const initialValues: FormValues = {
 		tellerId: String(tellerIdNum || ""),
@@ -47,24 +71,7 @@ export function useTellerAssign(
 	};
 
 	const onSubmit = async (values: FormValues) => {
-		const tellerId = Number(values.tellerId);
-		await mutation.mutateAsync(
-			{
-				tellerId,
-				requestBody: {
-					staffId: Number(values.staffId),
-					description: values.description ?? "",
-					startDate: formatToFineractDate(values.startDate),
-					endDate: formatToFineractDate(values.endDate),
-					isFullDay: values.isFullDay,
-					dateFormat: "dd MMMM yyyy",
-					locale: "en",
-				},
-			},
-			{
-				onSuccess,
-			},
-		);
+		await mutation.mutateAsync(values);
 	};
 
 	return {

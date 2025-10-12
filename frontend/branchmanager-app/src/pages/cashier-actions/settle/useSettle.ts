@@ -1,8 +1,5 @@
-import {
-	TellerCashManagementService,
-	useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdSettle,
-} from "@fineract-apps/fineract-api";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TellerCashManagementService } from "@fineract-apps/fineract-api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { toast } from "react-hot-toast";
@@ -25,9 +22,7 @@ export function useSettle(tellerId: number, cashierId: number) {
 		notes: "",
 	};
 
-	const mutation =
-		useTellerCashManagementServicePostV1TellersByTellerIdCashiersByCashierIdSettle();
-
+	const queryClient = useQueryClient();
 	const { data: template, isLoading: loadingTemplate } = useQuery({
 		queryKey: ["tellers", tellerId, "cashiers", cashierId, "template"],
 		queryFn: async () =>
@@ -55,44 +50,47 @@ export function useSettle(tellerId: number, cashierId: number) {
 	const defaultCurrencyCode = currencyOptions[0]?.value ?? "XAF";
 
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
+	const mutation = useMutation({
+		mutationFn: async (values: FormValues) => {
+			return TellerCashManagementService.postV1TellersByTellerIdCashiersByCashierIdSettle(
+				{
+					tellerId,
+					cashierId,
+					requestBody: {
+						txnAmount: Number(values.amount),
+						currencyCode: values.currencyCode,
+						txnDate: formatToFineractDate(values.date),
+						txnNote: values.notes ?? "",
+						dateFormat: "dd MMMM yyyy",
+						locale: "en",
+					},
+				},
+			);
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: [
+					"tellers",
+					tellerId,
+					"cashiers",
+					cashierId,
+					"summary-transactions",
+				],
+			});
+			queryClient.invalidateQueries({
+				queryKey: ["tellers", tellerId, "cashiers"],
+			});
+			queryClient.invalidateQueries({ queryKey: ["tellers"] });
+			navigate({ to: "/tellers", search: { page: 1, pageSize: 10, q: "" } });
+			toast.success("Cash settled successfully");
+		},
+		onError: () => {
+			toast.error("Failed to settle cash");
+		},
+	});
 
 	const onSubmit = (values: FormValues) => {
-		const promise = mutation.mutateAsync({
-			tellerId,
-			cashierId,
-			requestBody: {
-				txnAmount: Number(values.amount),
-				currencyCode: values.currencyCode,
-				txnDate: formatToFineractDate(values.date),
-				txnNote: values.notes ?? "",
-				dateFormat: "dd MMMM yyyy",
-				locale: "en",
-			},
-		});
-
-		toast.promise(promise, {
-			loading: "Settling cash...",
-			success: () => {
-				// Invalidate relevant queries so detail & lists reflect latest balances/transactions
-				queryClient.invalidateQueries({
-					queryKey: [
-						"tellers",
-						tellerId,
-						"cashiers",
-						cashierId,
-						"summary-transactions",
-					],
-				});
-				queryClient.invalidateQueries({
-					queryKey: ["tellers", tellerId, "cashiers"],
-				});
-				queryClient.invalidateQueries({ queryKey: ["tellers"] });
-				navigate({ to: "/tellers", search: { page: 1, pageSize: 10, q: "" } });
-				return "Cash settled successfully";
-			},
-			error: "Failed to settle cash",
-		});
+		mutation.mutate(values);
 	};
 
 	return {

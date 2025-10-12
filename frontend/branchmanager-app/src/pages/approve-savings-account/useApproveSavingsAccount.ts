@@ -1,9 +1,8 @@
 import {
 	type SavingsAccountData,
 	SavingsAccountService,
-	useSavingsAccountServicePostV1SavingsaccountsByAccountId,
 } from "@fineract-apps/fineract-api";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { toast } from "react-hot-toast";
@@ -70,8 +69,37 @@ export function useApproveSavingsAccountDetail(
 		enabled: opts?.enabled ?? true,
 	});
 
-	const { mutateAsync, isPending } =
-		useSavingsAccountServicePostV1SavingsaccountsByAccountId();
+	const mutation = useMutation({
+		mutationFn: async (params: {
+			accountId: number;
+			values: ApproveFormValues;
+		}) => {
+			const { accountId, values } = params;
+			const date = new Date(values.approvedOnDate);
+			const formattedDate = new Intl.DateTimeFormat("en-GB", {
+				day: "2-digit",
+				month: "long",
+				year: "numeric",
+			}).format(date);
+			return SavingsAccountService.postV1SavingsaccountsByAccountId({
+				accountId,
+				command: "approve",
+				requestBody: {
+					...values,
+					approvedOnDate: formattedDate,
+					dateFormat: "dd MMMM yyyy",
+					locale: "en",
+				},
+			});
+		},
+		onSuccess: () => {
+			navigate({ to: "/approve/savings/account", search: {} });
+			toast.success("Account approved successfully");
+		},
+		onError: () => {
+			toast.error("Failed to approve account");
+		},
+	});
 
 	const detail: DetailData | null = useMemo(() => {
 		if (!data) return null;
@@ -86,35 +114,16 @@ export function useApproveSavingsAccountDetail(
 	}, [data]);
 
 	const onSubmit = (values: ApproveFormValues) => {
-		const date = new Date(values.approvedOnDate);
-		const formattedDate = new Intl.DateTimeFormat("en-GB", {
-			day: "2-digit",
-			month: "long",
-			year: "numeric",
-		}).format(date);
-
-		const promise = mutateAsync({
-			accountId,
-			command: "approve",
-			requestBody: {
-				...values,
-				approvedOnDate: formattedDate,
-				dateFormat: "dd MMMM yyyy",
-				locale: "en",
-			},
-		});
-
-		toast.promise(promise, {
-			loading: "Approving account...",
-			success: () => {
-				navigate({ to: "/approve/savings/account", search: {} });
-				return "Account approved successfully";
-			},
-			error: "Failed to approve account",
-		});
+		mutation.mutate({ accountId, values });
 	};
 
 	const onBack = () => navigate({ to: "/approve/savings/account" });
 
-	return { detail, isLoading, submitting: isPending, onSubmit, onBack };
+	return {
+		detail,
+		isLoading,
+		submitting: mutation.isPending,
+		onSubmit,
+		onBack,
+	};
 }
