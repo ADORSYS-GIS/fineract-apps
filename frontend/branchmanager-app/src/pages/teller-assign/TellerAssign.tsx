@@ -37,8 +37,8 @@ export const TellerAssign = () => {
 	};
 
 	return (
-		<div>
-			<PageHeader title="Assign Teller" />
+		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+			<PageHeader />
 			<TellerAssignView
 				initialValues={initialValues}
 				staffOptions={staffOptions}

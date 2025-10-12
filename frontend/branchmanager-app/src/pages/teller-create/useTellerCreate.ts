@@ -1,11 +1,9 @@
 import {
-	OfficesService,
 	PostTellersRequest,
 	TellerCashManagementService,
 } from "@fineract-apps/fineract-api";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
 import { toast } from "react-hot-toast";
 import type { TellerCreateFormValues } from "./TellerCreate.types";
 
@@ -22,25 +20,16 @@ function formatToFineractDate(value: string): string {
 	});
 }
 
+// Cache the branch manager's office ID (assuming it's office ID 1 for now)
+// In a real app, this would come from user context/auth
+const BRANCH_MANAGER_OFFICE_ID = 1;
+
 export function useTellerCreate() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const { data: offices, isLoading: loadingOffices } = useQuery({
-		queryKey: ["offices"],
-		queryFn: async () => (await OfficesService.getV1Offices({})) ?? [],
-	});
-
-	const officeOptions = useMemo(() => {
-		if (!Array.isArray(offices))
-			return [] as { label: string; value: number }[];
-		return offices.map((o) => ({
-			label: o.name ?? `Office ${o.id}`,
-			value: o.id as number,
-		}));
-	}, [offices]);
 
 	const initialValues: TellerCreateFormValues = {
-		officeId: officeOptions[0]?.value ?? 0,
+		officeId: BRANCH_MANAGER_OFFICE_ID,
 		name: "",
 		description: "",
 		startDate: "",
@@ -78,8 +67,6 @@ export function useTellerCreate() {
 
 	return {
 		initialValues,
-		officeOptions,
-		loadingOffices,
 		onSubmit,
 		isSubmitting: isPending,
 		error,

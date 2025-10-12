@@ -17,46 +17,49 @@ export const CashierDetail = () => {
 			offset: (page - 1) * pageSize,
 		},
 	);
+
+	const actionButtons = (
+		<div className="flex justify-end gap-4">
+			<Button
+				onClick={() =>
+					navigate({
+						to: "/tellers/$tellerId/cashiers/$cashierId/settle",
+						params: {
+							tellerId,
+							cashierId,
+						},
+						search: {
+							page,
+							pageSize,
+						},
+					})
+				}
+			>
+				Settle
+			</Button>
+			<Button
+				onClick={() =>
+					navigate({
+						to: "/tellers/$tellerId/cashiers/$cashierId/allocate",
+						params: {
+							tellerId,
+							cashierId,
+						},
+						search: {
+							page,
+							pageSize,
+						},
+					})
+				}
+			>
+				Allocate
+			</Button>
+		</div>
+	);
+
 	return (
-		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
-			<PageHeader to={`/tellers/${tellerId}`} title="Cashier Detail">
-				<div className="flex justify-end gap-4">
-					<Button
-						onClick={() =>
-							navigate({
-								to: "/tellers/$tellerId/cashiers/$cashierId/settle",
-								params: {
-									tellerId,
-									cashierId,
-								},
-								search: {
-									page,
-									pageSize,
-								},
-							})
-						}
-					>
-						Settle
-					</Button>
-					<Button
-						onClick={() =>
-							navigate({
-								to: "/tellers/$tellerId/cashiers/$cashierId/allocate",
-								params: {
-									tellerId,
-									cashierId,
-								},
-								search: {
-									page,
-									pageSize,
-								},
-							})
-						}
-					>
-						Allocate
-					</Button>
-				</div>
-			</PageHeader>
+		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+			<PageHeader to={`/tellers/${tellerId}`} title="Cashier Detail" />
 			<CashierDetailView
 				data={data || {}}
 				isLoading={isLoading}
@@ -64,6 +67,7 @@ export const CashierDetail = () => {
 				page={page}
 				pageSize={pageSize}
 				total={data?.cashierTransactions?.totalFilteredRecords}
+				actionButtons={actionButtons}
 			/>
 		</div>
 	);

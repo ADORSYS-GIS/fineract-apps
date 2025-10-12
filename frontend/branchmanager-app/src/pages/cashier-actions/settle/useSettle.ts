@@ -81,7 +81,11 @@ export function useSettle(tellerId: number, cashierId: number) {
 				queryKey: ["tellers", tellerId, "cashiers"],
 			});
 			queryClient.invalidateQueries({ queryKey: ["tellers"] });
-			navigate({ to: "/tellers", search: { page: 1, pageSize: 10, q: "" } });
+			navigate({
+				to: "/tellers/$tellerId/cashiers/$cashierId",
+				params: { tellerId: String(tellerId), cashierId: String(cashierId) },
+				search: { page: 1, pageSize: 10 },
+			});
 			toast.success("Cash settled successfully");
 		},
 		onError: () => {

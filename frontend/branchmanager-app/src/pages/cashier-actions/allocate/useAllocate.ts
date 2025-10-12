@@ -72,7 +72,20 @@ export function useAllocate(tellerId: number, cashierId: number) {
 			queryClient.invalidateQueries({
 				queryKey: ["tellers", tellerId, "cashiers"],
 			});
-			navigate({ to: "/tellers", search: { page: 1, pageSize: 10, q: "" } });
+			queryClient.invalidateQueries({
+				queryKey: [
+					"tellers",
+					tellerId,
+					"cashiers",
+					cashierId,
+					"summary-transactions",
+				],
+			});
+			navigate({
+				to: "/tellers/$tellerId/cashiers/$cashierId",
+				params: { tellerId: String(tellerId), cashierId: String(cashierId) },
+				search: { page: 1, pageSize: 10 },
+			});
 			toast.success("Cash allocated successfully");
 		},
 		onError: () => {

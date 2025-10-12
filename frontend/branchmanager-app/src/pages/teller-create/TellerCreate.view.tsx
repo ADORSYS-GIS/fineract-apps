@@ -4,20 +4,16 @@ import type { TellerCreateFormValues } from "./TellerCreate.types";
 
 export function TellerCreateView({
 	initialValues,
-	officeOptions,
-	loadingOffices,
 	onSubmit,
 	isSubmitting,
 }: Readonly<{
 	initialValues: TellerCreateFormValues;
-	officeOptions: { label: string; value: number }[];
-	loadingOffices: boolean;
 	onSubmit: (values: TellerCreateFormValues) => Promise<void> | void;
 	isSubmitting: boolean;
 }>) {
 	const navigate = useNavigate({ from: "/tellers/create" });
 	return (
-		<div className="flex justify-center items-start pt-8 px-4 sm:px-6 lg:px-8">
+		<div className="flex justify-center">
 			<div className="w-full max-w-2xl">
 				<Card>
 					<div className="p-6 sm:p-8">
@@ -34,16 +30,6 @@ export function TellerCreateView({
 										placeholder="Enter teller name"
 									/>
 								</div>
-								<Input
-									name="officeId"
-									label="Office *"
-									type="select"
-									disabled={loadingOffices}
-									options={officeOptions.map((o) => ({
-										label: o.label,
-										value: o.value,
-									}))}
-								/>
 								<Input
 									name="status"
 									label="Status *"

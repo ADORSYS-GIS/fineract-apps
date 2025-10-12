@@ -20,8 +20,8 @@ export const Settle = () => {
 	};
 
 	return (
-		<div>
-			<PageHeader title="Settle Funds" />
+		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+			<PageHeader />
 			<SettleView
 				initialValues={initialValues}
 				currencyOptions={currencyOptions}

@@ -7,13 +7,7 @@ import { TellerCreateView } from "./TellerCreate.view";
 import { useTellerCreate } from "./useTellerCreate";
 
 export function TellerCreate() {
-	const {
-		initialValues,
-		officeOptions,
-		loadingOffices,
-		onSubmit,
-		isSubmitting,
-	} = useTellerCreate();
+	const { initialValues, onSubmit, isSubmitting } = useTellerCreate();
 
 	const handleSubmit = async (values: TellerCreateFormValues) => {
 		tellerCreateSchema.parse(values);
@@ -21,12 +15,10 @@ export function TellerCreate() {
 	};
 
 	return (
-		<div>
-			<PageHeader title="Create Teller" />
+		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+			<PageHeader />
 			<TellerCreateView
 				initialValues={initialValues}
-				officeOptions={officeOptions}
-				loadingOffices={loadingOffices}
 				onSubmit={handleSubmit}
 				isSubmitting={isSubmitting}
 			/>

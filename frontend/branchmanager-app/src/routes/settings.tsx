@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageHeader } from "@/components/PageHeader";
 
 function SettingsPage() {
 	return (
-		<div className="p-6">
-			<PageHeader title="Settings" />
-			<p className="text-gray-600 mt-2">Application settings (placeholder).</p>
+		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+			<h1 className="text-2xl font-bold mb-4">Settings</h1>
+			<p className="text-gray-600">Application settings (placeholder).</p>
 		</div>
 	);
 }

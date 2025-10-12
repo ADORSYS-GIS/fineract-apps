@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 
 export const ApproveAccountView = () => (
 	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+		<h1 className="text-2xl font-bold mb-6">Approve Account</h1>
 		<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
 			<Card className="hoverable cursor-pointer">
 				<Link
