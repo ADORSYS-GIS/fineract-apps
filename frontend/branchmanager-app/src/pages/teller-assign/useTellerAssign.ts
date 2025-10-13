@@ -61,12 +61,18 @@ export function useTellerAssign(
 		},
 	});
 
+	const today = new Date();
+	const yyyy = today.getFullYear();
+	const mm = String(today.getMonth() + 1).padStart(2, "0");
+	const dd = String(today.getDate()).padStart(2, "0");
+	const todayIso = `${yyyy}-${mm}-${dd}`;
+
 	const initialValues: FormValues = {
 		tellerId: String(tellerIdNum || ""),
 		staffId: "",
 		description: "",
-		startDate: "",
-		endDate: "",
+		startDate: todayIso,
+		endDate: todayIso,
 		isFullDay: true,
 	};
 

@@ -26,7 +26,9 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 		<nav className="flex-1 px-2 space-y-2">
 			{menuItems.map((item) => {
 				const Icon = item.icon;
-				const isActive = activeLink === item.link;
+				const isActive =
+					activeLink === item.link ||
+					(activeLink?.startsWith(item.link) ?? false);
 				return (
 					<a
 						key={item.link}

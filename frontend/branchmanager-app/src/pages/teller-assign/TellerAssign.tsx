@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { PageHeader } from "@/components/PageHeader";
 import { Route } from "../../routes/tellers.$tellerId.assign";
 import { type FormValues, tellerAssignSchema } from "./TellerAssign.types";
 import { TellerAssignView } from "./TellerAssign.view";
@@ -38,7 +37,7 @@ export const TellerAssign = () => {
 
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
-			<PageHeader />
+			{/* No back button on form pages; Cancel provided in form */}
 			<TellerAssignView
 				initialValues={initialValues}
 				staffOptions={staffOptions}
@@ -46,6 +45,13 @@ export const TellerAssign = () => {
 				onSubmit={handleSubmit}
 				isSubmitting={isSubmitting}
 				submitLabel="Assign"
+				onCancel={() =>
+					navigate({
+						to: "/tellers/$tellerId",
+						params: { tellerId },
+						search: { page: 1, pageSize: 20, q: "" },
+					})
+				}
 			/>
 		</div>
 	);

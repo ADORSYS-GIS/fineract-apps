@@ -1,4 +1,11 @@
-import { Form, FormTitle, Input, SubmitButton } from "@fineract-apps/ui";
+import {
+	Button,
+	Form,
+	FormTitle,
+	Input,
+	SubmitButton,
+} from "@fineract-apps/ui";
+import { useNavigate } from "@tanstack/react-router";
 import type { FormValues } from "./Allocate.types";
 
 export const AllocateView = ({
@@ -8,6 +15,7 @@ export const AllocateView = ({
 	onSubmit,
 	isSubmitting,
 	submitLabel = "Allocate",
+	onCancel,
 }: {
 	initialValues: FormValues;
 	currencyOptions: { label: string; value: string }[];
@@ -15,7 +23,9 @@ export const AllocateView = ({
 	onSubmit: (values: FormValues) => Promise<void> | void;
 	isSubmitting: boolean;
 	submitLabel?: string;
+	onCancel?: () => void;
 }) => {
+	const navigate = useNavigate();
 	return (
 		<div className="px-6 py-6">
 			<Form<FormValues> initialValues={initialValues} onSubmit={onSubmit}>
@@ -36,9 +46,19 @@ export const AllocateView = ({
 					/>
 					<Input name="notes" label="Notes" placeholder="Notes (optional)" />
 					<Input name="date" label="Transaction date" type="date" />
-					<SubmitButton
-						label={isSubmitting ? `${submitLabel}...` : submitLabel}
-					/>
+					<div className="flex flex-col sm:flex-row justify-end gap-3">
+						<SubmitButton
+							label={isSubmitting ? `${submitLabel}...` : submitLabel}
+						/>
+						<Button
+							variant="outline"
+							onClick={() =>
+								onCancel ? onCancel() : navigate({ to: "/tellers" })
+							}
+						>
+							Cancel
+						</Button>
+					</div>
 				</div>
 			</Form>
 		</div>

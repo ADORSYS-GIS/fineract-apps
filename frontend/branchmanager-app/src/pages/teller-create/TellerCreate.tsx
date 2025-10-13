@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/PageHeader";
 import {
 	type TellerCreateFormValues,
 	tellerCreateSchema,
@@ -16,7 +15,7 @@ export function TellerCreate() {
 
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
-			<PageHeader />
+			{/* No back button on create form; Cancel is provided in the form */}
 			<TellerCreateView
 				initialValues={initialValues}
 				onSubmit={handleSubmit}

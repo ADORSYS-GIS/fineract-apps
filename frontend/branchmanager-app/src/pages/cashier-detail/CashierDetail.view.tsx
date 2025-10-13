@@ -87,7 +87,7 @@ export const CashierDetailView = ({
 								<th className="px-6 py-3">Type</th>
 								<th className="px-6 py-3">Entity</th>
 								<th className="px-6 py-3">Amount</th>
-								<th className="px-6 py-3">Note</th>
+								<th className="px-6 py-3 hidden sm:table-cell">Note</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -106,7 +106,9 @@ export const CashierDetailView = ({
 										<td className="px-6 py-4">{tx.txnType?.value}</td>
 										<td className="px-6 py-4">{tx.entityType}</td>
 										<td className="px-6 py-4">{formatAmount(tx.txnAmount)}</td>
-										<td className="px-6 py-4">{tx.txnNote}</td>
+										<td className="px-6 py-4 hidden sm:table-cell">
+											{tx.txnNote}
+										</td>
 									</tr>
 								))
 							)}

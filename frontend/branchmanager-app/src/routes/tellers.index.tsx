@@ -46,7 +46,6 @@ function TellersListPage() {
 			<div className="flex justify-between items-center mb-4">
 				<div>
 					<h1 className="text-2xl font-bold">Tellers</h1>
-					<p className="text-gray-500">Manage tellers and their assignments.</p>
 				</div>
 				<Link to="/tellers/create">
 					<Button>Create Teller</Button>

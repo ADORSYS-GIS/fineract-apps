@@ -78,7 +78,9 @@ export const DashboardView = ({
 									<th className="px-6 py-3">Start</th>
 									<th className="px-6 py-3">End</th>
 									<th className="px-6 py-3">Full Day</th>
-									<th className="px-6 py-3">Description</th>
+									<th className="px-6 py-3 hidden sm:table-cell">
+										Description
+									</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -110,7 +112,9 @@ export const DashboardView = ({
 												<td className="px-6 py-4">
 													{a.isFullDay ? "Yes" : "No"}
 												</td>
-												<td className="px-6 py-4">{a.description ?? "-"}</td>
+												<td className="px-6 py-4 hidden sm:table-cell">
+													{a.description ?? "-"}
+												</td>
 											</tr>
 										))
 									) : (

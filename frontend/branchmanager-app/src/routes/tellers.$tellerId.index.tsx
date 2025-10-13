@@ -90,9 +90,9 @@ function TellerDetailPage() {
 						<thead className="text-xs text-gray-700 uppercase bg-gray-50">
 							<tr>
 								<th className="px-6 py-3">Staff Name</th>
-								<th className="px-6 py-3">Description</th>
 								<th className="px-6 py-3">Start Date</th>
 								<th className="px-6 py-3">End Date</th>
+								<th className="px-6 py-3 hidden sm:table-cell">Description</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -135,7 +135,6 @@ function TellerDetailPage() {
 											<td className="px-6 py-4 font-medium text-gray-900">
 												{cashier.staffName}
 											</td>
-											<td className="px-6 py-4">{cashier.description}</td>
 											<td className="px-6 py-4">
 												{Array.isArray(cashier.startDate)
 													? cashier.startDate.join("-")
@@ -145,6 +144,9 @@ function TellerDetailPage() {
 												{Array.isArray(cashier.endDate)
 													? cashier.endDate.join("-")
 													: cashier.endDate}
+											</td>
+											<td className="px-6 py-4 hidden sm:table-cell">
+												{cashier.description}
 											</td>
 										</tr>
 									))

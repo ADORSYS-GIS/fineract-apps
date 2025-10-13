@@ -1,19 +1,40 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../Button";
 import { NavbarProps } from "../Navbar/Navbar.types";
 import { AppLayoutProps } from "./AppLayout.types";
 
 export const AppLayoutView = React.forwardRef<HTMLDivElement, AppLayoutProps>(
 	({ children, navbar, sidebar }, ref) => {
-		const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+		const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+		const [isDesktop, setIsDesktop] = useState<boolean>(() =>
+			typeof window !== "undefined"
+				? window.matchMedia("(min-width: 768px)").matches
+				: true,
+		);
+
+		useEffect(() => {
+			if (typeof window === "undefined") return;
+			const mq = window.matchMedia("(min-width: 768px)");
+			const onChange = (e: MediaQueryListEvent) => {
+				setIsDesktop(e.matches);
+				setIsSidebarOpen(e.matches); // auto-open on desktop, hide on mobile
+			};
+			// Initialize once in case
+			setIsDesktop(mq.matches);
+			setIsSidebarOpen(mq.matches);
+			mq.addEventListener("change", onChange);
+			return () => mq.removeEventListener("change", onChange);
+		}, []);
 
 		const toggleSidebar = () => {
-			setIsSidebarOpen(!isSidebarOpen);
+			setIsSidebarOpen((v) => !v);
 		};
+
+		const isSidebarVisible = isSidebarOpen || isDesktop;
 
 		return (
 			<div ref={ref} className="flex h-screen bg-gray-100">
-				{isSidebarOpen && (
+				{isSidebarOpen && !isDesktop && (
 					<Button
 						variant="ghost"
 						className="fixed inset-0 z-10 h-full w-full bg-black opacity-50 md:hidden"
@@ -23,7 +44,7 @@ export const AppLayoutView = React.forwardRef<HTMLDivElement, AppLayoutProps>(
 				)}
 				<div
 					className={`fixed inset-y-0 left-0 z-20 w-64 md:relative md:flex ${
-						isSidebarOpen ? "flex" : "hidden"
+						isSidebarVisible ? "flex" : "hidden"
 					}`}
 				>
 					{sidebar}

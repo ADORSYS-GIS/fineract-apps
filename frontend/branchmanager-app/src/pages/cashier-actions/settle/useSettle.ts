@@ -15,10 +15,16 @@ function formatToFineractDate(value: string): string {
 }
 
 export function useSettle(tellerId: number, cashierId: number) {
+	const today = new Date();
+	const yyyy = today.getFullYear();
+	const mm = String(today.getMonth() + 1).padStart(2, "0");
+	const dd = String(today.getDate()).padStart(2, "0");
+	const todayIso = `${yyyy}-${mm}-${dd}`;
+
 	const initialValues: FormValues = {
 		amount: 0,
 		currencyCode: "XAF",
-		date: "",
+		date: todayIso,
 		notes: "",
 	};
 

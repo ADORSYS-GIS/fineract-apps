@@ -12,12 +12,14 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
+import { useState } from "react";
 import { Toaster } from "react-hot-toast";
 
 function RootLayout() {
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
+	const [isMenuOpen, setIsMenuOpen] = useState(true);
 	return (
 		<AppLayout
 			sidebar={
@@ -38,10 +40,8 @@ function RootLayout() {
 							<UserCircle className="w-5 h-5 text-gray-600" />
 						</div>
 					}
-					onToggleMenu={() => {
-						/* noop */
-					}}
-					isMenuOpen={false}
+					onToggleMenu={() => setIsMenuOpen((v) => !v)}
+					isMenuOpen={isMenuOpen}
 					variant="primary"
 					size="md"
 				/>

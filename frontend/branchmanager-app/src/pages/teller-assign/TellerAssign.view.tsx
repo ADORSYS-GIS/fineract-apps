@@ -1,4 +1,11 @@
-import { Form, FormTitle, Input, SubmitButton } from "@fineract-apps/ui";
+import {
+	Button,
+	Form,
+	FormTitle,
+	Input,
+	SubmitButton,
+} from "@fineract-apps/ui";
+import { useNavigate } from "@tanstack/react-router";
 import type { FormValues, StaffOption } from "./TellerAssign.types";
 
 export const TellerAssignView = ({
@@ -8,6 +15,7 @@ export const TellerAssignView = ({
 	onSubmit,
 	isSubmitting,
 	submitLabel = "Assign",
+	onCancel,
 }: {
 	initialValues: FormValues;
 	staffOptions: StaffOption[];
@@ -15,7 +23,9 @@ export const TellerAssignView = ({
 	onSubmit: (values: FormValues) => Promise<void> | void;
 	isSubmitting: boolean;
 	submitLabel?: string;
+	onCancel?: () => void;
 }) => {
+	const navigate = useNavigate();
 	return (
 		<div className="px-6 py-6">
 			<Form<FormValues> initialValues={initialValues} onSubmit={onSubmit}>
@@ -47,9 +57,19 @@ export const TellerAssignView = ({
 					<div className="flex items-center gap-3">
 						<Input name="isFullDay" type="checkbox" label="Full day" />
 					</div>
-					<SubmitButton
-						label={isSubmitting ? `${submitLabel}...` : submitLabel}
-					/>
+					<div className="flex flex-col sm:flex-row justify-end gap-3">
+						<SubmitButton
+							label={isSubmitting ? `${submitLabel}...` : submitLabel}
+						/>
+						<Button
+							variant="outline"
+							onClick={() =>
+								onCancel ? onCancel() : navigate({ to: "/tellers" })
+							}
+						>
+							Cancel
+						</Button>
+					</div>
 				</div>
 			</Form>
 		</div>

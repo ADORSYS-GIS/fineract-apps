@@ -1,10 +1,11 @@
-import { PageHeader } from "@/components/PageHeader";
+import { useNavigate } from "@tanstack/react-router";
 import { Route } from "../../../routes/tellers.$tellerId.cashiers.$cashierId.allocate";
 import { allocateSchema, type FormValues } from "./Allocate.types";
 import { AllocateView } from "./Allocate.view";
 import { useAllocate } from "./useAllocate";
 
 export const Allocate = () => {
+	const navigate = useNavigate();
 	const { tellerId, cashierId } = Route.useParams();
 	const {
 		initialValues,
@@ -21,7 +22,7 @@ export const Allocate = () => {
 
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
-			<PageHeader />
+			{/* No back button on form pages; Cancel provided in form */}
 			<AllocateView
 				initialValues={initialValues}
 				currencyOptions={currencyOptions}
@@ -29,6 +30,13 @@ export const Allocate = () => {
 				onSubmit={handleSubmit}
 				isSubmitting={isSubmitting}
 				submitLabel="Allocate"
+				onCancel={() =>
+					navigate({
+						to: "/tellers/$tellerId/cashiers/$cashierId",
+						params: { tellerId, cashierId },
+						search: { page: 1, pageSize: 10 },
+					})
+				}
 			/>
 		</div>
 	);

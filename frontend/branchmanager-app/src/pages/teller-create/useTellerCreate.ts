@@ -28,12 +28,18 @@ export function useTellerCreate() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
+	const today = new Date();
+	const yyyy = today.getFullYear();
+	const mm = String(today.getMonth() + 1).padStart(2, "0");
+	const dd = String(today.getDate()).padStart(2, "0");
+	const todayIso = `${yyyy}-${mm}-${dd}`;
+
 	const initialValues: TellerCreateFormValues = {
 		officeId: BRANCH_MANAGER_OFFICE_ID,
 		name: "",
 		description: "",
-		startDate: "",
-		endDate: "",
+		startDate: todayIso,
+		endDate: todayIso,
 		status: 300,
 	};
 
