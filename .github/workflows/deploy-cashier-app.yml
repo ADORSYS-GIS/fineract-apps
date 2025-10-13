@@ -5,8 +5,8 @@ on:
     branches:
       - feat/cashier-app-transactions-ui-ux
     paths:
-      - 'fineract-apps/frontend/cashier-app/**'
-      - 'fineract-apps/.github/workflows/deploy-cashier-app.yml'
+       - 'frontend/cashier-app/**'
+       - '.github/workflows/deploy-cashier-app.yml'
 
 env:
   REGISTRY: ghcr.io
