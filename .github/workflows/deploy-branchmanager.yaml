@@ -1,0 +1,39 @@
+name: Build and Push Branchmanager App Image
+
+on:
+  push:
+    branches:
+       - create-branch-manager-app
+    paths:
+       - 'frontend/branchmanager-app/**'
+       - '.github/workflows/deploy-branchmanager.yaml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: adorsys-gis/fineract-apps/branchmanager-app
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./frontend/branchmanager-app/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
