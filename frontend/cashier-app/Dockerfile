@@ -18,9 +18,17 @@ COPY frontend/branchmanager-app/package.json ./frontend/branchmanager-app/
 COPY frontend/account-manager-app/package.json ./frontend/account-manager-app/
 COPY frontend/cashier-app/package.json ./frontend/cashier-app/
 
-# This command installs dependencies for the ENTIRE workspace.
-RUN pnpm install --frozen-lockfile
+# This command installs dependencies for the ENTIRE workspace, but skips lifecycle scripts for now.
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Now that dependencies are installed, copy the entire source code (including the scripts themselves).
 COPY . .
+
+# Now, run the lifecycle scripts that were skipped.
+# This ensures all binaries and files are present before scripts are executed.
+RUN pnpm run postinstall
+
+# Finally, build the application.
 RUN pnpm --filter cashier-app... build
 
 # Stage 2: Serve the static files with Nginx
