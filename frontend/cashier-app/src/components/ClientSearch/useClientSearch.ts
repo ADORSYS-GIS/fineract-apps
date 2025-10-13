@@ -1,4 +1,5 @@
 import {
+	ApiError,
 	SavingsAccountData,
 	SavingsAccountService,
 } from "@fineract-apps/fineract-api";
@@ -11,7 +12,7 @@ export const useClientSearch = () => {
 	const [searchQuery, setSearchQuery] = useState("");
 	const navigate = useNavigate();
 
-	const queryResult = useQuery<SavingsAccountData, Error>({
+	const queryResult = useQuery<SavingsAccountData, ApiError>({
 		queryKey: ["savingsAccount", accountId, "associations"],
 		queryFn: () => {
 			if (!accountId) throw new Error("Invalid account ID");
@@ -46,5 +47,17 @@ export const useClientSearch = () => {
 		search(query);
 	};
 
-	return { ...queryResult, searchQuery, setSearchQuery, handleSearch };
+	const { error, ...restQueryResult } = queryResult;
+	const developerMessage =
+		(error?.body as { developerMessage?: string })?.developerMessage ||
+		error?.message;
+	const searchError = developerMessage ? { message: developerMessage } : null;
+
+	return {
+		...restQueryResult,
+		error: searchError,
+		searchQuery,
+		setSearchQuery,
+		handleSearch,
+	};
 };

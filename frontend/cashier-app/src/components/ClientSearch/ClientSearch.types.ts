@@ -3,5 +3,5 @@ export interface ClientSearchViewProps {
 	setSearchQuery: (value: string) => void;
 	handleSearch: (value: string) => void;
 	isLoading: boolean;
-	searchError: Error | null;
+	searchError: { message: string } | null;
 }
