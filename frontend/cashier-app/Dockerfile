@@ -10,7 +10,7 @@ RUN npm install -g pnpm
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY package.json ./
 COPY packages/ui/package.json ./packages/ui/
-COPY packages/fineract-api/package.json ./packages/fineract-api/
+COPY packages/fineract-api/package.json packages/fineract-api/fineract.json ./packages/fineract-api/
 COPY packages/config/package.json ./packages/config/
 # We copy package files for other apps even though we are only building the cashier-app
 # to ensure `pnpm install` can resolve the full workspace dependency tree.
