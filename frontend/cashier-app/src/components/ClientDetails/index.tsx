@@ -1,43 +1,45 @@
+import { useState } from "react";
 import { Route } from "@/routes/clients/$clientId";
 import { ClientDetailsView } from "./ClientDetails.view";
 import { useClientDetails } from "./useClientDetails";
+import { useClientImage } from "./useClientImage";
 
 export function ClientDetails() {
 	const { clientId } = Route.useParams();
+	const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 	const {
-		client,
-		clientAccounts,
-		clientImage,
-		isLoading,
-		isClientImageLoading,
-		isError,
-		isImageModalOpen,
+		savingsAccount,
+		isLoading: isSavingsAccountLoading,
+		isError: isSavingsAccountError,
 		isTransactionModalOpen,
 		transactionType,
 		transactionError,
 		onDeposit,
 		onWithdraw,
 		onCloseTransactionModal,
-		onOpenImageModal,
-		onCloseImageModal,
 		onSubmitTransaction,
 		isSubmitting,
 		isSuccess,
 		selectedAccount,
 	} = useClientDetails(Number(clientId));
+	const { data: clientImage, isLoading: isClientImageLoading } = useClientImage(
+		String(savingsAccount?.clientId),
+	);
 
-	if (isLoading) {
+	const handleOpenImageModal = () => setIsImageModalOpen(true);
+	const handleCloseImageModal = () => setIsImageModalOpen(false);
+
+	if (isSavingsAccountLoading) {
 		return <div>Loading...</div>;
 	}
 
-	if (isError || !client) {
+	if (isSavingsAccountError || !savingsAccount) {
 		return <div>Error loading client details.</div>;
 	}
 
 	return (
 		<ClientDetailsView
-			client={client}
-			clientAccounts={clientAccounts}
+			savingsAccount={savingsAccount}
 			clientImage={clientImage}
 			isClientImageLoading={isClientImageLoading}
 			isImageModalOpen={isImageModalOpen}
@@ -47,8 +49,8 @@ export function ClientDetails() {
 			onDeposit={onDeposit}
 			onWithdraw={onWithdraw}
 			onCloseTransactionModal={onCloseTransactionModal}
-			onOpenImageModal={onOpenImageModal}
-			onCloseImageModal={onCloseImageModal}
+			onOpenImageModal={handleOpenImageModal}
+			onCloseImageModal={handleCloseImageModal}
 			onSubmitTransaction={onSubmitTransaction}
 			isSubmitting={isSubmitting}
 			isSuccess={isSuccess}

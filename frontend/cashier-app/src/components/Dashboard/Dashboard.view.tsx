@@ -4,11 +4,7 @@ import { CashierTransactionSummary } from "../CashierTransactionSummary";
 import { ClientSearch } from "../ClientSearch";
 import { DashboardViewProps } from "./Dashboard.types";
 
-export function DashboardView({
-	query,
-	onQueryChange,
-	onLogout,
-}: Readonly<DashboardViewProps>) {
+export function DashboardView({ onLogout }: Readonly<DashboardViewProps>) {
 	return (
 		<AppLayout
 			navbar={
@@ -27,7 +23,7 @@ export function DashboardView({
 			sidebar={<Sidebar menuItems={menuCashier} onLogout={onLogout} />}
 		>
 			<div className="flex flex-col gap-4">
-				<ClientSearch query={query} onQueryChange={onQueryChange} />
+				<ClientSearch />
 				<CashierTransactionSummary />
 			</div>
 		</AppLayout>

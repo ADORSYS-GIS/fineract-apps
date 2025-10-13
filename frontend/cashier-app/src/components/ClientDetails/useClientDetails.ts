@@ -1,20 +1,19 @@
 import {
 	ApiError,
-	ClientService,
+	SavingsAccountService,
 	SavingsAccountTransactionsService,
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { useState } from "react";
 import {
 	TransactionFormData,
 	TransactionType,
 } from "../TransactionForm/TransactionForm.types";
 import { TransactionRequestBody } from "./ClientDetails.types";
-import { useClientImage } from "./useClientImage";
 
-export const useClientDetails = (clientId: number) => {
+export const useClientDetails = (savingsId: number) => {
 	const queryClient = useQueryClient();
-	const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 	const [transactionType, setTransactionType] =
 		useState<TransactionType | null>(null);
 	const [transactionError, setTransactionError] = useState<string | null>(null);
@@ -25,28 +24,18 @@ export const useClientDetails = (clientId: number) => {
 	} | null>(null);
 
 	const {
-		data: client,
-		isLoading: isClientLoading,
-		isError: isClientError,
-		error: clientError,
+		data: savingsAccount,
+		isLoading,
+		isError,
+		error,
 	} = useQuery({
-		queryKey: ["client", clientId],
-		queryFn: () => ClientService.getV1ClientsByClientId({ clientId }),
+		queryKey: ["savingsAccount", savingsId, "associations"],
+		queryFn: () =>
+			SavingsAccountService.getV1SavingsaccountsByAccountId({
+				accountId: savingsId,
+				associations: "all",
+			}),
 	});
-	const {
-		data: clientAccounts,
-		isLoading: isAccountsLoading,
-		isError: isAccountsError,
-		error: accountsError,
-	} = useQuery({
-		queryKey: ["clientAccounts", clientId],
-		queryFn: () => ClientService.getV1ClientsByClientIdAccounts({ clientId }),
-		enabled: !!client,
-	});
-
-	const { data: clientImage, isLoading: isClientImageLoading } = useClientImage(
-		String(clientId),
-	);
 
 	const transactionMutation = useMutation({
 		mutationFn: ({
@@ -59,7 +48,7 @@ export const useClientDetails = (clientId: number) => {
 			body: TransactionFormData;
 		}) => {
 			const date = new Date();
-			const transactionDate = `${date.getDate()} ${date.toLocaleString("en", { month: "long" })} ${date.getFullYear()}`;
+			const transactionDate = format(date, "yyyy-MM-dd HH:mm:ss");
 			const transactionAmount = parseFloat(body.amount);
 			return SavingsAccountTransactionsService.postV1SavingsaccountsBySavingsIdTransactions(
 				{
@@ -67,7 +56,7 @@ export const useClientDetails = (clientId: number) => {
 					command,
 					requestBody: {
 						locale: "en",
-						dateFormat: "dd MMMM yyyy",
+						dateFormat: "yyyy-MM-dd HH:mm:ss",
 						transactionDate,
 						transactionAmount,
 						paymentTypeId: 5,
@@ -77,8 +66,10 @@ export const useClientDetails = (clientId: number) => {
 			);
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["client", clientId] });
-			queryClient.invalidateQueries({ queryKey: ["clientAccounts", clientId] });
+			queryClient.invalidateQueries({
+				queryKey: ["savingsAccount", savingsId, "associations"],
+			});
+			queryClient.invalidateQueries({ queryKey: ["cashierSummary"] });
 			setIsSuccess(true);
 			setTimeout(() => {
 				handleCloseTransactionModal();
@@ -91,25 +82,19 @@ export const useClientDetails = (clientId: number) => {
 			setTransactionError(apiError ?? "An unexpected error occurred.");
 		},
 	});
-	const handleDeposit = (accountId: number) => {
-		const account = clientAccounts?.savingsAccounts?.find(
-			(acc) => acc.id === accountId,
-		);
-		if (account) {
+	const handleDeposit = () => {
+		if (savingsAccount) {
 			setTransactionError(null);
 			setTransactionType("deposit");
-			setSelectedAccount(account);
+			setSelectedAccount(savingsAccount);
 			setIsSuccess(false);
 		}
 	};
-	const handleWithdraw = (accountId: number) => {
-		const account = clientAccounts?.savingsAccounts?.find(
-			(acc) => acc.id === accountId,
-		);
-		if (account) {
+	const handleWithdraw = () => {
+		if (savingsAccount) {
 			setTransactionError(null);
 			setTransactionType("withdrawal");
-			setSelectedAccount(account);
+			setSelectedAccount(savingsAccount);
 			setIsSuccess(false);
 		}
 	};
@@ -132,25 +117,17 @@ export const useClientDetails = (clientId: number) => {
 			);
 		}
 	};
-	const handleOpenImageModal = () => setIsImageModalOpen(true);
-	const handleCloseImageModal = () => setIsImageModalOpen(false);
 	return {
-		client,
-		clientAccounts,
-		clientImage,
-		isLoading: isClientLoading || isAccountsLoading,
-		isClientImageLoading,
-		isError: isClientError || isAccountsError,
-		error: clientError || accountsError,
-		isImageModalOpen,
+		savingsAccount,
+		isLoading,
+		isError,
+		error,
 		isTransactionModalOpen: !!transactionType,
 		transactionType,
 		transactionError,
 		onDeposit: handleDeposit,
 		onWithdraw: handleWithdraw,
 		onCloseTransactionModal: handleCloseTransactionModal,
-		onOpenImageModal: handleOpenImageModal,
-		onCloseImageModal: handleCloseImageModal,
 		onSubmitTransaction: handleSubmitTransaction,
 		isSubmitting: transactionMutation.isPending,
 		isSuccess,

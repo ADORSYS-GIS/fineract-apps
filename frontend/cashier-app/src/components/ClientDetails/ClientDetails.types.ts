@@ -1,7 +1,6 @@
 import {
-	GetClientsClientIdAccountsResponse,
-	GetClientsClientIdResponse,
 	PostSavingsAccountTransactionsRequest,
+	SavingsAccountData,
 } from "@fineract-apps/fineract-api";
 import {
 	TransactionFormData,
@@ -12,16 +11,15 @@ export type TransactionRequestBody = PostSavingsAccountTransactionsRequest & {
 };
 
 export interface ClientDetailsViewProps {
-	client: GetClientsClientIdResponse;
-	clientAccounts: GetClientsClientIdAccountsResponse | undefined;
-	clientImage: string | undefined;
+	savingsAccount: SavingsAccountData;
+	clientImage?: string;
 	isClientImageLoading: boolean;
 	isImageModalOpen: boolean;
 	isTransactionModalOpen: boolean;
 	transactionType: TransactionType | null;
 	transactionError: string | null;
-	onDeposit: (accountId: number) => void;
-	onWithdraw: (accountId: number) => void;
+	onDeposit: () => void;
+	onWithdraw: () => void;
 	onCloseTransactionModal: () => void;
 	onOpenImageModal: () => void;
 	onCloseImageModal: () => void;
