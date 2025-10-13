@@ -10,7 +10,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 export default mergeConfig(
 	baseViteConfig,
 	defineConfig({
-		base: "/branch/",
+		base: "/branchmanager/",
 		plugins: [
 			tanstackRouter({
 				target: "react",
