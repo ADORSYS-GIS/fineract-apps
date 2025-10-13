@@ -5,8 +5,12 @@ on:
     branches:
       - feat/cashier-app-transactions-ui-ux
     paths:
-      - 'frontend/cashier-app/**'
-      - '.github/workflows/deploy-cashier-app.yml'
+      - 'fineract-apps/frontend/cashier-app/**'
+      - 'fineract-apps/.github/workflows/deploy-cashier-app.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: adorsys-gis/fineract-apps/cashier-app
 
 jobs:
   build-and-push:
@@ -22,7 +26,7 @@ jobs:
       - name: Log in to the GitHub Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -32,4 +36,4 @@ jobs:
           context: .
           file: ./fineract-apps/frontend/cashier-app/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/cashier-app:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
