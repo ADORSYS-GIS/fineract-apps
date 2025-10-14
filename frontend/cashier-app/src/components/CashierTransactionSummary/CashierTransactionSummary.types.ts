@@ -7,4 +7,5 @@ export interface CashierTransactionSummaryViewProps {
 	readonly isLoading: boolean;
 	readonly isError: boolean;
 	readonly error: Error | null;
+	readonly currencyCode: string | undefined;
 }

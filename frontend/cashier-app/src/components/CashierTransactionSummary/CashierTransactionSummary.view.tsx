@@ -37,6 +37,7 @@ const LoadingSkeleton = () => (
 
 export function CashierTransactionSummaryView({
 	cashierData,
+	currencyCode,
 	isLoading,
 	isError,
 	error,
@@ -100,7 +101,7 @@ export function CashierTransactionSummaryView({
 						<div>
 							<span className="text-sm text-gray-600">Net Cash: </span>
 							<span className="font-semibold text-gray-900">
-								{formatCurrency(cashierData?.netCash ?? 0)} [XAF]
+								{formatCurrency(cashierData?.netCash ?? 0, currencyCode)}
 							</span>
 						</div>
 					</div>
@@ -108,7 +109,10 @@ export function CashierTransactionSummaryView({
 						<div>
 							<span className="text-sm text-gray-600">Daily Allocation: </span>
 							<span className="font-semibold text-gray-900">
-								{formatCurrency(cashierData?.sumCashAllocation ?? 0)}
+								{formatCurrency(
+									cashierData?.sumCashAllocation ?? 0,
+									currencyCode,
+								)}
 							</span>
 						</div>
 						<div>
@@ -152,7 +156,7 @@ export function CashierTransactionSummaryView({
 										{extractClientNameFromTxnNote(item.txnNote)}
 									</td>
 									<td className="px-6 py-4">
-										{formatCurrency(item.txnAmount ?? 0)}
+										{formatCurrency(item.txnAmount ?? 0, currencyCode)}
 									</td>
 									<td className="px-6 py-4">{item.txnType?.value}</td>
 									<td className="px-6 py-4">{item.txnNote}</td>

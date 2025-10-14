@@ -107,6 +107,7 @@ export const useCashierTransactionSummary = () => {
 
 	return {
 		cashierData,
+		currencyCode,
 		isLoading:
 			isUserDetailsLoading ||
 			isCurrenciesLoading ||

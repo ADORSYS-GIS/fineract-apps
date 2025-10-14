@@ -175,6 +175,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 													<span>
 														{formatCurrency(
 															savingsAccount?.summary?.accountBalance,
+															savingsAccount.currency?.code,
 														)}
 													</span>
 												</div>
@@ -185,6 +186,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 													<span>
 														{formatCurrency(
 															savingsAccount?.summary?.availableBalance,
+															savingsAccount.currency?.code,
 														)}
 													</span>
 												</div>
@@ -232,8 +234,10 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 													: "text-red-600"
 											}`}
 										>
-											{savingsAccount.currency?.displaySymbol}{" "}
-											{transaction.amount}
+											{formatCurrency(
+												transaction.amount,
+												savingsAccount.currency?.code,
+											)}
 										</div>
 									</div>
 								))

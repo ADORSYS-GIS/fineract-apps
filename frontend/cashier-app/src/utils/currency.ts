@@ -1,10 +1,19 @@
-export const formatCurrency = (amount: number | undefined | null) => {
+export const formatCurrency = (
+	amount: number | undefined | null,
+	currencyCode?: string,
+) => {
 	if (amount === undefined || amount === null) {
 		return "";
 	}
-	return new Intl.NumberFormat("en-US", {
+	const formattedAmount = new Intl.NumberFormat("en-US", {
 		style: "decimal",
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
 	}).format(amount);
+
+	if (currencyCode) {
+		return `${currencyCode} ${formattedAmount}`;
+	}
+
+	return formattedAmount;
 };
