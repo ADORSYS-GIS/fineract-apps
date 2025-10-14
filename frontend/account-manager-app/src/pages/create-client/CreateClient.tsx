@@ -3,12 +3,8 @@ import { CreateClientView } from "./CreateClient.view";
 import { useCreateClient } from "./useCreateClient";
 
 export const CreateClient: FC = () => {
-	const {
-		initialValues,
-		validationSchema,
-		onSubmit,
-		isCreatingClient,
-	} = useCreateClient();
+	const { initialValues, validationSchema, onSubmit, isCreatingClient } =
+		useCreateClient();
 	return (
 		<CreateClientView
 			initialValues={initialValues}
