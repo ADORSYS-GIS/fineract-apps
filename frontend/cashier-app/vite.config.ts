@@ -11,6 +11,7 @@ export default mergeConfig(
 	baseViteConfig,
 	defineConfig({
 		base: "/cashier/",
+		publicDir: "../../public",
 		plugins: [
 			tanstackRouter({
 				target: "react",
