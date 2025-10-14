@@ -20,7 +20,13 @@ export function DashboardView({ onLogout }: Readonly<DashboardViewProps>) {
 					size="md"
 				/>
 			}
-			sidebar={<Sidebar menuItems={menuCashier} onLogout={onLogout} />}
+			sidebar={
+				<Sidebar
+					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
+					menuItems={menuCashier}
+					onLogout={onLogout}
+				/>
+			}
 		>
 			<div className="flex flex-col gap-4">
 				<ClientSearch />
