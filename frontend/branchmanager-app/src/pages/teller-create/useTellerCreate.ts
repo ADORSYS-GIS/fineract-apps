@@ -1,8 +1,9 @@
 import {
+	OfficesService,
 	PostTellersRequest,
 	TellerCashManagementService,
 } from "@fineract-apps/fineract-api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
 import type { TellerCreateFormValues } from "./TellerCreate.types";
@@ -20,13 +21,15 @@ function formatToFineractDate(value: string): string {
 	});
 }
 
-// Cache the branch manager's office ID (assuming it's office ID 1 for now)
-// In a real app, this would come from user context/auth
-const BRANCH_MANAGER_OFFICE_ID = 1;
-
 export function useTellerCreate() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const { data: officesData, isLoading: areOfficesLoading } = useQuery({
+		queryKey: ["offices"],
+		queryFn: () => OfficesService.getV1Offices(),
+		staleTime: Infinity,
+	});
+	const branchManagerOfficeId = officesData?.[0]?.id;
 
 	const today = new Date();
 	const yyyy = today.getFullYear();
@@ -35,7 +38,7 @@ export function useTellerCreate() {
 	const todayIso = `${yyyy}-${mm}-${dd}`;
 
 	const initialValues: TellerCreateFormValues = {
-		officeId: BRANCH_MANAGER_OFFICE_ID,
+		officeId: branchManagerOfficeId || 0,
 		name: "",
 		description: "",
 		startDate: todayIso,
@@ -74,7 +77,7 @@ export function useTellerCreate() {
 	return {
 		initialValues,
 		onSubmit,
-		isSubmitting: isPending,
+		isSubmitting: isPending || areOfficesLoading,
 		error,
 		isSuccess,
 	};

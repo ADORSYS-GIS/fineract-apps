@@ -165,8 +165,8 @@ function TellerDetailPage() {
 					<div className="text-sm text-gray-600">
 						{total ? (
 							<span>
-								Showing {start + startingIndexOffset}-{start + pageItems.length}{" "}
-								of {total}
+								{start + startingIndexOffset}-{start + pageItems.length} of{" "}
+								{total}
 							</span>
 						) : null}
 					</div>

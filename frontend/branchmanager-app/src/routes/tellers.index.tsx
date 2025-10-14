@@ -110,7 +110,7 @@ function TellersListPage() {
 						<div className="text-sm text-gray-600">
 							{pageItems.length > 0 && (
 								<span>
-									Showing {start + 1}-{start + pageItems.length} of {total}
+									{start + 1}-{start + pageItems.length} of {total}
 								</span>
 							)}
 						</div>

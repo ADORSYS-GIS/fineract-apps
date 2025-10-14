@@ -79,48 +79,82 @@ export const CashierDetailView = ({
 				className="w-full mt-6"
 				title={<span className="text-xl font-bold">Transactions</span>}
 			>
-				<div className="overflow-x-auto">
-					<table className="w-full text-sm text-left text-gray-500">
-						<thead className="text-xs text-gray-700 uppercase bg-gray-50">
-							<tr>
-								<th className="px-6 py-3">Date</th>
-								<th className="px-6 py-3">Type</th>
-								<th className="px-6 py-3">Entity</th>
-								<th className="px-6 py-3">Amount</th>
-								<th className="px-6 py-3 hidden sm:table-cell">Note</th>
-							</tr>
-						</thead>
-						<tbody>
-							{transactions.length === 0 ? (
-								<tr className="bg-white border-b">
-									<td className="px-6 py-4 text-gray-500" colSpan={5}>
-										No transactions found.
-									</td>
+				<div>
+					{/* Mobile and Tablet View: Card List */}
+					<div className="md:hidden">
+						{transactions.length === 0 ? (
+							<div className="px-6 py-4 text-gray-500">
+								No transactions found.
+							</div>
+						) : (
+							transactions.map((tx) => (
+								<div
+									key={tx.id}
+									className="border-b px-4 py-4 grid grid-cols-2 gap-x-4 gap-y-2"
+								>
+									<div className="font-semibold text-gray-600">Date</div>
+									<div>{tx.txnDate || tx.createdDate}</div>
+
+									<div className="font-semibold text-gray-600">Type</div>
+									<div>{tx.txnType?.value}</div>
+
+									<div className="font-semibold text-gray-600">Amount</div>
+									<div>{formatAmount(tx.txnAmount)}</div>
+
+									<div className="font-semibold text-gray-600">Entity</div>
+									<div>{tx.entityType}</div>
+
+									<div className="font-semibold text-gray-600">Note</div>
+									<div>{tx.txnNote}</div>
+								</div>
+							))
+						)}
+					</div>
+
+					{/* Desktop View: Table */}
+					<div className="hidden md:block overflow-x-auto">
+						<table className="w-full text-sm text-left text-gray-500">
+							<thead className="text-xs text-gray-700 uppercase bg-gray-50">
+								<tr>
+									<th className="px-6 py-3">Date</th>
+									<th className="px-6 py-3">Type</th>
+									<th className="px-6 py-3">Amount</th>
+									<th className="px-6 py-3">Entity</th>
+									<th className="px-6 py-3">Note</th>
 								</tr>
-							) : (
-								transactions.map((tx) => (
-									<tr key={tx.id} className="bg-white border-b">
-										<td className="px-6 py-4">
-											{tx.txnDate || tx.createdDate}
-										</td>
-										<td className="px-6 py-4">{tx.txnType?.value}</td>
-										<td className="px-6 py-4">{tx.entityType}</td>
-										<td className="px-6 py-4">{formatAmount(tx.txnAmount)}</td>
-										<td className="px-6 py-4 hidden sm:table-cell">
-											{tx.txnNote}
+							</thead>
+							<tbody>
+								{transactions.length === 0 ? (
+									<tr className="bg-white border-b">
+										<td className="px-6 py-4 text-gray-500" colSpan={5}>
+											No transactions found.
 										</td>
 									</tr>
-								))
-							)}
-						</tbody>
-					</table>
+								) : (
+									transactions.map((tx) => (
+										<tr key={tx.id} className="bg-white border-b">
+											<td className="px-6 py-4">
+												{tx.txnDate || tx.createdDate}
+											</td>
+											<td className="px-6 py-4">{tx.txnType?.value}</td>
+											<td className="px-6 py-4">
+												{formatAmount(tx.txnAmount)}
+											</td>
+											<td className="px-6 py-4">{tx.entityType}</td>
+											<td className="px-6 py-4">{tx.txnNote}</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+					</div>
 				</div>
 				{/* Pagination Controls */}
 				<div className="flex items-center justify-between mt-3">
 					<div className="text-sm text-gray-600">
 						{total ? (
 							<span>
-								Showing{" "}
+								{" "}
 								{(page - 1) * pageSize +
 									Math.min(transactions.length ? 1 : 0, 1)}
 								-{(page - 1) * pageSize + transactions.length} of {total}
