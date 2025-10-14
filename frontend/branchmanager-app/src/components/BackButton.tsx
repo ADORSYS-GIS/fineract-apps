@@ -1,13 +1,14 @@
 import { Button } from "@fineract-apps/ui";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 
 export const BackButton = ({ to }: { to?: string }) => {
 	const navigate = useNavigate();
+	const router = useRouter();
 	const handleNavigate = () => {
 		if (to) {
 			navigate({ to });
 		} else {
-			window.history.back();
+			router.history.back();
 		}
 	};
 

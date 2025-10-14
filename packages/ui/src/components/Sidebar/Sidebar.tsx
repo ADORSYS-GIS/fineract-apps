@@ -6,11 +6,10 @@ import { useSidebar } from "./useSidebar";
 export const Sidebar: React.FC<SidebarProps> = ({
 	logo,
 	menuItems = [],
-	activePath,
 	onNavigate,
 	...rest
 }) => {
-	const { activeLink, handleClick } = useSidebar(menuItems, activePath);
+	const { activeLink, handleClick } = useSidebar();
 
 	return (
 		<SidebarView
