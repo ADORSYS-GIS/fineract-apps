@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CreateClientRouteImport } from './routes/create-client'
 import { Route as CreateAccountRouteImport } from './routes/create-account'
@@ -19,11 +18,6 @@ import { Route as OpenSavingsAccountClientIdRouteImport } from './routes/open-sa
 import { Route as OpenAccountClientIdRouteImport } from './routes/open-account.$clientId'
 import { Route as ClientDetailsClientIdRouteImport } from './routes/client-details/$clientId'
 
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -72,7 +66,6 @@ export interface FileRoutesByFullPath {
   '/create-account': typeof CreateAccountRoute
   '/create-client': typeof CreateClientRoute
   '/dashboard': typeof DashboardRoute
-  '/login': typeof LoginRoute
   '/client-details/$clientId': typeof ClientDetailsClientIdRoute
   '/open-account/$clientId': typeof OpenAccountClientIdRoute
   '/open-savings-account/$clientId': typeof OpenSavingsAccountClientIdRoute
@@ -83,7 +76,6 @@ export interface FileRoutesByTo {
   '/create-account': typeof CreateAccountRoute
   '/create-client': typeof CreateClientRoute
   '/dashboard': typeof DashboardRoute
-  '/login': typeof LoginRoute
   '/client-details/$clientId': typeof ClientDetailsClientIdRoute
   '/open-account/$clientId': typeof OpenAccountClientIdRoute
   '/open-savings-account/$clientId': typeof OpenSavingsAccountClientIdRoute
@@ -95,7 +87,6 @@ export interface FileRoutesById {
   '/create-account': typeof CreateAccountRoute
   '/create-client': typeof CreateClientRoute
   '/dashboard': typeof DashboardRoute
-  '/login': typeof LoginRoute
   '/client-details/$clientId': typeof ClientDetailsClientIdRoute
   '/open-account/$clientId': typeof OpenAccountClientIdRoute
   '/open-savings-account/$clientId': typeof OpenSavingsAccountClientIdRoute
@@ -108,7 +99,6 @@ export interface FileRouteTypes {
     | '/create-account'
     | '/create-client'
     | '/dashboard'
-    | '/login'
     | '/client-details/$clientId'
     | '/open-account/$clientId'
     | '/open-savings-account/$clientId'
@@ -119,7 +109,6 @@ export interface FileRouteTypes {
     | '/create-account'
     | '/create-client'
     | '/dashboard'
-    | '/login'
     | '/client-details/$clientId'
     | '/open-account/$clientId'
     | '/open-savings-account/$clientId'
@@ -130,7 +119,6 @@ export interface FileRouteTypes {
     | '/create-account'
     | '/create-client'
     | '/dashboard'
-    | '/login'
     | '/client-details/$clientId'
     | '/open-account/$clientId'
     | '/open-savings-account/$clientId'
@@ -142,7 +130,6 @@ export interface RootRouteChildren {
   CreateAccountRoute: typeof CreateAccountRoute
   CreateClientRoute: typeof CreateClientRoute
   DashboardRoute: typeof DashboardRoute
-  LoginRoute: typeof LoginRoute
   ClientDetailsClientIdRoute: typeof ClientDetailsClientIdRoute
   OpenAccountClientIdRoute: typeof OpenAccountClientIdRoute
   OpenSavingsAccountClientIdRoute: typeof OpenSavingsAccountClientIdRoute
@@ -150,13 +137,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -222,7 +202,6 @@ const rootRouteChildren: RootRouteChildren = {
   CreateAccountRoute: CreateAccountRoute,
   CreateClientRoute: CreateClientRoute,
   DashboardRoute: DashboardRoute,
-  LoginRoute: LoginRoute,
   ClientDetailsClientIdRoute: ClientDetailsClientIdRoute,
   OpenAccountClientIdRoute: OpenAccountClientIdRoute,
   OpenSavingsAccountClientIdRoute: OpenSavingsAccountClientIdRoute,

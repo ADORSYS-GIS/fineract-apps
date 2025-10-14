@@ -1,3 +1,4 @@
+import { ClientData } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { fineractApi } from "../../services/api";
@@ -6,10 +7,12 @@ export const useClientDetails = () => {
 	const { clientId } = useParams({ from: "/client-details/$clientId" });
 	const queryClient = useQueryClient();
 
-	const { data: client, isLoading } = useQuery({
+	const { data: client, isLoading } = useQuery<ClientData>({
 		queryKey: ["client", clientId],
 		queryFn: () =>
-			fineractApi.clients.getV1ClientsByClientId({ clientId: +clientId }),
+			fineractApi.clients.getV1ClientsByClientId({
+				clientId: +clientId,
+			}) as Promise<ClientData>,
 	});
 
 	const { data: accounts } = useQuery({

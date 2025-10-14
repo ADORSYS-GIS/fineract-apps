@@ -1,9 +1,18 @@
 import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
-import { FC, useState } from "react";
+import { ArrowLeft, Camera, Edit, Trash2, Upload } from "lucide-react";
+import { FC, useRef, useState } from "react";
 import { AccountCard } from "./components/AccountCard/AccountCard";
+import { AddIdentityDocument } from "./components/AddIdentityDocument/AddIdentityDocument.view";
+import { CaptureImage } from "./components/CaptureImage/CaptureImage.view";
+import { EditClientDetails } from "./components/EditClientDetails/EditClientDetails.view";
+import { KYCManagement } from "./components/KYCManagement/KYCManagement.view";
 import { SelectAccountType } from "./components/SelectAccountType/SelectAccountType";
+import {
+	useDeleteClientImage,
+	useGetClientImage,
+	useUploadClientImage,
+} from "./hooks/useClientImage";
 import { useClientDetails } from "./useClientDetails";
 
 const parseFineractDate = (dateArray: unknown): Date | null => {
@@ -27,80 +36,123 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 	activateAccount,
 }) => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+	const [isAddIdentityModalOpen, setIsAddIdentityModalOpen] = useState(false);
+	const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const {
+		data: clientImage,
+		isLoading: isClientImageLoading,
+		refetch: refetchClientImage,
+	} = useGetClientImage(String(client?.id));
+
+	const { mutate: uploadImage } = useUploadClientImage(() => {
+		refetchClientImage();
+	});
+
+	const { mutate: deleteImage } = useDeleteClientImage();
+
+	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			uploadImage(file);
+		}
+	};
+
+	const renderClientImage = () => {
+		if (isClientImageLoading) {
+			return (
+				<div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center shadow-md">
+					<span className="text-sm text-gray-500">Loading...</span>
+				</div>
+			);
+		}
+		if (clientImage) {
+			return (
+				<img
+					src={clientImage}
+					alt="Client"
+					className="w-32 h-32 rounded-full shadow-md"
+				/>
+			);
+		}
+		return (
+			<div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center shadow-md">
+				<span className="text-sm text-gray-500">No Image</span>
+			</div>
+		);
+	};
 
 	if (isLoading) {
 		return <div>Loading...</div>;
 	}
 
 	return (
-		<div className="bg-gray-50 min-h-screen">
-			<header className="p-4 flex items-center border-b bg-white">
-				<Link to="/dashboard">
-					<Button variant="ghost">
-						<ArrowLeft className="h-6 w-6" />
+		<div className="bg-gray-100 min-h-screen font-sans">
+			<header className="bg-white shadow-sm sticky top-0 z-10">
+				<div className="max-w-md mx-auto p-4 flex justify-between items-center">
+					<Link to="/dashboard">
+						<Button variant="ghost">
+							<ArrowLeft className="h-6 w-6" />
+						</Button>
+					</Link>
+					<h1 className="text-xl font-semibold">Client Profile</h1>
+					<Button variant="ghost" onClick={() => setIsEditModalOpen(true)}>
+						<Edit className="h-6 w-6" />
 					</Button>
-				</Link>
-				<h1 className="text-lg font-semibold ml-4">Client Profile</h1>
+				</div>
 			</header>
 
-			<main className="p-6">
-				<div className="flex flex-col items-center text-center">
-					<div className="w-24 h-24 rounded-full mb-4 bg-gray-200 flex items-center justify-center">
-						<span className="text-gray-500 text-xs">
-							{client?.displayName?.[0]}
-						</span>
+			<main className="max-w-md mx-auto p-4 pb-20">
+				<div className="flex flex-col items-center text-center mt-4">
+					<div className="w-32 h-32 rounded-full mb-4 bg-gray-200 flex items-center justify-center overflow-hidden">
+						{renderClientImage()}
+					</div>
+					<div className="flex space-x-4 items-center text-gray-600 mb-4">
+						<input
+							type="file"
+							ref={fileInputRef}
+							onChange={handleFileChange}
+							className="hidden"
+							accept="image/*"
+						/>
+						<button
+							className="flex items-center space-x-1 text-sm"
+							onClick={() => fileInputRef.current?.click()}
+						>
+							<Upload className="h-4 w-4" />
+							<span>Upload</span>
+						</button>
+						<button
+							className="flex items-center space-x-1 text-sm"
+							onClick={() => setIsCaptureModalOpen(true)}
+						>
+							<Camera className="h-4 w-4" />
+							<span>Capture</span>
+						</button>
+						<button
+							className="flex items-center space-x-1 text-sm text-red-500"
+							onClick={() => deleteImage()}
+						>
+							<Trash2 className="h-4 w-4" />
+							<span>Delete</span>
+						</button>
 					</div>
 					<h2 className="text-2xl font-bold">{client?.displayName}</h2>
-					<p className="text-sm text-gray-500">
-						Account No: {client?.accountNo}
+					<p className="text-sm text-gray-500 mt-1">
+						Client ID: {client?.accountNo}
 					</p>
 					<p className="text-sm text-gray-500">
 						Joined{" "}
 						{parseFineractDate(
 							client?.timeline?.submittedOnDate,
-						)?.toLocaleDateString() ?? ""}
+						)?.toLocaleDateString("en-US", {
+							year: "numeric",
+						}) ?? ""}
 					</p>
 				</div>
 
-				<div className="mt-8">
-					<h3 className="text-lg font-semibold mb-4">Basic Information</h3>
-					<div className="bg-white rounded-lg shadow p-4 space-y-4">
-						<div className="flex justify-between">
-							<p className="text-sm text-gray-500">Activation Date</p>
-							<p className="text-md">
-								{parseFineractDate(
-									client?.activationDate,
-								)?.toLocaleDateString() ?? ""}
-							</p>
-						</div>
-						<div className="flex justify-between">
-							<p className="text-sm text-gray-500">Office Name</p>
-							<p className="text-md">{client?.officeName}</p>
-						</div>
-						<div className="flex justify-between">
-							<p className="text-sm text-gray-500">Status</p>
-							<p className="text-md">
-								{(client?.status as { value: string })?.value}
-							</p>
-						</div>
-					</div>
-				</div>
-
-				<div className="mt-8">
-					<h3 className="text-lg font-semibold mb-4">Contact Details</h3>
-					<div className="bg-white rounded-lg shadow p-4 space-y-4">
-						<div className="flex justify-between">
-							<p className="text-sm text-gray-500">Phone</p>
-							<p className="text-md">
-								{(client as { mobileNo?: string })?.mobileNo}
-							</p>
-						</div>
-						<div className="flex justify-between">
-							<p className="text-sm text-gray-500">Email</p>
-							<p className="text-md">{client?.emailAddress}</p>
-						</div>
-					</div>
-				</div>
 				<div className="mt-8">
 					<h3 className="text-lg font-semibold mb-4">Accounts</h3>
 					{accounts?.savingsAccounts?.map((account) => (
@@ -117,11 +169,29 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 						Open Account
 					</Button>
 				</div>
+				<KYCManagement onAddIdentity={() => setIsAddIdentityModalOpen(true)} />
 			</main>
 			<SelectAccountType
 				isOpen={isModalOpen}
 				closeModal={() => setIsModalOpen(false)}
 				clientId={client?.id}
+			/>
+			<EditClientDetails
+				isOpen={isEditModalOpen}
+				onClose={() => setIsEditModalOpen(false)}
+				client={client}
+			/>
+			<AddIdentityDocument
+				isOpen={isAddIdentityModalOpen}
+				onClose={() => setIsAddIdentityModalOpen(false)}
+			/>
+			<CaptureImage
+				isOpen={isCaptureModalOpen}
+				onClose={() => setIsCaptureModalOpen(false)}
+				onCapture={(file) => {
+					uploadImage(file);
+					setIsCaptureModalOpen(false);
+				}}
 			/>
 		</div>
 	);

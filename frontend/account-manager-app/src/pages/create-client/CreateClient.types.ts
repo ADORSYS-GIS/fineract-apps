@@ -10,7 +10,6 @@ export const createClientValidationSchema = z.object({
 	mobileNo: z.string().optional(),
 	activationDate: z.string().optional(),
 	active: z.boolean(),
-	officeId: z.string().min(1, "Office is required"),
 });
 
 export type CreateClientForm = z.infer<typeof createClientValidationSchema>;
@@ -22,5 +21,4 @@ export const initialValues: CreateClientForm = {
 	mobileNo: "",
 	activationDate: "",
 	active: false,
-	officeId: "",
 };

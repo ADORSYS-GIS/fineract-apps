@@ -1,7 +1,7 @@
 import { GetClientsPageItemsResponse } from "@fineract-apps/fineract-api";
 import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
-import { Briefcase, Mail, PhoneCallIcon, UserPlus } from "lucide-react";
+import { Briefcase, Mail, UserPlus } from "lucide-react";
 import { FC, useState } from "react";
 import { ActivateClient } from "./components";
 import { useDashboard } from "./useDashboard";
@@ -10,11 +10,14 @@ const getStatusClass = (status: string) => {
 	switch (status) {
 		case "Active":
 			return "bg-green-100 text-green-800";
-		case "Closed":
-			return "bg-red-100 text-red-800";
 		default:
 			return "bg-yellow-100 text-yellow-800";
 	}
+};
+
+const getStatusFromCode = (code = "") => {
+	const status = code.split(".")[1] || "";
+	return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
 export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
@@ -57,57 +60,58 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 				) : (
 					<>
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-							{clients.map((client: GetClientsPageItemsResponse) => (
-								<Card
-									key={client.id}
-									className="p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow w-full"
-								>
-									<Link
-										to="/client-details/$clientId"
-										params={{ clientId: String(client.id) }}
+							{clients.map((client: GetClientsPageItemsResponse) => {
+								const clientStatus = getStatusFromCode(client.status?.code);
+								return (
+									<Card
+										key={client.id}
+										className="p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow w-full"
 									>
-										<div className="flex justify-between items-start">
-											<div>
-												<h2 className="text-lg font-semibold text-gray-900">
-													{client.displayName}
-												</h2>
-												<p className="text-sm text-gray-500">
-													Account No: {client.accountNo}
-												</p>
+										<Link
+											to="/client-details/$clientId"
+											params={{ clientId: String(client.id) }}
+										>
+											<div className="flex justify-between items-start">
+												<div>
+													<h2 className="text-lg font-semibold text-gray-900">
+														{client.displayName}
+													</h2>
+													<p className="text-sm text-gray-500">
+														Account No: {client.accountNo}
+													</p>
+												</div>
+												<span
+													className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(
+														clientStatus,
+													)}`}
+												>
+													{clientStatus}
+												</span>
 											</div>
-											<span
-												className={`px-2 py-1 text-xs font-semibold rounded-full ${
-													client.status
-														? getStatusClass(client.status.code ?? "")
-														: ""
-												}`}
-											>
-												{client.status?.code}
-											</span>
-										</div>
-										<div className="mt-4 space-y-2">
-											<div className="flex items-center text-sm text-gray-600">
-												<Briefcase className="h-4 w-4 mr-2" />
-												<span>{client.officeName}</span>
+											<div className="mt-4 space-y-2">
+												<div className="flex items-center text-sm text-gray-600">
+													<Briefcase className="h-4 w-4 mr-2" />
+													<span>{client.officeName}</span>
+												</div>
+												<div className="flex items-center text-sm text-gray-600">
+													<Mail className="h-4 w-4 mr-2" />
+													<span>{client.emailAddress || "N/A"}</span>
+												</div>
 											</div>
-											<div className="flex items-center text-sm text-gray-600">
-												<Mail className="h-4 w-4 mr-2" />
-												<span>{client.emailAddress || "N/A"}</span>
+										</Link>
+										{clientStatus === "Pending" && (
+											<div className="mt-4 flex justify-end">
+												<Button
+													variant="outline"
+													onClick={() => setSelectedClient(client)}
+												>
+													Activate
+												</Button>
 											</div>
-										</div>
-									</Link>
-									{client.status?.code === "Pending" && (
-										<div className="mt-4 flex justify-end">
-											<Button
-												variant="outline"
-												onClick={() => setSelectedClient(client)}
-											>
-												Activate
-											</Button>
-										</div>
-									)}
-								</Card>
-							))}
+										)}
+									</Card>
+								);
+							})}
 						</div>
 						<div className="mt-4">
 							<Pagination

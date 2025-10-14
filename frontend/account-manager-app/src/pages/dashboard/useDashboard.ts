@@ -17,6 +17,8 @@ export const useDashboard = () => {
 			fineractApi.clients.getV1Clients({
 				offset: (currentPage - 1) * 3,
 				limit: 3,
+				orderBy: "id",
+				sortOrder: "DESC",
 			}),
 	});
 

@@ -1,35 +1,29 @@
 import {
-	AuthenticationHttpBasicService,
+	ClientIdentifierService,
 	ClientSearchV2Service,
 	ClientService,
 	DefaultService,
+	DocumentsService,
 	OfficesService,
 	OpenAPI,
 	SavingsAccountService,
 	SelfClientService,
 } from "@fineract-apps/fineract-api";
 
-OpenAPI.BASE = "https://localhost/fineract-provider/api";
-
-OpenAPI.HEADERS = async () => {
-	const headers: Record<string, string> = {
-		"Fineract-Platform-TenantId": "default",
-	};
-
-	const token = localStorage.getItem("token");
-	if (token) {
-		headers["Authorization"] = `Basic ${token}`;
-	}
-
-	return headers;
+OpenAPI.BASE = import.meta.env.VITE_FINERACT_API_URL;
+OpenAPI.USERNAME = import.meta.env.VITE_FINERACT_USERNAME;
+OpenAPI.PASSWORD = import.meta.env.VITE_FINERACT_PASSWORD;
+OpenAPI.HEADERS = {
+	"Fineract-Platform-TenantId": import.meta.env.VITE_FINERACT_TENANT_ID,
 };
 
 export const fineractApi = {
 	clients: ClientService,
-	auth: AuthenticationHttpBasicService,
 	clientSearchV2: ClientSearchV2Service,
 	savingsAccounts: SavingsAccountService,
 	offices: OfficesService,
 	self: SelfClientService,
+	ClientIdentifierService: ClientIdentifierService,
+	DocumentsService: DocumentsService,
 	default: DefaultService,
 };

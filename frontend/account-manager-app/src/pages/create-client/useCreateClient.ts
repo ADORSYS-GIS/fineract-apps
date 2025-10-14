@@ -1,5 +1,5 @@
 import { PostV1ClientsData } from "@fineract-apps/fineract-api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { z } from "zod";
@@ -11,11 +11,6 @@ import {
 
 export const useCreateClient = () => {
 	const navigate = useNavigate();
-	const { data: offices } = useQuery({
-		queryKey: ["offices"],
-		queryFn: () =>
-			fineractApi.offices.getV1Offices({ includeAllOffices: true }),
-	});
 	const { mutate: createClient, isPending: isCreatingClient } = useMutation({
 		mutationKey: ["createClient"],
 		mutationFn: (clientData: PostV1ClientsData) =>
@@ -29,10 +24,10 @@ export const useCreateClient = () => {
 	const onSubmit = (values: z.infer<typeof createClientValidationSchema>) => {
 		const requestBody = {
 			...values,
-			officeId: Number(values.officeId),
+			officeId: 2,
 			legalFormId: 1,
-			activationDate: values.activationDate
-				? format(new Date(values.activationDate), "dd MMMM yyyy")
+			activationDate: values.active
+				? format(new Date(), "dd MMMM yyyy")
 				: undefined,
 			dateFormat: "dd MMMM yyyy",
 			locale: "en",
@@ -45,6 +40,5 @@ export const useCreateClient = () => {
 		validationSchema: createClientValidationSchema,
 		onSubmit,
 		isCreatingClient,
-		offices,
 	};
 };

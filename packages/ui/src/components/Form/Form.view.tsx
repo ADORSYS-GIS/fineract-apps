@@ -5,7 +5,6 @@ import {
 	useFormikContext,
 } from "formik";
 import React from "react";
-import { toFormikValidationSchema } from "zod-formik-adapter";
 import { cn } from "../../lib/utils";
 import { Button } from "../Button";
 import { ButtonProps } from "../Button/Button.types";
@@ -21,8 +20,6 @@ import { FormProps, Values } from "./Form.types";
  * </Form>
  */
 export function Form<T extends Values = Values>({
-	initialValues,
-	validationSchema,
 	onSubmit,
 	children,
 	className,
@@ -35,15 +32,7 @@ export function Form<T extends Values = Values>({
 	};
 
 	return (
-		<Formik<T>
-			initialValues={initialValues ?? ({} as T)}
-			validationSchema={
-				validationSchema
-					? toFormikValidationSchema(validationSchema)
-					: undefined
-			}
-			onSubmit={handleSubmit}
-		>
+		<Formik<T> initialValues={{} as T} onSubmit={handleSubmit}>
 			<FormikForm
 				noValidate
 				className={cn(
