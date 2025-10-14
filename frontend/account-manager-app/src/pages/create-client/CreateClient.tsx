@@ -8,7 +8,6 @@ export const CreateClient: FC = () => {
 		validationSchema,
 		onSubmit,
 		isCreatingClient,
-		offices,
 	} = useCreateClient();
 	return (
 		<CreateClientView
@@ -16,7 +15,6 @@ export const CreateClient: FC = () => {
 			validationSchema={validationSchema}
 			onSubmit={onSubmit}
 			isCreatingClient={isCreatingClient}
-			offices={offices}
 		/>
 	);
 };

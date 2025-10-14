@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Button } from "../Button";
 import { NavbarProps } from "../Navbar/Navbar.types";
 import { AppLayoutProps } from "./AppLayout.types";
 
@@ -13,17 +12,9 @@ export const AppLayoutView = React.forwardRef<HTMLDivElement, AppLayoutProps>(
 
 		return (
 			<div ref={ref} className="flex h-screen bg-gray-100">
-				{isSidebarOpen && (
-					<Button
-						variant="ghost"
-						className="fixed inset-0 z-10 h-full w-full bg-black opacity-50 md:hidden"
-						onClick={toggleSidebar}
-						aria-label="Close sidebar"
-					/>
-				)}
 				<div
-					className={`fixed inset-y-0 left-0 z-20 w-64 md:relative md:flex ${
-						isSidebarOpen ? "flex" : "hidden"
+					className={`fixed inset-y-0 left-0 z-30 w-64 transform bg-white shadow-lg transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+						isSidebarOpen ? "translate-x-0" : "-translate-x-full"
 					}`}
 				>
 					{sidebar}
