@@ -26,10 +26,10 @@ export const useClientSearch = () => {
 	});
 
 	useEffect(() => {
-		if (queryResult.data?.clientId) {
+		if (queryResult.data?.id) {
 			navigate({
 				to: "/clients/$clientId",
-				params: { clientId: String(queryResult.data.clientId) },
+				params: { clientId: String(queryResult.data.id) },
 			});
 		}
 	}, [queryResult.data, navigate]);
