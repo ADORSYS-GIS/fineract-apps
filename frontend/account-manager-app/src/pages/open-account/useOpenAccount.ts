@@ -6,6 +6,7 @@ import {
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import * as z from "zod";
 import { OpenAccountForm, openAccountSchema } from "./OpenAccount.types";
 
@@ -31,6 +32,14 @@ export const useOpenAccount = (clientId: number) => {
 	>({
 		mutationFn: (payload) =>
 			SavingsAccountService.postV1Savingsaccounts(payload),
+		onSuccess: () => {
+			toast.success("Account created successfully!");
+		},
+		onError: (error) => {
+			toast.error(
+				error.message || "An error occurred while creating the account.",
+			);
+		},
 	});
 
 	const initialValues = {

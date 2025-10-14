@@ -1,6 +1,7 @@
 import { PutV1ClientsByClientIdData } from "@fineract-apps/fineract-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import { z } from "zod";
 import { fineractApi } from "../../../../services/api";
 import {
@@ -17,7 +18,13 @@ export const useEditClient = (onClose: () => void) => {
 			fineractApi.clients.putV1ClientsByClientId(clientData),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["client", clientId] });
+			toast.success("Client details updated successfully!");
 			onClose();
+		},
+		onError: (error) => {
+			toast.error(
+				error.message || "An error occurred while updating the client details.",
+			);
 		},
 	});
 

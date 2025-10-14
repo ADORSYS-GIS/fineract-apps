@@ -4,6 +4,7 @@ import {
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import { fineractApi } from "../../../services/api";
 
 const blobToDataURL = (blob: Blob): Promise<string | null> => {
@@ -89,7 +90,13 @@ export const useUploadClientImage = (onSuccess?: () => void) => {
 			queryClient.invalidateQueries({
 				queryKey: ["clientImage", clientId],
 			});
+			toast.success("Image uploaded successfully!");
 			onSuccess?.();
+		},
+		onError: (error) => {
+			toast.error(
+				error.message || "An error occurred while uploading the image.",
+			);
 		},
 	});
 };
@@ -107,6 +114,12 @@ export const useDeleteClientImage = () => {
 			}),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["clientImage", clientId] });
+			toast.success("Image deleted successfully!");
+		},
+		onError: (error) => {
+			toast.error(
+				error.message || "An error occurred while deleting the image.",
+			);
 		},
 	});
 };

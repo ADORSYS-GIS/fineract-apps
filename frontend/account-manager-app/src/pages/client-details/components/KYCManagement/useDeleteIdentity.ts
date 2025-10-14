@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import { fineractApi } from "../../../../services/api";
 
 export const useDeleteIdentity = () => {
@@ -17,6 +18,13 @@ export const useDeleteIdentity = () => {
 			),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["identifiers", clientId] });
+			toast.success("Identity document deleted successfully!");
+		},
+		onError: (error) => {
+			toast.error(
+				error.message ||
+					"An error occurred while deleting the identity document.",
+			);
 		},
 	});
 

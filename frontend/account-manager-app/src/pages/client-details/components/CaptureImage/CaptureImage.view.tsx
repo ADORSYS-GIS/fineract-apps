@@ -30,73 +30,42 @@ export const CaptureImage: FC<{
 	if (!isOpen) return null;
 
 	return (
-		<>
-			{/* Backdrop */}
-			<div
-				className="fixed inset-0 z-40 bg-black/40"
-				onClick={() => handleClose(onClose)}
-			/>
-
-			{/* Bottom Sheet */}
-			<div
-				className="fixed inset-x-0 bottom-0 z-50 flex justify-center"
-				onClick={() => handleClose(onClose)}
-			>
-				<div
-					className="bg-white rounded-t-2xl w-full max-w-md shadow-lg"
-					onClick={(e) => e.stopPropagation()}
-				>
-					{/* Drag handle */}
-					<div className="flex justify-center pt-4">
-						<div className="w-12 h-1.5 bg-gray-300 rounded-full" />
-					</div>
-
-					<header className="p-4 flex items-center">
-						<Button variant="ghost" onClick={() => handleClose(onClose)}>
-							<ArrowLeft className="h-6 w-6" />
-						</Button>
-						<h1 className="text-xl font-semibold ml-4">Capture Image</h1>
-					</header>
-					<main className="p-4 pt-0">
-						<div className="flex flex-col items-center">
+		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+			<div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+				<header className="p-4 flex items-center border-b">
+					<Button variant="ghost" onClick={() => handleClose(onClose)}>
+						<ArrowLeft className="h-6 w-6" />
+					</Button>
+					<h1 className="text-xl font-semibold ml-4">Capture Image</h1>
+				</header>
+				<main className="p-4">
+					<div className="flex flex-col items-center">
+						{capturedImage ? (
+							<img
+								src={capturedImage}
+								alt="Captured"
+								className="w-full h-auto"
+							/>
+						) : (
+							<video ref={videoRef} autoPlay className="w-full h-auto" />
+						)}
+						<canvas ref={canvasRef} className="hidden" />
+						<div className="mt-4 flex space-x-4">
 							{capturedImage ? (
-								<img
-									src={capturedImage}
-									alt="Captured"
-									className="w-full h-auto rounded-lg"
-								/>
+								<>
+									<Button onClick={handleRetake}>Retake</Button>
+									<Button onClick={handleUpload}>Upload</Button>
+								</>
 							) : (
-								<video
-									ref={videoRef}
-									autoPlay
-									className="w-full h-auto rounded-lg"
-								/>
+								<Button onClick={handleCapture}>Capture</Button>
 							)}
-							<canvas ref={canvasRef} className="hidden" />
-							<div className="mt-4 flex w-full space-x-4">
-								{capturedImage ? (
-									<>
-										<Button
-											onClick={handleRetake}
-											variant="outline"
-											className="w-full"
-										>
-											Retake
-										</Button>
-										<Button onClick={handleUpload} className="w-full">
-											Upload
-										</Button>
-									</>
-								) : (
-									<Button onClick={handleCapture} className="w-full">
-										Capture
-									</Button>
-								)}
-							</div>
+							<Button variant="secondary" onClick={() => handleClose(onClose)}>
+								Cancel
+							</Button>
 						</div>
-					</main>
-				</div>
+					</div>
+				</main>
 			</div>
-		</>
+		</div>
 	);
 };

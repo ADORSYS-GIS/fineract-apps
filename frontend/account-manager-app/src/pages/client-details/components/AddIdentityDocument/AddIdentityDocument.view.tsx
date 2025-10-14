@@ -1,5 +1,4 @@
 import { Button, Form, Input } from "@fineract-apps/ui";
-import { Formik } from "formik";
 import { FC } from "react";
 import { useAddIdentityDocument } from "./useAddIdentityDocument";
 
@@ -34,45 +33,43 @@ export const AddIdentityDocument: FC<{
 					<h2 className="text-xl font-bold text-center mb-6">
 						Add Identity Document
 					</h2>
-					<Formik initialValues={initialValues} onSubmit={onSubmit}>
-						<Form>
-							<div className="space-y-4">
-								<Input
-									name="documentTypeId"
-									label="Document Type"
-									type="select"
-									options={[
-										{ label: "Passport", value: "1" },
-										{ label: "ID Card", value: "2" },
-										{ label: "Driver's License", value: "3" },
-										{ label: "Other Types", value: "4" },
-									]}
-								/>
-								<Input
-									name="status"
-									label="Status"
-									type="select"
-									options={[
-										{ label: "Select Status", value: "" },
-										{ label: "Active", value: "ACTIVE" },
-										{ label: "Inactive", value: "INACTIVE" },
-									]}
-								/>
-								<Input
-									name="documentKey"
-									label="Document Key"
-									placeholder="Enter Document Key"
-								/>
-								<Button
-									type="submit"
-									className="w-full bg-green-500 hover:bg-green-600 text-white"
-									disabled={isPending}
-								>
-									{isPending ? "Submitting..." : "Submit"}
-								</Button>
-							</div>
-						</Form>
-					</Formik>
+					<Form initialValues={initialValues} onSubmit={onSubmit}>
+						<div className="space-y-4">
+							<Input
+								name="documentTypeId"
+								label="Document Type"
+								type="select"
+								options={[
+									{ label: "Passport", value: "1" },
+									{ label: "ID Card", value: "2" },
+									{ label: "Driver's License", value: "3" },
+									{ label: "Other Types", value: "4" },
+								]}
+							/>
+							<Input
+								name="status"
+								label="Status"
+								type="select"
+								options={[
+									{ label: "Select Status", value: "" },
+									{ label: "Active", value: "ACTIVE" },
+									{ label: "Inactive", value: "INACTIVE" },
+								]}
+							/>
+							<Input
+								name="documentKey"
+								label="Document Key"
+								placeholder="Enter Document Key"
+							/>
+							<Button
+								type="submit"
+								className="w-full bg-green-500 hover:bg-green-600 text-white"
+								disabled={isPending}
+							>
+								{isPending ? "Submitting..." : "Submit"}
+							</Button>
+						</div>
+					</Form>
 				</div>
 			</div>
 		</>

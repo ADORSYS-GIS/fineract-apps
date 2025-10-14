@@ -1,5 +1,4 @@
 import { Form, Input, SubmitButton } from "@fineract-apps/ui";
-import { Formik } from "formik";
 import { FC } from "react";
 import { z } from "zod";
 import { openSavingsAccountValidationSchema } from "./OpenSavingsAccount.types";
@@ -16,7 +15,6 @@ interface OpenSavingsAccountViewProps {
 
 export const OpenSavingsAccountView: FC<OpenSavingsAccountViewProps> = ({
 	initialValues,
-	validationSchema,
 	onSubmit,
 }) => {
 	return (
@@ -28,30 +26,24 @@ export const OpenSavingsAccountView: FC<OpenSavingsAccountViewProps> = ({
 				<p className="text-center text-gray-600">
 					Fill in the details below to open a new savings account for a client.
 				</p>
-				<Formik
-					initialValues={initialValues}
-					validationSchema={validationSchema}
-					onSubmit={onSubmit}
-				>
-					<Form>
-						<div className="space-y-4">
-							<Input
-								name="productId"
-								label="Select Savings Product"
-								type="select"
-								options={[{ label: "Choose a product", value: "" }]}
-							/>
-							<Input
-								name="submittedOnDate"
-								label="Submitted On Date"
-								type="date"
-							/>
-						</div>
-						<div className="flex justify-end mt-8">
-							<SubmitButton label="Submit for Approval" />
-						</div>
-					</Form>
-				</Formik>
+				<Form initialValues={initialValues} onSubmit={onSubmit}>
+					<div className="space-y-4">
+						<Input
+							name="productId"
+							label="Select Savings Product"
+							type="select"
+							options={[{ label: "Choose a product", value: "" }]}
+						/>
+						<Input
+							name="submittedOnDate"
+							label="Submitted On Date"
+							type="date"
+						/>
+					</div>
+					<div className="flex justify-end mt-8">
+						<SubmitButton label="Submit for Approval" />
+					</div>
+				</Form>
 			</div>
 		</div>
 	);

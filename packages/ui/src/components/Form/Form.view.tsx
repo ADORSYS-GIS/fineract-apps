@@ -20,6 +20,7 @@ import { FormProps, Values } from "./Form.types";
  * </Form>
  */
 export function Form<T extends Values = Values>({
+	initialValues,
 	onSubmit,
 	children,
 	className,
@@ -32,7 +33,10 @@ export function Form<T extends Values = Values>({
 	};
 
 	return (
-		<Formik<T> initialValues={{} as T} onSubmit={handleSubmit}>
+		<Formik<T>
+			initialValues={initialValues ?? ({} as T)}
+			onSubmit={handleSubmit}
+		>
 			<FormikForm
 				noValidate
 				className={cn(

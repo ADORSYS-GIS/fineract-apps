@@ -1,5 +1,4 @@
 import { Button, Form, Input } from "@fineract-apps/ui";
-import { Formik } from "formik";
 import { FC } from "react";
 import { useUploadDocument } from "./useUploadDocument";
 
@@ -37,26 +36,24 @@ export const UploadDocument: FC<{
 					<h2 className="text-xl font-bold text-center mb-6">
 						Upload Document
 					</h2>
-					<Formik initialValues={initialValues} onSubmit={onSubmit}>
-						<Form>
-							<div className="space-y-4">
-								<Input
-									name="name"
-									label="File Name"
-									placeholder="Enter file name"
-								/>
-								<Input name="file" label="Browse" type="file" />
-								<div className="flex justify-end space-x-4">
-									<Button variant="secondary" onClick={onClose}>
-										Cancel
-									</Button>
-									<Button type="submit" disabled={isPending}>
-										{isPending ? "Uploading..." : "Confirm"}
-									</Button>
-								</div>
+					<Form initialValues={initialValues} onSubmit={onSubmit}>
+						<div className="space-y-4">
+							<Input
+								name="name"
+								label="File Name"
+								placeholder="Enter file name"
+							/>
+							<Input name="file" label="Browse" type="file" />
+							<div className="flex justify-end space-x-4">
+								<Button variant="secondary" onClick={onClose}>
+									Cancel
+								</Button>
+								<Button type="submit" disabled={isPending}>
+									{isPending ? "Uploading..." : "Confirm"}
+								</Button>
 							</div>
-						</Form>
-					</Formik>
+						</div>
+					</Form>
 				</div>
 			</div>
 		</>

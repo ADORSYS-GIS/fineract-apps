@@ -1,6 +1,7 @@
 import { PostV1ByEntityTypeByEntityIdDocumentsData } from "@fineract-apps/fineract-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import { z } from "zod";
 import { fineractApi } from "../../../../services/api";
 import { initialValues, uploadDocumentSchema } from "./UploadDocument.types";
@@ -28,7 +29,13 @@ export const useUploadDocument = (identityId: number, onClose: () => void) => {
 			queryClient.invalidateQueries({
 				queryKey: ["identifier-documents", identityId],
 			});
+			toast.success("Document uploaded successfully!");
 			onClose();
+		},
+		onError: (error) => {
+			toast.error(
+				error.message || "An error occurred while uploading the document.",
+			);
 		},
 	});
 

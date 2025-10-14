@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import { z } from "zod";
 import { fineractApi } from "../../../../services/api";
 import {
@@ -25,7 +26,14 @@ export const useAddIdentityDocument = (onClose: () => void) => {
 			}),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["client", clientId] });
+			toast.success("Identity document added successfully!");
 			onClose();
+		},
+		onError: (error) => {
+			toast.error(
+				error.message ||
+					"An error occurred while adding the identity document.",
+			);
 		},
 	});
 

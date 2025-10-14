@@ -1,6 +1,7 @@
 import { PostV1ClientsByClientIdData } from "@fineract-apps/fineract-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import toast from "react-hot-toast";
 import { z } from "zod";
 import { fineractApi } from "../../../../services/api";
 import {
@@ -19,7 +20,13 @@ export const useActivateClient = ({ client, onClose }: ActivateClientProps) => {
 				fineractApi.clients.postV1ClientsByClientId(clientData),
 			onSuccess: () => {
 				queryClient.invalidateQueries({ queryKey: ["clients"] });
+				toast.success("Client activated successfully!");
 				onClose();
+			},
+			onError: (error) => {
+				toast.error(
+					error.message || "An error occurred while activating the client.",
+				);
 			},
 		},
 	);
