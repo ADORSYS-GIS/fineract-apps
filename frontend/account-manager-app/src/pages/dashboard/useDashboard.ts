@@ -15,8 +15,8 @@ export const useDashboard = () => {
 		queryKey: ["clients", currentPage],
 		queryFn: () =>
 			fineractApi.clients.getV1Clients({
-				offset: (currentPage - 1) * 3,
-				limit: 3,
+				offset: (currentPage - 1) * 4,
+				limit: 4,
 				orderBy: "id",
 				sortOrder: "DESC",
 			}),
