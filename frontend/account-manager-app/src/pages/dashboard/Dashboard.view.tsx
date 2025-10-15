@@ -5,20 +5,7 @@ import { Briefcase, Mail, UserPlus } from "lucide-react";
 import { FC, useState } from "react";
 import { ActivateClient, ClientTable } from "./components";
 import { useDashboard } from "./useDashboard";
-
-const getStatusClass = (status: string) => {
-	switch (status) {
-		case "Active":
-			return "bg-green-100 text-green-800";
-		default:
-			return "bg-yellow-100 text-yellow-800";
-	}
-};
-
-const getStatusFromCode = (code = "") => {
-	const status = code.split(".")[1] || "";
-	return status.charAt(0).toUpperCase() + status.slice(1);
-};
+import { getStatusClass, getStatusFromCode } from "./utils";
 
 export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	searchValue,

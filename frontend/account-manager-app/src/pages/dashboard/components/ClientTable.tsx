@@ -2,25 +2,12 @@ import { GetClientsPageItemsResponse } from "@fineract-apps/fineract-api";
 import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { FC } from "react";
+import { getStatusClass, getStatusFromCode } from "../utils";
 
 interface ClientTableProps {
 	clients: GetClientsPageItemsResponse[];
 	onActivateClient: (client: GetClientsPageItemsResponse) => void;
 }
-
-const getStatusClass = (status: string) => {
-	switch (status) {
-		case "Active":
-			return "bg-green-100 text-green-800";
-		default:
-			return "bg-yellow-100 text-yellow-800";
-	}
-};
-
-const getStatusFromCode = (code = "") => {
-	const status = code.split(".")[1] || "";
-	return status.charAt(0).toUpperCase() + status.slice(1);
-};
 
 export const ClientTable: FC<ClientTableProps> = ({
 	clients,

@@ -13,13 +13,14 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
+import { useAuth } from "../hooks/useAuth";
 
 export const Route = createRootRouteWithContext()({
 	component: RootLayout,
 });
 
 function RootLayout() {
-	const handleLogout = () => alert("Logout clicked!");
+	const { onLogout } = useAuth();
 	const { location } = useRouterState();
 
 	// Don't render the layout on the login page
@@ -36,9 +37,7 @@ function RootLayout() {
 		<>
 			<Toaster position="top-right" />
 			<AppLayout
-				sidebar={
-					<Sidebar menuItems={menuAccountManager} onLogout={handleLogout} />
-				}
+				sidebar={<Sidebar menuItems={menuAccountManager} onLogout={onLogout} />}
 				navbar={
 					<Navbar
 						logo={<h1 className="text-lg font-bold">Account Manager</h1>}
@@ -49,7 +48,7 @@ function RootLayout() {
 								<UserCircle className="w-5 h-5 text-gray-600" />
 							</div>
 						}
-						actions={<Button onClick={handleLogout}>Logout</Button>}
+						actions={<Button onClick={onLogout}>Logout</Button>}
 						onToggleMenu={() => {
 							/* noop */
 						}}

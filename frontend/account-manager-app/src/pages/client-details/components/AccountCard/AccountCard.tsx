@@ -1,5 +1,6 @@
 import { Button } from "@fineract-apps/ui";
 import { FC } from "react";
+import { getStatusClass } from "../../../dashboard/utils";
 
 interface AccountCardProps {
 	account: {
@@ -21,7 +22,13 @@ export const AccountCard: FC<AccountCardProps> = ({ account, onActivate }) => {
 		<div className="bg-white rounded-lg shadow p-4 space-y-4">
 			<div className="flex justify-between">
 				<p className="text-sm text-gray-500">{account.productName}</p>
-				<p className="text-md">{account.status?.value}</p>
+				<span
+					className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(
+						account.status?.value || "",
+					)}`}
+				>
+					{account.status?.value}
+				</span>
 			</div>
 			<div className="flex justify-between">
 				<p className="text-sm text-gray-500">Account No:</p>
