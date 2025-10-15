@@ -1,6 +1,7 @@
 import { ClientData } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import { fineractApi } from "../../services/api";
 
 export const useClientDetails = () => {
@@ -41,7 +42,7 @@ export const useClientDetails = () => {
 			}),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["accounts", clientId] });
-			window.alert("Account activated successfully!");
+			toast.success("Account activated successfully!");
 		},
 	});
 
