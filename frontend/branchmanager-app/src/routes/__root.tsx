@@ -20,6 +20,14 @@ function RootLayout() {
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
 	const [isMenuOpen, setIsMenuOpen] = useState(true);
+	function onLogout() {
+		const base = import.meta.env.BASE_URL || "/branchmanager/";
+		const appBase = base.endsWith("/") ? base : `${base}/`;
+		const redirectUri = `${window.location.origin}${appBase}`;
+		const logoutUrl = new URL(`${appBase}logout`, window.location.origin);
+		logoutUrl.searchParams.set("rd", redirectUri);
+		window.location.href = logoutUrl.toString();
+	}
 	return (
 		<AppLayout
 			sidebar={
@@ -28,6 +36,7 @@ function RootLayout() {
 					menuItems={menuBranchManager}
 					activePath={currentPath}
 					onNavigate={(to) => navigate({ to })}
+					onLogout={onLogout}
 				/>
 			}
 			navbar={

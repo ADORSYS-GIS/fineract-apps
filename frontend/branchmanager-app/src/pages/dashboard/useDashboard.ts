@@ -79,6 +79,17 @@ export function useDashboard() {
 		[filteredAssignments, page],
 	);
 
+	function onLogout() {
+		// Use proxy-provided logout endpoint from mod_auth_openidc under app base
+		const base = import.meta.env.BASE_URL || "/branchmanager/";
+		const appBase = base.endsWith("/") ? base : `${base}/`;
+		const redirectUri = `${window.location.origin}${appBase}`;
+		const logoutUrl = new URL(`${appBase}logout`, window.location.origin);
+		// mod_auth_openidc commonly uses "rd" for post-logout redirect
+		logoutUrl.searchParams.set("rd", redirectUri);
+		window.location.href = logoutUrl.toString();
+	}
+
 	return {
 		title: "Branch Manager Dashboard",
 		query,
@@ -92,5 +103,6 @@ export function useDashboard() {
 		limit,
 		total: filteredAssignments.length,
 		setPage,
+		onLogout,
 	};
 }
