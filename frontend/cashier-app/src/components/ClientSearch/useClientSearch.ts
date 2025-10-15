@@ -48,9 +48,13 @@ export const useClientSearch = () => {
 	};
 
 	const { error, ...restQueryResult } = queryResult;
+	const errorBody = error?.body as {
+		developerMessage?: string;
+		errors?: { defaultUserMessage?: string }[];
+	};
+	const detailedMessage = errorBody?.errors?.[0]?.defaultUserMessage;
 	const developerMessage =
-		(error?.body as { developerMessage?: string })?.developerMessage ||
-		error?.message;
+		detailedMessage || errorBody?.developerMessage || error?.message;
 	const searchError = developerMessage ? { message: developerMessage } : null;
 
 	return {

@@ -68,9 +68,9 @@ export const TransactionFormView = ({
 							/>
 							<Input
 								name="receiptNumber"
-								label="Receipt Number"
+								label="Notes"
 								type="text"
-								placeholder="Enter receipt number"
+								placeholder="Enter notes"
 							/>
 							<div className="flex justify-end gap-2 mt-4">
 								<Button variant="outline" onClick={onCancel}>

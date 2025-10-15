@@ -10,7 +10,7 @@ export const transactionSchema = z.object({
 		.refine((val) => parseFloat(val) > 0, {
 			message: "Amount must be positive",
 		}),
-	receiptNumber: z.string().min(1, "Receipt number is required"),
+	receiptNumber: z.string().optional(),
 });
 
 export type TransactionFormData = z.infer<typeof transactionSchema>;
