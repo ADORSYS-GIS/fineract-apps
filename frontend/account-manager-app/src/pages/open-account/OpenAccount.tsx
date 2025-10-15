@@ -6,5 +6,5 @@ import { useOpenAccount } from "./useOpenAccount";
 export const OpenAccount: FC = () => {
 	const { clientId } = useParams({ from: "/open-account/$clientId" });
 	const openAccountProps = useOpenAccount(Number(clientId));
-	return <OpenAccountView {...openAccountProps} />;
+	return <OpenAccountView {...openAccountProps} clientId={Number(clientId)} />;
 };

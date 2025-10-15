@@ -4,15 +4,16 @@ import { ArrowLeft } from "lucide-react";
 import { FC } from "react";
 import { useOpenAccount } from "./useOpenAccount";
 
-export const OpenAccountView: FC<ReturnType<typeof useOpenAccount>> = ({
-	onSubmit,
-	initialValues,
-	products,
-}) => {
+export const OpenAccountView: FC<
+	ReturnType<typeof useOpenAccount> & { clientId: number }
+> = ({ onSubmit, initialValues, products, clientId }) => {
 	return (
 		<div className="bg-gray-50 min-h-screen">
 			<header className="p-4 flex items-center border-b bg-white">
-				<Link to="/dashboard">
+				<Link
+					to="/client-details/$clientId"
+					params={{ clientId: String(clientId) }}
+				>
 					<Button variant="ghost">
 						<ArrowLeft className="h-6 w-6" />
 					</Button>
