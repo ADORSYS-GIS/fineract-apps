@@ -14,21 +14,24 @@ export const SelectAccountTypeView: FC<
 			{/* Backdrop */}
 			<div className="fixed inset-0 z-40 bg-black/40" onClick={closeModal} />
 
-			{/* Bottom Sheet */}
+			{/* Modal */}
 			<div
-				className="fixed inset-x-0 bottom-0 z-50 flex justify-center"
+				className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
 				onClick={closeModal}
 			>
 				<div
-					className="bg-white rounded-t-2xl p-6 w-full max-w-md shadow-lg"
+					className="bg-white rounded-t-2xl md:rounded-lg p-6 w-full max-w-md shadow-lg"
 					onClick={(e) => e.stopPropagation()}
 				>
-					{/* Drag handle */}
-					<div className="flex justify-center mb-4">
+					<div className="hidden md:block">
+						<h2 className="text-xl font-bold text-center mb-6">Open Account</h2>
+					</div>
+					<div className="md:hidden flex justify-center mb-4">
 						<div className="w-12 h-1.5 bg-gray-300 rounded-full" />
 					</div>
-
-					<h2 className="text-xl font-bold text-center mb-6">Open Account</h2>
+					<div className="md:hidden">
+						<h2 className="text-xl font-bold text-center mb-6">Open Account</h2>
+					</div>
 
 					<div className="space-y-4">
 						<Link

@@ -25,7 +25,7 @@ export const useAddIdentityDocument = (onClose: () => void) => {
 				},
 			}),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["client", clientId] });
+			queryClient.invalidateQueries({ queryKey: ["identifiers", clientId] });
 			toast.success("Identity document added successfully!");
 			onClose();
 		},

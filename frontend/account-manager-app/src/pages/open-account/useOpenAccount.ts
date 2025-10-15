@@ -5,12 +5,13 @@ import {
 	SavingsProductService,
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 import * as z from "zod";
 import { OpenAccountForm, openAccountSchema } from "./OpenAccount.types";
 
 export const useOpenAccount = (clientId: number) => {
+	const navigate = useNavigate();
 	const { accountType } = useSearch({ from: "/open-account/$clientId" });
 
 	const { data: savingsProducts } = useQuery({
@@ -34,6 +35,10 @@ export const useOpenAccount = (clientId: number) => {
 			SavingsAccountService.postV1Savingsaccounts(payload),
 		onSuccess: () => {
 			toast.success("Account created successfully!");
+			navigate({
+				to: "/client-details/$clientId",
+				params: { clientId: String(clientId) },
+			});
 		},
 		onError: (error) => {
 			toast.error(

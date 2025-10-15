@@ -73,7 +73,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 				<img
 					src={clientImage}
 					alt="Client"
-					className="w-32 h-32 rounded-full shadow-md"
+					className="w-full h-full object-cover"
 				/>
 			);
 		}
@@ -90,8 +90,8 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 
 	return (
 		<div className="bg-gray-100 min-h-screen font-sans">
-			<header className="bg-white shadow-sm sticky top-0 z-10">
-				<div className="max-w-md mx-auto p-4 flex justify-between items-center">
+			<header className="bg-white shadow-sm sticky top-0 z-10 md:ml-64">
+				<div className="container mx-auto p-4 flex justify-between items-center">
 					<Link to="/dashboard">
 						<Button variant="ghost">
 							<ArrowLeft className="h-6 w-6" />
@@ -104,72 +104,82 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 				</div>
 			</header>
 
-			<main className="max-w-md mx-auto p-4 pb-20">
-				<div className="flex flex-col items-center text-center mt-4">
-					<div className="w-32 h-32 rounded-full mb-4 bg-gray-200 flex items-center justify-center overflow-hidden">
-						{renderClientImage()}
+			<main className="md:ml-64 p-4 sm:p-6 lg:p-8">
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+					<div className="md:col-span-1">
+						<div className="bg-white p-6 rounded-lg shadow-md">
+							<div className="flex flex-col items-center text-center">
+								<div className="w-40 h-40 rounded-full mb-4 bg-gray-200 flex items-center justify-center overflow-hidden">
+									{renderClientImage()}
+								</div>
+								<div className="flex space-x-4 items-center text-gray-600 mb-4">
+									<input
+										type="file"
+										ref={fileInputRef}
+										onChange={handleFileChange}
+										className="hidden"
+										accept="image/*"
+									/>
+									<button
+										className="flex items-center space-x-1 text-sm"
+										onClick={() => fileInputRef.current?.click()}
+									>
+										<Upload className="h-4 w-4" />
+										<span>Upload</span>
+									</button>
+									<button
+										className="flex items-center space-x-1 text-sm"
+										onClick={() => setIsCaptureModalOpen(true)}
+									>
+										<Camera className="h-4 w-4" />
+										<span>Capture</span>
+									</button>
+									<button
+										className="flex items-center space-x-1 text-sm text-red-500"
+										onClick={() => deleteImage()}
+									>
+										<Trash2 className="h-4 w-4" />
+										<span>Delete</span>
+									</button>
+								</div>
+								<h2 className="text-2xl font-bold">{client?.displayName}</h2>
+								<p className="text-sm text-gray-500 mt-1">
+									Client ID: {client?.accountNo}
+								</p>
+								<p className="text-sm text-gray-500">
+									Joined{" "}
+									{parseFineractDate(
+										client?.timeline?.submittedOnDate,
+									)?.toLocaleDateString("en-US", {
+										year: "numeric",
+									}) ?? ""}
+								</p>
+							</div>
+							<div className="mt-8">
+								<Button className="w-full" onClick={() => setIsModalOpen(true)}>
+									Open Account
+								</Button>
+							</div>
+						</div>
 					</div>
-					<div className="flex space-x-4 items-center text-gray-600 mb-4">
-						<input
-							type="file"
-							ref={fileInputRef}
-							onChange={handleFileChange}
-							className="hidden"
-							accept="image/*"
-						/>
-						<button
-							className="flex items-center space-x-1 text-sm"
-							onClick={() => fileInputRef.current?.click()}
-						>
-							<Upload className="h-4 w-4" />
-							<span>Upload</span>
-						</button>
-						<button
-							className="flex items-center space-x-1 text-sm"
-							onClick={() => setIsCaptureModalOpen(true)}
-						>
-							<Camera className="h-4 w-4" />
-							<span>Capture</span>
-						</button>
-						<button
-							className="flex items-center space-x-1 text-sm text-red-500"
-							onClick={() => deleteImage()}
-						>
-							<Trash2 className="h-4 w-4" />
-							<span>Delete</span>
-						</button>
+					<div className="md:col-span-2">
+						<div className="bg-white p-6 rounded-lg shadow-md">
+							<h3 className="text-lg font-semibold mb-4">Accounts</h3>
+							{accounts?.savingsAccounts?.map((account) => (
+								<AccountCard
+									key={account.id}
+									account={account}
+									onActivate={activateAccount}
+								/>
+							))}
+						</div>
+						<div className="mt-8">
+							<KYCManagement
+								onAddIdentity={() => setIsAddIdentityModalOpen(true)}
+							/>
+						</div>
 					</div>
-					<h2 className="text-2xl font-bold">{client?.displayName}</h2>
-					<p className="text-sm text-gray-500 mt-1">
-						Client ID: {client?.accountNo}
-					</p>
-					<p className="text-sm text-gray-500">
-						Joined{" "}
-						{parseFineractDate(
-							client?.timeline?.submittedOnDate,
-						)?.toLocaleDateString("en-US", {
-							year: "numeric",
-						}) ?? ""}
-					</p>
 				</div>
-
-				<div className="mt-8">
-					<h3 className="text-lg font-semibold mb-4">Accounts</h3>
-					{accounts?.savingsAccounts?.map((account) => (
-						<AccountCard
-							key={account.id}
-							account={account}
-							onActivate={activateAccount}
-						/>
-					))}
-				</div>
-
-				<div className="mt-8">
-					<Button className="w-full" onClick={() => setIsModalOpen(true)}>
-						Open Account
-					</Button>
-				</div>
-				<KYCManagement onAddIdentity={() => setIsAddIdentityModalOpen(true)} />
 			</main>
 			<SelectAccountType
 				isOpen={isModalOpen}

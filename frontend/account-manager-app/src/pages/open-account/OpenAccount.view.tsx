@@ -9,7 +9,7 @@ export const OpenAccountView: FC<
 > = ({ onSubmit, initialValues, products, clientId }) => {
 	return (
 		<div className="bg-gray-50 min-h-screen">
-			<header className="p-4 flex items-center border-b bg-white">
+			<header className="p-4 flex items-center border-b bg-white md:ml-64">
 				<Link
 					to="/client-details/$clientId"
 					params={{ clientId: String(clientId) }}
@@ -21,7 +21,7 @@ export const OpenAccountView: FC<
 				<h1 className="text-lg font-semibold ml-4">Open Account</h1>
 			</header>
 
-			<main className="p-6">
+			<main className="p-6 md:ml-64">
 				<Form initialValues={initialValues} onSubmit={onSubmit}>
 					<div className="space-y-4">
 						<Input name="accountType" label="Account Type" />
