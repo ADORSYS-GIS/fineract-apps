@@ -5,7 +5,6 @@ import {
 	DefaultService,
 	DocumentsService,
 	OfficesService,
-	// OpenAPI,
 	SavingsAccountService,
 	SelfClientService,
 } from "@fineract-apps/fineract-api";

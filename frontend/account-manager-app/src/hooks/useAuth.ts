@@ -1,6 +1,6 @@
 export const useAuth = () => {
 	const onLogout = () => {
-		window.location.href = `/account/callback?logout=${encodeURIComponent(
+		window.location.href = `/cashier/callback?logout=${encodeURIComponent(
 			window.location.origin + "/account/",
 		)}`;
 	};
