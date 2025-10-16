@@ -200,8 +200,14 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 				</div>
 				<div className="p-6 border-t border-gray-200">
 					<div className="flex justify-end gap-4">
-						<Button onClick={onDeposit}>Deposit</Button>
-						<Button onClick={onWithdraw} variant="outline">
+						<Button onClick={onDeposit} disabled={status?.value !== "Active"}>
+							Deposit
+						</Button>
+						<Button
+							onClick={onWithdraw}
+							variant="outline"
+							disabled={status?.value !== "Active"}
+						>
 							Withdraw
 						</Button>
 					</div>
