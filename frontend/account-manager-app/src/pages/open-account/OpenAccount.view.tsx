@@ -24,7 +24,7 @@ export const OpenAccountView: FC<
 			<main className="p-6 md:ml-64">
 				<Form initialValues={initialValues} onSubmit={onSubmit}>
 					<div className="space-y-4">
-						<Input name="accountType" label="Account Type" />
+						<Input name="accountType" label="Account Type" disabled />
 						<Input
 							name="productName"
 							label="Product Name"

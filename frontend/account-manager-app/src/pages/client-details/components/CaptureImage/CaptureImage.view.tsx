@@ -1,5 +1,5 @@
 import { Button } from "@fineract-apps/ui";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { FC } from "react";
 import { useCaptureImage } from "./useCaptureImage";
 
@@ -31,7 +31,14 @@ export const CaptureImage: FC<{
 
 	return (
 		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+			<div className="relative bg-white rounded-lg shadow-lg w-full max-w-md">
+				<button
+					type="button"
+					className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 hidden md:block"
+					onClick={() => handleClose(onClose)}
+				>
+					<X className="w-6 h-6" />
+				</button>
 				<header className="p-4 flex items-center border-b">
 					<Button variant="ghost" onClick={() => handleClose(onClose)}>
 						<ArrowLeft className="h-6 w-6" />

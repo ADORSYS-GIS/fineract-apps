@@ -16,9 +16,9 @@ export const useCreateClient = () => {
 		mutationKey: ["createClient"],
 		mutationFn: (clientData: PostV1ClientsData) =>
 			fineractApi.clients.postV1Clients(clientData),
-		onSuccess: () => {
+		onSuccess: (data) => {
 			toast.success("Client created successfully!");
-			navigate({ to: "/dashboard" });
+			navigate({ to: `/client-details/${data.clientId}` });
 		},
 		onError: (error) => {
 			toast.error(

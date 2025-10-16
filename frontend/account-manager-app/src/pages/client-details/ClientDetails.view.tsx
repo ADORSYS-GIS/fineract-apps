@@ -165,13 +165,18 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 					<div className="md:col-span-2">
 						<div className="bg-white p-6 rounded-lg shadow-md">
 							<h3 className="text-lg font-semibold mb-4">Accounts</h3>
-							{accounts?.savingsAccounts?.map((account) => (
-								<AccountCard
-									key={account.id}
-									account={account}
-									onActivate={activateAccount}
-								/>
-							))}
+							{accounts?.savingsAccounts &&
+							accounts.savingsAccounts.length > 0 ? (
+								accounts.savingsAccounts.map((account) => (
+									<AccountCard
+										key={account.id}
+										account={account}
+										onActivate={activateAccount}
+									/>
+								))
+							) : (
+								<p className="text-gray-500">No Account Opened yet</p>
+							)}
 						</div>
 						<div className="mt-8">
 							<KYCManagement
