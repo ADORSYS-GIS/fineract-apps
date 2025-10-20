@@ -6,8 +6,32 @@ export const tellerAssignSchema = z.object({
 	description: z.string().optional(),
 	startDate: z.string().min(1, "Start date required"),
 	endDate: z.string().min(1, "End date required"),
-	isFullDay: z.boolean().default(true),
+	isFullDay: z.boolean().default(false),
+	// Optional time fields; required by refinement when isFullDay === false
+	startTime: z.string().optional(),
+	endTime: z.string().optional(),
 });
+
+// When not a full day assignment, startTime and endTime must be present and valid
+export const tellerAssignSchemaWithTimes = tellerAssignSchema.refine(
+	(vals) => {
+		if (!vals.isFullDay) {
+			const st = vals.startTime;
+			const et = vals.endTime;
+			if (!st || !et) return false;
+			// simple lexical HH:mm check and ordering
+			const hhmm = /^([01]\d|2[0-3]):([0-5]\d)$/;
+			if (!hhmm.test(st) || !hhmm.test(et)) return false;
+			return et > st;
+		}
+		return true;
+	},
+	{
+		message:
+			"Provide valid startTime and endTime when assignment is not full day",
+		path: ["startTime"],
+	},
+);
 
 export type FormValues = z.infer<typeof tellerAssignSchema>;
 

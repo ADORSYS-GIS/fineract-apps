@@ -12,7 +12,11 @@ import type {
 	DetailData,
 } from "./ApproveSavingsAccount.types";
 
-export function useApproveSavingsAccountList() {
+export function useApproveSavingsAccountList(opts?: {
+	q?: string;
+	sortKey?: string;
+	sortDir?: "asc" | "desc";
+}) {
 	const { page = 1, limit = 10 } = useSearch({
 		from: "/approve/savings/account",
 	});
@@ -27,7 +31,7 @@ export function useApproveSavingsAccountList() {
 
 	const items: ApproveSavingsAccountListItem[] = useMemo(() => {
 		const raw = (data?.pageItems ?? []) as SavingsAccountData[];
-		return raw
+		let list = raw
 			.filter(
 				(a) => a.status?.submittedAndPendingApproval && !a.status?.approved,
 			)
@@ -38,7 +42,40 @@ export function useApproveSavingsAccountList() {
 				accountNo: a.accountNo,
 				status: a.status?.value,
 			}));
-	}, [data]);
+
+		// Apply client-side filtering if query provided
+		if (opts?.q) {
+			const q = String(opts.q).toLowerCase().trim();
+			if (q.length > 0) {
+				list = list.filter((it) => {
+					return (
+						String(it.savingsProductName ?? "")
+							.toLowerCase()
+							.includes(q) ||
+						String(it.clientName ?? "")
+							.toLowerCase()
+							.includes(q) ||
+						String(it.accountNo ?? "")
+							.toLowerCase()
+							.includes(q)
+					);
+				});
+			}
+		}
+
+		// Apply client-side sort
+		if (opts?.sortKey) {
+			const key = opts.sortKey as keyof ApproveSavingsAccountListItem;
+			const dir = opts.sortDir === "desc" ? -1 : 1;
+			list = list.slice().sort((a, b) => {
+				const va = (a[key] ?? "").toString();
+				const vb = (b[key] ?? "").toString();
+				return va.localeCompare(vb) * dir;
+			});
+		}
+
+		return list;
+	}, [data, opts?.q, opts?.sortKey, opts?.sortDir]);
 
 	return {
 		title: "Approve Savings Accounts",

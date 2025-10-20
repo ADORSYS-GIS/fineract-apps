@@ -1,5 +1,49 @@
-import { Button, Card, Form, Input, SubmitButton } from "@fineract-apps/ui";
-import { Link } from "@tanstack/react-router";
+import {
+	Button,
+	Card,
+	Form,
+	Input,
+	SearchBar,
+	SubmitButton,
+	Table,
+} from "@fineract-apps/ui";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { useState } from "react";
+
+function SearchBarWrapper() {
+	const search = useSearch({ from: "/approve/savings/account" }) as Record<
+		string,
+		string | undefined
+	>;
+	const initial = String(search?.q ?? "");
+	const [value, setValue] = useState(initial);
+	const navigate = useNavigate({ from: "/approve/savings/account" });
+
+	const handleValueChange = (val: string) => {
+		setValue(val);
+	};
+	const handleSearch = (val: string) => {
+		// cast through unknown to satisfy strict typing of navigate search param
+		navigate({
+			to: "/approve/savings/account",
+			search: { q: val } as unknown as Record<
+				string,
+				string | number | undefined
+			>,
+		});
+	};
+	return (
+		<div className="mb-4">
+			<SearchBar
+				value={value}
+				onValueChange={handleValueChange}
+				onSearch={handleSearch}
+				placeholder="product, client, account no"
+			/>
+		</div>
+	);
+}
+
 import type {
 	ApproveFormValues,
 	ApproveSavingsAccountListItem,
@@ -23,28 +67,34 @@ export const ApproveSavingsAccountListView = ({
 }) => (
 	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
 		<h1 className="text-2xl font-bold mb-6">Approve Savings Account</h1>
+		{/* Filter and sort controls - wired to URL search params */}
+		<SearchBarWrapper />
 		{isLoading && <div>Loading...</div>}
 		{isError && <div>Error fetching accounts</div>}
 		{!isLoading && !isError && items.length > 0 && (
 			<>
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-					{items.map((account) => (
-						<Link
-							key={account.id}
-							to="/approve/savings/account"
-							search={{ accountId: account.id }}
-						>
-							<Card className="p-4 cursor-pointer hover:shadow-lg h-full">
-								<h2 className="font-bold text-lg">
-									{account.savingsProductName}
-								</h2>
-								<p className="text-sm">Client: {account.clientName}</p>
-								<p className="text-sm">Account No: {account.accountNo}</p>
-								<p className="text-sm">Status: {account.status}</p>
-							</Card>
-						</Link>
-					))}
-				</div>
+				<Table
+					columns={[
+						{ key: "savingsProductName", title: "Product", sortable: true },
+						{ key: "clientName", title: "Client", sortable: true },
+						{ key: "accountNo", title: "Account No", sortable: true },
+						{ key: "status", title: "Status", sortable: true },
+						{
+							key: "actions",
+							title: "Actions",
+							render: (row: ApproveSavingsAccountListItem) => (
+								<Link
+									to="/approve/savings/account"
+									search={{ accountId: row.id }}
+								>
+									<Button>View</Button>
+								</Link>
+							),
+							className: "text-right",
+						},
+					]}
+					data={items}
+				/>
 				<div className="flex flex-wrap justify-center items-center mt-6 space-x-2">
 					<Link
 						to="/approve/savings/account"

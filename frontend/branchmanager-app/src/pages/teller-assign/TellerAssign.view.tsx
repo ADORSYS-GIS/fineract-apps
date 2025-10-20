@@ -7,6 +7,7 @@ import {
 } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
 import type { FormValues, StaffOption } from "./TellerAssign.types";
+import { TimePicker } from "./TimePicker";
 
 export const TellerAssignView = ({
 	initialValues,
@@ -26,6 +27,7 @@ export const TellerAssignView = ({
 	onCancel?: () => void;
 }) => {
 	const navigate = useNavigate();
+
 	return (
 		<div className="px-6 py-6">
 			<Form<FormValues> initialValues={initialValues} onSubmit={onSubmit}>
@@ -54,12 +56,16 @@ export const TellerAssignView = ({
 					/>
 					<Input name="startDate" label="Start date" type="date" />
 					<Input name="endDate" label="End date" type="date" />
+					{/* Time fields: required only when isFullDay is unchecked - validation enforces this */}
+					{/* TimePicker consumes the form context itself, avoid calling useFormContext outside the Form provider */}
+					<TimePicker startName="startTime" endName="endTime" />
 					<div className="flex items-center gap-3">
 						<Input name="isFullDay" type="checkbox" label="Full day" />
 					</div>
 					<div className="flex flex-col sm:flex-row justify-end gap-3">
 						<SubmitButton
 							label={isSubmitting ? `${submitLabel}...` : submitLabel}
+							disabled={isSubmitting || staffOptions.length === 0}
 						/>
 						<Button
 							variant="outline"

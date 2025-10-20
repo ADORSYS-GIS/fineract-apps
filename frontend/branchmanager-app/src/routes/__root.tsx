@@ -23,10 +23,8 @@ function RootLayout() {
 	function onLogout() {
 		const base = import.meta.env.BASE_URL || "/branchmanager/";
 		const appBase = base.endsWith("/") ? base : `${base}/`;
-		const redirectUri = `${window.location.origin}${appBase}`;
-		const logoutUrl = new URL(`${appBase}logout`, window.location.origin);
-		logoutUrl.searchParams.set("rd", redirectUri);
-		window.location.href = logoutUrl.toString();
+		const redirectTo = `${window.location.origin}${appBase}`;
+		window.location.href = `${appBase}callback?logout=${encodeURIComponent(redirectTo)}`;
 	}
 	return (
 		<AppLayout

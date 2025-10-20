@@ -8,7 +8,10 @@ export {
 	FormWarning,
 	Input,
 	SubmitButton,
+	useFormContext,
 } from "./components/Form";
 export { Navbar } from "./components/Navbar";
 export { SearchBar } from "./components/SearchBar";
 export * from "./components/Sidebar";
+export { Table } from "./components/Table";
+export type { TableColumn, TableProps } from "./components/Table/Table.types";
