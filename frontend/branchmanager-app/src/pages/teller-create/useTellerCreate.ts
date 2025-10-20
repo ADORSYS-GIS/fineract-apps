@@ -42,7 +42,7 @@ export function useTellerCreate() {
 		name: "",
 		description: "",
 		startDate: todayIso,
-		endDate: todayIso,
+		endDate: "",
 		status: 300,
 	};
 
@@ -80,5 +80,6 @@ export function useTellerCreate() {
 		isSubmitting: isPending || areOfficesLoading,
 		error,
 		isSuccess,
+		areOfficesLoading,
 	};
 }

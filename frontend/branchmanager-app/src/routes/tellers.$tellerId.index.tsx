@@ -1,5 +1,6 @@
-import { useTellerCashManagementServiceGetV1TellersByTellerIdCashiers } from "@fineract-apps/fineract-api";
+import { TellerCashManagementService } from "@fineract-apps/fineract-api";
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
@@ -19,13 +20,25 @@ function TellerDetailPage() {
 	const { page, pageSize, q } = Route.useSearch();
 	const navigate = useNavigate();
 
+	const { data: tellerData } = useQuery({
+		queryKey: ["tellers", tellerId],
+		queryFn: () =>
+			TellerCashManagementService.getV1TellersByTellerId({
+				tellerId: Number(tellerId),
+			}),
+	});
+
 	const {
 		data: cashiersResponse,
 		isLoading,
 		isError,
 		error,
-	} = useTellerCashManagementServiceGetV1TellersByTellerIdCashiers({
-		tellerId: Number(tellerId),
+	} = useQuery({
+		queryKey: ["tellers", tellerId, "cashiers"],
+		queryFn: () =>
+			TellerCashManagementService.getV1TellersByTellerIdCashiers({
+				tellerId: Number(tellerId),
+			}),
 	});
 
 	interface CashiersResponse {
@@ -55,7 +68,7 @@ function TellerDetailPage() {
 
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
-			<PageHeader to="/tellers/" title="Teller Details">
+			<PageHeader to="/tellers/" title={tellerData?.name}>
 				<Button
 					onClick={() =>
 						navigate({

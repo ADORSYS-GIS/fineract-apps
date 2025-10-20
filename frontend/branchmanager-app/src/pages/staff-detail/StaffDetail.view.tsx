@@ -16,14 +16,16 @@ export const StaffDetailView = ({
 	data,
 	isLoading,
 	error,
+	title,
 }: {
 	data?: StaffDetailData;
 	isLoading: boolean;
 	error?: string;
+	title?: string;
 }) => {
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
-			<PageHeader title="Staff Detail" />
+			<PageHeader title={title} />
 			<div className="flex justify-center">
 				<div className="w-full max-w-2xl mx-auto">
 					{isLoading && <div>Loading...</div>}
