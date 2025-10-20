@@ -1,9 +1,15 @@
+import { useState } from "react";
 import { CashierTransactionSummaryView } from "./CashierTransactionSummary.view";
 import { useCashierTransactionSummary } from "./useCashierTransactionSummary";
 
 export function CashierTransactionSummary() {
+	const [showSummary, setShowSummary] = useState(false);
 	const { cashierData, currencyCode, isLoading, isError, error } =
-		useCashierTransactionSummary();
+		useCashierTransactionSummary(showSummary);
+
+	const handleShowSummary = () => {
+		setShowSummary(true);
+	};
 
 	return (
 		<CashierTransactionSummaryView
@@ -12,6 +18,8 @@ export function CashierTransactionSummary() {
 			isLoading={isLoading}
 			isError={isError}
 			error={error}
+			onShowSummary={handleShowSummary}
+			showSummary={showSummary}
 		/>
 	);
 }

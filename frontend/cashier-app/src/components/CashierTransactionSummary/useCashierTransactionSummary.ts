@@ -9,12 +9,13 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Route } from "@/routes/dashboard";
 
-export const useCashierTransactionSummary = () => {
+export const useCashierTransactionSummary = (enabled: boolean) => {
 	const { page = 1, limit = 10 } = Route.useSearch();
 	const { data: userDetails, isLoading: isUserDetailsLoading } = useQuery({
 		queryKey: ["userDetails"],
 		queryFn: () => FetchAuthenticatedUserDetailsService.getV1Userdetails(),
 		staleTime: Infinity,
+		enabled,
 	});
 	const staffId = userDetails?.staffId;
 	const officeId = userDetails?.officeId;
@@ -23,6 +24,7 @@ export const useCashierTransactionSummary = () => {
 		queryKey: ["currencies"],
 		queryFn: () => CurrencyService.getV1Currencies(),
 		staleTime: Infinity,
+		enabled,
 	});
 	const currencyCode = currencies?.selectedCurrencyOptions?.[0]?.code;
 
@@ -62,7 +64,7 @@ export const useCashierTransactionSummary = () => {
 				"No cashier data found for this user. Please contact an administrator.",
 			);
 		},
-		enabled: !!staffId && !!officeId,
+		enabled: !!staffId && !!officeId && enabled,
 		staleTime: Infinity,
 	});
 
@@ -101,7 +103,7 @@ export const useCashierTransactionSummary = () => {
 					new Error("tellerId, cashierId, or currencyCode not available"),
 				);
 			},
-			enabled: !!tellerId && !!cashierId && !!currencyCode,
+			enabled: !!tellerId && !!cashierId && !!currencyCode && enabled,
 		},
 	);
 

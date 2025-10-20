@@ -8,4 +8,6 @@ export interface CashierTransactionSummaryViewProps {
 	readonly isError: boolean;
 	readonly error: Error | null;
 	readonly currencyCode: string | undefined;
+	readonly onShowSummary: () => void;
+	readonly showSummary: boolean;
 }

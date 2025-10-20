@@ -41,11 +41,21 @@ export function CashierTransactionSummaryView({
 	isLoading,
 	isError,
 	error,
+	onShowSummary,
+	showSummary,
 }: Readonly<CashierTransactionSummaryViewProps>) {
 	const { page = 1, limit = 10 } = Route.useSearch();
 	const totalRecords =
 		cashierData?.cashierTransactions?.totalFilteredRecords || 0;
 	const totalPages = Math.ceil(totalRecords / limit);
+
+	if (!showSummary) {
+		return (
+			<div className="p-4">
+				<Button onClick={onShowSummary}>View Transaction Summary</Button>
+			</div>
+		);
+	}
 
 	if (isLoading) {
 		return <LoadingSkeleton />;
