@@ -139,7 +139,7 @@ export const ApproveSavingsAccountDetailView = ({
 		<div className="flex justify-center">
 			<Card className="p-4 sm:p-6 mt-4 w-full max-w-lg">
 				<h2 className="font-bold text-xl sm:text-2xl mb-4 text-center">
-					{data.productName}
+					{data.clientName} ({data.accountNo})
 				</h2>
 				<p>
 					<strong>Client:</strong> {data.clientName}

@@ -6,12 +6,17 @@ import { TellerCreateView } from "./TellerCreate.view";
 import { useTellerCreate } from "./useTellerCreate";
 
 export function TellerCreate() {
-	const { initialValues, onSubmit, isSubmitting } = useTellerCreate();
+	const { initialValues, onSubmit, isSubmitting, areOfficesLoading } =
+		useTellerCreate();
 
 	const handleSubmit = async (values: TellerCreateFormValues) => {
 		tellerCreateSchema.parse(values);
 		onSubmit(values);
 	};
+
+	if (areOfficesLoading) {
+		return <div>Loading...</div>;
+	}
 
 	return (
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">

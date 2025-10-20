@@ -6,5 +6,12 @@ export const StaffDetail = () => {
 	const { staffId } = Route.useParams();
 	const id = Number(staffId);
 	const { data, isLoading, error } = useStaffDetail(id);
-	return <StaffDetailView data={data} isLoading={isLoading} error={error} />;
+	return (
+		<StaffDetailView
+			data={data}
+			isLoading={isLoading}
+			error={error}
+			title={`${data?.firstname} ${data?.lastname}`}
+		/>
+	);
 };

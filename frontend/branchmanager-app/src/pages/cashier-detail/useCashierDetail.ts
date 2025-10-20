@@ -6,6 +6,18 @@ export function useCashierDetail(
 	cashierId: number,
 	options?: { limit?: number; offset?: number; currencyCode?: string },
 ) {
+	const {
+		data: cashierData,
+		isLoading: isCashierLoading,
+		error: cashierError,
+	} = useQuery({
+		queryKey: ["tellers", tellerId, "cashiers", cashierId],
+		queryFn: () =>
+			TellerCashManagementService.getV1TellersByTellerIdCashiersByCashierId({
+				tellerId,
+				cashierId,
+			}),
+	});
 	const { data, isLoading, error } = useQuery({
 		queryKey: [
 			"tellers",
@@ -31,8 +43,8 @@ export function useCashierDetail(
 	});
 
 	return {
-		data,
-		isLoading,
-		error,
+		data: { ...data, ...cashierData },
+		isLoading: isLoading || isCashierLoading,
+		error: error || cashierError,
 	};
 }
