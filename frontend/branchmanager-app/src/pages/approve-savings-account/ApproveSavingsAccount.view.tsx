@@ -65,7 +65,7 @@ export const ApproveSavingsAccountListView = ({
 	limit: number;
 	total: number;
 }) => (
-	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+	<div className="w-full mx-auto p-4 sm:p-6 lg:p-8">
 		<h1 className="text-2xl font-bold mb-6">Approve Savings Account</h1>
 		{/* Filter and sort controls - wired to URL search params */}
 		<SearchBarWrapper />
@@ -73,28 +73,30 @@ export const ApproveSavingsAccountListView = ({
 		{isError && <div>Error fetching accounts</div>}
 		{!isLoading && !isError && items.length > 0 && (
 			<>
-				<Table
-					columns={[
-						{ key: "savingsProductName", title: "Product", sortable: true },
-						{ key: "clientName", title: "Client", sortable: true },
-						{ key: "accountNo", title: "Account No", sortable: true },
-						{ key: "status", title: "Status", sortable: true },
-						{
-							key: "actions",
-							title: "Actions",
-							render: (row: ApproveSavingsAccountListItem) => (
-								<Link
-									to="/approve/savings/account"
-									search={{ accountId: row.id }}
-								>
-									<Button>View</Button>
-								</Link>
-							),
-							className: "text-right",
-						},
-					]}
-					data={items}
-				/>
+				<div className="overflow-x-auto">
+					<Table
+						columns={[
+							{ key: "savingsProductName", title: "Product", sortable: true },
+							{ key: "clientName", title: "Client", sortable: true },
+							{ key: "accountNo", title: "Account No", sortable: true },
+							{ key: "status", title: "Status", sortable: true },
+							{
+								key: "actions",
+								title: "Actions",
+								render: (row: ApproveSavingsAccountListItem) => (
+									<Link
+										to="/approve/savings/account"
+										search={{ accountId: row.id }}
+									>
+										<Button>View</Button>
+									</Link>
+								),
+								className: "text-right",
+							},
+						]}
+						data={items}
+					/>
+				</div>
 				<div className="flex flex-wrap justify-center items-center mt-6 space-x-2">
 					<Link
 						to="/approve/savings/account"
@@ -135,9 +137,9 @@ export const ApproveSavingsAccountDetailView = ({
 	submitting: boolean;
 	onBack: () => void;
 }) => (
-	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+	<div className="w-full mx-auto p-4 sm:p-6 lg:p-8">
 		<div className="flex justify-center">
-			<Card className="p-4 sm:p-6 mt-4 w-full max-w-lg">
+			<Card className="p-4 sm:p-6 mt-4 w-full">
 				<h2 className="font-bold text-xl sm:text-2xl mb-4 text-center">
 					{data.clientName} ({data.accountNo})
 				</h2>

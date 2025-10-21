@@ -17,6 +17,7 @@ export const TellerAssignView = ({
 	isSubmitting,
 	submitLabel = "Assign",
 	onCancel,
+	tellerName,
 }: {
 	initialValues: FormValues;
 	staffOptions: StaffOption[];
@@ -25,20 +26,15 @@ export const TellerAssignView = ({
 	isSubmitting: boolean;
 	submitLabel?: string;
 	onCancel?: () => void;
+	tellerName?: string;
 }) => {
 	const navigate = useNavigate();
 
 	return (
 		<div className="px-6 py-6">
 			<Form<FormValues> initialValues={initialValues} onSubmit={onSubmit}>
-				<FormTitle>Assign Staff to Teller</FormTitle>
+				<FormTitle>Assign Staff to {tellerName && `${tellerName}`}</FormTitle>
 				<div className="grid grid-cols-1 gap-4">
-					<Input
-						name="tellerId"
-						label="Teller ID"
-						disabled
-						helperText="Prefilled from selected teller"
-					/>
 					<Input
 						name="staffId"
 						label="Staff"

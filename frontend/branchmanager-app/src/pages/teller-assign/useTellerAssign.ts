@@ -1,5 +1,6 @@
 import {
 	TellerCashManagementService,
+	useTellerCashManagementServiceGetV1TellersByTellerId,
 	useTellerCashManagementServiceGetV1TellersByTellerIdCashiersTemplate,
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -53,6 +54,12 @@ export function useTellerAssign(
 				typeof (s as { id?: unknown }).id === "number",
 		);
 	}, [template]);
+
+	const { data: teller } = useTellerCashManagementServiceGetV1TellersByTellerId(
+		{ tellerId: Number(tellerIdNum ?? 0) },
+		undefined,
+		{ enabled: Boolean(tellerIdNum) },
+	);
 
 	const queryClient = useQueryClient();
 
@@ -156,5 +163,6 @@ export function useTellerAssign(
 		isSubmitting: mutation.isPending,
 		error: mutation.error,
 		isSuccess: mutation.isSuccess,
+		teller,
 	};
 }

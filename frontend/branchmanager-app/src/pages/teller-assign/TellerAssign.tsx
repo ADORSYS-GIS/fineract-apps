@@ -25,6 +25,7 @@ export const TellerAssign = () => {
 		isLoadingStaff,
 		onSubmit,
 		isSubmitting,
+		teller,
 	} = useTellerAssign(
 		Number.isFinite(tellerIdNum) ? tellerIdNum : null,
 		handleSuccess,
@@ -52,6 +53,7 @@ export const TellerAssign = () => {
 						search: { page: 1, pageSize: 20, q: "" },
 					})
 				}
+				tellerName={teller?.name}
 			/>
 		</div>
 	);
