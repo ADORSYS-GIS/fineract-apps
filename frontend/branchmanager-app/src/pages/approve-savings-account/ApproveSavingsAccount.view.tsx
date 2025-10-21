@@ -9,6 +9,7 @@ import {
 } from "@fineract-apps/ui";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
+import { BackButton } from "../../components/BackButton";
 
 function SearchBarWrapper() {
 	const search = useSearch({ from: "/approve/savings/account" }) as Record<
@@ -66,7 +67,10 @@ export const ApproveSavingsAccountListView = ({
 	total: number;
 }) => (
 	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
-		<h1 className="text-2xl font-bold mb-6">Approve Savings Account</h1>
+		<div className="flex justify-between items-center mb-6">
+			<h1 className="text-2xl font-bold">Approve Savings Account</h1>
+			<BackButton />
+		</div>
 		{/* Filter and sort controls - wired to URL search params */}
 		<SearchBarWrapper />
 		{isLoading && <div>Loading...</div>}

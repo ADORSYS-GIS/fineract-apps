@@ -78,7 +78,6 @@ export function useApproveSavingsAccountList(opts?: {
 	}, [data, opts?.q, opts?.sortKey, opts?.sortDir]);
 
 	return {
-		title: "Approve Savings Accounts",
 		items,
 		isLoading,
 		isError,

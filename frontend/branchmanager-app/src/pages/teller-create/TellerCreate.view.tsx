@@ -30,15 +30,17 @@ export function TellerCreateView({
 										placeholder="Enter teller name"
 									/>
 								</div>
-								<Input
-									name="status"
-									label="Status *"
-									type="select"
-									options={[
-										{ label: "Active", value: 300 },
-										{ label: "Inactive", value: 400 },
-									]}
-								/>
+								<div className="sm:col-span-2">
+									<Input
+										name="status"
+										label="Status *"
+										type="select"
+										options={[
+											{ label: "Active", value: 300 },
+											{ label: "Inactive", value: 400 },
+										]}
+									/>
+								</div>
 								<div className="sm:col-span-2">
 									<Input
 										name="description"
