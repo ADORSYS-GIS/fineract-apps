@@ -7,13 +7,10 @@ import { useAllocate } from "./useAllocate";
 export const Allocate = () => {
 	const navigate = useNavigate();
 	const { tellerId, cashierId } = Route.useParams();
-	const {
-		initialValues,
-		currencyOptions,
-		loadingTemplate,
-		onSubmit,
-		isSubmitting,
-	} = useAllocate(Number(tellerId), Number(cashierId));
+	const { initialValues, onSubmit, isSubmitting } = useAllocate(
+		Number(tellerId),
+		Number(cashierId),
+	);
 
 	const handleSubmit = async (values: FormValues) => {
 		allocateSchema.parse(values);
@@ -25,8 +22,6 @@ export const Allocate = () => {
 			{/* No back button on form pages; Cancel provided in form */}
 			<AllocateView
 				initialValues={initialValues}
-				currencyOptions={currencyOptions}
-				isLoading={loadingTemplate}
 				onSubmit={handleSubmit}
 				isSubmitting={isSubmitting}
 				submitLabel="Allocate"

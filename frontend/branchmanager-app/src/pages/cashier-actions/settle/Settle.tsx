@@ -7,13 +7,10 @@ import { useSettle } from "./useSettle";
 export const Settle = () => {
 	const navigate = useNavigate();
 	const { tellerId, cashierId } = Route.useParams();
-	const {
-		initialValues,
-		currencyOptions,
-		loadingTemplate,
-		onSubmit,
-		isSubmitting,
-	} = useSettle(Number(tellerId), Number(cashierId));
+	const { initialValues, onSubmit, isSubmitting } = useSettle(
+		Number(tellerId),
+		Number(cashierId),
+	);
 
 	const handleSubmit = async (values: FormValues) => {
 		settleSchema.parse(values);
@@ -25,8 +22,6 @@ export const Settle = () => {
 			{/* No back button on form pages; Cancel provided in form */}
 			<SettleView
 				initialValues={initialValues}
-				currencyOptions={currencyOptions}
-				isLoading={loadingTemplate}
 				onSubmit={handleSubmit}
 				isSubmitting={isSubmitting}
 				submitLabel="Settle"

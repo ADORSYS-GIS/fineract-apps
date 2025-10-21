@@ -1,7 +1,6 @@
 import { TellerCashManagementService } from "@fineract-apps/fineract-api";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { FormValues } from "./Settle.types";
 
@@ -29,31 +28,6 @@ export function useSettle(tellerId: number, cashierId: number) {
 	};
 
 	const queryClient = useQueryClient();
-	const { data: template, isLoading: loadingTemplate } = useQuery({
-		queryKey: ["tellers", tellerId, "cashiers", cashierId, "template"],
-		queryFn: async () =>
-			(await TellerCashManagementService.getV1TellersByTellerIdCashiersByCashierIdTransactionsTemplate(
-				{
-					tellerId,
-					cashierId,
-				},
-			)) ?? [],
-	});
-
-	const currencyOptions = useMemo(() => {
-		const options =
-			(
-				template as unknown as
-					| { currencyOptions?: { code: string; displayLabel?: string }[] }
-					| undefined
-			)?.currencyOptions ?? [];
-		return options.map((c) => ({
-			label: c.displayLabel ?? c.code,
-			value: c.code,
-		}));
-	}, [template]);
-
-	const defaultCurrencyCode = currencyOptions[0]?.value ?? "XAF";
 
 	const navigate = useNavigate();
 	const mutation = useMutation({
@@ -105,12 +79,7 @@ export function useSettle(tellerId: number, cashierId: number) {
 
 	return {
 		initialValues,
-		loadingTemplate,
-		currencyOptions,
-		defaultCurrencyCode,
 		onSubmit,
 		isSubmitting: mutation.isPending,
-		error: mutation.error,
-		isSuccess: mutation.isSuccess,
 	};
 }

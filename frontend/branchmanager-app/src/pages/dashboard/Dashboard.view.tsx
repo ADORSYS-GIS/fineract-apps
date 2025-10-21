@@ -54,17 +54,17 @@ export const DashboardView = ({
 							placeholder="Filter by staff, teller or description..."
 						/>
 					</div>
-					<div className="overflow-x-auto">
+					<div className="overflow-x-auto mt-4">
 						<table className="w-full text-sm text-left text-gray-500">
-							<thead className="text-xs text-gray-700 uppercase bg-gray-50">
+							<thead className="text-xs text-white uppercase bg-primary">
 								<tr>
-									<th className="px-6 py-3">Teller</th>
-									<th className="px-6 py-3">Staff</th>
-									<th className="px-6 py-3">Start</th>
-									<th className="px-6 py-3">End</th>
-									<th className="px-6 py-3">Full Day</th>
+									<th className="px-6 py-3">TELLERS</th>
+									<th className="px-6 py-3">STAFF</th>
+									<th className="px-6 py-3">START</th>
+									<th className="px-6 py-3">END</th>
+									<th className="px-6 py-3">FULL DAY</th>
 									<th className="px-6 py-3 hidden sm:table-cell">
-										Description
+										DESCRIPTION
 									</th>
 								</tr>
 							</thead>

@@ -46,7 +46,7 @@ export function useTellerCreate() {
 		status: 300,
 	};
 
-	const { mutate, isPending, error, isSuccess } = useMutation({
+	const { mutate, isPending } = useMutation({
 		mutationFn: (requestBody: TellerCreationRequestBody) =>
 			TellerCashManagementService.postV1Tellers({
 				requestBody: requestBody as unknown as PostTellersRequest,
@@ -78,8 +78,5 @@ export function useTellerCreate() {
 		initialValues,
 		onSubmit,
 		isSubmitting: isPending || areOfficesLoading,
-		error,
-		isSuccess,
-		areOfficesLoading,
 	};
 }

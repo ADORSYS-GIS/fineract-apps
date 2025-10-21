@@ -25,7 +25,7 @@ export const CashierDetailView = ({
 
 	const formatAmount = (n?: number) =>
 		typeof n === "number"
-			? n.toLocaleString(undefined, { maximumFractionDigits: 2 })
+			? `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} XAF`
 			: "-";
 
 	return (

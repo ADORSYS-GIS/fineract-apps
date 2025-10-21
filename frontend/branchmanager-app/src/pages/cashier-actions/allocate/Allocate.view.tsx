@@ -10,16 +10,12 @@ import type { FormValues } from "./Allocate.types";
 
 export const AllocateView = ({
 	initialValues,
-	currencyOptions,
-	isLoading,
 	onSubmit,
 	isSubmitting,
 	submitLabel = "Allocate",
 	onCancel,
 }: {
 	initialValues: FormValues;
-	currencyOptions: { label: string; value: string }[];
-	isLoading: boolean;
 	onSubmit: (values: FormValues) => Promise<void> | void;
 	isSubmitting: boolean;
 	submitLabel?: string;
@@ -40,9 +36,8 @@ export const AllocateView = ({
 					<Input
 						name="currencyCode"
 						label="Currency"
-						type="select"
-						disabled={isLoading}
-						options={currencyOptions}
+						type="text"
+						disabled={true}
 					/>
 					<Input name="notes" label="Notes" placeholder="Notes (optional)" />
 					<Input name="date" label="Transaction date" type="date" />
