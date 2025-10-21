@@ -11,7 +11,7 @@ export const OpenAccountView: FC<
 		<div className="bg-gray-50 min-h-screen">
 			<header className="p-4 flex items-center border-b bg-white md:ml-64">
 				<Link
-					to="/client-details/$clientId"
+					to="/select-account-type/$clientId"
 					params={{ clientId: String(clientId) }}
 				>
 					<Button variant="ghost">

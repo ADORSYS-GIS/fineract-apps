@@ -102,17 +102,15 @@ export const useUploadClientImage = (onSuccess?: () => void) => {
 };
 
 export const useDeleteClientImage = () => {
-	const { clientId } = useParams({ from: "/client-details/$clientId" });
 	const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationKey: ["deleteClientImage", clientId],
-		mutationFn: () =>
+	return useMutation<unknown, Error, string>({
+		mutationFn: (clientId: string) =>
 			fineractApi.default.deleteV1ByEntityByEntityIdImages({
 				entity: "clients",
 				entityId: Number(clientId),
 			}),
-		onSuccess: () => {
+		onSuccess: (clientId) => {
 			queryClient.invalidateQueries({ queryKey: ["clientImage", clientId] });
 			toast.success("Image deleted successfully!");
 		},

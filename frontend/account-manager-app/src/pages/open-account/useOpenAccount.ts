@@ -1,8 +1,13 @@
 import {
+	AccountRequest,
+	FixedDepositProductService,
 	LoanProductsService,
 	PostSavingsAccountsRequest,
+	ProductsService,
+	RecurringDepositProductService,
 	SavingsAccountService,
 	SavingsProductService,
+	ShareAccountService,
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
@@ -26,13 +31,56 @@ export const useOpenAccount = (clientId: number) => {
 		enabled: accountType === "loan",
 	});
 
-	const { mutate } = useMutation<
+	const { data: shareProducts } = useQuery({
+		queryKey: ["shareProducts"],
+		queryFn: () => ProductsService.getV1ProductsByType({ type: "share" }),
+		enabled: accountType === "shares",
+	});
+
+	const { data: recurringDepositProducts } = useQuery({
+		queryKey: ["recurringDepositProducts"],
+		queryFn: () =>
+			RecurringDepositProductService.getV1Recurringdepositproducts(),
+		enabled: accountType === "recurring",
+	});
+
+	const { data: fixedDepositProducts } = useQuery({
+		queryKey: ["fixedDepositProducts"],
+		queryFn: () => FixedDepositProductService.getV1Fixeddepositproducts(),
+		enabled: accountType === "fixed",
+	});
+
+	const { mutate: createSavingsAccount } = useMutation<
 		unknown,
 		Error,
 		{ requestBody: PostSavingsAccountsRequest }
 	>({
 		mutationFn: (payload) =>
 			SavingsAccountService.postV1Savingsaccounts(payload),
+		onSuccess: () => {
+			toast.success("Account created successfully!");
+			navigate({
+				to: "/client-details/$clientId",
+				params: { clientId: String(clientId) },
+			});
+		},
+		onError: (error) => {
+			toast.error(
+				error.message || "An error occurred while creating the account.",
+			);
+		},
+	});
+
+	const { mutate: createShareAccount } = useMutation<
+		unknown,
+		Error,
+		{ requestBody: AccountRequest }
+	>({
+		mutationFn: (payload) =>
+			ShareAccountService.postV1AccountsByType({
+				type: "share",
+				...payload,
+			}),
 		onSuccess: () => {
 			toast.success("Account created successfully!");
 			navigate({
@@ -56,7 +104,7 @@ export const useOpenAccount = (clientId: number) => {
 
 	const onSubmit = (data: OpenAccountForm) => {
 		if (accountType === "savings" || accountType === "current") {
-			mutate({
+			createSavingsAccount({
 				requestBody: {
 					clientId,
 					productId: Number(data.productName),
@@ -72,13 +120,50 @@ export const useOpenAccount = (clientId: number) => {
 		} else if (accountType === "loan") {
 			// TODO: Implement loan account creation
 			console.log("Creating loan account with data:", data);
+		} else if (accountType === "shares") {
+			createShareAccount({
+				requestBody: {
+					clientId,
+					productId: Number(data.productName),
+					requestedShares: Number(data.requestedShares),
+					locale: "en",
+					dateFormat: "dd MMMM yyyy",
+					submittedDate: new Date().toLocaleDateString("en-GB", {
+						day: "2-digit",
+						month: "long",
+						year: "numeric",
+					}),
+					applicationDate: new Date().toLocaleDateString("en-GB", {
+						day: "2-digit",
+						month: "long",
+						year: "numeric",
+					}),
+				},
+			});
+		} else if (accountType === "recurring") {
+			// TODO: Implement recurring deposit account creation
+			console.log("Creating recurring deposit account with data:", data);
+		} else if (accountType === "fixed") {
+			// TODO: Implement fixed deposit account creation
+			console.log("Creating fixed deposit account with data:", data);
 		}
 	};
+
+	const products =
+		accountType === "loan"
+			? loanProducts
+			: accountType === "shares"
+				? shareProducts?.pageItems
+				: accountType === "recurring"
+					? recurringDepositProducts
+					: accountType === "fixed"
+						? fixedDepositProducts
+						: savingsProducts;
 
 	return {
 		initialValues,
 		validationSchema: openAccountSchema as z.ZodSchema<OpenAccountForm>,
 		onSubmit,
-		products: accountType === "loan" ? loanProducts : savingsProducts,
+		products,
 	};
 };

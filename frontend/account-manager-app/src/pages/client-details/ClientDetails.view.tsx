@@ -7,7 +7,6 @@ import { AddIdentityDocument } from "./components/AddIdentityDocument/AddIdentit
 import { CaptureImage } from "./components/CaptureImage/CaptureImage.view";
 import { EditClientDetails } from "./components/EditClientDetails/EditClientDetails.view";
 import { KYCManagement } from "./components/KYCManagement/KYCManagement.view";
-import { SelectAccountType } from "./components/SelectAccountType/SelectAccountType";
 import {
 	useDeleteClientImage,
 	useGetClientImage,
@@ -34,8 +33,8 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 	isLoading,
 	accounts,
 	activateAccount,
+	deleteAccount,
 }) => {
-	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [isAddIdentityModalOpen, setIsAddIdentityModalOpen] = useState(false);
 	const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
@@ -136,7 +135,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 									</button>
 									<button
 										className="flex items-center space-x-1 text-sm text-red-500"
-										onClick={() => deleteImage()}
+										onClick={() => deleteImage(String(client?.id))}
 									>
 										<Trash2 className="h-4 w-4" />
 										<span>Delete</span>
@@ -156,9 +155,12 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 								</p>
 							</div>
 							<div className="mt-8">
-								<Button className="w-full" onClick={() => setIsModalOpen(true)}>
-									Open Account
-								</Button>
+								<Link
+									to="/select-account-type/$clientId"
+									params={{ clientId: String(client?.id) }}
+								>
+									<Button className="w-full">Open Account</Button>
+								</Link>
 							</div>
 						</div>
 					</div>
@@ -172,6 +174,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 										key={account.id}
 										account={account}
 										onActivate={activateAccount}
+										onDelete={deleteAccount}
 									/>
 								))
 							) : (
@@ -186,11 +189,6 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 					</div>
 				</div>
 			</main>
-			<SelectAccountType
-				isOpen={isModalOpen}
-				closeModal={() => setIsModalOpen(false)}
-				clientId={client?.id}
-			/>
 			<EditClientDetails
 				isOpen={isEditModalOpen}
 				onClose={() => setIsEditModalOpen(false)}

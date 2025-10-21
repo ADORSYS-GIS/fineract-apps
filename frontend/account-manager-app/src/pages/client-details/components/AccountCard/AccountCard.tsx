@@ -12,12 +12,18 @@ interface AccountCardProps {
 			code?: string;
 			value?: string;
 			approved?: boolean;
+			submittedAndPendingApproval?: boolean;
 		};
 	};
 	onActivate: (accountId: number) => void;
+	onDelete: (accountId: number) => void;
 }
 
-export const AccountCard: FC<AccountCardProps> = ({ account, onActivate }) => {
+export const AccountCard: FC<AccountCardProps> = ({
+	account,
+	onActivate,
+	onDelete,
+}) => {
 	return (
 		<div className="bg-white rounded-lg shadow p-4 space-y-4">
 			<div className="flex justify-between">
@@ -34,9 +40,14 @@ export const AccountCard: FC<AccountCardProps> = ({ account, onActivate }) => {
 				<p className="text-sm text-gray-500">Account No:</p>
 				<p className="text-md">{account.accountNo}</p>
 			</div>
-			<div className="flex justify-end">
+			<div className="flex justify-end space-x-2">
 				{account.status?.approved && (
 					<Button onClick={() => onActivate(account.id!)}>Activate</Button>
+				)}
+				{account.status?.submittedAndPendingApproval && (
+					<Button variant="destructive" onClick={() => onDelete(account.id!)}>
+						Delete
+					</Button>
 				)}
 			</div>
 		</div>

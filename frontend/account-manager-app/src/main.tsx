@@ -10,7 +10,7 @@ const queryClient = new QueryClient();
 // Create a new router instance from the generated route tree
 const router = createRouter({
 	routeTree,
-	basepath: "/account",
+	// basepath: "/account",
 	context: {
 		queryClient,
 	},
