@@ -14,7 +14,13 @@ const MobileMenuButton = ({
 	isOpen?: boolean;
 	onClick?: () => void;
 }) => (
-	<Button variant="ghost" size="sm" onClick={onClick} className="md:hidden">
+	<Button
+		variant="ghost"
+		size="sm"
+		onClick={onClick}
+		className="md:hidden"
+		data-testid="mobile-menu-button"
+	>
 		{isOpen ? <X size={20} /> : <Menu size={20} />}
 	</Button>
 );
