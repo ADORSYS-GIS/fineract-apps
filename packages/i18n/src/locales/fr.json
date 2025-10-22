@@ -1,0 +1,17 @@
+{
+	"translation": {
+		"welcome": "Bienvenue",
+		"dashboard": "Tableau de bord",
+		"payments": "Paiements",
+		"receipts": "Reçus",
+		"settings": "Paramètres",
+		"logout": "Déconnexion",
+		"cashierHomePage": "Bienvenue sur la page d'accueil du caissier!",
+		"accountManagerHomePage": "Bienvenue sur la page d'accueil du gestionnaire de compte!",
+		"branchManagerHomePage": "Bienvenue sur la page d'accueil du directeur de succursale!",
+		"accounts": "Comptes",
+		"transactions": "Transactions",
+		"branches": "Succursales",
+		"reports": "Rapports"
+	}
+}
