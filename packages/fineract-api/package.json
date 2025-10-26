@@ -8,11 +8,13 @@
 		"codegen": "openapi-rq -i ./fineract.json -o ./src/generated -c axios"
 	},
 	"dependencies": {
-		"@tanstack/react-query": "^5.51.1"
+		"@tanstack/react-query": "^5.51.1",
+		"axios": "^1.12.2"
 	},
 	"devDependencies": {
 		"@7nohe/openapi-react-query-codegen": "^1.6.2",
 		"react": "^18.3.1",
+		"ts-morph": "^22.0.0",
 		"typescript": "^5.5.3"
 	}
 }

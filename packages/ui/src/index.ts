@@ -11,3 +11,5 @@ export {
 } from "./components/Form";
 export { Navbar } from "./components/Navbar";
 export * from "./components/Sidebar";
+// Utils
+export { cn } from "./lib/utils";

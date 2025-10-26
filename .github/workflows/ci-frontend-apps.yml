@@ -1,0 +1,118 @@
+name: Frontend Apps CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'bugfix/**'
+    paths:
+      - 'frontend/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/ci-frontend-apps.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  lint-and-test:
+    name: Lint and Test Frontend Apps
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run linting
+        run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test:coverage
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage/
+
+  build-apps:
+    name: Build All Frontend Apps
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    strategy:
+      matrix:
+        app: [admin-app, account-manager-app, branchmanager-app, cashier-app]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build ${{ matrix.app }}
+        run: pnpm --filter ${{ matrix.app }} build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.app }}
+          path: frontend/${{ matrix.app }}/dist
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint-and-test, build-apps]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Frontend Apps CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Lint and Test**: ${{ needs.lint-and-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Build Apps**: ${{ needs.build-apps.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.lint-and-test.result }}" == "success" ] && [ "${{ needs.build-apps.result }}" == "success" ]; then
+            echo "## ✅ All checks passed! Ready to publish." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Some checks failed. Review logs above." >> $GITHUB_STEP_SUMMARY
+          fi
