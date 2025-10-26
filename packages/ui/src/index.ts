@@ -13,3 +13,4 @@ export { Navbar } from "./components/Navbar";
 export * from "./components/Sidebar";
 // Utils
 export { cn } from "./lib/utils";
+export { logout } from "./utils/auth";

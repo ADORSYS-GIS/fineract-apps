@@ -1,5 +1,5 @@
-import { X, CheckCircle, XCircle, Info } from "lucide-react";
-import { useToast, type Toast } from "./useToast";
+import { CheckCircle, Info, X, XCircle } from "lucide-react";
+import { type Toast, useToast } from "./useToast";
 
 export function ToastContainer() {
 	const { toasts, removeToast } = useToast();

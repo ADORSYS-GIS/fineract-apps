@@ -1,4 +1,9 @@
 // Menus
-export { menuAccountManager, menuBranchManager, menuCashier, menuAdmin } from "./menus";
+export {
+	menuAccountManager,
+	menuAdmin,
+	menuBranchManager,
+	menuCashier,
+} from "./menus";
 export { Sidebar } from "./Sidebar";
 export type { MenuItem, SidebarProps } from "./Sidebar.types";

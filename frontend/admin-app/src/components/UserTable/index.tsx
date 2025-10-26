@@ -1,2 +1,2 @@
+export type { User, UserTableProps } from "./UserTable.types";
 export { UserTable } from "./UserTable.view";
-export type { UserTableProps, User } from "./UserTable.types";

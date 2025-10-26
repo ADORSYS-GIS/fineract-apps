@@ -1,10 +1,10 @@
-import { Button } from "@fineract-apps/ui";
 import { useUsersServiceGetV1Users } from "@fineract-apps/fineract-api";
+import { Button } from "@fineract-apps/ui";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, Search } from "lucide-react";
 import { useState } from "react";
-import { UserTable } from "@/components/UserTable";
 import type { User } from "@/components/UserTable";
+import { UserTable } from "@/components/UserTable";
 
 function UsersListPage() {
 	const navigate = useNavigate();

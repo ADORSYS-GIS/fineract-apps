@@ -1,4 +1,13 @@
 import {
+	type CreateStaffResponse,
+	type OfficeData,
+	type RoleData,
+	type StaffRequest,
+	useStaffServicePostV1Staff,
+	useUsersServiceGetV1UsersTemplate,
+	useUsersServicePostV1Users,
+} from "@fineract-apps/fineract-api";
+import {
 	Button,
 	Card,
 	Form,
@@ -6,19 +15,14 @@ import {
 	Input,
 	SubmitButton,
 } from "@fineract-apps/ui";
-import {
-	useUsersServiceGetV1UsersTemplate,
-	useUsersServicePostV1Users,
-	useStaffServicePostV1Staff,
-} from "@fineract-apps/fineract-api";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
-import {
-	userFormSchema,
-	type UserFormValues,
-} from "@/components/UserForm/userFormSchema";
 import { useToast } from "@/components/Toast";
+import {
+	type UserFormValues,
+	userFormSchema,
+} from "@/components/UserForm/userFormSchema";
 
 function CreateUserPage() {
 	const navigate = useNavigate();
@@ -37,7 +41,7 @@ function CreateUserPage() {
 
 		try {
 			// Step 1: Create Staff Record
-			const staffPayload: any = {
+			const staffPayload: StaffRequest = {
 				firstname: values.firstname,
 				lastname: values.lastname,
 				mobileNo: values.mobileNo,
@@ -58,7 +62,7 @@ function CreateUserPage() {
 
 			// Extract staffId from response
 			// The response structure is typically { resourceId: number }
-			const staffId = (staffResponse as any)?.resourceId;
+			const staffId = (staffResponse as CreateStaffResponse)?.resourceId;
 
 			if (!staffId) {
 				throw new Error("Failed to create staff record");
@@ -81,12 +85,13 @@ function CreateUserPage() {
 			// Show success message and navigate to user list
 			toast.success("User created successfully!");
 			navigate({ to: "/users" });
-		} catch (err: any) {
-			setError(
-				err.body?.errors?.[0]?.developerMessage ||
-					err.message ||
-					"Failed to create user. Please try again.",
-			);
+		} catch (err: unknown) {
+			const errorMessage =
+				(err as { body?: { errors?: Array<{ developerMessage?: string }> } })
+					.body?.errors?.[0]?.developerMessage ||
+				(err instanceof Error ? err.message : null) ||
+				"Failed to create user. Please try again.";
+			setError(errorMessage);
 		}
 	};
 
@@ -186,10 +191,12 @@ function CreateUserPage() {
 									label="Office"
 									type="select"
 									required
-									options={template?.allowedOffices?.map((office: any) => ({
-										value: office.id,
-										label: office.name,
-									}))}
+									options={template?.allowedOffices?.map(
+										(office: OfficeData) => ({
+											value: office.id,
+											label: office.name,
+										}),
+									)}
 								/>
 
 								<Input
@@ -198,7 +205,7 @@ function CreateUserPage() {
 									type="select"
 									required
 									multiple
-									options={template?.availableRoles?.map((role: any) => ({
+									options={template?.availableRoles?.map((role: RoleData) => ({
 										value: role.id,
 										label: role.name,
 									}))}
@@ -233,11 +240,7 @@ function CreateUserPage() {
 												: "Create User"
 										}
 									/>
-									<Button
-										type="button"
-										variant="outline"
-										onClick={handleBack}
-									>
+									<Button type="button" variant="outline" onClick={handleBack}>
 										Cancel
 									</Button>
 								</div>

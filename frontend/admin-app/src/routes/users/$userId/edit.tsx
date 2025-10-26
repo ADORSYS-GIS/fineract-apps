@@ -1,4 +1,12 @@
 import {
+	type OfficeData,
+	type RoleData,
+	useStaffServicePutV1StaffByStaffId,
+	useUsersServiceGetV1UsersByUserId,
+	useUsersServiceGetV1UsersTemplate,
+	useUsersServicePutV1UsersByUserId,
+} from "@fineract-apps/fineract-api";
+import {
 	Button,
 	Card,
 	Form,
@@ -6,20 +14,14 @@ import {
 	Input,
 	SubmitButton,
 } from "@fineract-apps/ui";
-import {
-	useUsersServiceGetV1UsersByUserId,
-	useUsersServiceGetV1UsersTemplate,
-	useUsersServicePutV1UsersByUserId,
-	useStaffServicePutV1StaffByStaffId,
-} from "@fineract-apps/fineract-api";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
-import {
-	userEditFormSchema,
-	type UserEditFormValues,
-} from "@/components/UserForm/userFormSchema";
 import { useToast } from "@/components/Toast";
+import {
+	type UserEditFormValues,
+	userEditFormSchema,
+} from "@/components/UserForm/userFormSchema";
 
 function EditUserPage() {
 	const { userId } = Route.useParams();
@@ -70,8 +72,12 @@ function EditUserPage() {
 			// Show success message and navigate to user detail
 			toast.success("User updated successfully!");
 			navigate({ to: "/users/$userId", params: { userId } });
-		} catch (err: any) {
-			setError(err.message || "Failed to update user. Please try again.");
+		} catch (err: unknown) {
+			const errorMessage =
+				err instanceof Error
+					? err.message
+					: "Failed to update user. Please try again.";
+			setError(errorMessage);
 		}
 	};
 
@@ -113,7 +119,7 @@ function EditUserPage() {
 		email: user?.email || "",
 		mobileNo: user?.mobileNo || "",
 		officeId: user?.officeId || 0,
-		roles: user?.selectedRoles?.map((role: any) => role.id) || [],
+		roles: user?.selectedRoles?.map((role: RoleData) => role.id) || [],
 		isLoanOfficer: user?.isLoanOfficer || false,
 		staffId: user?.staffId,
 	};
@@ -201,10 +207,12 @@ function EditUserPage() {
 									label="Office"
 									type="select"
 									required
-									options={template?.allowedOffices?.map((office: any) => ({
-										value: office.id,
-										label: office.name,
-									}))}
+									options={template?.allowedOffices?.map(
+										(office: OfficeData) => ({
+											value: office.id,
+											label: office.name,
+										}),
+									)}
 								/>
 
 								<Input
@@ -213,7 +221,7 @@ function EditUserPage() {
 									type="select"
 									required
 									multiple
-									options={template?.availableRoles?.map((role: any) => ({
+									options={template?.availableRoles?.map((role: RoleData) => ({
 										value: role.id,
 										label: role.name,
 									}))}
@@ -235,11 +243,7 @@ function EditUserPage() {
 												: "Save Changes"
 										}
 									/>
-									<Button
-										type="button"
-										variant="outline"
-										onClick={handleBack}
-									>
+									<Button type="button" variant="outline" onClick={handleBack}>
 										Cancel
 									</Button>
 								</div>

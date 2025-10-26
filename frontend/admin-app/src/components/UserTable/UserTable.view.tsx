@@ -12,9 +12,7 @@ export function UserTable({
 	if (isLoading) {
 		return (
 			<Card variant="elevated">
-				<div className="p-8 text-center text-gray-500">
-					Loading users...
-				</div>
+				<div className="p-8 text-center text-gray-500">Loading users...</div>
 			</Card>
 		);
 	}
@@ -22,9 +20,7 @@ export function UserTable({
 	if (!users || users.length === 0) {
 		return (
 			<Card variant="elevated">
-				<div className="p-8 text-center text-gray-500">
-					No users found.
-				</div>
+				<div className="p-8 text-center text-gray-500">No users found.</div>
 			</Card>
 		);
 	}
@@ -57,10 +53,7 @@ export function UserTable({
 					</thead>
 					<tbody className="bg-white divide-y divide-gray-200">
 						{users.map((user) => (
-							<tr
-								key={user.id}
-								className="hover:bg-gray-50 transition-colors"
-							>
+							<tr key={user.id} className="hover:bg-gray-50 transition-colors">
 								<td className="px-6 py-4 whitespace-nowrap">
 									<div className="text-sm font-medium text-gray-900">
 										{user.username}
@@ -72,9 +65,7 @@ export function UserTable({
 									</div>
 								</td>
 								<td className="px-6 py-4 whitespace-nowrap">
-									<div className="text-sm text-gray-600">
-										{user.email}
-									</div>
+									<div className="text-sm text-gray-600">{user.email}</div>
 								</td>
 								<td className="px-6 py-4 whitespace-nowrap">
 									<div className="text-sm text-gray-600">
@@ -82,9 +73,7 @@ export function UserTable({
 									</div>
 								</td>
 								<td className="px-6 py-4 whitespace-nowrap">
-									<UserStatusBadge
-										isActive={user.available !== false}
-									/>
+									<UserStatusBadge isActive={user.available !== false} />
 								</td>
 								<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
 									<div className="flex items-center justify-end gap-2">

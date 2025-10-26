@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import {
+	createContext,
+	ReactNode,
+	useCallback,
+	useContext,
+	useState,
+} from "react";
 
 export type ToastType = "success" | "error" | "info";
 
@@ -36,9 +42,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 		setToasts((prev) => prev.filter((toast) => toast.id !== id));
 	}, []);
 
-	const success = useCallback((message: string) => addToast(message, "success"), [addToast]);
-	const error = useCallback((message: string) => addToast(message, "error"), [addToast]);
-	const info = useCallback((message: string) => addToast(message, "info"), [addToast]);
+	const success = useCallback(
+		(message: string) => addToast(message, "success"),
+		[addToast],
+	);
+	const error = useCallback(
+		(message: string) => addToast(message, "error"),
+		[addToast],
+	);
+	const info = useCallback(
+		(message: string) => addToast(message, "info"),
+		[addToast],
+	);
 
 	return (
 		<ToastContext.Provider

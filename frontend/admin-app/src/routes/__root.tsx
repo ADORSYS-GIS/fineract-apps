@@ -1,6 +1,7 @@
 import {
 	AppLayout,
 	Button,
+	logout,
 	menuAdmin,
 	Navbar,
 	Sidebar,
@@ -8,16 +9,14 @@ import {
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
-import { ToastProvider, ToastContainer } from "@/components/Toast";
+import { ToastContainer, ToastProvider } from "@/components/Toast";
 
 function RootLayout() {
-	const handleLogout = () => alert("Logout clicked!");
+	const handleLogout = () => logout();
 	return (
 		<ToastProvider>
 			<AppLayout
-				sidebar={
-					<Sidebar menuItems={menuAdmin} onLogout={handleLogout} />
-				}
+				sidebar={<Sidebar menuItems={menuAdmin} onLogout={handleLogout} />}
 				navbar={
 					<Navbar
 						logo={<h1 className="text-lg font-bold">Administration</h1>}

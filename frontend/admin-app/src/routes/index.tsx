@@ -14,12 +14,8 @@ function DashboardPage() {
 					<div className="p-6">
 						<div className="flex items-center justify-between">
 							<div>
-								<p className="text-sm font-medium text-gray-600">
-									Total Users
-								</p>
-								<p className="text-3xl font-bold text-gray-900 mt-2">
-									--
-								</p>
+								<p className="text-sm font-medium text-gray-600">Total Users</p>
+								<p className="text-3xl font-bold text-gray-900 mt-2">--</p>
 							</div>
 							<Users className="w-12 h-12 text-blue-500" />
 						</div>
@@ -33,9 +29,7 @@ function DashboardPage() {
 								<p className="text-sm font-medium text-gray-600">
 									Active Users
 								</p>
-								<p className="text-3xl font-bold text-green-600 mt-2">
-									--
-								</p>
+								<p className="text-3xl font-bold text-green-600 mt-2">--</p>
 							</div>
 							<div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
 								<Users className="w-6 h-6 text-green-600" />
@@ -51,9 +45,7 @@ function DashboardPage() {
 								<p className="text-sm font-medium text-gray-600">
 									Inactive Users
 								</p>
-								<p className="text-3xl font-bold text-gray-500 mt-2">
-									--
-								</p>
+								<p className="text-3xl font-bold text-gray-500 mt-2">--</p>
 							</div>
 							<div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
 								<Users className="w-6 h-6 text-gray-500" />
@@ -76,9 +68,7 @@ function DashboardPage() {
 							>
 								<div className="flex items-center justify-between">
 									<div>
-										<h3 className="font-medium text-gray-900">
-											Manage Users
-										</h3>
+										<h3 className="font-medium text-gray-900">Manage Users</h3>
 										<p className="text-sm text-gray-600 mt-1">
 											View, create, and manage user accounts
 										</p>

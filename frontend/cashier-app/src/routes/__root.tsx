@@ -1,6 +1,7 @@
 import {
 	AppLayout,
 	Button,
+	logout,
 	menuCashier,
 	Navbar,
 	Sidebar,
@@ -10,7 +11,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 
 function RootLayout() {
-	const handleLogout = () => alert("Logout clicked!");
+	const handleLogout = () => logout();
 	return (
 		<AppLayout
 			sidebar={<Sidebar menuItems={menuCashier} onLogout={handleLogout} />}
