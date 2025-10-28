@@ -145,6 +145,9 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 								<p className="text-sm text-gray-500 mt-1">
 									Client ID: {client?.accountNo}
 								</p>
+								<p className="text-sm text-gray-500 mt-1">
+									Phone: {client?.mobileNo}
+								</p>
 								<p className="text-sm text-gray-500">
 									Joined{" "}
 									{parseFineractDate(
@@ -166,7 +169,18 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 					</div>
 					<div className="md:col-span-2">
 						<div className="bg-white p-6 rounded-lg shadow-md">
-							<h3 className="text-lg font-semibold mb-4">Accounts</h3>
+							<div className="flex justify-between items-center mb-4">
+								<h3 className="text-lg font-semibold">Accounts</h3>
+								{accounts?.savingsAccounts &&
+								accounts.savingsAccounts.length > 0 ? (
+									<Link
+										to="/select-account-type/$clientId"
+										params={{ clientId: String(client?.id) }}
+									>
+										<Button variant="outline">Add Another Account</Button>
+									</Link>
+								) : null}
+							</div>
 							{accounts?.savingsAccounts &&
 							accounts.savingsAccounts.length > 0 ? (
 								accounts.savingsAccounts.map((account) => (

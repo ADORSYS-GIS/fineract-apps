@@ -16,6 +16,7 @@ import { Route as CreateAccountRouteImport } from './routes/create-account'
 import { Route as ActivateAccountRouteImport } from './routes/activate-account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SelectAccountTypeClientIdRouteImport } from './routes/select-account-type.$clientId'
+import { Route as SavingsAccountDetailsAccountIdRouteImport } from './routes/savings-account-details.$accountId'
 import { Route as OpenSavingsAccountClientIdRouteImport } from './routes/open-savings-account.$clientId'
 import { Route as OpenAccountClientIdRouteImport } from './routes/open-account.$clientId'
 import { Route as ClientDetailsClientIdRouteImport } from './routes/client-details/$clientId'
@@ -56,6 +57,12 @@ const SelectAccountTypeClientIdRoute =
     path: '/select-account-type/$clientId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const SavingsAccountDetailsAccountIdRoute =
+  SavingsAccountDetailsAccountIdRouteImport.update({
+    id: '/savings-account-details/$accountId',
+    path: '/savings-account-details/$accountId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const OpenSavingsAccountClientIdRoute =
   OpenSavingsAccountClientIdRouteImport.update({
     id: '/open-savings-account/$clientId',
@@ -83,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/client-details/$clientId': typeof ClientDetailsClientIdRoute
   '/open-account/$clientId': typeof OpenAccountClientIdRoute
   '/open-savings-account/$clientId': typeof OpenSavingsAccountClientIdRoute
+  '/savings-account-details/$accountId': typeof SavingsAccountDetailsAccountIdRoute
   '/select-account-type/$clientId': typeof SelectAccountTypeClientIdRoute
 }
 export interface FileRoutesByTo {
@@ -95,6 +103,7 @@ export interface FileRoutesByTo {
   '/client-details/$clientId': typeof ClientDetailsClientIdRoute
   '/open-account/$clientId': typeof OpenAccountClientIdRoute
   '/open-savings-account/$clientId': typeof OpenSavingsAccountClientIdRoute
+  '/savings-account-details/$accountId': typeof SavingsAccountDetailsAccountIdRoute
   '/select-account-type/$clientId': typeof SelectAccountTypeClientIdRoute
 }
 export interface FileRoutesById {
@@ -108,6 +117,7 @@ export interface FileRoutesById {
   '/client-details/$clientId': typeof ClientDetailsClientIdRoute
   '/open-account/$clientId': typeof OpenAccountClientIdRoute
   '/open-savings-account/$clientId': typeof OpenSavingsAccountClientIdRoute
+  '/savings-account-details/$accountId': typeof SavingsAccountDetailsAccountIdRoute
   '/select-account-type/$clientId': typeof SelectAccountTypeClientIdRoute
 }
 export interface FileRouteTypes {
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/client-details/$clientId'
     | '/open-account/$clientId'
     | '/open-savings-account/$clientId'
+    | '/savings-account-details/$accountId'
     | '/select-account-type/$clientId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/client-details/$clientId'
     | '/open-account/$clientId'
     | '/open-savings-account/$clientId'
+    | '/savings-account-details/$accountId'
     | '/select-account-type/$clientId'
   id:
     | '__root__'
@@ -146,6 +158,7 @@ export interface FileRouteTypes {
     | '/client-details/$clientId'
     | '/open-account/$clientId'
     | '/open-savings-account/$clientId'
+    | '/savings-account-details/$accountId'
     | '/select-account-type/$clientId'
   fileRoutesById: FileRoutesById
 }
@@ -159,6 +172,7 @@ export interface RootRouteChildren {
   ClientDetailsClientIdRoute: typeof ClientDetailsClientIdRoute
   OpenAccountClientIdRoute: typeof OpenAccountClientIdRoute
   OpenSavingsAccountClientIdRoute: typeof OpenSavingsAccountClientIdRoute
+  SavingsAccountDetailsAccountIdRoute: typeof SavingsAccountDetailsAccountIdRoute
   SelectAccountTypeClientIdRoute: typeof SelectAccountTypeClientIdRoute
 }
 
@@ -213,6 +227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SelectAccountTypeClientIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/savings-account-details/$accountId': {
+      id: '/savings-account-details/$accountId'
+      path: '/savings-account-details/$accountId'
+      fullPath: '/savings-account-details/$accountId'
+      preLoaderRoute: typeof SavingsAccountDetailsAccountIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/open-savings-account/$clientId': {
       id: '/open-savings-account/$clientId'
       path: '/open-savings-account/$clientId'
@@ -247,6 +268,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientDetailsClientIdRoute: ClientDetailsClientIdRoute,
   OpenAccountClientIdRoute: OpenAccountClientIdRoute,
   OpenSavingsAccountClientIdRoute: OpenSavingsAccountClientIdRoute,
+  SavingsAccountDetailsAccountIdRoute: SavingsAccountDetailsAccountIdRoute,
   SelectAccountTypeClientIdRoute: SelectAccountTypeClientIdRoute,
 }
 export const routeTree = rootRouteImport

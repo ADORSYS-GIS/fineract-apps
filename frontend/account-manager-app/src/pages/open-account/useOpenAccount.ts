@@ -125,7 +125,7 @@ export const useOpenAccount = (clientId: number) => {
 				requestBody: {
 					clientId,
 					productId: Number(data.productName),
-					requestedShares: Number(data.requestedShares),
+					// requestedShares: Number(data.requestedShares),
 					locale: "en",
 					dateFormat: "dd MMMM yyyy",
 					submittedDate: new Date().toLocaleDateString("en-GB", {
