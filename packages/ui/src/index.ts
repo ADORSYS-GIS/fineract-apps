@@ -13,3 +13,6 @@ export * from "./components/LanguageSwitcher";
 export { Navbar } from "./components/Navbar";
 export { SearchBar } from "./components/SearchBar";
 export * from "./components/Sidebar";
+// Utils
+export { cn } from "./lib/utils";
+export { logout } from "./utils/auth";
