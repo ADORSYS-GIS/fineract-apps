@@ -54,7 +54,7 @@ export const useClientSearch = () => {
 	};
 	const detailedMessage = errorBody?.errors?.[0]?.defaultUserMessage;
 	const developerMessage =
-		detailedMessage || errorBody?.developerMessage || error?.message;
+		detailedMessage ?? errorBody?.developerMessage ?? error?.message;
 	const searchError = developerMessage ? { message: developerMessage } : null;
 
 	return {
