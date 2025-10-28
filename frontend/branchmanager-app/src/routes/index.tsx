@@ -1,7 +1,9 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 function RedirectToDashboard() {
-	return <Navigate to="/dashboard" />;
+	const { t } = useTranslation();
+	return <Navigate to="/dashboard" aria-label={t("branchManagerHomePage")} />;
 }
 
 export const Route = createFileRoute("/")({

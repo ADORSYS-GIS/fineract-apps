@@ -8,11 +8,11 @@ import {
 } from "lucide-react";
 import { MenuItem } from "./Sidebar.types";
 
-export const menuAccountManager: MenuItem[] = [
-	{ name: "Dashboard", link: "/dashboard", icon: Home },
-	{ name: "Accounts", link: "/accounts", icon: CreditCard },
-	{ name: "Transactions", link: "/transactions", icon: Send },
-	{ name: "Settings", link: "/settings", icon: Settings },
+export const menuAccountManager = [
+	{ name: "dashboard", link: "/dashboard", icon: Home },
+	{ name: "accounts", link: "/accounts", icon: CreditCard },
+	{ name: "transactions", link: "/transactions", icon: Send },
+	{ name: "settings", link: "/settings", icon: Settings },
 ];
 
 export const menuBranchManager: MenuItem[] = [
@@ -22,9 +22,9 @@ export const menuBranchManager: MenuItem[] = [
 	{ name: "Pending", link: "/approve/account", icon: Users },
 ];
 
-export const menuCashier: MenuItem[] = [
-	{ name: "Dashboard", link: "/dashboard", icon: Home },
-	{ name: "Payments", link: "/payments", icon: Send },
-	{ name: "Receipts", link: "/receipts", icon: FileText },
-	{ name: "Settings", link: "/settings", icon: Settings },
+export const menuCashier = [
+	{ name: "dashboard", link: "/dashboard", icon: Home },
+	{ name: "payments", link: "/payments", icon: Send },
+	{ name: "receipts", link: "/receipts", icon: FileText },
+	{ name: "settings", link: "/settings", icon: Settings },
 ];

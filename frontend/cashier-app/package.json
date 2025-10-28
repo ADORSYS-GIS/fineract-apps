@@ -9,13 +9,15 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
+		"@fineract-apps/i18n": "workspace:*",
 		"@fineract-apps/ui": "workspace:*",
 		"@fineract-apps/fineract-api": "workspace:*",
 		"@tanstack/react-router": "^1.131.44",
 		"@tanstack/react-router-devtools": "^1.131.44",
 		"lucide-react": "^0.544.0",
 		"react": "^19.1.1",
-		"react-dom": "^19.1.1"
+		"react-dom": "^19.1.1",
+		"react-i18next": "^15.0.0"
 	},
 	"devDependencies": {
 		"@fineract-apps/config": "workspace:*",

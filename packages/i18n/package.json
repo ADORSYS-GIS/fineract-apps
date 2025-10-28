@@ -1,0 +1,23 @@
+{
+	"name": "@fineract-apps/i18n",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"test": "jest"
+	},
+	"devDependencies": {
+		"@fineract-apps/config": "workspace:*",
+		"typescript": "~5.8.3"
+	},
+	"dependencies": {
+		"i18next": "^23.12.2",
+		"react-i18next": "^15.0.0",
+		"i18next-browser-languagedetector": "^8.0.0"
+	}
+}

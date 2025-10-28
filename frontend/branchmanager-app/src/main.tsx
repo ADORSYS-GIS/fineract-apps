@@ -4,6 +4,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import "@fineract-apps/ui/styles.css";
+import "@fineract-apps/i18n";
 import "./index.css";
 import { routeTree } from "./routeTree.gen.ts";
 import { configureApi } from "./services/api";

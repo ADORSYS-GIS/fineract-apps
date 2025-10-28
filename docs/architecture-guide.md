@@ -17,6 +17,7 @@ graph LR;
     subgraph Shared Packages
         UI[packages/ui]
         Config[packages/config]
+        I18n[packages/i18n]
     end
 
     A --> UI;
@@ -27,6 +28,11 @@ graph LR;
     B --> Config;
     C --> Config;
     UI --> Config;
+
+    A --> I18n;
+    B --> I18n;
+    C --> I18n;
+    UI --> I18n;
 ```
 
 ## Configuration Management
@@ -89,6 +95,7 @@ graph LR;
         subgraph Shared Packages
             UI[packages/ui]
             Config[packages/config]
+            I18n[packages/i18n]
         end
     end
 
