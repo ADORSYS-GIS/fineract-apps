@@ -9,6 +9,7 @@ export {
 	Input,
 	SubmitButton,
 } from "./components/Form";
+export * from "./components/LanguageSwitcher";
 export { Navbar } from "./components/Navbar";
 export { SearchBar } from "./components/SearchBar";
 export * from "./components/Sidebar";
