@@ -56,14 +56,15 @@ function EditUserPage() {
 			});
 
 			// If phone changed, update staff record
-			if (values.mobileNo !== user?.mobileNo && user?.staffId) {
+			// If the loan officer status changed, update the staff record.
+			// Note: The API's PutStaffRequest does not support updating mobileNo here.
+			if (
+				values.isLoanOfficer !== user?.staff?.isLoanOfficer &&
+				user?.staff?.id
+			) {
 				await updateStaffMutation.mutateAsync({
-					staffId: user.staffId,
+					staffId: user.staff.id,
 					requestBody: {
-						firstname: values.firstname,
-						lastname: values.lastname,
-						mobileNo: values.mobileNo,
-						officeId: values.officeId,
 						isLoanOfficer: values.isLoanOfficer,
 					},
 				});
@@ -117,11 +118,11 @@ function EditUserPage() {
 		firstname: user?.firstname || "",
 		lastname: user?.lastname || "",
 		email: user?.email || "",
-		mobileNo: user?.mobileNo || "",
+		mobileNo: user?.staff?.mobileNo || "",
 		officeId: user?.officeId || 0,
-		roles: user?.selectedRoles?.map((role: RoleData) => role.id) || [],
-		isLoanOfficer: user?.isLoanOfficer || false,
-		staffId: user?.staffId,
+		roles: user?.selectedRoles?.map((role: RoleData) => role.id!) || [],
+		isLoanOfficer: user?.staff?.isLoanOfficer || false,
+		staffId: user?.staff?.id,
 	};
 
 	return (
@@ -157,12 +158,20 @@ function EditUserPage() {
 							<div className="space-y-4">
 								{/* Show username as read-only */}
 								<div>
-									<label className="block text-sm font-medium text-gray-700 mb-1">
+									<label
+										htmlFor="username"
+										className="block text-sm font-medium text-gray-700 mb-1"
+									>
 										Username
 									</label>
-									<div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-600">
-										{user?.username || "N/A"}
-									</div>
+									<input
+										id="username"
+										name="username"
+										type="text"
+										readOnly
+										value={user?.username || "N/A"}
+										className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-600"
+									/>
 									<p className="mt-1 text-xs text-gray-500">
 										Username cannot be changed
 									</p>
@@ -209,8 +218,8 @@ function EditUserPage() {
 									required
 									options={template?.allowedOffices?.map(
 										(office: OfficeData) => ({
-											value: office.id,
-											label: office.name,
+											value: office.id!,
+											label: office.name!,
 										}),
 									)}
 								/>
@@ -222,8 +231,8 @@ function EditUserPage() {
 									required
 									multiple
 									options={template?.availableRoles?.map((role: RoleData) => ({
-										value: role.id,
-										label: role.name,
+										value: role.id!,
+										label: role.name!,
 									}))}
 									helperText="Select one or more roles for this user"
 								/>

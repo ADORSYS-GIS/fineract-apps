@@ -43,7 +43,7 @@ function UserDetailPage() {
 	const handleToggleStatus = async () => {
 		if (!user) return;
 
-		const isActive = user.available !== false;
+		const isActive = user.staff?.isActive ?? false;
 		const confirmMessage = isActive
 			? "Are you sure you want to deactivate this user?"
 			: "Are you sure you want to activate this user?";
@@ -61,14 +61,19 @@ function UserDetailPage() {
 					lastname: user.lastname,
 					email: user.email,
 					officeId: user.officeId,
-					roles: user.selectedRoles?.map((role: RoleData) => role.id) || [],
-					available: !isActive,
+					roles: user.selectedRoles?.map((role: RoleData) => role.id!) || [],
 				},
 			});
 
 			// Sync status to Keycloak
 			try {
-				await updateUserStatus(user.username, !isActive);
+				if (user.username) {
+					await updateUserStatus(user.username, !isActive);
+				} else {
+					throw new Error(
+						"Username is missing, cannot sync status to Keycloak.",
+					);
+				}
 			} catch (keycloakErr) {
 				console.error("Failed to sync status to Keycloak:", keycloakErr);
 				// Don't fail the whole operation if Keycloak sync fails
@@ -98,6 +103,9 @@ function UserDetailPage() {
 		setIsResettingPassword(true);
 
 		try {
+			if (!user.username) {
+				throw new Error("Username is missing, cannot reset password.");
+			}
 			await resetUserPassword(user.username);
 
 			toast.success(
@@ -143,7 +151,7 @@ function UserDetailPage() {
 		);
 	}
 
-	const isActive = user.available !== false;
+	const isActive = user.staff?.isActive ?? false;
 
 	return (
 		<div className="p-6">
@@ -264,7 +272,7 @@ function UserDetailPage() {
 							<div>
 								<dt className="text-sm font-medium text-gray-500">Staff ID</dt>
 								<dd className="mt-1 text-sm text-gray-900">
-									{user.staffId || "N/A"}
+									{user.staff?.id || "N/A"}
 								</dd>
 							</div>
 						</dl>
@@ -280,8 +288,8 @@ function UserDetailPage() {
 					setPasswordResetError(null);
 				}}
 				onConfirm={handlePasswordReset}
-				userName={user.username}
-				userEmail={user.email}
+				userName={user.username ?? ""}
+				userEmail={user.email ?? ""}
 				isLoading={isResettingPassword}
 				error={passwordResetError}
 			/>

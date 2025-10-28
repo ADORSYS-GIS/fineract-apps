@@ -193,8 +193,8 @@ function CreateUserPage() {
 									required
 									options={template?.allowedOffices?.map(
 										(office: OfficeData) => ({
-											value: office.id,
-											label: office.name,
+											value: office.id!,
+											label: office.name!,
 										}),
 									)}
 								/>
@@ -206,8 +206,8 @@ function CreateUserPage() {
 									required
 									multiple
 									options={template?.availableRoles?.map((role: RoleData) => ({
-										value: role.id,
-										label: role.name,
+										value: role.id!,
+										label: role.name!,
 									}))}
 									helperText="Select one or more roles for this user"
 								/>
