@@ -60,7 +60,7 @@ describe("Navbar", () => {
 			/>,
 		);
 
-		const menuButton = screen.getByRole("button");
+		const menuButton = screen.getByTestId("mobile-menu-button");
 		fireEvent.click(menuButton);
 		expect(handleToggle).toHaveBeenCalledTimes(1);
 	});

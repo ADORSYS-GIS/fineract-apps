@@ -1,0 +1,17 @@
+{
+	"translation": {
+		"welcome": "Welcome",
+		"dashboard": "Dashboard",
+		"payments": "Payments",
+		"receipts": "Receipts",
+		"settings": "Settings",
+		"logout": "Logout",
+		"cashierHomePage": "Welcome to the Cashier Home Page!",
+		"accountManagerHomePage": "Welcome to the Account Manager Home Page!",
+		"branchManagerHomePage": "Welcome to the Branch Manager Home Page!",
+		"accounts": "Accounts",
+		"transactions": "Transactions",
+		"branches": "Branches",
+		"reports": "Reports"
+	}
+}

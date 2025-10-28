@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 function HomePage() {
-	return <div>Welcome to the Account Manager Home Page!</div>;
+	const { t } = useTranslation();
+	return <div>{t("accountManagerHomePage")}</div>;
 }
 
 export const Route = createFileRoute("/")({
