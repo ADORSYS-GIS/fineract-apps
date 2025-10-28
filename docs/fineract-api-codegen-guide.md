@@ -20,7 +20,8 @@ The process uses the `@7nohe/openapi-react-query-codegen` tool to read an OpenAP
 1.  **API Specification**: A local copy of the Fineract OpenAPI spec is stored in `packages/fineract-api/fineract.json`.
 2.  **Codegen Script**: The `codegen` script in `packages/fineract-api/package.json` runs the generator tool.
 3.  **Output**: The tool generates a complete TypeScript client in the `packages/fineract-api/src/generated/` directory.
-4.  **Exports**: The main `packages/fineract-api/src/index.ts` file exports all the generated code, making it available to other packages in the monorepo.
+4.  **Post-processing**: After generation, the `scripts/add-ts-nocheck.mjs` script is executed. This script recursively finds all generated `.ts` files and adds a `// @ts-nocheck` comment at the top. This is a necessary workaround to suppress TypeScript errors that arise from the generated code, as excluding the directory in `tsconfig.json` was not effective.
+5.  **Exports**: The main `packages/fineract-api/src/index.ts` file exports all the generated code, making it available to other packages in the monorepo.
 
 ## 3. Workflow: Updating the API Client
 
