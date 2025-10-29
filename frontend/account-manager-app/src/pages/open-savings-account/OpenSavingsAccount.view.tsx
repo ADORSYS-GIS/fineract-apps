@@ -25,10 +25,7 @@ export const OpenSavingsAccountView: FC<OpenSavingsAccountViewProps> = ({
 				<p className="text-center text-gray-600">
 					Fill in the details below to open a new savings account for a client.
 				</p>
-				<Form
-					initialValues={initialValues}
-					onSubmit={onSubmit}
-				>
+				<Form initialValues={initialValues} onSubmit={onSubmit}>
 					<div className="space-y-4">
 						<Input
 							name="productId"

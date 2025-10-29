@@ -12,28 +12,29 @@ export const SelectAccountTypeView: FC<
 	return (
 		<>
 			{/* Backdrop */}
-			<button
-				type="button"
+			<div
 				className="fixed inset-0 z-40 bg-black/40"
 				onClick={closeModal}
 				onKeyDown={(e) => e.key === "Escape" && closeModal()}
+				role="button"
 				tabIndex={0}
 				aria-label="Close modal"
 			/>
 
 			{/* Modal */}
-			<button
-				type="button"
+			<div
 				className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
 				onClick={closeModal}
 				onKeyDown={(e) => e.key === "Escape" && closeModal()}
+				role="button"
 				tabIndex={0}
 				aria-label="Close modal"
 			>
-				<dialog
+				<div
 					className="relative bg-white rounded-t-2xl md:rounded-lg p-6 w-full max-w-md shadow-lg"
 					onClick={(e) => e.stopPropagation()}
 					onKeyDown={(e) => e.stopPropagation()}
+					role="dialog"
 					aria-modal="true"
 				>
 					<button
@@ -114,8 +115,8 @@ export const SelectAccountTypeView: FC<
 							</Button>
 						</Link>
 					</div>
-				</dialog>
-			</button>
+				</div>
+			</div>
 		</>
 	);
 };
