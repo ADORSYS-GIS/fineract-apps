@@ -4,8 +4,8 @@ import { SidebarView } from "./Sidebar.view";
 import "@testing-library/jest-dom";
 
 const menuItems: MenuItem[] = [
-	{ name: "Home", link: "/home" },
-	{ name: "Profile", link: "/profile" },
+	{ name: "home", link: "/home" },
+	{ name: "profile", link: "/profile" },
 ];
 
 describe("SidebarView", () => {
@@ -16,6 +16,7 @@ describe("SidebarView", () => {
 	it("renders the logo", () => {
 		render(
 			<SidebarView
+				logo="OnlineBank"
 				menuItems={menuItems}
 				onLogout={onLogout}
 				activeLink={activeLink}
@@ -34,8 +35,8 @@ describe("SidebarView", () => {
 				handleClick={handleClick}
 			/>,
 		);
-		expect(screen.getByText("Home")).toBeInTheDocument();
-		expect(screen.getByText("Profile")).toBeInTheDocument();
+		expect(screen.getByText("home")).toBeInTheDocument();
+		expect(screen.getByText("profile")).toBeInTheDocument();
 	});
 
 	it("renders the logout button and triggers click", () => {
@@ -47,7 +48,7 @@ describe("SidebarView", () => {
 				handleClick={handleClick}
 			/>,
 		);
-		fireEvent.click(screen.getByText("Logout"));
+		fireEvent.click(screen.getByText(/logout/i));
 		expect(onLogout).toHaveBeenCalled();
 	});
 });

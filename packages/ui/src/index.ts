@@ -10,6 +10,7 @@ export {
 	SubmitButton,
 	useFormContext,
 } from "./components/Form";
+export * from "./components/LanguageSwitcher";
 export { Navbar } from "./components/Navbar";
 export { Pagination } from "./components/Pagination";
 export { SearchBar } from "./components/SearchBar";

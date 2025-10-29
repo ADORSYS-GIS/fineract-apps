@@ -1,9 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 function HomePage() {
-	return <div>Welcome to the Cashier Home Page!</div>;
+	const { t } = useTranslation();
+	return <div>{t("cashierHomePage")}</div>;
 }
 
 export const Route = createFileRoute("/")({
+	beforeLoad: () => {
+		throw redirect({
+			to: "/dashboard",
+			search: { query: "" },
+		});
+	},
 	component: HomePage,
 });
