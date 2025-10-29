@@ -9,8 +9,7 @@ import toast from "react-hot-toast";
 
 export const useSavingsAccountDetails = (accountId: number) => {
 	const queryClient = useQueryClient();
-	const isBlockModalOpen = useState(false)[0];
-	const setBlockModalOpen = useState(false)[1];
+	const [isBlockModalOpen, setBlockModalOpen] = useState(false);
 
 	const { data: account, isLoading } = useQuery({
 		queryKey: ["savingsAccountDetails", accountId],
@@ -54,7 +53,7 @@ export const useSavingsAccountDetails = (accountId: number) => {
 			queryClient.invalidateQueries({
 				queryKey: ["savingsAccountDetails", accountId],
 			});
-			closeBlockModal();
+			setBlockModalOpen(false);
 		},
 		onError: () => {
 			toast.error("Failed to block account");
@@ -79,9 +78,6 @@ export const useSavingsAccountDetails = (accountId: number) => {
 		},
 	});
 
-	const openBlockModal = () => setBlockModalOpen(true);
-	const closeBlockModal = () => setBlockModalOpen(false);
-
 	const handleBlockAccount = (reasonId: number) => {
 		const reason = blockReasons?.find((r) => r.id === reasonId);
 		if (reason?.name) {
@@ -103,7 +99,6 @@ export const useSavingsAccountDetails = (accountId: number) => {
 		blockAccount: handleBlockAccount,
 		unblockAccount: handleUnblockAccount,
 		isBlockModalOpen,
-		openBlockModal,
-		closeBlockModal,
+		setBlockModalOpen,
 	};
 };
