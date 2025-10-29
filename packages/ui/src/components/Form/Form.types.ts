@@ -16,6 +16,7 @@ export type ValidationSchema<T extends Values = Values> = z.ZodSchema<T>;
  */
 export interface UseFormProps<T extends Values = Values> {
 	initialValues?: T;
+	validationSchema?: ValidationSchema<T>;
 	onSubmit?: (values: T) => void | Promise<void>;
 }
 
@@ -25,6 +26,7 @@ export interface UseFormProps<T extends Values = Values> {
 export interface FormProps<T extends Values = Values>
 	extends Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit"> {
 	initialValues?: T;
+	validationSchema?: ValidationSchema<T>;
 	onSubmit?: (values: T) => void | Promise<void>;
 	children: React.ReactNode;
 }

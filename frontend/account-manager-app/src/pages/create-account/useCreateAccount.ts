@@ -1,5 +1,5 @@
 import { PostV1ClientsData } from "@fineract-apps/fineract-api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
@@ -8,16 +8,10 @@ import { fineractApi } from "@/services/api";
 import {
 	createClientValidationSchema,
 	initialValues,
-} from "./CreateClient.types";
+} from "../create-client/CreateClient.types";
 
-export const useCreateClient = () => {
+export const useCreateAccount = () => {
 	const navigate = useNavigate();
-
-	const { data: offices, isLoading: isFetchingOffices } = useQuery({
-		queryKey: ["offices"],
-		queryFn: () => fineractApi.offices.getV1Offices(),
-	});
-
 	const { mutate: createClient, isPending: isCreatingClient } = useMutation({
 		mutationKey: ["createClient"],
 		mutationFn: (clientData: PostV1ClientsData) =>
@@ -34,14 +28,9 @@ export const useCreateClient = () => {
 	});
 
 	const onSubmit = (values: z.infer<typeof createClientValidationSchema>) => {
-		const officeId = offices?.[1]?.id;
-		if (!officeId) {
-			toast.error("No office found to assign the client to.");
-			return;
-		}
 		const requestBody = {
 			...values,
-			officeId,
+			officeId: 2,
 			legalFormId: 1,
 			activationDate: values.active
 				? format(new Date(), "dd MMMM yyyy")
@@ -56,6 +45,6 @@ export const useCreateClient = () => {
 		initialValues,
 		validationSchema: createClientValidationSchema,
 		onSubmit,
-		isCreatingClient: isCreatingClient || isFetchingOffices,
+		isCreatingClient,
 	};
 };

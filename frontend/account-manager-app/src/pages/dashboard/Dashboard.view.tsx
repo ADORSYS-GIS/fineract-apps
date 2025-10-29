@@ -22,7 +22,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 
 	return (
 		<div className="bg-gray-50 min-h-screen">
-			<main className="md:ml-64 p-4 sm:p-6 lg:p-8">
+			<main className="p-4 sm:p-6 lg:p-8">
 				<div className="flex flex-col md:flex-row justify-between items-center mb-8">
 					<h1 className="text-4xl font-bold text-gray-800 mb-4 md:mb-0">
 						Clients

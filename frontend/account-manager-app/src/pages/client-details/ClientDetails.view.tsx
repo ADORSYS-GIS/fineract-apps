@@ -89,7 +89,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 
 	return (
 		<div className="bg-gray-100 min-h-screen font-sans">
-			<header className="bg-white shadow-sm sticky top-0 z-10 md:ml-64">
+			<header className="bg-white shadow-sm sticky top-0 z-10 ">
 				<div className="container mx-auto p-4 flex justify-between items-center">
 					<Link to="/dashboard">
 						<Button variant="ghost">
@@ -103,7 +103,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 				</div>
 			</header>
 
-			<main className="md:ml-64 p-4 sm:p-6 lg:p-8">
+			<main className="p-4 sm:p-6 lg:p-8">
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 					<div className="md:col-span-1">
 						<div className="bg-white p-6 rounded-lg shadow-md">

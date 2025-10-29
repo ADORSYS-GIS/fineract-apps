@@ -31,7 +31,7 @@ export const SavingsAccountDetailsView = (
 
 	return (
 		<div className="bg-gray-100 min-h-screen font-sans">
-			<header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 shadow-md md:ml-64">
+			<header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 shadow-md">
 				<div className="flex justify-between items-center">
 					<div className="flex items-center gap-4">
 						{account?.clientId && (
@@ -115,7 +115,7 @@ export const SavingsAccountDetailsView = (
 				</div>
 			</header>
 
-			<main className="p-4 md:p-6 md:ml-64">
+			<main className="p-4 md:p-6 ">
 				<div className="bg-white rounded-lg shadow">
 					<nav className="flex border-b">
 						{navItems.map((item) => (

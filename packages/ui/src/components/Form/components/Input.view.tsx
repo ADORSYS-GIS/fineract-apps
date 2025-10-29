@@ -100,14 +100,10 @@ export const Input: React.FC<InputProps> = ({
 		}
 
 		if (type === "file") {
-			const { className, id, name, disabled } = fieldProps;
 			return (
 				<input
 					type="file"
-					id={id}
-					name={name}
-					className={className}
-					disabled={disabled}
+					{...fieldProps}
 					onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
 						const file = event.currentTarget.files?.[0];
 						if (file) {
