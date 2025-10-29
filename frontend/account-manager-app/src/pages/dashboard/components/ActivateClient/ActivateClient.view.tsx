@@ -9,11 +9,11 @@ export const ActivateClientView: FC<
 	return (
 		<>
 			{/* Backdrop */}
-			<div
+			<button
+				type="button"
 				className="fixed inset-0 z-40 bg-black/40 "
 				onClick={onClose}
 				onKeyDown={(e) => e.key === "Escape" && onClose()}
-				role="button"
 				tabIndex={0}
 				aria-label="Close modal"
 			/>

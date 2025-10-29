@@ -18,29 +18,28 @@ export const UploadDocument: FC<{
 	return (
 		<>
 			{/* Backdrop */}
-			<div
+			<button
+				type="button"
 				className="fixed inset-0 z-40 bg-black/40"
 				onClick={onClose}
 				onKeyDown={(e) => e.key === "Escape" && onClose()}
-				role="button"
 				tabIndex={0}
 				aria-label="Close modal"
 			/>
 
 			{/* Modal */}
-			<div
+			<button
+				type="button"
 				className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
 				onClick={onClose}
 				onKeyDown={(e) => e.key === "Escape" && onClose()}
-				role="button"
 				tabIndex={0}
 				aria-label="Close modal"
 			>
-				<div
+				<dialog
 					className="relative bg-white rounded-t-2xl md:rounded-lg p-6 w-full max-w-md shadow-lg"
 					onClick={(e) => e.stopPropagation()}
 					onKeyDown={(e) => e.stopPropagation()}
-					role="dialog"
 					aria-modal="true"
 				>
 					<button
@@ -81,8 +80,8 @@ export const UploadDocument: FC<{
 							</div>
 						</div>
 					</Form>
-				</div>
-			</div>
+				</dialog>
+			</button>
 		</>
 	);
 };

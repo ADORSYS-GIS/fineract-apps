@@ -11,6 +11,7 @@ import {
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useMemo } from "react";
 import toast from "react-hot-toast";
 import * as z from "zod";
 import { OpenAccountForm, openAccountSchema } from "./OpenAccount.types";
@@ -146,16 +147,27 @@ export const useOpenAccount = (clientId: number) => {
 		}
 	};
 
-	const products =
-		accountType === "loan"
-			? loanProducts
-			: accountType === "shares"
-				? shareProducts?.pageItems
-				: accountType === "recurring"
-					? recurringDepositProducts
-					: accountType === "fixed"
-						? fixedDepositProducts
-						: savingsProducts;
+	const products = useMemo(() => {
+		switch (accountType) {
+			case "loan":
+				return loanProducts;
+			case "shares":
+				return shareProducts?.pageItems;
+			case "recurring":
+				return recurringDepositProducts;
+			case "fixed":
+				return fixedDepositProducts;
+			default:
+				return savingsProducts;
+		}
+	}, [
+		accountType,
+		loanProducts,
+		shareProducts,
+		recurringDepositProducts,
+		fixedDepositProducts,
+		savingsProducts,
+	]);
 
 	return {
 		initialValues,

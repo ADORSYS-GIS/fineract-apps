@@ -9,14 +9,13 @@ type OpenSavingsAccountForm = z.infer<
 
 interface OpenSavingsAccountViewProps {
 	initialValues: OpenSavingsAccountForm;
-	validationSchema: z.ZodSchema<
-		z.infer<typeof openSavingsAccountValidationSchema>
-	>;
+	validationSchema: typeof openSavingsAccountValidationSchema;
 	onSubmit: (values: OpenSavingsAccountForm) => void;
 }
 
 export const OpenSavingsAccountView: FC<OpenSavingsAccountViewProps> = ({
 	initialValues,
+	validationSchema,
 	onSubmit,
 }) => {
 	return (
@@ -28,7 +27,11 @@ export const OpenSavingsAccountView: FC<OpenSavingsAccountViewProps> = ({
 				<p className="text-center text-gray-600">
 					Fill in the details below to open a new savings account for a client.
 				</p>
-				<Form initialValues={initialValues} onSubmit={onSubmit}>
+				<Form
+					initialValues={initialValues}
+					validationSchema={validationSchema}
+					onSubmit={onSubmit}
+				>
 					<div className="space-y-4">
 						<Input
 							name="productId"
