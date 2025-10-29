@@ -9,7 +9,9 @@ type OpenSavingsAccountForm = z.infer<
 
 interface OpenSavingsAccountViewProps {
 	initialValues: OpenSavingsAccountForm;
-	validationSchema: typeof openSavingsAccountValidationSchema;
+	validationSchema: z.ZodSchema<
+		z.infer<typeof openSavingsAccountValidationSchema>
+	>;
 	onSubmit: (values: OpenSavingsAccountForm) => void;
 }
 

@@ -54,7 +54,9 @@ export const CaptureImage: FC<{
 								className="w-full h-auto"
 							/>
 						) : (
-							<video ref={videoRef} autoPlay className="w-full h-auto" />
+							<video ref={videoRef} autoPlay className="w-full h-auto">
+								<track kind="captions" />
+							</video>
 						)}
 						<canvas ref={canvasRef} className="hidden" />
 						<div className="mt-4 flex space-x-4">

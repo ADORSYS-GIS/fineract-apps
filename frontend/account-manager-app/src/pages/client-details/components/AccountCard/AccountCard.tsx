@@ -35,7 +35,7 @@ export const AccountCard: FC<AccountCardProps> = ({
 	onDelete,
 }) => {
 	const borderColorClass =
-		productColors[account.productName || ""] || "border-gray-500";
+		productColors[account.productName ?? ""] ?? "border-gray-500";
 
 	return (
 		<Link
@@ -50,7 +50,7 @@ export const AccountCard: FC<AccountCardProps> = ({
 					<p className="text-sm text-gray-500">{account.productName}</p>
 					<span
 						className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(
-							account.status?.value || "",
+							account.status?.value ?? "",
 						)}`}
 					>
 						{account.status?.value}

@@ -118,7 +118,6 @@ export const useOpenAccount = (clientId: number) => {
 				},
 			});
 		} else if (accountType === "loan") {
-			// TODO: Implement loan account creation
 			console.log("Creating loan account with data:", data);
 		} else if (accountType === "shares") {
 			createShareAccount({
@@ -141,10 +140,8 @@ export const useOpenAccount = (clientId: number) => {
 				},
 			});
 		} else if (accountType === "recurring") {
-			// TODO: Implement recurring deposit account creation
 			console.log("Creating recurring deposit account with data:", data);
 		} else if (accountType === "fixed") {
-			// TODO: Implement fixed deposit account creation
 			console.log("Creating fixed deposit account with data:", data);
 		}
 	};

@@ -9,7 +9,14 @@ export const ActivateClientView: FC<
 	return (
 		<>
 			{/* Backdrop */}
-			<div className="fixed inset-0 z-40 bg-black/40 " onClick={onClose} />
+			<div
+				className="fixed inset-0 z-40 bg-black/40 "
+				onClick={onClose}
+				onKeyDown={(e) => e.key === "Escape" && onClose()}
+				role="button"
+				tabIndex={0}
+				aria-label="Close modal"
+			/>
 
 			{/* Bottom Sheet */}
 			<div className="fixed inset-x-0 bottom-0 z-50 flex justify-center">

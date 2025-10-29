@@ -60,12 +60,12 @@ export const useDashboard = () => {
 				mobileNo: client.mobileNo,
 			}));
 		}
-		return clients?.pageItems || [];
+		return clients?.pageItems ?? [];
 	}, [searchResults, clients]);
 	const totalPages =
-		searchResults?.totalPages || clients?.totalFilteredRecords
+		(searchResults?.totalPages ?? clients?.totalFilteredRecords)
 			? Math.ceil(
-					(searchResults?.totalElements || clients?.totalFilteredRecords || 0) /
+					(searchResults?.totalElements ?? clients?.totalFilteredRecords ?? 0) /
 						5,
 				)
 			: 1;

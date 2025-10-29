@@ -35,28 +35,23 @@ export const useGetClientImage = (clientId: string) => {
 				});
 
 				if (typeof response === "string") {
-					if (response.startsWith("data:image")) {
-						return response;
-					}
-					return `data:image/png;base64,${response}`;
+					return response.startsWith("data:image")
+						? response
+						: `data:image/png;base64,${response}`;
 				}
 
 				if (response instanceof Blob) {
 					if (response.type.startsWith("image/")) {
 						return await blobToDataURL(response);
-					} else {
-						// It might be a JSON error response in a blob
-						const text = await response.text();
-						try {
-							const json = JSON.parse(text);
-							if (json.status === 404) {
-								return null; // No image found
-							}
-							throw new Error(json.developerMessage || "Invalid response");
-						} catch (_e) {
-							// Not a JSON response, and not an image.
-							return null;
-						}
+					}
+					// It might be a JSON error response in a blob
+					const text = await response.text();
+					try {
+						const json = JSON.parse(text);
+						if (json.status === 404) return null; // No image found
+						throw new Error(json.developerMessage ?? "Invalid response");
+					} catch (_e) {
+						return null; // Not a JSON response, and not an image.
 					}
 				}
 				return null;
