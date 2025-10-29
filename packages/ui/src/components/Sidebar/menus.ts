@@ -1,4 +1,4 @@
-import { FileText, Home, Send, Settings, Users} from "lucide-react";
+import { FileText, Home, Send, Settings, Users } from "lucide-react";
 
 export const menuAccountManager = [
 	{ name: "dashboard", link: "/dashboard", icon: Home },
