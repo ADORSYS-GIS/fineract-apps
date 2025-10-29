@@ -9,13 +9,11 @@ type OpenSavingsAccountForm = z.infer<
 
 interface OpenSavingsAccountViewProps {
 	initialValues: OpenSavingsAccountForm;
-	validationSchema: typeof openSavingsAccountValidationSchema;
 	onSubmit: (values: OpenSavingsAccountForm) => void;
 }
 
 export const OpenSavingsAccountView: FC<OpenSavingsAccountViewProps> = ({
 	initialValues,
-	validationSchema,
 	onSubmit,
 }) => {
 	return (
@@ -29,7 +27,6 @@ export const OpenSavingsAccountView: FC<OpenSavingsAccountViewProps> = ({
 				</p>
 				<Form
 					initialValues={initialValues}
-					validationSchema={validationSchema}
 					onSubmit={onSubmit}
 				>
 					<div className="space-y-4">
