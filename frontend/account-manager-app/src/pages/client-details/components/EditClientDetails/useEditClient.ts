@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 import { z } from "zod";
-import { fineractApi } from "../../../../services/api";
+import { fineractApi } from "@/services/api";
 import {
 	editClientValidationSchema,
 	initialValues,

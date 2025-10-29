@@ -2,7 +2,7 @@ import { Button } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Trash2, Upload } from "lucide-react";
 import { FC, useState } from "react";
-import { fineractApi } from "../../../../services/api";
+import { fineractApi } from "@/services/api";
 import { UploadDocument } from "../UploadDocument/UploadDocument.view";
 import { useDeleteIdentity } from "./useDeleteIdentity";
 import { useKYCManagement } from "./useKYCManagement";

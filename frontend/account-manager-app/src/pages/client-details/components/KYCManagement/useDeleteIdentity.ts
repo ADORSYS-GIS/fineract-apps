@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import toast from "react-hot-toast";
-import { fineractApi } from "../../../../services/api";
+import { fineractApi } from "@/services/api";
 
 export const useDeleteIdentity = () => {
 	const { clientId } = useParams({ from: "/client-details/$clientId" });

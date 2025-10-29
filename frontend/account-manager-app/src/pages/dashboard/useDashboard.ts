@@ -1,7 +1,7 @@
 import { ClientSearchData } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { fineractApi } from "../../services/api";
+import { fineractApi } from "@/services/api";
 
 export const useDashboard = () => {
 	const [searchValue, setSearchValue] = useState("");

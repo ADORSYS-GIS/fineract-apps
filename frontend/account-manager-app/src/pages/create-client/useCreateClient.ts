@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { z } from "zod";
-import { fineractApi } from "../../services/api";
+import { fineractApi } from "@/services/api";
 import {
 	createClientValidationSchema,
 	initialValues,
