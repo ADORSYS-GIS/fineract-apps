@@ -7,13 +7,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
-interface BlockAccountRequest extends PostSavingsAccountsAccountIdRequest {
-	reasonForBlock?: string;
-}
-
 export const useSavingsAccountDetails = (accountId: number) => {
 	const queryClient = useQueryClient();
-	const [isBlockModalOpen, setBlockModalOpen] = useState(false);
+	const isBlockModalOpen = useState(false)[0];
+	const setBlockModalOpen = useState(false)[1];
 
 	const { data: account, isLoading } = useQuery({
 		queryKey: ["savingsAccountDetails", accountId],
@@ -49,7 +46,7 @@ export const useSavingsAccountDetails = (accountId: number) => {
 					locale: "en",
 					transactionDate: formattedDate,
 					blockReasonId: data.reasonId,
-				} as unknown as BlockAccountRequest,
+				} as PostSavingsAccountsAccountIdRequest,
 			});
 		},
 		onSuccess: () => {

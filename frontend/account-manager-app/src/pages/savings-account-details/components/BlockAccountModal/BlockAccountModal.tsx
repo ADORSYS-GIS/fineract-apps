@@ -25,16 +25,19 @@ export const BlockAccountModal: FC<BlockAccountModalProps> = ({
 	return (
 		<>
 			{/* Backdrop */}
-			<div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
+			<button
+				type="button"
+				className="fixed inset-0 z-40 bg-black/40"
+				onClick={onClose}
+				aria-label="Close modal"
+			/>
 
 			{/* Modal */}
-			<div
-				className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
-				onClick={onClose}
-			>
-				<div
+			<div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+				<dialog
 					className="relative bg-white rounded-t-2xl md:rounded-lg p-6 w-full max-w-md shadow-lg"
-					onClick={(e) => e.stopPropagation()}
+					open={isOpen}
+					onClose={onClose}
 				>
 					<button
 						type="button"
@@ -85,7 +88,7 @@ export const BlockAccountModal: FC<BlockAccountModalProps> = ({
 							Confirm
 						</Button>
 					</div>
-				</div>
+				</dialog>
 			</div>
 		</>
 	);

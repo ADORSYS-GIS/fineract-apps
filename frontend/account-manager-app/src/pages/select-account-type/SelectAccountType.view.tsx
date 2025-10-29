@@ -53,7 +53,7 @@ export const SelectAccountTypeView: FC = () => {
 
 	return (
 		<div className="bg-gray-50 min-h-screen">
-			<header className="p-4 flex items-center border-b bg-white md:ml-64">
+			<header className="p-4 flex items-center border-b bg-white">
 				<Link
 					to="/client-details/$clientId"
 					params={{ clientId: String(clientId) }}
@@ -65,7 +65,7 @@ export const SelectAccountTypeView: FC = () => {
 				<h1 className="text-lg font-semibold ml-4">Select Account Type</h1>
 			</header>
 
-			<main className="p-6 md:ml-64">
+			<main className="p-6 ">
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{accountTypes.map((account) => (
 						<Link
