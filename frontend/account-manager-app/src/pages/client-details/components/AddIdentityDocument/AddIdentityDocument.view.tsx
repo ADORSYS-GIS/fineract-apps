@@ -1,6 +1,6 @@
 import { Button, Form, Input } from "@fineract-apps/ui";
-import { X } from "lucide-react";
 import { FC } from "react";
+import { Modal } from "../../../../components/Modal/Modal";
 import { useAddIdentityDocument } from "./useAddIdentityDocument";
 
 export const AddIdentityDocument: FC<{
@@ -10,84 +10,44 @@ export const AddIdentityDocument: FC<{
 	const { initialValues, onSubmit, isPending } =
 		useAddIdentityDocument(onClose);
 
-	if (!isOpen) return null;
-
 	return (
-		<>
-			{/* Backdrop */}
-			<button
-				type="button"
-				className="fixed inset-0 z-40 bg-black/40"
-				onClick={onClose}
-				onKeyDown={(e) => e.key === "Escape" && onClose()}
-				aria-label="Close modal"
-			/>
-
-			{/* Modal */}
-			<div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
-				<dialog
-					className="relative bg-white rounded-t-2xl md:rounded-lg p-6 w-full max-w-md shadow-lg"
-					open={isOpen}
-					onClose={onClose}
-				>
-					<button
-						type="button"
-						className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 hidden md:block"
-						onClick={onClose}
+		<Modal isOpen={isOpen} onClose={onClose} title="Add Identity Document">
+			<Form initialValues={initialValues} onSubmit={onSubmit}>
+				<div className="space-y-4">
+					<Input
+						name="documentTypeId"
+						label="Document Type"
+						type="select"
+						options={[
+							{ label: "Passport", value: "1" },
+							{ label: "ID Card", value: "2" },
+							{ label: "Driver's License", value: "3" },
+							{ label: "Other Types", value: "4" },
+						]}
+					/>
+					<Input
+						name="status"
+						label="Status"
+						type="select"
+						options={[
+							{ label: "Active", value: "ACTIVE" },
+							{ label: "Inactive", value: "INACTIVE" },
+						]}
+					/>
+					<Input
+						name="documentKey"
+						label="Document Key"
+						placeholder="Enter Document Key"
+					/>
+					<Button
+						type="submit"
+						className="w-full bg-green-500 hover:bg-green-600 text-white"
+						disabled={isPending}
 					>
-						<X className="w-6 h-6" />
-					</button>
-					<div className="hidden md:block">
-						<h2 className="text-xl font-bold text-center mb-6">
-							Add Identity Document
-						</h2>
-					</div>
-					<div className="md:hidden flex justify-center mb-4">
-						<div className="w-12 h-1.5 bg-gray-300 rounded-full" />
-					</div>
-					<div className="md:hidden">
-						<h2 className="text-xl font-bold text-center mb-6">
-							Add Identity Document
-						</h2>
-					</div>
-					<Form initialValues={initialValues} onSubmit={onSubmit}>
-						<div className="space-y-4">
-							<Input
-								name="documentTypeId"
-								label="Document Type"
-								type="select"
-								options={[
-									{ label: "Passport", value: "1" },
-									{ label: "ID Card", value: "2" },
-									{ label: "Driver's License", value: "3" },
-									{ label: "Other Types", value: "4" },
-								]}
-							/>
-							<Input
-								name="status"
-								label="Status"
-								type="select"
-								options={[
-									{ label: "Active", value: "ACTIVE" },
-									{ label: "Inactive", value: "INACTIVE" },
-								]}
-							/>
-							<Input
-								name="documentKey"
-								label="Document Key"
-								placeholder="Enter Document Key"
-							/>
-							<Button
-								type="submit"
-								className="w-full bg-green-500 hover:bg-green-600 text-white"
-								disabled={isPending}
-							>
-								{isPending ? "Submitting..." : "Submit"}
-							</Button>
-						</div>
-					</Form>
-				</dialog>
-			</div>
-		</>
+						{isPending ? "Submitting..." : "Submit"}
+					</Button>
+				</div>
+			</Form>
+		</Modal>
 	);
 };

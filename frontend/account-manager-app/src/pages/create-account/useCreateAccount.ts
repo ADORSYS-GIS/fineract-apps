@@ -1,31 +1,14 @@
-import { PostV1ClientsData } from "@fineract-apps/fineract-api";
-import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
-import toast from "react-hot-toast";
 import { z } from "zod";
-import { fineractApi } from "@/services/api";
+import { useCreateClientMutation } from "@/hooks/useCreateClientMutation";
 import {
 	createClientValidationSchema,
 	initialValues,
 } from "../create-client/CreateClient.types";
 
 export const useCreateAccount = () => {
-	const navigate = useNavigate();
-	const { mutate: createClient, isPending: isCreatingClient } = useMutation({
-		mutationKey: ["createClient"],
-		mutationFn: (clientData: PostV1ClientsData) =>
-			fineractApi.clients.postV1Clients(clientData),
-		onSuccess: (data) => {
-			toast.success("Client created successfully!");
-			navigate({ to: `/client-details/${data.clientId}` });
-		},
-		onError: (error) => {
-			toast.error(
-				error.message || "An error occurred while creating the client.",
-			);
-		},
-	});
+	const { mutate: createClient, isPending: isCreatingClient } =
+		useCreateClientMutation();
 
 	const onSubmit = (values: z.infer<typeof createClientValidationSchema>) => {
 		const requestBody = {

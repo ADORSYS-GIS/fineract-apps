@@ -16,8 +16,7 @@ export const SavingsAccountDetailsView = (
 		blockAccount,
 		unblockAccount,
 		isBlockModalOpen,
-		openBlockModal,
-		closeBlockModal,
+		setBlockModalOpen,
 	} = props;
 	const [activeTab, setActiveTab] = useState("Transactions");
 
@@ -82,14 +81,14 @@ export const SavingsAccountDetailsView = (
 						</div>
 						<AccountActions
 							isBlocked={isBlocked}
-							onBlock={openBlockModal}
+							onBlock={() => setBlockModalOpen(true)}
 							onUnblock={unblockAccount}
 						/>
 					</div>
 					<div className="md:hidden">
 						<AccountActions
 							isBlocked={isBlocked}
-							onBlock={openBlockModal}
+							onBlock={() => setBlockModalOpen(true)}
 							onUnblock={unblockAccount}
 						/>
 					</div>
@@ -251,7 +250,7 @@ export const SavingsAccountDetailsView = (
 			</main>
 			<BlockAccountModal
 				isOpen={isBlockModalOpen}
-				onClose={closeBlockModal}
+				onClose={() => setBlockModalOpen(false)}
 				blockReasons={blockReasons}
 				onConfirm={blockAccount}
 			/>
