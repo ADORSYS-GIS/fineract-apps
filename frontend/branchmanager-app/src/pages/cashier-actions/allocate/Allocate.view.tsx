@@ -6,7 +6,7 @@ import {
 	SubmitButton,
 } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
-import type { FormValues } from "./Allocate.types";
+import type { CashierActionFormValues as FormValues } from "../useCashierAction";
 
 export const AllocateView = ({
 	initialValues,
