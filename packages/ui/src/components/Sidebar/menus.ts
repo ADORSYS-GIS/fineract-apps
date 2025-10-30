@@ -6,6 +6,7 @@ import {
 	Settings,
 	Users,
 } from "lucide-react";
+import { MenuItem } from "./Sidebar.types";
 
 export const menuAccountManager = [
 	{ name: "dashboard", link: "/dashboard", icon: Home },
@@ -14,11 +15,11 @@ export const menuAccountManager = [
 	{ name: "settings", link: "/settings", icon: Settings },
 ];
 
-export const menuBranchManager = [
+export const menuBranchManager: MenuItem[] = [
 	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "branches", link: "/branches", icon: Users },
-	{ name: "reports", link: "/reports", icon: FileText },
-	{ name: "settings", link: "/settings", icon: Settings },
+	{ name: "staff", link: "/staff", icon: Users },
+	{ name: "tellers", link: "/tellers", icon: Users },
+	{ name: "pending", link: "/approve/account", icon: Users },
 ];
 
 export const menuCashier = [

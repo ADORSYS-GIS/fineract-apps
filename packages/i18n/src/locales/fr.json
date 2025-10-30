@@ -12,6 +12,9 @@
 		"accounts": "Comptes",
 		"transactions": "Transactions",
 		"branches": "Succursales",
-		"reports": "Rapports"
+		"reports": "Rapports",
+		"staff": "Personnel",
+		"tellers/cashiers": "Guichetier et caissier",
+		"pending": "En attente"
 	}
 }
