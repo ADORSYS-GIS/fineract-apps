@@ -1,14 +1,17 @@
 import { SavingsAccountTransactionData } from "@fineract-apps/fineract-api";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, HandCoins } from "lucide-react";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { AccountActions, BlockAccountModal } from "./components";
 import { useBlockAccount } from "./hooks/useBlockAccount";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
 
 export const SavingsAccountDetailsView = (
 	props: ReturnType<typeof useSavingsAccountDetails> &
-		ReturnType<typeof useBlockAccount>,
+		ReturnType<typeof useBlockAccount> & {
+			isBlockModalOpen: boolean;
+			setBlockModalOpen: Dispatch<SetStateAction<boolean>>;
+		},
 ) => {
 	const {
 		account,
@@ -123,7 +126,11 @@ export const SavingsAccountDetailsView = (
 							<button
 								key={item}
 								onClick={() => setActiveTab(item)}
-								className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 ${activeTab === item ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-blue-500"}`}
+								className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 ${
+									activeTab === item
+										? "border-b-2 border-blue-600 text-blue-600"
+										: "text-gray-500 hover:text-blue-500"
+								}`}
 							>
 								{item}
 							</button>
@@ -159,7 +166,9 @@ export const SavingsAccountDetailsView = (
 														{transaction.transactionType?.value}
 													</span>
 													<span
-														className={`font-bold ${isDeposit ? "text-green-600" : "text-red-600"}`}
+														className={`font-bold ${
+															isDeposit ? "text-green-600" : "text-red-600"
+														}`}
 													>
 														{isDeposit ? "+" : "-"}
 														{transaction.amount}

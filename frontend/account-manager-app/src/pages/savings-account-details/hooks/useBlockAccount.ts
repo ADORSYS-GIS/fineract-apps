@@ -4,12 +4,14 @@ import {
 	SavingsAccountService,
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { Dispatch, SetStateAction } from "react";
 import toast from "react-hot-toast";
 
-export const useBlockAccount = (accountId: number) => {
+export const useBlockAccount = (
+	accountId: number,
+	setBlockModalOpen: Dispatch<SetStateAction<boolean>>,
+) => {
 	const queryClient = useQueryClient();
-	const [isBlockModalOpen, setBlockModalOpen] = useState(false);
 
 	const { data: blockReasons } = useQuery({
 		queryKey: ["blockReasons"],
@@ -61,8 +63,6 @@ export const useBlockAccount = (accountId: number) => {
 	};
 
 	return {
-		isBlockModalOpen,
-		setBlockModalOpen,
 		blockReasons,
 		blockAccount: handleBlockAccount,
 	};
