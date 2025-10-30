@@ -1,5 +1,5 @@
-import { useParams } from "@tanstack/react-router";
-import { FC, useState } from "react";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { FC } from "react";
 import { SavingsAccountDetailsView } from "./SavingsAccountDetails.view";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
 
@@ -7,10 +7,22 @@ export const SavingsAccountDetails: FC = () => {
 	const { accountId } = useParams({
 		from: "/savings-account-details/$accountId",
 	});
-	const [isBlockModalOpen, setBlockModalOpen] = useState(false);
+	const navigate = useNavigate({
+		from: "/savings-account-details/$accountId",
+	});
+	const { action } = useSearch({
+		from: "/savings-account-details/$accountId",
+	});
+	const isBlockModalOpen = action === "block";
 
-	const openBlockModal = () => setBlockModalOpen(true);
-	const closeBlockModal = () => setBlockModalOpen(false);
+	const openBlockModal = () =>
+		navigate({
+			search: (prev) => ({ ...prev, action: "block" }),
+		});
+	const closeBlockModal = () =>
+		navigate({
+			search: (prev) => ({ ...prev, action: undefined }),
+		});
 
 	const props = useSavingsAccountDetails(Number(accountId), {
 		onBlockSuccess: closeBlockModal,
