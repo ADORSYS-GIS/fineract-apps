@@ -1,10 +1,6 @@
 import { z } from "zod";
+import { cashierActionSchema } from "@/components/CashierActionForm";
 
-export const allocateSchema = z.object({
-	amount: z.number().gt(0, "Amount must be greater than 0"),
-	currencyCode: z.string().min(1, "Currency is required"),
-	date: z.string().min(1, "Date is required"),
-	notes: z.string().optional(),
-});
+export const allocateSchema = cashierActionSchema;
 
 export type FormValues = z.infer<typeof allocateSchema>;

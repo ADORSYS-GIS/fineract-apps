@@ -19,12 +19,15 @@ export const ApproveAccountView = () => (
 				</Link>
 			</Card>
 			<Card className="hoverable cursor-pointer">
-				<div className="block w-full h-full p-6 text-center">
+				<Link
+					to="/approve/loans"
+					className="block w-full h-full p-6 text-center"
+				>
 					<h2 className="text-lg font-semibold text-gray-800">Pending Loans</h2>
 					<p className="text-gray-500 text-sm mt-1">
 						Review and approve loan applications.
 					</p>
-				</div>
+				</Link>
 			</Card>
 		</div>
 	</div>

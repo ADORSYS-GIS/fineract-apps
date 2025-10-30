@@ -1,12 +1,5 @@
-import {
-	Button,
-	Form,
-	FormTitle,
-	Input,
-	SubmitButton,
-} from "@fineract-apps/ui";
-import { useNavigate } from "@tanstack/react-router";
-import type { CashierActionFormValues as FormValues } from "../useCashierAction";
+import { CashierActionForm } from "@/components/CashierActionForm";
+import type { FormValues } from "./Settle.types";
 
 export const SettleView = ({
 	initialValues,
@@ -21,41 +14,14 @@ export const SettleView = ({
 	submitLabel?: string;
 	onCancel?: () => void;
 }) => {
-	const navigate = useNavigate();
 	return (
-		<div className="px-6 py-6">
-			<Form<FormValues> initialValues={initialValues} onSubmit={onSubmit}>
-				<FormTitle>Settle Funds</FormTitle>
-				<div className="grid grid-cols-1 gap-4">
-					<Input
-						name="amount"
-						label="Amount"
-						type="number"
-						placeholder="Enter amount"
-					/>
-					<Input
-						name="currencyCode"
-						label="Currency"
-						type="text"
-						disabled={true}
-					/>
-					<Input name="notes" label="Notes" placeholder="Notes (optional)" />
-					<Input name="date" label="Transaction date" type="date" />
-					<div className="flex flex-col sm:flex-row justify-end gap-3">
-						<SubmitButton
-							label={isSubmitting ? `${submitLabel}...` : submitLabel}
-						/>
-						<Button
-							variant="outline"
-							onClick={() =>
-								onCancel ? onCancel() : navigate({ to: "/tellers" })
-							}
-						>
-							Cancel
-						</Button>
-					</div>
-				</div>
-			</Form>
-		</div>
+		<CashierActionForm
+			initialValues={initialValues}
+			onSubmit={onSubmit}
+			isSubmitting={isSubmitting}
+			submitLabel={submitLabel}
+			onCancel={onCancel}
+			title="Settle Funds"
+		/>
 	);
 };

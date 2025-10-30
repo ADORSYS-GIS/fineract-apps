@@ -18,12 +18,14 @@ import { Route as StaffIndexRouteImport } from './routes/staff.index'
 import { Route as TellersCreateRouteImport } from './routes/tellers.create'
 import { Route as TellersTellerIdRouteImport } from './routes/tellers.$tellerId'
 import { Route as StaffStaffIdRouteImport } from './routes/staff.$staffId'
+import { Route as ApproveLoansRouteImport } from './routes/approve.loans'
 import { Route as ApproveAccountRouteImport } from './routes/approve.account'
 import { Route as TellersTellerIdIndexRouteImport } from './routes/tellers.$tellerId.index'
 import { Route as StaffStaffIdIndexRouteImport } from './routes/staff.$staffId.index'
 import { Route as TellersTellerIdCashiersRouteImport } from './routes/tellers.$tellerId.cashiers'
 import { Route as TellersTellerIdAssignRouteImport } from './routes/tellers.$tellerId.assign'
 import { Route as ApproveSavingsAccountRouteImport } from './routes/approve.savings.account'
+import { Route as ApproveLoansLoanIdRouteImport } from './routes/approve.loans.$loanId'
 import { Route as TellersTellerIdCashiersCashierIdRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId'
 import { Route as TellersTellerIdCashiersCashierIdIndexRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId.index'
 import { Route as TellersTellerIdCashiersCashierIdSettleRouteImport } from './routes/tellers.$tellerId.cashiers.$cashierId.settle'
@@ -74,6 +76,11 @@ const StaffStaffIdRoute = StaffStaffIdRouteImport.update({
   path: '/$staffId',
   getParentRoute: () => StaffRoute,
 } as any)
+const ApproveLoansRoute = ApproveLoansRouteImport.update({
+  id: '/approve/loans',
+  path: '/approve/loans',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApproveAccountRoute = ApproveAccountRouteImport.update({
   id: '/approve/account',
   path: '/approve/account',
@@ -103,6 +110,11 @@ const ApproveSavingsAccountRoute = ApproveSavingsAccountRouteImport.update({
   id: '/approve/savings/account',
   path: '/approve/savings/account',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApproveLoansLoanIdRoute = ApproveLoansLoanIdRouteImport.update({
+  id: '/$loanId',
+  path: '/$loanId',
+  getParentRoute: () => ApproveLoansRoute,
 } as any)
 const TellersTellerIdCashiersCashierIdRoute =
   TellersTellerIdCashiersCashierIdRouteImport.update({
@@ -135,11 +147,13 @@ export interface FileRoutesByFullPath {
   '/staff': typeof StaffRouteWithChildren
   '/tellers': typeof TellersRouteWithChildren
   '/approve/account': typeof ApproveAccountRoute
+  '/approve/loans': typeof ApproveLoansRouteWithChildren
   '/staff/$staffId': typeof StaffStaffIdRouteWithChildren
   '/tellers/$tellerId': typeof TellersTellerIdRouteWithChildren
   '/tellers/create': typeof TellersCreateRoute
   '/staff/': typeof StaffIndexRoute
   '/tellers/': typeof TellersIndexRoute
+  '/approve/loans/$loanId': typeof ApproveLoansLoanIdRoute
   '/approve/savings/account': typeof ApproveSavingsAccountRoute
   '/tellers/$tellerId/assign': typeof TellersTellerIdAssignRoute
   '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
@@ -154,9 +168,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/approve/account': typeof ApproveAccountRoute
+  '/approve/loans': typeof ApproveLoansRouteWithChildren
   '/tellers/create': typeof TellersCreateRoute
   '/staff': typeof StaffIndexRoute
   '/tellers': typeof TellersIndexRoute
+  '/approve/loans/$loanId': typeof ApproveLoansLoanIdRoute
   '/approve/savings/account': typeof ApproveSavingsAccountRoute
   '/tellers/$tellerId/assign': typeof TellersTellerIdAssignRoute
   '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
@@ -173,11 +189,13 @@ export interface FileRoutesById {
   '/staff': typeof StaffRouteWithChildren
   '/tellers': typeof TellersRouteWithChildren
   '/approve/account': typeof ApproveAccountRoute
+  '/approve/loans': typeof ApproveLoansRouteWithChildren
   '/staff/$staffId': typeof StaffStaffIdRouteWithChildren
   '/tellers/$tellerId': typeof TellersTellerIdRouteWithChildren
   '/tellers/create': typeof TellersCreateRoute
   '/staff/': typeof StaffIndexRoute
   '/tellers/': typeof TellersIndexRoute
+  '/approve/loans/$loanId': typeof ApproveLoansLoanIdRoute
   '/approve/savings/account': typeof ApproveSavingsAccountRoute
   '/tellers/$tellerId/assign': typeof TellersTellerIdAssignRoute
   '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
@@ -196,11 +214,13 @@ export interface FileRouteTypes {
     | '/staff'
     | '/tellers'
     | '/approve/account'
+    | '/approve/loans'
     | '/staff/$staffId'
     | '/tellers/$tellerId'
     | '/tellers/create'
     | '/staff/'
     | '/tellers/'
+    | '/approve/loans/$loanId'
     | '/approve/savings/account'
     | '/tellers/$tellerId/assign'
     | '/tellers/$tellerId/cashiers'
@@ -215,9 +235,11 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/approve/account'
+    | '/approve/loans'
     | '/tellers/create'
     | '/staff'
     | '/tellers'
+    | '/approve/loans/$loanId'
     | '/approve/savings/account'
     | '/tellers/$tellerId/assign'
     | '/tellers/$tellerId/cashiers'
@@ -233,11 +255,13 @@ export interface FileRouteTypes {
     | '/staff'
     | '/tellers'
     | '/approve/account'
+    | '/approve/loans'
     | '/staff/$staffId'
     | '/tellers/$tellerId'
     | '/tellers/create'
     | '/staff/'
     | '/tellers/'
+    | '/approve/loans/$loanId'
     | '/approve/savings/account'
     | '/tellers/$tellerId/assign'
     | '/tellers/$tellerId/cashiers'
@@ -255,6 +279,7 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRouteWithChildren
   TellersRoute: typeof TellersRouteWithChildren
   ApproveAccountRoute: typeof ApproveAccountRoute
+  ApproveLoansRoute: typeof ApproveLoansRouteWithChildren
   ApproveSavingsAccountRoute: typeof ApproveSavingsAccountRoute
 }
 
@@ -323,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffStaffIdRouteImport
       parentRoute: typeof StaffRoute
     }
+    '/approve/loans': {
+      id: '/approve/loans'
+      path: '/approve/loans'
+      fullPath: '/approve/loans'
+      preLoaderRoute: typeof ApproveLoansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/approve/account': {
       id: '/approve/account'
       path: '/approve/account'
@@ -364,6 +396,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/approve/savings/account'
       preLoaderRoute: typeof ApproveSavingsAccountRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/approve/loans/$loanId': {
+      id: '/approve/loans/$loanId'
+      path: '/$loanId'
+      fullPath: '/approve/loans/$loanId'
+      preLoaderRoute: typeof ApproveLoansLoanIdRouteImport
+      parentRoute: typeof ApproveLoansRoute
     }
     '/tellers/$tellerId/cashiers/$cashierId': {
       id: '/tellers/$tellerId/cashiers/$cashierId'
@@ -487,12 +526,25 @@ const TellersRouteChildren: TellersRouteChildren = {
 const TellersRouteWithChildren =
   TellersRoute._addFileChildren(TellersRouteChildren)
 
+interface ApproveLoansRouteChildren {
+  ApproveLoansLoanIdRoute: typeof ApproveLoansLoanIdRoute
+}
+
+const ApproveLoansRouteChildren: ApproveLoansRouteChildren = {
+  ApproveLoansLoanIdRoute: ApproveLoansLoanIdRoute,
+}
+
+const ApproveLoansRouteWithChildren = ApproveLoansRoute._addFileChildren(
+  ApproveLoansRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   StaffRoute: StaffRouteWithChildren,
   TellersRoute: TellersRouteWithChildren,
   ApproveAccountRoute: ApproveAccountRoute,
+  ApproveLoansRoute: ApproveLoansRouteWithChildren,
   ApproveSavingsAccountRoute: ApproveSavingsAccountRoute,
 }
 export const routeTree = rootRouteImport
