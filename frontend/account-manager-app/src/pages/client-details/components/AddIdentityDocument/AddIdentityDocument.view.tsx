@@ -1,6 +1,6 @@
 import { Button, Form, Input } from "@fineract-apps/ui";
 import { FC } from "react";
-import { Modal } from "../../../../components/Modal/Modal";
+import { Modal } from "@/components/Modal/Modal";
 import { useAddIdentityDocument } from "./useAddIdentityDocument";
 
 export const AddIdentityDocument: FC<{
