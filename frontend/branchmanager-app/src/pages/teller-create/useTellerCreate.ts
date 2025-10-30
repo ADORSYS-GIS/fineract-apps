@@ -38,7 +38,7 @@ export function useTellerCreate() {
 	const todayIso = `${yyyy}-${mm}-${dd}`;
 
 	const initialValues: TellerCreateFormValues = {
-		officeId: branchManagerOfficeId || 0,
+		officeId: branchManagerOfficeId ?? 0,
 		name: "",
 		description: "",
 		startDate: todayIso,

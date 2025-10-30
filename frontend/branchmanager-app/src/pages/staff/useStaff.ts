@@ -47,7 +47,7 @@ export function useStaffPage() {
 		search,
 		setSearch,
 		staffItems: staffItems.filter((s) =>
-			(s.displayName || `${s.firstname ?? ""} ${s.lastname ?? ""}`)
+			(s.displayName ?? `${s.firstname ?? ""} ${s.lastname ?? ""}`)
 				.toLowerCase()
 				.includes(search.toLowerCase()),
 		),

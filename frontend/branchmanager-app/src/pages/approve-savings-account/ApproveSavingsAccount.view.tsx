@@ -13,9 +13,7 @@ import { useState } from "react";
 import { BackButton } from "@/components/BackButton";
 
 function SearchBarWrapper() {
-	const search = useSearch({ from: "/approve/savings/account" }) as {
-		q?: string;
-	};
+	const search = useSearch({ from: "/approve/savings/account" });
 	const initial = String(search?.q ?? "");
 	const [value, setValue] = useState(initial);
 	const navigate = useNavigate({ from: "/approve/savings/account" });

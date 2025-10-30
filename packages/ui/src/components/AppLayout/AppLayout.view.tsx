@@ -45,12 +45,6 @@ export const AppLayoutView = React.forwardRef<HTMLDivElement, AppLayoutProps>(
 				return () =>
 					mq.removeEventListener("change", onChange as EventListener);
 			}
-
-			// legacy fallback for safari
-			if (mq.addListener) {
-				mq.addListener(onChange);
-				return () => mq.removeListener(onChange);
-			}
 		}, []);
 
 		const toggleSidebar = () => setIsSidebarOpen((v) => !v);

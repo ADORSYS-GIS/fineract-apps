@@ -6,6 +6,7 @@ const savingsAccountSearchSchema = z.object({
 	accountId: z.number().optional(),
 	page: z.number().optional(),
 	limit: z.number().optional(),
+	q: z.string().optional(),
 });
 
 export const Route = createFileRoute("/approve/savings/account")({

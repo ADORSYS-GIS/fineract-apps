@@ -140,7 +140,7 @@ export function useTellerAssign(
 		typeof tpl?.isFullDay === "boolean" ? tpl.isFullDay : false;
 
 	const initialValues: FormValues = {
-		tellerId: String(tellerIdNum || ""),
+		tellerId: String(tellerIdNum ?? ""),
 		staffId: "",
 		description: "",
 		startDate: templateStart ?? todayIso,
