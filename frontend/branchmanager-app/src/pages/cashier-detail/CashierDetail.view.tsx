@@ -1,7 +1,6 @@
-import { Button, Card } from "@fineract-apps/ui";
+import { Button, Card, formatCurrency } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { useCurrency } from "@/hooks/useCurrency";
-import { formatCurrency } from "@/utils/currency";
 import { CashierDetailViewProps } from "./CashierDetail.types";
 
 export const CashierDetailView = ({

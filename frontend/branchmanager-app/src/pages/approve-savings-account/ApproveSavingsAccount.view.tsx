@@ -130,8 +130,8 @@ export const ApproveSavingsAccountListView = ({
 	</div>
 );
 
+import { formatCurrency } from "@fineract-apps/ui";
 import { useCurrency } from "@/hooks/useCurrency";
-import { formatCurrency } from "@/utils/currency";
 
 export const ApproveSavingsAccountDetailView = ({
 	data,

@@ -1,8 +1,8 @@
 import { TellerCashManagementService } from "@fineract-apps/fineract-api";
+import { formatToFineractDate } from "@fineract-apps/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
-import { formatToFineractDate } from "@/utils/date";
 import { FormValues } from "./Allocate.types";
 
 export function useAllocate(
