@@ -1,7 +1,7 @@
 import { Button } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
-import { Route } from "../../routes/tellers.$tellerId.cashiers.$cashierId.index";
+import { Route } from "@/routes/tellers.$tellerId.cashiers.$cashierId.index";
 import { CashierDetailView } from "./CashierDetail.view";
 import { useCashierDetail } from "./useCashierDetail";
 

@@ -16,6 +16,7 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 	activeLink,
 	handleClick,
 	onNavigate,
+	activePath,
 }) => {
 	const { t } = useTranslation();
 
@@ -34,9 +35,15 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 			<nav className="flex-1 px-2 space-y-2">
 				{menuItems.map((item) => {
 					const Icon = item.icon;
+
+					// If the app passed an explicit `activePath`, prefer it for active
+					// highlighting; otherwise use the context `activeLink`.
+					const pathToCheck =
+						typeof activePath === "string" ? activePath : activeLink;
+
 					const isActive =
-						activeLink === item.link ||
-						(activeLink?.startsWith(item.link) ?? false);
+						pathToCheck === item.link ||
+						(pathToCheck?.startsWith(item.link) ?? false);
 
 					return (
 						<a

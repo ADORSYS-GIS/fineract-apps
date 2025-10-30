@@ -33,7 +33,9 @@ export const TellerAssignView = ({
 	return (
 		<div className="px-6 py-6">
 			<Form<FormValues> initialValues={initialValues} onSubmit={onSubmit}>
-				<FormTitle>Assign Staff to {tellerName && `${tellerName}`}</FormTitle>
+				<FormTitle>
+					Assign Staff{tellerName ? ` to ${tellerName}` : ""}
+				</FormTitle>
 				<div className="grid grid-cols-1 gap-4">
 					<Input
 						name="staffId"

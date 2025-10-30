@@ -1,22 +1,46 @@
+import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
+import { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
-	AppLayout,
-	Button,
-	menuCashier,
-	Navbar,
-	Sidebar,
-} from "@fineract-apps/ui";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+	createRootRouteWithContext,
+	Outlet,
+	useNavigate,
+	useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
+import { Toaster } from "react-hot-toast";
+
+export interface MyRouterContext {
+	queryClient: QueryClient;
+}
 
 function RootLayout() {
-	const handleLogout = () => alert("Logout clicked!");
+	const navigate = useNavigate();
+	const routerState = useRouterState();
+	const currentPath = routerState.location.pathname;
+	function onLogout() {
+		const base = import.meta.env.BASE_URL || "/cashier/";
+		const appBase = base.endsWith("/") ? base : `${base}/`;
+		const redirectTo = `${window.location.origin}${appBase}`;
+		window.location.href = `${appBase}callback?logout=${encodeURIComponent(
+			redirectTo,
+		)}`;
+	}
 	return (
 		<AppLayout
-			sidebar={<Sidebar menuItems={menuCashier} onLogout={handleLogout} />}
+			sidebar={
+				<Sidebar
+					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
+					menuItems={menuCashier}
+					activePath={currentPath}
+					onNavigate={(to) => navigate({ to })}
+					onLogout={onLogout}
+				/>
+			}
 			navbar={
 				<Navbar
-					logo={<h1 className="text-lg font-bold">Cashier</h1>}
+					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
 					links={null}
 					notifications={<Bell />}
 					userSection={
@@ -24,22 +48,19 @@ function RootLayout() {
 							<UserCircle className="w-5 h-5 text-gray-600" />
 						</div>
 					}
-					actions={<Button onClick={handleLogout}>Logout</Button>}
-					onToggleMenu={() => {
-						/* noop */
-					}}
-					isMenuOpen={false}
 					variant="primary"
 					size="md"
 				/>
 			}
 		>
 			<Outlet />
+			<Toaster />
 			<TanStackRouterDevtools />
+			<ReactQueryDevtools />
 		</AppLayout>
 	);
 }
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: RootLayout,
 });

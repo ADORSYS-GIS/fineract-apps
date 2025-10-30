@@ -1,31 +1,5 @@
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
-
-type TellerAssignment = {
-	id: number;
-	tellerName?: string;
-	staffName?: string;
-	staffId?: number;
-	startDate?: string;
-	endDate?: string;
-	isFullDay?: boolean;
-	description?: string;
-};
-
-type Props = {
-	title: string;
-	query: string;
-	setQuery: (v: string) => void;
-	searchAssignments: string;
-	setSearchAssignments: (v: string) => void;
-	assignments: TellerAssignment[];
-	loadingAssignments: boolean;
-	assignmentsError?: string;
-	page: number;
-	limit: number;
-	total: number;
-	setPage: (page: number) => void;
-	onLogout?: () => void;
-};
+import { DashboardViewProps } from "./Dashboard.types";
 
 export const DashboardView = ({
 	title,
@@ -38,9 +12,9 @@ export const DashboardView = ({
 	limit,
 	total,
 	setPage,
-}: Props) => {
+}: DashboardViewProps) => {
 	return (
-		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
+		<div className="p-4 sm:p-6">
 			<h1 className="text-2xl font-bold mb-6">{title}</h1>
 			<div className="mt-6">
 				<Card className="h-full w-full">

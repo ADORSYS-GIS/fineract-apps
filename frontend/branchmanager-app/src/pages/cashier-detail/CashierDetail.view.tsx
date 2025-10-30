@@ -1,5 +1,7 @@
 import { Button, Card } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/utils/currency";
 import { CashierDetailViewProps } from "./CashierDetail.types";
 
 export const CashierDetailView = ({
@@ -12,6 +14,7 @@ export const CashierDetailView = ({
 	actionButtons,
 }: CashierDetailViewProps & { actionButtons?: React.ReactNode }) => {
 	const navigate = useNavigate();
+	const { currencyCode } = useCurrency();
 
 	if (isLoading) {
 		return <div>Loading...</div>;
@@ -23,10 +26,7 @@ export const CashierDetailView = ({
 
 	const transactions = data?.cashierTransactions?.pageItems || [];
 
-	const formatAmount = (n?: number) =>
-		typeof n === "number"
-			? `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} XAF`
-			: "-";
+	const formatAmount = (n?: number) => formatCurrency(n, currencyCode);
 
 	return (
 		<div className="w-full">
@@ -39,31 +39,31 @@ export const CashierDetailView = ({
 						<div className="p-4 bg-gray-50 rounded-lg">
 							<p className="font-semibold text-gray-600">Net Cash</p>
 							<p className="text-gray-800 text-lg font-bold">
-								{formatAmount(data.netCash)}
+								{formatAmount(data?.netCash)}
 							</p>
 						</div>
 						<div className="p-4 bg-gray-50 rounded-lg">
 							<p className="font-semibold text-gray-600">Cash Allocations</p>
 							<p className="text-gray-800 text-lg font-bold">
-								{formatAmount(data.sumCashAllocation)}
+								{formatAmount(data?.sumCashAllocation)}
 							</p>
 						</div>
 						<div className="p-4 bg-gray-50 rounded-lg">
 							<p className="font-semibold text-gray-600">Cash Settlements</p>
 							<p className="text-gray-800 text-lg font-bold">
-								{formatAmount(data.sumCashSettlement)}
+								{formatAmount(data?.sumCashSettlement)}
 							</p>
 						</div>
 						<div className="p-4 bg-gray-50 rounded-lg">
 							<p className="font-semibold text-gray-600">Inward Cash</p>
 							<p className="text-gray-800 text-lg font-bold">
-								{formatAmount(data.sumInwardCash)}
+								{formatAmount(data?.sumInwardCash)}
 							</p>
 						</div>
 						<div className="p-4 bg-gray-50 rounded-lg">
 							<p className="font-semibold text-gray-600">Outward Cash</p>
 							<p className="text-gray-800 text-lg font-bold">
-								{formatAmount(data.sumOutwardCash)}
+								{formatAmount(data?.sumOutwardCash)}
 							</p>
 						</div>
 					</div>
@@ -169,8 +169,8 @@ export const CashierDetailView = ({
 								navigate({
 									to: "/tellers/$tellerId/cashiers/$cashierId",
 									params: {
-										tellerId: String(data.tellerId),
-										cashierId: String(data.cashierId),
+										tellerId: String(data?.tellerId),
+										cashierId: String(data?.cashierId),
 									},
 									search: (prev) => ({
 										...prev,
@@ -193,8 +193,8 @@ export const CashierDetailView = ({
 								navigate({
 									to: "/tellers/$tellerId/cashiers/$cashierId",
 									params: {
-										tellerId: String(data.tellerId),
-										cashierId: String(data.cashierId),
+										tellerId: String(data?.tellerId),
+										cashierId: String(data?.cashierId),
 									},
 									search: (prev) => ({
 										...prev,
@@ -217,8 +217,8 @@ export const CashierDetailView = ({
 								navigate({
 									to: "/tellers/$tellerId/cashiers/$cashierId",
 									params: {
-										tellerId: String(data.tellerId),
-										cashierId: String(data.cashierId),
+										tellerId: String(data?.tellerId),
+										cashierId: String(data?.cashierId),
 									},
 									search: (prev) => ({
 										...prev,

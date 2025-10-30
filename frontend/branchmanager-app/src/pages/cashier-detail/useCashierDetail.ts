@@ -1,11 +1,13 @@
 import { TellerCashManagementService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export function useCashierDetail(
 	tellerId: number,
 	cashierId: number,
-	options?: { limit?: number; offset?: number; currencyCode?: string },
+	options?: { limit?: number; offset?: number },
 ) {
+	const { currencyCode } = useCurrency();
 	const {
 		data: cashierData,
 		isLoading: isCashierLoading,
@@ -25,21 +27,29 @@ export function useCashierDetail(
 			"cashiers",
 			cashierId,
 			"summary-transactions",
+			currencyCode,
 			options?.limit ?? 20,
 			options?.offset ?? 0,
 		],
-		queryFn: async () =>
-			(await TellerCashManagementService.getV1TellersByTellerIdCashiersByCashierIdSummaryandtransactions(
-				{
-					tellerId,
-					cashierId,
-					currencyCode: options?.currencyCode ?? "XAF",
-					limit: options?.limit ?? 20,
-					offset: options?.offset ?? 0,
-					orderBy: "createdDate",
-					sortOrder: "DESC",
-				},
-			)) ?? [],
+		queryFn: async () => {
+			if (!currencyCode) {
+				return Promise.reject(new Error("Currency code not available"));
+			}
+			return (
+				(await TellerCashManagementService.getV1TellersByTellerIdCashiersByCashierIdSummaryandtransactions(
+					{
+						tellerId,
+						cashierId,
+						currencyCode,
+						limit: options?.limit ?? 20,
+						offset: options?.offset ?? 0,
+						orderBy: "createdDate",
+						sortOrder: "DESC",
+					},
+				)) ?? []
+			);
+		},
+		enabled: !!currencyCode,
 	});
 
 	return {

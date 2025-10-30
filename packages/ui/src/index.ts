@@ -1,3 +1,7 @@
+// Ensure i18n is initialized when consumers import the UI package.
+// Apps that already initialize i18n can keep their own setup; this is a safe side-effect for most cases.
+import "@fineract-apps/i18n";
+
 export { AppLayout } from "./components/AppLayout";
 // Button component and types
 export { Button } from "./components/Button";

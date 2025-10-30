@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Route } from "../../../routes/tellers.$tellerId.cashiers.$cashierId.allocate";
+import { useCurrency } from "@/hooks/useCurrency";
+import { Route } from "@/routes/tellers.$tellerId.cashiers.$cashierId.allocate";
 import { allocateSchema, type FormValues } from "./Allocate.types";
 import { AllocateView } from "./Allocate.view";
 import { useAllocate } from "./useAllocate";
@@ -7,9 +8,11 @@ import { useAllocate } from "./useAllocate";
 export const Allocate = () => {
 	const navigate = useNavigate();
 	const { tellerId, cashierId } = Route.useParams();
+	const { currencyCode } = useCurrency();
 	const { initialValues, onSubmit, isSubmitting } = useAllocate(
 		Number(tellerId),
 		Number(cashierId),
+		currencyCode || "",
 	);
 
 	const handleSubmit = async (values: FormValues) => {
@@ -18,7 +21,7 @@ export const Allocate = () => {
 	};
 
 	return (
-		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+		<div className="p-4 sm:p-6 lg:p-8">
 			{/* No back button on form pages; Cancel provided in form */}
 			<AllocateView
 				initialValues={initialValues}

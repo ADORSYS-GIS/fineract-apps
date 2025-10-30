@@ -9,7 +9,7 @@ import {
 } from "@fineract-apps/ui";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
-import { BackButton } from "../../components/BackButton";
+import { BackButton } from "@/components/BackButton";
 
 function SearchBarWrapper() {
 	const search = useSearch({ from: "/approve/savings/account" }) as Record<
@@ -130,6 +130,9 @@ export const ApproveSavingsAccountListView = ({
 	</div>
 );
 
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/utils/currency";
+
 export const ApproveSavingsAccountDetailView = ({
 	data,
 	onSubmit,
@@ -140,37 +143,41 @@ export const ApproveSavingsAccountDetailView = ({
 	onSubmit: (values: ApproveFormValues) => void;
 	submitting: boolean;
 	onBack: () => void;
-}) => (
-	<div className="w-full mx-auto p-4 sm:p-6 lg:p-8">
-		<div className="flex justify-center">
-			<Card className="p-4 sm:p-6 mt-4 w-full">
-				<h2 className="font-bold text-xl sm:text-2xl mb-4 text-center">
-					{data.clientName} ({data.accountNo})
-				</h2>
-				<p>
-					<strong>Client:</strong> {data.clientName}
-				</p>
-				<p>
-					<strong>Account No:</strong> {data.accountNo}
-				</p>
-				<p>
-					<strong>Status:</strong> {data.status}
-				</p>
-				<p>
-					<strong>Balance:</strong> {data.balance}
-				</p>
-				<Form
-					initialValues={{ approvedOnDate: data.defaultDate, note: "" }}
-					onSubmit={onSubmit}
-				>
-					<Input name="approvedOnDate" label="Approval Date" type="date" />
-					<Input name="note" label="Note (Optional)" type="textarea" />
-					<SubmitButton label="Approve" disabled={submitting} />
-				</Form>
-			</Card>
+}) => {
+	const { currencyCode } = useCurrency();
+	return (
+		<div className="w-full mx-auto p-4 sm:p-6 lg:p-8">
+			<div className="flex justify-center">
+				<Card className="p-4 sm:p-6 mt-4 w-full">
+					<h2 className="font-bold text-xl sm:text-2xl mb-4 text-center">
+						{data.clientName} ({data.accountNo})
+					</h2>
+					<p>
+						<strong>Client:</strong> {data.clientName}
+					</p>
+					<p>
+						<strong>Account No:</strong> {data.accountNo}
+					</p>
+					<p>
+						<strong>Status:</strong> {data.status}
+					</p>
+					<p>
+						<strong>Balance:</strong>{" "}
+						{formatCurrency(Number(data.balance), currencyCode)}
+					</p>
+					<Form
+						initialValues={{ approvedOnDate: data.defaultDate, note: "" }}
+						onSubmit={onSubmit}
+					>
+						<Input name="approvedOnDate" label="Approval Date" type="date" />
+						<Input name="note" label="Note (Optional)" type="textarea" />
+						<SubmitButton label="Approve" disabled={submitting} />
+					</Form>
+				</Card>
+			</div>
+			<div className="flex justify-center mt-4">
+				<Button onClick={onBack}>Back to List</Button>
+			</div>
 		</div>
-		<div className="flex justify-center mt-4">
-			<Button onClick={onBack}>Back to List</Button>
-		</div>
-	</div>
-);
+	);
+};

@@ -22,8 +22,7 @@ const getTsFiles = async (dir) => {
 try {
   const files = await getTsFiles(GENERATED_DIR);
   for (const filePath of files) {
-      let content = await readFile(filePath, 'utf8');
-
+  let content = await readFile(filePath, 'utf8');
       // Only add if not already present
       if (!content.trim().startsWith('// @ts-nocheck')) {
         content = '// @ts-nocheck\n' + content;

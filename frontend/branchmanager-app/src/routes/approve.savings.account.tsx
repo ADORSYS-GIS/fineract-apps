@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { ApproveSavingsAccount } from "../pages/approve-savings-account/ApproveSavingsAccount";
+import { ApproveSavingsAccount } from "@/pages/approve-savings-account/ApproveSavingsAccount";
 
 const savingsAccountSearchSchema = z.object({
 	accountId: z.number().optional(),

@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Route } from "../../routes/tellers.$tellerId.assign";
+import { Route } from "@/routes/tellers.$tellerId.assign";
 import { type FormValues, tellerAssignSchema } from "./TellerAssign.types";
 import { TellerAssignView } from "./TellerAssign.view";
 import { useTellerAssign } from "./useTellerAssign";

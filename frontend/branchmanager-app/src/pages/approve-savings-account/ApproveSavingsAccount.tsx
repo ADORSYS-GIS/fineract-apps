@@ -1,4 +1,4 @@
-import { Route } from "../../routes/approve.savings.account";
+import { Route } from "@/routes/approve.savings.account";
 import {
 	ApproveSavingsAccountDetailView,
 	ApproveSavingsAccountListView,

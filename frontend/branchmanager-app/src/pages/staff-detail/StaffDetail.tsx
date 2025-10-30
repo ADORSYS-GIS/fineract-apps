@@ -1,4 +1,4 @@
-import { Route } from "../../routes/staff.$staffId.index";
+import { Route } from "@/routes/staff.$staffId.index";
 import { StaffDetailView } from "./StaffDetail.view";
 import { useStaffDetail } from "./useStaffDetail";
 

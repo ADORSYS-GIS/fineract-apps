@@ -1,13 +1,5 @@
 import { Card, SearchBar } from "@fineract-apps/ui";
-
-type StaffItem = {
-	id: number;
-	displayName?: string;
-	firstname?: string;
-	lastname?: string;
-	officeName?: string;
-	mobileNo?: string;
-};
+import { StaffViewProps } from "./Staff.types";
 
 export const StaffView = ({
 	search,
@@ -16,16 +8,9 @@ export const StaffView = ({
 	isLoadingStaff,
 	staffError,
 	onStaffClick,
-}: {
-	search: string;
-	setSearch: (v: string) => void;
-	staffItems: StaffItem[];
-	isLoadingStaff: boolean;
-	staffError?: string;
-	onStaffClick: (id: number) => void;
-}) => {
+}: StaffViewProps) => {
 	return (
-		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+		<div className="p-4 sm:p-6 lg:p-8">
 			<h1 className="text-2xl font-bold mb-6">Manage Staff</h1>
 			<div className="grid grid-cols-1 gap-6">
 				<Card

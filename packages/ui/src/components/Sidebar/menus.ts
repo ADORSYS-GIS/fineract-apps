@@ -16,10 +16,10 @@ export const menuAccountManager = [
 ];
 
 export const menuBranchManager: MenuItem[] = [
-	{ name: "Dashboard", link: "/dashboard", icon: Home },
-	{ name: "Staff", link: "/staff", icon: Users },
-	{ name: "Tellers/Cashiers", link: "/tellers", icon: Users },
-	{ name: "Pending", link: "/approve/account", icon: Users },
+	{ name: "dashboard", link: "/dashboard", icon: Home },
+	{ name: "staff", link: "/staff", icon: Users },
+	{ name: "tellers", link: "/tellers", icon: Users },
+	{ name: "pending", link: "/approve/account", icon: Users },
 ];
 
 export const menuCashier = [

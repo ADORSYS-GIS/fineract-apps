@@ -1,14 +1,20 @@
-// __mocks__/react-i18next.js
+const React = require("react");
 
-// This mock provides a fake implementation of the useTranslation hook
-// for the Jest test environment. The `t` function simply returns the
-// translation key it is given. This allows us to test that the correct
-// keys are being used without needing a full i18next instance.
+const useTranslation = () => {
+	return {
+		t: (str) => str,
+		i18n: {
+			changeLanguage: () => new Promise(() => {}),
+		},
+	};
+};
 
-export const useTranslation = () => ({
-	t: (key) => key,
-	i18n: {
-		changeLanguage: () => new Promise(() => {}),
-		language: "en",
-	},
-});
+const withTranslation = () => (Component) => {
+	Component.defaultProps = { ...Component.defaultProps, t: () => "" };
+	return Component;
+};
+
+module.exports = {
+	useTranslation,
+	withTranslation,
+};

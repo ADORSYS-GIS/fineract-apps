@@ -2,18 +2,14 @@ import { TellerCashManagementService } from "@fineract-apps/fineract-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
+import { formatToFineractDate } from "@/utils/date";
 import { FormValues } from "./Allocate.types";
 
-function formatToFineractDate(value: string): string {
-	const date = new Date(value + "T00:00:00");
-	return date.toLocaleDateString("en-GB", {
-		day: "2-digit",
-		month: "long",
-		year: "numeric",
-	});
-}
-
-export function useAllocate(tellerId: number, cashierId: number) {
+export function useAllocate(
+	tellerId: number,
+	cashierId: number,
+	currencyCode: string,
+) {
 	const today = new Date();
 	const yyyy = today.getFullYear();
 	const mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -22,7 +18,7 @@ export function useAllocate(tellerId: number, cashierId: number) {
 
 	const initialValues: FormValues = {
 		amount: 0,
-		currencyCode: "XAF",
+		currencyCode: currencyCode || "",
 		date: todayIso,
 		notes: "",
 	};
