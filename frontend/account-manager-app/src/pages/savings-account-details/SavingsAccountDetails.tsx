@@ -1,26 +1,18 @@
 import { useParams } from "@tanstack/react-router";
-import { FC, useState } from "react";
-import { useBlockAccount } from "./hooks/useBlockAccount";
+import { FC } from "react";
 import { SavingsAccountDetailsView } from "./SavingsAccountDetails.view";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
+import { useSavingsAccountDetailsState } from "./useSavingsAccountDetails.helpers";
 
 export const SavingsAccountDetails: FC = () => {
 	const { accountId } = useParams({
 		from: "/savings-account-details/$accountId",
 	});
-	const [isBlockModalOpen, setBlockModalOpen] = useState(false);
-	const props = useSavingsAccountDetails(Number(accountId));
-	const blockAccountProps = useBlockAccount(
+	const state = useSavingsAccountDetailsState();
+	const props = useSavingsAccountDetails(
 		Number(accountId),
-		setBlockModalOpen,
+		state.closeBlockModal,
 	);
 
-	return (
-		<SavingsAccountDetailsView
-			{...props}
-			{...blockAccountProps}
-			isBlockModalOpen={isBlockModalOpen}
-			setBlockModalOpen={setBlockModalOpen}
-		/>
-	);
+	return <SavingsAccountDetailsView {...props} {...state} />;
 };

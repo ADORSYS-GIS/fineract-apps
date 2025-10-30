@@ -1,17 +1,14 @@
 import { SavingsAccountTransactionData } from "@fineract-apps/fineract-api";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, HandCoins } from "lucide-react";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import { AccountActions, BlockAccountModal } from "./components";
-import { useBlockAccount } from "./hooks/useBlockAccount";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
+import { useSavingsAccountDetailsState } from "./useSavingsAccountDetails.helpers";
 
 export const SavingsAccountDetailsView = (
 	props: ReturnType<typeof useSavingsAccountDetails> &
-		ReturnType<typeof useBlockAccount> & {
-			isBlockModalOpen: boolean;
-			setBlockModalOpen: Dispatch<SetStateAction<boolean>>;
-		},
+		ReturnType<typeof useSavingsAccountDetailsState>,
 ) => {
 	const {
 		account,
@@ -21,7 +18,8 @@ export const SavingsAccountDetailsView = (
 		blockAccount,
 		unblockAccount,
 		isBlockModalOpen,
-		setBlockModalOpen,
+		openBlockModal,
+		closeBlockModal,
 	} = props;
 	const [activeTab, setActiveTab] = useState("Transactions");
 
@@ -86,14 +84,14 @@ export const SavingsAccountDetailsView = (
 						</div>
 						<AccountActions
 							isBlocked={isBlocked}
-							onBlock={() => setBlockModalOpen(true)}
+							onBlock={openBlockModal}
 							onUnblock={unblockAccount}
 						/>
 					</div>
 					<div className="md:hidden">
 						<AccountActions
 							isBlocked={isBlocked}
-							onBlock={() => setBlockModalOpen(true)}
+							onBlock={openBlockModal}
 							onUnblock={unblockAccount}
 						/>
 					</div>
@@ -261,7 +259,7 @@ export const SavingsAccountDetailsView = (
 			</main>
 			<BlockAccountModal
 				isOpen={isBlockModalOpen}
-				onClose={() => setBlockModalOpen(false)}
+				onClose={closeBlockModal}
 				blockReasons={blockReasons}
 				onConfirm={blockAccount}
 			/>
