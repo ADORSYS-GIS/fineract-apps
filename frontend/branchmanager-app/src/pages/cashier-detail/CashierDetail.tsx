@@ -61,7 +61,7 @@ export const CashierDetail = () => {
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
 			<PageHeader to={`/tellers/${tellerId}`} title={data?.staffName} />
 			<CashierDetailView
-				data={data || {}}
+				data={data ?? {}}
 				isLoading={isLoading}
 				error={error}
 				page={page}

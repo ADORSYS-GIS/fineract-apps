@@ -34,23 +34,23 @@ export const StaffDetailView = ({
 						<Card>
 							<div className="grid grid-cols-2 gap-x-8 gap-y-4 p-6">
 								<p className="text-gray-500">First Name</p>
-								<p className="font-medium">{data.firstname || "-"}</p>
+								<p className="font-medium">{data.firstname ?? "-"}</p>
 								<p className="text-gray-500">Last Name</p>
-								<p className="font-medium">{data.lastname || "-"}</p>
+								<p className="font-medium">{data.lastname ?? "-"}</p>
 								<p className="text-gray-500">Office</p>
-								<p className="font-medium">{data.officeName || "-"}</p>
+								<p className="font-medium">{data.officeName ?? "-"}</p>
 								<p className="text-gray-500">Is Loan Officer</p>
 								<p className="font-medium">
 									{data.isLoanOfficer ? "Yes" : "No"}
 								</p>
 								<p className="text-gray-500">Mobile Number for SMS</p>
-								<p className="font-medium">{data.mobileNo || "-"}</p>
+								<p className="font-medium">{data.mobileNo ?? "-"}</p>
 								<p className="text-gray-500">Status</p>
 								<p className="font-medium">
 									{data.isActive ? "Active" : "Inactive"}
 								</p>
 								<p className="text-gray-500">Joining Date</p>
-								<p className="font-medium">{data.joiningDate || "-"}</p>
+								<p className="font-medium">{data.joiningDate ?? "-"}</p>
 							</div>
 						</Card>
 					)}

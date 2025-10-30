@@ -119,7 +119,7 @@ function TellerDetailPage() {
 							{isError && (
 								<tr className="bg-white border-b">
 									<td className="px-6 py-4 text-red-600" colSpan={4}>
-										{(error as Error)?.message}
+										{error?.message}
 									</td>
 								</tr>
 							)}

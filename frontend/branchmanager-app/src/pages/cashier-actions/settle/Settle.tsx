@@ -12,7 +12,7 @@ export const Settle = () => {
 	const { initialValues, onSubmit, isSubmitting } = useSettle(
 		Number(tellerId),
 		Number(cashierId),
-		currencyCode || "",
+		currencyCode ?? "",
 	);
 
 	const handleSubmit = (values: FormValues) => {

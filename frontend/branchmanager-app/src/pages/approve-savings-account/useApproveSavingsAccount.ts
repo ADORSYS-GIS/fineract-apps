@@ -17,15 +17,15 @@ export function useApproveSavingsAccountList(opts?: {
 	sortKey?: string;
 	sortDir?: "asc" | "desc";
 }) {
-	const { page = 1, limit = 10 } = useSearch({
-		from: "/approve/savings/account",
-	});
+	const search = useSearch({ from: "/approve/savings/account" });
+	const page = search.page ?? 1;
+	const limit = search.limit ?? 10;
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ["SavingsAccountServiceGetV1Savingsaccounts", page, limit],
 		queryFn: async () =>
 			(await SavingsAccountService.getV1Savingsaccounts({
-				offset: (page - 1) * limit,
-				limit,
+				offset: (page - 1) * (limit > 0 ? limit : 10),
+				limit: limit > 0 ? limit : 10,
 			})) ?? [],
 	});
 
@@ -83,7 +83,7 @@ export function useApproveSavingsAccountList(opts?: {
 		isError,
 		page,
 		limit,
-		total: data?.totalFilteredRecords ?? 0,
+		total: items.length,
 	};
 }
 

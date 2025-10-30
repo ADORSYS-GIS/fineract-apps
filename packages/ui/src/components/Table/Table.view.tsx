@@ -1,15 +1,21 @@
+import { Key } from "react";
 import type { TableProps } from "./Table.types";
 
-export function TableView<T>({
+export function TableView<T extends { id: Key }>({
 	columns,
 	data,
 	sortKey,
 	sortDir,
 	onSortChange,
 	className,
-}: TableProps<T>) {
+}: Readonly<TableProps<T>>) {
 	const handleSort = (key: string) => {
 		if (onSortChange) onSortChange(key);
+	};
+
+	const getSortIcon = (key: string) => {
+		if (sortKey !== key) return "↕";
+		return sortDir === "asc" ? "↑" : "↓";
 	};
 
 	return (
@@ -30,11 +36,7 @@ export function TableView<T>({
 											aria-label={`Sort by ${col.title}`}
 											className="text-gray-400 hover:text-gray-600"
 										>
-											{sortKey === col.key
-												? sortDir === "asc"
-													? "↑"
-													: "↓"
-												: "↕"}
+											{getSortIcon(col.key)}
 										</button>
 									)}
 								</div>
@@ -43,8 +45,8 @@ export function TableView<T>({
 					</tr>
 				</thead>
 				<tbody className="bg-white divide-y divide-gray-200">
-					{data.map((row, idx) => (
-						<tr key={idx} className="hover:bg-gray-50">
+					{data.map((row) => (
+						<tr key={row.id} className="hover:bg-gray-50">
 							{columns.map((col) => (
 								<td
 									key={col.key}

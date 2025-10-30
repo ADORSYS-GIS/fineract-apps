@@ -2,6 +2,7 @@ import {
 	Button,
 	Card,
 	Form,
+	formatCurrency,
 	Input,
 	SearchBar,
 	SubmitButton,
@@ -12,10 +13,9 @@ import { useState } from "react";
 import { BackButton } from "@/components/BackButton";
 
 function SearchBarWrapper() {
-	const search = useSearch({ from: "/approve/savings/account" }) as Record<
-		string,
-		string | undefined
-	>;
+	const search = useSearch({ from: "/approve/savings/account" }) as {
+		q?: string;
+	};
 	const initial = String(search?.q ?? "");
 	const [value, setValue] = useState(initial);
 	const navigate = useNavigate({ from: "/approve/savings/account" });
@@ -104,17 +104,17 @@ export const ApproveSavingsAccountListView = ({
 				<div className="flex flex-wrap justify-center items-center mt-6 space-x-2">
 					<Link
 						to="/approve/savings/account"
-						search={{ page: page - 1, limit }}
+						search={(prev) => ({ ...prev, page: page - 1, limit })}
 						disabled={page === 1}
 					>
 						<Button disabled={page === 1}>Previous</Button>
 					</Link>
 					<span className="mx-2 text-sm">
-						Page {page} of {Math.ceil(total / limit)}
+						Page {page} of {Math.ceil(total / (limit > 0 ? limit : 1))}
 					</span>
 					<Link
 						to="/approve/savings/account"
-						search={{ page: page + 1, limit }}
+						search={(prev) => ({ ...prev, page: page + 1, limit })}
 						disabled={page * limit >= total}
 					>
 						<Button disabled={page * limit >= total}>Next</Button>
@@ -130,7 +130,6 @@ export const ApproveSavingsAccountListView = ({
 	</div>
 );
 
-import { formatCurrency } from "@fineract-apps/ui";
 import { useCurrency } from "@/hooks/useCurrency";
 
 export const ApproveSavingsAccountDetailView = ({

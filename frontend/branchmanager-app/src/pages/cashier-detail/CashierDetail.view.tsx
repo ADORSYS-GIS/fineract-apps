@@ -92,7 +92,7 @@ export const CashierDetailView = ({
 									className="border-b px-4 py-4 grid grid-cols-2 gap-x-4 gap-y-2"
 								>
 									<div className="font-semibold text-gray-600">Date</div>
-									<div>{tx.txnDate || tx.createdDate}</div>
+									<div>{tx.txnDate ?? tx.createdDate}</div>
 
 									<div className="font-semibold text-gray-600">Type</div>
 									<div>{tx.txnType?.value}</div>
@@ -133,7 +133,7 @@ export const CashierDetailView = ({
 									transactions.map((tx) => (
 										<tr key={tx.id} className="bg-white border-b">
 											<td className="px-6 py-4">
-												{tx.txnDate || tx.createdDate}
+												{tx.txnDate ?? tx.createdDate}
 											</td>
 											<td className="px-6 py-4">{tx.txnType?.value}</td>
 											<td className="px-6 py-4">

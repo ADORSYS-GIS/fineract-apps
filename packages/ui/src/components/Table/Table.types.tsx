@@ -6,7 +6,9 @@ export type TableColumn<T> = {
 	className?: string;
 };
 
-export type TableProps<T> = {
+import type { Key } from "react";
+
+export type TableProps<T extends { id: Key }> = {
 	columns: TableColumn<T>[];
 	data: T[];
 	sortKey?: string | null;

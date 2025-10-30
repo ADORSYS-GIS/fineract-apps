@@ -14,15 +14,14 @@ export const tellerAssignSchema = z.object({
 
 // When not a full day assignment, startTime and endTime must be present and valid
 export const tellerAssignSchemaWithTimes = tellerAssignSchema.refine(
-	(vals) => {
-		if (!vals.isFullDay) {
-			const st = vals.startTime;
-			const et = vals.endTime;
-			if (!st || !et) return false;
+	(data) => {
+		if (!data.isFullDay) {
+			const { startTime, endTime } = data;
+			if (!startTime || !endTime) return false;
 			// simple lexical HH:mm check and ordering
 			const hhmm = /^([01]\d|2[0-3]):([0-5]\d)$/;
-			if (!hhmm.test(st) || !hhmm.test(et)) return false;
-			return et > st;
+			if (!hhmm.test(startTime) || !hhmm.test(endTime)) return false;
+			return endTime > startTime;
 		}
 		return true;
 	},

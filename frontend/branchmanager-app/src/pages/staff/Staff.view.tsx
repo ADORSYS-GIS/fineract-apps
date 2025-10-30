@@ -29,7 +29,7 @@ export const StaffView = ({
 						{!isLoadingStaff && !staffError && staffItems.length > 0 ? (
 							staffItems.map((s) => {
 								const name =
-									s.displayName ||
+									s.displayName ??
 									`${s.firstname ?? ""} ${s.lastname ?? ""}`.trim();
 								return (
 									<button

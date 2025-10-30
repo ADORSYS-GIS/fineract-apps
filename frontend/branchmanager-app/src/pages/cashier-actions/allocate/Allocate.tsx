@@ -12,7 +12,7 @@ export const Allocate = () => {
 	const { initialValues, onSubmit, isSubmitting } = useAllocate(
 		Number(tellerId),
 		Number(cashierId),
-		currencyCode || "",
+		currencyCode ?? "",
 	);
 
 	const handleSubmit = async (values: FormValues) => {

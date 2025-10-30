@@ -46,15 +46,10 @@ export const AppLayoutView = React.forwardRef<HTMLDivElement, AppLayoutProps>(
 					mq.removeEventListener("change", onChange as EventListener);
 			}
 
-			// legacy fallback
-			const mqLegacy = mq as MediaQueryList & {
-				addListener?: (l: (e: MediaQueryListEvent) => void) => void;
-				removeListener?: (l: (e: MediaQueryListEvent) => void) => void;
-			};
-			if (mqLegacy.addListener) {
-				mqLegacy.addListener(onChange);
-				return () =>
-					mqLegacy.removeListener && mqLegacy.removeListener(onChange);
+			// legacy fallback for safari
+			if (mq.addListener) {
+				mq.addListener(onChange);
+				return () => mq.removeListener(onChange);
 			}
 		}, []);
 
