@@ -4,12 +4,14 @@ import {
 	SavingsAccountService,
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import toast from "react-hot-toast";
 
-export const useSavingsAccountDetails = (
-	accountId: number,
-	setBlockModalOpen: (isOpen: boolean) => void,
-) => {
+export const useSavingsAccountDetails = (accountId: number) => {
+	const [isBlockModalOpen, setBlockModalOpen] = useState(false);
+
+	const openBlockModal = () => setBlockModalOpen(true);
+	const closeBlockModal = () => setBlockModalOpen(false);
 	const queryClient = useQueryClient();
 
 	const { data: account, isLoading } = useQuery({
@@ -54,7 +56,7 @@ export const useSavingsAccountDetails = (
 			queryClient.invalidateQueries({
 				queryKey: ["savingsAccountDetails", accountId],
 			});
-			setBlockModalOpen(false);
+			closeBlockModal();
 		},
 		onError: () => {
 			toast.error("Failed to block account");
@@ -99,5 +101,8 @@ export const useSavingsAccountDetails = (
 		blockReasons,
 		blockAccount: handleBlockAccount,
 		unblockAccount: handleUnblockAccount,
+		isBlockModalOpen,
+		openBlockModal,
+		closeBlockModal,
 	};
 };

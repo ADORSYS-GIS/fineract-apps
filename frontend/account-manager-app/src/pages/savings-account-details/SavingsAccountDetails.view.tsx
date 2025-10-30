@@ -6,11 +6,7 @@ import { AccountActions, BlockAccountModal } from "./components";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
 
 export const SavingsAccountDetailsView = (
-	props: ReturnType<typeof useSavingsAccountDetails> & {
-		isBlockModalOpen: boolean;
-		openBlockModal: () => void;
-		closeBlockModal: () => void;
-	},
+	props: ReturnType<typeof useSavingsAccountDetails>,
 ) => {
 	const {
 		account,
