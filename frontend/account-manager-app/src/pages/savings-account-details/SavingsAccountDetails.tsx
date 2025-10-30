@@ -15,14 +15,16 @@ export const SavingsAccountDetails: FC = () => {
 	});
 	const isBlockModalOpen = action === "block";
 
-	const openBlockModal = () =>
+	const openBlockModal = () => {
 		navigate({
 			search: (prev) => ({ ...prev, action: "block" }),
 		});
-	const closeBlockModal = () =>
+	};
+	const closeBlockModal = () => {
 		navigate({
 			search: (prev) => ({ ...prev, action: undefined }),
 		});
+	};
 
 	const props = useSavingsAccountDetails(Number(accountId), {
 		onBlockSuccess: closeBlockModal,
