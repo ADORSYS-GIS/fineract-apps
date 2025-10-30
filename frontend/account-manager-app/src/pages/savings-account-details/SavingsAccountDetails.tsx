@@ -8,7 +8,7 @@ export const SavingsAccountDetails: FC = () => {
 	const { accountId } = useParams({
 		from: "/savings-account-details/$accountId",
 	});
-	const { isBlockModalOpen, openBlockModal, closeBlockModal } =
+	const [isBlockModalOpen, openBlockModal, closeBlockModal] =
 		useSavingsAccountDetailsState();
 	const props = useSavingsAccountDetails(Number(accountId), closeBlockModal);
 

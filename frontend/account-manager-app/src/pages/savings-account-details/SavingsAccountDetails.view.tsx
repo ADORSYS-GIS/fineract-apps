@@ -4,11 +4,13 @@ import { ArrowLeft, HandCoins } from "lucide-react";
 import { useState } from "react";
 import { AccountActions, BlockAccountModal } from "./components";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
-import { useSavingsAccountDetailsState } from "./useSavingsAccountDetails.helpers";
 
 export const SavingsAccountDetailsView = (
-	props: ReturnType<typeof useSavingsAccountDetails> &
-		ReturnType<typeof useSavingsAccountDetailsState>,
+	props: ReturnType<typeof useSavingsAccountDetails> & {
+		isBlockModalOpen: boolean;
+		openBlockModal: () => void;
+		closeBlockModal: () => void;
+	},
 ) => {
 	const {
 		account,
