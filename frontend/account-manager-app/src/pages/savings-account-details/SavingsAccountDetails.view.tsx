@@ -1,15 +1,14 @@
 import { SavingsAccountTransactionData } from "@fineract-apps/fineract-api";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, HandCoins } from "lucide-react";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import { AccountActions, BlockAccountModal } from "./components";
+import { useBlockAccount } from "./hooks/useBlockAccount";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
 
 export const SavingsAccountDetailsView = (
-	props: ReturnType<typeof useSavingsAccountDetails> & {
-		isBlockModalOpen: boolean;
-		setBlockModalOpen: Dispatch<SetStateAction<boolean>>;
-	},
+	props: ReturnType<typeof useSavingsAccountDetails> &
+		ReturnType<typeof useBlockAccount>,
 ) => {
 	const {
 		account,

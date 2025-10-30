@@ -1,5 +1,6 @@
 import { useParams } from "@tanstack/react-router";
-import { FC, useState } from "react";
+import { FC } from "react";
+import { useBlockAccount } from "./hooks/useBlockAccount";
 import { SavingsAccountDetailsView } from "./SavingsAccountDetails.view";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
 
@@ -8,13 +9,7 @@ export const SavingsAccountDetails: FC = () => {
 		from: "/savings-account-details/$accountId",
 	});
 	const props = useSavingsAccountDetails(Number(accountId));
-	const [isBlockModalOpen, setBlockModalOpen] = useState(false);
+	const blockAccountProps = useBlockAccount(Number(accountId));
 
-	return (
-		<SavingsAccountDetailsView
-			{...props}
-			isBlockModalOpen={isBlockModalOpen}
-			setBlockModalOpen={setBlockModalOpen}
-		/>
-	);
+	return <SavingsAccountDetailsView {...props} {...blockAccountProps} />;
 };
