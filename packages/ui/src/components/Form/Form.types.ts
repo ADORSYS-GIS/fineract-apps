@@ -45,7 +45,8 @@ export type InputType =
 	| "select"
 	| "checkbox"
 	| "radio"
-	| "date";
+	| "date"
+	| "file";
 
 /**
  * Input option interface for select and radio inputs
