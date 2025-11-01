@@ -29,17 +29,17 @@ export const PreviewStepView: FC<PreviewStepProps> = ({
 	loanDetails,
 }) => {
 	const { t } = useTranslation();
-	const effectiveTemplate = loanDetails || loanTemplate;
+	const effectiveTemplate = loanDetails ?? loanTemplate;
 
 	const getOptionLabel = <T extends { id?: number; name?: string }>(
 		options: T[] | undefined,
 		id: number | string | undefined,
-	) => options?.find((option) => option.id === Number(id))?.name || id;
+	) => options?.find((option) => option.id === Number(id))?.name ?? id;
 
 	const getOptionValue = <T extends { id?: number; value?: string }>(
 		options: T[] | undefined,
 		id: number | string | undefined,
-	) => options?.find((option) => option.id === Number(id))?.value || id;
+	) => options?.find((option) => option.id === Number(id))?.value ?? id;
 
 	return (
 		<Card>
@@ -63,9 +63,9 @@ export const PreviewStepView: FC<PreviewStepProps> = ({
 							label={t("loanOfficer", "Loan Officer")}
 							value={
 								values.loanOfficerId
-									? effectiveTemplate?.loanOfficerOptions?.find(
+									? (effectiveTemplate?.loanOfficerOptions?.find(
 											(option) => option.id === Number(values.loanOfficerId),
-										)?.displayName || t("noLoanOfficerName", "Unknown Officer")
+										)?.displayName ?? t("noLoanOfficerName", "Unknown Officer"))
 									: t("noLoanOfficer", "Not Assigned")
 							}
 						/>
@@ -102,15 +102,15 @@ export const PreviewStepView: FC<PreviewStepProps> = ({
 						/>
 						<DetailItem
 							label={t("loanTerm", "Loan Term")}
-							value={`${values.loanTermFrequency || "-"} ${getOptionValue(effectiveTemplate?.termFrequencyTypeOptions, values.loanTermFrequencyType) || "-"}`}
+							value={`${values.loanTermFrequency ?? "-"} ${getOptionValue(effectiveTemplate?.termFrequencyTypeOptions, values.loanTermFrequencyType) ?? "-"}`}
 						/>
 						<DetailItem
 							label={t("numberOfRepayments", "Number of Repayments")}
-							value={values.numberOfRepayments || "-"}
+							value={values.numberOfRepayments ?? "-"}
 						/>
 						<DetailItem
 							label={t("repaidEvery", "Repaid Every")}
-							value={`${values.repaymentEvery || "-"} ${getOptionValue(effectiveTemplate?.repaymentFrequencyTypeOptions, values.repaymentFrequencyType) || "-"}`}
+							value={`${values.repaymentEvery ?? "-"} ${getOptionValue(effectiveTemplate?.repaymentFrequencyTypeOptions, values.repaymentFrequencyType) ?? "-"}`}
 						/>
 						<DetailItem
 							label={t("nominalInterestRate", "Nominal Interest Rate")}
@@ -126,7 +126,7 @@ export const PreviewStepView: FC<PreviewStepProps> = ({
 								getOptionValue(
 									effectiveTemplate?.amortizationTypeOptions,
 									values.amortizationType,
-								) || "-"
+								) ?? "-"
 							}
 						/>
 						<DetailItem
@@ -135,7 +135,7 @@ export const PreviewStepView: FC<PreviewStepProps> = ({
 								getOptionValue(
 									effectiveTemplate?.interestTypeOptions,
 									values.interestType,
-								) || "-"
+								) ?? "-"
 							}
 						/>
 						<DetailItem
@@ -147,7 +147,7 @@ export const PreviewStepView: FC<PreviewStepProps> = ({
 								getOptionValue(
 									effectiveTemplate?.interestCalculationPeriodTypeOptions,
 									values.interestCalculationPeriodType,
-								) || "-"
+								) ?? "-"
 							}
 						/>
 						<DetailItem
@@ -156,7 +156,7 @@ export const PreviewStepView: FC<PreviewStepProps> = ({
 								effectiveTemplate?.transactionProcessingStrategyOptions?.find(
 									(opt) =>
 										opt.code === values.transactionProcessingStrategyCode,
-								)?.name || "-"
+								)?.name ?? "-"
 							}
 						/>
 					</div>
