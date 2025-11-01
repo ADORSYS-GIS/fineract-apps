@@ -23,6 +23,45 @@ export const useCreateLoanAccount = () => {
 	const [repaymentSchedule, setRepaymentSchedule] =
 		useState<LoanRepaymentSchedule | null>(null);
 
+	const createLoanPayload = (
+		values: LoanDetailsFormValues,
+	): PostLoansRequest => ({
+		clientId: Number(clientId),
+		productId: values.loanProductId ? Number(values.loanProductId) : 0,
+		principal: values.principal ? Number(values.principal) : 0,
+		loanTermFrequency: values.loanTermFrequency
+			? Number(values.loanTermFrequency)
+			: 0,
+		loanTermFrequencyType: values.loanTermFrequencyType,
+		numberOfRepayments: values.numberOfRepayments
+			? Number(values.numberOfRepayments)
+			: 0,
+		repaymentEvery: values.repaymentEvery ? Number(values.repaymentEvery) : 0,
+		repaymentFrequencyType: values.repaymentFrequencyType,
+		interestRatePerPeriod: values.interestRatePerPeriod
+			? Number(values.interestRatePerPeriod)
+			: 0,
+		amortizationType: values.amortizationType,
+		interestType: values.interestType,
+		interestCalculationPeriodType: values.interestCalculationPeriodType,
+		transactionProcessingStrategyCode: values.transactionProcessingStrategyCode,
+		loanPurposeId: values.loanPurposeId,
+		fundId: values.fundId,
+		loanType: "individual",
+		locale: "en",
+		dateFormat: "dd MMMM yyyy",
+		submittedOnDate: values.submittedOnDate
+			? format(new Date(values.submittedOnDate), "dd MMMM yyyy")
+			: undefined,
+		expectedDisbursementDate: values.expectedDisbursementDate
+			? format(new Date(values.expectedDisbursementDate), "dd MMMM yyyy")
+			: undefined,
+		charges: values.charges?.map((charge) => ({
+			chargeId: charge.id,
+			amount: charge.amount,
+		})),
+	});
+
 	const createLoanAccountMutation = useMutation<
 		PostLoansResponse,
 		Error,
@@ -64,45 +103,7 @@ export const useCreateLoanAccount = () => {
 			charges: [],
 		},
 		onSubmit: (values) => {
-			const payload: PostLoansRequest = {
-				clientId: Number(clientId),
-				productId: values.loanProductId ? Number(values.loanProductId) : 0,
-				principal: values.principal ? Number(values.principal) : 0,
-				loanTermFrequency: values.loanTermFrequency
-					? Number(values.loanTermFrequency)
-					: 0,
-				loanTermFrequencyType: values.loanTermFrequencyType,
-				numberOfRepayments: values.numberOfRepayments
-					? Number(values.numberOfRepayments)
-					: 0,
-				repaymentEvery: values.repaymentEvery
-					? Number(values.repaymentEvery)
-					: 0,
-				repaymentFrequencyType: values.repaymentFrequencyType,
-				interestRatePerPeriod: values.interestRatePerPeriod
-					? Number(values.interestRatePerPeriod)
-					: 0,
-				amortizationType: values.amortizationType,
-				interestType: values.interestType,
-				interestCalculationPeriodType: values.interestCalculationPeriodType,
-				transactionProcessingStrategyCode:
-					values.transactionProcessingStrategyCode,
-				loanPurposeId: values.loanPurposeId,
-				fundId: values.fundId,
-				loanType: "individual",
-				locale: "en",
-				dateFormat: "dd MMMM yyyy",
-				submittedOnDate: values.submittedOnDate
-					? format(new Date(values.submittedOnDate), "dd MMMM yyyy")
-					: undefined,
-				expectedDisbursementDate: values.expectedDisbursementDate
-					? format(new Date(values.expectedDisbursementDate), "dd MMMM yyyy")
-					: undefined,
-				charges: values.charges?.map((charge) => ({
-					chargeId: charge.id,
-					amount: charge.amount,
-				})),
-			};
+			const payload = createLoanPayload(values);
 			createLoanAccountMutation.mutate(payload);
 		},
 	});
@@ -150,43 +151,7 @@ export const useCreateLoanAccount = () => {
 	});
 
 	const handleCalculateSchedule = () => {
-		const payload: PostLoansRequest = {
-			clientId: Number(clientId),
-			productId: values.loanProductId ? Number(values.loanProductId) : 0,
-			principal: values.principal ? Number(values.principal) : 0,
-			loanTermFrequency: values.loanTermFrequency
-				? Number(values.loanTermFrequency)
-				: 0,
-			loanTermFrequencyType: values.loanTermFrequencyType,
-			numberOfRepayments: values.numberOfRepayments
-				? Number(values.numberOfRepayments)
-				: 0,
-			repaymentEvery: values.repaymentEvery ? Number(values.repaymentEvery) : 0,
-			repaymentFrequencyType: values.repaymentFrequencyType,
-			interestRatePerPeriod: values.interestRatePerPeriod
-				? Number(values.interestRatePerPeriod)
-				: 0,
-			amortizationType: values.amortizationType,
-			interestType: values.interestType,
-			interestCalculationPeriodType: values.interestCalculationPeriodType,
-			transactionProcessingStrategyCode:
-				values.transactionProcessingStrategyCode,
-			loanPurposeId: values.loanPurposeId,
-			fundId: values.fundId,
-			loanType: "individual",
-			locale: "en",
-			dateFormat: "dd MMMM yyyy",
-			submittedOnDate: values.submittedOnDate
-				? format(new Date(values.submittedOnDate), "dd MMMM yyyy")
-				: undefined,
-			expectedDisbursementDate: values.expectedDisbursementDate
-				? format(new Date(values.expectedDisbursementDate), "dd MMMM yyyy")
-				: undefined,
-			charges: values.charges?.map((charge) => ({
-				chargeId: charge.id,
-				amount: charge.amount,
-			})),
-		};
+		const payload = createLoanPayload(values);
 		calculateLoanScheduleMutation.mutate(payload);
 	};
 
