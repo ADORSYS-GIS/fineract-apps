@@ -12,6 +12,18 @@
 		"accounts": "Accounts",
 		"transactions": "Transactions",
 		"branches": "Branches",
-		"reports": "Reports"
+		"reports": "Reports",
+		"createLoanAccount": {
+			"title": "Create Loan Account",
+			"loanProduct": "Loan Product",
+			"selectProduct": "Select a product",
+			"loanDetails": "Loan Details",
+			"externalId": "External ID",
+			"loanOfficer": "Loan Officer",
+			"loanPurpose": "Loan Purpose",
+			"fund": "Fund",
+			"submittedOn": "Submitted On",
+			"disbursementOn": "Disbursement On"
+		}
 	}
 }
