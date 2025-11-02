@@ -62,7 +62,7 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 							}`}
 						>
 							{Icon && <Icon className="w-5 h-5" />}
-							<span>{t(item.name)}</span>
+							<span>{t(item.title ?? item.name)}</span>
 						</a>
 					);
 				})}

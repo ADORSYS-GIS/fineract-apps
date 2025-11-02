@@ -1,6 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PendingLoans } from "@/pages/pending-loans/PendingLoans";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { z } from "zod";
+
+const loanSearchSchema = z.object({
+	q: z.string().catch(""),
+});
 
 export const Route = createFileRoute("/approve/loans")({
-	component: PendingLoans,
+	component: Outlet,
+	validateSearch: (search) => loanSearchSchema.parse(search),
 });

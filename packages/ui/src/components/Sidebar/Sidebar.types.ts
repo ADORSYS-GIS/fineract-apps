@@ -3,6 +3,7 @@ import React from "react";
 
 export interface MenuItem {
 	name: string;
+	title?: string;
 	link: string;
 	icon?: LucideIcon;
 }

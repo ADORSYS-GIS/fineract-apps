@@ -1,12 +1,16 @@
 import { LoansService } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { LoanDetails } from "./LoanReview.types";
 
 export function useLoanReview() {
-	const { loanId } = useParams({ from: "/approve/loans/$loanId" });
+	const { loanId } = useParams({
+		from: "/approve/loans/$loanId",
+	});
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
+	const { handleError } = useErrorHandler();
 
 	const {
 		data: loan,
@@ -36,8 +40,9 @@ export function useLoanReview() {
 			}),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["pendingLoans"] });
-			navigate({ to: "/approve/loans" });
+			navigate({ to: "/approve/loans", search: { q: "" } });
 		},
+		onError: handleError,
 	});
 
 	const rejectMutation = useMutation({
@@ -54,8 +59,9 @@ export function useLoanReview() {
 			}),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["pendingLoans"] });
-			navigate({ to: "/approve/loans" });
+			navigate({ to: "/approve/loans", search: { q: "" } });
 		},
+		onError: handleError,
 	});
 
 	const onApprove = (note: string) => {

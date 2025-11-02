@@ -4,6 +4,7 @@ export type TableColumn<T> = {
 	sortable?: boolean;
 	render?: (row: T) => React.ReactNode;
 	className?: string;
+	cellClassName?: string;
 };
 
 import type { Key } from "react";

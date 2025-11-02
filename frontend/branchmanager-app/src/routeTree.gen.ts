@@ -22,6 +22,7 @@ import { Route as ApproveLoansRouteImport } from './routes/approve.loans'
 import { Route as ApproveAccountRouteImport } from './routes/approve.account'
 import { Route as TellersTellerIdIndexRouteImport } from './routes/tellers.$tellerId.index'
 import { Route as StaffStaffIdIndexRouteImport } from './routes/staff.$staffId.index'
+import { Route as ApproveLoansIndexRouteImport } from './routes/approve.loans.index'
 import { Route as TellersTellerIdCashiersRouteImport } from './routes/tellers.$tellerId.cashiers'
 import { Route as TellersTellerIdAssignRouteImport } from './routes/tellers.$tellerId.assign'
 import { Route as ApproveSavingsAccountRouteImport } from './routes/approve.savings.account'
@@ -96,6 +97,11 @@ const StaffStaffIdIndexRoute = StaffStaffIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => StaffStaffIdRoute,
 } as any)
+const ApproveLoansIndexRoute = ApproveLoansIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ApproveLoansRoute,
+} as any)
 const TellersTellerIdCashiersRoute = TellersTellerIdCashiersRouteImport.update({
   id: '/cashiers',
   path: '/cashiers',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/approve/savings/account': typeof ApproveSavingsAccountRoute
   '/tellers/$tellerId/assign': typeof TellersTellerIdAssignRoute
   '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
+  '/approve/loans/': typeof ApproveLoansIndexRoute
   '/staff/$staffId/': typeof StaffStaffIdIndexRoute
   '/tellers/$tellerId/': typeof TellersTellerIdIndexRoute
   '/tellers/$tellerId/cashiers/$cashierId': typeof TellersTellerIdCashiersCashierIdRouteWithChildren
@@ -168,7 +175,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/approve/account': typeof ApproveAccountRoute
-  '/approve/loans': typeof ApproveLoansRouteWithChildren
   '/tellers/create': typeof TellersCreateRoute
   '/staff': typeof StaffIndexRoute
   '/tellers': typeof TellersIndexRoute
@@ -176,6 +182,7 @@ export interface FileRoutesByTo {
   '/approve/savings/account': typeof ApproveSavingsAccountRoute
   '/tellers/$tellerId/assign': typeof TellersTellerIdAssignRoute
   '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
+  '/approve/loans': typeof ApproveLoansIndexRoute
   '/staff/$staffId': typeof StaffStaffIdIndexRoute
   '/tellers/$tellerId': typeof TellersTellerIdIndexRoute
   '/tellers/$tellerId/cashiers/$cashierId/allocate': typeof TellersTellerIdCashiersCashierIdAllocateRoute
@@ -199,6 +206,7 @@ export interface FileRoutesById {
   '/approve/savings/account': typeof ApproveSavingsAccountRoute
   '/tellers/$tellerId/assign': typeof TellersTellerIdAssignRoute
   '/tellers/$tellerId/cashiers': typeof TellersTellerIdCashiersRouteWithChildren
+  '/approve/loans/': typeof ApproveLoansIndexRoute
   '/staff/$staffId/': typeof StaffStaffIdIndexRoute
   '/tellers/$tellerId/': typeof TellersTellerIdIndexRoute
   '/tellers/$tellerId/cashiers/$cashierId': typeof TellersTellerIdCashiersCashierIdRouteWithChildren
@@ -224,6 +232,7 @@ export interface FileRouteTypes {
     | '/approve/savings/account'
     | '/tellers/$tellerId/assign'
     | '/tellers/$tellerId/cashiers'
+    | '/approve/loans/'
     | '/staff/$staffId/'
     | '/tellers/$tellerId/'
     | '/tellers/$tellerId/cashiers/$cashierId'
@@ -235,7 +244,6 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/approve/account'
-    | '/approve/loans'
     | '/tellers/create'
     | '/staff'
     | '/tellers'
@@ -243,6 +251,7 @@ export interface FileRouteTypes {
     | '/approve/savings/account'
     | '/tellers/$tellerId/assign'
     | '/tellers/$tellerId/cashiers'
+    | '/approve/loans'
     | '/staff/$staffId'
     | '/tellers/$tellerId'
     | '/tellers/$tellerId/cashiers/$cashierId/allocate'
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/approve/savings/account'
     | '/tellers/$tellerId/assign'
     | '/tellers/$tellerId/cashiers'
+    | '/approve/loans/'
     | '/staff/$staffId/'
     | '/tellers/$tellerId/'
     | '/tellers/$tellerId/cashiers/$cashierId'
@@ -375,6 +385,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/staff/$staffId/'
       preLoaderRoute: typeof StaffStaffIdIndexRouteImport
       parentRoute: typeof StaffStaffIdRoute
+    }
+    '/approve/loans/': {
+      id: '/approve/loans/'
+      path: '/'
+      fullPath: '/approve/loans/'
+      preLoaderRoute: typeof ApproveLoansIndexRouteImport
+      parentRoute: typeof ApproveLoansRoute
     }
     '/tellers/$tellerId/cashiers': {
       id: '/tellers/$tellerId/cashiers'
@@ -528,10 +545,12 @@ const TellersRouteWithChildren =
 
 interface ApproveLoansRouteChildren {
   ApproveLoansLoanIdRoute: typeof ApproveLoansLoanIdRoute
+  ApproveLoansIndexRoute: typeof ApproveLoansIndexRoute
 }
 
 const ApproveLoansRouteChildren: ApproveLoansRouteChildren = {
   ApproveLoansLoanIdRoute: ApproveLoansLoanIdRoute,
+  ApproveLoansIndexRoute: ApproveLoansIndexRoute,
 }
 
 const ApproveLoansRouteWithChildren = ApproveLoansRoute._addFileChildren(

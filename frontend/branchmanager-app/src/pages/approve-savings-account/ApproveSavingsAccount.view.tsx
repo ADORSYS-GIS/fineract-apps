@@ -78,13 +78,43 @@ export const ApproveSavingsAccountListView = ({
 				<div className="overflow-x-auto">
 					<Table
 						columns={[
-							{ key: "savingsProductName", title: "Product", sortable: true },
-							{ key: "clientName", title: "Client", sortable: true },
-							{ key: "accountNo", title: "Account No", sortable: true },
-							{ key: "status", title: "Status", sortable: true },
+							{
+								key: "savingsProductName",
+								title: "Product",
+								sortable: true,
+								className:
+									"text-xs text-white uppercase bg-primary rounded-l-lg",
+								cellClassName: "whitespace-normal px-2 sm:px-6",
+							},
+							{
+								key: "clientName",
+								title: "Client",
+								sortable: true,
+								className: "text-xs text-white uppercase bg-primary",
+								cellClassName: "whitespace-normal px-2 sm:px-6",
+							},
+							{
+								key: "accountNo",
+								title: "Account No",
+								sortable: true,
+								className:
+									"hidden md:table-cell text-xs text-white uppercase bg-primary",
+								cellClassName: "hidden md:table-cell",
+							},
+							{
+								key: "status",
+								title: "Status",
+								sortable: true,
+								className:
+									"hidden md:table-cell text-xs text-white uppercase bg-primary",
+								cellClassName: "hidden md:table-cell",
+							},
 							{
 								key: "actions",
 								title: "Actions",
+								className:
+									"text-xs text-white uppercase bg-primary rounded-r-lg",
+								cellClassName: "px-2 sm:px-6",
 								render: (row: ApproveSavingsAccountListItem) => (
 									<Link
 										to="/approve/savings/account"
@@ -93,7 +123,6 @@ export const ApproveSavingsAccountListView = ({
 										<Button>View</Button>
 									</Link>
 								),
-								className: "text-right",
 							},
 						]}
 						data={items}

@@ -8,6 +8,7 @@ export const ApproveAccountView = () => (
 			<Card className="hoverable cursor-pointer">
 				<Link
 					to="/approve/savings/account"
+					search={{}}
 					className="block w-full h-full p-6 text-center"
 				>
 					<h2 className="text-lg font-semibold text-gray-800">
@@ -21,6 +22,7 @@ export const ApproveAccountView = () => (
 			<Card className="hoverable cursor-pointer">
 				<Link
 					to="/approve/loans"
+					search={{ q: "" }}
 					className="block w-full h-full p-6 text-center"
 				>
 					<h2 className="text-lg font-semibold text-gray-800">Pending Loans</h2>

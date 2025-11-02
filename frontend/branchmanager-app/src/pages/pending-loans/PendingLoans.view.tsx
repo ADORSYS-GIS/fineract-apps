@@ -1,5 +1,6 @@
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { useState } from "react";
 import { BackButton } from "@/components/BackButton";
 import { PendingLoansViewProps } from "./PendingLoans.types";
 
@@ -8,28 +9,58 @@ export const PendingLoansView = ({
 	isLoading,
 	error,
 }: PendingLoansViewProps) => {
-	const navigate = useNavigate();
+	const search = useSearch({ from: "/approve/loans" });
+	const initial = String(search?.q ?? "");
+	const [value, setValue] = useState(initial);
+	const navigate = useNavigate({ from: "/approve/loans" });
+
+	const handleValueChange = (val: string) => {
+		setValue(val);
+	};
+
+	const handleSearch = (val: string) => {
+		navigate({
+			to: "/approve/loans",
+			search: { q: val },
+		});
+	};
+
 	return (
 		<div className="p-4 sm:p-6">
-			<div className="flex items-center gap-4">
-				<BackButton to="/approve/account" />
-				<h1 className="text-2xl font-bold">Pending Loan Approvals</h1>
+			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+				<h1 className="text-2xl font-bold text-center sm:text-left order-2 sm:order-1">
+					Pending Loan Approvals
+				</h1>
+				<div className="order-1 sm:order-2">
+					<BackButton to="/approve/account" />
+				</div>
 			</div>
 			<div className="mt-6">
 				<Card className="h-full w-full">
 					<div>
-						<SearchBar placeholder="Filter by client, loan officer or product..." />
+						<SearchBar
+							value={value}
+							onValueChange={handleValueChange}
+							onSearch={handleSearch}
+							placeholder="Filter by client, loan officer or product..."
+						/>
 					</div>
 					<div className="overflow-x-auto mt-4">
 						<table className="w-full text-sm text-left text-gray-500">
 							<thead className="text-xs text-white uppercase bg-primary">
 								<tr>
-									<th className="px-6 py-3">Client Name</th>
-									<th className="px-6 py-3">Loan Officer</th>
+									<th className="px-6 py-3 rounded-l-lg">Client Name</th>
+									<th className="px-6 py-3 hidden sm:table-cell">
+										Loan Officer
+									</th>
 									<th className="px-6 py-3">Principal</th>
-									<th className="px-6 py-3">Submitted On</th>
-									<th className="px-6 py-3">Loan Product</th>
-									<th className="px-6 py-3">Action</th>
+									<th className="px-6 py-3 hidden md:table-cell">
+										Submitted On
+									</th>
+									<th className="px-6 py-3 hidden sm:table-cell">
+										Loan Product
+									</th>
+									<th className="px-6 py-3 rounded-r-lg">Action</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -55,21 +86,28 @@ export const PendingLoansView = ({
 												<td className="px-6 py-4 font-medium text-gray-900">
 													{loan.clientName}
 												</td>
-												<td className="px-6 py-4">{loan.loanOfficerName}</td>
+												<td className="px-6 py-4 hidden sm:table-cell">
+													{loan.loanOfficerName}
+												</td>
 												<td className="px-6 py-4">{loan.principal}</td>
-												<td className="px-6 py-4">{loan.submittedOnDate}</td>
-												<td className="px-6 py-4">{loan.loanProductName}</td>
+												<td className="px-6 py-4 hidden md:table-cell">
+													{loan.submittedOnDate}
+												</td>
+												<td className="px-6 py-4 hidden sm:table-cell">
+													{loan.loanProductName}
+												</td>
 												<td className="px-6 py-4">
-													<Button
-														onClick={() =>
-															navigate({
-																to: "/approve/loans/$loanId",
-																params: { loanId: loan.id.toString() },
-															})
-														}
+													<Link
+														to="/approve/loans/$loanId"
+														params={{
+															loanId: loan.id.toString(),
+														}}
+														search={{
+															q: value,
+														}}
 													>
-														Review
-													</Button>
+														<Button>Review</Button>
+													</Link>
 												</td>
 											</tr>
 										))

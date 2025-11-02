@@ -50,7 +50,7 @@ export function TableView<T extends { id: Key }>({
 							{columns.map((col) => (
 								<td
 									key={col.key}
-									className="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
+									className={`px-6 py-4 whitespace-nowrap text-sm text-gray-700 ${col.cellClassName ?? ""}`}
 								>
 									{col.render
 										? col.render(row)
