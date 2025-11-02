@@ -1,17 +1,8 @@
-import {
-	CreditCard,
-	FileText,
-	Home,
-	Send,
-	Settings,
-	Users,
-} from "lucide-react";
+import { FileText, Home, Send, Settings, Users } from "lucide-react";
 import { MenuItem } from "./Sidebar.types";
 
 export const menuAccountManager = [
 	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "accounts", link: "/accounts", icon: CreditCard },
-	{ name: "transactions", link: "/transactions", icon: Send },
 	{ name: "settings", link: "/settings", icon: Settings },
 ];
 
