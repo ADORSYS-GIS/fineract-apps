@@ -9,9 +9,7 @@ import { format } from "date-fns";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import {
-	LoanDetailsFormValues,
-} from "@/pages/loan/create-loan-account/CreateLoanAccount.schema";
+import { LoanDetailsFormValues } from "@/pages/loan/create-loan-account/CreateLoanAccount.schema";
 import {
 	LoanDetailsTemplate,
 	LoanRepaymentSchedule,
@@ -76,7 +74,9 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 			}),
 		onSuccess: () => {
 			toast.success("Loan account updated successfully");
-			queryClient.invalidateQueries({ queryKey: ["accounts", loanData?.clientId] });
+			queryClient.invalidateQueries({
+				queryKey: ["accounts", loanData?.clientId],
+			});
 			onClose();
 		},
 		onError: (error) => {
@@ -129,7 +129,7 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 					? format(
 							new Date(loanData.timeline.expectedDisbursementDate),
 							"yyyy-MM-dd",
-					  )
+						)
 					: "",
 				principal: loanData.principal ?? 0,
 				loanTermFrequency: loanData.termFrequency ?? 0,
@@ -140,7 +140,8 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 				interestRatePerPeriod: loanData.interestRatePerPeriod ?? 0,
 				amortizationType: loanData.amortizationType?.id,
 				interestType: loanData.interestType?.id,
-				interestCalculationPeriodType: loanData.interestCalculationPeriodType?.id,
+				interestCalculationPeriodType:
+					loanData.interestCalculationPeriodType?.id,
 				transactionProcessingStrategyCode:
 					loanData.transactionProcessingStrategyCode ?? "",
 				charges:

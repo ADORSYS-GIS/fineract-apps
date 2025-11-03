@@ -5,13 +5,9 @@ import { useState } from "react";
 import { useLoanAccountDetails } from "./useLoanAccountDetails";
 
 export const LoanAccountDetailsView = (
-	props: ReturnType<typeof useLoanAccountDetails>
+	props: ReturnType<typeof useLoanAccountDetails>,
 ) => {
-	const {
-		account,
-		isLoading,
-		transactions,
-	} = props;
+	const { account, isLoading, transactions } = props;
 	const [activeTab, setActiveTab] = useState("Transactions");
 
 	if (isLoading) {
@@ -19,8 +15,8 @@ export const LoanAccountDetailsView = (
 	}
 
 	const isPendingApproval = account?.status?.pendingApproval;
-    const isApproved = account?.status?.active && !account?.status?.waitingForDisbursal;
-
+	const isApproved =
+		account?.status?.active && !account?.status?.waitingForDisbursal;
 
 	const navItems = ["Transactions", "Loan Schedule"];
 
@@ -42,9 +38,7 @@ export const LoanAccountDetailsView = (
 							<HandCoins className="h-8 w-8" />
 						</div>
 						<div>
-							<p className="text-sm opacity-80">
-								{account?.loanProductName}
-							</p>
+							<p className="text-sm opacity-80">{account?.loanProductName}</p>
 							<div className="flex items-center gap-2">
 								<p className="text-xl font-bold">{account?.clientName}</p>
 								{isPendingApproval && (
@@ -52,11 +46,11 @@ export const LoanAccountDetailsView = (
 										Pending Approval
 									</span>
 								)}
-                                {isApproved && (
-                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-500 text-white">
-                                        Approved
-                                    </span>
-                                )}
+								{isApproved && (
+									<span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-500 text-white">
+										Approved
+									</span>
+								)}
 							</div>
 						</div>
 					</div>
@@ -80,11 +74,11 @@ export const LoanAccountDetailsView = (
 								</div>
 							</div>
 						</div>
-                        {isApproved && (
-                            <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
-                                Disburse
-                            </button>
-                        )}
+						{isApproved && (
+							<button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+								Disburse
+							</button>
+						)}
 					</div>
 				</div>
 			</header>
@@ -126,10 +120,10 @@ export const LoanAccountDetailsView = (
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Principal
 											</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Interest
 											</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Fee
 											</th>
 											<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -145,7 +139,7 @@ export const LoanAccountDetailsView = (
 													new Date(
 														Number(transaction.date[0]),
 														Number(transaction.date[1]) - 1,
-														Number(transaction.date[2])
+														Number(transaction.date[2]),
 													).toLocaleDateString("en-GB", {
 														day: "2-digit",
 														month: "long",
@@ -162,13 +156,13 @@ export const LoanAccountDetailsView = (
 														<td className="px-6 py-4 whitespace-nowrap text-sm">
 															{transaction.amount}
 														</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+														<td className="px-6 py-4 whitespace-nowrap text-sm">
 															{transaction.principalPortion}
 														</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+														<td className="px-6 py-4 whitespace-nowrap text-sm">
 															{transaction.interestPortion}
 														</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+														<td className="px-6 py-4 whitespace-nowrap text-sm">
 															{transaction.feeChargesPortion}
 														</td>
 														<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
