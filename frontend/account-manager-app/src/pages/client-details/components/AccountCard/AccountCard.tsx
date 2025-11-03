@@ -102,18 +102,16 @@ export const AccountCard: FC<AccountCardProps> = ({
 						</Button>
 					)}
 					{isLoanAccount && isPending && (
-						<>
-							<Button
-								variant="outline"
-								onClick={(e) => {
-									e.preventDefault();
-									e.stopPropagation();
-									onEdit?.(account.id!);
-								}}
-							>
-								Edit
-							</Button>
-						</>
+						<Button
+							variant="outline"
+							onClick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								onEdit?.(account.id!);
+							}}
+						>
+							Edit
+						</Button>
 					)}
 				</div>
 			</div>
