@@ -73,7 +73,7 @@ export const useCreateLoanAccount = () => {
 			}),
 		onSuccess: () => {
 			toast.success("Loan account created successfully");
-			navigate({ to: "/" });
+			navigate({ to: `/client-details/${clientId}` });
 		},
 		onError: (error) => {
 			toast.error(`Failed to create loan account: ${error.message}`);
