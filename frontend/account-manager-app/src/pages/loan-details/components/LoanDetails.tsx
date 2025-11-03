@@ -23,8 +23,8 @@ export const LoanDetails: FC<LoanDetailsProps> = ({ loan }) => {
 		: "N/A";
 
 	return (
-		<Card className="p-6 rounded-lg shadow-md">
-			<table className="w-full text-sm">
+		<Card className="p-6 rounded-lg shadow-md w-full">
+			<table className="w-full text-sm table-auto">
 				<tbody>
 					<DetailRow label="Disbursement Date" value={disbursementDate} />
 					<DetailRow label="Loan Purpose" value={"Not Available"} />

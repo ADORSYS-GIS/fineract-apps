@@ -47,9 +47,9 @@ export const LoanSummary: FC<LoanSummaryProps> = ({ loan }) => {
 	if (!summary) return null;
 
 	return (
-		<Card className="p-6 rounded-lg shadow-md">
+		<Card className="p-6 rounded-lg shadow-md w-full">
 			<div className="overflow-x-auto">
-				<table className="w-full text-sm">
+				<table className="w-full text-sm table-auto">
 					<thead>
 						<tr className="border-b border-gray-200">
 							<th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>

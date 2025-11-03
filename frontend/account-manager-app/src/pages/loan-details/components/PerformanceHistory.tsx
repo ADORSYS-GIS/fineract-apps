@@ -13,7 +13,7 @@ export const PerformanceHistory: FC<PerformanceHistoryProps> = ({ loan }) => {
 		: "N/A";
 
 	return (
-		<Card className="p-6 rounded-lg shadow-md">
+		<Card className="p-6 rounded-lg shadow-md w-full">
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<div className="flex items-center">
 					<span className="font-semibold text-gray-600">
