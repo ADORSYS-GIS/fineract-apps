@@ -1,114 +1,19 @@
-import { Button } from "@fineract-apps/ui";
-import { useFormikContext } from "formik";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { FormikProvider } from "formik";
 import { Modal } from "@/components/Modal/Modal";
-import { Stepper } from "@/components/Stepper";
-import { LoanDetailsFormValues } from "@/pages/loan/create-loan-account/CreateLoanAccount.schema";
-import { ChargesStepView } from "@/pages/loan/create-loan-account/components/ChargesStep.view";
-import { DetailsStepView } from "@/pages/loan/create-loan-account/components/DetailsStep.view";
-import { PreviewStepView } from "@/pages/loan/create-loan-account/components/PreviewStep.view";
-import { RepaymentScheduleStepView } from "@/pages/loan/create-loan-account/components/RepaymentScheduleStep.view";
-import { TermsStepView } from "@/pages/loan/create-loan-account/components/TermsStep.view";
-import { useEditLoanAccount } from "./useEditLoanAccount";
+import { LoanAccountForm } from "@/pages/loan/common/LoanAccountForm";
+import { useLoanAccountForm } from "@/pages/loan/common/useLoanAccountForm";
 
-const steps = [
-	{ key: "details", label: "Details" },
-	{ key: "terms", label: "Terms" },
-	{ key: "charges", label: "Charges" },
-	{ key: "repaymentSchedule", label: "Repayment Schedule" },
-	{ key: "preview", label: "Preview" },
-];
-
-interface CurrentStepComponentProps {
-	currentStep: number;
-	loanTemplate: ReturnType<typeof useEditLoanAccount>["loanTemplate"];
-	loanDetails: ReturnType<typeof useEditLoanAccount>["loanDetails"];
-	isLoading: boolean;
-	isLoadingLoanDetails: boolean;
-	repaymentSchedule: ReturnType<typeof useEditLoanAccount>["repaymentSchedule"];
-	isCalculatingSchedule: boolean;
-	handleCalculateSchedule: ReturnType<
-		typeof useEditLoanAccount
-	>["handleCalculateSchedule"];
-	values: LoanDetailsFormValues;
+interface EditLoanAccountViewProps {
+	loanId: number;
+	onClose: () => void;
 }
-
-const CurrentStepComponent = ({
-	currentStep,
-	loanTemplate,
-	loanDetails,
-	isLoading,
-	isLoadingLoanDetails,
-	repaymentSchedule,
-	isCalculatingSchedule,
-	handleCalculateSchedule,
-	values,
-}: CurrentStepComponentProps) => {
-	const { t } = useTranslation();
-
-	switch (currentStep) {
-		case 0:
-			return (
-				loanTemplate &&
-				loanDetails && (
-					<DetailsStepView
-						loanTemplate={loanTemplate}
-						loanDetails={loanDetails}
-						isLoading={isLoading}
-						isLoadingLoanDetails={isLoadingLoanDetails}
-					/>
-				)
-			);
-		case 1:
-			return isLoadingLoanDetails ? (
-				<div>{t("loading", "Loading...")}</div>
-			) : (
-				loanDetails && <TermsStepView loanDetails={loanDetails} />
-			);
-		case 2:
-			return isLoadingLoanDetails ? (
-				<div>{t("loading", "Loading...")}</div>
-			) : (
-				loanDetails && (
-					<ChargesStepView
-						isLoading={isLoadingLoanDetails}
-						loanDetails={loanDetails}
-					/>
-				)
-			);
-		case 3:
-			return (
-				<RepaymentScheduleStepView
-					repaymentSchedule={repaymentSchedule}
-					isCalculatingSchedule={isCalculatingSchedule}
-					handleCalculateSchedule={handleCalculateSchedule}
-				/>
-			);
-		case 4:
-			return (
-				loanTemplate &&
-				loanDetails && (
-					<PreviewStepView
-						values={values}
-						loanTemplate={loanTemplate}
-						loanDetails={loanDetails}
-					/>
-				)
-			);
-		default:
-			return null;
-	}
-};
 
 export const EditLoanAccountView = ({
 	loanId,
 	onClose,
-}: {
-	loanId: number;
-	onClose: () => void;
-}) => {
+}: EditLoanAccountViewProps) => {
 	const {
+		formik,
 		loanTemplate,
 		isLoading,
 		loanDetails,
@@ -118,69 +23,23 @@ export const EditLoanAccountView = ({
 		handleCalculateSchedule,
 		handleSubmit,
 		isSubmitting,
-	} = useEditLoanAccount(loanId, onClose);
-	const { values } = useFormikContext<LoanDetailsFormValues>();
-	const [currentStep, setCurrentStep] = useState(0);
-	const { t } = useTranslation();
-	const handleNext = () => {
-		if (currentStep < steps.length - 1) {
-			setCurrentStep(currentStep + 1);
-		}
-	};
-	const handleBack = () => {
-		if (currentStep > 0) {
-			setCurrentStep(currentStep - 1);
-		}
-	};
+	} = useLoanAccountForm({ loanId, onClose });
 
 	return (
 		<Modal isOpen={true} onClose={onClose} title="Edit Loan Account" size="lg">
-			<div className="p-4 md:p-6">
-				<Stepper
-					steps={steps.map((step) => ({ label: t(step.key, step.label) }))}
-					activeStep={currentStep}
-				/>
-			</div>
-			<div className="p-4 md:p-6 border-t border-gray-200">
-				<CurrentStepComponent
-					currentStep={currentStep}
+			<FormikProvider value={formik}>
+				<LoanAccountForm
 					loanTemplate={loanTemplate}
-					loanDetails={loanDetails}
 					isLoading={isLoading}
+					loanDetails={loanDetails}
 					isLoadingLoanDetails={isLoadingLoanDetails}
 					repaymentSchedule={repaymentSchedule}
 					isCalculatingSchedule={isCalculatingSchedule}
 					handleCalculateSchedule={handleCalculateSchedule}
-					values={values}
+					handleSubmit={handleSubmit}
+					isSubmitting={isSubmitting}
 				/>
-			</div>
-			<div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center p-4 md:p-6 border-t border-gray-200 gap-2">
-				<div className="w-full sm:w-auto">
-					{currentStep > 0 && (
-						<Button variant="outline" className="w-full" onClick={handleBack}>
-							{t("back", "Back")}
-						</Button>
-					)}
-				</div>
-				<div className="w-full sm:w-auto">
-					{currentStep < steps.length - 1 && (
-						<Button className="w-full" onClick={handleNext}>
-							{t("next", "Next")}
-						</Button>
-					)}
-					{currentStep === steps.length - 1 && (
-						<Button
-							className="w-full"
-							onClick={() => handleSubmit()}
-							disabled={isSubmitting}
-						>
-							{isSubmitting
-								? t("submitting", "Submitting...")
-								: t("submit", "Submit")}
-						</Button>
-					)}
-				</div>
-			</div>
+			</FormikProvider>
 		</Modal>
 	);
 };

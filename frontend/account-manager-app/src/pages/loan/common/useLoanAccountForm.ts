@@ -19,7 +19,7 @@ import {
 } from "@/pages/loan/create-loan-account/CreateLoanAccount.types";
 
 interface UseLoanAccountFormOptions {
-	clientId: number;
+	clientId?: number;
 	loanId?: number;
 	onClose?: () => void;
 }
@@ -79,7 +79,7 @@ export const useLoanAccountForm = ({
 		values: LoanDetailsFormValues,
 	): PostLoansRequest => ({
 		...createBaseLoanPayload(values),
-		clientId: Number(clientId),
+		clientId: Number(clientId) || loanData?.clientId,
 		loanPurposeId: values.loanPurposeId,
 		fundId: values.fundId,
 		charges: values.charges?.map((charge) => ({
@@ -231,20 +231,25 @@ export const useLoanAccountForm = ({
 	}, [isEditMode, loanData, setValues]);
 
 	const { data: loanTemplate, isLoading } = useQuery({
-		queryKey: ["loan-template", clientId],
+		queryKey: ["loan-template", clientId ?? loanData?.clientId],
 		queryFn: () =>
 			LoansService.getV1LoansTemplate({
-				clientId: Number(clientId),
+				clientId: Number(clientId ?? loanData?.clientId),
 				templateType: "individual",
 			}),
+		enabled: !!clientId || !!loanData?.clientId,
 	});
 
 	const { data: loanDetails, isLoading: isLoadingLoanDetails } =
 		useQuery<LoanDetailsTemplate>({
-			queryKey: ["loan-details", clientId, selectedProductId],
+			queryKey: [
+				"loan-details",
+				clientId ?? loanData?.clientId,
+				selectedProductId,
+			],
 			queryFn: () =>
 				LoansService.getV1LoansTemplate({
-					clientId: Number(clientId),
+					clientId: Number(clientId ?? loanData?.clientId),
 					productId: selectedProductId!,
 					templateType: "individual",
 				}) as Promise<LoanDetailsTemplate>,
