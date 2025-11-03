@@ -10,7 +10,6 @@ export const useLoanAccountDetails = (loanId: number) => {
 				associations: "all",
 			}),
 	});
-
 	return {
 		account,
 		isLoading,
