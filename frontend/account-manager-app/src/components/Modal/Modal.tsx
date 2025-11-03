@@ -6,10 +6,22 @@ interface ModalProps {
 	onClose: () => void;
 	title: string;
 	children: ReactNode;
+	size?: "md" | "lg";
 }
 
-export const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+export const Modal: FC<ModalProps> = ({
+	isOpen,
+	onClose,
+	title,
+	children,
+	size = "md",
+}) => {
 	if (!isOpen) return null;
+
+	const sizeClasses = {
+		md: "max-w-md",
+		lg: "max-w-5xl",
+	};
 
 	return (
 		<>
@@ -25,7 +37,7 @@ export const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 			{/* Modal */}
 			<div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
 				<dialog
-					className="relative bg-white rounded-t-2xl md:rounded-lg p-6 w-full max-w-md shadow-lg"
+					className={`relative bg-white rounded-t-2xl md:rounded-lg p-6 w-full ${sizeClasses[size]} shadow-lg`}
 					open={isOpen}
 					onClose={onClose}
 				>
