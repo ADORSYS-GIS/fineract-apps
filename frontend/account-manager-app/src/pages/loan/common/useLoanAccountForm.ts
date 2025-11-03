@@ -44,10 +44,7 @@ export const useLoanAccountForm = ({
 		enabled: isEditMode,
 	});
 
-	const createLoanPayload = (
-		values: LoanDetailsFormValues,
-	): PostLoansRequest => ({
-		clientId: Number(clientId),
+	const createBaseLoanPayload = (values: LoanDetailsFormValues) => ({
 		productId: values.loanProductId ? Number(values.loanProductId) : 0,
 		principal: values.principal ? Number(values.principal) : 0,
 		loanTermFrequency: values.loanTermFrequency
@@ -66,9 +63,7 @@ export const useLoanAccountForm = ({
 		interestType: values.interestType,
 		interestCalculationPeriodType: values.interestCalculationPeriodType,
 		transactionProcessingStrategyCode: values.transactionProcessingStrategyCode,
-		loanPurposeId: values.loanPurposeId,
-		fundId: values.fundId,
-		loanType: "individual",
+		loanType: "individual" as const,
 		locale: "en",
 		dateFormat: "dd MMMM yyyy",
 		submittedOnDate: values.submittedOnDate
@@ -77,6 +72,15 @@ export const useLoanAccountForm = ({
 		expectedDisbursementDate: values.expectedDisbursementDate
 			? format(new Date(values.expectedDisbursementDate), "dd MMMM yyyy")
 			: undefined,
+	});
+
+	const createLoanPayload = (
+		values: LoanDetailsFormValues,
+	): PostLoansRequest => ({
+		...createBaseLoanPayload(values),
+		clientId: Number(clientId),
+		loanPurposeId: values.loanPurposeId,
+		fundId: values.fundId,
 		charges: values.charges?.map((charge) => ({
 			chargeId: charge.id,
 			amount: charge.amount,
@@ -86,33 +90,7 @@ export const useLoanAccountForm = ({
 	const createEditLoanPayload = (
 		values: LoanDetailsFormValues,
 	): PutLoansLoanIdRequest => ({
-		productId: values.loanProductId ? Number(values.loanProductId) : 0,
-		principal: values.principal ? Number(values.principal) : 0,
-		loanTermFrequency: values.loanTermFrequency
-			? Number(values.loanTermFrequency)
-			: 0,
-		loanTermFrequencyType: values.loanTermFrequencyType,
-		numberOfRepayments: values.numberOfRepayments
-			? Number(values.numberOfRepayments)
-			: 0,
-		repaymentEvery: values.repaymentEvery ? Number(values.repaymentEvery) : 0,
-		repaymentFrequencyType: values.repaymentFrequencyType,
-		interestRatePerPeriod: values.interestRatePerPeriod
-			? Number(values.interestRatePerPeriod)
-			: 0,
-		amortizationType: values.amortizationType,
-		interestType: values.interestType,
-		interestCalculationPeriodType: values.interestCalculationPeriodType,
-		transactionProcessingStrategyCode: values.transactionProcessingStrategyCode,
-		loanType: "individual",
-		locale: "en",
-		dateFormat: "dd MMMM yyyy",
-		submittedOnDate: values.submittedOnDate
-			? format(new Date(values.submittedOnDate), "dd MMMM yyyy")
-			: undefined,
-		expectedDisbursementDate: values.expectedDisbursementDate
-			? format(new Date(values.expectedDisbursementDate), "dd MMMM yyyy")
-			: undefined,
+		...createBaseLoanPayload(values),
 		charges: [],
 	});
 
