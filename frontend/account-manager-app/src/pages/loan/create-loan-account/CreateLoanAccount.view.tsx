@@ -68,7 +68,12 @@ const CurrentStepComponent = ({
 			return isLoadingLoanDetails ? (
 				<div>{t("loading", "Loading...")}</div>
 			) : (
-				loanDetails && <ChargesStepView isLoading={isLoadingLoanDetails} />
+				loanDetails && (
+					<ChargesStepView
+						isLoading={isLoadingLoanDetails}
+						loanDetails={loanDetails}
+					/>
+				)
 			);
 		case 3:
 			return (

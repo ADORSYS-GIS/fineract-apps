@@ -1,4 +1,8 @@
-import { LoansService, PostLoansResponse } from "@fineract-apps/fineract-api";
+import {
+	ApiError,
+	LoansService,
+	PostLoansResponse,
+} from "@fineract-apps/fineract-api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
@@ -146,7 +150,17 @@ export const useCreateLoanAccount = () => {
 			toast.success("Repayment schedule calculated successfully");
 		},
 		onError: (error) => {
-			toast.error(`Failed to calculate repayment schedule: ${error.message}`);
+			if (error instanceof ApiError) {
+				const apiError = error.body as {
+					errors: { defaultUserMessage: string }[];
+				};
+				const message =
+					apiError.errors?.[0]?.defaultUserMessage ||
+					"An unknown error occurred";
+				toast.error(message);
+			} else {
+				toast.error(`Failed to calculate repayment schedule: ${error.message}`);
+			}
 		},
 	});
 

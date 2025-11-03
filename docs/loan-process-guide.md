@@ -155,18 +155,6 @@ This component provides the visual stepper navigation for the multi-step form.
     -   `activeStep`: A number representing the index of the currently active step.
 -   **Functionality**: It renders the steps and highlights the current step, completed steps, and pending steps with different colors and icons.
 
-### `Table.tsx`
-
-This is a generic, reusable table component built using `@tanstack/react-table`.
-
--   **Purpose**: To display tabular data in a consistent and accessible way. In the loan process, it is used to display the calculated repayment schedule.
--   **Props**:
-    -   `columns`: An array of column definitions from TanStack Table.
-    -   `data`: The array of data to be displayed.
-    -   `caption` (optional): A caption for the table for accessibility.
-    -   `ariaLabel` (optional): An ARIA label for the table.
--   **Functionality**: It renders a table with a header and body, and it is capable of handling complex data structures and rendering custom cell content.
-
 ## Step Components
 
 The `CreateLoanAccount.view.tsx` renders different components based on the current step. These components are located in the `components/` subdirectory.
@@ -198,17 +186,40 @@ The `CreateLoanAccount.view.tsx` renders different components based on the curre
 ### `ChargesStep.view.tsx`
 
 -   **Purpose**: This step allows the user to add or remove additional fees (charges) to the loan account.
--   **Functionality**: It displays a list of charges associated with the selected loan product. Users can typically select from a list of predefined charges and specify the amount. The form state for charges is managed as an array of objects within Formik.
--   **Data Dependencies**: It uses the `charges` array from the `loanDetails` object to display the available and default charges for the loan product.
+-   **Functionality**:
+    -   It features a dropdown of available charges, populated from the `loanDetails.chargeOptions` array.
+    -   An "Add" button allows the user to add the selected charge to the loan.
+    -   The added charges are displayed in a responsive list using the `ChargeRow` component.
+    -   Each charge in the list has a "Delete" button to remove it.
+-   **Data Dependencies**: It uses the `chargeOptions` from the `loanDetails` object to populate the dropdown of available charges.
+
+### `ChargeRow.view.tsx`
+
+-   **Purpose**: This component renders a single charge with a responsive design.
+-   **Functionality**:
+    -   On mobile screens, it displays the data in a card-like format with labels for each value.
+    -   On desktop screens, it uses a CSS grid to align the data in columns.
+    -   It includes "Edit" and "Delete" buttons for each charge.
+-   **Data Dependencies**: It receives a single `charge` object as a prop.
 
 ### `RepaymentScheduleStep.view.tsx`
 
 -   **Purpose**: This step allows the user to preview the calculated repayment schedule before finalizing the loan.
 -   **Functionality**:
     -   It features a "Calculate Schedule" button which triggers the `handleCalculateSchedule` function from the `useCreateLoanAccount` hook.
-    -   When the calculation is complete, the `repaymentSchedule` state is populated, and the results are displayed in a `Table` component.
+    -   When the calculation is complete, the `repaymentSchedule` state is populated, and the results are displayed using the responsive `RepaymentRow` component.
+    -   On mobile devices, each repayment period is shown as a card. On desktops, the layout is a responsive grid that resembles a table.
     -   It shows a loading indicator while the calculation is in progress (`isCalculatingSchedule`).
 -   **Data Dependencies**: It receives the `repaymentSchedule` data and the `isCalculatingSchedule` boolean as props.
+
+### `RepaymentRow.view.tsx`
+
+-   **Purpose**: This component renders a single row of the repayment schedule with a responsive design.
+-   **Functionality**:
+    -   On mobile screens, it displays the data in a card-like format with labels for each value (e.g., "Principal Due: 18215").
+    -   On desktop screens (`md` and up), it uses a CSS grid to align the data in columns, mimicking a table layout but in a fully responsive way.
+    -   It handles the formatting of the `dueDate` internally.
+-   **Data Dependencies**: It receives a single `period` object from the `repaymentSchedule.periods` array as a prop.
 
 ### `PreviewStep.view.tsx`
 
