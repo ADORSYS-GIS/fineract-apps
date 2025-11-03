@@ -1,9 +1,7 @@
 import { useParams } from "@tanstack/react-router";
 import { FC } from "react";
-
-import { useLoanAccountDetails } from "./useLoanAccountDetails";
 import { LoanAccountDetailsView } from "./LoanAccountDetails.view";
-
+import { useLoanAccountDetails } from "./useLoanAccountDetails";
 
 export const LoanAccountDetails: FC = () => {
 	const { loanId } = useParams({
@@ -12,9 +10,5 @@ export const LoanAccountDetails: FC = () => {
 
 	const props = useLoanAccountDetails(Number(loanId));
 
-	return (
-		<LoanAccountDetailsView
-			{...props}
-		/>
-	);
+	return <LoanAccountDetailsView {...props} />;
 };

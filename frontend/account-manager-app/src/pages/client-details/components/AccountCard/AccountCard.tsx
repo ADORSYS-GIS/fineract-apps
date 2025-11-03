@@ -58,10 +58,13 @@ export const AccountCard: FC<AccountCardProps> = ({
 	onEdit,
 }) => {
 	const borderColorClass = getBorderColorClass(account.productName);
-	const isSavingsAccount = account.productName?.toLowerCase().includes("savings");
+	const isSavingsAccount = account.productName
+		?.toLowerCase()
+		.includes("savings");
 	const isLoanAccount = account.productName?.toLowerCase().includes("loan");
 	const isPending =
-		account.status?.submittedAndPendingApproval || account.status?.pendingApproval;
+		account.status?.submittedAndPendingApproval ||
+		account.status?.pendingApproval;
 
 	return (
 		<Link to={getAccountLink(account)} className="block mb-4">

@@ -15,7 +15,6 @@ import {
 } from "./hooks/useClientImage";
 import { useClientDetails } from "./useClientDetails";
 
-
 const parseFineractDate = (dateArray: unknown): Date | null => {
 	if (
 		Array.isArray(dateArray) &&
@@ -102,7 +101,10 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 						</Button>
 					</Link>
 					<h1 className="text-xl font-semibold">Client Profile</h1>
-					<Button variant="ghost" onClick={() => setIsEditClientModalOpen(true)}>
+					<Button
+						variant="ghost"
+						onClick={() => setIsEditClientModalOpen(true)}
+					>
 						<Edit className="h-6 w-6" />
 					</Button>
 				</div>

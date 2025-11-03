@@ -6,8 +6,7 @@ export const useDeleteLoanAccount = (clientId: string) => {
 	const queryClient = useQueryClient();
 
 	return useMutation<unknown, Error, number>({
-		mutationFn: (loanId) =>
-			LoansService.deleteV1LoansByLoanId({ loanId }),
+		mutationFn: (loanId) => LoansService.deleteV1LoansByLoanId({ loanId }),
 		onSuccess: () => {
 			toast.success("Loan account deleted successfully!");
 			queryClient.invalidateQueries({ queryKey: ["accounts", clientId] });
