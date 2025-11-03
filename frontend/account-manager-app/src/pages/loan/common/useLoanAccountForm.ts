@@ -1,4 +1,5 @@
 import {
+	ApiError,
 	LoansService,
 	PostLoansResponse,
 	PutLoansLoanIdRequest,
@@ -108,7 +109,17 @@ export const useLoanAccountForm = ({
 			navigate({ to: `/client-details/${clientId}` });
 		},
 		onError: (error) => {
-			toast.error(`Failed to create loan account: ${error.message}`);
+			if (error instanceof ApiError) {
+				const apiError = error.body as {
+					errors: { defaultUserMessage: string }[];
+				};
+				const message =
+					apiError.errors?.[0]?.defaultUserMessage ||
+					"An unknown error occurred";
+				toast.error(message);
+			} else {
+				toast.error(`Failed to create loan account: ${error.message}`);
+			}
 		},
 	});
 
@@ -255,7 +266,17 @@ export const useLoanAccountForm = ({
 			toast.success("Repayment schedule calculated successfully");
 		},
 		onError: (error) => {
-			toast.error(`Failed to calculate repayment schedule: ${error.message}`);
+			if (error instanceof ApiError) {
+				const apiError = error.body as {
+					errors: { defaultUserMessage: string }[];
+				};
+				const message =
+					apiError.errors?.[0]?.defaultUserMessage ||
+					"An unknown error occurred";
+				toast.error(message);
+			} else {
+				toast.error(`Failed to calculate repayment schedule: ${error.message}`);
+			}
 		},
 	});
 
