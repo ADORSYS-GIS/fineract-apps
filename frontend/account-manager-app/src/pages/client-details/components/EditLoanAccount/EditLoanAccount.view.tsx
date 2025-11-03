@@ -3,9 +3,15 @@ import { Modal } from "@/components/Modal/Modal";
 import { LoanAccountForm } from "@/pages/loan/common/LoanAccountForm";
 import { useEditLoanAccount } from "./useEditLoanAccount";
 
-export const EditLoanAccountView = (
-	props: ReturnType<typeof useEditLoanAccount>,
-) => {
+interface EditLoanAccountViewProps {
+	loanId: number;
+	onClose: () => void;
+}
+
+export const EditLoanAccountView = ({
+	loanId,
+	onClose,
+}: EditLoanAccountViewProps) => {
 	const {
 		formik,
 		loanTemplate,
@@ -17,8 +23,7 @@ export const EditLoanAccountView = (
 		handleCalculateSchedule,
 		handleSubmit,
 		isSubmitting,
-		onClose,
-	} = props;
+	} = useEditLoanAccount(loanId, onClose);
 
 	return (
 		<Modal isOpen={true} onClose={onClose} title="Edit Loan Account" size="lg">
