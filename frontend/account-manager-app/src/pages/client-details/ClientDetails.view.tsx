@@ -194,16 +194,6 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 							) : (
 								<p className="text-gray-500">No Account Opened yet</p>
 							)}
-							{accounts?.loanAccounts && accounts.loanAccounts.length > 0
-								? accounts.loanAccounts.map((account) => (
-										<AccountCard
-											key={account.id}
-											account={account}
-											onActivate={activateAccount}
-											onDelete={deleteAccount}
-										/>
-									))
-								: null}
 						</div>
 						<div className="mt-8">
 							<KYCManagement

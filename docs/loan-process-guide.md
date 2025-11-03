@@ -140,7 +140,6 @@ This is the main endpoint for creating the new loan account.
 -   **Hook**: `LoansService.postV1Loans`
 -   **When it's called**: When the user clicks the "Submit" button on the final "Preview" step of the form.
 -   **Purpose**: To submit the complete loan application payload to the server to create the loan account. The payload includes all the details entered by the user, such as client ID, product ID, principal, terms, and charges. On success, the user is redirected.
--   **Post-Creation**: After a loan is successfully created, it will appear on the client's detail page under the "Accounts" section, alongside any savings accounts.
 
 ## Shared Components
 
