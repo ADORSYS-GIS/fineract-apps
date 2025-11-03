@@ -2,7 +2,6 @@ import { Button } from "@fineract-apps/ui";
 import { useFormikContext } from "formik";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal } from "@/components/Modal/Modal";
 import { Stepper } from "@/components/Stepper";
 import { LoanDetailsFormValues } from "@/pages/loan/create-loan-account/CreateLoanAccount.schema";
 import { ChargesStepView } from "@/pages/loan/create-loan-account/components/ChargesStep.view";
@@ -10,7 +9,7 @@ import { DetailsStepView } from "@/pages/loan/create-loan-account/components/Det
 import { PreviewStepView } from "@/pages/loan/create-loan-account/components/PreviewStep.view";
 import { RepaymentScheduleStepView } from "@/pages/loan/create-loan-account/components/RepaymentScheduleStep.view";
 import { TermsStepView } from "@/pages/loan/create-loan-account/components/TermsStep.view";
-import { useEditLoanAccount } from "./useEditLoanAccount";
+import { useCreateLoanAccount } from "../create-loan-account/useCreateLoanAccount";
 
 const steps = [
 	{ key: "details", label: "Details" },
@@ -22,14 +21,16 @@ const steps = [
 
 interface CurrentStepComponentProps {
 	currentStep: number;
-	loanTemplate: ReturnType<typeof useEditLoanAccount>["loanTemplate"];
-	loanDetails: ReturnType<typeof useEditLoanAccount>["loanDetails"];
+	loanTemplate: ReturnType<typeof useCreateLoanAccount>["loanTemplate"];
+	loanDetails: ReturnType<typeof useCreateLoanAccount>["loanDetails"];
 	isLoading: boolean;
 	isLoadingLoanDetails: boolean;
-	repaymentSchedule: ReturnType<typeof useEditLoanAccount>["repaymentSchedule"];
+	repaymentSchedule: ReturnType<
+		typeof useCreateLoanAccount
+	>["repaymentSchedule"];
 	isCalculatingSchedule: boolean;
 	handleCalculateSchedule: ReturnType<
-		typeof useEditLoanAccount
+		typeof useCreateLoanAccount
 	>["handleCalculateSchedule"];
 	values: LoanDetailsFormValues;
 }
@@ -50,15 +51,12 @@ const CurrentStepComponent = ({
 	switch (currentStep) {
 		case 0:
 			return (
-				loanTemplate &&
-				loanDetails && (
-					<DetailsStepView
-						loanTemplate={loanTemplate}
-						loanDetails={loanDetails}
-						isLoading={isLoading}
-						isLoadingLoanDetails={isLoadingLoanDetails}
-					/>
-				)
+				<DetailsStepView
+					loanTemplate={loanTemplate}
+					loanDetails={loanDetails}
+					isLoading={isLoading}
+					isLoadingLoanDetails={isLoadingLoanDetails}
+				/>
 			);
 		case 1:
 			return isLoadingLoanDetails ? (
@@ -87,54 +85,58 @@ const CurrentStepComponent = ({
 			);
 		case 4:
 			return (
-				loanTemplate &&
-				loanDetails && (
-					<PreviewStepView
-						values={values}
-						loanTemplate={loanTemplate}
-						loanDetails={loanDetails}
-					/>
-				)
+				<PreviewStepView
+					values={values}
+					loanTemplate={loanTemplate}
+					loanDetails={loanDetails}
+				/>
 			);
 		default:
 			return null;
 	}
 };
 
-export const EditLoanAccountView = ({
-	loanId,
-	onClose,
-}: {
-	loanId: number;
-	onClose: () => void;
-}) => {
-	const {
-		loanTemplate,
-		isLoading,
-		loanDetails,
-		isLoadingLoanDetails,
-		repaymentSchedule,
-		isCalculatingSchedule,
-		handleCalculateSchedule,
-		handleSubmit,
-		isSubmitting,
-	} = useEditLoanAccount(loanId, onClose);
+export interface LoanAccountFormProps {
+	loanTemplate: ReturnType<typeof useCreateLoanAccount>["loanTemplate"];
+	loanDetails: ReturnType<typeof useCreateLoanAccount>["loanDetails"];
+	isLoading: boolean;
+	isLoadingLoanDetails: boolean;
+	repaymentSchedule: ReturnType<
+		typeof useCreateLoanAccount
+	>["repaymentSchedule"];
+	isCalculatingSchedule: boolean;
+	handleCalculateSchedule: ReturnType<
+		typeof useCreateLoanAccount
+	>["handleCalculateSchedule"];
+	handleSubmit: () => void;
+	isSubmitting: boolean;
+}
+
+export const LoanAccountForm = ({
+	loanTemplate,
+	loanDetails,
+	isLoading,
+	isLoadingLoanDetails,
+	repaymentSchedule,
+	isCalculatingSchedule,
+	handleCalculateSchedule,
+	handleSubmit,
+	isSubmitting,
+}: LoanAccountFormProps) => {
+	const { t } = useTranslation();
 	const { values } = useFormikContext<LoanDetailsFormValues>();
 	const [currentStep, setCurrentStep] = useState(0);
-	const { t } = useTranslation();
+
 	const handleNext = () => {
-		if (currentStep < steps.length - 1) {
-			setCurrentStep(currentStep + 1);
-		}
+		setCurrentStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
 	};
+
 	const handleBack = () => {
-		if (currentStep > 0) {
-			setCurrentStep(currentStep - 1);
-		}
+		setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev));
 	};
 
 	return (
-		<Modal isOpen={true} onClose={onClose} title="Edit Loan Account" size="lg">
+		<>
 			<div className="p-4 md:p-6">
 				<Stepper
 					steps={steps.map((step) => ({ label: t(step.key, step.label) }))}
@@ -181,6 +183,6 @@ export const EditLoanAccountView = ({
 					)}
 				</div>
 			</div>
-		</Modal>
+		</>
 	);
 };

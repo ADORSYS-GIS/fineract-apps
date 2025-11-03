@@ -12,7 +12,7 @@ export const EditLoanAccount = ({
 	const props = useEditLoanAccount(loanId, onClose);
 	return (
 		<FormikProvider value={props.formik}>
-			<EditLoanAccountView {...props} />
+			<EditLoanAccountView loanId={loanId} onClose={onClose} />
 		</FormikProvider>
 	);
 };

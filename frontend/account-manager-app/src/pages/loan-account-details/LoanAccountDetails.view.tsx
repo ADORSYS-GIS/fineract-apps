@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft, HandCoins } from "lucide-react";
 import { useState } from "react";
 import { getLoanStatusProps } from "@/utils/loan";
+import { AccountActions } from "../loan-details/components";
 import { useLoanAccountDetails } from "./useLoanAccountDetails";
 
 export const LoanAccountDetailsView = (
@@ -15,7 +16,6 @@ export const LoanAccountDetailsView = (
 		return <div>Loading...</div>;
 	}
 
-	const isWaitingForDisbursal = account?.status?.waitingForDisbursal;
 	const statusProps = getLoanStatusProps(account?.status);
 
 	const navItems = ["Transactions", "Loan Schedule"];
@@ -71,11 +71,7 @@ export const LoanAccountDetailsView = (
 								</div>
 							</div>
 						</div>
-						{isWaitingForDisbursal && (
-							<button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
-								Disburse
-							</button>
-						)}
+						{account && <AccountActions loan={account} />}
 					</div>
 				</div>
 			</header>

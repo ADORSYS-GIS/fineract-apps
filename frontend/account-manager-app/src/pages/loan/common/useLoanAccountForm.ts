@@ -1,10 +1,12 @@
 import {
+	ApiError,
 	LoansService,
-	PostLoansRequest as PostLoansRequestType,
+	PostLoansResponse,
 	PutLoansLoanIdRequest,
 	PutLoansLoanIdResponse,
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
@@ -16,21 +18,34 @@ import {
 	PostLoansRequest,
 } from "@/pages/loan/create-loan-account/CreateLoanAccount.types";
 
-export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
+interface UseLoanAccountFormOptions {
+	clientId: number;
+	loanId?: number;
+	onClose?: () => void;
+}
+
+export const useLoanAccountForm = ({
+	clientId,
+	loanId,
+	onClose,
+}: UseLoanAccountFormOptions) => {
 	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 	const [selectedProductId, setSelectedProductId] = useState<number | null>(
 		null,
 	);
 	const [repaymentSchedule, setRepaymentSchedule] =
 		useState<LoanRepaymentSchedule | null>(null);
-	const { data: loanData } = useQuery({
+
+	const isEditMode = !!loanId;
+
+	const { data: loanData, isLoading: isLoanDataLoading } = useQuery({
 		queryKey: ["loan", loanId],
-		queryFn: () => LoansService.getV1LoansByLoanId({ loanId }),
+		queryFn: () => LoansService.getV1LoansByLoanId({ loanId: loanId! }),
+		enabled: isEditMode,
 	});
 
-	const createEditLoanPayload = (
-		values: LoanDetailsFormValues,
-	): PutLoansLoanIdRequest => ({
+	const createBaseLoanPayload = (values: LoanDetailsFormValues) => ({
 		productId: values.loanProductId ? Number(values.loanProductId) : 0,
 		principal: values.principal ? Number(values.principal) : 0,
 		loanTermFrequency: values.loanTermFrequency
@@ -49,7 +64,7 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 		interestType: values.interestType,
 		interestCalculationPeriodType: values.interestCalculationPeriodType,
 		transactionProcessingStrategyCode: values.transactionProcessingStrategyCode,
-		loanType: "individual",
+		loanType: "individual" as const,
 		locale: "en",
 		dateFormat: "dd MMMM yyyy",
 		submittedOnDate: values.submittedOnDate
@@ -58,7 +73,54 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 		expectedDisbursementDate: values.expectedDisbursementDate
 			? format(new Date(values.expectedDisbursementDate), "dd MMMM yyyy")
 			: undefined,
+	});
+
+	const createLoanPayload = (
+		values: LoanDetailsFormValues,
+	): PostLoansRequest => ({
+		...createBaseLoanPayload(values),
+		clientId: Number(clientId),
+		loanPurposeId: values.loanPurposeId,
+		fundId: values.fundId,
+		charges: values.charges?.map((charge) => ({
+			chargeId: charge.id,
+			amount: charge.amount,
+		})),
+	});
+
+	const createEditLoanPayload = (
+		values: LoanDetailsFormValues,
+	): PutLoansLoanIdRequest => ({
+		...createBaseLoanPayload(values),
 		charges: [],
+	});
+
+	const createLoanAccountMutation = useMutation<
+		PostLoansResponse,
+		Error,
+		PostLoansRequest
+	>({
+		mutationFn: (loanPayload) =>
+			LoansService.postV1Loans({
+				requestBody: loanPayload,
+			}),
+		onSuccess: () => {
+			toast.success("Loan account created successfully");
+			navigate({ to: `/client-details/${clientId}` });
+		},
+		onError: (error) => {
+			if (error instanceof ApiError) {
+				const apiError = error.body as {
+					errors: { defaultUserMessage: string }[];
+				};
+				const message =
+					apiError.errors?.[0]?.defaultUserMessage ||
+					"An unknown error occurred";
+				toast.error(message);
+			} else {
+				toast.error(`Failed to create loan account: ${error.message}`);
+			}
+		},
 	});
 
 	const editLoanAccountMutation = useMutation<
@@ -68,15 +130,15 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 	>({
 		mutationFn: (loanPayload) =>
 			LoansService.putV1LoansByLoanId({
-				loanId,
+				loanId: loanId!,
 				requestBody: loanPayload,
 			}),
 		onSuccess: () => {
 			toast.success("Loan account updated successfully");
 			queryClient.invalidateQueries({
-				queryKey: ["accounts", loanData?.clientId],
+				queryKey: ["accounts", clientId],
 			});
-			onClose();
+			onClose?.();
 		},
 		onError: (error) => {
 			toast.error(`Failed to update loan account: ${error.message}`);
@@ -106,15 +168,20 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 			charges: [],
 		},
 		onSubmit: (values) => {
-			const payload = createEditLoanPayload(values);
-			editLoanAccountMutation.mutate(payload);
+			if (isEditMode) {
+				const payload = createEditLoanPayload(values);
+				editLoanAccountMutation.mutate(payload);
+			} else {
+				const payload = createLoanPayload(values);
+				createLoanAccountMutation.mutate(payload);
+			}
 		},
 	});
 
 	const { values, setValues } = formik;
 
 	useEffect(() => {
-		if (loanData) {
+		if (isEditMode && loanData) {
 			setValues({
 				loanProductId: loanData.loanProductId ?? 0,
 				externalId: loanData.externalId ?? "",
@@ -161,24 +228,23 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 					})) ?? [],
 			});
 		}
-	}, [loanData, setValues]);
+	}, [isEditMode, loanData, setValues]);
 
 	const { data: loanTemplate, isLoading } = useQuery({
-		queryKey: ["loan-template", loanData?.clientId],
+		queryKey: ["loan-template", clientId],
 		queryFn: () =>
 			LoansService.getV1LoansTemplate({
-				clientId: Number(loanData?.clientId),
+				clientId: Number(clientId),
 				templateType: "individual",
 			}),
-		enabled: !!loanData?.clientId,
 	});
 
 	const { data: loanDetails, isLoading: isLoadingLoanDetails } =
 		useQuery<LoanDetailsTemplate>({
-			queryKey: ["loan-details", loanData?.clientId, selectedProductId],
+			queryKey: ["loan-details", clientId, selectedProductId],
 			queryFn: () =>
 				LoansService.getV1LoansTemplate({
-					clientId: Number(loanData?.clientId),
+					clientId: Number(clientId),
 					productId: selectedProductId!,
 					templateType: "individual",
 				}) as Promise<LoanDetailsTemplate>,
@@ -200,46 +266,24 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 			toast.success("Repayment schedule calculated successfully");
 		},
 		onError: (error) => {
-			toast.error(`Failed to calculate repayment schedule: ${error.message}`);
+			if (error instanceof ApiError) {
+				const apiError = error.body as {
+					errors: { defaultUserMessage: string }[];
+				};
+				const message =
+					apiError.errors?.[0]?.defaultUserMessage ||
+					"An unknown error occurred";
+				toast.error(message);
+			} else {
+				toast.error(`Failed to calculate repayment schedule: ${error.message}`);
+			}
 		},
 	});
 
-	const createLoanPayload = (
-		values: LoanDetailsFormValues,
-	): PostLoansRequestType => ({
-		clientId: loanData?.clientId,
-		productId: values.loanProductId ? Number(values.loanProductId) : 0,
-		principal: values.principal ? Number(values.principal) : 0,
-		loanTermFrequency: values.loanTermFrequency
-			? Number(values.loanTermFrequency)
-			: 0,
-		loanTermFrequencyType: values.loanTermFrequencyType,
-		numberOfRepayments: values.numberOfRepayments
-			? Number(values.numberOfRepayments)
-			: 0,
-		repaymentEvery: values.repaymentEvery ? Number(values.repaymentEvery) : 0,
-		repaymentFrequencyType: values.repaymentFrequencyType,
-		interestRatePerPeriod: values.interestRatePerPeriod
-			? Number(values.interestRatePerPeriod)
-			: 0,
-		amortizationType: values.amortizationType,
-		interestType: values.interestType,
-		interestCalculationPeriodType: values.interestCalculationPeriodType,
-		transactionProcessingStrategyCode: values.transactionProcessingStrategyCode,
-		loanType: "individual",
-		locale: "en",
-		dateFormat: "dd MMMM yyyy",
-		submittedOnDate: values.submittedOnDate
-			? format(new Date(values.submittedOnDate), "dd MMMM yyyy")
-			: undefined,
-		expectedDisbursementDate: values.expectedDisbursementDate
-			? format(new Date(values.expectedDisbursementDate), "dd MMMM yyyy")
-			: undefined,
-		charges: values.charges?.map((charge) => ({
-			chargeId: charge.id,
-			amount: charge.amount,
-		})),
-	});
+	const handleCalculateSchedule = () => {
+		const payload = createLoanPayload(values);
+		calculateLoanScheduleMutation.mutate(payload);
+	};
 
 	useEffect(() => {
 		if (values.loanProductId) {
@@ -247,19 +291,66 @@ export const useEditLoanAccount = (loanId: number, onClose: () => void) => {
 		}
 	}, [values.loanProductId]);
 
+	useEffect(() => {
+		if (loanDetails && !isEditMode) {
+			setValues((currentValues) => ({
+				...currentValues,
+				principal: loanDetails.principal ?? currentValues.principal,
+				loanTermFrequency:
+					loanDetails.termFrequency ?? currentValues.loanTermFrequency,
+				loanTermFrequencyType:
+					loanDetails.termPeriodFrequencyType?.id ??
+					currentValues.loanTermFrequencyType,
+				numberOfRepayments:
+					loanDetails.numberOfRepayments ?? currentValues.numberOfRepayments,
+				repaymentEvery:
+					loanDetails.repaymentEvery ?? currentValues.repaymentEvery,
+				repaymentFrequencyType:
+					loanDetails.repaymentFrequencyType?.id ??
+					currentValues.repaymentFrequencyType,
+				interestRatePerPeriod:
+					loanDetails.interestRatePerPeriod ??
+					currentValues.interestRatePerPeriod,
+				amortizationType:
+					loanDetails.amortizationType?.id ?? currentValues.amortizationType,
+				interestType:
+					loanDetails.interestType?.id ?? currentValues.interestType,
+				interestCalculationPeriodType:
+					loanDetails.interestCalculationPeriodType?.id ??
+					currentValues.interestCalculationPeriodType,
+				transactionProcessingStrategyCode:
+					loanDetails.transactionProcessingStrategyOptions?.[0]?.code ??
+					currentValues.transactionProcessingStrategyCode,
+				charges: (loanDetails.charges ?? []).map((charge) => ({
+					id: charge.id ?? 0,
+					name: charge.name ?? "",
+					amount: charge.amount ?? 0,
+					chargeTimeType: charge.chargeTimeType ?? {
+						code: "",
+						id: 0,
+						value: "",
+					},
+					chargeCalculationType: charge.chargeCalculationType ?? {
+						code: "",
+						id: 0,
+						value: "",
+					},
+				})),
+			}));
+		}
+	}, [loanDetails, setValues, isEditMode]);
+
 	return {
 		formik,
 		loanTemplate,
-		isLoading,
+		isLoading: isLoading || isLoanDataLoading,
 		loanDetails,
 		isLoadingLoanDetails,
 		repaymentSchedule,
 		isCalculatingSchedule: calculateLoanScheduleMutation.isPending,
-		handleCalculateSchedule: () => {
-			const payload = createLoanPayload(values);
-			calculateLoanScheduleMutation.mutate(payload);
-		},
+		handleCalculateSchedule,
 		handleSubmit: formik.handleSubmit,
-		isSubmitting: editLoanAccountMutation.isPending,
+		isSubmitting:
+			createLoanAccountMutation.isPending || editLoanAccountMutation.isPending,
 	};
 };

@@ -1,9 +1,8 @@
 import { Button, Card } from "@fineract-apps/ui";
-import { format } from "date-fns";
-import { FC, useMemo } from "react";
+import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import { Table } from "@/components/Table";
 import { LoanRepaymentSchedule } from "../CreateLoanAccount.types";
+import { RepaymentRow } from "./RepaymentRow.view";
 
 interface RepaymentScheduleStepProps {
 	repaymentSchedule: LoanRepaymentSchedule | null;
@@ -17,47 +16,6 @@ export const RepaymentScheduleStepView: FC<RepaymentScheduleStepProps> = ({
 	handleCalculateSchedule,
 }) => {
 	const { t } = useTranslation();
-
-	const columns = useMemo(
-		() => [
-			{ header: "#", accessorKey: "period" },
-			{ header: t("days", "Days"), accessorKey: "daysInPeriod" },
-			{ header: t("date", "Date"), accessorKey: "dueDate" },
-			{
-				header: t("principalDue", "Principal Due"),
-				accessorKey: "principalDue",
-			},
-			{ header: t("interest", "Interest"), accessorKey: "interestDue" },
-			{ header: t("fees", "Fees"), accessorKey: "feeChargesDue" },
-			{ header: t("penalties", "Penalties"), accessorKey: "penaltyChargesDue" },
-			{ header: t("due", "Due"), accessorKey: "totalDueForPeriod" },
-			{
-				header: t("outstanding", "Outstanding"),
-				accessorKey: "totalOutstandingForPeriod",
-			},
-		],
-		[t],
-	);
-
-	const data = useMemo(
-		() =>
-			repaymentSchedule?.periods.map((period) => {
-				const { dueDate } = period;
-				const formattedDate =
-					Array.isArray(dueDate) && dueDate.length >= 3
-						? format(
-								new Date(dueDate[0], dueDate[1] - 1, dueDate[2]),
-								"dd MMMM yyyy",
-							)
-						: "-";
-
-				return {
-					...period,
-					dueDate: formattedDate,
-				};
-			}) || [],
-		[repaymentSchedule],
-	);
 
 	return (
 		<Card>
@@ -81,8 +39,23 @@ export const RepaymentScheduleStepView: FC<RepaymentScheduleStepProps> = ({
 				{isCalculatingSchedule ? (
 					<div>{t("loading", "Loading...")}</div>
 				) : (
-					<div className="overflow-x-auto">
-						<Table columns={columns} data={data} />
+					<div>
+						<div className="hidden md:grid md:grid-cols-9 md:gap-4 font-semibold text-gray-500 border-b pb-2 mb-2">
+							<div className="px-2 py-2">#</div>
+							<div className="px-2 py-2">{t("days", "Days")}</div>
+							<div className="px-2 py-2">{t("date", "Date")}</div>
+							<div className="px-2 py-2">
+								{t("principalDue", "Principal Due")}
+							</div>
+							<div className="px-2 py-2">{t("interest", "Interest")}</div>
+							<div className="px-2 py-2">{t("fees", "Fees")}</div>
+							<div className="px-2 py-2">{t("penalties", "Penalties")}</div>
+							<div className="px-2 py-2">{t("due", "Due")}</div>
+							<div className="px-2 py-2">{t("outstanding", "Outstanding")}</div>
+						</div>
+						{repaymentSchedule?.periods.map((period) => (
+							<RepaymentRow key={period.period} period={period} />
+						))}
 					</div>
 				)}
 			</div>

@@ -57,7 +57,7 @@ export const Modal: FC<ModalProps> = ({
 					<div className="md:hidden">
 						<h2 className="text-xl font-bold text-center mb-6">{title}</h2>
 					</div>
-					{children}
+					<div className="max-h-[80vh] overflow-y-auto">{children}</div>
 				</dialog>
 			</div>
 		</>

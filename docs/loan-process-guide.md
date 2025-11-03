@@ -13,6 +13,7 @@ The loan creation feature is located in `fineract-apps/frontend/account-manager-
 -   **`CreateLoanAccount.types.ts`**: Contains all the TypeScript types and interfaces used in the loan creation process.
 -   **`index.ts`**: Exports the main `CreateLoanAccount` component.
 -   **`components/`**: A directory containing the components for each step of the loan creation form (Details, Terms, Charges, Repayment Schedule, and Preview).
+-   **`common/`**: A directory containing the shared components for the loan creation and edit form (LoanAccountForm, useLoanAccountForm).
 
 ## Core Components and Logic
 
@@ -46,15 +47,15 @@ Key features:
 -   **Navigation**: Provides "Next" and "Back" buttons to navigate between steps.
 -   **Submission**: The "Submit" button is shown on the final step to trigger the form submission.
 
-### `useCreateLoanAccount.ts` - A Deep Dive
+### `useLoanAccountForm.ts` - A Deep Dive
 
-This custom hook is the brain of the feature. It orchestrates state management, API calls, and side effects.
+This custom hook is the brain of the feature. It orchestrates state management, API calls, and side effects. It is designed to be reusable for both creating and editing a loan account.
 
 **State Management:**
 
 -   **`formik`**: An instance of Formik is created using `useFormik` to manage the entire form state.
     -   `initialValues`: Sets the default state for all form fields. Dates are initialized to the current date.
-    -   `onSubmit`: This function is called when the form is submitted. It transforms the form values into the `PostLoansRequest` payload format required by the API and then triggers the `createLoanAccountMutation`.
+    -   `onSubmit`: This function is called when the form is submitted. It transforms the form values into the `PostLoansRequest` payload format required by the API and then triggers the `createLoanAccountMutation` or `editLoanAccountMutation` based on the mode.
 -   **`selectedProductId`**: A local state variable (`useState`) that tracks the currently selected loan product ID. This is used to enable or disable the query for loan product details.
 -   **`repaymentSchedule`**: A local state variable that stores the calculated repayment schedule returned from the API.
 
@@ -74,6 +75,9 @@ This custom hook is the brain of the feature. It orchestrates state management, 
 -   **`useQuery(['loan-details', clientId, selectedProductId])`**: Fetches the detailed template for a *specific* loan product. This query is only enabled when `selectedProductId` is not null.
 -   **`createLoanAccountMutation`**: A `useMutation` hook that handles the final creation of the loan account. It calls `LoansService.postV1Loans`.
     -   `onSuccess`: Displays a success toast notification and navigates the user away from the page.
+    -   `onError`: Displays an error toast notification with the error message.
+-   **`editLoanAccountMutation`**: A `useMutation` hook that handles the update of a loan account. It calls `LoansService.putV1LoansByLoanId`.
+    -   `onSuccess`: Displays a success toast notification and invalidates the accounts query.
     -   `onError`: Displays an error toast notification with the error message.
 -   **`calculateLoanScheduleMutation`**: A `useMutation` hook that calls `LoansService.postV1Loans` with `command: 'calculateLoanSchedule'`.
     -   `onSuccess`: Stores the returned schedule in the `repaymentSchedule` state and shows a success toast.
@@ -155,18 +159,6 @@ This component provides the visual stepper navigation for the multi-step form.
     -   `activeStep`: A number representing the index of the currently active step.
 -   **Functionality**: It renders the steps and highlights the current step, completed steps, and pending steps with different colors and icons.
 
-### `Table.tsx`
-
-This is a generic, reusable table component built using `@tanstack/react-table`.
-
--   **Purpose**: To display tabular data in a consistent and accessible way. In the loan process, it is used to display the calculated repayment schedule.
--   **Props**:
-    -   `columns`: An array of column definitions from TanStack Table.
-    -   `data`: The array of data to be displayed.
-    -   `caption` (optional): A caption for the table for accessibility.
-    -   `ariaLabel` (optional): An ARIA label for the table.
--   **Functionality**: It renders a table with a header and body, and it is capable of handling complex data structures and rendering custom cell content.
-
 ## Step Components
 
 The `CreateLoanAccount.view.tsx` renders different components based on the current step. These components are located in the `components/` subdirectory.
@@ -198,17 +190,40 @@ The `CreateLoanAccount.view.tsx` renders different components based on the curre
 ### `ChargesStep.view.tsx`
 
 -   **Purpose**: This step allows the user to add or remove additional fees (charges) to the loan account.
--   **Functionality**: It displays a list of charges associated with the selected loan product. Users can typically select from a list of predefined charges and specify the amount. The form state for charges is managed as an array of objects within Formik.
--   **Data Dependencies**: It uses the `charges` array from the `loanDetails` object to display the available and default charges for the loan product.
+-   **Functionality**:
+    -   It features a dropdown of available charges, populated from the `loanDetails.chargeOptions` array.
+    -   An "Add" button allows the user to add the selected charge to the loan.
+    -   The added charges are displayed in a responsive list using the `ChargeRow` component.
+    -   Each charge in the list has a "Delete" button to remove it.
+-   **Data Dependencies**: It uses the `chargeOptions` from the `loanDetails` object to populate the dropdown of available charges.
+
+### `ChargeRow.view.tsx`
+
+-   **Purpose**: This component renders a single charge with a responsive design.
+-   **Functionality**:
+    -   On mobile screens, it displays the data in a card-like format with labels for each value.
+    -   On desktop screens, it uses a CSS grid to align the data in columns.
+    -   It includes "Edit" and "Delete" buttons for each charge.
+-   **Data Dependencies**: It receives a single `charge` object as a prop.
 
 ### `RepaymentScheduleStep.view.tsx`
 
 -   **Purpose**: This step allows the user to preview the calculated repayment schedule before finalizing the loan.
 -   **Functionality**:
     -   It features a "Calculate Schedule" button which triggers the `handleCalculateSchedule` function from the `useCreateLoanAccount` hook.
-    -   When the calculation is complete, the `repaymentSchedule` state is populated, and the results are displayed in a `Table` component.
+    -   When the calculation is complete, the `repaymentSchedule` state is populated, and the results are displayed using the responsive `RepaymentRow` component.
+    -   On mobile devices, each repayment period is shown as a card. On desktops, the layout is a responsive grid that resembles a table.
     -   It shows a loading indicator while the calculation is in progress (`isCalculatingSchedule`).
 -   **Data Dependencies**: It receives the `repaymentSchedule` data and the `isCalculatingSchedule` boolean as props.
+
+### `RepaymentRow.view.tsx`
+
+-   **Purpose**: This component renders a single row of the repayment schedule with a responsive design.
+-   **Functionality**:
+    -   On mobile screens, it displays the data in a card-like format with labels for each value (e.g., "Principal Due: 18215").
+    -   On desktop screens (`md` and up), it uses a CSS grid to align the data in columns, mimicking a table layout but in a fully responsive way.
+    -   It handles the formatting of the `dueDate` internally.
+-   **Data Dependencies**: It receives a single `period` object from the `repaymentSchedule.periods` array as a prop.
 
 ### `PreviewStep.view.tsx`
 
