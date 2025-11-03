@@ -13,6 +13,7 @@ The loan creation feature is located in `fineract-apps/frontend/account-manager-
 -   **`CreateLoanAccount.types.ts`**: Contains all the TypeScript types and interfaces used in the loan creation process.
 -   **`index.ts`**: Exports the main `CreateLoanAccount` component.
 -   **`components/`**: A directory containing the components for each step of the loan creation form (Details, Terms, Charges, Repayment Schedule, and Preview).
+-   **`common/`**: A directory containing the shared components for the loan creation and edit form (LoanAccountForm, useLoanAccountForm).
 
 ## Core Components and Logic
 
@@ -46,15 +47,15 @@ Key features:
 -   **Navigation**: Provides "Next" and "Back" buttons to navigate between steps.
 -   **Submission**: The "Submit" button is shown on the final step to trigger the form submission.
 
-### `useCreateLoanAccount.ts` - A Deep Dive
+### `useLoanAccountForm.ts` - A Deep Dive
 
-This custom hook is the brain of the feature. It orchestrates state management, API calls, and side effects.
+This custom hook is the brain of the feature. It orchestrates state management, API calls, and side effects. It is designed to be reusable for both creating and editing a loan account.
 
 **State Management:**
 
 -   **`formik`**: An instance of Formik is created using `useFormik` to manage the entire form state.
     -   `initialValues`: Sets the default state for all form fields. Dates are initialized to the current date.
-    -   `onSubmit`: This function is called when the form is submitted. It transforms the form values into the `PostLoansRequest` payload format required by the API and then triggers the `createLoanAccountMutation`.
+    -   `onSubmit`: This function is called when the form is submitted. It transforms the form values into the `PostLoansRequest` payload format required by the API and then triggers the `createLoanAccountMutation` or `editLoanAccountMutation` based on the mode.
 -   **`selectedProductId`**: A local state variable (`useState`) that tracks the currently selected loan product ID. This is used to enable or disable the query for loan product details.
 -   **`repaymentSchedule`**: A local state variable that stores the calculated repayment schedule returned from the API.
 
@@ -74,6 +75,9 @@ This custom hook is the brain of the feature. It orchestrates state management, 
 -   **`useQuery(['loan-details', clientId, selectedProductId])`**: Fetches the detailed template for a *specific* loan product. This query is only enabled when `selectedProductId` is not null.
 -   **`createLoanAccountMutation`**: A `useMutation` hook that handles the final creation of the loan account. It calls `LoansService.postV1Loans`.
     -   `onSuccess`: Displays a success toast notification and navigates the user away from the page.
+    -   `onError`: Displays an error toast notification with the error message.
+-   **`editLoanAccountMutation`**: A `useMutation` hook that handles the update of a loan account. It calls `LoansService.putV1LoansByLoanId`.
+    -   `onSuccess`: Displays a success toast notification and invalidates the accounts query.
     -   `onError`: Displays an error toast notification with the error message.
 -   **`calculateLoanScheduleMutation`**: A `useMutation` hook that calls `LoansService.postV1Loans` with `command: 'calculateLoanSchedule'`.
     -   `onSuccess`: Stores the returned schedule in the `repaymentSchedule` state and shows a success toast.
