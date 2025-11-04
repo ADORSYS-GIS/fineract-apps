@@ -105,6 +105,22 @@ export const DetailsStepView = ({
 				label={t("disbursementOn", "Disbursement On")}
 				type="date"
 			/>
+			<Input
+				name="linkAccountId"
+				label={t("linkSavings", "Link Savings")}
+				type="select"
+				options={
+					effectiveTemplate?.accountLinkingOptions
+						?.map((option) => ({
+							label: `${option.accountNo} ${option.productName}`,
+							value: option.id,
+						}))
+						.filter(
+							(option): option is { label: string; value: number } =>
+								option.label !== undefined && option.value !== undefined,
+						) || []
+				}
+			/>
 		</div>
 	);
 };

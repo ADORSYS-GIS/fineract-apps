@@ -4,6 +4,7 @@ export const loanDetailsSchema = z.object({
 	loanProductId: z.number().min(1, "Loan product is required"),
 	externalId: z.string().optional(),
 	loanOfficerId: z.number().optional(),
+	linkAccountId: z.number().optional(),
 	loanPurposeId: z.number().optional(),
 	fundId: z.number().optional(),
 	submittedOnDate: z.string().optional(),

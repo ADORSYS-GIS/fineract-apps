@@ -10,6 +10,11 @@ import {
 } from "@fineract-apps/fineract-api";
 
 export interface GetLoansTemplateResponse extends BaseGetLoansTemplateResponse {
+	accountLinkingOptions?: {
+		id: number;
+		accountNo: string;
+		productName: string;
+	}[];
 	loanOfficerOptions?: StaffData[];
 	loanPurposeOptions?: CodeValueData[];
 	fundOptions?: FundData[];

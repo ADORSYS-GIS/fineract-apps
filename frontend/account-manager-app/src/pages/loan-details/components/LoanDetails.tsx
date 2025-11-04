@@ -27,7 +27,7 @@ export const LoanDetails: FC<LoanDetailsProps> = ({ loan }) => {
 			<table className="w-full text-sm table-auto">
 				<tbody>
 					<DetailRow label="Disbursement Date" value={disbursementDate} />
-					<DetailRow label="Loan Purpose" value={"Not Available"} />
+					<DetailRow label="Loan Purpose" value={loan.loanPurposeName} />
 					<DetailRow label="Loan Officer" value={loan.loanOfficerName} />
 					<DetailRow label="Currency" value={loan.currency?.name} />
 					<DetailRow label="External Id" value={loan.externalId} />
