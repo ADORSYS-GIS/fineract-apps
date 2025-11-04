@@ -7,40 +7,26 @@ import {
 	Sidebar,
 } from "@fineract-apps/ui";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { Bell, UserCircle } from "lucide-react";
+
+export interface MyRouterContext {
+	queryClient: QueryClient;
+}
 
 function RootLayout() {
 	const handleLogout = () => logout();
 	return (
-		<AppLayout
-			sidebar={<Sidebar menuItems={menuCashier} onLogout={handleLogout} />}
-			navbar={
-				<Navbar
-					logo={<h1 className="text-lg font-bold">Cashier</h1>}
-					links={null}
-					notifications={<Bell />}
-					userSection={
-						<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
-							<UserCircle className="w-5 h-5 text-gray-600" />
-						</div>
-					}
-					actions={<Button onClick={handleLogout}>Logout</Button>}
-					onToggleMenu={() => {
-						/* noop */
-					}}
-					isMenuOpen={false}
-					variant="primary"
-					size="md"
-				/>
-			}
-		>
+		<>
 			<Outlet />
 			<TanStackRouterDevtools />
-		</AppLayout>
+			<ReactQueryDevtools />
+		</>
 	);
 }
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: RootLayout,
 });

@@ -6,43 +6,63 @@ import {
 	Navbar,
 	Sidebar,
 } from "@fineract-apps/ui";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import {
+	createRootRouteWithContext,
+	Outlet,
+	useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
+import { Toaster } from "react-hot-toast";
+import { useAuth } from "../hooks/useAuth";
 
-function RootLayout() {
-	const handleLogout = () => logout();
-	return (
-		<AppLayout
-			sidebar={
-				<Sidebar menuItems={menuAccountManager} onLogout={handleLogout} />
-			}
-			navbar={
-				<Navbar
-					logo={<h1 className="text-lg font-bold">Account Manager</h1>}
-					links={null}
-					notifications={<Bell />}
-					userSection={
-						<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
-							<UserCircle className="w-5 h-5 text-gray-600" />
-						</div>
-					}
-					actions={<Button onClick={handleLogout}>Logout</Button>}
-					onToggleMenu={() => {
-						/* noop */
-					}}
-					isMenuOpen={false}
-					variant="primary"
-					size="md"
-				/>
-			}
-		>
-			<Outlet />
-			<TanStackRouterDevtools />
-		</AppLayout>
-	);
-}
-
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext()({
 	component: RootLayout,
 });
+
+function RootLayout() {
+
+	const handleLogout = () => logout();
+	const { onLogout } = useAuth();
+	const { location } = useRouterState();
+
+	// Don't render the layout on the login page
+	if (location.pathname === "/login") {
+		return (
+			<>
+				<Outlet />
+				<TanStackRouterDevtools />
+			</>
+		);
+	}
+	return (
+		<>
+			<Toaster position="top-right" />
+			<AppLayout
+				sidebar={<Sidebar menuItems={menuAccountManager} onLogout={onLogout} />}
+				navbar={
+					<Navbar
+						logo={<h1 className="text-lg font-bold">Account Manager</h1>}
+						links={null}
+						notifications={<Bell />}
+						userSection={
+							<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
+								<UserCircle className="w-5 h-5 text-gray-600" />
+							</div>
+						}
+						actions={<Button onClick={onLogout}>Logout</Button>}
+						onToggleMenu={() => {
+							/* noop */
+						}}
+						isMenuOpen={false}
+						variant="primary"
+						size="md"
+					/>
+				}
+			>
+				<Outlet />
+				<TanStackRouterDevtools />
+			</AppLayout>
+		</>
+	);
+}

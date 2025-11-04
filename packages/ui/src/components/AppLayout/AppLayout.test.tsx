@@ -1,6 +1,20 @@
 import { render, screen } from "@testing-library/react";
 import { AppLayout } from "./";
 import "@testing-library/jest-dom";
+import { NavbarProps } from "../Navbar/Navbar.types";
+
+const MockNavbar: React.FC<Partial<NavbarProps>> = ({
+	onToggleMenu,
+	isMenuOpen,
+}) => (
+	<div>
+		Navbar
+		<button type="button" onClick={onToggleMenu}>
+			Toggle
+		</button>
+		<span>{isMenuOpen ? "Menu Open" : "Menu Closed"}</span>
+	</div>
+);
 
 describe("AppLayout", () => {
 	it("should render the main content", () => {
@@ -14,7 +28,7 @@ describe("AppLayout", () => {
 
 	it("should render the navbar when provided", () => {
 		render(
-			<AppLayout navbar={<div>Navbar</div>}>
+			<AppLayout navbar={<MockNavbar />}>
 				<div>Main Content</div>
 			</AppLayout>,
 		);
@@ -32,7 +46,7 @@ describe("AppLayout", () => {
 
 	it("should render all sections together", () => {
 		render(
-			<AppLayout navbar={<div>Navbar</div>} sidebar={<div>Sidebar</div>}>
+			<AppLayout navbar={<MockNavbar />} sidebar={<div>Sidebar</div>}>
 				<div>Main Content</div>
 			</AppLayout>,
 		);

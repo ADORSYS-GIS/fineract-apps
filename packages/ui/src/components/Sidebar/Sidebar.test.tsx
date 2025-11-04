@@ -16,6 +16,7 @@ describe("SidebarView", () => {
 	it("renders the logo", () => {
 		render(
 			<SidebarView
+				logo="OnlineBank"
 				menuItems={menuItems}
 				onLogout={onLogout}
 				activeLink={activeLink}

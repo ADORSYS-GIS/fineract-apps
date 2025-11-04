@@ -1,4 +1,4 @@
-import { ErrorMessage, Field, useField } from "formik";
+import { ErrorMessage, Field, useField, useFormikContext } from "formik";
 import React, { useId } from "react";
 import { InputProps } from "../Form.types";
 import { inputVariants } from "./Input.variants";
@@ -18,6 +18,7 @@ export const Input: React.FC<InputProps> = ({
 	const [_field, meta] = useField(name);
 	const { touched, error: errorFromForm } = meta;
 	const error = errorProp ?? errorFromForm;
+	const { setFieldValue } = useFormikContext();
 
 	// Generate unique ID using React's useId hook
 	const reactId = useId();
@@ -95,6 +96,21 @@ export const Input: React.FC<InputProps> = ({
 						</div>
 					))}
 				</div>
+			);
+		}
+
+		if (type === "file") {
+			return (
+				<input
+					type="file"
+					{...fieldProps}
+					onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+						const file = event.currentTarget.files?.[0];
+						if (file) {
+							setFieldValue(name, file);
+						}
+					}}
+				/>
 			);
 		}
 

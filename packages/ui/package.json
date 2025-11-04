@@ -26,6 +26,10 @@
 		"zod": "^4.1.9",
 		"zod-formik-adapter": "2.0.0"
 	},
+	"peerDependencies": {
+		"react": "^19.1.1",
+		"react-dom": "^19.1.1"
+	},
 	"devDependencies": {
 		"@fineract-apps/config": "workspace:*",
 		"@testing-library/jest-dom": "^6.8.0",

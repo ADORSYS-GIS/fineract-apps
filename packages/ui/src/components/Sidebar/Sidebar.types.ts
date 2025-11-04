@@ -10,4 +10,5 @@ export interface SidebarProps {
 	menuItems: MenuItem[];
 	onLogout?: () => void;
 	className?: string;
+	logo?: React.ReactNode;
 }
