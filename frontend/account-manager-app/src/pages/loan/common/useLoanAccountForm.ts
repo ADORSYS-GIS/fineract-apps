@@ -96,6 +96,7 @@ export const useLoanAccountForm = ({
 		values: LoanDetailsFormValues,
 	): PutLoansLoanIdRequest => ({
 		...createBaseLoanPayload(values),
+		clientId: Number(clientId) || loanData?.clientId,
 		charges: [],
 	});
 
