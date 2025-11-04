@@ -17,7 +17,7 @@ The Administration App is a standalone application for managing users in the Fin
 - **Editable Fields**: Email, firstname, lastname, phone, office, roles
 - **Staff Integration**: Automatically creates staff record when creating user
 - **No Physical Deletion**: Users can only be deactivated, preserving audit trail
-- **Password Management**: Users handle password resets via Keycloak (not in this app)
+- **Password Management**: Admins can trigger password resets via the app, which sends a secure link to the user through Keycloak.
 
 ## Architecture
 
@@ -86,6 +86,16 @@ POST /v1/users
   sendPasswordToEmail: boolean
 }
 ```
+
+## Password Reset Workflow
+
+The admin app facilitates password resets by integrating with the User Sync Service, which in turn communicates with Keycloak.
+
+1.  **Admin Action**: An admin clicks the "Reset Password" button on the user detail page.
+2.  **API Call**: The frontend calls the `POST /api/user-sync/users/{username}/reset-password` endpoint.
+3.  **Email Trigger**: The User Sync Service requests Keycloak to send a password reset email to the user.
+4.  **User Action**: The user receives an email with a secure link that expires in 24 hours.
+5.  **Password Update**: The user follows the link to a Keycloak page where they can set a new password.
 
 ## Form Fields
 
@@ -176,7 +186,8 @@ pnpm build
 ### Keycloak Integration
 - User creation in Fineract triggers automatic user creation in Keycloak
 - This happens on the backend and is transparent to the frontend
-- Password resets are handled directly through Keycloak, not through this app
+- Admins can trigger password resets from the user detail page.
+- The app calls the User Sync Service, which then triggers Keycloak to send a secure, time-sensitive password reset link to the user's email.
 
 ## Shared Components
 
@@ -231,6 +242,7 @@ The `UserStatusBadge` component displays this visually with a green or gray badg
 - ✅ **Two-Step User Creation**: Automatic staff + user creation workflow
 - ✅ **Form Validation**: Zod schemas with real-time validation
 - ✅ **Responsive Design**: Mobile-friendly UI with TailwindCSS
+- ✅ **Password Reset**: Admins can trigger a secure password reset workflow for users.
 
 ## Future Enhancements
 

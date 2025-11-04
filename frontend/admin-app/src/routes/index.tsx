@@ -1,8 +1,15 @@
+import { useUsersServiceGetV1Users } from "@fineract-apps/fineract-api";
 import { Card } from "@fineract-apps/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 
 function DashboardPage() {
+	const { data: users = [], isLoading } = useUsersServiceGetV1Users();
+
+	const totalUsers = users.length;
+	const activeUsers = users.filter((user) => user.staff?.isActive).length;
+	const inactiveUsers = totalUsers - activeUsers;
+
 	return (
 		<div className="p-6">
 			<h1 className="text-2xl font-bold text-gray-800 mb-6">
@@ -15,7 +22,9 @@ function DashboardPage() {
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-sm font-medium text-gray-600">Total Users</p>
-								<p className="text-3xl font-bold text-gray-900 mt-2">--</p>
+								<p className="text-3xl font-bold text-gray-900 mt-2">
+									{isLoading ? "..." : totalUsers}
+								</p>
 							</div>
 							<Users className="w-12 h-12 text-blue-500" />
 						</div>
@@ -29,7 +38,9 @@ function DashboardPage() {
 								<p className="text-sm font-medium text-gray-600">
 									Active Users
 								</p>
-								<p className="text-3xl font-bold text-green-600 mt-2">--</p>
+								<p className="text-3xl font-bold text-green-600 mt-2">
+									{isLoading ? "..." : activeUsers}
+								</p>
 							</div>
 							<div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
 								<Users className="w-6 h-6 text-green-600" />
@@ -45,7 +56,9 @@ function DashboardPage() {
 								<p className="text-sm font-medium text-gray-600">
 									Inactive Users
 								</p>
-								<p className="text-3xl font-bold text-gray-500 mt-2">--</p>
+								<p className="text-3xl font-bold text-gray-500 mt-2">
+									{isLoading ? "..." : inactiveUsers}
+								</p>
 							</div>
 							<div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
 								<Users className="w-6 h-6 text-gray-500" />

@@ -150,6 +150,9 @@ importers:
       '@fineract-apps/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@tanstack/react-query':
+        specifier: ^5.90.1
+        version: 5.90.1(react@19.2.0)
       '@tanstack/react-router':
         specifier: ^1.131.44
         version: 1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)

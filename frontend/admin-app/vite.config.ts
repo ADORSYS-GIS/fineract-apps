@@ -16,6 +16,15 @@ export default mergeConfig(
 				autoCodeSplitting: true,
 			}),
 		],
+		server: {
+			proxy: {
+				"/fineract-provider": {
+					target: "https://localhost",
+					secure: false,
+					changeOrigin: true,
+				},
+			},
+		},
 		resolve: {
 			alias: {
 				"@": path.resolve(__dirname, "./src"),
