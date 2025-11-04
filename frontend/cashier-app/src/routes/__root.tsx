@@ -1,12 +1,3 @@
-import {
-	AppLayout,
-	Button,
-	logout,
-	menuCashier,
-	Navbar,
-	Sidebar,
-} from "@fineract-apps/ui";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
@@ -17,7 +8,6 @@ export interface MyRouterContext {
 }
 
 function RootLayout() {
-	const handleLogout = () => logout();
 	return (
 		<>
 			<Outlet />

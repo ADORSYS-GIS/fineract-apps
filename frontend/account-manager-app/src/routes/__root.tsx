@@ -1,7 +1,6 @@
 import {
 	AppLayout,
 	Button,
-	logout,
 	menuAccountManager,
 	Navbar,
 	Sidebar,
@@ -21,8 +20,6 @@ export const Route = createRootRouteWithContext()({
 });
 
 function RootLayout() {
-
-	const handleLogout = () => logout();
 	const { onLogout } = useAuth();
 	const { location } = useRouterState();
 

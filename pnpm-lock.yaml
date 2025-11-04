@@ -76,16 +76,16 @@ importers:
         version: link:../../packages/ui
       '@hookform/resolvers':
         specifier: ^5.2.2
-        version: 5.2.2(react-hook-form@7.63.0(react@19.1.1))
+        version: 5.2.2(react-hook-form@7.63.0(react@19.2.0))
       '@tanstack/react-query':
         specifier: ^5.90.1
-        version: 5.90.1(react@19.1.1)
+        version: 5.90.1(react@19.2.0)
       '@tanstack/react-router':
         specifier: ^1.131.44
         version: 1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@tanstack/react-router-devtools':
         specifier: ^1.131.44
-        version: 1.131.50(@tanstack/react-router@1.131.50(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.131.50)(csstype@3.1.3)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(solid-js@1.9.9)(tiny-invariant@1.3.3)
+        version: 1.131.50(@tanstack/react-router@1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.133.28)(csstype@3.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(solid-js@1.9.10)(tiny-invariant@1.3.3)
       axios:
         specifier: ^1.12.2
         version: 1.12.2
@@ -94,7 +94,7 @@ importers:
         version: 4.1.0
       formik:
         specifier: ^2.4.6
-        version: 2.4.6(@types/react@19.1.13)(react@19.1.1)
+        version: 2.4.6(@types/react@19.2.2)(react@19.2.0)
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.0)
@@ -103,22 +103,22 @@ importers:
         version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.2.0(react@19.2.0)
       react-hook-form:
         specifier: ^7.63.0
-        version: 7.63.0(react@19.1.1)
+        version: 7.63.0(react@19.2.0)
       react-hot-toast:
         specifier: ^2.6.0
-        version: 2.6.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 2.6.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react-i18next:
         specifier: ^15.0.0
-        version: 15.7.4(i18next@23.16.8)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
+        version: 15.7.4(i18next@23.16.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
       zod:
         specifier: ^3.25.76
         version: 3.25.76
       zod-formik-adapter:
         specifier: ^1.2.0
-        version: 1.3.0(formik@2.4.6(@types/react@19.1.13)(react@19.1.1))(zod@3.25.76)
+        version: 1.3.0(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(zod@3.25.76)
     devDependencies:
       '@fineract-apps/config':
         specifier: workspace:*
@@ -155,7 +155,7 @@ importers:
         version: 1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@tanstack/react-router-devtools':
         specifier: ^1.131.44
-        version: 1.133.34(@tanstack/react-router@1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.133.28)(@types/node@24.9.1)(csstype@3.1.3)(jiti@2.6.1)(lightningcss@1.30.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(solid-js@1.9.10)(tiny-invariant@1.3.3)(tsx@4.20.6)
+        version: 1.131.50(@tanstack/react-router@1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.133.28)(csstype@3.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(solid-js@1.9.10)(tiny-invariant@1.3.3)
       formik:
         specifier: ^2.4.6
         version: 2.4.6(@types/react@19.2.2)(react@19.2.0)
@@ -170,10 +170,10 @@ importers:
         version: 19.2.0(react@19.2.0)
       zod:
         specifier: ^4.1.9
-        version: 4.1.12
+        version: 4.1.11
       zod-formik-adapter:
         specifier: 2.0.0
-        version: 2.0.0(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(zod@4.1.12)
+        version: 2.0.0(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(zod@4.1.11)
     devDependencies:
       '@fineract-apps/config':
         specifier: workspace:*
@@ -213,7 +213,7 @@ importers:
         version: 1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@tanstack/react-router-devtools':
         specifier: ^1.131.44
-        version: 1.133.34(@tanstack/react-router@1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.133.28)(@types/node@24.9.1)(csstype@3.1.3)(jiti@2.6.1)(lightningcss@1.30.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(solid-js@1.9.10)(tiny-invariant@1.3.3)(tsx@4.20.6)
+        version: 1.131.50(@tanstack/react-router@1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.133.28)(csstype@3.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(solid-js@1.9.10)(tiny-invariant@1.3.3)
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.0)
@@ -262,16 +262,16 @@ importers:
         version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.90.1
-        version: 5.90.1(react@19.1.1)
+        version: 5.90.1(react@19.2.0)
       '@tanstack/react-router':
         specifier: ^1.131.44
         version: 1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@tanstack/react-router-devtools':
         specifier: ^1.131.44
-        version: 1.131.50(@tanstack/react-router@1.131.50(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.131.50)(csstype@3.1.3)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(solid-js@1.9.9)(tiny-invariant@1.3.3)
+        version: 1.131.50(@tanstack/react-router@1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.133.28)(csstype@3.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(solid-js@1.9.10)(tiny-invariant@1.3.3)
       '@tanstack/react-store':
         specifier: ^0.7.7
-        version: 0.7.7(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 0.7.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@tanstack/store':
         specifier: ^0.7.7
         version: 0.7.7
@@ -283,7 +283,7 @@ importers:
         version: 4.1.0
       formik:
         specifier: ^2.4.6
-        version: 2.4.6(@types/react@19.1.13)(react@19.1.1)
+        version: 2.4.6(@types/react@19.2.2)(react@19.2.0)
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.0)
@@ -295,7 +295,7 @@ importers:
         version: 19.2.0(react@19.2.0)
       react-i18next:
         specifier: ^15.0.0
-        version: 15.7.4(i18next@23.16.8)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)
+        version: 15.7.4(i18next@23.16.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
       zod:
         specifier: ^4.1.9
         version: 4.1.11
@@ -305,7 +305,7 @@ importers:
         version: link:../../packages/config
       '@tanstack/react-query-devtools':
         specifier: ^5.90.1
-        version: 5.90.2(@tanstack/react-query@5.90.1(react@19.1.1))(react@19.1.1)
+        version: 5.90.2(@tanstack/react-query@5.90.1(react@19.2.0))(react@19.2.0)
       '@tanstack/router-plugin':
         specifier: ^1.131.44
         version: 1.133.32(@tanstack/react-router@1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(vite@7.1.12(@types/node@24.9.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6))
@@ -402,7 +402,7 @@ importers:
         version: 4.1.11
       zod-formik-adapter:
         specifier: 2.0.0
-        version: 2.0.0(formik@2.4.6(@types/react@19.1.13)(react@19.1.1))(zod@4.1.11)
+        version: 2.0.0(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(zod@4.1.11)
     devDependencies:
       '@fineract-apps/config':
         specifier: workspace:*
@@ -1005,10 +1005,6 @@ packages:
     peerDependencies:
       react-hook-form: ^7.55.0
 
-  '@isaacs/fs-minipass@4.0.1':
-    resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
-    engines: {node: '>=18.0.0'}
-
   '@istanbuljs/load-nyc-config@1.1.0':
     resolution: {integrity: sha512-VjeHSlIzpv/NyD3N0YuHfXOPDIixcA1q2ZV98wsMqcYlPmv2n3Yb2lYP9XMElnaFVXg5A7YLTeLu6V84uQDjmQ==}
     engines: {node: '>=8'}
@@ -1408,8 +1404,8 @@ packages:
     resolution: {integrity: sha512-B7+x7eP2FFvi3fgd3rNH9o/Eixt+pp0zCIdGhnQbAJjFrlwIKGjGnwyJjhWJ5fMQlGks/E2LdDTqEV4W9Plx7g==}
     engines: {node: '>=12'}
 
-  '@tanstack/query-core@5.90.5':
-    resolution: {integrity: sha512-wLamYp7FaDq6ZnNehypKI5fNvxHPfTYylE0m/ZpuuzJfJqhR5Pxg9gvGBHZx4n7J+V5Rg5mZxHHTlv25Zt5u+w==}
+  '@tanstack/query-core@5.90.1':
+    resolution: {integrity: sha512-hmi8i+mWP3QnD8yq3+6LWri9IEZAlFbpbM/UVB+TJtp5RIxUfzuARqyW39b+HCfBKKnFKSHWMXNB5YN8lo/E/Q==}
 
   '@tanstack/query-devtools@5.90.1':
     resolution: {integrity: sha512-GtINOPjPUH0OegJExZ70UahT9ykmAhmtNVcmtdnOZbxLwT7R5OmRztR5Ahe3/Cu7LArEmR6/588tAycuaWb1xQ==}
@@ -1425,11 +1421,11 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
-  '@tanstack/react-router-devtools@1.133.34':
-    resolution: {integrity: sha512-4Vlx2uHdCINLM47xtNR37B0yLGpoN4sOz0aQWmXfP6o3nj8MYvOjYEZIwA+JZ643PckgAstpLfGZmkh/eWgE/Q==}
+  '@tanstack/react-router-devtools@1.131.50':
+    resolution: {integrity: sha512-UF+IlGmuFMlyQqe/szqj3UFBd8Gznj48kvId/g4E0b6KUS45Z4mXmZU6ywyTOaMn1YCak5tuQvPRI8uotjRnTA==}
     engines: {node: '>=12'}
     peerDependencies:
-      '@tanstack/react-router': ^1.133.32
+      '@tanstack/react-router': ^1.131.50
       react: '>=18.0.0 || >=19.0.0'
       react-dom: '>=18.0.0 || >=19.0.0'
 
@@ -1450,11 +1446,11 @@ packages:
     resolution: {integrity: sha512-HErb1X9F+u4VzguJKafX1p5fSnNnfo7aK8Xxh5cICFMShPBxt9i1K45nUbQaRkf45N1tg4gJ3l8mlmwWRm9WWA==}
     engines: {node: '>=12'}
 
-  '@tanstack/router-devtools-core@1.133.34':
-    resolution: {integrity: sha512-NYjrYV/Gt8GlD72uIZakv9a2Z2O31n4J/7uOCU0K9pzSMNa0rmYSYHeaB9vzI9Ksv944mvvmOpDnGUpUhwNXAw==}
+  '@tanstack/router-devtools-core@1.131.50':
+    resolution: {integrity: sha512-e840LIKP2fYorSScz2cFMNHgwtJGc2sCJOgKoQ8le5NAwq9wPtiPr/ssoE+oDJyNyaa6LwKOzaZZCyCHQO6UAw==}
     engines: {node: '>=12'}
     peerDependencies:
-      '@tanstack/router-core': ^1.133.28
+      '@tanstack/router-core': ^1.131.50
       csstype: ^3.0.10
       solid-js: '>=1.9.5'
       tiny-invariant: ^1.3.3
@@ -4089,14 +4085,10 @@ snapshots:
     transitivePeerDependencies:
       - magicast
 
-  '@hookform/resolvers@5.2.2(react-hook-form@7.63.0(react@19.1.1))':
+  '@hookform/resolvers@5.2.2(react-hook-form@7.63.0(react@19.2.0))':
     dependencies:
       '@standard-schema/utils': 0.3.0
-      react-hook-form: 7.63.0(react@19.1.1)
-
-  '@isaacs/fs-minipass@4.0.1':
-    dependencies:
-      minipass: 7.1.2
+      react-hook-form: 7.63.0(react@19.2.0)
 
   '@istanbuljs/load-nyc-config@1.1.0':
     dependencies:
@@ -4505,49 +4497,37 @@ snapshots:
 
   '@tanstack/history@1.133.28': {}
 
-  '@tanstack/query-core@5.90.5': {}
+  '@tanstack/query-core@5.90.1': {}
 
   '@tanstack/query-devtools@5.90.1': {}
 
-  '@tanstack/react-query-devtools@5.90.2(@tanstack/react-query@5.90.1(react@19.1.1))(react@19.1.1)':
+  '@tanstack/react-query-devtools@5.90.2(@tanstack/react-query@5.90.1(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@tanstack/query-devtools': 5.90.1
-      '@tanstack/react-query': 5.90.1(react@19.1.1)
-      react: 19.1.1
+      '@tanstack/react-query': 5.90.1(react@19.2.0)
+      react: 19.2.0
 
   '@tanstack/react-query@5.90.1(react@18.3.1)':
     dependencies:
-      '@tanstack/query-core': 5.90.5
+      '@tanstack/query-core': 5.90.1
       react: 18.3.1
 
-  '@tanstack/react-query@5.90.1(react@19.1.1)':
+  '@tanstack/react-query@5.90.1(react@19.2.0)':
     dependencies:
       '@tanstack/query-core': 5.90.1
-      react: 19.1.1
+      react: 19.2.0
 
-  '@tanstack/react-router-devtools@1.131.50(@tanstack/react-router@1.131.50(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.131.50)(csstype@3.1.3)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(solid-js@1.9.9)(tiny-invariant@1.3.3)':
+  '@tanstack/react-router-devtools@1.131.50(@tanstack/react-router@1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.133.28)(csstype@3.1.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(solid-js@1.9.10)(tiny-invariant@1.3.3)':
     dependencies:
       '@tanstack/react-router': 1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@tanstack/router-devtools-core': 1.133.34(@tanstack/router-core@1.133.28)(@types/node@24.9.1)(csstype@3.1.3)(jiti@2.6.1)(lightningcss@1.30.2)(solid-js@1.9.10)(tiny-invariant@1.3.3)(tsx@4.20.6)
+      '@tanstack/router-devtools-core': 1.131.50(@tanstack/router-core@1.133.28)(csstype@3.1.3)(solid-js@1.9.10)(tiny-invariant@1.3.3)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      vite: 7.1.12(@types/node@24.9.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)
     transitivePeerDependencies:
       - '@tanstack/router-core'
-      - '@types/node'
       - csstype
-      - jiti
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
       - solid-js
-      - stylus
-      - sugarss
-      - terser
       - tiny-invariant
-      - tsx
-      - yaml
 
   '@tanstack/react-router@1.133.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
@@ -4577,28 +4557,15 @@ snapshots:
       tiny-invariant: 1.3.3
       tiny-warning: 1.0.3
 
-  '@tanstack/router-devtools-core@1.133.34(@tanstack/router-core@1.133.28)(@types/node@24.9.1)(csstype@3.1.3)(jiti@2.6.1)(lightningcss@1.30.2)(solid-js@1.9.10)(tiny-invariant@1.3.3)(tsx@4.20.6)':
+  '@tanstack/router-devtools-core@1.131.50(@tanstack/router-core@1.133.28)(csstype@3.1.3)(solid-js@1.9.10)(tiny-invariant@1.3.3)':
     dependencies:
       '@tanstack/router-core': 1.133.28
       clsx: 2.1.1
       goober: 2.1.18(csstype@3.1.3)
       solid-js: 1.9.10
       tiny-invariant: 1.3.3
-      vite: 7.1.12(@types/node@24.9.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)
     optionalDependencies:
       csstype: 3.1.3
-    transitivePeerDependencies:
-      - '@types/node'
-      - jiti
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - terser
-      - tsx
-      - yaml
 
   '@tanstack/router-generator@1.133.29':
     dependencies:
@@ -6327,18 +6294,18 @@ snapshots:
 
   react-fast-compare@2.0.4: {}
 
-  react-hook-form@7.63.0(react@19.1.1):
+  react-hook-form@7.63.0(react@19.2.0):
     dependencies:
-      react: 19.1.1
+      react: 19.2.0
 
-  react-hot-toast@2.6.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  react-hot-toast@2.6.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
       csstype: 3.1.3
-      goober: 2.1.16(csstype@3.1.3)
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      goober: 2.1.18(csstype@3.1.3)
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
 
-  react-i18next@15.7.4(i18next@23.16.8)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3):
+  react-i18next@15.7.4(i18next@23.16.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3):
     dependencies:
       '@babel/runtime': 7.28.4
       html-parse-stringify: 3.0.1
@@ -6757,14 +6724,14 @@ snapshots:
 
   yocto-queue@1.2.1: {}
 
-  zod-formik-adapter@1.3.0(formik@2.4.6(@types/react@19.1.13)(react@19.1.1))(zod@3.25.76):
+  zod-formik-adapter@1.3.0(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(zod@3.25.76):
     dependencies:
-      formik: 2.4.6(@types/react@19.1.13)(react@19.1.1)
+      formik: 2.4.6(@types/react@19.2.2)(react@19.2.0)
       zod: 3.25.76
 
-  zod-formik-adapter@2.0.0(formik@2.4.6(@types/react@19.1.13)(react@19.1.1))(zod@4.1.11):
+  zod-formik-adapter@2.0.0(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(zod@4.1.11):
     dependencies:
-      formik: 2.4.6(@types/react@19.1.13)(react@19.1.1)
+      formik: 2.4.6(@types/react@19.2.2)(react@19.2.0)
       zod: 4.1.11
 
   zod@3.25.76: {}
