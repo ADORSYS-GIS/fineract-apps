@@ -8,17 +8,16 @@ import { FC, useState } from "react";
 import toast from "react-hot-toast";
 import { useDisburseLoan } from "../hooks/useDisburseLoan";
 import { useDisburseToSavings } from "../hooks/useDisburseToSavings";
-import { DisburseLoanModal } from "./DisburseLoanModal";
-import { DisburseToSavingsModal } from "./DisburseToSavingsModal";
+import { DisbursementModal } from "./DisbursementModal";
 
 interface AccountActionsProps {
 	loan: GetLoansLoanIdResponse;
 }
 
 export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
-	const [isDisburseModalOpen, setIsDisburseModalOpen] = useState(false);
-	const [isDisburseToSavingsModalOpen, setIsDisburseToSavingsModalOpen] =
-		useState(false);
+	const [modalVariant, setModalVariant] = useState<
+		"disburse" | "disburseToSavings" | null
+	>(null);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 	const {
@@ -40,13 +39,13 @@ export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
 
 	const handleDisburseSubmit = (data: PostLoansLoanIdRequest) => {
 		disburseLoan(data, {
-			onSuccess: () => setIsDisburseModalOpen(false),
+			onSuccess: () => setModalVariant(null),
 		});
 	};
 
 	const handleDisburseToSavingsSubmit = (data: PostLoansLoanIdRequest) => {
 		disburseToSavings(data, {
-			onSuccess: () => setIsDisburseToSavingsModalOpen(false),
+			onSuccess: () => setModalVariant(null),
 		});
 	};
 
@@ -62,7 +61,7 @@ export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
 					<div className="py-1">
 						<button
 							onClick={() => {
-								setIsDisburseModalOpen(true);
+								setModalVariant("disburse");
 								setIsMenuOpen(false);
 							}}
 							className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -79,7 +78,7 @@ export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
 									toast.error("No savings account linked to this loan.");
 									return;
 								}
-								setIsDisburseToSavingsModalOpen(true);
+								setModalVariant("disburseToSavings");
 								setIsMenuOpen(false);
 							}}
 							className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -92,20 +91,26 @@ export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
 					</div>
 				</div>
 			)}
-			<DisburseLoanModal
-				isOpen={isDisburseModalOpen}
-				onClose={() => setIsDisburseModalOpen(false)}
-				onSubmit={handleDisburseSubmit}
-				template={disburseTemplate}
-				isSubmitting={isDisbursing}
-			/>
-			<DisburseToSavingsModal
-				isOpen={isDisburseToSavingsModalOpen}
-				onClose={() => setIsDisburseToSavingsModalOpen(false)}
-				onSubmit={handleDisburseToSavingsSubmit}
-				template={disburseToSavingsTemplate}
-				isSubmitting={isDisbursingToSavings}
-			/>
+			{modalVariant && (
+				<DisbursementModal
+					isOpen={!!modalVariant}
+					onClose={() => setModalVariant(null)}
+					onSubmit={
+						modalVariant === "disburse"
+							? handleDisburseSubmit
+							: handleDisburseToSavingsSubmit
+					}
+					template={
+						modalVariant === "disburse"
+							? disburseTemplate
+							: disburseToSavingsTemplate
+					}
+					isSubmitting={
+						modalVariant === "disburse" ? isDisbursing : isDisbursingToSavings
+					}
+					variant={modalVariant}
+				/>
+			)}
 		</div>
 	);
 };

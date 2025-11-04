@@ -7,25 +7,30 @@ import { format } from "date-fns";
 import { FC } from "react";
 import { Modal } from "@/components/Modal/Modal";
 
-interface DisburseLoanModalProps {
+interface DisbursementModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	onSubmit: (data: PostLoansLoanIdRequest) => void;
 	template?: GetLoansLoanIdTransactionsTemplateResponse;
 	isSubmitting: boolean;
+	variant: "disburse" | "disburseToSavings";
 }
 
-export const DisburseLoanModal: FC<DisburseLoanModalProps> = ({
+export const DisbursementModal: FC<DisbursementModalProps> = ({
 	isOpen,
 	onClose,
 	onSubmit,
 	template,
 	isSubmitting,
+	variant,
 }) => {
 	if (!isOpen) return null;
 
+	const title =
+		variant === "disburse" ? "Disburse Loan" : "Disburse to Savings";
+
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Disburse Loan">
+		<Modal isOpen={isOpen} onClose={onClose} title={title}>
 			<Form
 				onSubmit={(data) => {
 					const formattedDate = format(
@@ -57,19 +62,23 @@ export const DisburseLoanModal: FC<DisburseLoanModalProps> = ({
 						type="number"
 						required
 					/>
-					<Input name="externalId" label="External Id" />
-					<Input
-						name="paymentTypeId"
-						label="Payment Type"
-						type="select"
-						options={
-							template?.paymentTypeOptions?.map((option) => ({
-								label: option.name ?? "",
-								value: option.id ?? "",
-							})) ?? []
-						}
-						required
-					/>
+					{variant === "disburse" && (
+						<>
+							<Input name="externalId" label="External Id" />
+							<Input
+								name="paymentTypeId"
+								label="Payment Type"
+								type="select"
+								options={
+									template?.paymentTypeOptions?.map((option) => ({
+										label: option.name ?? "",
+										value: option.id ?? "",
+									})) ?? []
+								}
+								required
+							/>
+						</>
+					)}
 					<Input name="note" label="Note" type="textarea" />
 					<Button
 						type="submit"
