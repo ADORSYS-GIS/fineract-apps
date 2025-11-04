@@ -5,6 +5,7 @@ import {
 import { Button } from "@fineract-apps/ui";
 import { MoreVertical } from "lucide-react";
 import { FC, useState } from "react";
+import toast from "react-hot-toast";
 import { useDisburseLoan } from "../hooks/useDisburseLoan";
 import { useDisburseToSavings } from "../hooks/useDisburseToSavings";
 import { DisburseLoanModal } from "./DisburseLoanModal";
@@ -71,6 +72,13 @@ export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
 						</button>
 						<button
 							onClick={() => {
+								if (
+									!(loan as GetLoansLoanIdResponse & { linkAccountId?: number })
+										.linkAccountId
+								) {
+									toast.error("No savings account linked to this loan.");
+									return;
+								}
 								setIsDisburseToSavingsModalOpen(true);
 								setIsMenuOpen(false);
 							}}

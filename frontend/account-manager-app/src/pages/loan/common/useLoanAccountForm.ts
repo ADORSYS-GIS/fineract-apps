@@ -1,5 +1,6 @@
 import {
 	ApiError,
+	GetLoansLoanIdResponse,
 	LoansService,
 	PostLoansResponse,
 	PutLoansLoanIdRequest,
@@ -189,6 +190,9 @@ export const useLoanAccountForm = ({
 				loanProductId: loanData.loanProductId ?? 0,
 				externalId: loanData.externalId ?? "",
 				loanOfficerId: loanData.loanOfficerId,
+				linkAccountId: (
+					loanData as GetLoansLoanIdResponse & { linkAccountId?: number }
+				).linkAccountId,
 				loanPurposeId: loanData.loanPurposeId,
 				fundId: undefined,
 				submittedOnDate: loanData.timeline?.submittedOnDate
