@@ -6,6 +6,7 @@ import { Button } from "@fineract-apps/ui";
 import { MoreVertical } from "lucide-react";
 import { FC, useState } from "react";
 import toast from "react-hot-toast";
+import { useDetectOutsideClick } from "@/hooks/useDetectOutsideClick";
 import { useDisburseLoan } from "../hooks/useDisburseLoan";
 import { useDisburseToSavings } from "../hooks/useDisburseToSavings";
 import { DisbursementModal } from "./DisbursementModal";
@@ -19,6 +20,7 @@ export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
 		"disburse" | "disburseToSavings" | null
 	>(null);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const menuRef = useDetectOutsideClick(() => setIsMenuOpen(false));
 
 	const {
 		template: disburseTemplate,
@@ -50,7 +52,7 @@ export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
 	};
 
 	return (
-		<div className="relative">
+		<div className="relative" ref={menuRef}>
 			{canDisburse && (
 				<Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)}>
 					<MoreVertical className="h-6 w-6" />
