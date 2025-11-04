@@ -1,6 +1,5 @@
 import {
 	ApiError,
-	GetLoansLoanIdResponse,
 	LoansService,
 	PostLoansResponse,
 	PutLoansLoanIdRequest,
@@ -14,6 +13,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { LoanDetailsFormValues } from "@/pages/loan/create-loan-account/CreateLoanAccount.schema";
 import {
+	LoanDataWithLinkedAccount,
 	LoanDetailsTemplate,
 	LoanRepaymentSchedule,
 	PostLoansRequest,
@@ -42,7 +42,8 @@ export const useLoanAccountForm = ({
 
 	const { data: loanData, isLoading: isLoanDataLoading } = useQuery({
 		queryKey: ["loan", loanId],
-		queryFn: () => LoansService.getV1LoansByLoanId({ loanId: loanId! }),
+		queryFn: () =>
+			LoansService.getV1LoansByLoanId({ loanId: loanId!, associations: "all" }),
 		enabled: isEditMode,
 	});
 
@@ -190,9 +191,8 @@ export const useLoanAccountForm = ({
 				loanProductId: loanData.loanProductId ?? 0,
 				externalId: loanData.externalId ?? "",
 				loanOfficerId: loanData.loanOfficerId,
-				linkAccountId: (
-					loanData as GetLoansLoanIdResponse & { linkAccountId?: number }
-				).linkAccountId,
+				linkAccountId: (loanData as LoanDataWithLinkedAccount)?.linkedAccount
+					?.id,
 				loanPurposeId: loanData.loanPurposeId,
 				fundId: undefined,
 				submittedOnDate: loanData.timeline?.submittedOnDate

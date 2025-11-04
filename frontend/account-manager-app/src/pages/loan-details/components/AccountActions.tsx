@@ -7,6 +7,7 @@ import { MoreVertical } from "lucide-react";
 import { FC, useState } from "react";
 import toast from "react-hot-toast";
 import { useDetectOutsideClick } from "@/hooks/useDetectOutsideClick";
+import { LoanDataWithLinkedAccount } from "@/pages/loan/create-loan-account/CreateLoanAccount.types";
 import { useDisburseLoan } from "../hooks/useDisburseLoan";
 import { useDisburseToSavings } from "../hooks/useDisburseToSavings";
 import { DisbursementModal } from "./DisbursementModal";
@@ -73,10 +74,7 @@ export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
 						</button>
 						<button
 							onClick={() => {
-								if (
-									!(loan as GetLoansLoanIdResponse & { linkAccountId?: number })
-										.linkAccountId
-								) {
+								if (!(loan as LoanDataWithLinkedAccount).linkedAccount?.id) {
 									toast.error("No savings account linked to this loan.");
 									return;
 								}

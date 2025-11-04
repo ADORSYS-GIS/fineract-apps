@@ -5,6 +5,7 @@ import {
 	CodeValueData,
 	EnumOptionData,
 	FundData,
+	GetLoansLoanIdResponse,
 	StaffData,
 	TransactionProcessingStrategyData,
 } from "@fineract-apps/fineract-api";
@@ -31,6 +32,10 @@ export interface GetLoansTemplateResponse extends BaseGetLoansTemplateResponse {
 export interface PostLoansRequest extends BasePostLoansRequest {
 	loanPurposeId?: number;
 	fundId?: number;
+}
+
+export interface LoanDataWithLinkedAccount extends GetLoansLoanIdResponse {
+	linkedAccount?: { id?: number };
 }
 
 export interface LoanDetailsTemplate extends GetLoansTemplateResponse {
