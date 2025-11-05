@@ -10,6 +10,8 @@ export const userFormSchema = z
 				/^[a-zA-Z0-9_-]+$/,
 				"Username can only contain letters, numbers, hyphens, and underscores",
 			),
+		firstname: z.string().min(1, "First name is required"),
+		lastname: z.string().min(1, "Last name is required"),
 		email: z
 			.string()
 			.min(1, "Email is required")
@@ -20,6 +22,7 @@ export const userFormSchema = z
 					message: "Invalid email address",
 				},
 			),
+		officeId: z.number().min(1, "Office is required"),
 		staffId: z.number().min(1, "Staff is required"),
 		roles: z
 			.array(z.number())
@@ -45,11 +48,12 @@ export const userFormSchema = z
 		},
 	);
 
-export const userEditFormSchema = userFormSchema
-	.omit({ username: true, sendPasswordToEmail: true })
-	.extend({
-		staffId: z.number().min(1, "Staff is required"),
-	});
+export const userEditFormSchema = userFormSchema.omit({
+	username: true,
+	sendPasswordToEmail: true,
+	password: true,
+	repeatPassword: true,
+});
 
 export type UserFormValues = z.infer<typeof userFormSchema>;
 export type UserEditFormValues = z.infer<typeof userEditFormSchema>;

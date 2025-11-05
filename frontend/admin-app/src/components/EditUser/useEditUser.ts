@@ -74,9 +74,11 @@ export const useEditUser = () => {
 		firstname: user?.firstname || "",
 		lastname: user?.lastname || "",
 		email: user?.email || "",
-		officeId: user?.officeId || "",
-		staffId: user?.staff?.id || "",
-		roles: user?.selectedRoles?.map((role) => role.id) || [],
+		officeId: user?.officeId || 0,
+		staffId: user?.staff?.id || 0,
+		roles:
+			user?.selectedRoles?.map((role) => role.id).filter((id) => id != null) ||
+			([] as number[]),
 	};
 
 	const onSubmit = (values: UserEditFormValues) => {

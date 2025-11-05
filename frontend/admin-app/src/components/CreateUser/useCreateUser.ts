@@ -45,7 +45,10 @@ export const useCreateUser = () => {
 
 	const initialValues: UserFormValues = {
 		username: "",
+		firstname: "",
+		lastname: "",
 		email: "",
+		officeId: 0,
 		staffId: staffId || 0,
 		roles: [],
 		sendPasswordToEmail: true,
