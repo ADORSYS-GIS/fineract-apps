@@ -1,25 +1,27 @@
 import { Button, Card } from "@fineract-apps/ui";
-import { Eye } from "lucide-react";
+import { Edit, Eye, UserPlus } from "lucide-react";
 import { UserStatusBadge } from "../UserStatusBadge";
-import type { UserTableProps } from "./UserTable.types";
+import type { StaffTableProps } from "./StaffTable.types";
 
-export function UserTable({
-	users,
+export function StaffTable({
+	staff,
 	isLoading,
 	onRowClick,
-}: Readonly<UserTableProps>) {
+	onEditClick,
+	onAssignUserClick,
+}: StaffTableProps) {
 	if (isLoading) {
 		return (
 			<Card variant="elevated">
-				<div className="p-8 text-center text-gray-500">Loading users...</div>
+				<div className="p-8 text-center text-gray-500">Loading staff...</div>
 			</Card>
 		);
 	}
 
-	if (!users || users.length === 0) {
+	if (!staff || staff.length === 0) {
 		return (
 			<Card variant="elevated">
-				<div className="p-8 text-center text-gray-500">No users found.</div>
+				<div className="p-8 text-center text-gray-500">No staff found.</div>
 			</Card>
 		);
 	}
@@ -31,16 +33,19 @@ export function UserTable({
 					<thead className="bg-gray-50 border-b border-gray-200">
 						<tr>
 							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Username
+								Display Name
 							</th>
 							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Name
+								First Name
 							</th>
 							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-								Email
+								Last Name
 							</th>
 							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Office
+							</th>
+							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								Is Loan Officer
 							</th>
 							<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Status
@@ -51,32 +56,39 @@ export function UserTable({
 						</tr>
 					</thead>
 					<tbody className="bg-white divide-y divide-gray-200">
-						{users.map((user) => (
+						{staff.map((staffMember) => (
 							<tr
-								key={user.id}
+								key={staffMember.id}
 								className="hover:bg-gray-50 transition-colors cursor-pointer"
-								onClick={() => onRowClick?.(user.id)}
+								onClick={() => onRowClick?.(staffMember.id)}
 							>
 								<td className="px-6 py-4 whitespace-nowrap">
 									<div className="text-sm font-medium text-gray-900">
-										{user.username}
+										{staffMember.displayName}
 									</div>
 								</td>
 								<td className="px-6 py-4 whitespace-nowrap">
 									<div className="text-sm text-gray-900">
-										{user.firstname} {user.lastname}
+										{staffMember.firstname}
 									</div>
-								</td>
-								<td className="px-6 py-4 whitespace-nowrap">
-									<div className="text-sm text-gray-600">{user.email}</div>
 								</td>
 								<td className="px-6 py-4 whitespace-nowrap">
 									<div className="text-sm text-gray-600">
-										{user.officeName || "N/A"}
+										{staffMember.lastname}
 									</div>
 								</td>
 								<td className="px-6 py-4 whitespace-nowrap">
-									<UserStatusBadge isActive={user.available !== false} />
+									<div className="text-sm text-gray-600">
+										{staffMember.officeName || "N/A"}
+									</div>
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap">
+									<div className="text-sm text-gray-600">
+										{staffMember.isLoanOfficer ? "Yes" : "No"}
+									</div>
+								</td>
+								<td className="px-6 py-4 whitespace-nowrap">
+									<UserStatusBadge isActive={staffMember.isActive !== false} />
 								</td>
 								<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
 									<div className="flex items-center justify-end gap-2">
@@ -85,11 +97,33 @@ export function UserTable({
 											size="sm"
 											onClick={(e) => {
 												e.stopPropagation();
-												onRowClick?.(user.id);
+												onRowClick?.(staffMember.id);
 											}}
-											aria-label="View user"
+											aria-label="View staff"
 										>
 											<Eye className="w-4 h-4" />
+										</Button>
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={(e) => {
+												e.stopPropagation();
+												onEditClick?.(staffMember.id);
+											}}
+											aria-label="Edit staff"
+										>
+											<Edit className="w-4 h-4" />
+										</Button>
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={(e) => {
+												e.stopPropagation();
+												onAssignUserClick?.(staffMember.id);
+											}}
+											aria-label="Assign user"
+										>
+											<UserPlus className="w-4 h-4" />
 										</Button>
 									</div>
 								</td>

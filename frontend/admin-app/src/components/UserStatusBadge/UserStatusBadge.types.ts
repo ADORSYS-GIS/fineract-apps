@@ -1,4 +1,4 @@
 export interface UserStatusBadgeProps {
-	isActive: boolean;
-	className?: string;
+	readonly isActive: boolean;
+	readonly className?: string;
 }

@@ -1,83 +1,35 @@
-import { useUsersServiceGetV1Users } from "@fineract-apps/fineract-api";
-import { Button } from "@fineract-apps/ui";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Plus, Search } from "lucide-react";
-import { useState } from "react";
-import type { User } from "@/components/UserTable";
-import { UserTable } from "@/components/UserTable";
+import { Card } from "@fineract-apps/ui";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Users } from "lucide-react";
 
-function UsersListPage() {
-	const navigate = useNavigate();
-	const [searchQuery, setSearchQuery] = useState("");
-
-	// Fetch users from Fineract API
-	const { data: users = [], isLoading } = useUsersServiceGetV1Users();
-
-	const filteredUsers = (users as User[]).filter((user) => {
-		const query = searchQuery.toLowerCase();
-		return (
-			user.username?.toLowerCase().includes(query) ||
-			user.firstname?.toLowerCase().includes(query) ||
-			user.lastname?.toLowerCase().includes(query) ||
-			user.email?.toLowerCase().includes(query)
-		);
-	});
-
-	const handleView = (userId: number) => {
-		navigate({ to: "/users/$userId", params: { userId: String(userId) } });
-	};
-
-	const handleEdit = (userId: number) => {
-		navigate({
-			to: "/users/$userId/edit",
-			params: { userId: String(userId) },
-		});
-	};
-
-	const handleCreateUser = () => {
-		navigate({ to: "/users/create" });
-	};
-
+function UsersPage() {
 	return (
 		<div className="p-6">
-			<div className="mb-6">
-				<div className="flex items-center justify-between mb-4">
-					<div>
-						<h1 className="text-2xl font-bold text-gray-800">
-							User Management
-						</h1>
-						<p className="text-sm text-gray-600 mt-1">
-							View and manage user accounts
-						</p>
+			<h1 className="text-2xl font-bold text-gray-800 mb-6">User Management</h1>
+			<Card variant="elevated" size="lg">
+				<div className="p-6">
+					<div className="space-y-3">
+						<Link
+							to="/users/list"
+							className="block p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+						>
+							<div className="flex items-center justify-between">
+								<div>
+									<h3 className="font-medium text-gray-900">Manage Users</h3>
+									<p className="text-sm text-gray-600 mt-1">
+										View, create, and manage user accounts
+									</p>
+								</div>
+								<Users className="w-6 h-6 text-blue-600" />
+							</div>
+						</Link>
 					</div>
-					<Button onClick={handleCreateUser} size="default">
-						<Plus className="w-4 h-4 mr-2" />
-						Create User
-					</Button>
 				</div>
-
-				<div className="relative">
-					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-					<input
-						type="text"
-						placeholder="Search by username, name, or email..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-					/>
-				</div>
-			</div>
-
-			<UserTable
-				users={filteredUsers}
-				isLoading={isLoading}
-				onView={handleView}
-				onEdit={handleEdit}
-			/>
+			</Card>
 		</div>
 	);
 }
 
 export const Route = createFileRoute("/users/")({
-	component: UsersListPage,
+	component: UsersPage,
 });
