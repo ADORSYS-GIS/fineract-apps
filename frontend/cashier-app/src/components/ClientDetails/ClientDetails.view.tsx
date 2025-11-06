@@ -2,6 +2,7 @@ import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/utils/currency";
 import { TransactionForm } from "../TransactionForm";
 import { ClientDetailsViewProps } from "./ClientDetails.types";
@@ -23,6 +24,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 	onDeposit,
 	onWithdraw,
 }) => {
+	const { t } = useTranslation();
 	const dialogRef = useRef<HTMLDialogElement>(null);
 
 	useEffect(() => {
@@ -51,7 +53,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 	if (!savingsAccount) {
 		return (
 			<div className="flex justify-center items-center h-screen">
-				<p>Loading client details...</p>
+				<p>{t("loadingClientDetails")}</p>
 			</div>
 		);
 	}
@@ -82,7 +84,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 		if (isClientImageLoading) {
 			return (
 				<div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center shadow-md">
-					<span className="text-sm text-gray-500">Loading...</span>
+					<span className="text-sm text-gray-500">{t("loading")}</span>
 				</div>
 			);
 		}
@@ -90,14 +92,14 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 			return (
 				<img
 					src={clientImage}
-					alt="Client"
+					alt={t("clientName")}
 					className="w-32 h-32 rounded-full shadow-md"
 				/>
 			);
 		}
 		return (
 			<div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center shadow-md">
-				<span className="text-sm text-gray-500">No Image</span>
+				<span className="text-sm text-gray-500">{t("noImage")}</span>
 			</div>
 		);
 	};
@@ -108,10 +110,10 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 					<div className="flex flex-col md:flex-row justify-between md:items-center">
 						<div className="flex items-center gap-4">
 							<Link to="/dashboard" search={{ query: "" }}>
-								<Button variant="outline">&larr; Back</Button>
+								<Button variant="outline">&larr; {t("back")}</Button>
 							</Link>
 							<h2 className="text-3xl font-bold text-gray-800">
-								Client Details
+								{t("clientDetails")}
 							</h2>
 						</div>
 						<div className="mt-2 md:mt-0">
@@ -122,7 +124,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 										: "bg-red-100 text-red-800"
 								}`}
 							>
-								{status?.value}
+								{t(status?.value?.toLowerCase() ?? "unknown")}
 							</span>
 						</div>
 					</div>
@@ -138,7 +140,9 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 								{renderClientImage()}
 							</Button>
 							<div className="mt-4 text-center md:text-left">
-								<p className="text-sm font-medium text-gray-500">clientName</p>
+								<p className="text-sm font-medium text-gray-500">
+									{t("clientName")}
+								</p>
 								<p className="mt-1 text-lg text-gray-900">
 									{savingsAccount.clientName}
 								</p>
@@ -161,16 +165,20 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 										<div className="block md:grid md:grid-cols-5 md:gap-4 md:items-center text-gray-700">
 											<div className="col-span-4">
 												<div className="flex justify-between md:block">
-													<span className="font-semibold">Account No: </span>
+													<span className="font-semibold">
+														{t("accountNo")}:{" "}
+													</span>
 													<span>{savingsAccount?.accountNo}</span>
 												</div>
 												<div className="flex justify-between md:block">
-													<span className="font-semibold">Last Active: </span>
+													<span className="font-semibold">
+														{t("lastActive")}:{" "}
+													</span>
 													<span>{formattedDate}</span>
 												</div>
 												<div className="flex justify-between md:block">
 													<span className="font-semibold">
-														accountBalance:{" "}
+														{t("accountBalance")}:{" "}
 													</span>
 													<span>
 														{formatCurrency(
@@ -181,7 +189,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 												</div>
 												<div className="flex justify-between md:block">
 													<span className="font-semibold">
-														availableBalance:{" "}
+														{t("availableBalance")}:{" "}
 													</span>
 													<span>
 														{formatCurrency(
@@ -201,24 +209,26 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 				<div className="p-6 border-t border-gray-200">
 					<div className="flex justify-end gap-4">
 						<Button onClick={onDeposit} disabled={status?.value !== "Active"}>
-							Deposit
+							{t("deposit")}
 						</Button>
 						<Button
 							onClick={onWithdraw}
 							variant="outline"
 							disabled={status?.value !== "Active"}
 						>
-							Withdraw
+							{t("withdrawal")}
 						</Button>
 					</div>
 				</div>
 				<div className="border-t border-gray-200 px-6 py-6">
-					<h3 className="text-xl text-gray-700 mb-4">Recent Transactions</h3>
+					<h3 className="text-xl text-gray-700 mb-4">
+						{t("recentTransactions")}
+					</h3>
 					<div className="border border-gray-200 rounded-lg overflow-hidden">
 						<div className="hidden md:grid grid-cols-3 gap-4 p-4 border-b border-gray-200 items-center text-gray-500 font-medium">
-							<div>Date</div>
-							<div>Transaction Type</div>
-							<div className="text-right">Amount</div>
+							<div>{t("date")}</div>
+							<div>{t("transactionType")}</div>
+							<div className="text-right">{t("amount")}</div>
 						</div>
 						<div className="divide-y divide-gray-200">
 							{recentTransactions.length > 0 ? (
@@ -232,7 +242,12 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 												? format(new Date(transaction.date), "dd MMM yyyy")
 												: "N/A"}
 										</div>
-										<div>{transaction.transactionType?.value}</div>
+										<div>
+											{t(
+												transaction.transactionType?.value?.toLowerCase() ??
+													"unknown",
+											)}
+										</div>
 										<div
 											className={`text-right ${
 												transaction.transactionType?.value === "Deposit"
@@ -249,7 +264,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 								))
 							) : (
 								<div className="p-4 text-center text-gray-500">
-									No transactions found.
+									{t("noTransactionsFound")}
 								</div>
 							)}
 						</div>
@@ -265,7 +280,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 					<div className="relative max-w-4xl max-h-full">
 						<img
 							src={clientImage}
-							alt="Client Full"
+							alt={t("clientName")}
 							className="object-contain w-full h-full"
 						/>
 						<form method="dialog">
@@ -273,7 +288,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 								variant="ghost"
 								type="submit"
 								className="absolute top-4 right-4 text-white text-2xl bg-transparent border-none cursor-pointer hover:bg-black/20 h-auto"
-								aria-label="Close"
+								aria-label={t("close")}
 							>
 								&times;
 							</Button>

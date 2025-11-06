@@ -13,10 +13,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo } from "react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import * as z from "zod";
 import { OpenAccountForm, openAccountSchema } from "./OpenAccount.types";
 
 export const useOpenAccount = (clientId: number) => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { accountType } = useSearch({ from: "/open-account/$clientId" });
 
@@ -96,10 +98,16 @@ export const useOpenAccount = (clientId: number) => {
 		},
 	});
 
+	const accountTypeMapping: { [key: string]: string } = {
+		savings: "savingsAccount",
+		shares: "shareAccount",
+		recurring: "recurringDepositAccount",
+		fixed: "fixedDepositsAccount",
+		loan: "loanAccount",
+	};
+
 	const initialValues = {
-		accountType: accountType
-			? accountType.charAt(0).toUpperCase() + accountType.slice(1) + " Account"
-			: "",
+		accountType: accountType ? t(accountTypeMapping[accountType]) : "",
 		productName: "",
 	};
 

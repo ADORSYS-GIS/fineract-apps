@@ -1,5 +1,6 @@
 import { ErrorMessage, Field, useField, useFormikContext } from "formik";
 import React, { useId } from "react";
+import { useTranslation } from "react-i18next";
 import { InputProps } from "../Form.types";
 import { inputVariants } from "./Input.variants";
 
@@ -15,6 +16,7 @@ export const Input: React.FC<InputProps> = ({
 	disabled,
 	...rest
 }) => {
+	const { t } = useTranslation();
 	const [_field, meta] = useField(name);
 	const { touched, error: errorFromForm } = meta;
 	const error = errorProp ?? errorFromForm;
@@ -42,7 +44,7 @@ export const Input: React.FC<InputProps> = ({
 		if (type === "select") {
 			return (
 				<Field as="select" {...fieldProps}>
-					<option value="">{`Choose a ${label ?? "value"}`}</option>
+					<option value="">{t("choose", { label })}</option>
 					{options?.map((opt) => (
 						<option key={String(opt.value)} value={String(opt.value)}>
 							{opt.label}

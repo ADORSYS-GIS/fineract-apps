@@ -2,6 +2,7 @@ import { Button } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Trash2, Upload } from "lucide-react";
 import { FC, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { fineractApi } from "@/services/api";
 import { UploadDocument } from "../UploadDocument/UploadDocument.view";
 import { useDeleteIdentity } from "./useDeleteIdentity";
@@ -90,6 +91,7 @@ const formatStatus = (status: string | undefined) => {
 export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 	onAddIdentity,
 }) => {
+	const { t } = useTranslation();
 	const { identifiers, isLoading } = useKYCManagement();
 	const { deleteIdentity } = useDeleteIdentity();
 	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -104,15 +106,17 @@ export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 	return (
 		<div className="mt-8">
 			<h3 className="text-lg font-semibold mb-4 text-gray-800">
-				KYC Management
+				{t("kycManagement")}
 			</h3>
 			<div className="bg-white rounded-lg shadow-md p-6">
-				<h4 className="font-semibold text-gray-700 mb-4">Identities</h4>
+				<h4 className="font-semibold text-gray-700 mb-4">
+					{t("identities")}
+				</h4>
 				<Button
 					className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-6"
 					onClick={onAddIdentity}
 				>
-					+ Add
+					+ {t("add")}
 				</Button>
 				<div className="space-y-4">
 					{identifiers?.map((identity) => (

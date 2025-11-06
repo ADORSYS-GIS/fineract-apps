@@ -2,6 +2,7 @@ import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Camera, Edit, Trash2, Upload } from "lucide-react";
 import { FC, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AccountCard } from "./components/AccountCard/AccountCard";
 import { AddIdentityDocument } from "./components/AddIdentityDocument/AddIdentityDocument.view";
 import { CaptureImage } from "./components/CaptureImage/CaptureImage.view";
@@ -35,6 +36,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 	activateAccount,
 	deleteAccount,
 }) => {
+	const { t } = useTranslation();
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [isAddIdentityModalOpen, setIsAddIdentityModalOpen] = useState(false);
 	const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
@@ -63,7 +65,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 		if (isClientImageLoading) {
 			return (
 				<div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center shadow-md">
-					<span className="text-sm text-gray-500">Loading...</span>
+					<span className="text-sm text-gray-500">{t("loading")}</span>
 				</div>
 			);
 		}
@@ -71,20 +73,20 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 			return (
 				<img
 					src={clientImage}
-					alt="Client"
+					alt={t("clientName")}
 					className="w-full h-full object-cover"
 				/>
 			);
 		}
 		return (
 			<div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center shadow-md">
-				<span className="text-sm text-gray-500">No Image</span>
+				<span className="text-sm text-gray-500">{t("noImage")}</span>
 			</div>
 		);
 	};
 
 	if (isLoading) {
-		return <div>Loading...</div>;
+		return <div>{t("loading")}</div>;
 	}
 
 	return (
@@ -96,7 +98,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 							<ArrowLeft className="h-6 w-6" />
 						</Button>
 					</Link>
-					<h1 className="text-xl font-semibold">Client Profile</h1>
+					<h1 className="text-xl font-semibold">{t("clientProfile")}</h1>
 					<Button variant="ghost" onClick={() => setIsEditModalOpen(true)}>
 						<Edit className="h-6 w-6" />
 					</Button>
@@ -124,32 +126,32 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 										onClick={() => fileInputRef.current?.click()}
 									>
 										<Upload className="h-4 w-4" />
-										<span>Upload</span>
+										<span>{t("upload")}</span>
 									</button>
 									<button
 										className="flex items-center space-x-1 text-sm"
 										onClick={() => setIsCaptureModalOpen(true)}
 									>
 										<Camera className="h-4 w-4" />
-										<span>Capture</span>
+										<span>{t("capture")}</span>
 									</button>
 									<button
 										className="flex items-center space-x-1 text-sm text-red-500"
 										onClick={() => deleteImage(String(client?.id))}
 									>
 										<Trash2 className="h-4 w-4" />
-										<span>Delete</span>
+										<span>{t("delete")}</span>
 									</button>
 								</div>
 								<h2 className="text-2xl font-bold">{client?.displayName}</h2>
 								<p className="text-sm text-gray-500 mt-1">
-									Client ID: {client?.accountNo}
+									{t("clientId")} {client?.accountNo}
 								</p>
 								<p className="text-sm text-gray-500 mt-1">
-									Phone: {client?.mobileNo}
+									{t("phone")} {client?.mobileNo}
 								</p>
 								<p className="text-sm text-gray-500">
-									Joined{" "}
+									{t("joined")}{" "}
 									{parseFineractDate(
 										client?.timeline?.submittedOnDate,
 									)?.toLocaleDateString("en-US", {
@@ -162,7 +164,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 									to="/select-account-type/$clientId"
 									params={{ clientId: String(client?.id) }}
 								>
-									<Button className="w-full">Open Account</Button>
+									<Button className="w-full">{t("openAccount")}</Button>
 								</Link>
 							</div>
 						</div>
@@ -170,14 +172,14 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 					<div className="md:col-span-2">
 						<div className="bg-white p-6 rounded-lg shadow-md">
 							<div className="flex justify-between items-center mb-4">
-								<h3 className="text-lg font-semibold">Accounts</h3>
+								<h3 className="text-lg font-semibold">{t("accounts")}</h3>
 								{accounts?.savingsAccounts &&
 								accounts.savingsAccounts.length > 0 ? (
 									<Link
 										to="/select-account-type/$clientId"
 										params={{ clientId: String(client?.id) }}
 									>
-										<Button variant="outline">Add Another Account</Button>
+										<Button variant="outline">{t("addAnotherAccount")}</Button>
 									</Link>
 								) : null}
 							</div>
@@ -192,7 +194,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 									/>
 								))
 							) : (
-								<p className="text-gray-500">No Account Opened yet</p>
+								<p className="text-gray-500">{t("noAccountOpenedYet")}</p>
 							)}
 						</div>
 						<div className="mt-8">

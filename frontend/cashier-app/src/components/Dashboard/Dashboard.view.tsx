@@ -1,15 +1,17 @@
 import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
 import { Bell, UserCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { CashierTransactionSummary } from "../CashierTransactionSummary";
 import { ClientSearch } from "../ClientSearch";
 import { DashboardViewProps } from "./Dashboard.types";
 
 export function DashboardView({ onLogout }: Readonly<DashboardViewProps>) {
+	const { t } = useTranslation();
 	return (
 		<AppLayout
 			navbar={
 				<Navbar
-					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
+					logo={<h1 className="text-lg font-bold">{t("cashierApp")}</h1>}
 					notifications={<Bell />}
 					userSection={
 						<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
@@ -22,7 +24,7 @@ export function DashboardView({ onLogout }: Readonly<DashboardViewProps>) {
 			}
 			sidebar={
 				<Sidebar
-					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
+					logo={<h1 className="text-lg font-bold">{t("cashierApp")}</h1>}
 					menuItems={menuCashier}
 					onLogout={onLogout}
 				/>

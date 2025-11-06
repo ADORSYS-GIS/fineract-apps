@@ -2,11 +2,13 @@ import { Button, Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { useCreateAccount } from "./useCreateAccount";
 
 export const CreateAccountView: FC<
 	ReturnType<typeof useCreateAccount>
 > = () => {
+	const { t } = useTranslation();
 	return (
 		<div className="bg-gray-50 min-h-screen flex flex-col">
 			<header className="p-4 flex items-center border-b bg-white">
@@ -15,13 +17,15 @@ export const CreateAccountView: FC<
 						<ArrowLeft className="h-6 w-6" />
 					</Button>
 				</Link>
-				<h1 className="text-lg font-semibold ml-4">Create Account</h1>
+				<h1 className="text-lg font-semibold ml-4">{t("createAccount")}</h1>
 			</header>
 
 			<main className="flex-1 flex items-center justify-center p-4">
 				<Card className="w-full max-w-md p-8 space-y-6">
 					<div className="text-center">
-						<h2 className="text-2xl font-bold">Confirm Account Details</h2>
+						<h2 className="text-2xl font-bold">
+							{t("confirmAccountDetails")}
+						</h2>
 					</div>
 					<form className="space-y-4">
 						<div>
@@ -29,7 +33,7 @@ export const CreateAccountView: FC<
 								htmlFor="accountType"
 								className="block text-sm font-medium text-gray-700"
 							>
-								Account Type
+								{t("accountType")}
 							</label>
 							<input
 								type="text"
@@ -44,7 +48,7 @@ export const CreateAccountView: FC<
 								htmlFor="initialDeposit"
 								className="block text-sm font-medium text-gray-700"
 							>
-								Initial Deposit
+								{t("initialDeposit")}
 							</label>
 							<input
 								type="text"
@@ -55,7 +59,7 @@ export const CreateAccountView: FC<
 						</div>
 						<Link to="/activate-account" className="block w-full">
 							<Button type="button" className="w-full">
-								Confirm & Create Account
+								{t("confirmAndCreateAccount")}
 							</Button>
 						</Link>
 					</form>

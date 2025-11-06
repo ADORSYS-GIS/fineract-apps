@@ -1,4 +1,5 @@
 import { Button, Card } from "@fineract-apps/ui";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "@tanstack/react-router";
 import {
 	AreaChart,
@@ -10,46 +11,47 @@ import {
 } from "lucide-react";
 import { FC, ReactNode } from "react";
 
-const accountTypes: {
-	label: string;
-	type: string;
-	icon: ReactNode;
-	description: string;
-}[] = [
-	{
-		label: "Savings Account",
-		type: "savings",
-		icon: <PiggyBank className="h-8 w-8 text-green-500" />,
-		description: "Open a new savings account.",
-	},
-	{
-		label: "Share Account",
-		type: "shares",
-		icon: <AreaChart className="h-8 w-8 text-purple-500" />,
-		description: "Purchase new shares.",
-	},
-	{
-		label: "Recurring Deposit Account",
-		type: "recurring",
-		icon: <Repeat className="h-8 w-8 text-yellow-500" />,
-		description: "Start a recurring deposit.",
-	},
-	{
-		label: "Fixed Deposits Account",
-		type: "fixed",
-		icon: <Lock className="h-8 w-8 text-red-500" />,
-		description: "Open a fixed deposit account.",
-	},
-	{
-		label: "Loan Account",
-		type: "loan",
-		icon: <Landmark className="h-8 w-8 text-blue-500" />,
-		description: "Apply for a new loan product.",
-	},
-];
-
 export const SelectAccountTypeView: FC = () => {
 	const { clientId } = useParams({ from: "/select-account-type/$clientId" });
+	const { t } = useTranslation();
+
+	const accountTypes: {
+		label: string;
+		type: string;
+		icon: ReactNode;
+		description: string;
+	}[] = [
+		{
+			label: t("savingsAccount"),
+			type: "savings",
+			icon: <PiggyBank className="h-8 w-8 text-green-500" />,
+			description: t("openANewSavingsAccount"),
+		},
+		{
+			label: t("shareAccount"),
+			type: "shares",
+			icon: <AreaChart className="h-8 w-8 text-purple-500" />,
+			description: t("purchaseNewShares"),
+		},
+		{
+			label: t("recurringAccount"),
+			type: "recurring",
+			icon: <Repeat className="h-8 w-8 text-yellow-500" />,
+			description: t("startARecurringDeposit"),
+		},
+		{
+			label: t("fixedAccount"),
+			type: "fixed",
+			icon: <Lock className="h-8 w-8 text-red-500" />,
+			description: t("openAFixedDepositAccount"),
+		},
+		{
+			label: t("loanAccount"),
+			type: "loan",
+			icon: <Landmark className="h-8 w-8 text-blue-500" />,
+			description: t("applyForANewLoanProduct"),
+		},
+	];
 
 	return (
 		<div className="bg-gray-50 min-h-screen">
@@ -62,7 +64,9 @@ export const SelectAccountTypeView: FC = () => {
 						<ArrowLeft className="h-6 w-6" />
 					</Button>
 				</Link>
-				<h1 className="text-lg font-semibold ml-4">Select Account Type</h1>
+				<h1 className="text-lg font-semibold ml-4">
+					{t("selectAccountType")}
+				</h1>
 			</header>
 
 			<main className="p-6 ">
@@ -79,7 +83,9 @@ export const SelectAccountTypeView: FC = () => {
 								<div className="flex-shrink-0">{account.icon}</div>
 								<div>
 									<h2 className="text-lg font-semibold">{account.label}</h2>
-									<p className="text-sm text-gray-500">{account.description}</p>
+									<p className="text-sm text-gray-500">
+										{account.description}
+									</p>
 								</div>
 							</Card>
 						</Link>

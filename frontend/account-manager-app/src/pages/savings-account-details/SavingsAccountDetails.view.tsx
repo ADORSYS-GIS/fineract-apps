@@ -2,6 +2,7 @@ import { SavingsAccountTransactionData } from "@fineract-apps/fineract-api";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, HandCoins } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AccountActions, BlockAccountModal } from "./components";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
 
@@ -24,6 +25,7 @@ export const SavingsAccountDetailsView = (
 		closeBlockModal,
 	} = props;
 	const [activeTab, setActiveTab] = useState("Transactions");
+	const { t } = useTranslation();
 
 	if (isLoading) {
 		return <div>Loading...</div>;
@@ -52,7 +54,7 @@ export const SavingsAccountDetailsView = (
 						</div>
 						<div>
 							<p className="text-sm opacity-80">
-								{account?.savingsProductName}
+								{t("savingsAccountDetails")}
 							</p>
 							<div className="flex items-center gap-2">
 								<p className="text-xl font-bold">{account?.clientName}</p>
