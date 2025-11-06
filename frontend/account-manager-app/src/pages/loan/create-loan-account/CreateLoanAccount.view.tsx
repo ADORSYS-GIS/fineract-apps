@@ -1,9 +1,13 @@
-import { Card } from "@fineract-apps/ui";
+import { Button, Card } from "@fineract-apps/ui";
+import { useNavigate } from "@tanstack/react-router";
 import { FormikProvider } from "formik";
+import { useTranslation } from "react-i18next";
 import { LoanAccountForm } from "../common/LoanAccountForm";
 import { useCreateLoanAccount } from "./useCreateLoanAccount";
 
 export const CreateLoanAccountView = () => {
+	const { t } = useTranslation();
+	const navigate = useNavigate();
 	const {
 		formik,
 		loanTemplate,
@@ -19,6 +23,13 @@ export const CreateLoanAccountView = () => {
 
 	return (
 		<div className="container mx-auto max-w-5xl p-4 md:p-6 lg:p-8">
+			<Button
+				variant="outline"
+				className="mb-4"
+				onClick={() => navigate({ to: ".." })}
+			>
+				{t("back", "Back")}
+			</Button>
 			<Card>
 				<FormikProvider value={formik}>
 					<LoanAccountForm

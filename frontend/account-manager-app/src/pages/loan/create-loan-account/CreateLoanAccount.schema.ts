@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const loanDetailsSchema = z.object({
 	loanProductId: z.number().min(1, "Loan product is required"),
+	currencyCode: z.string().optional(),
 	externalId: z.string().optional(),
 	loanOfficerId: z.number().optional(),
 	linkAccountId: z.number().optional(),

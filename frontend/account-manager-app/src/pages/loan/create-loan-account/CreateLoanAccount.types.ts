@@ -40,6 +40,9 @@ export interface LoanDataWithLinkedAccount extends GetLoansLoanIdResponse {
 
 export interface LoanDetailsTemplate extends GetLoansTemplateResponse {
 	principal?: number;
+	currency?: {
+		code?: string;
+	};
 	termFrequency?: number;
 	termPeriodFrequencyType?: EnumOptionData;
 	numberOfRepayments?: number;

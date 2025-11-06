@@ -4,6 +4,7 @@ import {
 } from "@fineract-apps/fineract-api";
 import { Input } from "@fineract-apps/ui";
 import { useTranslation } from "react-i18next";
+import { CurrencyInput } from "../../common/CurrencyInput";
 import { LoanDetailsTemplate } from "../CreateLoanAccount.types";
 
 interface TermsStepViewProps {
@@ -15,7 +16,7 @@ export const TermsStepView = ({ loanDetails }: TermsStepViewProps) => {
 
 	return (
 		<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-			<Input
+			<CurrencyInput
 				name="principal"
 				label={t("principal", "Principal")}
 				type="number"

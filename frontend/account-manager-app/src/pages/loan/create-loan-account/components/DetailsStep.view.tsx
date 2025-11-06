@@ -43,11 +43,6 @@ export const DetailsStepView = ({
 				/>
 			</div>
 			<Input
-				name="externalId"
-				label={t("externalId", "External ID")}
-				disabled
-			/>
-			<Input
 				name="loanOfficerId"
 				label={t("loanOfficer", "Loan Officer")}
 				type="select"

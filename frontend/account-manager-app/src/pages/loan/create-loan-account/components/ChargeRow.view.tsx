@@ -1,6 +1,7 @@
 import { Button } from "@fineract-apps/ui";
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
+import { CurrencyInput } from "../../common/CurrencyInput";
 import { LoanDetailsTemplate } from "../CreateLoanAccount.types";
 
 interface ChargeRowProps {
@@ -23,7 +24,13 @@ export const ChargeRow: FC<ChargeRowProps> = ({ charge, index, onDelete }) => {
 						{charge.chargeCalculationType?.value}
 					</div>
 					<div className="text-gray-500">{t("amount", "Amount")}</div>
-					<div className="col-span-2">{charge.amount}</div>
+					<div className="col-span-2">
+						<CurrencyInput
+							name={`charges.${index}.amount`}
+							type="number"
+							disabled={charge.chargeCalculationType?.value !== "Flat"}
+						/>
+					</div>
 					<div className="text-gray-500">
 						{t("collectedOn", "Collected On")}
 					</div>
@@ -53,7 +60,16 @@ export const ChargeRow: FC<ChargeRowProps> = ({ charge, index, onDelete }) => {
 			<div className="hidden md:block px-2 py-2">
 				{charge.chargeCalculationType?.value}
 			</div>
-			<div className="hidden md:block px-2 py-2">{charge.amount}</div>
+			<div className="hidden md:block px-2 py-2">
+				<CurrencyInput
+					name={`charges.${index}.amount`}
+					type="number"
+					disabled={
+						!charge.chargeCalculationType?.value?.includes("Amount") &&
+						charge.chargeCalculationType?.value !== "Flat"
+					}
+				/>
+			</div>
 			<div className="hidden md:block px-2 py-2">
 				{charge.chargeTimeType?.value}
 			</div>

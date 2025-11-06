@@ -153,6 +153,7 @@ export const useLoanAccountForm = ({
 	const formik = useFormik<LoanDetailsFormValues>({
 		initialValues: {
 			loanProductId: 0,
+			currencyCode: "",
 			externalId: "",
 			loanOfficerId: undefined,
 			linkAccountId: undefined,
@@ -192,6 +193,7 @@ export const useLoanAccountForm = ({
 				loanProductId: loanData.loanProductId ?? 0,
 				externalId: loanData.externalId ?? "",
 				loanOfficerId: loanData.loanOfficerId,
+				currencyCode: loanData.currency?.code ?? "",
 				linkAccountId: (loanData as LoanDataWithLinkedAccount)?.linkedAccount
 					?.id,
 				loanPurposeId: loanData.loanPurposeId,
@@ -309,6 +311,7 @@ export const useLoanAccountForm = ({
 			setValues((currentValues) => ({
 				...currentValues,
 				principal: loanDetails.principal ?? currentValues.principal,
+				currencyCode: loanDetails.currency?.code ?? currentValues.currencyCode,
 				loanTermFrequency:
 					loanDetails.termFrequency ?? currentValues.loanTermFrequency,
 				loanTermFrequencyType:
