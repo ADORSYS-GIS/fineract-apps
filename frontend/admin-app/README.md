@@ -111,7 +111,7 @@ This directory contains all the React components used in the application. Each c
 -   **`UserDetails`**: This component is used to display the details of a user. It uses a consistent two-column layout, matching the `StaffDetails` component, with labels in the first column and values in the second.
 
 -   **`UserForm`**: This directory contains the form validation schema for the user form.
-    -   `userFormSchema.ts`: This file defines the Zod schema for the user form. It is used to validate the form data before submitting it to the server.
+    -   `userFormSchema.ts`: This file defines the Zod schema for the user form. It is used to validate the form data before submitting it to the server. To handle HTML form inputs that return string values for numeric fields, the schema uses `z.coerce.number()` to automatically convert strings to numbers before validation. It also enforces that a user can only be assigned a single role.
 
 -   **`UserStatusBadge`**: This component is used to display the status of a user.
     -   `UserStatusBadge.view.tsx`: This file contains the view for the user status badge. It receives a boolean `isActive` prop and displays a green badge for active users and a gray badge for inactive users.
