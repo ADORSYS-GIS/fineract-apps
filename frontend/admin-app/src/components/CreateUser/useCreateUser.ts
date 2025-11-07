@@ -61,7 +61,7 @@ export const useCreateUser = () => {
 
 		try {
 			const selectedStaff = staffData?.find(
-				(staff) => staff.id === values.staffId,
+				(staff) => staff.id === Number(values.staffId),
 			);
 
 			if (!selectedStaff) {
