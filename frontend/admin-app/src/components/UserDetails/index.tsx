@@ -29,7 +29,7 @@ export const UserDetails = () => {
 	};
 
 	const handleBack = () => {
-		navigate({ to: "/users" });
+		navigate({ to: "/users/list" });
 	};
 
 	return (
