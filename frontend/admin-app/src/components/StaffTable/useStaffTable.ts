@@ -10,7 +10,7 @@ export const useStaffTable = () => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ["staff"],
-		queryFn: () => StaffService.getV1Staff(),
+		queryFn: () => StaffService.getV1Staff({ status: "all" }),
 	});
 
 	const staff: Staff[] = (data || []).map((staff) => ({
