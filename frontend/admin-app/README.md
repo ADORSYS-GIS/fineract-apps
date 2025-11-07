@@ -7,7 +7,7 @@ This document provides a detailed explanation of the Fineract Administration UI,
 The Fineract Administration UI provides the following core functionalities:
 
 -   **Staff Management**: Create, view, edit, and manage staff.
--   **User Management**: Create, view, edit, and manage users, including assigning and changing their associated staff members.
+-   **User Management**: Create, view, edit, delete, and manage users, including assigning and changing their associated staff members.
 -   **User Status**: View the status of users (active, inactive, etc.).
 -   **Password Reset**: Reset user passwords.
 -   **Toast Notifications**: Display toast notifications for user actions.
@@ -179,6 +179,7 @@ The following Fineract API endpoints are used in the application:
 -   **`UsersService.getV1UsersTemplate()`**: Fetches the template for creating a new user. This is primarily used to get the list of available roles.
 -   **`UsersService.postV1Users({ requestBody })`**: Creates a new user.
 -   **`UsersService.putV1UsersByUserId({ userId, requestBody })`**: Updates an existing user.
+-   **`UsersService.deleteV1UsersByUserId({ userId })`**: Deletes an existing user.
 -   **`StaffService.getV1Staff()`**: Fetches a list of all staff members.
 -   **`StaffService.getV1StaffByStaffId({ staffId })`**: Fetches a single staff member by their ID.
 -   **`StaffService.postV1Staff({ requestBody })`**: Creates a new staff member.
