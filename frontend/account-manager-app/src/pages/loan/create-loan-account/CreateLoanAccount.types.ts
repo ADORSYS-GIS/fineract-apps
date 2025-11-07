@@ -1,6 +1,7 @@
 import {
 	GetLoansTemplateResponse as BaseGetLoansTemplateResponse,
 	PostLoansRequest as BasePostLoansRequest,
+	PutLoansLoanIdRequest as BasePutLoansLoanIdRequest,
 	ChargeData,
 	CodeValueData,
 	EnumOptionData,
@@ -32,6 +33,11 @@ export interface GetLoansTemplateResponse extends BaseGetLoansTemplateResponse {
 export interface PostLoansRequest extends BasePostLoansRequest {
 	loanPurposeId?: number;
 	fundId?: number;
+	loanOfficerId?: number;
+}
+
+export interface PutLoansLoanIdRequest extends BasePutLoansLoanIdRequest {
+	loanOfficerId?: number;
 }
 
 export interface LoanDataWithLinkedAccount extends GetLoansLoanIdResponse {

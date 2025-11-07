@@ -1,4 +1,5 @@
 import {
+	AuthenticationHttpBasicService,
 	ClientIdentifierService,
 	ClientSearchV2Service,
 	ClientService,
@@ -10,6 +11,7 @@ import {
 	OpenAPI,
 	SavingsAccountService,
 	SelfClientService,
+	SelfUserDetailsService,
 } from "@fineract-apps/fineract-api";
 
 OpenAPI.BASE = import.meta.env.VITE_FINERACT_API_URL;
@@ -25,6 +27,7 @@ OpenAPI.interceptors.request.use((request) => {
 });
 
 export const fineractApi = {
+	authentication: AuthenticationHttpBasicService,
 	clients: ClientService,
 	clientSearchV2: ClientSearchV2Service,
 	savingsAccounts: SavingsAccountService,
@@ -35,4 +38,5 @@ export const fineractApi = {
 	ClientIdentifierService: ClientIdentifierService,
 	DocumentsService: DocumentsService,
 	default: DefaultService,
+	selfUserDetails: SelfUserDetailsService,
 };

@@ -2,7 +2,6 @@ import {
 	CodeValueData,
 	FundData,
 	LoanProductData,
-	StaffData,
 } from "@fineract-apps/fineract-api";
 import { Input } from "@fineract-apps/ui";
 import { useTranslation } from "react-i18next";
@@ -42,22 +41,6 @@ export const DetailsStepView = ({
 					}
 				/>
 			</div>
-			<Input
-				name="loanOfficerId"
-				label={t("loanOfficer", "Loan Officer")}
-				type="select"
-				options={
-					effectiveTemplate?.loanOfficerOptions
-						?.map((option: StaffData) => ({
-							label: option.displayName,
-							value: option.id,
-						}))
-						.filter(
-							(option): option is { label: string; value: number } =>
-								option.label !== undefined && option.value !== undefined,
-						) || []
-				}
-			/>
 			<Input
 				name="loanPurposeId"
 				label={t("loanPurpose", "Loan Purpose")}

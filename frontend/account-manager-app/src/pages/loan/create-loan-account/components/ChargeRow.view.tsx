@@ -1,4 +1,4 @@
-import { Button } from "@fineract-apps/ui";
+import { Button, Input } from "@fineract-apps/ui";
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { CurrencyInput } from "../../common/CurrencyInput";
@@ -25,11 +25,20 @@ export const ChargeRow: FC<ChargeRowProps> = ({ charge, index, onDelete }) => {
 					</div>
 					<div className="text-gray-500">{t("amount", "Amount")}</div>
 					<div className="col-span-2">
-						<CurrencyInput
-							name={`charges.${index}.amount`}
-							type="number"
-							disabled={charge.chargeCalculationType?.value !== "Flat"}
-						/>
+						{charge.chargeCalculationType?.value === "Flat" ? (
+							<CurrencyInput
+								name={`charges.${index}.amount`}
+								type="number"
+								disabled={charge.chargeCalculationType?.value !== "Flat"}
+							/>
+						) : (
+							<div className="relative">
+								<Input name={`charges.${index}.amount`} type="number" />
+								<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+									<span className="text-gray-500 sm:text-sm">%</span>
+								</div>
+							</div>
+						)}
 					</div>
 					<div className="text-gray-500">
 						{t("collectedOn", "Collected On")}
@@ -61,14 +70,30 @@ export const ChargeRow: FC<ChargeRowProps> = ({ charge, index, onDelete }) => {
 				{charge.chargeCalculationType?.value}
 			</div>
 			<div className="hidden md:block px-2 py-2">
-				<CurrencyInput
-					name={`charges.${index}.amount`}
-					type="number"
-					disabled={
-						!charge.chargeCalculationType?.value?.includes("Amount") &&
-						charge.chargeCalculationType?.value !== "Flat"
-					}
-				/>
+				{charge.chargeCalculationType?.value === "Flat" ? (
+					<CurrencyInput
+						name={`charges.${index}.amount`}
+						type="number"
+						disabled={
+							!charge.chargeCalculationType?.value?.includes("Amount") &&
+							charge.chargeCalculationType?.value !== "Flat"
+						}
+					/>
+				) : (
+					<div className="relative">
+						<Input
+							name={`charges.${index}.amount`}
+							type="number"
+							disabled={
+								!charge.chargeCalculationType?.value?.includes("Amount") &&
+								charge.chargeCalculationType?.value !== "Flat"
+							}
+						/>
+						<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+							<span className="text-gray-500 sm:text-sm">%</span>
+						</div>
+					</div>
+				)}
 			</div>
 			<div className="hidden md:block px-2 py-2">
 				{charge.chargeTimeType?.value}

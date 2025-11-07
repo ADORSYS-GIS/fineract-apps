@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { LoanDetailsFormValues } from "@/pages/loan/create-loan-account/CreateLoanAccount.schema";
 import {
 	LoanDataWithLinkedAccount,
@@ -39,6 +40,7 @@ export const useLoanAccountForm = ({
 		useState<LoanRepaymentSchedule | null>(null);
 
 	const isEditMode = !!loanId;
+	const { userData, isUserDataLoading } = useAuth();
 
 	const { data: loanData, isLoading: isLoanDataLoading } = useQuery({
 		queryKey: ["loan", loanId],
@@ -66,7 +68,6 @@ export const useLoanAccountForm = ({
 		interestType: values.interestType,
 		interestCalculationPeriodType: values.interestCalculationPeriodType,
 		transactionProcessingStrategyCode: values.transactionProcessingStrategyCode,
-		loanOfficerId: values.loanOfficerId,
 		linkAccountId: values.linkAccountId,
 		loanType: "individual" as const,
 		locale: "en",
@@ -84,6 +85,7 @@ export const useLoanAccountForm = ({
 	): PostLoansRequest => ({
 		...createBaseLoanPayload(values),
 		clientId: Number(clientId) || loanData?.clientId,
+		loanOfficerId: values.loanOfficerId,
 		loanPurposeId: values.loanPurposeId,
 		fundId: values.fundId,
 		charges: values.charges?.map((charge) => ({
@@ -94,11 +96,8 @@ export const useLoanAccountForm = ({
 
 	const createEditLoanPayload = (
 		values: LoanDetailsFormValues,
-	): PutLoansLoanIdRequest => ({
-		...createBaseLoanPayload(values),
-		clientId: Number(clientId) || loanData?.clientId,
-		charges: [],
-	});
+	): PutLoansLoanIdRequest =>
+		createLoanPayload(values) as unknown as PutLoansLoanIdRequest;
 
 	const createLoanAccountMutation = useMutation<
 		PostLoansResponse,
@@ -155,8 +154,8 @@ export const useLoanAccountForm = ({
 			loanProductId: 0,
 			currencyCode: "",
 			externalId: "",
-			loanOfficerId: undefined,
 			linkAccountId: undefined,
+			loanOfficerId: undefined,
 			loanPurposeId: undefined,
 			fundId: undefined,
 			submittedOnDate: new Date().toISOString().split("T")[0],
@@ -187,16 +186,24 @@ export const useLoanAccountForm = ({
 
 	const { values, setValues } = formik;
 
+	const handleSubmit = () => {
+		if (!userData?.staffId) {
+			toast.error("Loan officer ID is not available. Please try again.");
+			return;
+		}
+		formik.handleSubmit();
+	};
+
 	useEffect(() => {
 		if (isEditMode && loanData) {
 			setValues({
 				loanProductId: loanData.loanProductId ?? 0,
 				externalId: loanData.externalId ?? "",
-				loanOfficerId: loanData.loanOfficerId,
 				currencyCode: loanData.currency?.code ?? "",
 				linkAccountId: (loanData as LoanDataWithLinkedAccount)?.linkedAccount
 					?.id,
 				loanPurposeId: loanData.loanPurposeId,
+				loanOfficerId: loanData.loanOfficerId,
 				fundId: undefined,
 				submittedOnDate: loanData.timeline?.submittedOnDate
 					? format(new Date(loanData.timeline.submittedOnDate), "yyyy-MM-dd")
@@ -356,17 +363,28 @@ export const useLoanAccountForm = ({
 		}
 	}, [loanDetails, setValues, isEditMode]);
 
+	useEffect(() => {
+		if (!isEditMode && userData?.staffId) {
+			setValues((currentValues) => ({
+				...currentValues,
+				loanOfficerId: userData.staffId,
+			}));
+		}
+	}, [isEditMode, userData, setValues]);
+
 	return {
 		formik,
 		loanTemplate,
-		isLoading: isLoading || isLoanDataLoading,
+		isLoading: isLoading || isLoanDataLoading || isUserDataLoading,
 		loanDetails,
 		isLoadingLoanDetails,
 		repaymentSchedule,
 		isCalculatingSchedule: calculateLoanScheduleMutation.isPending,
 		handleCalculateSchedule,
-		handleSubmit: formik.handleSubmit,
+		handleSubmit,
 		isSubmitting:
-			createLoanAccountMutation.isPending || editLoanAccountMutation.isPending,
+			createLoanAccountMutation.isPending ||
+			editLoanAccountMutation.isPending ||
+			isUserDataLoading,
 	};
 };

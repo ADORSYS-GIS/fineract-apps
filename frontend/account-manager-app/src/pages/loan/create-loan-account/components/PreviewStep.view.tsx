@@ -60,7 +60,7 @@ export const PreviewStepView: FC<PreviewStepProps> = ({
 									values.loanProductId,
 								)}
 							/>
-							<DetailItem
+							{/* <DetailItem
 								label={t("loanOfficer", "Loan Officer")}
 								value={
 									values.loanOfficerId
@@ -70,7 +70,7 @@ export const PreviewStepView: FC<PreviewStepProps> = ({
 											t("noLoanOfficerName", "Unknown Officer"))
 										: t("noLoanOfficer", "Not Assigned")
 								}
-							/>
+							/> */}
 							<DetailItem
 								label={t("loanPurpose", "Loan Purpose")}
 								value={getOptionLabel(
