@@ -6,6 +6,8 @@ import {
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { useState } from "react";
+import { useToast } from "@/components/Toast";
 import {
 	UserEditFormValues,
 	userEditFormSchema,
@@ -15,8 +17,10 @@ export const useEditUser = () => {
 	const { userId } = useParams({ from: "/users/$userId/edit" });
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const toast = useToast();
+	const [error, setError] = useState<string | null>(null);
 
-	const { data: user } = useQuery({
+	const { data: user, isLoading: isLoadingUser } = useQuery({
 		queryKey: ["users", userId],
 		queryFn: () =>
 			UsersService.getV1UsersByUserId({ userId: Number.parseInt(userId, 10) }),
@@ -37,20 +41,12 @@ export const useEditUser = () => {
 		queryFn: () => StaffService.getV1Staff(),
 	});
 
-	const {
-		mutate: updateUser,
-		isPending: isUpdatingUser,
-		error,
-	} = useMutation({
+	const { mutateAsync: updateUser, isPending: isUpdatingUser } = useMutation({
 		mutationFn: (updatedUser: UserEditFormValues) =>
 			UsersService.putV1UsersByUserId({
 				userId: Number.parseInt(userId, 10),
 				requestBody: updatedUser,
 			}),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["users"] });
-			navigate({ to: `/users/${userId}` });
-		},
 	});
 
 	const officeOptions = (offices || []).map((office) => ({
@@ -81,9 +77,23 @@ export const useEditUser = () => {
 			([] as number[]),
 	};
 
-	const onSubmit = (values: UserEditFormValues) => {
-		const updatedUser = userEditFormSchema.parse(values);
-		updateUser(updatedUser);
+	const onSubmit = async (values: UserEditFormValues) => {
+		setError(null);
+		try {
+			const updatedUser = userEditFormSchema.parse(values);
+			await updateUser(updatedUser);
+
+			toast.success("User updated successfully!");
+			queryClient.invalidateQueries({ queryKey: ["users"] });
+			navigate({ to: `/users/${userId}` });
+		} catch (err: unknown) {
+			const errorMessage =
+				(err as { body?: { errors?: Array<{ developerMessage?: string }> } })
+					.body?.errors?.[0]?.developerMessage ||
+				(err instanceof Error ? err.message : null) ||
+				"Failed to update user. Please try again.";
+			setError(errorMessage);
+		}
 	};
 
 	return {
@@ -92,8 +102,9 @@ export const useEditUser = () => {
 		staffOptions,
 		roleOptions,
 		isUpdatingUser,
+		isLoadingUser,
 		onSubmit,
 		user,
-		error: error?.message,
+		error,
 	};
 };

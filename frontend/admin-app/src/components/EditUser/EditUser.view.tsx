@@ -1,14 +1,15 @@
 import {
 	Button,
 	Card,
-	Form,
 	FormTitle,
 	Input,
 	SubmitButton,
 } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
-import { Formik } from "formik";
+import { Form, Formik } from "formik";
 import { ArrowLeft } from "lucide-react";
+import { toFormikValidationSchema } from "zod-formik-adapter";
+import { userEditFormSchema } from "@/components/UserForm/userFormSchema";
 import { useEditUser } from "./useEditUser";
 
 export const EditUserView = () => {
@@ -18,13 +19,26 @@ export const EditUserView = () => {
 		staffOptions,
 		roleOptions,
 		isUpdatingUser,
+		isLoadingUser,
 		onSubmit,
 		user,
 		error,
 	} = useEditUser();
 
+	if (isLoadingUser) {
+		return (
+			<Card variant="elevated">
+				<div className="p-8 text-center text-gray-500">Loading user...</div>
+			</Card>
+		);
+	}
+
 	if (!user) {
-		return <div>Loading...</div>;
+		return (
+			<Card variant="elevated">
+				<div className="p-8 text-center text-red-500">User not found.</div>
+			</Card>
+		);
 	}
 
 	return (
@@ -43,16 +57,17 @@ export const EditUserView = () => {
 				</p>
 			</div>
 
-			<div className="max-w-3xl">
+			<div className="max-w-3xl mx-auto">
 				<Card variant="elevated" size="lg">
 					<div className="p-6">
 						<Formik
 							initialValues={initialValues}
 							onSubmit={onSubmit}
+							validationSchema={toFormikValidationSchema(userEditFormSchema)}
 							enableReinitialize
 						>
-							{({ handleSubmit }) => (
-								<Form onSubmit={() => handleSubmit()}>
+							{() => (
+								<Form>
 									<FormTitle>User Information</FormTitle>
 
 									{error && (
