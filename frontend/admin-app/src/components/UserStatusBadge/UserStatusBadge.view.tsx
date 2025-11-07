@@ -1,7 +1,10 @@
 import { cn } from "@fineract-apps/ui";
 import type { UserStatusBadgeProps } from "./UserStatusBadge.types";
 
-export function UserStatusBadge({ isActive, className }: UserStatusBadgeProps) {
+export function UserStatusBadge({
+	isActive,
+	className,
+}: Readonly<UserStatusBadgeProps>) {
 	return (
 		<span
 			className={cn(
