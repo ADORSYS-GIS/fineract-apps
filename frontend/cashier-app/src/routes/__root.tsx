@@ -10,12 +10,14 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
+import { configureApi } from "../services/api";
 
 export interface MyRouterContext {
 	queryClient: QueryClient;
 }
 
 function RootLayout() {
+	configureApi();
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;

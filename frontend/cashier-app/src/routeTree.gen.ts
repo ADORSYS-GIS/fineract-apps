@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RepaymentIndexRouteImport } from './routes/repayment/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as RepaymentLoanIdRouteImport } from './routes/repayment/$loanId'
 import { Route as ClientsClientIdRouteImport } from './routes/clients/$clientId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -18,9 +20,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RepaymentIndexRoute = RepaymentIndexRouteImport.update({
+  id: '/repayment/',
+  path: '/repayment/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/dashboard/',
   path: '/dashboard/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RepaymentLoanIdRoute = RepaymentLoanIdRouteImport.update({
+  id: '/repayment/$loanId',
+  path: '/repayment/$loanId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
@@ -32,31 +44,55 @@ const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
+  '/repayment/$loanId': typeof RepaymentLoanIdRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/repayment': typeof RepaymentIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
+  '/repayment/$loanId': typeof RepaymentLoanIdRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/repayment': typeof RepaymentIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
+  '/repayment/$loanId': typeof RepaymentLoanIdRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/repayment/': typeof RepaymentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/clients/$clientId' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/clients/$clientId'
+    | '/repayment/$loanId'
+    | '/dashboard'
+    | '/repayment'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/clients/$clientId' | '/dashboard'
-  id: '__root__' | '/' | '/clients/$clientId' | '/dashboard/'
+  to:
+    | '/'
+    | '/clients/$clientId'
+    | '/repayment/$loanId'
+    | '/dashboard'
+    | '/repayment'
+  id:
+    | '__root__'
+    | '/'
+    | '/clients/$clientId'
+    | '/repayment/$loanId'
+    | '/dashboard/'
+    | '/repayment/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClientsClientIdRoute: typeof ClientsClientIdRoute
+  RepaymentLoanIdRoute: typeof RepaymentLoanIdRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  RepaymentIndexRoute: typeof RepaymentIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -68,11 +104,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/repayment/': {
+      id: '/repayment/'
+      path: '/repayment'
+      fullPath: '/repayment'
+      preLoaderRoute: typeof RepaymentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/': {
       id: '/dashboard/'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/repayment/$loanId': {
+      id: '/repayment/$loanId'
+      path: '/repayment/$loanId'
+      fullPath: '/repayment/$loanId'
+      preLoaderRoute: typeof RepaymentLoanIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients/$clientId': {
@@ -88,7 +138,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientsClientIdRoute: ClientsClientIdRoute,
+  RepaymentLoanIdRoute: RepaymentLoanIdRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  RepaymentIndexRoute: RepaymentIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
