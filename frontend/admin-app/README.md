@@ -116,8 +116,8 @@ This directory contains all the React components used in the application. Each c
 -   **`UserStatusBadge`**: This component is used to display the status of a user.
     -   `UserStatusBadge.view.tsx`: This file contains the view for the user status badge. It receives a boolean `isActive` prop and displays a green badge for active users and a gray badge for inactive users.
 
--   **`StaffTable`**: This component is used to display a table of staff members.
--   **`UserTable`**: This component is used to display a table of users.
+-   **`StaffTable`**: This component displays a table of staff members with search and pagination functionality.
+-   **`UserTable`**: This component displays a table of users with search and pagination functionality.
 
 ### `src/services/`
 
@@ -190,11 +190,11 @@ The following Fineract API endpoints are used in the application:
 
 This checklist can be used to verify that all core functionalities of the application are working correctly.
 
--   [x] **User List**: The user list is displayed correctly on the home page.
+-   [x] **User List**: The user list is displayed correctly with search and pagination.
 -   [x] **User Details**: Clicking on a user in the user list navigates to the user details page.
 -   [x] **Create User**: A "Create User" button is present on the user list page, and a new user can be created successfully.
 -   [x] **Edit User**: An existing user can be edited successfully.
--   [x] **Staff List**: The staff list is displayed correctly, and includes a "Create Staff" button.
+-   [x] **Staff List**: The staff list is displayed correctly with search and pagination, and includes a "Create Staff" button.
 -   [x] **Staff Details**: Clicking on a staff member in the staff list navigates to the staff details page.
 -   [x] **Edit Staff**: An existing staff member can be edited successfully.
 -   [ ] **Password Reset**: A password reset email can be sent to a user.

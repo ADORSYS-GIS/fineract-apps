@@ -14,4 +14,9 @@ export type StaffTableProps = {
 	readonly onRowClick?: (staffId: number) => void;
 	readonly onEditClick?: (staffId: number) => void;
 	readonly onAssignUserClick?: (staffId: number) => void;
+	readonly searchTerm: string;
+	readonly setSearchTerm: (searchTerm: string) => void;
+	readonly currentPage: number;
+	readonly setCurrentPage: (page: number) => void;
+	readonly totalPages: number;
 };

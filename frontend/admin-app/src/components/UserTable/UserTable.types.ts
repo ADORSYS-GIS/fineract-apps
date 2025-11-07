@@ -16,4 +16,9 @@ export interface UserTableProps {
 	readonly isLoading?: boolean;
 	readonly onRowClick?: (userId: number) => void;
 	readonly onToggleStatus?: (userId: number, currentStatus: boolean) => void;
+	readonly searchTerm: string;
+	readonly setSearchTerm: (searchTerm: string) => void;
+	readonly currentPage: number;
+	readonly setCurrentPage: (page: number) => void;
+	readonly totalPages: number;
 }

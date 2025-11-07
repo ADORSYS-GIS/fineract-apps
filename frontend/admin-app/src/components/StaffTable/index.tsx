@@ -3,7 +3,15 @@ import { StaffTable as StaffTableView } from "@/components/StaffTable/StaffTable
 import { useStaffTable } from "@/components/StaffTable/useStaffTable";
 
 export const StaffTable = () => {
-	const { staff, isLoading } = useStaffTable();
+	const {
+		staff,
+		isLoading,
+		searchTerm,
+		setSearchTerm,
+		currentPage,
+		setCurrentPage,
+		totalPages,
+	} = useStaffTable();
 	const navigate = useNavigate();
 
 	const handleRowClick = (staffId: number) => {
@@ -25,6 +33,11 @@ export const StaffTable = () => {
 			onRowClick={handleRowClick}
 			onEditClick={handleEditClick}
 			onAssignUserClick={handleAssignUserClick}
+			searchTerm={searchTerm}
+			setSearchTerm={setSearchTerm}
+			currentPage={currentPage}
+			setCurrentPage={setCurrentPage}
+			totalPages={totalPages}
 		/>
 	);
 };
