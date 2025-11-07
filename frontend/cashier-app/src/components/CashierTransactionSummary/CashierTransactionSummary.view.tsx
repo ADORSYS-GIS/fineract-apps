@@ -1,8 +1,7 @@
-import { Button, Card } from "@fineract-apps/ui";
+import { Button, Card, formatCurrency } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
 import { Route } from "@/routes/dashboard/index.tsx";
-import { formatCurrency } from "@/utils/currency";
 import { extractClientNameFromTxnNote } from "@/utils/transaction";
 import { CashierTransactionSummaryViewProps } from "./CashierTransactionSummary.types";
 

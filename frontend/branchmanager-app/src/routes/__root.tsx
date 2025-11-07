@@ -1,21 +1,42 @@
 import {
 	AppLayout,
-	Button,
-	logout,
 	menuBranchManager,
 	Navbar,
 	Sidebar,
 } from "@fineract-apps/ui";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	Outlet,
+	useNavigate,
+	useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
+import { Toaster } from "react-hot-toast";
+
+function onLogout() {
+	const base = import.meta.env.BASE_URL ?? "/branchmanager/";
+	const appBase = base.endsWith("/") ? base : `${base}/`;
+	const redirectTo = `${globalThis.location.origin}${appBase}`;
+	globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(
+		redirectTo,
+	)}`;
+}
 
 function RootLayout() {
-	const handleLogout = () => logout();
+	const navigate = useNavigate();
+	const routerState = useRouterState();
+	const currentPath = routerState.location.pathname;
 	return (
 		<AppLayout
 			sidebar={
-				<Sidebar menuItems={menuBranchManager} onLogout={handleLogout} />
+				<Sidebar
+					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
+					menuItems={menuBranchManager}
+					activePath={currentPath}
+					onNavigate={(to) => navigate({ to })}
+					onLogout={onLogout}
+				/>
 			}
 			navbar={
 				<Navbar
@@ -27,17 +48,13 @@ function RootLayout() {
 							<UserCircle className="w-5 h-5 text-gray-600" />
 						</div>
 					}
-					actions={<Button onClick={handleLogout}>Logout</Button>}
-					onToggleMenu={() => {
-						/* noop */
-					}}
-					isMenuOpen={false}
 					variant="primary"
 					size="md"
 				/>
 			}
 		>
 			<Outlet />
+			<Toaster />
 			<TanStackRouterDevtools />
 		</AppLayout>
 	);

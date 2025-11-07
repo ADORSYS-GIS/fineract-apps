@@ -1,3 +1,1 @@
-export interface DashboardViewProps {
-	readonly onLogout: () => void;
-}
+export interface DashboardViewProps {}

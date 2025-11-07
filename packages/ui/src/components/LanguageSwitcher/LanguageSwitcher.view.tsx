@@ -10,22 +10,17 @@ export const LanguageSwitcher = () => {
 
 	return (
 		<div className="flex gap-2">
-			<Button
-				variant="ghost"
-				size="sm"
-				onClick={() => changeLanguage("en")}
-				disabled={i18n.language === "en"}
-			>
-				EN
-			</Button>
-			<Button
-				variant="ghost"
-				size="sm"
-				onClick={() => changeLanguage("fr")}
-				disabled={i18n.language === "fr"}
-			>
-				FR
-			</Button>
+			{Object.keys(i18n.options.resources || {}).map((lang) => (
+				<Button
+					key={lang}
+					variant="ghost"
+					size="sm"
+					onClick={() => changeLanguage(lang)}
+					disabled={i18n.language.startsWith(lang)}
+				>
+					{lang.toUpperCase()}
+				</Button>
+			))}
 		</div>
 	);
 };
