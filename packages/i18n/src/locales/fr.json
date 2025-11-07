@@ -162,6 +162,8 @@
 		"idCard": "Carte d'identité",
 		"driversLicense": "Permis de conduire",
 		"otherTypes": "Autres types",
-		"passport": "Passeport"
+		"passport": "Passeport",
+		"staff": "Personnel",
+		"tellers/cashiers": "Guichetier et caissier"
 	}
 }

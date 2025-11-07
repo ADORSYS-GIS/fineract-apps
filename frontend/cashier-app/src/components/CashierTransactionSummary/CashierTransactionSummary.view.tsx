@@ -182,7 +182,8 @@ export function CashierTransactionSummaryView({
 				<div className="flex items-center justify-between pt-4">
 					<span className="text-sm text-gray-700">
 						{t("page")}{" "}
-						<span className="font-semibold text-gray-900">{page}</span> {t("of")}{" "}
+						<span className="font-semibold text-gray-900">{page}</span>{" "}
+						{t("of")}{" "}
 						<span className="font-semibold text-gray-900">{totalPages}</span>
 					</span>
 					<div className="flex items-center gap-2">

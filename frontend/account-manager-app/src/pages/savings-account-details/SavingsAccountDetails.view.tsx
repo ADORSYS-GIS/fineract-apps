@@ -53,9 +53,7 @@ export const SavingsAccountDetailsView = (
 							<HandCoins className="h-8 w-8" />
 						</div>
 						<div>
-							<p className="text-sm opacity-80">
-								{t("savingsAccountDetails")}
-							</p>
+							<p className="text-sm opacity-80">{t("savingsAccountDetails")}</p>
 							<div className="flex items-center gap-2">
 								<p className="text-xl font-bold">{account?.clientName}</p>
 								{isBlocked && (

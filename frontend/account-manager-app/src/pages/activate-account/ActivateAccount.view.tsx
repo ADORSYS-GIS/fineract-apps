@@ -38,9 +38,7 @@ export const ActivateAccountView: FC<
 					<Card className="w-full max-w-md p-6 text-center">
 						<div className="mb-4">
 							<h3 className="text-xl font-bold">{t("accountActivated")}</h3>
-							<p className="text-gray-600 mt-2">
-								{t("theAccountIsNowActive")}
-							</p>
+							<p className="text-gray-600 mt-2">{t("theAccountIsNowActive")}</p>
 						</div>
 						<Link to="/dashboard">
 							<Button className="w-full">{t("done")}</Button>

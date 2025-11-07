@@ -23,9 +23,7 @@ export const CreateAccountView: FC<
 			<main className="flex-1 flex items-center justify-center p-4">
 				<Card className="w-full max-w-md p-8 space-y-6">
 					<div className="text-center">
-						<h2 className="text-2xl font-bold">
-							{t("confirmAccountDetails")}
-						</h2>
+						<h2 className="text-2xl font-bold">{t("confirmAccountDetails")}</h2>
 					</div>
 					<form className="space-y-4">
 						<div>

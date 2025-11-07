@@ -14,11 +14,7 @@ export const EditClientDetails: FC<{
 	const { onSubmit, isEditingClient } = useEditClient(onClose);
 
 	return (
-		<Modal
-			isOpen={isOpen}
-			onClose={onClose}
-			title={t("editClientDetails")}
-		>
+		<Modal isOpen={isOpen} onClose={onClose} title={t("editClientDetails")}>
 			<Form
 				initialValues={{
 					firstname: client?.firstname ?? "",

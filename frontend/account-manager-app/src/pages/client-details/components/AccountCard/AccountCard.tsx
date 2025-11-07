@@ -22,11 +22,11 @@ interface AccountCardProps {
 }
 
 const productColors: { [key: string]: string } = {
-	"savingsAccount": "border-blue-500",
-	"shareAccount": "border-yellow-500",
-	"recurringDepositAccount": "border-purple-500",
-	"fixedDepositsAccount": "border-pink-500",
-	"loanAccount": "border-red-500",
+	savingsAccount: "border-blue-500",
+	shareAccount: "border-yellow-500",
+	recurringDepositAccount: "border-purple-500",
+	fixedDepositsAccount: "border-pink-500",
+	loanAccount: "border-red-500",
 };
 
 export const AccountCard: FC<AccountCardProps> = ({

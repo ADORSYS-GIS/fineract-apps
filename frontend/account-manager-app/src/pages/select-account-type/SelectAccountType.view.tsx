@@ -1,5 +1,4 @@
 import { Button, Card } from "@fineract-apps/ui";
-import { useTranslation } from "react-i18next";
 import { Link, useParams } from "@tanstack/react-router";
 import {
 	AreaChart,
@@ -10,6 +9,7 @@ import {
 	Repeat,
 } from "lucide-react";
 import { FC, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 export const SelectAccountTypeView: FC = () => {
 	const { clientId } = useParams({ from: "/select-account-type/$clientId" });
@@ -64,9 +64,7 @@ export const SelectAccountTypeView: FC = () => {
 						<ArrowLeft className="h-6 w-6" />
 					</Button>
 				</Link>
-				<h1 className="text-lg font-semibold ml-4">
-					{t("selectAccountType")}
-				</h1>
+				<h1 className="text-lg font-semibold ml-4">{t("selectAccountType")}</h1>
 			</header>
 
 			<main className="p-6 ">
@@ -83,9 +81,7 @@ export const SelectAccountTypeView: FC = () => {
 								<div className="flex-shrink-0">{account.icon}</div>
 								<div>
 									<h2 className="text-lg font-semibold">{account.label}</h2>
-									<p className="text-sm text-gray-500">
-										{account.description}
-									</p>
+									<p className="text-sm text-gray-500">{account.description}</p>
 								</div>
 							</Card>
 						</Link>

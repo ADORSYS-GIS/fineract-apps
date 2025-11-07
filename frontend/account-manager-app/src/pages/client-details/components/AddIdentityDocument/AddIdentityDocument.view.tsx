@@ -13,11 +13,7 @@ export const AddIdentityDocument: FC<{
 	const { t } = useTranslation();
 
 	return (
-		<Modal
-			isOpen={isOpen}
-			onClose={onClose}
-			title={t("addIdentityDocument")}
-		>
+		<Modal isOpen={isOpen} onClose={onClose} title={t("addIdentityDocument")}>
 			<Form initialValues={initialValues} onSubmit={onSubmit}>
 				<div className="space-y-4">
 					<Input

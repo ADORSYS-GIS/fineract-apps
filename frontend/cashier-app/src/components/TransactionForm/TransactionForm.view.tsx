@@ -6,8 +6,8 @@ import {
 	Input,
 	SubmitButton,
 } from "@fineract-apps/ui";
-import type { TransactionFormViewProps } from "./TransactionForm.types";
 import { useTranslation } from "react-i18next";
+import type { TransactionFormViewProps } from "./TransactionForm.types";
 import { useTransactionForm } from "./useTransactionForm";
 
 export const TransactionFormView = ({

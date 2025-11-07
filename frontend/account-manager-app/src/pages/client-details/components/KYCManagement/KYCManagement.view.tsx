@@ -109,9 +109,7 @@ export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 				{t("kycManagement")}
 			</h3>
 			<div className="bg-white rounded-lg shadow-md p-6">
-				<h4 className="font-semibold text-gray-700 mb-4">
-					{t("identities")}
-				</h4>
+				<h4 className="font-semibold text-gray-700 mb-4">{t("identities")}</h4>
 				<Button
 					className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-6"
 					onClick={onAddIdentity}
