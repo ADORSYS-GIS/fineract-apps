@@ -1,9 +1,8 @@
-import { Button } from "@fineract-apps/ui";
+import { Button, formatCurrency } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { formatCurrency } from "@/utils/currency";
 import { TransactionForm } from "../TransactionForm";
 import { ClientDetailsViewProps } from "./ClientDetails.types";
 
