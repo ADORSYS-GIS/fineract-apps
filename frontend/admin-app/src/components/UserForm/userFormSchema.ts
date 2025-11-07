@@ -22,12 +22,9 @@ export const userFormSchema = z
 					message: "Invalid email address",
 				},
 			),
-		officeId: z.number().min(1, "Office is required"),
-		staffId: z.number().min(1, "Staff is required"),
-		roles: z
-			.array(z.number())
-			.min(1, "At least one role is required")
-			.nonempty("At least one role is required"),
+		officeId: z.coerce.number().min(1, "Office is required"),
+		staffId: z.coerce.number().min(1, "Staff is required"),
+		roles: z.coerce.number().min(1, "At least one role is required"),
 		sendPasswordToEmail: z.boolean().default(true),
 		password: z.string().optional(),
 		repeatPassword: z.string().optional(),

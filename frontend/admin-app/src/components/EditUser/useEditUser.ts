@@ -45,7 +45,10 @@ export const useEditUser = () => {
 		mutationFn: (updatedUser: UserEditFormValues) =>
 			UsersService.putV1UsersByUserId({
 				userId: Number.parseInt(userId, 10),
-				requestBody: updatedUser,
+				requestBody: {
+					...updatedUser,
+					roles: [updatedUser.roles],
+				},
 			}),
 	});
 
@@ -72,9 +75,7 @@ export const useEditUser = () => {
 		email: user?.email || "",
 		officeId: user?.officeId || 0,
 		staffId: user?.staff?.id || 0,
-		roles:
-			user?.selectedRoles?.map((role) => role.id).filter((id) => id != null) ||
-			([] as number[]),
+		roles: user?.selectedRoles?.[0]?.id || 0,
 	};
 
 	const onSubmit = async (values: UserEditFormValues) => {
