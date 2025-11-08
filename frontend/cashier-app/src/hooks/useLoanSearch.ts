@@ -10,18 +10,19 @@ import toast from "react-hot-toast";
 
 export const useLoanSearch = () => {
 	const [searchQuery, setSearchQuery] = useState("");
+	const [submittedQuery, setSubmittedQuery] = useState("");
 	const navigate = useNavigate();
 
 	const queryResult = useQuery<GetLoansResponse, ApiError>({
-		queryKey: ["loanAccount", searchQuery],
+		queryKey: ["loanAccount", submittedQuery],
 		queryFn: () => {
-			if (!searchQuery) throw new Error("Invalid account number");
+			if (!submittedQuery) throw new Error("Invalid account number");
 			return LoansService.getV1Loans({
-				accountNo: searchQuery,
+				accountNo: submittedQuery,
 				associations: "all",
 			});
 		},
-		enabled: !!searchQuery,
+		enabled: !!submittedQuery,
 		retry: false,
 	});
 
@@ -52,8 +53,8 @@ export const useLoanSearch = () => {
 		}
 	}, [queryResult.data, queryResult.isError, queryResult.error, navigate]);
 
-	const handleSearch = (query: string) => {
-		setSearchQuery(query);
+	const handleSearch = () => {
+		setSubmittedQuery(searchQuery);
 	};
 
 	return {
