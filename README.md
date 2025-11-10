@@ -1,3 +1,9 @@
+[![Frontend Apps CI](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/ci-frontend-apps.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/ci-frontend-apps.yml)
+[![Build](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/build.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/build.yml)
+[![Node.js CI](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/node.js.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/node.js.yml)
+[![Publish Frontend Images](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/publish-frontend-images.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/publish-frontend-images.yml)
+
+
 # Fineract Frontend Apps
 
 A modern, production-ready monorepo containing frontend applications for the Apache Fineract microfinance platform. Built with React 19, TypeScript, and TanStack ecosystem with full CI/CD automation.
