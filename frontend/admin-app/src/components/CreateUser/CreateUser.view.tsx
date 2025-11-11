@@ -8,9 +8,11 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Form, Formik } from "formik";
 import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useCreateUser } from "./useCreateUser";
 
 export const CreateUserView = () => {
+	const { t } = useTranslation();
 	const {
 		initialValues,
 		staffOptions,
@@ -25,14 +27,16 @@ export const CreateUserView = () => {
 			<Link to="/users/list">
 				<Button variant="ghost" size="sm" className="mb-4">
 					<ArrowLeft className="w-4 h-4 mr-2" />
-					Back to Users
+					{t("backToUsers")}
 				</Button>
 			</Link>
 
 			<div className="mb-6">
-				<h1 className="text-2xl font-bold text-gray-800">Create New User</h1>
+				<h1 className="text-2xl font-bold text-gray-800">
+					{t("createNewUser")}
+				</h1>
 				<p className="text-sm text-gray-600 mt-1">
-					Add a new user account to the system
+					{t("addUserDescription")}
 				</p>
 			</div>
 
@@ -46,7 +50,7 @@ export const CreateUserView = () => {
 						>
 							{() => (
 								<Form>
-									<FormTitle>User Information</FormTitle>
+									<FormTitle>{t("userInformation")}</FormTitle>
 
 									{error && (
 										<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -57,16 +61,16 @@ export const CreateUserView = () => {
 									<div className="space-y-4">
 										<Input
 											name="username"
-											label="Username"
+											label={t("username")}
 											type="text"
-											placeholder="Enter username"
+											placeholder={t("enterUsername")}
 											required
-											helperText="Username cannot be changed after creation"
+											helperText={t("usernameHelperText")}
 										/>
 
 										<Input
 											name="email"
-											label="Email Address"
+											label={t("emailAddress")}
 											type="email"
 											placeholder="user@example.com"
 											required
@@ -74,7 +78,7 @@ export const CreateUserView = () => {
 
 										<Input
 											name="staffId"
-											label="Staff"
+											label={t("staff")}
 											type="select"
 											required
 											options={staffOptions}
@@ -82,41 +86,43 @@ export const CreateUserView = () => {
 
 										<Input
 											name="roles"
-											label="Roles"
+											label={t("roles")}
 											type="select"
 											required
 											options={roleOptions}
-											helperText="Select one or more roles for this user"
+											helperText={t("rolesHelperText")}
 										/>
 
 										<Input
 											name="password"
-											label="Password (Optional)"
+											label={t("passwordOptional")}
 											type="password"
-											placeholder="Enter password"
+											placeholder={t("enterPassword")}
 										/>
 										<Input
 											name="repeatPassword"
-											label="Repeat Password"
+											label={t("repeatPassword")}
 											type="password"
-											placeholder="Repeat password"
+											placeholder={t("repeatPassword")}
 										/>
 										<Input
 											name="sendPasswordToEmail"
-											label="Send password to email"
+											label={t("sendPasswordToEmail")}
 											type="checkbox"
-											helperText="A temporary password will be generated and sent to the user's email"
+											helperText={t("sendPasswordToEmailHelperText")}
 										/>
 
 										<div className="pt-4 flex items-center gap-3">
 											<SubmitButton
 												label={
-													isCreatingUser ? "Creating User..." : "Create User"
+													isCreatingUser
+														? t("creatingUser")
+														: t("createUser")
 												}
 											/>
 											<Link to="/users/list">
 												<Button type="button" variant="outline">
-													Cancel
+													{t("cancel")}
 												</Button>
 											</Link>
 										</div>

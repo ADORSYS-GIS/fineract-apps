@@ -12,7 +12,9 @@ import { toFormikValidationSchema } from "zod-formik-adapter";
 import { staffFormSchema } from "@/components/StaffForm/staffFormSchema";
 import { useCreateStaff } from "./useCreateStaff";
 
+import { useTranslation } from "react-i18next";
 export const CreateStaffView = () => {
+	const { t } = useTranslation();
 	const { initialValues, officeOptions, isCreatingStaff, onSubmit, error } =
 		useCreateStaff();
 
@@ -21,14 +23,16 @@ export const CreateStaffView = () => {
 			<Link to="/staff/list">
 				<Button variant="ghost" size="sm" className="mb-4">
 					<ArrowLeft className="w-4 h-4 mr-2" />
-					Back to Staff
+					{t("backToStaff")}
 				</Button>
 			</Link>
 
 			<div className="mb-6">
-				<h1 className="text-2xl font-bold text-gray-800">Create New Staff</h1>
+				<h1 className="text-2xl font-bold text-gray-800">
+					{t("createNewStaff")}
+				</h1>
 				<p className="text-sm text-gray-600 mt-1">
-					Add a new staff member to the system
+					{t("addStaffDescription")}
 				</p>
 			</div>
 
@@ -43,7 +47,7 @@ export const CreateStaffView = () => {
 						>
 							{() => (
 								<Form>
-									<FormTitle>Staff Information</FormTitle>
+									<FormTitle>{t("staffInformation")}</FormTitle>
 
 									{error && (
 										<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -55,31 +59,31 @@ export const CreateStaffView = () => {
 										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 											<Input
 												name="firstname"
-												label="First Name"
+												label={t("firstName")}
 												type="text"
-												placeholder="Enter first name"
+												placeholder={t("enterFirstName")}
 												required
 											/>
 
 											<Input
 												name="lastname"
-												label="Last Name"
+												label={t("lastName")}
 												type="text"
-												placeholder="Enter last name"
+												placeholder={t("enterLastName")}
 												required
 											/>
 										</div>
 
 										<Input
 											name="mobileNo"
-											label="Phone Number (Optional)"
+											label={t("phoneNumberOptional")}
 											type="text"
 											placeholder="+1234567890"
 										/>
 
 										<Input
 											name="officeId"
-											label="Office"
+											label={t("office")}
 											type="select"
 											required
 											options={officeOptions}
@@ -87,28 +91,34 @@ export const CreateStaffView = () => {
 
 										<Input
 											name="joiningDate"
-											label="Joining Date"
+											label={t("joiningDate")}
 											type="date"
 											required
 										/>
 
 										<Input
 											name="isLoanOfficer"
-											label="Is Loan Officer"
+											label={t("isLoanOfficer")}
 											type="checkbox"
 										/>
 
-										<Input name="isActive" label="Is Active" type="checkbox" />
+										<Input
+											name="isActive"
+											label={t("isActive")}
+											type="checkbox"
+										/>
 
 										<div className="pt-4 flex items-center gap-3">
 											<SubmitButton
 												label={
-													isCreatingStaff ? "Creating Staff..." : "Create Staff"
+													isCreatingStaff
+														? t("creatingStaff")
+														: t("createStaff")
 												}
 											/>
 											<Link to="/staff/list">
 												<Button type="button" variant="outline">
-													Cancel
+													{t("cancel")}
 												</Button>
 											</Link>
 										</div>

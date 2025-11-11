@@ -1,5 +1,6 @@
 import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
 import { Eye } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { UserStatusBadge } from "../UserStatusBadge";
 import type { UserTableProps } from "./UserTable.types";
 
@@ -13,6 +14,7 @@ export function UserTable({
 	setCurrentPage,
 	totalPages,
 }: Readonly<UserTableProps>) {
+	const { t } = useTranslation();
 	if (isLoading) {
 		return (
 			<Card variant="elevated">
@@ -26,7 +28,7 @@ export function UserTable({
 			<Card variant="elevated">
 				<div className="p-4">
 					<SearchBar
-						placeholder="Search by name or username..."
+						placeholder={t("searchByNameOrUsername")}
 						value={searchTerm}
 						onValueChange={setSearchTerm}
 					/>
@@ -36,22 +38,22 @@ export function UserTable({
 						<thead className="bg-gray-50 border-b border-gray-200">
 							<tr>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Username
+									{t("username")}
 								</th>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Name
+									{t("name")}
 								</th>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Email
+									{t("email")}
 								</th>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Office
+									{t("office")}
 								</th>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Status
+									{t("status")}
 								</th>
 								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Actions
+									{t("actions")}
 								</th>
 							</tr>
 						</thead>

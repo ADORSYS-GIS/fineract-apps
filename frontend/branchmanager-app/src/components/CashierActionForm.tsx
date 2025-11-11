@@ -10,6 +10,13 @@ import { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
+export const cashierActionSchema = z.object({
+	amount: z.number().gt(0),
+	currencyCode: z.string().min(1),
+	date: z.string().min(1),
+	notes: z.string().optional(),
+});
+
 export const getCashierActionSchema = (t: TFunction) =>
 	z.object({
 		amount: z.number().gt(0, t("amountMustBeGreaterThan0")),

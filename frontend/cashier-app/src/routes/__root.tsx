@@ -13,20 +13,14 @@ import { Toaster } from "react-hot-toast";
 
 export interface MyRouterContext {
 	queryClient: QueryClient;
+	onLogout: () => void;
 }
 
 function RootLayout() {
 	const navigate = useNavigate();
 	const routerState = useRouterState();
+	const { onLogout } = Route.useRouteContext();
 	const currentPath = routerState.location.pathname;
-	function onLogout() {
-		const base = import.meta.env.BASE_URL || "/cashier/";
-		const appBase = base.endsWith("/") ? base : `${base}/`;
-		const redirectTo = `${window.location.origin}${appBase}`;
-		window.location.href = `${appBase}callback?logout=${encodeURIComponent(
-			redirectTo,
-		)}`;
-	}
 	return (
 		<AppLayout
 			sidebar={
@@ -60,7 +54,20 @@ function RootLayout() {
 		</AppLayout>
 	);
 }
-
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: RootLayout,
+	beforeLoad: (opts) => {
+		const onLogout = () => {
+			const base = import.meta.env.BASE_URL || "/cashier/";
+			const appBase = base.endsWith("/") ? base : `${base}/`;
+			const redirectTo = `${window.location.origin}${appBase}`;
+			window.location.href = `${appBase}callback?logout=${encodeURIComponent(
+				redirectTo,
+			)}`;
+		};
+		return {
+			...opts.context,
+			onLogout,
+		};
+	},
 });

@@ -38,13 +38,24 @@ export const Input: React.FC<InputProps> = ({
 			id,
 			className: inputClasses,
 			disabled,
+			required: rest.required,
+			onInvalid: (e: React.FormEvent<HTMLInputElement>) => {
+				const target = e.target as HTMLInputElement;
+				target.setCustomValidity(t("form.validation.required"));
+			},
+			onInput: (e: React.FormEvent<HTMLInputElement>) => {
+				const target = e.target as HTMLInputElement;
+				target.setCustomValidity("");
+			},
 			...rest,
 		};
 
 		if (type === "select") {
 			return (
 				<Field as="select" {...fieldProps}>
-					<option value="">{t("choose", { label })}</option>
+					<option value="">
+						{name === "roles" ? t("choose_a_role") : t("choose", { label })}
+					</option>
 					{options?.map((opt) => (
 						<option key={String(opt.value)} value={String(opt.value)}>
 							{opt.label}

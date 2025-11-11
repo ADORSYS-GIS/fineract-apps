@@ -3,6 +3,7 @@ import {
 	GetUsersUserIdResponse as User,
 } from "@fineract-apps/fineract-api";
 import { Button, Card } from "@fineract-apps/ui";
+import { useTranslation } from "react-i18next";
 
 export type UserDetailsViewProps = {
 	user: User;
@@ -19,29 +20,30 @@ export const UserDetailsView = ({
 	onChangePassword,
 	onBack,
 }: UserDetailsViewProps) => {
+	const { t } = useTranslation();
 	return (
 		<div className="flex flex-col items-center justify-center p-6">
 			<div className="w-full max-w-5xl flex justify-end gap-4 mb-6">
 				<Button variant="outline" onClick={onEdit}>
-					Edit
+					{t("edit")}
 				</Button>
 				<Button variant="destructive" onClick={onDelete}>
-					Delete
+					{t("delete")}
 				</Button>
 				<Button variant="secondary" onClick={onChangePassword}>
-					Change Password
+					{t("changePassword")}
 				</Button>
 			</div>
 			<Card variant="elevated" className="p-8 w-full max-w-5xl">
 				<div className="grid grid-cols-2 gap-x-8 gap-y-4">
 					<div className="space-y-4">
-						<p className="font-medium text-gray-500">Login Name</p>
-						<p className="font-medium text-gray-500">First Name</p>
-						<p className="font-medium text-gray-500">Last Name</p>
-						<p className="font-medium text-gray-500">Email</p>
-						<p className="font-medium text-gray-500">Office</p>
-						<p className="font-medium text-gray-500">Roles</p>
-						<p className="font-medium text-gray-500">Joining Date</p>
+						<p className="font-medium text-gray-500">{t("loginName")}</p>
+						<p className="font-medium text-gray-500">{t("firstName")}</p>
+						<p className="font-medium text-gray-500">{t("lastName")}</p>
+						<p className="font-medium text-gray-500">{t("email")}</p>
+						<p className="font-medium text-gray-500">{t("office")}</p>
+						<p className="font-medium text-gray-500">{t("roles")}</p>
+						<p className="font-medium text-gray-500">{t("joiningDate")}</p>
 					</div>
 					<div className="space-y-4">
 						<p className="text-gray-900">{user.username}</p>
@@ -64,7 +66,7 @@ export const UserDetailsView = ({
 					</div>
 				</div>
 				<div className="mt-8 flex justify-end">
-					<Button onClick={onBack}>Back</Button>
+					<Button onClick={onBack}>{t("back")}</Button>
 				</div>
 			</Card>
 		</div>

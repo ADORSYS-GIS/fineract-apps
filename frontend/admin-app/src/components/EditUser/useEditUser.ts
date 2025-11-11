@@ -7,6 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/Toast";
 import {
 	UserEditFormValues,
@@ -14,6 +15,7 @@ import {
 } from "@/components/UserForm/userFormSchema";
 
 export const useEditUser = () => {
+	const { t } = useTranslation();
 	const { userId } = useParams({ from: "/users/$userId/edit" });
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
@@ -64,7 +66,7 @@ export const useEditUser = () => {
 		})) || [];
 
 	const roleOptions = (roles || []).map((role) => ({
-		label: role.name || "",
+		label: t(role.name || ""),
 		value: role.id || 0,
 	}));
 

@@ -1,6 +1,7 @@
 import { Button } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { UserDetailsView } from "./UserDetails.view";
 import { useUserDetails } from "./useUserDetails";
 
@@ -8,6 +9,7 @@ export const UserDetails = () => {
 	const { user, isLoading, deleteUser } = useUserDetails();
 	const navigate = useNavigate();
 	const [showConfirm, setShowConfirm] = useState(false);
+	const { t } = useTranslation("common");
 
 	if (isLoading) {
 		return <div>Loading...</div>;
@@ -49,17 +51,16 @@ export const UserDetails = () => {
 		return (
 			<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 				<div className="bg-white p-8 rounded-lg shadow-xl">
-					<h2 className="text-lg font-bold mb-4">Confirm Deletion</h2>
-					<p className="mb-4">
-						Are you sure you want to delete this user? This action cannot be
-						undone.
-					</p>
+					<h2 className="text-lg font-bold mb-4">
+						{t("confirmDeletion")}
+					</h2>
+					<p className="mb-4">{t("confirmDeletionMessage")}</p>
 					<div className="flex justify-end gap-4">
 						<Button variant="outline" onClick={() => setShowConfirm(false)}>
-							Cancel
+							{t("cancel")}
 						</Button>
 						<Button variant="destructive" onClick={confirmDelete}>
-							Delete
+							{t("delete")}
 						</Button>
 					</div>
 				</div>
