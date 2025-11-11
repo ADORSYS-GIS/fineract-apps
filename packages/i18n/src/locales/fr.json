@@ -163,5 +163,8 @@
 		"driversLicense": "Permis de conduire",
 		"otherTypes": "Autres types",
 		"passport": "Passeport"
+		"staff": "Personnel",
+		"tellers/cashiers": "Guichetier et caissier",
+		"pending": "En attente"
 	}
 }

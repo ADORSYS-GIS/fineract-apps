@@ -9,36 +9,60 @@ type SidebarViewProps = SidebarProps & {
 };
 
 export const SidebarView: React.FC<SidebarViewProps> = ({
+	logo,
 	menuItems = [],
 	onLogout,
 	className,
 	activeLink,
 	handleClick,
+	onNavigate,
+	activePath,
 }) => {
 	const { t } = useTranslation();
+
 	return (
 		<aside
 			className={`h-screen w-64 bg-white shadow-lg flex flex-col justify-between ${className}`}
 		>
 			{/* Logo */}
-			<div className="p-4 text-2xl font-bold text-blue-600">OnlineBank</div>
+			<div className="p-4">
+				{logo ?? (
+					<div className="text-2xl font-bold text-blue-600">OnlineBank</div>
+				)}
+			</div>
 
 			{/* Menu */}
 			<nav className="flex-1 px-2 space-y-2">
 				{menuItems.map((item) => {
 					const Icon = item.icon;
-					const isActive = activeLink === item.link;
+
+					// If the app passed an explicit `activePath`, prefer it for active
+					// highlighting; otherwise use the context `activeLink`.
+					const pathToCheck =
+						typeof activePath === "string" ? activePath : activeLink;
+
+					const isActive =
+						pathToCheck === item.link ||
+						(pathToCheck?.startsWith(item.link) ?? false);
+
 					return (
 						<a
 							key={item.link}
 							href={item.link}
-							onClick={() => handleClick(item.link)}
+							onClick={(e) => {
+								if (onNavigate) {
+									e.preventDefault();
+									onNavigate(item.link);
+								}
+
+								handleClick(item.link);
+							}}
 							className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition ${
 								isActive ? "bg-blue-50 text-blue-600" : ""
 							}`}
 						>
 							{Icon && <Icon className="w-5 h-5" />}
-							<span>{t(item.name)}</span>
+							<span>{t(item.title ?? item.name)}</span>
 						</a>
 					);
 				})}

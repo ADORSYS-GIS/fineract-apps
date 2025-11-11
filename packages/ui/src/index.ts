@@ -1,3 +1,7 @@
+// Ensure i18n is initialized when consumers import the UI package.
+// Apps that already initialize i18n can keep their own setup; this is a safe side-effect for most cases.
+import "@fineract-apps/i18n";
+
 export { AppLayout } from "./components/AppLayout";
 // Button component and types
 export { Button } from "./components/Button";
@@ -15,3 +19,7 @@ export { Navbar } from "./components/Navbar";
 export { Pagination } from "./components/Pagination";
 export { SearchBar } from "./components/SearchBar";
 export * from "./components/Sidebar";
+export { Table } from "./components/Table";
+export type { TableColumn, TableProps } from "./components/Table/Table.types";
+export { cn, formatCurrency, formatToFineractDate } from "./lib/utils";
+export * from "./utils/auth";

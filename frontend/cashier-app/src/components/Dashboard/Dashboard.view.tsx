@@ -3,7 +3,6 @@ import { Bell, UserCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CashierTransactionSummary } from "../CashierTransactionSummary";
 import { ClientSearch } from "../ClientSearch";
-import { DashboardViewProps } from "./Dashboard.types";
 
 export function DashboardView({ onLogout }: Readonly<DashboardViewProps>) {
 	const { t } = useTranslation();

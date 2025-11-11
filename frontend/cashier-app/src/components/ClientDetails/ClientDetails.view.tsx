@@ -1,4 +1,4 @@
-import { Button } from "@fineract-apps/ui";
+import { Button, formatCurrency } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
