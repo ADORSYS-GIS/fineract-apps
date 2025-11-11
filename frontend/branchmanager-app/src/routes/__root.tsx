@@ -14,16 +14,19 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 
+function onLogout() {
+	const base = import.meta.env.BASE_URL ?? "/branchmanager/";
+	const appBase = base.endsWith("/") ? base : `${base}/`;
+	const redirectTo = `${globalThis.location.origin}${appBase}`;
+	globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(
+		redirectTo,
+	)}`;
+}
+
 function RootLayout() {
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
-	function onLogout() {
-		const base = import.meta.env.BASE_URL ?? "/branchmanager/";
-		const appBase = base.endsWith("/") ? base : `${base}/`;
-		const redirectTo = `${window.location.origin}${appBase}`;
-		window.location.href = `${appBase}callback?logout=${encodeURIComponent(redirectTo)}`;
-	}
 	return (
 		<AppLayout
 			sidebar={

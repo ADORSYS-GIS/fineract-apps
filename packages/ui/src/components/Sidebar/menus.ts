@@ -19,3 +19,5 @@ export const menuCashier = [
 	{ name: "receipts", link: "/receipts", icon: FileText },
 	{ name: "settings", link: "/settings", icon: Settings },
 ];
+
+export const menuAdmin = [{ name: "Dashboard", link: "/", icon: Home }];
