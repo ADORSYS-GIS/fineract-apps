@@ -3,6 +3,7 @@ import { Button, Card, SearchBar } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/PageHeader";
 
 interface Cashier {
@@ -19,6 +20,7 @@ function TellerDetailPage() {
 	const { tellerId } = Route.useParams();
 	const { page, pageSize, q } = Route.useSearch();
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 
 	const { data: tellerData } = useQuery({
 		queryKey: ["tellers", tellerId],
@@ -77,16 +79,16 @@ function TellerDetailPage() {
 						})
 					}
 				>
-					New Assignment
+					{t("assignStaff")}
 				</Button>
 			</PageHeader>
 			<Card
 				className="h-full w-full"
-				title={<span className="text-xl">Assigned Cashiers</span>}
+				title={<span className="text-xl">{t("cashiers")}</span>}
 			>
 				<SearchBar
 					value={q}
-					onValueChange={(value) =>
+					onValueChange={(value: string) =>
 						navigate({
 							from: Route.fullPath,
 							search: {
@@ -96,23 +98,27 @@ function TellerDetailPage() {
 							},
 						})
 					}
-					placeholder="Filter cashiers..."
+					placeholder={t("searchTellers")}
 				/>
 				<div className="overflow-x-auto mt-4">
 					<table className="w-full text-sm text-left text-gray-500">
 						<thead className="text-xs text-gray-700 uppercase bg-gray-50">
 							<tr>
-								<th className="px-6 py-3">Staff Name</th>
-								<th className="px-6 py-3">Start Date</th>
-								<th className="px-6 py-3">End Date</th>
-								<th className="px-6 py-3 hidden sm:table-cell">Description</th>
+								<th className="px-6 py-3">{t("staff")}</th>
+								<th className="px-6 py-3">
+									{t("createTeller.startDate.label")}
+								</th>
+								<th className="px-6 py-3">{t("createTeller.endDate.label")}</th>
+								<th className="px-6 py-3 hidden sm:table-cell">
+									{t("createTeller.description.label")}
+								</th>
 							</tr>
 						</thead>
 						<tbody>
 							{isLoading && (
 								<tr className="bg-white border-b">
 									<td className="px-6 py-4 text-gray-500" colSpan={4}>
-										Loading...
+										{t("loading")}
 									</td>
 								</tr>
 							)}
@@ -166,7 +172,7 @@ function TellerDetailPage() {
 								) : (
 									<tr className="bg-white border-b">
 										<td className="px-6 py-4 text-gray-500" colSpan={4}>
-											No cashiers assigned.
+											{t("unassigned")}
 										</td>
 									</tr>
 								))}
@@ -178,8 +184,8 @@ function TellerDetailPage() {
 					<div className="text-sm text-gray-600">
 						{total ? (
 							<span>
-								{start + startingIndexOffset}-{start + pageItems.length} of{" "}
-								{total}
+								{start + startingIndexOffset}-{start + pageItems.length}{" "}
+								{t("of")} {total}
 							</span>
 						) : null}
 					</div>
@@ -200,7 +206,7 @@ function TellerDetailPage() {
 						>
 							{[10, 20, 50, 100].map((s) => (
 								<option key={s} value={s}>
-									{s} / page
+									{s} {t("cashierDetail.pagination.perPage")}
 								</option>
 							))}
 						</select>
@@ -218,7 +224,7 @@ function TellerDetailPage() {
 								})
 							}
 						>
-							Previous
+							{t("previous")}
 						</Button>
 						<Button
 							variant="secondary"
@@ -234,7 +240,7 @@ function TellerDetailPage() {
 								})
 							}
 						>
-							Next
+							{t("next")}
 						</Button>
 					</div>
 				</div>

@@ -13,6 +13,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 function onLogout() {
 	const base = import.meta.env.BASE_URL ?? "/branchmanager/";
@@ -27,11 +28,12 @@ function RootLayout() {
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
+	const { t } = useTranslation();
 	return (
 		<AppLayout
 			sidebar={
 				<Sidebar
-					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
+					logo={<h1 className="text-lg font-bold">{t("branchManager")}</h1>}
 					menuItems={menuBranchManager}
 					activePath={currentPath}
 					onNavigate={(to) => navigate({ to })}
@@ -40,7 +42,7 @@ function RootLayout() {
 			}
 			navbar={
 				<Navbar
-					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
+					logo={<h1 className="text-lg font-bold">{t("branchManager")}</h1>}
 					links={null}
 					notifications={<Bell />}
 					userSection={

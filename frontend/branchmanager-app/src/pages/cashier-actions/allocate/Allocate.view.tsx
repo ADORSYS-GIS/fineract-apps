@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { CashierActionForm } from "@/components/CashierActionForm";
 import type { FormValues } from "./Allocate.types";
 
@@ -5,7 +6,7 @@ export const AllocateView = ({
 	initialValues,
 	onSubmit,
 	isSubmitting,
-	submitLabel = "Allocate",
+	submitLabel,
 	onCancel,
 }: {
 	initialValues: FormValues;
@@ -14,14 +15,15 @@ export const AllocateView = ({
 	submitLabel?: string;
 	onCancel?: () => void;
 }) => {
+	const { t } = useTranslation();
 	return (
 		<CashierActionForm
 			initialValues={initialValues}
 			onSubmit={onSubmit}
 			isSubmitting={isSubmitting}
-			submitLabel={submitLabel}
+			submitLabel={submitLabel || t("allocateCash")}
 			onCancel={onCancel}
-			title="Allocate Funds"
+			title={t("allocateCash")}
 		/>
 	);
 };
