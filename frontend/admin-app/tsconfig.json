@@ -1,0 +1,15 @@
+{
+	"extends": "@fineract-apps/config/tsconfig.base.json",
+	"compilerOptions": {
+		"composite": true,
+		"jsx": "react-jsx",
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"paths": {
+			"@/*": ["./src/*"]
+		},
+		"types": ["vite/client"]
+	},
+	"include": ["src"],
+	"references": [{ "path": "../../packages/ui" }]
+}
