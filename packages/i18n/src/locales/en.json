@@ -307,6 +307,8 @@
 			"validation": {
 				"required": "Please fill out this field."
 			}
-		}
+		},
+		"errorFetchingCashierData": "Error Fetching Cashier Data",
+		"anUnknownErrorOccurred": "An unknown error occurred."
 	}
 }

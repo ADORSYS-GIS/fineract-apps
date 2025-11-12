@@ -311,6 +311,8 @@
 			"validation": {
 				"required": "Veuillez remplir ce champ."
 			}
-		}
+		},
+		"errorFetchingCashierData": "Erreur lors de la récupération des données du caissier",
+		"anUnknownErrorOccurred": "Une erreur inconnue est survenue."
 	}
 }
