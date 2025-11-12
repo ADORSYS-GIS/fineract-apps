@@ -11,7 +11,6 @@ const dashboardSearchSchema = z.object({
 export const Route = createFileRoute("/dashboard/")({
 	validateSearch: (search) => dashboardSearchSchema.parse(search),
 	component: function DashboardRoute() {
-		const { onLogout } = Route.useRouteContext();
-		return <Dashboard onLogout={onLogout} />;
+		return <Dashboard />;
 	},
 });

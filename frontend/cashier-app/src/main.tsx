@@ -11,7 +11,7 @@ import { routeTree } from "./routeTree.gen.ts";
 // Create a new router instance from the generated route tree
 const router = createRouter({
 	routeTree,
-	context: { queryClient },
+	context: { queryClient, onLogout: () => {} },
 	basepath: "/cashier",
 });
 
