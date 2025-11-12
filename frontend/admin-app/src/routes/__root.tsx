@@ -21,9 +21,7 @@ function RootLayout() {
 				sidebar={<Sidebar menuItems={menuAdmin} onLogout={handleLogout} />}
 				navbar={
 					<Navbar
-						logo={
-							<h1 className="text-lg font-bold">{t("administration")}</h1>
-						}
+						logo={<h1 className="text-lg font-bold">{t("administration")}</h1>}
 						links={null}
 						notifications={<Bell />}
 						userSection={
@@ -31,9 +29,7 @@ function RootLayout() {
 								<UserCircle className="w-5 h-5 text-gray-600" />
 							</div>
 						}
-						actions={
-							<Button onClick={handleLogout}>{t("logout")}</Button>
-						}
+						actions={<Button onClick={handleLogout}>{t("logout")}</Button>}
 						onToggleMenu={() => {
 							/* noop */
 						}}

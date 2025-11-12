@@ -92,9 +92,7 @@ function DashboardPage() {
 								<h2 className="text-xl font-semibold text-gray-800">
 									{t("manageUsers")}
 								</h2>
-								<p className="text-gray-600">
-									{t("manageUsersDescription")}
-								</p>
+								<p className="text-gray-600">{t("manageUsersDescription")}</p>
 							</div>
 						</div>
 					</Card>
@@ -110,9 +108,7 @@ function DashboardPage() {
 								<h2 className="text-xl font-semibold text-gray-800">
 									{t("manageStaff")}
 								</h2>
-								<p className="text-gray-600">
-									{t("manageStaffDescription")}
-								</p>
+								<p className="text-gray-600">{t("manageStaffDescription")}</p>
 							</div>
 						</div>
 					</Card>

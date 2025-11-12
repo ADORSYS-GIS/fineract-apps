@@ -35,9 +35,7 @@ export const CreateUserView = () => {
 				<h1 className="text-2xl font-bold text-gray-800">
 					{t("createNewUser")}
 				</h1>
-				<p className="text-sm text-gray-600 mt-1">
-					{t("addUserDescription")}
-				</p>
+				<p className="text-sm text-gray-600 mt-1">{t("addUserDescription")}</p>
 			</div>
 
 			<div>
@@ -115,9 +113,7 @@ export const CreateUserView = () => {
 										<div className="pt-4 flex items-center gap-3">
 											<SubmitButton
 												label={
-													isCreatingUser
-														? t("creatingUser")
-														: t("createUser")
+													isCreatingUser ? t("creatingUser") : t("createUser")
 												}
 											/>
 											<Link to="/users/list">

@@ -51,9 +51,7 @@ export const UserDetails = () => {
 		return (
 			<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 				<div className="bg-white p-8 rounded-lg shadow-xl">
-					<h2 className="text-lg font-bold mb-4">
-						{t("confirmDeletion")}
-					</h2>
+					<h2 className="text-lg font-bold mb-4">{t("confirmDeletion")}</h2>
 					<p className="mb-4">{t("confirmDeletionMessage")}</p>
 					<div className="flex justify-end gap-4">
 						<Button variant="outline" onClick={() => setShowConfirm(false)}>

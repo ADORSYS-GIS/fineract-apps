@@ -8,11 +8,10 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Form, Formik } from "formik";
 import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { staffFormSchema } from "@/components/StaffForm/staffFormSchema";
 import { useCreateStaff } from "./useCreateStaff";
-
-import { useTranslation } from "react-i18next";
 export const CreateStaffView = () => {
 	const { t } = useTranslation();
 	const { initialValues, officeOptions, isCreatingStaff, onSubmit, error } =
@@ -31,9 +30,7 @@ export const CreateStaffView = () => {
 				<h1 className="text-2xl font-bold text-gray-800">
 					{t("createNewStaff")}
 				</h1>
-				<p className="text-sm text-gray-600 mt-1">
-					{t("addStaffDescription")}
-				</p>
+				<p className="text-sm text-gray-600 mt-1">{t("addStaffDescription")}</p>
 			</div>
 
 			<div>
