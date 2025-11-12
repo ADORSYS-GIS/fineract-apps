@@ -1,7 +1,7 @@
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useLoanSearch } from "../../hooks/useLoanSearch";
+import { useLoanSearch } from "./useLoanSearch";
 
 export const LoanSearchView = () => {
 	const { searchQuery, setSearchQuery, handleSearch, error, isLoading } =

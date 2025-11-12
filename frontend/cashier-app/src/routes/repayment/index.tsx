@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { LoanSearchView } from "../../components/LoanSearch/LoanSearch.view";
+import { LoanSearchView } from "@/components/LoanSearch";
 
 export const Route = createFileRoute("/repayment/")({
 	component: RepaymentComponent,

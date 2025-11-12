@@ -10,7 +10,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
-import { configureApi } from "../services/api";
+import { configureApi } from "@/services/api";
 
 export interface MyRouterContext {
 	queryClient: QueryClient;

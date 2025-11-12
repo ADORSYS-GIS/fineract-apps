@@ -1,60 +1,28 @@
 import {
-	ApiError,
 	GetLoansLoanIdResponse,
 	GetLoansLoanIdTransactionsTransactionIdResponse,
-	LoanTransactionsService,
 } from "@fineract-apps/fineract-api";
 import { Button, Card } from "@fineract-apps/ui";
-import { useQuery } from "@tanstack/react-query";
 import html2pdf from "html2pdf.js";
 import { Download, Printer, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import "./print.css";
 
 interface ReceiptProps {
 	loan: GetLoansLoanIdResponse;
-	loanId: number;
-	transactionId: number;
+	transaction: GetLoansLoanIdTransactionsTransactionIdResponse;
 	onClose: () => void;
 }
 
-export const Receipt: React.FC<ReceiptProps> = ({
+export const ReceiptView: React.FC<ReceiptProps> = ({
 	loan,
-	loanId,
-	transactionId,
+	transaction,
 	onClose,
 }) => {
 	const { t } = useTranslation();
-	const {
-		data: transaction,
-		isLoading,
-		error,
-	} = useQuery<GetLoansLoanIdTransactionsTransactionIdResponse, ApiError>({
-		queryKey: ["transaction", loanId, transactionId],
-		queryFn: () =>
-			LoanTransactionsService.getV1LoansByLoanIdTransactionsByTransactionId({
-				loanId,
-				transactionId,
-			}),
-	});
-
-	if (isLoading) {
-		return <div>{t("loadingReceipt")}</div>;
-	}
-
-	if (error) {
-		return <div>{t("errorFetchingReceipt", { message: error.message })}</div>;
-	}
-
-	if (!transaction) {
-		return <div>{t("transactionNotFound")}</div>;
-	}
-
 	const handlePrint = () => {
 		window.print();
 	};
-
 	const handleDownload = () => {
 		const element = document.getElementById("receipt");
 		const clientName = loan.clientName ?? "client";
@@ -74,19 +42,18 @@ export const Receipt: React.FC<ReceiptProps> = ({
 			html2pdf().from(element).set(opt).save().catch(console.error);
 		}
 	};
-
 	return (
-		<div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+		<div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 print:invisible">
 			<Card className="w-full max-w-2xl">
 				<div className="p-6">
 					<style type="text/css">
 						{`
-				          .text-gray-800 { color: #1f2937 !important; }
-				          .text-gray-600 { color: #4b5563 !important; }
-				          .text-gray-500 { color: #6b7280 !important; }
-				          .text-green-600 { color: #16a34a !important; }
-				          .bg-gray-50 { background-color: #f9fafb !important; }
-				        `}
+              .text-gray-800 { color: #1f2937 !important; }
+              .text-gray-600 { color: #4b5563 !important; }
+              .text-gray-500 { color: #6b7280 !important; }
+              .text-green-600 { color: #16a34a !important; }
+              .bg-gray-50 { background-color: #f9fafb !important; }
+            `}
 					</style>
 					<div className="flex justify-between items-center mb-4">
 						<h2 className="text-2xl font-semibold text-gray-800">
@@ -100,7 +67,10 @@ export const Receipt: React.FC<ReceiptProps> = ({
 							<X className="w-6 h-6" />
 						</Button>
 					</div>
-					<div id="receipt">
+					<div
+						id="receipt"
+						className="print:visible print:absolute print:top-0 print:left-0"
+					>
 						<div className="flex justify-between items-center mb-4">
 							<h2 className="text-2xl font-semibold text-gray-800">
 								{t("transactionReceipt")}

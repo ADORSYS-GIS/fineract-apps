@@ -52,7 +52,7 @@
 		"repaymentSuccessful": "Remboursement réussi!",
 		"repaymentFailed": "Le remboursement a échoué: {{message}}",
 		"backToSearch": "Retour à la recherche",
-		"loanRepayment": "Gestion de prêt",
+		"loanRepayment": "Gestion de prêts",
 		"account": "Compte",
 		"searchForLoanAccount": "Recherchez un compte de prêt pour démarrer le processus de remboursement.",
 		"search": "Rechercher..."
