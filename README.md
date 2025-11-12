@@ -1,13 +1,55 @@
-# Modern Frontend Project Starter
+[![Frontend Apps CI](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/ci-frontend-apps.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/ci-frontend-apps.yml)
+[![Build](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/build.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/build.yml)
+[![Node.js CI](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/node.js.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/node.js.yml)
+[![Publish Frontend Images](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/publish-frontend-images.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/publish-frontend-images.yml)
 
-This repository serves as a template for initializing new projects with a robust, modern, and efficient toolchain. The goal is to provide a production-ready setup out-of-the-box, allowing developers to focus on building features rather than on configuration.
 
-## Core Technologies
+# Fineract Frontend Apps
 
-- **Vite**: A next-generation frontend build tool.
-- **React**: A JavaScript library for building user interfaces.
-- **TypeScript**: A typed superset of JavaScript that compiles to plain JavaScript.
-- **Tailwind CSS**: A utility-first CSS framework for rapid UI development.
+A modern, production-ready monorepo containing frontend applications for the Apache Fineract microfinance platform. Built with React 19, TypeScript, and TanStack ecosystem with full CI/CD automation.
+
+## 📚 Documentation
+
+- **[Quick Start Guide](./docs/QUICK-START-CI-CD.md)** - Get CI/CD running in 5 minutes
+- **[Full CI/CD Documentation](./docs/CI-CD-SETUP.md)** - Complete setup guide with troubleshooting
+- **[Architecture & Documentation Index](./docs/README.md)** - System overview and docs index
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start all development servers
+pnpm dev
+
+# Access apps at:
+# - Admin App: http://localhost:5001
+# - Account Manager: http://localhost:5002
+# - Branch Manager: http://localhost:5003
+# - Cashier: http://localhost:5004
+```
+
+## 🏗️ Applications
+
+| App | Description | Port | Role |
+|-----|-------------|------|------|
+| **Admin App** | User & staff management | 5001 | `admin` |
+| **Account Manager** | Accounting & financial operations | 5002 | `accountant` |
+| **Branch Manager** | Client & office management | 5003 | `branch-manager` |
+| **Cashier App** | Teller operations & transactions | 5004 | `teller` |
+
+## 🛠️ Tech Stack
+
+- **React 19** - Latest React with concurrent features
+- **TypeScript** - Full type safety
+- **TanStack Router** - File-based routing with code splitting
+- **TanStack Query** - Server state management
+- **Formik + Zod** - Form handling with validation
+- **TailwindCSS** - Utility-first styling
+- **Vite** - Lightning-fast build tool
+- **pnpm** - Efficient monorepo package manager
+- **Biome** - Fast linting and formatting
 
 ## Quality Assurance & Automation
 
@@ -27,19 +69,111 @@ Husky is used to manage Git hooks, which are scripts that run automatically at c
 - **`pre-commit`**: Before each commit, a hook automatically runs `pnpm lint`. This ensures that no code with linting or formatting errors can be committed to the repository.
 - **`commit-msg`**: Before each commit is finalized, a hook runs `commitlint` to ensure the commit message follows the [Conventional Commits](https://www.conventionalcommits.org/) standard. This is crucial for a clean and readable version history.
 
-### Continuous Integration
+### CI/CD Pipeline
 
-A GitHub Actions workflow is configured at `.github/workflows/node.js.yml`.
+Fully automated CI/CD with GitHub Actions:
 
-- This CI pipeline automatically runs on every push and pull request to the `main` branch.
-- It performs the following checks:
-  1.  Installs all dependencies using `pnpm`.
-  2.  Builds the project to ensure it compiles correctly.
-  3.  Runs `pnpm lint` to verify that all code adheres to the project's quality standards.
+- **CI Workflow** (`.github/workflows/ci-frontend-apps.yml`)
+  - Runs on every push and PR
+  - Linting, testing, and builds
+  - Matrix builds for all 4 apps
 
-## Available Scripts
+- **Docker Publish** (`.github/workflows/publish-frontend-images.yml`)
+  - Builds and publishes Docker images to GHCR
+  - Multi-stage builds for optimal image size
+  - Automatic tagging with branch and SHA
+  - GitOps integration ready
 
-- `pnpm dev`: Starts the Vite development server.
-- `pnpm build`: Builds the application for production.
-- `pnpm lint`: Checks the entire project for linting and formatting errors with Biome.
-- `pnpm format`: Automatically formats the entire project with Biome.
+**See [CI/CD Documentation](./docs/CI-CD-SETUP.md) for complete setup guide.**
+
+## 📦 Project Structure
+
+```
+fineract-apps/
+├── frontend/               # Frontend applications
+│   ├── admin-app/         # User management
+│   ├── account-manager-app/ # Accounting
+│   ├── branchmanager-app/ # Client/office management
+│   └── cashier-app/       # Teller operations
+├── packages/              # Shared packages
+│   ├── ui/               # Shared UI components
+│   └── fineract-api/     # Generated API client
+├── .github/workflows/     # CI/CD automation
+├── docs/                 # Documentation
+└── Dockerfile.*          # Multi-stage Docker builds
+```
+
+## 🔧 Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start all dev servers |
+| `pnpm build` | Build all apps for production |
+| `pnpm lint` | Run Biome linter |
+| `pnpm format` | Auto-format code with Biome |
+| `pnpm test` | Run tests |
+| `pnpm test:coverage` | Run tests with coverage |
+| `pnpm --filter <app> build` | Build specific app |
+
+## 🐳 Docker Images
+
+All apps are containerized with multi-stage builds:
+
+```bash
+# Build images (done by CI/CD automatically)
+docker build -f Dockerfile.admin -t fineract-admin-app .
+
+# Pull from GitHub Container Registry
+docker pull ghcr.io/adorsys-gis/fineract-admin-app:develop
+```
+
+**Registry:** `ghcr.io/adorsys-gis/fineract-*-app`
+
+## 🔐 Authentication & Authorization
+
+- **Auth Provider:** Keycloak (OIDC)
+- **Gateway:** Apache with mod_auth_openidc
+- **RBAC:** Role-based access control
+- **Roles:** admin, accountant, branch-manager, teller
+
+## 🚀 Deployment
+
+### Development
+```bash
+# Push to develop branch
+git push origin develop
+
+# CI/CD automatically:
+# 1. Runs tests and linting
+# 2. Builds Docker images
+# 3. Pushes to GHCR with 'develop' tag
+# 4. Ready for GitOps deployment
+```
+
+### Production
+```bash
+# Push to main branch
+git push origin main
+
+# CI/CD automatically:
+# 1. Runs tests and linting
+# 2. Builds Docker images
+# 3. Pushes to GHCR with 'main' tag
+# 4. Ready for GitOps deployment
+```
+
+**Full deployment guide:** [CI/CD Documentation](./docs/CI-CD-SETUP.md)
+
+## 🤝 Contributing
+
+1. Create a feature branch: `git checkout -b feature/your-feature`
+2. Make changes and commit: `git commit -m "feat: your feature"`
+3. Push and create PR: `git push origin feature/your-feature`
+4. Wait for CI to pass
+5. Get approval and merge
+
+**Commit Convention:** [Conventional Commits](https://www.conventionalcommits.org/)
+
+## 📄 License
+
+See [LICENSE](./LICENSE) file.
