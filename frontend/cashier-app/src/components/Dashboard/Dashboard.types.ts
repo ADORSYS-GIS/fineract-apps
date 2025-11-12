@@ -1,1 +1,1 @@
-export interface DashboardViewProps {}
+export {};
