@@ -29,12 +29,17 @@ function RootLayout() {
 			redirectTo,
 		)}`;
 	}
+
+	const transformedMenu = menuCashier.map((item) =>
+		item.name === "Loan Repayment" ? { ...item, name: "loanRepayment" } : item,
+	);
+
 	return (
 		<AppLayout
 			sidebar={
 				<Sidebar
 					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
-					menuItems={menuCashier}
+					menuItems={transformedMenu}
 					activePath={currentPath}
 					onNavigate={(to) => navigate({ to })}
 					onLogout={onLogout}

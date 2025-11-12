@@ -1,18 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import { LoanSearchView } from "../../components/LoanSearch/LoanSearch.view";
 
 export const Route = createFileRoute("/repayment/")({
 	component: RepaymentComponent,
 });
 
-import { LoanSearchView } from "../../components/LoanSearch/LoanSearch.view";
-
 function RepaymentComponent() {
+	const { t } = useTranslation();
 	return (
 		<div className="p-4">
-			<h1 className="text-xl font-semibold">Loan Repayment</h1>
-			<p className="mb-4">
-				Search for a loan account to start the repayment process.
-			</p>
+			<h1 className="text-xl font-semibold">{t("loanRepayment")}</h1>
+			<p className="mb-4">{t("searchForLoanAccount")}</p>
 			<LoanSearchView />
 		</div>
 	);

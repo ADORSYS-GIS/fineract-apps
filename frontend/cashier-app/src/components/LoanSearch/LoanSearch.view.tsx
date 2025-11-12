@@ -1,10 +1,12 @@
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useLoanSearch } from "../../hooks/useLoanSearch";
 
 export const LoanSearchView = () => {
 	const { searchQuery, setSearchQuery, handleSearch, error, isLoading } =
 		useLoanSearch();
+	const { t } = useTranslation();
 
 	const onSearch = () => {
 		if (searchQuery) {
@@ -21,6 +23,7 @@ export const LoanSearchView = () => {
 						onValueChange={setSearchQuery}
 						onSearch={onSearch}
 						isLoading={isLoading}
+						placeholder={t("search")}
 					/>
 					<Button onClick={onSearch} className="px-4">
 						<Search size={20} />

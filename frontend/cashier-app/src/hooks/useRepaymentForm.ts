@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 export const useRepaymentForm = (
 	loanId: number,
 	setTransactionId: (id: number | null) => void,
+	refetch: () => void,
 ) => {
 	const { t } = useTranslation();
 	const [amount, setAmount] = useState("");
@@ -43,6 +44,10 @@ export const useRepaymentForm = (
 			setTransactionId(data.resourceId ?? null);
 			queryClient.invalidateQueries({ queryKey: ["loan", loanId] });
 			queryClient.invalidateQueries({ queryKey: ["loanTransactions", loanId] });
+			refetch();
+			setAmount("");
+			setPaymentTypeId("");
+			setNote("");
 		},
 		onError: (error) => {
 			toast.error(t("repaymentFailed", { message: error.message }));

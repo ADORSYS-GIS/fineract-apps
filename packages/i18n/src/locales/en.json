@@ -51,6 +51,10 @@
 		"transactionNotFound": "Transaction not found.",
 		"repaymentSuccessful": "Repayment successful!",
 		"repaymentFailed": "Repayment failed: {{message}}",
-		"backToSearch": "Back to Search"
+		"backToSearch": "Back to Search",
+		"loanRepayment": "Loan Repayment",
+		"account": "Account",
+		"searchForLoanAccount": "Search for a loan account to start the repayment process.",
+		"search": "Search..."
 	}
 }

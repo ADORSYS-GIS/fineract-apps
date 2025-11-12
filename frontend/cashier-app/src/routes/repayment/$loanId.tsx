@@ -3,10 +3,11 @@ import {
 	GetLoansLoanIdResponse,
 	LoansService,
 } from "@fineract-apps/fineract-api";
-import { Card } from "@fineract-apps/ui";
+import { Button, Card } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
+import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Receipt } from "../../components/Receipt/Receipt.view";
@@ -24,6 +25,7 @@ function LoanRepaymentComponent() {
 		data: loan,
 		isLoading,
 		error,
+		refetch,
 	} = useQuery<GetLoansLoanIdResponse, ApiError>({
 		queryKey: ["loan", loanId],
 		queryFn: () =>
@@ -42,7 +44,7 @@ function LoanRepaymentComponent() {
 		handleSubmit,
 		isLoading: isSubmitting,
 		paymentTypes,
-	} = useRepaymentForm(parseInt(loanId, 10), setTransactionId);
+	} = useRepaymentForm(parseInt(loanId, 10), setTransactionId, refetch);
 
 	if (isLoading) {
 		return <div>{t("loadingLoanDetails")}</div>;
@@ -61,6 +63,14 @@ function LoanRepaymentComponent() {
 	return (
 		<div className="p-8 bg-gray-50 min-h-screen">
 			<div className="max-w-6xl mx-auto space-y-8">
+				<div className="mb-4">
+					<Link to="/repayment">
+						<Button variant="outline" className="flex items-center">
+							<ArrowLeft className="w-4 h-4 mr-2" />
+							{t("backToSearch")}
+						</Button>
+					</Link>
+				</div>
 				<Card>
 					<div className="p-6">
 						<h2 className="text-xl font-semibold text-gray-700 mb-4">
@@ -221,6 +231,7 @@ function LoanRepaymentComponent() {
 						loan={loan}
 						loanId={parseInt(loanId, 10)}
 						transactionId={transactionId}
+						onClose={() => setTransactionId(null)}
 					/>
 				)}
 			</div>

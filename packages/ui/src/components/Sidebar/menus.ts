@@ -1,4 +1,4 @@
-import { FileText, Home, Send, Settings, Users } from "lucide-react";
+import { Home, Send, Settings, Users } from "lucide-react";
 import { MenuItem } from "./Sidebar.types";
 
 export const menuAccountManager = [
