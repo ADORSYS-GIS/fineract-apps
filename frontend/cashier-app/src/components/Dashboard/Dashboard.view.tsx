@@ -1,6 +1,5 @@
 import { CashierTransactionSummary } from "../CashierTransactionSummary";
 import { ClientSearch } from "../ClientSearch";
-import { DashboardViewProps } from "./Dashboard.types";
 
 export function DashboardView() {
 	return (

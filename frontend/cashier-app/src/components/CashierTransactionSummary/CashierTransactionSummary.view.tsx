@@ -1,7 +1,6 @@
 import { Button, Card, formatCurrency } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { Route } from "@/routes/dashboard/index.tsx";
 import { extractClientNameFromTxnNote } from "@/utils/transaction";
 import { CashierTransactionSummaryViewProps } from "./CashierTransactionSummary.types";
@@ -44,7 +43,6 @@ export function CashierTransactionSummaryView({
 	onShowSummary,
 	showSummary,
 }: Readonly<CashierTransactionSummaryViewProps>) {
-	const { t } = useTranslation();
 	const { page = 1, limit = 10 } = Route.useSearch();
 	const totalRecords =
 		cashierData?.cashierTransactions?.totalFilteredRecords ?? 0;
@@ -53,7 +51,7 @@ export function CashierTransactionSummaryView({
 	if (!showSummary) {
 		return (
 			<div className="p-4">
-				<Button onClick={onShowSummary}>{t("viewTransactionSummary")}</Button>
+				<Button onClick={onShowSummary}>View Transaction Summary</Button>
 			</div>
 		);
 	}
@@ -90,13 +88,13 @@ export function CashierTransactionSummaryView({
 				<div className="space-y-2">
 					<div className="flex justify-between">
 						<div>
-							<span className="text-sm text-gray-600">{t("branch")}: </span>
+							<span className="text-sm text-gray-600">Branch: </span>
 							<span className="font-semibold text-gray-900">
 								{cashierData?.officeName}
 							</span>
 						</div>
 						<div>
-							<span className="text-sm text-gray-600">{t("teller")}: </span>
+							<span className="text-sm text-gray-600">Teller: </span>
 							<span className="font-semibold text-gray-900">
 								{cashierData?.tellerName}
 							</span>
@@ -104,13 +102,13 @@ export function CashierTransactionSummaryView({
 					</div>
 					<div className="flex justify-between">
 						<div>
-							<span className="text-sm text-gray-600">{t("cashier")}: </span>
+							<span className="text-sm text-gray-600">Cashier: </span>
 							<span className="font-semibold text-gray-900">
 								{cashierData?.cashierName}
 							</span>
 						</div>
 						<div>
-							<span className="text-sm text-gray-600">{t("netCash")}: </span>
+							<span className="text-sm text-gray-600">Net Cash: </span>
 							<span className="font-semibold text-gray-900">
 								{formatCurrency(cashierData?.netCash ?? 0, currencyCode)}
 							</span>
@@ -118,9 +116,7 @@ export function CashierTransactionSummaryView({
 					</div>
 					<div className="flex justify-between">
 						<div>
-							<span className="text-sm text-gray-600">
-								{t("dailyAllocation")}:{" "}
-							</span>
+							<span className="text-sm text-gray-600">Daily Allocation: </span>
 							<span className="font-semibold text-gray-900">
 								{formatCurrency(
 									cashierData?.sumCashAllocation ?? 0,
@@ -130,7 +126,7 @@ export function CashierTransactionSummaryView({
 						</div>
 						<div>
 							<span className="text-sm text-gray-600">
-								{t("totalTransactions")}:{" "}
+								Total Transactions:{" "}
 							</span>
 							<span className="font-semibold text-gray-900">
 								{cashierData?.cashierTransactions?.pageItems?.length ?? 0}
@@ -140,22 +136,22 @@ export function CashierTransactionSummaryView({
 				</div>
 			</Card>
 			<Card className="p-4">
-				<h2 className="text-lg font-bold mb-4">{t("transactions")}</h2>
+				<h2 className="text-lg font-bold mb-4">Transactions</h2>
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm text-left text-gray-500">
 						<thead className="text-xs text-gray-700 uppercase bg-gray-50">
 							<tr>
 								<th scope="col" className="px-6 py-3">
-									{t("client")}
+									Client
 								</th>
 								<th scope="col" className="px-6 py-3">
-									{t("amount")}
+									Amount
 								</th>
 								<th scope="col" className="px-6 py-3">
-									{t("type")}
+									Type
 								</th>
 								<th scope="col" className="px-6 py-3">
-									{t("note")}
+									Note
 								</th>
 							</tr>
 						</thead>
@@ -180,9 +176,7 @@ export function CashierTransactionSummaryView({
 				</div>
 				<div className="flex items-center justify-between pt-4">
 					<span className="text-sm text-gray-700">
-						{t("page")}{" "}
-						<span className="font-semibold text-gray-900">{page}</span>{" "}
-						{t("of")}{" "}
+						Page <span className="font-semibold text-gray-900">{page}</span> of{" "}
 						<span className="font-semibold text-gray-900">{totalPages}</span>
 					</span>
 					<div className="flex items-center gap-2">
@@ -192,7 +186,7 @@ export function CashierTransactionSummaryView({
 							disabled={page <= 1}
 						>
 							<Button variant="outline" size="sm" disabled={page <= 1}>
-								{t("previous")}
+								Previous
 							</Button>
 						</Link>
 						<Link
@@ -204,7 +198,7 @@ export function CashierTransactionSummaryView({
 							disabled={page >= totalPages}
 						>
 							<Button variant="outline" size="sm" disabled={page >= totalPages}>
-								{t("next")}
+								Next
 							</Button>
 						</Link>
 					</div>

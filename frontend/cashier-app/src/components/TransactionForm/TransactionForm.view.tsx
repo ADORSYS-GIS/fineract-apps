@@ -6,7 +6,6 @@ import {
 	Input,
 	SubmitButton,
 } from "@fineract-apps/ui";
-import { useTranslation } from "react-i18next";
 import type { TransactionFormViewProps } from "./TransactionForm.types";
 import { useTransactionForm } from "./useTransactionForm";
 
@@ -19,16 +18,15 @@ export const TransactionFormView = ({
 	isSubmitting,
 	isSuccess,
 }: TransactionFormViewProps) => {
-	const { t } = useTranslation();
 	const { initialValues, validationSchema } = useTransactionForm();
 	const getSubmitButtonLabel = () => {
 		if (isSubmitting) {
-			return t("submitting");
+			return "Submitting...";
 		}
 		if (transactionType === "deposit") {
-			return t("deposit");
+			return "Deposit";
 		}
-		return t("withdrawal");
+		return "Withdrawal";
 	};
 	return (
 		<div className="fixed inset-0 bg-white bg-opacity-75 flex justify-center items-center">
@@ -38,19 +36,15 @@ export const TransactionFormView = ({
 				title={
 					<div className="flex justify-between items-center">
 						<FormTitle>
-							{transactionType === "deposit" ? t("deposit") : t("withdrawal")}
+							{transactionType === "deposit" ? "Deposit" : "Withdrawal"}
 						</FormTitle>
-						<p className="text-sm">
-							{t("account")}: {accountNumber}
-						</p>
+						<p className="text-sm">Account: {accountNumber}</p>
 					</div>
 				}
 			>
 				{isSuccess ? (
 					<div className="text-center py-8">
-						<p className="text-2xl text-green-600">
-							{t("transactionSuccessful")}
-						</p>
+						<p className="text-2xl text-green-600">Transaction Successful!</p>
 					</div>
 				) : (
 					<Form
@@ -67,20 +61,20 @@ export const TransactionFormView = ({
 						<fieldset disabled={isSubmitting}>
 							<Input
 								name="amount"
-								label={t("amount")}
+								label="Amount"
 								type="text"
 								inputMode="decimal"
-								placeholder={t("enterAmount")}
+								placeholder="Enter amount"
 							/>
 							<Input
 								name="receiptNumber"
-								label={t("notes")}
+								label="Notes"
 								type="text"
-								placeholder={t("enterNotes")}
+								placeholder="Enter notes"
 							/>
 							<div className="flex justify-end gap-2 mt-4">
 								<Button variant="outline" onClick={onCancel}>
-									{t("cancel")}
+									Cancel
 								</Button>
 								<SubmitButton label={getSubmitButtonLabel()} />
 							</div>

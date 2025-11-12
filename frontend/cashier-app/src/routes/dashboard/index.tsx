@@ -10,7 +10,5 @@ const dashboardSearchSchema = z.object({
 
 export const Route = createFileRoute("/dashboard/")({
 	validateSearch: (search) => dashboardSearchSchema.parse(search),
-	component: function DashboardRoute() {
-		return <Dashboard />;
-	},
+	component: Dashboard,
 });
