@@ -13,7 +13,6 @@ export type StaffTableProps = {
 	readonly isLoading: boolean;
 	readonly onRowClick?: (staffId: number) => void;
 	readonly onEditClick?: (staffId: number) => void;
-	readonly onAssignUserClick?: (staffId: number) => void;
 	readonly searchTerm: string;
 	readonly setSearchTerm: (searchTerm: string) => void;
 	readonly currentPage: number;

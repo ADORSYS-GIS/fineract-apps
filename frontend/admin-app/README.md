@@ -7,7 +7,7 @@ This document provides a detailed explanation of the Fineract Administration UI,
 The Fineract Administration UI provides the following core functionalities:
 
 -   **Staff Management**: Create, view, edit, and manage staff.
--   **User Management**: Create, view, edit, delete, and manage users, including assigning and changing their associated staff members.
+-   **User Management**: Create, view, edit, and manage users, including assigning and changing their associated staff members.
 -   **User Status**: View the status of users (active, inactive, etc.).
 -   **Password Reset**: Reset user passwords.
 -   **Toast Notifications**: Display toast notifications for user actions.
@@ -25,8 +25,7 @@ The project is structured as follows:
 ├── package.json
 ├── src/
 │   ├── components/
-│   │   ├── CreateStaff/
-│   │   ├── CreateUser/
+│   │   ├── CreateStaffAndUser/
 │   │   ├── EditStaff/
 │   │   ├── EditUser/
 │   │   ├── PasswordResetModal/
@@ -49,7 +48,6 @@ The project is structured as follows:
 │   │   │       ├── edit.tsx
 │   │   │       └── index.tsx
 │   │   └── users/
-│   │       ├── create.tsx
 │   │       ├── index.tsx
 │   │       ├── list.tsx
 │   │       └── $userId/
@@ -85,8 +83,7 @@ This directory contains the route definitions for the application. The file-base
 -   `staff/$staffId/index.tsx`: The staff details page.
 -   `staff/$staffId/edit.tsx`: The staff edit page.
 -   `users/index.tsx`: The layout for user-related routes.
--   `users/list.tsx`: The user list page, with a centered layout. It includes a "Create User" button to navigate to the creation page.
--   `users/create.tsx`: The user creation page, featuring a centered form layout for a better user experience.
+-   `users/list.tsx`: The user list page, with a centered layout.
 -   `users/$userId/index.tsx`: The user details page.
 -   `users/$userId/edit.tsx`: The user edit page.
 
@@ -94,8 +91,7 @@ This directory contains the route definitions for the application. The file-base
 
 This directory contains all the React components used in the application. Each component is organized in its own directory, which contains the view, the custom hooks, and the types.
 
--   **`CreateStaff`**: This component is responsible for creating a new staff member. It features a centered form for a clean user experience.
--   **`CreateUser`**: This component is responsible for creating a new user and assigning it to a staff member. It features a centered form for a clean user experience.
+-   **`CreateStaffAndUser`**: This component is responsible for creating a new staff member and a corresponding user account in a single, unified workflow. It features a centered form for a clean user experience.
 
 -   **`EditStaff`**: This component is responsible for editing an existing staff member, with a centered layout.
 -   **`EditUser`**: This component is responsible for editing an existing user, including changing their assigned staff member.
@@ -156,7 +152,6 @@ The routing is structured around the features of the application, mainly **Staff
 -   **User Routes (`users/`)**: All routes related to user management are located in the `src/routes/users` directory.
     -   `users/index.tsx`: Defines the layout for all user-related pages. It maps to `/users`.
     -   `users/list.tsx`: Displays a list of all users. It maps to `/users/list`.
-    -   `users/create.tsx`: A form to create a new user. It maps to `/users/create`.
     -   `users/$userId/index.tsx`: Shows the details of a specific user. The `$userId` is a dynamic parameter representing the user's ID. It maps to `/users/:userId`.
     -   `users/$userId/edit.tsx`: A form to edit the details of a specific user. It maps to `/users/:userId/edit`.
 
@@ -179,7 +174,6 @@ The following Fineract API endpoints are used in the application:
 -   **`UsersService.getV1UsersTemplate()`**: Fetches the template for creating a new user. This is primarily used to get the list of available roles.
 -   **`UsersService.postV1Users({ requestBody })`**: Creates a new user.
 -   **`UsersService.putV1UsersByUserId({ userId, requestBody })`**: Updates an existing user.
--   **`UsersService.deleteV1UsersByUserId({ userId })`**: Deletes an existing user.
 -   **`StaffService.getV1Staff()`**: Fetches a list of all staff members.
 -   **`StaffService.getV1StaffByStaffId({ staffId })`**: Fetches a single staff member by their ID.
 -   **`StaffService.postV1Staff({ requestBody })`**: Creates a new staff member.
@@ -193,13 +187,13 @@ This checklist can be used to verify that all core functionalities of the applic
 
 -   [x] **User List**: The user list is displayed correctly with search and pagination.
 -   [x] **User Details**: Clicking on a user in the user list navigates to the user details page.
--   [x] **Create User**: A "Create User" button is present on the user list page, and a new user can be created successfully.
+-   [x] **Create Staff and User**: A "Create Staff" button is present on the staff list page, and a new staff member and user can be created successfully in a single workflow.
 -   [x] **Edit User**: An existing user can be edited successfully.
 -   [x] **Staff List**: The staff list is displayed correctly with search and pagination, and includes a "Create Staff" button.
 -   [x] **Staff Details**: Clicking on a staff member in the staff list navigates to the staff details page.
 -   [x] **Edit Staff**: An existing staff member can be edited successfully.
--   [ ] **Password Reset**: A password reset email can be sent to a user.
--   [ ] **User Status**: The user status is displayed correctly in the user list and user details page.
--   [ ] **Toast Notifications**: Toast notifications are displayed for user actions (create, update, delete, etc.).
--   [ ] **API Interaction**: All Fineract API endpoints are working correctly.
--   [ ] **User Sync**: All user sync functionalities are working correctly.
+-   [x] **Password Reset**: A password reset email can be sent to a user.
+-   [x] **User Status**: The user status is displayed correctly in the user list and user details page.
+-   [x] **Toast Notifications**: Toast notifications are displayed for user actions (create, update, delete, etc.).
+-   [x] **API Interaction**: All Fineract API endpoints are working correctly.
+-   [x] **User Sync**: All user sync functionalities are working correctly.

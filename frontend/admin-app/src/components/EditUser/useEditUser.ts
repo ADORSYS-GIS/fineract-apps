@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useToast } from "@/components/Toast";
 import {
 	UserEditFormValues,
-	userEditFormSchema,
+	UserFormValues,
 } from "@/components/UserForm/userFormSchema";
 
 export const useEditUser = () => {
@@ -78,11 +78,10 @@ export const useEditUser = () => {
 		roles: user?.selectedRoles?.[0]?.id || 0,
 	};
 
-	const onSubmit = async (values: UserEditFormValues) => {
+	const onSubmit = async (values: UserFormValues) => {
 		setError(null);
 		try {
-			const updatedUser = userEditFormSchema.parse(values);
-			await updateUser(updatedUser);
+			await updateUser(values);
 
 			toast.success("User updated successfully!");
 			queryClient.invalidateQueries({ queryKey: ["users"] });

@@ -22,17 +22,12 @@ export const StaffTable = () => {
 		navigate({ to: `/staff/${staffId}/edit` });
 	};
 
-	const handleAssignUserClick = (staffId: number) => {
-		navigate({ to: "/users/create", search: { staffId } });
-	};
-
 	return (
 		<StaffTableView
 			staff={staff}
 			isLoading={isLoading}
 			onRowClick={handleRowClick}
 			onEditClick={handleEditClick}
-			onAssignUserClick={handleAssignUserClick}
 			searchTerm={searchTerm}
 			setSearchTerm={setSearchTerm}
 			currentPage={currentPage}

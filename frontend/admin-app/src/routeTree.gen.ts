@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StaffIndexRouteImport } from './routes/staff/index'
 import { Route as UsersListRouteImport } from './routes/users/list'
-import { Route as UsersCreateRouteImport } from './routes/users/create'
 import { Route as StaffListRouteImport } from './routes/staff/list'
 import { Route as StaffCreateRouteImport } from './routes/staff/create'
 import { Route as UsersUserIdIndexRouteImport } from './routes/users/$userId/index'
@@ -33,11 +32,6 @@ const StaffIndexRoute = StaffIndexRouteImport.update({
 const UsersListRoute = UsersListRouteImport.update({
   id: '/users/list',
   path: '/users/list',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UsersCreateRoute = UsersCreateRouteImport.update({
-  id: '/users/create',
-  path: '/users/create',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffListRoute = StaffListRouteImport.update({
@@ -75,7 +69,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/staff/create': typeof StaffCreateRoute
   '/staff/list': typeof StaffListRoute
-  '/users/create': typeof UsersCreateRoute
   '/users/list': typeof UsersListRoute
   '/staff': typeof StaffIndexRoute
   '/staff/$staffId/edit': typeof StaffStaffIdEditRoute
@@ -87,7 +80,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/staff/create': typeof StaffCreateRoute
   '/staff/list': typeof StaffListRoute
-  '/users/create': typeof UsersCreateRoute
   '/users/list': typeof UsersListRoute
   '/staff': typeof StaffIndexRoute
   '/staff/$staffId/edit': typeof StaffStaffIdEditRoute
@@ -100,7 +92,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/staff/create': typeof StaffCreateRoute
   '/staff/list': typeof StaffListRoute
-  '/users/create': typeof UsersCreateRoute
   '/users/list': typeof UsersListRoute
   '/staff/': typeof StaffIndexRoute
   '/staff/$staffId/edit': typeof StaffStaffIdEditRoute
@@ -114,7 +105,6 @@ export interface FileRouteTypes {
     | '/'
     | '/staff/create'
     | '/staff/list'
-    | '/users/create'
     | '/users/list'
     | '/staff'
     | '/staff/$staffId/edit'
@@ -126,7 +116,6 @@ export interface FileRouteTypes {
     | '/'
     | '/staff/create'
     | '/staff/list'
-    | '/users/create'
     | '/users/list'
     | '/staff'
     | '/staff/$staffId/edit'
@@ -138,7 +127,6 @@ export interface FileRouteTypes {
     | '/'
     | '/staff/create'
     | '/staff/list'
-    | '/users/create'
     | '/users/list'
     | '/staff/'
     | '/staff/$staffId/edit'
@@ -151,7 +139,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   StaffCreateRoute: typeof StaffCreateRoute
   StaffListRoute: typeof StaffListRoute
-  UsersCreateRoute: typeof UsersCreateRoute
   UsersListRoute: typeof UsersListRoute
   StaffIndexRoute: typeof StaffIndexRoute
   StaffStaffIdEditRoute: typeof StaffStaffIdEditRoute
@@ -181,13 +168,6 @@ declare module '@tanstack/react-router' {
       path: '/users/list'
       fullPath: '/users/list'
       preLoaderRoute: typeof UsersListRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/users/create': {
-      id: '/users/create'
-      path: '/users/create'
-      fullPath: '/users/create'
-      preLoaderRoute: typeof UsersCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff/list': {
@@ -239,7 +219,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   StaffCreateRoute: StaffCreateRoute,
   StaffListRoute: StaffListRoute,
-  UsersCreateRoute: UsersCreateRoute,
   UsersListRoute: UsersListRoute,
   StaffIndexRoute: StaffIndexRoute,
   StaffStaffIdEditRoute: StaffStaffIdEditRoute,

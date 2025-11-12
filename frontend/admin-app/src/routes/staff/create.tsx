@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { CreateStaff } from "@/components/CreateStaff";
+import { CreateStaffAndUser } from "@/components/CreateStaffAndUser";
 
 export const Route = createFileRoute("/staff/create")({
-	component: CreateStaffPage,
+	component: CreateStaffAndUserPage,
 });
 
-function CreateStaffPage() {
+function CreateStaffAndUserPage() {
 	return (
 		<div className="p-4 max-w-5xl mx-auto">
-			<CreateStaff />
+			<CreateStaffAndUser />
 		</div>
 	);
 }

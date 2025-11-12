@@ -1,5 +1,5 @@
 import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
-import { Edit, Eye, UserPlus } from "lucide-react";
+import { Edit, Eye } from "lucide-react";
 import { UserStatusBadge } from "../UserStatusBadge";
 import type { StaffTableProps } from "./StaffTable.types";
 
@@ -8,7 +8,6 @@ export function StaffTable({
 	isLoading,
 	onRowClick,
 	onEditClick,
-	onAssignUserClick,
 	searchTerm,
 	setSearchTerm,
 	currentPage,
@@ -120,17 +119,6 @@ export function StaffTable({
 												aria-label="Edit staff"
 											>
 												<Edit className="w-4 h-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="sm"
-												onClick={(e) => {
-													e.stopPropagation();
-													onAssignUserClick?.(staffMember.id);
-												}}
-												aria-label="Assign user"
-											>
-												<UserPlus className="w-4 h-4" />
 											</Button>
 										</div>
 									</td>
