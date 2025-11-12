@@ -50,6 +50,7 @@
 		"errorFetchingReceipt": "Error fetching receipt: {{message}}",
 		"transactionNotFound": "Transaction not found.",
 		"repaymentSuccessful": "Repayment successful!",
-		"repaymentFailed": "Repayment failed: {{message}}"
+		"repaymentFailed": "Repayment failed: {{message}}",
+		"backToSearch": "Back to Search"
 	}
 }

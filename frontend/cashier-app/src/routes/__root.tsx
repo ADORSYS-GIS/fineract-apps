@@ -42,7 +42,7 @@ function RootLayout() {
 			}
 			navbar={
 				<Navbar
-					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
+					logo={null}
 					links={null}
 					notifications={<Bell />}
 					userSection={
