@@ -21,7 +21,7 @@ export const ClientSearchView = ({
 					onSearch={handleSearch}
 					isLoading={isLoading}
 				/>
-				{searchError && <p className="text-blue-300">{searchError.message}</p>}
+				{searchError && <p className="text-red-500">{searchError.message}</p>}
 			</div>
 		</Card>
 	);

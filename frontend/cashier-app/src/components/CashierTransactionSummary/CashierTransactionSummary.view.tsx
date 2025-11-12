@@ -45,10 +45,10 @@ export function CashierTransactionSummaryView({
 	showSummary,
 }: Readonly<CashierTransactionSummaryViewProps>) {
 	const { t } = useTranslation();
-	const { page = 1, limit = 10 } = Route.useSearch();
+	const searchParams = Route.useSearch();
 	const totalRecords =
 		cashierData?.cashierTransactions?.totalFilteredRecords ?? 0;
-	const totalPages = Math.ceil(totalRecords / limit);
+	const totalPages = Math.ceil(totalRecords / searchParams.limit);
 
 	if (!showSummary) {
 		return (
@@ -181,29 +181,34 @@ export function CashierTransactionSummaryView({
 				<div className="flex items-center justify-between pt-4">
 					<span className="text-sm text-gray-700">
 						{t("page")}{" "}
-						<span className="font-semibold text-gray-900">{page}</span>{" "}
+						<span className="font-semibold text-gray-900">
+							{searchParams.page}
+						</span>{" "}
 						{t("of")}{" "}
 						<span className="font-semibold text-gray-900">{totalPages}</span>
 					</span>
 					<div className="flex items-center gap-2">
 						<Link
 							to="/dashboard"
-							search={(prev) => ({ ...prev, page: Math.max(1, page - 1) })}
-							disabled={page <= 1}
+							search={{
+								...searchParams,
+								page: Math.max(1, searchParams.page - 1),
+							}}
+							disabled={searchParams.page <= 1}
 						>
-							<Button variant="outline" size="sm" disabled={page <= 1}>
+							<Button variant="outline" size="sm">
 								{t("previous")}
 							</Button>
 						</Link>
 						<Link
 							to="/dashboard"
-							search={(prev) => ({
-								...prev,
-								page: Math.min(totalPages, page + 1),
-							})}
-							disabled={page >= totalPages}
+							search={{
+								...searchParams,
+								page: Math.min(totalPages, searchParams.page + 1),
+							}}
+							disabled={searchParams.page >= totalPages}
 						>
-							<Button variant="outline" size="sm" disabled={page >= totalPages}>
+							<Button variant="outline" size="sm">
 								{t("next")}
 							</Button>
 						</Link>
