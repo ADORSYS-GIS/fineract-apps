@@ -32,7 +32,6 @@ function RootLayout() {
 			</>
 		);
 	}
-
 	return (
 		<>
 			<Toaster position="top-right" />
