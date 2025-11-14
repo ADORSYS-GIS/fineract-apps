@@ -70,7 +70,11 @@ export const SelectAccountTypeView: FC = () => {
 					{accountTypes.map((account) => (
 						<Link
 							key={account.type}
-							to="/open-account/$clientId"
+							to={
+								account.type === "loan"
+									? "/loan/create-loan-account/$clientId"
+									: "/open-account/$clientId"
+							}
 							params={{ clientId: String(clientId) }}
 							search={{ accountType: account.type }}
 							className="block"

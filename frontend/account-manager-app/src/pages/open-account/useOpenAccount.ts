@@ -119,7 +119,10 @@ export const useOpenAccount = (clientId: number) => {
 				},
 			});
 		} else if (accountType === "loan") {
-			console.log("Creating loan account with data:", data);
+			navigate({
+				to: "/loan/create-loan-account/$clientId",
+				params: { clientId: String(clientId) },
+			});
 		} else if (accountType === "shares") {
 			createShareAccount({
 				requestBody: {
