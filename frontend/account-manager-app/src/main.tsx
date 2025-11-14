@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import "@fineract-apps/ui/styles.css";
 import "@fineract-apps/i18n";
 import "./index.css";
+import "@/services/api";
 import { routeTree } from "./routeTree.gen.ts";
 
 const queryClient = new QueryClient();

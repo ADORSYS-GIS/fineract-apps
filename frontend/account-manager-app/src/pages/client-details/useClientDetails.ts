@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 import { fineractApi } from "@/services/api";
+import { useDeleteLoanAccount } from "./hooks/useDeleteLoanAccount";
 import { useDeleteSavingsAccount } from "./hooks/useDeleteSavingsAccount";
 
 export const useClientDetails = () => {
@@ -47,13 +48,15 @@ export const useClientDetails = () => {
 		},
 	});
 
-	const { mutate: deleteAccount } = useDeleteSavingsAccount(clientId);
+	const { mutate: deleteSavingsAccount } = useDeleteSavingsAccount(clientId);
+	const { mutate: deleteLoanAccount } = useDeleteLoanAccount(clientId);
 
 	return {
 		client,
 		isLoading,
 		accounts,
 		activateAccount,
-		deleteAccount,
+		deleteSavingsAccount,
+		deleteLoanAccount,
 	};
 };
