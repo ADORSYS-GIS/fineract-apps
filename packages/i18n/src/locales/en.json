@@ -55,6 +55,18 @@
 		"loanRepayment": "Loan Repayment",
 		"account": "Account",
 		"searchForLoanAccount": "Search for a loan account to start the repayment process.",
-		"search": "Search..."
+		"search": "Search...",
+		"createLoanAccount": {
+			"title": "Create Loan Account",
+			"loanProduct": "Loan Product",
+			"selectProduct": "Select a product",
+			"loanDetails": "Loan Details",
+			"externalId": "External ID",
+			"loanOfficer": "Loan Officer",
+			"loanPurpose": "Loan Purpose",
+			"fund": "Fund",
+			"submittedOn": "Submitted On",
+			"disbursementOn": "Disbursement On"
+		}
 	}
 }
