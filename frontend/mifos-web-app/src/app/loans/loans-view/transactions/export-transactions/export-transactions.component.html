@@ -1,0 +1,48 @@
+<form class="layout-column m-t-20" [formGroup]="transactionsReportForm" (ngSubmit)="generate()">
+  <div class="layout-row layout-align-center gap-3percent">
+    <mat-form-field class="flex-fill" (click)="fromDatePicker.open()">
+      <mat-label>{{ 'labels.inputs.From Date' | translate }}</mat-label>
+      <input
+        matInput
+        [min]="minDate"
+        [max]="maxDate"
+        [matDatepicker]="fromDatePicker"
+        required
+        formControlName="fromDate"
+      />
+      <mat-datepicker-toggle matSuffix [for]="fromDatePicker"></mat-datepicker-toggle>
+      <mat-datepicker #fromDatePicker></mat-datepicker>
+      <mat-error>
+        {{ 'labels.inputs.From date' | translate }} {{ 'labels.commons.is' | translate }}
+        <strong> {{ 'labels.commons.required' | translate }} </strong>
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="flex-fill flex-30" (click)="toDatePicker.open()">
+      <mat-label>{{ 'labels.inputs.To Date' | translate }}</mat-label>
+      <input
+        matInput
+        [min]="minDate"
+        [max]="maxDate"
+        [matDatepicker]="toDatePicker"
+        required
+        formControlName="toDate"
+      />
+      <mat-datepicker-toggle matSuffix [for]="toDatePicker"></mat-datepicker-toggle>
+      <mat-datepicker #toDatePicker></mat-datepicker>
+      <mat-error>
+        {{ 'labels.inputs.To date' | translate }} {{ 'labels.commons.is' | translate }}
+        <strong> {{ 'labels.commons.required' | translate }} </strong>
+      </mat-error>
+    </mat-form-field>
+  </div>
+
+  <div class="generate-button layout-row layout-xs-column layout-align-center gap-5percent">
+    <button type="button" mat-raised-button [routerLink]="['../']">{{ 'labels.buttons.Cancel' | translate }}</button>
+    <button mat-raised-button color="primary" [disabled]="!transactionsReportForm.valid">
+      <fa-icon icon="cogs" class="m-r-10"></fa-icon>{{ 'labels.buttons.Generate Report' | translate }} &nbsp;
+    </button>
+  </div>
+</form>
+
+<iframe *ngIf="!hideOutput" [src]="pentahoUrl" frameborder="0" width="100%" height="750px;"></iframe>

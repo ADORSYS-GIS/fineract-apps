@@ -1,0 +1,66 @@
+<div class="layout-row align-end gap-2px responsive-column container m-b-20">
+  <button mat-raised-button color="primary" [routerLink]="['edit']">
+    <fa-icon icon="edit" class="m-r-10"></fa-icon>
+    {{ 'labels.heading.Edit' | translate }}
+  </button>
+  <button mat-raised-button color="warn" (click)="deleteCollateral()">
+    <fa-icon icon="trash" class="m-r-10"></fa-icon>
+    {{ 'labels.heading.Delete' | translate }}
+  </button>
+</div>
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="layout-row-wrap">
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Collateral Name' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ collateralData.name }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Type/Quality' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ collateralData.quality }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Base Price' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ collateralData.basePrice }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Base Percentage' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ collateralData.pctToBase }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Unit Type' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ collateralData.unitType }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.heading.Currency' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ collateralData.currency }}
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

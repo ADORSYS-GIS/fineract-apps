@@ -1,0 +1,81 @@
+@use 'sass:color';
+@use 'colours' as *;
+
+html,
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+div {
+  box-sizing: border-box;
+}
+
+.color-inherit {
+  color: inherit;
+}
+
+.no-shadow {
+  box-shadow: none;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.nolist {
+  list-style: none;
+}
+
+.actions-menu {
+  color: $white;
+}
+
+.alert {
+  background-color: #e8f4fd;
+  padding: 6px 16px;
+  font-size: 0.875rem;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  font-weight: 400;
+  line-height: 1.43;
+  border-radius: 4px;
+  letter-spacing: normal;
+  margin: 10px;
+
+  .message {
+    padding: 8px 0;
+    font-size: 18px;
+  }
+
+  .alert-check {
+    color: #359ff4;
+    margin-right: 2px;
+    font-size: 1.4rem;
+  }
+}
+
+::ng-deep .mat-tooltip {
+  font-size: 15px;
+  color: $white !important;
+  background-color: rgba($status-approved, 0.7);
+  border: 1px solid color.adjust($status-approved, $lightness: -20%);
+  max-width: 400px !important;
+  white-space: pre-line !important;
+}
+
+.loading {
+  position: absolute;
+  min-width: 100%;
+  width: 100px;
+  height: 12px;
+  background: linear-gradient(125deg, rgb(255 255 255), $status-approved, rgb(255 255 255));
+  animation:
+    grow 4s linear infinite,
+    move 4s linear infinite;
+}
+
+mat-card-title {
+  font-weight: 600;
+  font-size: x-large;
+  padding-left: 20px;
+  padding-top: 20px;
+}

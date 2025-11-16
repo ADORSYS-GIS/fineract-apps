@@ -1,0 +1,27 @@
+.account-card {
+  .center-meeting {
+    align-self: flex-end;
+    width: 100%;
+
+    div,
+    ng-template > div {
+      background-color: #0a6aac;
+
+      p {
+        color: white;
+        padding: 0 10px;
+      }
+    }
+  }
+}
+
+.meetingDetails {
+  float: right;
+  margin-right: 10px;
+  border: 1px black solid;
+  padding: 10px;
+}
+
+.make-flex {
+  display: flex;
+}

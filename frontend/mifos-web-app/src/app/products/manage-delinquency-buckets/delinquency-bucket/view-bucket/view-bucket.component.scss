@@ -1,0 +1,22 @@
+.container {
+  max-width: 37rem;
+
+  .content {
+    div {
+      margin: 0.8rem 0;
+      word-wrap: break-word;
+    }
+  }
+}
+
+.bucket-range {
+  height: 2rem;
+  vertical-align: middle;
+}
+
+.r-value {
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: right !important;
+  padding-right: 35px !important;
+}

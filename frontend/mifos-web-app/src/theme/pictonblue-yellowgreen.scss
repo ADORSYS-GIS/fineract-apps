@@ -1,0 +1,17 @@
+@use '@angular/material' as mat;
+
+$pictonblue-yellowgreen-color-config: (
+  primary: mat.m2-define-palette(mat.$m2-blue-palette, 400, 200, 600),
+  accent: mat.m2-define-palette(mat.$m2-light-green-palette, 400, 200, 600),
+  warn: mat.m2-define-palette(mat.$m2-red-palette)
+);
+
+$pictonblue-yellowgreen-theme: mat.m2-define-light-theme(
+  (
+    color: $pictonblue-yellowgreen-color-config
+  )
+);
+
+.pictonblue-yellowgreen-theme {
+  @include mat.all-component-colors($pictonblue-yellowgreen-theme);
+}

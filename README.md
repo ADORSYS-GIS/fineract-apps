@@ -20,17 +20,26 @@ A modern, production-ready monorepo containing frontend applications for the Apa
 # Install dependencies
 pnpm install
 
-# Start all development servers
+# Install MIFOS Web App dependencies (uses npm, not pnpm)
+pnpm install:mifos
+
+# Start all React development servers
 pnpm dev
+
+# Start MIFOS Web App (Angular) separately
+pnpm dev:mifos
 
 # Access apps at:
 # - Admin App: http://localhost:5001
 # - Account Manager: http://localhost:5002
 # - Branch Manager: http://localhost:5003
 # - Cashier: http://localhost:5004
+# - MIFOS Web App: http://localhost:4200
 ```
 
 ## 🏗️ Applications
+
+### React Apps (pnpm workspace)
 
 | App | Description | Port | Role |
 |-----|-------------|------|------|
@@ -38,6 +47,12 @@ pnpm dev
 | **Account Manager** | Accounting & financial operations | 5002 | `accountant` |
 | **Branch Manager** | Client & office management | 5003 | `branch-manager` |
 | **Cashier App** | Teller operations & transactions | 5004 | `teller` |
+
+### Angular Apps (npm)
+
+| App | Description | Port | Tech Stack |
+|-----|-------------|------|------------|
+| **MIFOS Web App** | Complete Apache Fineract frontend | 4200 | Angular 19, Material, OAuth2-Proxy |
 
 ## 🛠️ Tech Stack
 
@@ -90,44 +105,69 @@ Fully automated CI/CD with GitHub Actions:
 
 ```
 fineract-apps/
-├── frontend/               # Frontend applications
-│   ├── admin-app/         # User management
-│   ├── account-manager-app/ # Accounting
-│   ├── branchmanager-app/ # Client/office management
-│   └── cashier-app/       # Teller operations
-├── packages/              # Shared packages
-│   ├── ui/               # Shared UI components
-│   └── fineract-api/     # Generated API client
-├── .github/workflows/     # CI/CD automation
-├── docs/                 # Documentation
-└── Dockerfile.*          # Multi-stage Docker builds
+├── frontend/                    # Frontend applications
+│   ├── admin-app/              # User management (React)
+│   ├── account-manager-app/    # Accounting (React)
+│   ├── branchmanager-app/      # Client/office management (React)
+│   ├── cashier-app/            # Teller operations (React)
+│   └── mifos-web-app/          # Complete Fineract frontend (Angular)
+├── packages/                    # Shared packages (React apps only)
+│   ├── ui/                     # Shared UI components
+│   └── fineract-api/           # Generated API client
+├── .github/workflows/           # CI/CD automation
+│   ├── ci-frontend-apps.yml    # React apps CI
+│   ├── publish-frontend-images.yml         # React apps Docker publish
+│   └── publish-mifos-web-app-image.yml     # MIFOS Web App Docker publish
+├── docs/                        # Documentation
+├── Dockerfile.admin             # React apps Dockerfiles
+├── Dockerfile.account-manager
+├── Dockerfile.branch-manager
+├── Dockerfile.cashier
+└── Dockerfile.mifos-web-app     # Angular app Dockerfile
 ```
 
 ## 🔧 Available Scripts
 
+### React Apps (pnpm)
+
 | Command | Description |
 |---------|-------------|
-| `pnpm dev` | Start all dev servers |
-| `pnpm build` | Build all apps for production |
+| `pnpm dev` | Start all React dev servers |
+| `pnpm build` | Build all React apps for production |
 | `pnpm lint` | Run Biome linter |
 | `pnpm format` | Auto-format code with Biome |
 | `pnpm test` | Run tests |
 | `pnpm test:coverage` | Run tests with coverage |
-| `pnpm --filter <app> build` | Build specific app |
+| `pnpm --filter <app> build` | Build specific React app |
+
+### MIFOS Web App (npm via pnpm)
+
+| Command | Description |
+|---------|-------------|
+| `pnpm install:mifos` | Install MIFOS Web App dependencies |
+| `pnpm dev:mifos` | Start MIFOS Web App dev server |
+| `pnpm build:mifos` | Build MIFOS Web App for production |
+| `pnpm test:mifos` | Run MIFOS Web App tests |
 
 ## 🐳 Docker Images
 
 All apps are containerized with multi-stage builds:
 
 ```bash
-# Build images (done by CI/CD automatically)
+# Build React app images (done by CI/CD automatically)
 docker build -f Dockerfile.admin -t fineract-admin-app .
+
+# Build MIFOS Web App image
+docker build -f Dockerfile.mifos-web-app -t mifos-web-app .
 
 # Pull from GitHub Container Registry
 docker pull ghcr.io/adorsys-gis/fineract-admin-app:develop
+docker pull ghcr.io/adorsys-gis/mifos-web-app:develop
 ```
 
-**Registry:** `ghcr.io/adorsys-gis/fineract-*-app`
+**Registries:**
+- React apps: `ghcr.io/adorsys-gis/fineract-*-app`
+- MIFOS Web App: `ghcr.io/adorsys-gis/mifos-web-app`
 
 ## 🔐 Authentication & Authorization
 

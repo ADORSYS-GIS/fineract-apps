@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fineract
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+commonLabels:
+  app.kubernetes.io/name: fineract-web-app
+  app.kubernetes.io/component: frontend
+  app.kubernetes.io/part-of: fineract
+
+images:
+  - name: ghcr.io/guymoyo/web-app
+    newTag: latest
+
+configMapGenerator:
+  - name: web-app-config
+    literals:
+      - fineractApiUrl=https://your-domain.com
+      - fineractPlatformTenantId=default
+      - oauth2ProxyLogoutUrl=/oauth2/sign_out
+      - defaultLanguage=en-US
+      - sessionIdleTimeout=300000

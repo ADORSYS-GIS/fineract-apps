@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fineract-web-app
+  labels:
+    app: fineract-web-app
+    component: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fineract-web-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: fineract-web-app
+        component: frontend
+    spec:
+      containers:
+      - name: web-app
+        image: ghcr.io/guymoyo/web-app:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        env:
+        - name: fineractApiUrl
+          value: "https://your-domain.com"
+        - name: fineractPlatformTenantId
+          value: "default"
+        - name: fineractPlatformTenantIds
+          value: "default"
+        - name: oauth2ProxyLogoutUrl
+          value: "/oauth2/sign_out"
+        - name: defaultLanguage
+          value: "en-US"
+        - name: sessionIdleTimeout
+          value: "300000"
+        - name: allowServerSwitch
+          value: "false"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 101  # nginx user
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        fsGroup: 101
+      restartPolicy: Always

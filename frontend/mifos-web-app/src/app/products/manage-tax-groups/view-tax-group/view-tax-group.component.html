@@ -1,0 +1,49 @@
+<div class="container m-b-20 layout-row layout-lt-md-column align-end gap-2percent">
+  <button mat-raised-button color="primary" [routerLink]="['edit']" *mifosxHasPermission="'UPDATE_TAXGROUP'">
+    <fa-icon icon="edit" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Edit' | translate }}
+  </button>
+</div>
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="layout-row-wrap card-content">
+        <div class="mat-body-strong flex-33">
+          {{ 'labels.inputs.Name' | translate }}
+        </div>
+
+        <div class="flex-67">
+          {{ taxGroupData.name }}
+        </div>
+
+        <div class="mat-body-strong flex-34">
+          {{ 'labels.inputs.Tax Component' | translate }}
+        </div>
+
+        <div class="mat-body-strong flex-33">
+          {{ 'labels.inputs.Start Date' | translate }}
+        </div>
+
+        <div class="mat-body-strong flex-33">
+          {{ 'labels.inputs.End Date' | translate }}
+        </div>
+      </div>
+
+      <div class="layout-row-wrap" *ngFor="let taxcomponent of taxGroupData.taxAssociations">
+        <div class="flex-34">
+          {{ taxcomponent.taxComponent.glCode }}
+          {{ taxcomponent.taxComponent.name }}
+        </div>
+
+        <div class="flex-33">
+          {{ taxcomponent.startDate | dateFormat }}
+        </div>
+
+        <div class="flex-33" *ngIf="taxcomponent.endDate !== undefined || taxcomponent.endDate !== null">
+          {{ taxcomponent.endDate | dateFormat }}
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

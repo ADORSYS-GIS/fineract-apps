@@ -1,0 +1,76 @@
+<div class="container m-b-20 layout-row layout-lt-md-column align-end gap-2percent">
+  <button mat-raised-button color="primary" [routerLink]="['edit']" *mifosxHasPermission="'UPDATE_TAXCOMPONENT'">
+    <fa-icon icon="edit" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Edit' | translate }}
+  </button>
+</div>
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="layout-row-wrap">
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Name' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ taxComponentData.name }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Percentage' | translate }}
+        </div>
+
+        <div class="flex-50">{{ taxComponentData.percentage | formatNumber }} %</div>
+
+        <div class="flex-50 mat-body-strong" *ngIf="taxComponentData.debitAccountType">
+          {{ 'labels.inputs.Debit Account Type' | translate }}
+        </div>
+
+        <div class="flex-50" *ngIf="taxComponentData.debitAccountType">
+          {{ taxComponentData.debitAccountType.value }}
+        </div>
+
+        <div class="flex-50 mat-body-strong" *ngIf="taxComponentData.debitAccount">
+          {{ 'labels.inputs.Debit Account' | translate }}
+        </div>
+
+        <div class="flex-50" *ngIf="taxComponentData.debitAccount">
+          ({{ 'labels.inputs.accounting.' + taxComponentData.debitAccount.glCode }})
+          {{ taxComponentData.debitAccount.name | translate }}
+        </div>
+
+        <div class="flex-50 mat-body-strong" *ngIf="taxComponentData.creditAccountType">
+          {{ 'labels.inputs.Credit Account Type' | translate }}
+        </div>
+
+        <div class="flex-50" *ngIf="taxComponentData.creditAccountType">
+          {{ taxComponentData.creditAccountType.value | translateKey: 'catalogs' }}
+        </div>
+
+        <div class="flex-50 mat-body-strong" *ngIf="taxComponentData.creditAccount">
+          {{ 'labels.inputs.Credit Account' | translate }}
+        </div>
+
+        <div class="flex-50" *ngIf="taxComponentData.creditAccount">
+          ({{ taxComponentData.creditAccount.glCode }})
+          {{ taxComponentData.creditAccount.name }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Start Date' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ taxComponentData.startDate | dateFormat }}
+        </div>
+      </div>
+    </mat-card-content>
+
+    <div class="layout-row layout-align-center gap-2percent layout-lt-md-column">
+      <button type="button" color="primary" mat-raised-button [routerLink]="['../']">
+        {{ 'labels.buttons.Back' | translate }}
+      </button>
+    </div>
+  </mat-card>
+</div>

@@ -1,0 +1,89 @@
+<table>
+  <tbody>
+    <tr>
+      <td class="m-l-5 flex-25">
+        <b>{{ 'labels.inputs.Status' | translate }} :</b>
+      </td>
+      <td class="flex-25 m-l-5 left">
+        <div [ngClass]="itemStatus(transferData.status)">
+          <fa-icon icon="stop"></fa-icon>
+          <span class="m-l-5 status">{{ transferData.status }}</span>
+        </div>
+      </td>
+      <td class="m-l-5 flex-25">
+        <b>{{ 'labels.inputs.Owner External Id' | translate }} :</b>
+      </td>
+      <td class="flex-25 m-l-5 left">
+        <mifosx-external-identifier
+          externalId="{{ transferData.owner.externalId }}"
+          completed="true"
+        ></mifosx-external-identifier>
+      </td>
+    </tr>
+    <tr>
+      <td class="m-l-5 flex-25">
+        <b>{{ 'labels.inputs.Settlement Date' | translate }} :</b>
+      </td>
+      <td class="m-l-5 flex-25">
+        {{ transferData.settlementDate | dateFormat }}
+      </td>
+      <td class="m-l-5 flex-25">
+        <b>{{ 'labels.inputs.Effective Date' | translate }} :</b>
+      </td>
+      <td class="m-l-5 flex-25">
+        {{ transferData.effectiveFrom | dateFormat }}
+      </td>
+    </tr>
+    <tr>
+      <td class="m-l-5 flex-25">
+        <b>{{ 'labels.inputs.Details' | translate }} :</b>
+      </td>
+      <td class="flex-75 left">
+        <table>
+          <tbody>
+            <tr>
+              <td class="flex-50 m-l-5">
+                <b>{{ 'labels.inputs.Principal Outstanding' | translate }} :</b>
+              </td>
+              <td class="flex-50 r-amount">{{ transferData.details.totalPrincipalOutstanding | formatNumber }}</td>
+            </tr>
+            <tr>
+              <td class="flex-50 m-l-5">
+                <b>{{ 'labels.inputs.Interest Outstanding' | translate }} :</b>
+              </td>
+              <td class="flex-50 r-amount">{{ transferData.details.totalInterestOutstanding | formatNumber }}</td>
+            </tr>
+            <tr>
+              <td class="flex-50 m-l-5">
+                <b>{{ 'labels.inputs.Fees Outstanding' | translate }} :</b>
+              </td>
+              <td class="flex-50 r-amount">
+                {{ transferData.details.totalFeeChargesOutstanding | formatNumber }}
+              </td>
+            </tr>
+            <tr>
+              <td class="flex-50 m-l-5">
+                <b>{{ 'labels.inputs.Penalties Outstanding' | translate }} :</b>
+              </td>
+              <td class="flex-50 r-amount">
+                {{ transferData.details.totalPenaltyChargesOutstanding | formatNumber }}
+              </td>
+            </tr>
+            <tr>
+              <td class="flex-50 m-l-5">
+                <b>{{ 'labels.inputs.Outstanding' | translate }} :</b>
+              </td>
+              <td class="flex-50 r-amount">{{ transferData.details.totalOutstanding | formatNumber }}</td>
+            </tr>
+            <tr>
+              <td class="flex-50 m-l-5">
+                <b>{{ 'labels.inputs.Overpaid' | translate }} :</b>
+              </td>
+              <td class="flex-50 r-amount">{{ transferData.details.totalOverpaid | formatNumber }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
