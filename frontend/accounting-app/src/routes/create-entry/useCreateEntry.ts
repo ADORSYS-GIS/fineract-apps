@@ -1,4 +1,5 @@
-import { useMutation } from "@tanstack/react-query";
+import { JournalEntriesService } from "@fineract-apps/fineract-api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import "../../lib/api";
@@ -16,6 +17,7 @@ export interface EntryFormData {
 
 export function useCreateEntry() {
 	const today = new Date().toISOString().split("T")[0];
+	const queryClient = useQueryClient();
 
 	const [formData, setFormData] = useState<EntryFormData>({
 		transactionDate: today,
@@ -39,23 +41,46 @@ export function useCreateEntry() {
 	const isBalanced = totalDebits === totalCredits && totalDebits > 0;
 
 	const createEntryMutation = useMutation({
-		mutationFn: async (entryData: unknown) => {
-			// Placeholder - in production, submit to Fineract API
-			// const response = await JournalEntriesService.postV1Journalentries({
-			//   requestBody: entryData
-			// });
-			// return response;
+		mutationFn: async (entryData: {
+			officeId: number;
+			transactionDate: string;
+			referenceNumber?: string;
+			comments?: string;
+			credits: Array<{ glAccountId: number; amount: number }>;
+			debits: Array<{ glAccountId: number; amount: number }>;
+		}) => {
+			// Convert date to Fineract format [day, month, year]
+			const dateParts = entryData.transactionDate.split("-");
+			const formattedDate = `${dateParts[2]} ${dateParts[1]} ${dateParts[0]}`;
 
-			console.log("Creating journal entry:", entryData);
-			// Simulate API delay
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-			return { id: 123, status: "pending_approval" };
+			const requestBody = {
+				officeId: entryData.officeId,
+				transactionDate: formattedDate,
+				referenceNumber: entryData.referenceNumber,
+				comments: entryData.comments,
+				credits: entryData.credits,
+				debits: entryData.debits,
+				locale: "en",
+				dateFormat: "dd MM yyyy",
+			};
+
+			const response =
+				await JournalEntriesService.postV1Journalentries1({
+					requestBody,
+				});
+
+			return response;
 		},
 		onSuccess: () => {
 			toast.success(
-				"Journal entry submitted successfully. Awaiting approval.",
+				"Journal entry created successfully!",
 				{ duration: 5000 },
 			);
+
+			// Invalidate relevant queries to refresh data
+			queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+			queryClient.invalidateQueries({ queryKey: ["accounting-stats"] });
+
 			// Reset form
 			setFormData({
 				transactionDate: today,
@@ -65,7 +90,7 @@ export function useCreateEntry() {
 			setDebits([{ glAccountId: "", amount: "" }]);
 			setCredits([{ glAccountId: "", amount: "" }]);
 		},
-		onError: (error) => {
+		onError: (error: Error) => {
 			toast.error(`Failed to create journal entry: ${error.message}`);
 		},
 	});

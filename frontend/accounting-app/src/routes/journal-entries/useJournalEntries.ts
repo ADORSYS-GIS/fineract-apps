@@ -1,3 +1,4 @@
+import { JournalEntriesService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -33,15 +34,46 @@ export function useJournalEntries() {
 	const { data: journalEntries = [], isLoading } = useQuery<JournalEntry[]>({
 		queryKey: ["journal-entries", dateRange],
 		queryFn: async () => {
-			// Placeholder - in production, fetch from Fineract API
-			// const response = await JournalEntriesService.getV1Journalentries({
-			//   fromDate: dateRange.from,
-			//   toDate: dateRange.to,
-			// });
-			// return response as unknown as JournalEntry[];
+			const response = await JournalEntriesService.getV1Journalentries({
+				fromDate: dateRange.from,
+				toDate: dateRange.to,
+			});
 
-			// Mock data for development
-			return [];
+			// Map the response to our JournalEntry interface
+			const entries = response as unknown as {
+				pageItems?: Array<{
+					id: number;
+					transactionId: string;
+					transactionDate?: number[];
+					officeName: string;
+					referenceNumber?: string;
+					amount?: number;
+					comments?: string;
+				}>;
+			};
+
+			const items = entries.pageItems || [];
+
+			return items.map((entry) => {
+				// Convert date array [year, month, day] to ISO string
+				const date = entry.transactionDate
+					? new Date(
+							entry.transactionDate[0],
+							entry.transactionDate[1] - 1,
+							entry.transactionDate[2],
+						).toISOString()
+					: new Date().toISOString();
+
+				return {
+					id: entry.id,
+					transactionId: entry.transactionId,
+					transactionDate: date,
+					officeName: entry.officeName,
+					referenceNumber: entry.referenceNumber,
+					amount: entry.amount || 0,
+					comments: entry.comments,
+				};
+			});
 		},
 	});
 

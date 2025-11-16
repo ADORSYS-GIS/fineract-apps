@@ -1,3 +1,4 @@
+import { GeneralLedgerAccountService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -20,12 +21,34 @@ export function useGLAccounts() {
 	const { data: glAccounts = [], isLoading } = useQuery<GLAccount[]>({
 		queryKey: ["gl-accounts"],
 		queryFn: async () => {
-			// Placeholder - in production, fetch from Fineract API
-			// const response = await GLAccountsService.getV1Glaccounts();
-			// return response as unknown as GLAccount[];
+			const response = await GeneralLedgerAccountService.getV1GlAccounts({
+				disabled: false,
+			});
 
-			// Mock data for development
-			return [];
+			// Map the response to our GLAccount interface
+			const accounts = response as unknown as Array<{
+				id: number;
+				name: string;
+				glCode: string;
+				type?: {
+					value: string;
+				};
+				usage?: {
+					value: string;
+				};
+				disabled?: boolean;
+				organizationRunningBalance?: number;
+			}>;
+
+			return accounts.map((account) => ({
+				id: account.id,
+				name: account.name,
+				glCode: account.glCode,
+				type: account.type?.value || "UNKNOWN",
+				usage: account.usage?.value || "DETAIL",
+				balance: account.organizationRunningBalance || 0,
+				disabled: account.disabled,
+			}));
 		},
 	});
 
