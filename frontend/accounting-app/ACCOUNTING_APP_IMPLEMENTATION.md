@@ -108,10 +108,14 @@ This document tracks the implementation progress of the Accounting Application b
   - Actions column in the GL accounts table
   - **Completed:** Added Create Account and Edit buttons with proper callback pattern instead of router imports
 
-- [ ] **6.2 Implement Disable/Delete**
-  - Use: `GLAccountsService.deleteV1GlaccountsById()`
-  - Confirmation modal
-  - Maker-checker workflow integration
+- [x] **6.2 Implement Disable/Delete** ✅
+  - Use: `GeneralLedgerAccountService.deleteV1GlaccountsByGlAccountId()`
+  - Confirmation dialog with warning message
+  - Delete button with red styling and trash icon
+  - Toast notifications for success/error feedback
+  - Query invalidation for reactive UI updates
+  - Error handling for accounts with transactions
+  - **Completed:** Full delete functionality with proper UX
 
 ---
 
@@ -296,12 +300,12 @@ This document tracks the implementation progress of the Accounting Application b
 |-------|-------|-----------|-----------|----------|
 | Phase 1: API Integration | 4 | 4 | 0 | 100% ✅ |
 | Phase 2: Maker-Checker | 4 | 3 | 1 | 75% |
-| Phase 3: GL Management | 6 | 5 | 1 | 83% |
+| Phase 3: GL Management | 6 | 6 | 0 | 100% ✅ |
 | Phase 4: Closures | 4 | 0 | 4 | 0% |
 | Phase 5: Additional Features | 6 | 2 | 4 | 33% |
 | Phase 6: RBAC & Security | 6 | 0 | 6 | 0% |
 | Phase 7: Polish | 6 | 0 | 6 | 0% |
-| **TOTAL** | **36** | **14** | **22** | **39%** |
+| **TOTAL** | **36** | **15** | **21** | **42%** |
 
 ---
 

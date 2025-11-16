@@ -1,5 +1,5 @@
 import { Button, Card } from "@fineract-apps/ui";
-import { Download, Edit, Plus, Search } from "lucide-react";
+import { Download, Edit, Plus, Search, Trash2 } from "lucide-react";
 import type { GLAccount } from "./useGLAccounts";
 
 interface GLAccountsViewProps {
@@ -12,6 +12,7 @@ interface GLAccountsViewProps {
 	onExportCSV: () => void;
 	onCreateAccount: () => void;
 	onEditAccount: (accountId: number) => void;
+	onDeleteAccount: (accountId: number, accountName: string) => void;
 }
 
 export function GLAccountsView({
@@ -24,6 +25,7 @@ export function GLAccountsView({
 	onExportCSV,
 	onCreateAccount,
 	onEditAccount,
+	onDeleteAccount,
 }: GLAccountsViewProps) {
 	return (
 		<div className="p-6">
@@ -133,14 +135,26 @@ export function GLAccountsView({
 											${account.balance?.toLocaleString() || "0.00"}
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-											<Button
-												onClick={() => onEditAccount(account.id)}
-												variant="outline"
-												className="flex items-center gap-1"
-											>
-												<Edit className="h-3 w-3" />
-												Edit
-											</Button>
+											<div className="flex items-center justify-end gap-2">
+												<Button
+													onClick={() => onEditAccount(account.id)}
+													variant="outline"
+													className="flex items-center gap-1"
+												>
+													<Edit className="h-3 w-3" />
+													Edit
+												</Button>
+												<Button
+													onClick={() =>
+														onDeleteAccount(account.id, account.name)
+													}
+													variant="outline"
+													className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:border-red-300"
+												>
+													<Trash2 className="h-3 w-3" />
+													Delete
+												</Button>
+											</div>
 										</td>
 									</tr>
 								))}
