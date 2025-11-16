@@ -7,6 +7,9 @@ interface GLAccountsViewProps {
 	isLoading: boolean;
 	searchTerm: string;
 	accountType: string;
+	canCreateAccount: boolean;
+	canEditAccount: boolean;
+	canDeleteAccount: boolean;
 	onSearch: (term: string) => void;
 	onFilterByType: (type: string) => void;
 	onExportCSV: () => void;
@@ -20,6 +23,9 @@ export function GLAccountsView({
 	isLoading,
 	searchTerm,
 	accountType,
+	canCreateAccount,
+	canEditAccount,
+	canDeleteAccount,
 	onSearch,
 	onFilterByType,
 	onExportCSV,
@@ -32,10 +38,15 @@ export function GLAccountsView({
 			<div className="flex items-center justify-between mb-6">
 				<h1 className="text-2xl font-bold">General Ledger Accounts</h1>
 				<div className="flex gap-2">
-					<Button onClick={onCreateAccount} className="flex items-center gap-2">
-						<Plus className="h-4 w-4" />
-						Create Account
-					</Button>
+					{canCreateAccount && (
+						<Button
+							onClick={onCreateAccount}
+							className="flex items-center gap-2"
+						>
+							<Plus className="h-4 w-4" />
+							Create Account
+						</Button>
+					)}
 					<Button
 						onClick={onExportCSV}
 						variant="outline"
@@ -136,24 +147,33 @@ export function GLAccountsView({
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm text-right">
 											<div className="flex items-center justify-end gap-2">
-												<Button
-													onClick={() => onEditAccount(account.id)}
-													variant="outline"
-													className="flex items-center gap-1"
-												>
-													<Edit className="h-3 w-3" />
-													Edit
-												</Button>
-												<Button
-													onClick={() =>
-														onDeleteAccount(account.id, account.name)
-													}
-													variant="outline"
-													className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:border-red-300"
-												>
-													<Trash2 className="h-3 w-3" />
-													Delete
-												</Button>
+												{canEditAccount && (
+													<Button
+														onClick={() => onEditAccount(account.id)}
+														variant="outline"
+														className="flex items-center gap-1"
+													>
+														<Edit className="h-3 w-3" />
+														Edit
+													</Button>
+												)}
+												{canDeleteAccount && (
+													<Button
+														onClick={() =>
+															onDeleteAccount(account.id, account.name)
+														}
+														variant="outline"
+														className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:border-red-300"
+													>
+														<Trash2 className="h-3 w-3" />
+														Delete
+													</Button>
+												)}
+												{!canEditAccount && !canDeleteAccount && (
+													<span className="text-gray-400 text-xs">
+														View only
+													</span>
+												)}
 											</div>
 										</td>
 									</tr>

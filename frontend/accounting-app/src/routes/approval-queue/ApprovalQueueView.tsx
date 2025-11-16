@@ -5,6 +5,8 @@ import type { PendingApproval } from "./useApprovalQueue";
 interface ApprovalQueueViewProps {
 	pendingApprovals: PendingApproval[];
 	isLoading: boolean;
+	canApprove: boolean;
+	canReject: boolean;
 	onApprove: (auditId: number) => void;
 	onReject: (auditId: number) => void;
 	isApproving: number | null;
@@ -14,6 +16,8 @@ interface ApprovalQueueViewProps {
 export function ApprovalQueueView({
 	pendingApprovals,
 	isLoading,
+	canApprove,
+	canReject,
 	onApprove,
 	onReject,
 	isApproving,
@@ -95,29 +99,45 @@ export function ApprovalQueueView({
 										</div>
 									)}
 								</div>
-								<div className="flex gap-2 ml-4">
-									<Button
-										onClick={() => onApprove(approval.id)}
-										disabled={
-											isApproving === approval.id || isRejecting === approval.id
-										}
-										className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-									>
-										<Check className="h-4 w-4" />
-										{isApproving === approval.id ? "Approving..." : "Approve"}
-									</Button>
-									<Button
-										onClick={() => onReject(approval.id)}
-										disabled={
-											isApproving === approval.id || isRejecting === approval.id
-										}
-										variant="outline"
-										className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
-									>
-										<X className="h-4 w-4" />
-										{isRejecting === approval.id ? "Rejecting..." : "Reject"}
-									</Button>
-								</div>
+								{canApprove || canReject ? (
+									<div className="flex gap-2 ml-4">
+										{canApprove && (
+											<Button
+												onClick={() => onApprove(approval.id)}
+												disabled={
+													isApproving === approval.id ||
+													isRejecting === approval.id
+												}
+												className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+											>
+												<Check className="h-4 w-4" />
+												{isApproving === approval.id
+													? "Approving..."
+													: "Approve"}
+											</Button>
+										)}
+										{canReject && (
+											<Button
+												onClick={() => onReject(approval.id)}
+												disabled={
+													isApproving === approval.id ||
+													isRejecting === approval.id
+												}
+												variant="outline"
+												className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
+											>
+												<X className="h-4 w-4" />
+												{isRejecting === approval.id
+													? "Rejecting..."
+													: "Reject"}
+											</Button>
+										)}
+									</div>
+								) : (
+									<div className="ml-4 px-3 py-2 bg-gray-100 rounded text-sm text-gray-600">
+										View only (Admin role required)
+									</div>
+								)}
 							</div>
 						</Card>
 					))}

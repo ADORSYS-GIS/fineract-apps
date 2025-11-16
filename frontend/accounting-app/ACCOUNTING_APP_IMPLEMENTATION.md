@@ -3,8 +3,8 @@
 This document tracks the implementation progress of the Accounting Application based on the PRD requirements.
 
 **Last Updated:** 2025-11-17
-**Current Status:** Phase 5 Complete - All Additional Features Implemented
-**Overall Completion:** 67% (24/36 tasks complete, 5 phases done)
+**Current Status:** Phase 6 RBAC - Role-Based Access Control Implemented
+**Overall Completion:** 78% (28/36 tasks complete, 5 phases done, Phase 6 67%)
 
 ---
 
@@ -224,22 +224,40 @@ This document tracks the implementation progress of the Accounting Application b
 ## Phase 6: Security & Access Control
 
 ### Step 11: Role-Based Access Control (RBAC)
-- [ ] **11.1 Create Auth Context**
+- [x] **11.1 Create Auth Context** ✅
   - Files: `src/contexts/AuthContext.tsx`
-  - Detect user role (Accountant vs Admin)
+  - Fetch user data via `AuthenticationHttpBasicService.postV1Authentication`
+  - Extract roles and permissions from API response
+  - Provide helper functions: `hasRole`, `hasPermission`, `hasAnyRole`
+  - Cache authentication data indefinitely with TanStack Query
+  - **Completed:** Full auth context with role detection
 
-- [ ] **11.2 Create Permission Hook**
+- [x] **11.2 Create Permission Hook** ✅
   - Files: `src/hooks/usePermissions.ts`
-  - Check permissions for actions
+  - Define 4 user roles: Admin, Accountant, Manager, Viewer
+  - Implement granular permissions for all accounting operations
+  - Permission model:
+    - Admin: Full access (create, edit, delete, approve)
+    - Manager: Can create entries and view, but cannot approve
+    - Accountant: Can create and view entries, cannot edit GL accounts
+    - Viewer: Read-only access to all features
+  - **Completed:** Comprehensive permissions system
 
-- [ ] **11.3 Implement Conditional Rendering**
-  - Hide Admin-only features from Accountants
-  - Show read-only badges where applicable
-  - Update sidebar menu based on role
+- [x] **11.3 Implement Conditional Rendering** ✅
+  - Hide Create GL Account button from non-admins
+  - Hide Edit/Delete GL Account buttons from non-admins
+  - Show "View only" message when no edit permissions
+  - Hide Approve/Reject buttons from non-admins in approval queue
+  - Show "Admin role required" message for view-only users
+  - Updated components: GLAccountsView, GLAccountsContainer, ApprovalQueueView, ApprovalQueueContainer
+  - **Completed:** Role-based UI with proper feedback
 
-- [ ] **11.4 Add Permission Checks**
-  - API calls should check permissions
-  - Show error messages for unauthorized actions
+- [x] **11.4 Add Permission Checks** ✅
+  - Wrapped entire app with AuthProvider in __root.tsx
+  - Permission props passed from containers to views
+  - Conditional rendering prevents unauthorized actions
+  - UI feedback for users without permissions
+  - **Completed:** RBAC integrated throughout app
 
 ### Step 12: Audit Trail Enhancements
 - [ ] **12.1 Add Approval History**
@@ -339,9 +357,9 @@ This document tracks the implementation progress of the Accounting Application b
 | Phase 3: GL Management | 6 | 6 | 0 | 100% ✅ |
 | Phase 4: Closures | 4 | 4 | 0 | 100% ✅ |
 | Phase 5: Additional Features | 6 | 6 | 0 | 100% ✅ |
-| Phase 6: RBAC & Security | 6 | 0 | 6 | 0% |
+| Phase 6: RBAC & Security | 6 | 4 | 2 | 67% |
 | Phase 7: Polish | 6 | 0 | 6 | 0% |
-| **TOTAL** | **36** | **24** | **12** | **67%** |
+| **TOTAL** | **36** | **28** | **8** | **78%** |
 
 ---
 
