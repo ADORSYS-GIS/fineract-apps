@@ -1,5 +1,5 @@
 import { Button, Card } from "@fineract-apps/ui";
-import { Download, Plus, Search } from "lucide-react";
+import { Download, Edit, Plus, Search } from "lucide-react";
 import type { GLAccount } from "./useGLAccounts";
 
 interface GLAccountsViewProps {
@@ -11,6 +11,7 @@ interface GLAccountsViewProps {
 	onFilterByType: (type: string) => void;
 	onExportCSV: () => void;
 	onCreateAccount: () => void;
+	onEditAccount: (accountId: number) => void;
 }
 
 export function GLAccountsView({
@@ -22,6 +23,7 @@ export function GLAccountsView({
 	onFilterByType,
 	onExportCSV,
 	onCreateAccount,
+	onEditAccount,
 }: GLAccountsViewProps) {
 	return (
 		<div className="p-6">
@@ -32,7 +34,11 @@ export function GLAccountsView({
 						<Plus className="h-4 w-4" />
 						Create Account
 					</Button>
-					<Button onClick={onExportCSV} variant="outline" className="flex items-center gap-2">
+					<Button
+						onClick={onExportCSV}
+						variant="outline"
+						className="flex items-center gap-2"
+					>
 						<Download className="h-4 w-4" />
 						Export CSV
 					</Button>
@@ -99,6 +105,9 @@ export function GLAccountsView({
 									<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
 										Balance
 									</th>
+									<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+										Actions
+									</th>
 								</tr>
 							</thead>
 							<tbody className="bg-white divide-y divide-gray-200">
@@ -122,6 +131,16 @@ export function GLAccountsView({
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
 											${account.balance?.toLocaleString() || "0.00"}
+										</td>
+										<td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+											<Button
+												onClick={() => onEditAccount(account.id)}
+												variant="outline"
+												className="flex items-center gap-1"
+											>
+												<Edit className="h-3 w-3" />
+												Edit
+											</Button>
 										</td>
 									</tr>
 								))}

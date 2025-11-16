@@ -86,19 +86,27 @@ This document tracks the implementation progress of the Accounting Application b
   - **Completed:** Functional create with API integration and proper architecture
 
 ### Step 5: Edit GL Account Page
-- [ ] **5.1 Create Edit Route**
-  - Files: `src/routes/gl-accounts/$accountId/edit.tsx`
-  - Pre-populate form with existing data
+- [x] **5.1 Create Edit Route** ✅
+  - Files: `src/routes/gl-accounts/$accountId/edit.tsx`, `EditGLAccountContainer.tsx`, `useEditGLAccount.ts`, `EditGLAccountView.tsx`
+  - Pre-populate form with existing data from API
+  - Dynamic route with accountId parameter
+  - **Completed:** Full edit page with Container/View/Hook pattern
 
-- [ ] **5.2 Implement Update Logic**
-  - Use: `GLAccountsService.putV1GlaccountsById()`
-  - Maker-checker workflow integration
+- [x] **5.2 Implement Update Logic** ✅
+  - Use: `GeneralLedgerAccountService.putV1GlaccountsByGlAccountId()`
+  - Form validation matching create page
+  - Loading state while fetching account data
+  - Query invalidation for reactive updates
+  - Navigation callbacks for cancel and back actions
+  - **Completed:** Functional edit with API integration, proper architecture
 
 ### Step 6: GL Account Actions
 - [x] **6.1 Add Action Buttons to GL Viewer** ✅
   - Create Account button (Admin only) with navigation callback
   - Export CSV button (already functional)
-  - **Completed:** Added Create Account button with proper callback pattern instead of router imports
+  - Edit button for each account row with icon
+  - Actions column in the GL accounts table
+  - **Completed:** Added Create Account and Edit buttons with proper callback pattern instead of router imports
 
 - [ ] **6.2 Implement Disable/Delete**
   - Use: `GLAccountsService.deleteV1GlaccountsById()`
@@ -288,12 +296,12 @@ This document tracks the implementation progress of the Accounting Application b
 |-------|-------|-----------|-----------|----------|
 | Phase 1: API Integration | 4 | 4 | 0 | 100% ✅ |
 | Phase 2: Maker-Checker | 4 | 3 | 1 | 75% |
-| Phase 3: GL Management | 6 | 3 | 3 | 50% |
+| Phase 3: GL Management | 6 | 5 | 1 | 83% |
 | Phase 4: Closures | 4 | 0 | 4 | 0% |
 | Phase 5: Additional Features | 6 | 2 | 4 | 33% |
 | Phase 6: RBAC & Security | 6 | 0 | 6 | 0% |
 | Phase 7: Polish | 6 | 0 | 6 | 0% |
-| **TOTAL** | **36** | **12** | **24** | **33%** |
+| **TOTAL** | **36** | **14** | **22** | **39%** |
 
 ---
 

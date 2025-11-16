@@ -17,6 +17,7 @@ import { Route as CreateEntryIndexRouteImport } from './routes/create-entry/inde
 import { Route as ApprovalQueueIndexRouteImport } from './routes/approval-queue/index'
 import { Route as JournalEntriesEntryIdRouteImport } from './routes/journal-entries/$entryId'
 import { Route as GlAccountsCreateRouteImport } from './routes/gl-accounts/create'
+import { Route as GlAccountsAccountIdEditRouteImport } from './routes/gl-accounts/$accountId/edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const GlAccountsCreateRoute = GlAccountsCreateRouteImport.update({
   path: '/gl-accounts/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GlAccountsAccountIdEditRoute = GlAccountsAccountIdEditRouteImport.update({
+  id: '/gl-accounts/$accountId/edit',
+  path: '/gl-accounts/$accountId/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardIndexRoute
   '/gl-accounts': typeof GlAccountsIndexRoute
   '/journal-entries': typeof JournalEntriesIndexRoute
+  '/gl-accounts/$accountId/edit': typeof GlAccountsAccountIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/gl-accounts': typeof GlAccountsIndexRoute
   '/journal-entries': typeof JournalEntriesIndexRoute
+  '/gl-accounts/$accountId/edit': typeof GlAccountsAccountIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/gl-accounts/': typeof GlAccountsIndexRoute
   '/journal-entries/': typeof JournalEntriesIndexRoute
+  '/gl-accounts/$accountId/edit': typeof GlAccountsAccountIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/gl-accounts'
     | '/journal-entries'
+    | '/gl-accounts/$accountId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/gl-accounts'
     | '/journal-entries'
+    | '/gl-accounts/$accountId/edit'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/gl-accounts/'
     | '/journal-entries/'
+    | '/gl-accounts/$accountId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
   GlAccountsIndexRoute: typeof GlAccountsIndexRoute
   JournalEntriesIndexRoute: typeof JournalEntriesIndexRoute
+  GlAccountsAccountIdEditRoute: typeof GlAccountsAccountIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GlAccountsCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gl-accounts/$accountId/edit': {
+      id: '/gl-accounts/$accountId/edit'
+      path: '/gl-accounts/$accountId/edit'
+      fullPath: '/gl-accounts/$accountId/edit'
+      preLoaderRoute: typeof GlAccountsAccountIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
   GlAccountsIndexRoute: GlAccountsIndexRoute,
   JournalEntriesIndexRoute: JournalEntriesIndexRoute,
+  GlAccountsAccountIdEditRoute: GlAccountsAccountIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

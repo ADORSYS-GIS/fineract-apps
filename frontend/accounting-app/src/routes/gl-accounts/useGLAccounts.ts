@@ -66,7 +66,13 @@ export function useGLAccounts() {
 	});
 
 	const handleExportCSV = () => {
-		const headers = ["Account Code", "Account Name", "Type", "Usage", "Balance"];
+		const headers = [
+			"Account Code",
+			"Account Name",
+			"Type",
+			"Usage",
+			"Balance",
+		];
 		const rows = filteredAccounts.map((account) => [
 			account.glCode,
 			account.name,
@@ -94,7 +100,10 @@ export function useGLAccounts() {
 		const link = document.createElement("a");
 		const url = URL.createObjectURL(blob);
 		link.setAttribute("href", url);
-		link.setAttribute("download", `gl-accounts-${new Date().toISOString()}.csv`);
+		link.setAttribute(
+			"download",
+			`gl-accounts-${new Date().toISOString()}.csv`,
+		);
 		link.style.visibility = "hidden";
 		document.body.appendChild(link);
 		link.click();
@@ -107,6 +116,13 @@ export function useGLAccounts() {
 		navigate({ to: "/gl-accounts/create" });
 	};
 
+	const handleEditAccount = (accountId: number) => {
+		navigate({
+			to: "/gl-accounts/$accountId/edit",
+			params: { accountId: accountId.toString() },
+		});
+	};
+
 	return {
 		glAccounts: filteredAccounts,
 		isLoading,
@@ -116,5 +132,6 @@ export function useGLAccounts() {
 		onFilterByType: setAccountType,
 		onExportCSV: handleExportCSV,
 		onCreateAccount: handleCreateAccount,
+		onEditAccount: handleEditAccount,
 	};
 }

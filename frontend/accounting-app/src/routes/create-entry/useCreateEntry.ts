@@ -64,18 +64,14 @@ export function useCreateEntry() {
 				dateFormat: "dd MM yyyy",
 			};
 
-			const response =
-				await JournalEntriesService.postV1Journalentries1({
-					requestBody,
-				});
+			const response = await JournalEntriesService.postV1Journalentries1({
+				requestBody,
+			});
 
 			return response;
 		},
 		onSuccess: () => {
-			toast.success(
-				"Journal entry created successfully!",
-				{ duration: 5000 },
-			);
+			toast.success("Journal entry created successfully!", { duration: 5000 });
 
 			// Invalidate relevant queries to refresh data
 			queryClient.invalidateQueries({ queryKey: ["journal-entries"] });

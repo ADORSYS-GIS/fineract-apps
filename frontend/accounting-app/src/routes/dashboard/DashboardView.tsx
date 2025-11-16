@@ -35,7 +35,9 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm text-gray-600">GL Accounts</p>
-							<p className="text-3xl font-bold">{stats?.glAccountsCount || 0}</p>
+							<p className="text-3xl font-bold">
+								{stats?.glAccountsCount || 0}
+							</p>
 						</div>
 						<BookOpen className="h-12 w-12 text-blue-500" />
 					</div>
@@ -45,7 +47,9 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm text-gray-600">Journal Entries (Today)</p>
-							<p className="text-3xl font-bold">{stats?.journalEntriesToday || 0}</p>
+							<p className="text-3xl font-bold">
+								{stats?.journalEntriesToday || 0}
+							</p>
 						</div>
 						<FileText className="h-12 w-12 text-green-500" />
 					</div>
@@ -55,7 +59,9 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm text-gray-600">Pending Approvals</p>
-							<p className="text-3xl font-bold">{stats?.pendingApprovals || 0}</p>
+							<p className="text-3xl font-bold">
+								{stats?.pendingApprovals || 0}
+							</p>
 						</div>
 						<Lock className="h-12 w-12 text-orange-500" />
 					</div>
@@ -90,7 +96,9 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 							className="block p-3 hover:bg-gray-50 rounded border"
 						>
 							<p className="font-medium">View Journal Entries</p>
-							<p className="text-sm text-gray-600">Browse all accounting entries</p>
+							<p className="text-sm text-gray-600">
+								Browse all accounting entries
+							</p>
 						</a>
 						<a
 							href="/accounting/create-entry"

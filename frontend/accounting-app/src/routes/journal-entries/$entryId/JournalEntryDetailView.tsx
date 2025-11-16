@@ -241,8 +241,8 @@ export function JournalEntryDetailView({
 					<div className="flex items-center gap-2 text-red-800">
 						<FileText className="h-5 w-5" />
 						<p className="font-medium">
-							Warning: This entry is not balanced. Total debits (
-							${totalDebits.toLocaleString()}) do not equal total credits ($
+							Warning: This entry is not balanced. Total debits ( $
+							{totalDebits.toLocaleString()}) do not equal total credits ($
 							{totalCredits.toLocaleString()}).
 						</p>
 					</div>

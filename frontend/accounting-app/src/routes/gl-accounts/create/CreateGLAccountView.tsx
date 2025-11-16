@@ -6,7 +6,10 @@ interface CreateGLAccountViewProps {
 	formData: GLAccountFormData;
 	errors: FormErrors;
 	isSubmitting: boolean;
-	onFormChange: (field: keyof GLAccountFormData, value: string | boolean) => void;
+	onFormChange: (
+		field: keyof GLAccountFormData,
+		value: string | boolean,
+	) => void;
 	onSubmit: (e: React.FormEvent) => void;
 	onCancel: () => void;
 }

@@ -55,7 +55,9 @@ export function JournalEntriesView({
 						<input
 							type="date"
 							value={dateRange.to}
-							onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
+							onChange={(e) =>
+								onDateRangeChange({ ...dateRange, to: e.target.value })
+							}
 							className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 					</div>
@@ -86,7 +88,9 @@ export function JournalEntriesView({
 				</Card>
 			) : journalEntries.length === 0 ? (
 				<Card className="p-6 text-center text-gray-500">
-					<p>No journal entries found for the selected date range and filters.</p>
+					<p>
+						No journal entries found for the selected date range and filters.
+					</p>
 				</Card>
 			) : (
 				<Card className="overflow-hidden">

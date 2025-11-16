@@ -89,14 +89,18 @@ export function ApprovalQueueView({
 									{approval.processingResult && (
 										<div className="mt-3 p-3 bg-gray-50 rounded">
 											<span className="text-sm text-gray-600">Details:</span>
-											<p className="text-sm mt-1">{approval.processingResult}</p>
+											<p className="text-sm mt-1">
+												{approval.processingResult}
+											</p>
 										</div>
 									)}
 								</div>
 								<div className="flex gap-2 ml-4">
 									<Button
 										onClick={() => onApprove(approval.id)}
-										disabled={isApproving === approval.id || isRejecting === approval.id}
+										disabled={
+											isApproving === approval.id || isRejecting === approval.id
+										}
 										className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
 									>
 										<Check className="h-4 w-4" />
@@ -104,7 +108,9 @@ export function ApprovalQueueView({
 									</Button>
 									<Button
 										onClick={() => onReject(approval.id)}
-										disabled={isApproving === approval.id || isRejecting === approval.id}
+										disabled={
+											isApproving === approval.id || isRejecting === approval.id
+										}
 										variant="outline"
 										className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
 									>

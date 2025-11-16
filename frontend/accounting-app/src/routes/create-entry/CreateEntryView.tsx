@@ -14,7 +14,11 @@ interface CreateEntryViewProps {
 	onAddCredit: () => void;
 	onRemoveCredit: (index: number) => void;
 	onDebitChange: (index: number, field: keyof EntryLine, value: string) => void;
-	onCreditChange: (index: number, field: keyof EntryLine, value: string) => void;
+	onCreditChange: (
+		index: number,
+		field: keyof EntryLine,
+		value: string,
+	) => void;
 	onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -54,7 +58,9 @@ export function CreateEntryView({
 							<input
 								type="date"
 								value={formData.transactionDate}
-								onChange={(e) => onFormChange("transactionDate", e.target.value)}
+								onChange={(e) =>
+									onFormChange("transactionDate", e.target.value)
+								}
 								required
 								className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 							/>
@@ -66,7 +72,9 @@ export function CreateEntryView({
 							<input
 								type="text"
 								value={formData.referenceNumber}
-								onChange={(e) => onFormChange("referenceNumber", e.target.value)}
+								onChange={(e) =>
+									onFormChange("referenceNumber", e.target.value)
+								}
 								placeholder="Optional reference number"
 								className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 							/>
@@ -124,7 +132,9 @@ export function CreateEntryView({
 											step="0.01"
 											min="0"
 											value={debit.amount}
-											onChange={(e) => onDebitChange(index, "amount", e.target.value)}
+											onChange={(e) =>
+												onDebitChange(index, "amount", e.target.value)
+											}
 											placeholder="Amount"
 											required
 											className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -239,7 +249,8 @@ export function CreateEntryView({
 							</p>
 						</div>
 						<p className="text-sm text-yellow-700 mt-1 ml-7">
-							Difference: ${Math.abs(totalDebits - totalCredits).toLocaleString()}
+							Difference: $
+							{Math.abs(totalDebits - totalCredits).toLocaleString()}
 						</p>
 					</Card>
 				)}
@@ -248,10 +259,13 @@ export function CreateEntryView({
 					<Card className="p-4 mb-6 bg-green-50 border-green-200">
 						<div className="flex items-center gap-2 text-green-800">
 							<AlertCircle className="h-5 w-5" />
-							<p className="font-medium">Entry is balanced and ready to submit.</p>
+							<p className="font-medium">
+								Entry is balanced and ready to submit.
+							</p>
 						</div>
 						<p className="text-sm text-green-700 mt-1 ml-7">
-							This entry will require approval before being posted to the ledger.
+							This entry will require approval before being posted to the
+							ledger.
 						</p>
 					</Card>
 				)}
@@ -262,7 +276,12 @@ export function CreateEntryView({
 					</Button>
 					<Button
 						type="submit"
-						disabled={!isBalanced || debits.length === 0 || credits.length === 0 || isSubmitting}
+						disabled={
+							!isBalanced ||
+							debits.length === 0 ||
+							credits.length === 0 ||
+							isSubmitting
+						}
 					>
 						{isSubmitting ? "Submitting..." : "Submit for Approval"}
 					</Button>
