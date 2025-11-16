@@ -5,6 +5,7 @@ import {
 	FileText,
 	History,
 	Home,
+	Lock,
 	PlusCircle,
 	Send,
 	Settings,
@@ -47,4 +48,5 @@ export const menuAccounting: MenuItem[] = [
 	{ name: "journal_entries", link: "/journal-entries", icon: FileText },
 	{ name: "create_entry", link: "/create-entry", icon: PlusCircle },
 	{ name: "approval_queue", link: "/approval-queue", icon: CheckCircle },
+	{ name: "closures", link: "/closures", icon: Lock },
 ];
