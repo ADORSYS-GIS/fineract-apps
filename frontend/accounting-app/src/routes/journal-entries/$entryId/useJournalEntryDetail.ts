@@ -1,6 +1,7 @@
 import { JournalEntriesService } from "@fineract-apps/fineract-api";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import "../../../lib/api";
 
 export interface JournalEntryDetail {
@@ -28,6 +29,7 @@ export interface JournalEntryDetail {
 
 export function useJournalEntryDetail() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const { entryId } = useParams({ from: "/journal-entries/$entryId" });
 
 	const { data: entry, isLoading } = useQuery<JournalEntryDetail | null>({
@@ -66,13 +68,68 @@ export function useJournalEntryDetail() {
 		},
 	});
 
+	const reverseMutation = useMutation({
+		mutationFn: async (data: { transactionId: string; comments: string }) => {
+			const response =
+				await JournalEntriesService.postV1JournalentriesByTransactionId({
+					transactionId: data.transactionId,
+					command: "reverse",
+					requestBody: {
+						comments: data.comments,
+					},
+				});
+			return response;
+		},
+		onSuccess: () => {
+			toast.success(
+				"Journal entry reversed successfully! A reversing entry has been created.",
+				{ duration: 6000 },
+			);
+			queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+			queryClient.invalidateQueries({ queryKey: ["journal-entry-detail"] });
+			queryClient.invalidateQueries({ queryKey: ["accounting-stats"] });
+			// Navigate back to journal entries list
+			setTimeout(() => {
+				navigate({ to: "/journal-entries" });
+			}, 1500);
+		},
+		onError: (error: Error) => {
+			toast.error(`Failed to reverse entry: ${error.message}`);
+		},
+	});
+
 	const handleBack = () => {
 		navigate({ to: "/journal-entries" });
+	};
+
+	const handleReverse = () => {
+		if (!entry) return;
+
+		const reason = window.prompt(
+			"Please enter a reason for reversing this journal entry:",
+		);
+
+		if (reason && reason.trim()) {
+			const confirmed = window.confirm(
+				`Are you sure you want to reverse this journal entry?\n\nThis will create a reversing entry that swaps debits and credits.\n\nReason: ${reason}`,
+			);
+
+			if (confirmed) {
+				reverseMutation.mutate({
+					transactionId: entry.transactionId,
+					comments: reason,
+				});
+			}
+		} else if (reason !== null) {
+			toast.error("A reason is required to reverse an entry");
+		}
 	};
 
 	return {
 		entry,
 		isLoading,
+		isReversing: reverseMutation.isPending,
 		onBack: handleBack,
+		onReverse: handleReverse,
 	};
 }

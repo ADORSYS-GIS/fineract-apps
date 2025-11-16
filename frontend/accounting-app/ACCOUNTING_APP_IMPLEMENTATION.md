@@ -3,8 +3,8 @@
 This document tracks the implementation progress of the Accounting Application based on the PRD requirements.
 
 **Last Updated:** 2025-11-17
-**Current Status:** Phase 3 & 5 - GL Management & Additional Features
-**Overall Completion:** 33% (12/36 tasks complete, real API integration done)
+**Current Status:** Phase 5 - Additional Features (Reverse Transactions Complete)
+**Overall Completion:** 61% (22/36 tasks complete, real API integration done)
 
 ---
 
@@ -177,14 +177,20 @@ This document tracks the implementation progress of the Accounting Application b
   - **Completed:** Beautiful UI with empty state handling
 
 ### Step 9: Reverse/Revert Transaction
-- [ ] **9.1 Add Reverse Action**
-  - Button in journal entry detail view
-  - Confirmation modal with reason requirement
+- [x] **9.1 Add Reverse Action** ✅
+  - Button in journal entry detail view with RotateCcw icon
+  - Confirmation modal with reason requirement (window.prompt + window.confirm)
+  - Orange styled button with loading state
+  - **Completed:** Reverse Entry button added to journal entry detail view
 
-- [ ] **9.2 Implement Reverse Logic**
-  - Create reversing entry (swap debits/credits)
-  - Link to original entry
-  - Maker-checker workflow integration
+- [x] **9.2 Implement Reverse Logic** ✅
+  - Use: `JournalEntriesService.postV1JournalentriesByTransactionId()` with command="reverse"
+  - Create reversing entry (Fineract handles swap of debits/credits automatically)
+  - Reason required via prompt, confirmation dialog
+  - Toast notifications for success/error
+  - Query invalidation for reactive UI updates
+  - Auto-navigation back to journal entries list after success
+  - **Completed:** Full reverse transaction functionality with API integration
 
 ### Step 10: Cash Short and Over Tracker
 - [ ] **10.1 Create Cash Short/Over Route**
@@ -320,10 +326,10 @@ This document tracks the implementation progress of the Accounting Application b
 | Phase 2: Maker-Checker | 4 | 4 | 0 | 100% ✅ |
 | Phase 3: GL Management | 6 | 6 | 0 | 100% ✅ |
 | Phase 4: Closures | 4 | 4 | 0 | 100% ✅ |
-| Phase 5: Additional Features | 6 | 2 | 4 | 33% |
+| Phase 5: Additional Features | 6 | 4 | 2 | 67% |
 | Phase 6: RBAC & Security | 6 | 0 | 6 | 0% |
 | Phase 7: Polish | 6 | 0 | 6 | 0% |
-| **TOTAL** | **36** | **20** | **16** | **56%** |
+| **TOTAL** | **36** | **22** | **14** | **61%** |
 
 ---
 

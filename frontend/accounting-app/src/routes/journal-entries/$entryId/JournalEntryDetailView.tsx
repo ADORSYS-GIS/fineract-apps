@@ -1,17 +1,28 @@
 import { Button, Card } from "@fineract-apps/ui";
-import { ArrowLeft, Calendar, Building, FileText, User } from "lucide-react";
+import {
+	ArrowLeft,
+	Building,
+	Calendar,
+	FileText,
+	RotateCcw,
+	User,
+} from "lucide-react";
 import type { JournalEntryDetail } from "./useJournalEntryDetail";
 
 interface JournalEntryDetailViewProps {
 	entry: JournalEntryDetail | null;
 	isLoading: boolean;
+	isReversing: boolean;
 	onBack: () => void;
+	onReverse: () => void;
 }
 
 export function JournalEntryDetailView({
 	entry,
 	isLoading,
+	isReversing,
 	onBack,
+	onReverse,
 }: JournalEntryDetailViewProps) {
 	if (isLoading) {
 		return (
@@ -75,7 +86,7 @@ export function JournalEntryDetailView({
 
 			<div className="flex items-center justify-between mb-6">
 				<h1 className="text-2xl font-bold">Journal Entry Details</h1>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-3">
 					{isBalanced ? (
 						<span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
 							Balanced
@@ -85,6 +96,15 @@ export function JournalEntryDetailView({
 							Unbalanced
 						</span>
 					)}
+					<Button
+						onClick={onReverse}
+						disabled={isReversing}
+						variant="outline"
+						className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:border-orange-300"
+					>
+						<RotateCcw className="h-4 w-4" />
+						{isReversing ? "Reversing..." : "Reverse Entry"}
+					</Button>
 				</div>
 			</div>
 
