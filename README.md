@@ -35,6 +35,7 @@ pnpm dev:mifos
 # - Branch Manager: http://localhost:5003
 # - Cashier: http://localhost:5004
 # - Reporting App: http://localhost:5005
+# - Accounting App: http://localhost:5006
 # - MIFOS Web App: http://localhost:4200
 ```
 
@@ -49,6 +50,7 @@ pnpm dev:mifos
 | **Branch Manager** | Client & office management | 5003 | `branch-manager` |
 | **Cashier App** | Teller operations & transactions | 5004 | `teller` |
 | **Reporting App** | Reports, analytics & audit trails | 5005 | `branch-manager`, `admin` |
+| **Accounting App** | GL accounts, journal entries & closures | 5006 | `accountant`, `admin` |
 
 ### Angular Apps (npm)
 
@@ -113,6 +115,7 @@ fineract-apps/
 │   ├── branchmanager-app/      # Client/office management (React)
 │   ├── cashier-app/            # Teller operations (React)
 │   ├── reporting-app/          # Reports & audit trails (React)
+│   ├── accounting-app/         # GL accounts & journal entries (React)
 │   └── mifos-web-app/          # Complete Fineract frontend (Angular)
 ├── packages/                    # Shared packages (React apps only)
 │   ├── ui/                     # Shared UI components
@@ -127,6 +130,7 @@ fineract-apps/
 ├── Dockerfile.branch-manager
 ├── Dockerfile.cashier
 ├── Dockerfile.reporting
+├── Dockerfile.accounting
 └── Dockerfile.mifos-web-app     # Angular app Dockerfile
 ```
 

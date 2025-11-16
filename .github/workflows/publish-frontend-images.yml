@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       apps:
-        description: 'Apps to build (comma-separated: admin,account-manager,branch-manager,cashier or "all")'
+        description: 'Apps to build (comma-separated: admin,account-manager,branch-manager,cashier,reporting,accounting or "all")'
         required: false
         default: 'all'
 
@@ -36,7 +36,7 @@ jobs:
         id: set-apps
         run: |
           if [ "${{ github.event.inputs.apps }}" == "all" ] || [ "${{ github.event.inputs.apps }}" == "" ]; then
-            echo 'apps=["admin","account-manager","branch-manager","cashier","reporting"]' >> $GITHUB_OUTPUT
+            echo 'apps=["admin","account-manager","branch-manager","cashier","reporting","accounting"]' >> $GITHUB_OUTPUT
           else
             APPS=$(echo "${{ github.event.inputs.apps }}" | jq -R 'split(",") | map(. | gsub(" "; ""))')
             echo "apps=$APPS" >> $GITHUB_OUTPUT

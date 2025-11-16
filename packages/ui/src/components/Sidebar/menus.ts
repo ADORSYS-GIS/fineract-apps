@@ -1,8 +1,10 @@
 import {
 	BarChart3,
+	BookOpen,
 	FileText,
 	History,
 	Home,
+	PlusCircle,
 	Send,
 	Settings,
 	Shield,
@@ -36,4 +38,11 @@ export const menuReporting: MenuItem[] = [
 	{ name: "reports", link: "/reports", icon: BarChart3 },
 	{ name: "transactions", link: "/transactions", icon: History },
 	{ name: "audit", link: "/audit", icon: Shield },
+];
+
+export const menuAccounting: MenuItem[] = [
+	{ name: "dashboard", link: "/dashboard", icon: Home },
+	{ name: "gl_accounts", link: "/gl-accounts", icon: BookOpen },
+	{ name: "journal_entries", link: "/journal-entries", icon: FileText },
+	{ name: "create_entry", link: "/create-entry", icon: PlusCircle },
 ];

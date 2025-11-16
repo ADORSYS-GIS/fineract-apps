@@ -1,5 +1,6 @@
 // Menus
 export {
+	menuAccounting,
 	menuAccountManager,
 	menuAdmin,
 	menuBranchManager,
