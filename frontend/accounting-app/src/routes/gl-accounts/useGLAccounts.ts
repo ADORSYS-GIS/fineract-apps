@@ -1,5 +1,6 @@
 import { GeneralLedgerAccountService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import "../../lib/api";
@@ -15,6 +16,7 @@ export interface GLAccount {
 }
 
 export function useGLAccounts() {
+	const navigate = useNavigate();
 	const [searchTerm, setSearchTerm] = useState("");
 	const [accountType, setAccountType] = useState("");
 
@@ -101,6 +103,10 @@ export function useGLAccounts() {
 		toast.success("GL accounts exported successfully");
 	};
 
+	const handleCreateAccount = () => {
+		navigate({ to: "/gl-accounts/create" });
+	};
+
 	return {
 		glAccounts: filteredAccounts,
 		isLoading,
@@ -109,5 +115,6 @@ export function useGLAccounts() {
 		onSearch: setSearchTerm,
 		onFilterByType: setAccountType,
 		onExportCSV: handleExportCSV,
+		onCreateAccount: handleCreateAccount,
 	};
 }

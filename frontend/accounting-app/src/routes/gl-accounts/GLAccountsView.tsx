@@ -1,5 +1,5 @@
 import { Button, Card } from "@fineract-apps/ui";
-import { Download, Search } from "lucide-react";
+import { Download, Plus, Search } from "lucide-react";
 import type { GLAccount } from "./useGLAccounts";
 
 interface GLAccountsViewProps {
@@ -10,6 +10,7 @@ interface GLAccountsViewProps {
 	onSearch: (term: string) => void;
 	onFilterByType: (type: string) => void;
 	onExportCSV: () => void;
+	onCreateAccount: () => void;
 }
 
 export function GLAccountsView({
@@ -20,15 +21,22 @@ export function GLAccountsView({
 	onSearch,
 	onFilterByType,
 	onExportCSV,
+	onCreateAccount,
 }: GLAccountsViewProps) {
 	return (
 		<div className="p-6">
 			<div className="flex items-center justify-between mb-6">
 				<h1 className="text-2xl font-bold">General Ledger Accounts</h1>
-				<Button onClick={onExportCSV} className="flex items-center gap-2">
-					<Download className="h-4 w-4" />
-					Export CSV
-				</Button>
+				<div className="flex gap-2">
+					<Button onClick={onCreateAccount} className="flex items-center gap-2">
+						<Plus className="h-4 w-4" />
+						Create Account
+					</Button>
+					<Button onClick={onExportCSV} variant="outline" className="flex items-center gap-2">
+						<Download className="h-4 w-4" />
+						Export CSV
+					</Button>
+				</div>
 			</div>
 
 			<Card className="p-6 mb-6">

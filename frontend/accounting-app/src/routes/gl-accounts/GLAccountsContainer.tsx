@@ -10,6 +10,7 @@ export function GLAccountsContainer() {
 		onSearch,
 		onFilterByType,
 		onExportCSV,
+		onCreateAccount,
 	} = useGLAccounts();
 
 	return (
@@ -21,6 +22,7 @@ export function GLAccountsContainer() {
 			onSearch={onSearch}
 			onFilterByType={onFilterByType}
 			onExportCSV={onExportCSV}
+			onCreateAccount={onCreateAccount}
 		/>
 	);
 }
