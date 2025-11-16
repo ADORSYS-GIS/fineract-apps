@@ -15,6 +15,7 @@ import { Route as GlAccountsIndexRouteImport } from './routes/gl-accounts/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as CreateEntryIndexRouteImport } from './routes/create-entry/index'
 import { Route as ClosuresIndexRouteImport } from './routes/closures/index'
+import { Route as CashShortOverIndexRouteImport } from './routes/cash-short-over/index'
 import { Route as ApprovalQueueIndexRouteImport } from './routes/approval-queue/index'
 import { Route as JournalEntriesEntryIdRouteImport } from './routes/journal-entries/$entryId'
 import { Route as GlAccountsCreateRouteImport } from './routes/gl-accounts/create'
@@ -51,6 +52,11 @@ const ClosuresIndexRoute = ClosuresIndexRouteImport.update({
   path: '/closures/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CashShortOverIndexRoute = CashShortOverIndexRouteImport.update({
+  id: '/cash-short-over/',
+  path: '/cash-short-over/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApprovalQueueIndexRoute = ApprovalQueueIndexRouteImport.update({
   id: '/approval-queue/',
   path: '/approval-queue/',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/gl-accounts/create': typeof GlAccountsCreateRoute
   '/journal-entries/$entryId': typeof JournalEntriesEntryIdRoute
   '/approval-queue': typeof ApprovalQueueIndexRoute
+  '/cash-short-over': typeof CashShortOverIndexRoute
   '/closures': typeof ClosuresIndexRoute
   '/create-entry': typeof CreateEntryIndexRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/gl-accounts/create': typeof GlAccountsCreateRoute
   '/journal-entries/$entryId': typeof JournalEntriesEntryIdRoute
   '/approval-queue': typeof ApprovalQueueIndexRoute
+  '/cash-short-over': typeof CashShortOverIndexRoute
   '/closures': typeof ClosuresIndexRoute
   '/create-entry': typeof CreateEntryIndexRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/gl-accounts/create': typeof GlAccountsCreateRoute
   '/journal-entries/$entryId': typeof JournalEntriesEntryIdRoute
   '/approval-queue/': typeof ApprovalQueueIndexRoute
+  '/cash-short-over/': typeof CashShortOverIndexRoute
   '/closures/': typeof ClosuresIndexRoute
   '/create-entry/': typeof CreateEntryIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/gl-accounts/create'
     | '/journal-entries/$entryId'
     | '/approval-queue'
+    | '/cash-short-over'
     | '/closures'
     | '/create-entry'
     | '/dashboard'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/gl-accounts/create'
     | '/journal-entries/$entryId'
     | '/approval-queue'
+    | '/cash-short-over'
     | '/closures'
     | '/create-entry'
     | '/dashboard'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/gl-accounts/create'
     | '/journal-entries/$entryId'
     | '/approval-queue/'
+    | '/cash-short-over/'
     | '/closures/'
     | '/create-entry/'
     | '/dashboard/'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   GlAccountsCreateRoute: typeof GlAccountsCreateRoute
   JournalEntriesEntryIdRoute: typeof JournalEntriesEntryIdRoute
   ApprovalQueueIndexRoute: typeof ApprovalQueueIndexRoute
+  CashShortOverIndexRoute: typeof CashShortOverIndexRoute
   ClosuresIndexRoute: typeof ClosuresIndexRoute
   CreateEntryIndexRoute: typeof CreateEntryIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -217,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClosuresIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cash-short-over/': {
+      id: '/cash-short-over/'
+      path: '/cash-short-over'
+      fullPath: '/cash-short-over'
+      preLoaderRoute: typeof CashShortOverIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/approval-queue/': {
       id: '/approval-queue/'
       path: '/approval-queue'
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   GlAccountsCreateRoute: GlAccountsCreateRoute,
   JournalEntriesEntryIdRoute: JournalEntriesEntryIdRoute,
   ApprovalQueueIndexRoute: ApprovalQueueIndexRoute,
+  CashShortOverIndexRoute: CashShortOverIndexRoute,
   ClosuresIndexRoute: ClosuresIndexRoute,
   CreateEntryIndexRoute: CreateEntryIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
