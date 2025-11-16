@@ -1,5 +1,6 @@
 import { JournalEntriesService } from "@fineract-apps/fineract-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import "../../lib/api";
@@ -17,6 +18,7 @@ export interface EntryFormData {
 
 export function useCreateEntry() {
 	const today = new Date().toISOString().split("T")[0];
+	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
 	const [formData, setFormData] = useState<EntryFormData>({
@@ -71,11 +73,16 @@ export function useCreateEntry() {
 			return response;
 		},
 		onSuccess: () => {
-			toast.success("Journal entry created successfully!", { duration: 5000 });
+			// Show success message with pending approval status
+			toast.success(
+				"Journal entry submitted successfully! Pending approval from admin.",
+				{ duration: 6000 },
+			);
 
 			// Invalidate relevant queries to refresh data
 			queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
 			queryClient.invalidateQueries({ queryKey: ["accounting-stats"] });
+			queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
 
 			// Reset form
 			setFormData({
@@ -85,6 +92,11 @@ export function useCreateEntry() {
 			});
 			setDebits([{ glAccountId: "", amount: "" }]);
 			setCredits([{ glAccountId: "", amount: "" }]);
+
+			// Navigate to approval queue after a short delay
+			setTimeout(() => {
+				navigate({ to: "/approval-queue" });
+			}, 1500);
 		},
 		onError: (error: Error) => {
 			toast.error(`Failed to create journal entry: ${error.message}`);

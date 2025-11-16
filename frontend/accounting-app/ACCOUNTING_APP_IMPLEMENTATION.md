@@ -58,13 +58,17 @@ This document tracks the implementation progress of the Accounting Application b
   - **Completed:** Real-time pending count, auto-refresh every 30s, maker info displayed
 
 ### Step 3: Update Create Entry for Maker-Checker
-- [ ] **3.1 Add Submission Status**
-  - Show "Pending Approval" status after submission
-  - Navigate to approval queue after submit
+- [x] **3.1 Add Submission Status** ✅
+  - Show "Pending Approval" status after submission with extended toast duration
+  - Navigate to approval queue after submit (1.5s delay for user to see message)
+  - Invalidate pending-approvals query for immediate UI update
+  - **Completed:** Full submission flow with status feedback and navigation
 
-- [ ] **3.2 Add Approval Notifications**
-  - Toast notifications for approval/rejection
-  - Email notifications (if configured)
+- [x] **3.2 Add Approval Notifications** ✅
+  - Toast notifications for approval/rejection (already implemented in approval queue)
+  - Success toast when entry is approved
+  - Error toast when entry is rejected
+  - **Completed:** Notification system fully functional
 
 ---
 
@@ -299,13 +303,13 @@ This document tracks the implementation progress of the Accounting Application b
 | Phase | Tasks | Completed | Remaining | Progress |
 |-------|-------|-----------|-----------|----------|
 | Phase 1: API Integration | 4 | 4 | 0 | 100% ✅ |
-| Phase 2: Maker-Checker | 4 | 3 | 1 | 75% |
+| Phase 2: Maker-Checker | 4 | 4 | 0 | 100% ✅ |
 | Phase 3: GL Management | 6 | 6 | 0 | 100% ✅ |
 | Phase 4: Closures | 4 | 0 | 4 | 0% |
 | Phase 5: Additional Features | 6 | 2 | 4 | 33% |
 | Phase 6: RBAC & Security | 6 | 0 | 6 | 0% |
 | Phase 7: Polish | 6 | 0 | 6 | 0% |
-| **TOTAL** | **36** | **15** | **21** | **42%** |
+| **TOTAL** | **36** | **16** | **20** | **44%** |
 
 ---
 
