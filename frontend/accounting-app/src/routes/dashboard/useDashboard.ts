@@ -1,6 +1,7 @@
 import {
 	GeneralLedgerAccountService,
 	JournalEntriesService,
+	MakerCheckerOr4EyeFunctionalityService,
 } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import "../../lib/api";
@@ -39,13 +40,19 @@ export function useDashboard() {
 			}>;
 			const journalEntriesToday = journalEntries?.length || 0;
 
-			// Note: Pending approvals and total balance would need additional API calls
-			// For now, returning 0 as placeholders until we implement maker-checker workflow
+			// Fetch pending approvals count
+			const approvalsResponse =
+				await MakerCheckerOr4EyeFunctionalityService.getV1Makercheckers({});
+			const approvals = approvalsResponse as unknown as Array<{ id: number }>;
+			const pendingApprovals = approvals?.length || 0;
+
+			// Note: Total balance would need additional calculation
+			// For now, returning 0 as placeholder
 
 			return {
 				glAccountsCount,
 				journalEntriesToday,
-				pendingApprovals: 0,
+				pendingApprovals,
 				totalBalance: 0,
 			};
 		},

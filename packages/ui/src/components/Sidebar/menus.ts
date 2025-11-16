@@ -1,6 +1,7 @@
 import {
 	BarChart3,
 	BookOpen,
+	CheckCircle,
 	FileText,
 	History,
 	Home,
@@ -45,4 +46,5 @@ export const menuAccounting: MenuItem[] = [
 	{ name: "gl_accounts", link: "/gl-accounts", icon: BookOpen },
 	{ name: "journal_entries", link: "/journal-entries", icon: FileText },
 	{ name: "create_entry", link: "/create-entry", icon: PlusCircle },
+	{ name: "approval_queue", link: "/approval-queue", icon: CheckCircle },
 ];

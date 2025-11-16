@@ -40,19 +40,22 @@ This document tracks the implementation progress of the Accounting Application b
 ## Phase 2: Maker-Checker Workflow
 
 ### Step 2: Build Approval Queue (Admin Only)
-- [ ] **2.1 Create Approval Queue Route**
+- [x] **2.1 Create Approval Queue Route** ✅
   - Files: `src/routes/approval-queue/index.tsx`
   - Container, View, Hook pattern
+  - **Completed:** Full approval queue with Container/View/Hook architecture
 
-- [ ] **2.2 Implement Approve/Reject Actions**
+- [x] **2.2 Implement Approve/Reject Actions** ✅
   - Add approve button with confirmation
   - Add reject button with comment requirement
-  - API: Custom approval endpoints or makerchecker commands
+  - API: MakerCheckerOr4EyeFunctionalityService
+  - **Completed:** Approve (postV1MakercheckersByAuditId) and Reject (deleteV1MakercheckersByAuditId) with confirmations
 
-- [ ] **2.3 Add Status Tracking**
+- [x] **2.3 Add Status Tracking** ✅
   - Status badges (pending, approved, rejected)
   - Filter by status
   - Show maker/checker info
+  - **Completed:** Real-time pending count, auto-refresh every 30s, maker info displayed
 
 ### Step 3: Update Create Entry for Maker-Checker
 - [ ] **3.1 Add Submission Status**
@@ -276,13 +279,13 @@ This document tracks the implementation progress of the Accounting Application b
 | Phase | Tasks | Completed | Remaining | Progress |
 |-------|-------|-----------|-----------|----------|
 | Phase 1: API Integration | 4 | 4 | 0 | 100% ✅ |
-| Phase 2: Maker-Checker | 4 | 0 | 4 | 0% |
+| Phase 2: Maker-Checker | 4 | 3 | 1 | 75% |
 | Phase 3: GL Management | 6 | 0 | 6 | 0% |
 | Phase 4: Closures | 4 | 0 | 4 | 0% |
 | Phase 5: Additional Features | 6 | 0 | 6 | 0% |
 | Phase 6: RBAC & Security | 6 | 0 | 6 | 0% |
 | Phase 7: Polish | 6 | 0 | 6 | 0% |
-| **TOTAL** | **36** | **4** | **32** | **11%** |
+| **TOTAL** | **36** | **7** | **29** | **19%** |
 
 ---
 

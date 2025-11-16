@@ -14,6 +14,7 @@ import { Route as JournalEntriesIndexRouteImport } from './routes/journal-entrie
 import { Route as GlAccountsIndexRouteImport } from './routes/gl-accounts/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as CreateEntryIndexRouteImport } from './routes/create-entry/index'
+import { Route as ApprovalQueueIndexRouteImport } from './routes/approval-queue/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,9 +41,15 @@ const CreateEntryIndexRoute = CreateEntryIndexRouteImport.update({
   path: '/create-entry/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApprovalQueueIndexRoute = ApprovalQueueIndexRouteImport.update({
+  id: '/approval-queue/',
+  path: '/approval-queue/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/approval-queue': typeof ApprovalQueueIndexRoute
   '/create-entry': typeof CreateEntryIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/gl-accounts': typeof GlAccountsIndexRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/approval-queue': typeof ApprovalQueueIndexRoute
   '/create-entry': typeof CreateEntryIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/gl-accounts': typeof GlAccountsIndexRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/approval-queue/': typeof ApprovalQueueIndexRoute
   '/create-entry/': typeof CreateEntryIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/gl-accounts/': typeof GlAccountsIndexRoute
@@ -67,15 +76,23 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/approval-queue'
     | '/create-entry'
     | '/dashboard'
     | '/gl-accounts'
     | '/journal-entries'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/create-entry' | '/dashboard' | '/gl-accounts' | '/journal-entries'
+  to:
+    | '/'
+    | '/approval-queue'
+    | '/create-entry'
+    | '/dashboard'
+    | '/gl-accounts'
+    | '/journal-entries'
   id:
     | '__root__'
     | '/'
+    | '/approval-queue/'
     | '/create-entry/'
     | '/dashboard/'
     | '/gl-accounts/'
@@ -84,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApprovalQueueIndexRoute: typeof ApprovalQueueIndexRoute
   CreateEntryIndexRoute: typeof CreateEntryIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   GlAccountsIndexRoute: typeof GlAccountsIndexRoute
@@ -127,11 +145,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateEntryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/approval-queue/': {
+      id: '/approval-queue/'
+      path: '/approval-queue'
+      fullPath: '/approval-queue'
+      preLoaderRoute: typeof ApprovalQueueIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApprovalQueueIndexRoute: ApprovalQueueIndexRoute,
   CreateEntryIndexRoute: CreateEntryIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   GlAccountsIndexRoute: GlAccountsIndexRoute,
