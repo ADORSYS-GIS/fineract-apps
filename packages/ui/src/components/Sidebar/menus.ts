@@ -1,4 +1,13 @@
-import { FileText, Home, Send, Settings, Users } from "lucide-react";
+import {
+	BarChart3,
+	FileText,
+	History,
+	Home,
+	Send,
+	Settings,
+	Shield,
+	Users,
+} from "lucide-react";
 import { MenuItem } from "./Sidebar.types";
 
 export const menuAccountManager = [
@@ -21,3 +30,10 @@ export const menuCashier = [
 ];
 
 export const menuAdmin = [{ name: "Dashboard", link: "/", icon: Home }];
+
+export const menuReporting: MenuItem[] = [
+	{ name: "dashboard", link: "/dashboard", icon: Home },
+	{ name: "reports", link: "/reports", icon: BarChart3 },
+	{ name: "transactions", link: "/transactions", icon: History },
+	{ name: "audit", link: "/audit", icon: Shield },
+];

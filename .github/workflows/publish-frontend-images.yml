@@ -36,7 +36,7 @@ jobs:
         id: set-apps
         run: |
           if [ "${{ github.event.inputs.apps }}" == "all" ] || [ "${{ github.event.inputs.apps }}" == "" ]; then
-            echo 'apps=["admin","account-manager","branch-manager","cashier"]' >> $GITHUB_OUTPUT
+            echo 'apps=["admin","account-manager","branch-manager","cashier","reporting"]' >> $GITHUB_OUTPUT
           else
             APPS=$(echo "${{ github.event.inputs.apps }}" | jq -R 'split(",") | map(. | gsub(" "; ""))')
             echo "apps=$APPS" >> $GITHUB_OUTPUT

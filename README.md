@@ -34,6 +34,7 @@ pnpm dev:mifos
 # - Account Manager: http://localhost:5002
 # - Branch Manager: http://localhost:5003
 # - Cashier: http://localhost:5004
+# - Reporting App: http://localhost:5005
 # - MIFOS Web App: http://localhost:4200
 ```
 
@@ -47,6 +48,7 @@ pnpm dev:mifos
 | **Account Manager** | Accounting & financial operations | 5002 | `accountant` |
 | **Branch Manager** | Client & office management | 5003 | `branch-manager` |
 | **Cashier App** | Teller operations & transactions | 5004 | `teller` |
+| **Reporting App** | Reports, analytics & audit trails | 5005 | `branch-manager`, `admin` |
 
 ### Angular Apps (npm)
 
@@ -110,6 +112,7 @@ fineract-apps/
 │   ├── account-manager-app/    # Accounting (React)
 │   ├── branchmanager-app/      # Client/office management (React)
 │   ├── cashier-app/            # Teller operations (React)
+│   ├── reporting-app/          # Reports & audit trails (React)
 │   └── mifos-web-app/          # Complete Fineract frontend (Angular)
 ├── packages/                    # Shared packages (React apps only)
 │   ├── ui/                     # Shared UI components
@@ -123,6 +126,7 @@ fineract-apps/
 ├── Dockerfile.account-manager
 ├── Dockerfile.branch-manager
 ├── Dockerfile.cashier
+├── Dockerfile.reporting
 └── Dockerfile.mifos-web-app     # Angular app Dockerfile
 ```
 
@@ -167,6 +171,7 @@ docker pull ghcr.io/adorsys-gis/mifos-web-app:develop
 
 **Registries:**
 - React apps: `ghcr.io/adorsys-gis/fineract-*-app`
+  - admin-app, account-manager-app, branch-manager-app, cashier-app, reporting-app
 - MIFOS Web App: `ghcr.io/adorsys-gis/mifos-web-app`
 
 ## 🔐 Authentication & Authorization
