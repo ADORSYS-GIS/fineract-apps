@@ -3,6 +3,7 @@ name: Publish MIFOS Web App Docker Image
 on:
   push:
     branches:
+      - mifosweb
       - develop
       - main
     paths:
