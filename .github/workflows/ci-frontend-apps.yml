@@ -65,7 +65,7 @@ jobs:
 
     strategy:
       matrix:
-        app: [admin-app, account-manager-app, branchmanager-app, cashier-app]
+        app: [admin-app, account-manager-app, branchmanager-app, cashier-app, reporting-app, accounting-app]
 
     steps:
       - name: Checkout code
