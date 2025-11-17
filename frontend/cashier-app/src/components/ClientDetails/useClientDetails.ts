@@ -6,11 +6,11 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useState } from "react";
+import { TransactionRequestBody } from "@/components/ClientDetails/ClientDetails.types";
 import {
 	TransactionFormData,
 	TransactionType,
-} from "../TransactionForm/TransactionForm.types";
-import { TransactionRequestBody } from "./ClientDetails.types";
+} from "@/components/TransactionForm/TransactionForm.types";
 
 export const useClientDetails = (savingsId: number) => {
 	const queryClient = useQueryClient();

@@ -1,4 +1,4 @@
-import { FileText, Home, Send, Settings, Users } from "lucide-react";
+import { Home, Send, Settings, Users } from "lucide-react";
 import { MenuItem } from "./Sidebar.types";
 
 export const menuAccountManager = [
@@ -15,9 +15,7 @@ export const menuBranchManager: MenuItem[] = [
 
 export const menuCashier = [
 	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "payments", link: "/payments", icon: Send },
-	{ name: "receipts", link: "/receipts", icon: FileText },
-	{ name: "settings", link: "/settings", icon: Settings },
+	{ name: "Loan Repayment", link: "/repayment", icon: Send },
 ];
 
 export const menuAdmin = [{ name: "Dashboard", link: "/", icon: Home }];

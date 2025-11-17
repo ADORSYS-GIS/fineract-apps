@@ -2,7 +2,7 @@ import { Button, formatCurrency } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
-import { TransactionForm } from "../TransactionForm";
+import { TransactionForm } from "@/components/TransactionForm";
 import { ClientDetailsViewProps } from "./ClientDetails.types";
 
 export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
