@@ -56,7 +56,7 @@ RUN npm run build && mv /usr/src/app/dist/web-app/browser /dist
 FROM $NGINX_IMAGE
 
 # Copy built application
-COPY --from=builder /dist/browser /usr/share/nginx/html
+COPY --from=builder /dist /usr/share/nginx/html
 
 # Copy custom nginx configuration
 COPY frontend/mifos-web-app/nginx.conf /etc/nginx/conf.d/default.conf
