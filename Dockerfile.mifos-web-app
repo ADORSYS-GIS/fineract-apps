@@ -47,8 +47,8 @@ RUN --mount=type=cache,target=/root/.npm \
 # This is done after npm ci so code changes don't invalidate the dependency layer
 COPY frontend/mifos-web-app/ .
 
-# Build the Angular application
-RUN sh -c "ng build --output-path=/dist $BUILD_ENVIRONMENT_OPTIONS"
+# Build the Angular application using npm script (includes --base-href and --deploy-url from package.json)
+RUN npm run build && mv /usr/src/app/dist/browser /dist
 
 ###############
 ### STAGE 2: Serve app with nginx ###
