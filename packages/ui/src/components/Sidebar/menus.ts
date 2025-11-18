@@ -8,9 +8,9 @@ export const menuAccountManager = [
 
 export const menuBranchManager: MenuItem[] = [
 	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "staff", link: "/staff", icon: Users },
-	{ name: "tellers", title: "tellers/cashiers", link: "/tellers", icon: Users },
-	{ name: "pending", link: "/approve/account", icon: Users },
+	{ name: "Staff", link: "/staff", icon: Users },
+	{ name: "tellers", title: "Tellers/Cashiers", link: "/tellers", icon: Users },
+	{ name: "Pending", link: "/approve/account", icon: Users },
 ];
 
 export const menuCashier = [
