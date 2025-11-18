@@ -48,7 +48,7 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY frontend/mifos-web-app/ .
 
 # Build the Angular application using npm script (includes --base-href and --deploy-url from package.json)
-RUN npm run build && mv /usr/src/app/dist/browser /dist
+RUN npm run build && mv /usr/src/app/dist/web-app/browser /dist
 
 ###############
 ### STAGE 2: Serve app with nginx ###
