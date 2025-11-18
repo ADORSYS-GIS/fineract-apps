@@ -39,8 +39,9 @@ RUN mkdir -p src/environments
 
 # Install dependencies with cache mount for faster builds
 # The cache mount persists between builds, dramatically speeding up npm ci
+# Skip Cypress binary download to avoid CDN failures during Docker build
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit
+    CYPRESS_INSTALL_BINARY=0 npm ci --prefer-offline --no-audit
 
 # Copy the rest of the application code
 # This is done after npm ci so code changes don't invalidate the dependency layer
