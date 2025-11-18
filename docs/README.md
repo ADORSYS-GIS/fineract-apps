@@ -1,6 +1,6 @@
 # Fineract Apps Documentation
 
-Welcome to the Fineract Frontend Apps documentation!
+Welcome to the Fineract Frontend Apps documentation.
 
 ## Quick Links
 
