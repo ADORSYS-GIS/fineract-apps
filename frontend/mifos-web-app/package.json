@@ -13,8 +13,8 @@
   "scripts": {
     "prepare": "husky",
     "ng": "ng",
-    "build": "node version.js && npm run env -s && ng build --configuration production --output-hashing=none --base-href=/mifosweb/ --deploy-url=/mifosweb/",
-    "build:prod": "node version.js && node --max-old-space-size=16384 ./node_modules/@angular/cli/bin/ng build --configuration production --output-hashing=none --base-href=/mifosweb/ --deploy-url=/mifosweb/",
+    "build": "node version.js && npm run env -s && ng build --configuration production --output-hashing=none --base-href=/ --deploy-url=/",
+    "build:prod": "node version.js && node --max-old-space-size=16384 ./node_modules/@angular/cli/bin/ng build --configuration production --output-hashing=none --base-href=/ --deploy-url=/",
     "start": "npm run env -s && ng serve --aot --proxy-config proxy.conf.js",
     "serve:dev": "npm run env -s && ng serve --source-map",
     "serve:sw": "npm run build -s && npx http-server ./dist -p 4200",
