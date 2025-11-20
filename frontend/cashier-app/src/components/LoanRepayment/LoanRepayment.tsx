@@ -6,9 +6,9 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useRepaymentForm } from "@/hooks/useRepaymentForm";
 import { Route } from "@/routes/repayment/$loanId";
 import { LoanRepaymentView } from "./LoanRepayment.view";
-import { useRepaymentForm } from "@/hooks/useRepaymentForm";
 
 export function LoanRepayment() {
 	const { t } = useTranslation();
