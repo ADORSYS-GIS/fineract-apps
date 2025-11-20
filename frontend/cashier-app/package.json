@@ -20,7 +20,6 @@
 		"axios": "^1.12.2",
 		"date-fns": "^4.1.0",
 		"formik": "^2.4.6",
-		"html2pdf.js": "^0.10.1",
 		"lucide-react": "^0.544.0",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
