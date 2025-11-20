@@ -39,7 +39,6 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 	deleteLoanAccount,
 }) => {
 	const { t } = useTranslation();
-	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [isEditClientModalOpen, setIsEditClientModalOpen] = useState(false);
 	const [isEditLoanModalOpen, setIsEditLoanModalOpen] = useState(false);
 	const [selectedLoanId, setSelectedLoanId] = useState<number | null>(null);
@@ -104,8 +103,6 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 						</Button>
 					</Link>
 					<h1 className="text-xl font-semibold">{t("clientProfile")}</h1>
-					<Button variant="ghost" onClick={() => setIsEditModalOpen(true)}>
-					<h1 className="text-xl font-semibold">Client Profile</h1>
 					<Button
 						variant="ghost"
 						onClick={() => setIsEditClientModalOpen(true)}

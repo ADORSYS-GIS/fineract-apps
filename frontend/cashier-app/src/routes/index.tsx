@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")({
 	beforeLoad: () => {
 		throw redirect({
 			to: "/dashboard",
-			search: { query: "" },
+			search: { query: "", page: 1, limit: 10 },
 		});
 	},
 	component: HomePage,

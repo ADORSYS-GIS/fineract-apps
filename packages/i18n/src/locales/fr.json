@@ -312,7 +312,7 @@
 			}
 		},
 		"errorFetchingCashierData": "Erreur lors de la récupération des données du caissier",
-		"anUnknownErrorOccurred": "Une erreur inconnue est survenue."
+		"anUnknownErrorOccurred": "Une erreur inconnue est survenue.",
 		"pending": "En attente",
 		"repayment": "Remboursement",
 		"loanDetails": "Détails du prêt",

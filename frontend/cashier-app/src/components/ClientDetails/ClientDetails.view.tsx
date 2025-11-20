@@ -106,7 +106,7 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 				<div className="p-6 border-b border-gray-200">
 					<div className="flex flex-col md:flex-row justify-between md:items-center">
 						<div className="flex items-center gap-4">
-							<Link to="/dashboard" search={{ query: "" }}>
+							<Link to="/dashboard" search={{ query: "", page: 1, limit: 10 }}>
 								<Button variant="outline">&larr; Back</Button>
 							</Link>
 							<h2 className="text-3xl font-bold text-gray-800">

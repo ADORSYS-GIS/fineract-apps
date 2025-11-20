@@ -83,27 +83,6 @@ export const AccountCard: FC<AccountCardProps> = ({
 		}
 	};
 
-	const getProductKey = (productName: string | undefined) => {
-		switch (productName) {
-			case "Savings Account":
-				return "savingsAccount";
-			case "Savings Product":
-				return "savingsProduct";
-			case "Share Account":
-				return "shareAccount";
-			case "Recurring Deposit Account":
-				return "recurringDepositAccount";
-			case "Fixed Deposit Account":
-				return "fixedDepositsAccount";
-			case "Loan Account":
-				return "loanAccount";
-			default:
-				return "";
-		}
-	};
-
-	const productKey = getProductKey(account.productName);
-	const borderColorClass = productColors[productKey] ?? "border-gray-500";
 	const borderColorClass = getBorderColorClass(account.productName);
 	const isSavingsAccount = account.productName
 		?.toLowerCase()

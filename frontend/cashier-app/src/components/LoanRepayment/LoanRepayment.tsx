@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Route } from "@/routes/repayment/$loanId";
 import { LoanRepaymentView } from "./LoanRepayment.view";
-import { useRepaymentForm } from "./useRepaymentForm";
+import { useRepaymentForm } from "@/hooks/useRepaymentForm";
 
 export function LoanRepayment() {
 	const { t } = useTranslation();

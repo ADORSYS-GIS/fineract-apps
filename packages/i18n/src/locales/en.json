@@ -309,7 +309,7 @@
 			}
 		},
 		"errorFetchingCashierData": "Error Fetching Cashier Data",
-		"anUnknownErrorOccurred": "An unknown error occurred."
+		"anUnknownErrorOccurred": "An unknown error occurred.",
 		"repayment": "Repayment",
 		"loanDetails": "Loan Details",
 		"clientSummary": "Client Summary",

@@ -1,9 +1,6 @@
 import { SavingsAccountTransactionData } from "@fineract-apps/fineract-api";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, HandCoins } from "lucide-react";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { HandCoins } from "lucide-react";
 import { AccountDetailsLayout } from "@/components/AccountDetails/AccountDetailsLayout";
 import { AccountActions, BlockAccountModal } from "./components";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
@@ -26,8 +23,6 @@ export const SavingsAccountDetailsView = (
 		openBlockModal,
 		closeBlockModal,
 	} = props;
-	const [activeTab, setActiveTab] = useState("Transactions");
-	const { t } = useTranslation();
 
 	if (isLoading) {
 		return <div>Loading...</div>;
@@ -35,39 +30,19 @@ export const SavingsAccountDetailsView = (
 
 	const isBlocked = account?.subStatus?.block || false;
 
-	const navItems = ["Transactions", "Balance Sheet"];
-
-	return (
-		<div className="bg-gray-100 min-h-screen font-sans">
-			<header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 shadow-md">
-				<div className="flex justify-between items-center">
-					<div className="flex items-center gap-4">
-						{account?.clientId && (
-							<Link
-								to="/client-details/$clientId"
-								params={{ clientId: String(account.clientId) }}
-								className="text-white hover:bg-white/20 p-2 rounded-full"
-							>
-								<ArrowLeft className="h-6 w-6" />
-							</Link>
-						)}
-						<div className="bg-white/20 p-3 rounded-full">
-							<HandCoins className="h-8 w-8" />
-						</div>
-						<div>
-							<p className="text-sm opacity-80">{t("savingsAccountDetails")}</p>
-							<div className="flex items-center gap-2">
-								<p className="text-xl font-bold">{account?.clientName}</p>
-								{isBlocked && (
-									<span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-500 text-white">
-										Blocked
-									</span>
-								)}
-							</div>
 	const header = (
 		<div>
 			<div className="flex justify-between items-center">
 				<div className="flex items-center gap-4">
+					{account?.clientId && (
+						<Link
+							to="/client-details/$clientId"
+							params={{ clientId: String(account.clientId) }}
+							className="text-white hover:bg-white/20 p-2 rounded-full"
+						>
+							<ArrowLeft className="h-6 w-6" />
+						</Link>
+					)}
 					<div className="bg-white/20 p-3 rounded-full">
 						<HandCoins className="h-8 w-8" />
 					</div>

@@ -24,5 +24,10 @@ export default mergeConfig(
 			},
 		},
 		server: {},
+		build: {
+			rollupOptions: {
+				external: ["html2pdf.js"],
+			},
+		},
 	}),
 );
