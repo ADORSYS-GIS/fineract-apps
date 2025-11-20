@@ -4,21 +4,25 @@ import { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { getStatusClass } from "../../../dashboard/utils";
 
-interface AccountCardProps {
-	account: {
+interface Account {
+	id?: number;
+	accountNo?: string;
+	productName?: string;
+	status?: {
 		id?: number;
-		accountNo?: string;
-		productName?: string;
-		status?: {
-			id?: number;
-			code?: string;
-			value?: string;
-			approved?: boolean;
-			submittedAndPendingApproval?: boolean;
-		};
+		code?: string;
+		value?: string;
+		approved?: boolean;
+		submittedAndPendingApproval?: boolean;
+		pendingApproval?: boolean;
 	};
+}
+
+interface AccountCardProps {
+	account: Account;
 	onActivate: (accountId: number) => void;
 	onDelete: (accountId: number) => void;
+	onEdit?: (accountId: number) => void;
 }
 
 const productColors: { [key: string]: string } = {
@@ -27,12 +31,37 @@ const productColors: { [key: string]: string } = {
 	recurringDepositAccount: "border-purple-500",
 	fixedDepositsAccount: "border-pink-500",
 	loanAccount: "border-red-500",
+	savings: "border-blue-500",
+	current: "border-green-500",
+	loan: "border-red-500",
+	shares: "border-yellow-500",
+	recurring: "border-purple-500",
+	fixed: "border-pink-500",
+};
+
+const getAccountLink = (account: Account) => {
+	if (account.productName?.toLowerCase().includes("loan")) {
+		return `/loan-account-details/${account.id}`;
+	}
+	return `/savings-account-details/${account.id}`;
+};
+
+const getBorderColorClass = (productName?: string) => {
+	if (!productName) return "border-gray-500";
+	const lowerProductName = productName.toLowerCase();
+	for (const key in productColors) {
+		if (lowerProductName.includes(key)) {
+			return productColors[key];
+		}
+	}
+	return "border-gray-500";
 };
 
 export const AccountCard: FC<AccountCardProps> = ({
 	account,
 	onActivate,
 	onDelete,
+	onEdit,
 }) => {
 	const { t } = useTranslation();
 	const getTranslatedProductName = (productName: string | undefined) => {
@@ -75,13 +104,17 @@ export const AccountCard: FC<AccountCardProps> = ({
 
 	const productKey = getProductKey(account.productName);
 	const borderColorClass = productColors[productKey] ?? "border-gray-500";
+	const borderColorClass = getBorderColorClass(account.productName);
+	const isSavingsAccount = account.productName
+		?.toLowerCase()
+		.includes("savings");
+	const isLoanAccount = account.productName?.toLowerCase().includes("loan");
+	const isPending =
+		account.status?.submittedAndPendingApproval ||
+		account.status?.pendingApproval;
 
 	return (
-		<Link
-			to="/savings-account-details/$accountId"
-			params={{ accountId: String(account.id) }}
-			className="block mb-4"
-		>
+		<Link to={getAccountLink(account)} className="block mb-4">
 			<div
 				className={`bg-white rounded-lg shadow p-4 space-y-4 border-l-4 ${borderColorClass}`}
 			>
@@ -102,10 +135,10 @@ export const AccountCard: FC<AccountCardProps> = ({
 					<p className="text-md">{account.accountNo}</p>
 				</div>
 				<div className="flex justify-end space-x-2">
-					{account.status?.approved && (
+					{isSavingsAccount && account.status?.approved && (
 						<Button onClick={() => onActivate(account.id!)}>Activate</Button>
 					)}
-					{account.status?.submittedAndPendingApproval && (
+					{isPending && (
 						<Button
 							variant="destructive"
 							onClick={(e) => {
@@ -115,6 +148,18 @@ export const AccountCard: FC<AccountCardProps> = ({
 							}}
 						>
 							Delete
+						</Button>
+					)}
+					{isLoanAccount && isPending && (
+						<Button
+							variant="outline"
+							onClick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								onEdit?.(account.id!);
+							}}
+						>
+							Edit
 						</Button>
 					)}
 				</div>

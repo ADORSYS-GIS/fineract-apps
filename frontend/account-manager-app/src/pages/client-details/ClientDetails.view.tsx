@@ -7,6 +7,7 @@ import { AccountCard } from "./components/AccountCard/AccountCard";
 import { AddIdentityDocument } from "./components/AddIdentityDocument/AddIdentityDocument.view";
 import { CaptureImage } from "./components/CaptureImage/CaptureImage.view";
 import { EditClientDetails } from "./components/EditClientDetails/EditClientDetails.view";
+import { EditLoanAccount } from "./components/EditLoanAccount/EditLoanAccount";
 import { KYCManagement } from "./components/KYCManagement/KYCManagement.view";
 import {
 	useDeleteClientImage,
@@ -34,10 +35,14 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 	isLoading,
 	accounts,
 	activateAccount,
-	deleteAccount,
+	deleteSavingsAccount,
+	deleteLoanAccount,
 }) => {
 	const { t } = useTranslation();
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+	const [isEditClientModalOpen, setIsEditClientModalOpen] = useState(false);
+	const [isEditLoanModalOpen, setIsEditLoanModalOpen] = useState(false);
+	const [selectedLoanId, setSelectedLoanId] = useState<number | null>(null);
 	const [isAddIdentityModalOpen, setIsAddIdentityModalOpen] = useState(false);
 	const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -100,6 +105,11 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 					</Link>
 					<h1 className="text-xl font-semibold">{t("clientProfile")}</h1>
 					<Button variant="ghost" onClick={() => setIsEditModalOpen(true)}>
+					<h1 className="text-xl font-semibold">Client Profile</h1>
+					<Button
+						variant="ghost"
+						onClick={() => setIsEditClientModalOpen(true)}
+					>
 						<Edit className="h-6 w-6" />
 					</Button>
 				</div>
@@ -183,16 +193,30 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 									</Link>
 								) : null}
 							</div>
-							{accounts?.savingsAccounts &&
-							accounts.savingsAccounts.length > 0 ? (
-								accounts.savingsAccounts.map((account) => (
-									<AccountCard
-										key={account.id}
-										account={account}
-										onActivate={activateAccount}
-										onDelete={deleteAccount}
-									/>
-								))
+							{(accounts?.savingsAccounts?.length ?? 0) > 0 ||
+							(accounts?.loanAccounts?.length ?? 0) > 0 ? (
+								<>
+									{accounts?.savingsAccounts?.map((account) => (
+										<AccountCard
+											key={account.id}
+											account={account}
+											onActivate={activateAccount}
+											onDelete={deleteSavingsAccount}
+										/>
+									))}
+									{accounts?.loanAccounts?.map((account) => (
+										<AccountCard
+											key={account.id}
+											account={account}
+											onActivate={activateAccount}
+											onDelete={deleteLoanAccount}
+											onEdit={(loanId: number) => {
+												setSelectedLoanId(loanId);
+												setIsEditLoanModalOpen(true);
+											}}
+										/>
+									))}
+								</>
 							) : (
 								<p className="text-gray-500">{t("noAccountOpenedYet")}</p>
 							)}
@@ -206,10 +230,16 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 				</div>
 			</main>
 			<EditClientDetails
-				isOpen={isEditModalOpen}
-				onClose={() => setIsEditModalOpen(false)}
+				isOpen={isEditClientModalOpen}
+				onClose={() => setIsEditClientModalOpen(false)}
 				client={client}
 			/>
+			{isEditLoanModalOpen && selectedLoanId && (
+				<EditLoanAccount
+					loanId={selectedLoanId}
+					onClose={() => setIsEditLoanModalOpen(false)}
+				/>
+			)}
 			<AddIdentityDocument
 				isOpen={isAddIdentityModalOpen}
 				onClose={() => setIsAddIdentityModalOpen(false)}

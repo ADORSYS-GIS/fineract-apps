@@ -8,3 +8,4 @@ coverage
 
 # Fineract API
 packages/fineract-api/src/generated
+.roo_lessons.md
