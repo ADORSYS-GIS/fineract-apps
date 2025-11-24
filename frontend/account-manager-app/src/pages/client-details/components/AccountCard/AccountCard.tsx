@@ -1,6 +1,7 @@
 import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { getStatusClass } from "../../../dashboard/utils";
 
 interface Account {
@@ -25,6 +26,11 @@ interface AccountCardProps {
 }
 
 const productColors: { [key: string]: string } = {
+	savingsAccount: "border-blue-500",
+	shareAccount: "border-yellow-500",
+	recurringDepositAccount: "border-purple-500",
+	fixedDepositsAccount: "border-pink-500",
+	loanAccount: "border-red-500",
 	savings: "border-blue-500",
 	current: "border-green-500",
 	loan: "border-red-500",
@@ -57,6 +63,26 @@ export const AccountCard: FC<AccountCardProps> = ({
 	onDelete,
 	onEdit,
 }) => {
+	const { t } = useTranslation();
+	const getTranslatedProductName = (productName: string | undefined) => {
+		switch (productName) {
+			case "Savings Account":
+				return t("savingsAccount");
+			case "Savings Product":
+				return t("savingsProduct");
+			case "Share Account":
+				return t("shareAccount");
+			case "Recurring Deposit Account":
+				return t("recurringDepositAccount");
+			case "Fixed Deposit Account":
+				return t("fixedDepositsAccount");
+			case "Loan Account":
+				return t("loanAccount");
+			default:
+				return productName;
+		}
+	};
+
 	const borderColorClass = getBorderColorClass(account.productName);
 	const isSavingsAccount = account.productName
 		?.toLowerCase()
@@ -72,7 +98,9 @@ export const AccountCard: FC<AccountCardProps> = ({
 				className={`bg-white rounded-lg shadow p-4 space-y-4 border-l-4 ${borderColorClass}`}
 			>
 				<div className="flex justify-between">
-					<p className="text-sm text-gray-500">{account.productName}</p>
+					<p className="text-sm text-gray-500">
+						{getTranslatedProductName(account.productName)}
+					</p>
 					<span
 						className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(
 							account.status?.value ?? "",
@@ -82,7 +110,7 @@ export const AccountCard: FC<AccountCardProps> = ({
 					</span>
 				</div>
 				<div className="flex justify-between">
-					<p className="text-sm text-gray-500">Account No:</p>
+					<p className="text-sm text-gray-500">{t("accountNo")}:</p>
 					<p className="text-md">{account.accountNo}</p>
 				</div>
 				<div className="flex justify-end space-x-2">

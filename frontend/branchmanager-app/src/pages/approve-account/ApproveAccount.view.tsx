@@ -1,36 +1,29 @@
 import { Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
-export const ApproveAccountView = () => (
-	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
-		<h1 className="text-2xl font-bold mb-6">Approve Account</h1>
-		<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-			<Card className="hoverable cursor-pointer">
-				<Link
-					to="/approve/savings/account"
-					search={{}}
-					className="block w-full h-full p-6 text-center"
-				>
-					<h2 className="text-lg font-semibold text-gray-800">
-						Pending Accounts
-					</h2>
-					<p className="text-gray-500 text-sm mt-1">
-						Review and approve savings account applications.
-					</p>
+export const ApproveAccountView = () => {
+	const { t } = useTranslation();
+
+	return (
+		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+			<h1 className="text-2xl font-bold mb-6">{t("approveAccount")}</h1>
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				<Link to="/approve/savings/account" search={{ q: "" }}>
+					<Card className="p-6 flex flex-col items-center justify-center text-center h-full">
+						<h2 className="text-lg font-semibold mb-2">
+							{t("pendingAccounts")}
+						</h2>
+						<p className="text-gray-600">{t("reviewAndApproveSavings")}</p>
+					</Card>
 				</Link>
-			</Card>
-			<Card className="hoverable cursor-pointer">
-				<Link
-					to="/approve/loans"
-					search={{ q: "" }}
-					className="block w-full h-full p-6 text-center"
-				>
-					<h2 className="text-lg font-semibold text-gray-800">Pending Loans</h2>
-					<p className="text-gray-500 text-sm mt-1">
-						Review and approve loan applications.
-					</p>
+				<Link to="/approve/loans" search={{ q: "" }}>
+					<Card className="p-6 flex flex-col items-center justify-center text-center h-full">
+						<h2 className="text-lg font-semibold mb-2">{t("pendingLoans")}</h2>
+						<p className="text-gray-600">{t("reviewAndApproveLoans")}</p>
+					</Card>
 				</Link>
-			</Card>
+			</div>
 		</div>
-	</div>
-);
+	);
+};

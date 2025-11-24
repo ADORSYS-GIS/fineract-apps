@@ -6,10 +6,12 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/Toast";
 import { type UserFormValues } from "@/components/UserForm/userFormSchema";
 
 export const useCreateUser = () => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const toast = useToast();
 	const queryClient = useQueryClient();
@@ -39,7 +41,7 @@ export const useCreateUser = () => {
 
 	const roleOptions =
 		template?.availableRoles?.map((role) => ({
-			label: role.name!,
+			label: t(role.name!),
 			value: role.id!,
 		})) || [];
 

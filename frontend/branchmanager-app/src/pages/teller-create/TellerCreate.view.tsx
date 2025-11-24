@@ -1,5 +1,6 @@
 import { Button, Card, Form, Input, SubmitButton } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import type { TellerCreateFormValues } from "./TellerCreate.types";
 
 export function TellerCreateView({
@@ -12,12 +13,15 @@ export function TellerCreateView({
 	isSubmitting: boolean;
 }>) {
 	const navigate = useNavigate({ from: "/tellers/create" });
+	const { t } = useTranslation();
 	return (
 		<div className="flex justify-center">
 			<div className="w-full max-w-2xl">
 				<Card>
 					<div className="p-6 sm:p-8">
-						<h2 className="text-2xl font-bold mb-6">Create Teller</h2>
+						<h2 className="text-2xl font-bold mb-6">
+							{t("createTeller.header")}
+						</h2>
 						<Form<TellerCreateFormValues>
 							initialValues={initialValues}
 							onSubmit={onSubmit}
@@ -26,30 +30,44 @@ export function TellerCreateView({
 								<div className="sm:col-span-2">
 									<Input
 										name="name"
-										label="Teller Name *"
-										placeholder="Enter teller name"
+										label={t("createTeller.name.label")}
+										placeholder={t("createTeller.name.placeholder")}
 									/>
 								</div>
 								<div className="sm:col-span-2">
 									<Input
 										name="status"
-										label="Status *"
+										label={t("createTeller.status.label")}
 										type="select"
 										options={[
-											{ label: "Active", value: 300 },
-											{ label: "Inactive", value: 400 },
+											{
+												label: t("createTeller.status.active"),
+												value: 300,
+											},
+											{
+												label: t("createTeller.status.inactive"),
+												value: 400,
+											},
 										]}
 									/>
 								</div>
 								<div className="sm:col-span-2">
 									<Input
 										name="description"
-										label="Description"
-										placeholder="Description (optional)"
+										label={t("createTeller.description.label")}
+										placeholder={t("createTeller.description.placeholder")}
 									/>
 								</div>
-								<Input name="startDate" label="Start Date *" type="date" />
-								<Input name="endDate" label="End Date" type="date" />
+								<Input
+									name="startDate"
+									label={t("createTeller.startDate.label")}
+									type="date"
+								/>
+								<Input
+									name="endDate"
+									label={t("createTeller.endDate.label")}
+									type="date"
+								/>
 							</div>
 							<div className="mt-8 flex flex-col sm:flex-row justify-end gap-4">
 								<Button
@@ -61,10 +79,10 @@ export function TellerCreateView({
 										})
 									}
 								>
-									Cancel
+									{t("cancel")}
 								</Button>
 								<SubmitButton
-									label={isSubmitting ? "Submitting..." : "Submit"}
+									label={isSubmitting ? t("submitting") : t("submit")}
 								/>
 							</div>
 						</Form>

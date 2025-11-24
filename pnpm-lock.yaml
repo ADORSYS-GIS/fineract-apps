@@ -174,6 +174,9 @@ importers:
       react-dom:
         specifier: ^19.1.1
         version: 19.2.0(react@19.2.0)
+      react-i18next:
+        specifier: ^15.0.0
+        version: 15.7.4(i18next@23.16.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
       zod:
         specifier: ^4.1.9
         version: 4.1.11
@@ -263,6 +266,9 @@ importers:
       '@vitejs/plugin-react-swc':
         specifier: ^4.0.0
         version: 4.2.0(vite@7.1.12(@types/node@24.9.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6))
+      i18next:
+        specifier: ^23.12.2
+        version: 23.16.8
       typescript:
         specifier: ~5.8.3
         version: 5.8.3

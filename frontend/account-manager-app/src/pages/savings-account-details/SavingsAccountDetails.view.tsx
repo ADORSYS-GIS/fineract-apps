@@ -1,5 +1,6 @@
 import { SavingsAccountTransactionData } from "@fineract-apps/fineract-api";
-import { HandCoins } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeft, HandCoins } from "lucide-react";
 import { AccountDetailsLayout } from "@/components/AccountDetails/AccountDetailsLayout";
 import { AccountActions, BlockAccountModal } from "./components";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
@@ -33,6 +34,15 @@ export const SavingsAccountDetailsView = (
 		<div>
 			<div className="flex justify-between items-center">
 				<div className="flex items-center gap-4">
+					{account?.clientId && (
+						<Link
+							to="/client-details/$clientId"
+							params={{ clientId: String(account.clientId) }}
+							className="text-white hover:bg-white/20 p-2 rounded-full"
+						>
+							<ArrowLeft className="h-6 w-6" />
+						</Link>
+					)}
 					<div className="bg-white/20 p-3 rounded-full">
 						<HandCoins className="h-8 w-8" />
 					</div>

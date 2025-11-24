@@ -1,4 +1,5 @@
 import { Card, SearchBar } from "@fineract-apps/ui";
+import { useTranslation } from "react-i18next";
 import { StaffViewProps } from "./Staff.types";
 
 export const StaffView = ({
@@ -9,22 +10,24 @@ export const StaffView = ({
 	staffError,
 	onStaffClick,
 }: StaffViewProps) => {
+	const { t } = useTranslation();
+
 	return (
 		<div className="p-4 sm:p-6 lg:p-8">
-			<h1 className="text-2xl font-bold mb-6">Manage Staff</h1>
+			<h1 className="text-2xl font-bold mb-6">{t("manageStaff")}</h1>
 			<div className="grid grid-cols-1 gap-6">
 				<Card
 					className="h-full"
-					title={<span className="text-xl">Available Staff</span>}
+					title={<span className="text-xl">{t("availableStaff")}</span>}
 				>
 					<SearchBar
 						value={search}
 						onValueChange={setSearch}
-						placeholder="Filter staff..."
+						placeholder={t("filterStaff")}
 						className="max-w-sm"
 					/>
 					<div className="mt-4 space-y-3">
-						{isLoadingStaff && <div>Loading...</div>}
+						{isLoadingStaff && <div>{t("loading")}</div>}
 						{staffError && <div className="text-red-600">{staffError}</div>}
 						{!isLoadingStaff && !staffError && staffItems.length > 0 ? (
 							staffItems.map((s) => {
@@ -52,7 +55,7 @@ export const StaffView = ({
 							})
 						) : (
 							<div className="text-center py-10">
-								<p>No staff members found.</p>
+								<p>{t("noStaffMembersFound")}</p>
 							</div>
 						)}
 					</div>
