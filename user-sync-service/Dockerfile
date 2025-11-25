@@ -21,4 +21,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 EXPOSE 5000
 
-CMD ["python", "sync_service.py"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "sync_service:app"]
