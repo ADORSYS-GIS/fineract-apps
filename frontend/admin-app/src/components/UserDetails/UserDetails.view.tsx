@@ -59,6 +59,7 @@ export const UserDetailsView = ({
 							<p className="font-medium text-gray-500">Loan Officer</p>
 							<p className="font-medium text-gray-500">Mobile Number</p>
 							<p className="font-medium text-gray-500">Roles</p>
+							<p className="font-medium text-gray-500">Joining Date</p>
 						</div>
 						<div className="space-y-4">
 							<p className="text-gray-900">{user.username}</p>
@@ -71,6 +72,9 @@ export const UserDetailsView = ({
 							<p className="text-gray-900">
 								{user.selectedRoles?.map((role) => role.name).join(", ") ??
 									"N/A"}
+							</p>
+							<p className="text-gray-900">
+								{user.staff?.joiningDate ?? "N/A"}
 							</p>
 						</div>
 					</div>
