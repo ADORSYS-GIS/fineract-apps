@@ -56,11 +56,10 @@ export const UserDetails = () => {
 			openPasswordResetModal={openPasswordResetModal}
 			closePasswordResetModal={closePasswordResetModal}
 			onUpdateUserStatus={(enabled) =>
-				updateUserStatus({ username: user.username!, enabled })
+				updateUserStatus({ username: user.username, enabled })
 			}
 			keycloakStatus={keycloakStatus}
-			onForcePasswordChange={() => forcePasswordChange(user.username!)}
-			onSyncUser={syncUser}
+			onForcePasswordChange={() => forcePasswordChange(user.username)}
 		/>
 	);
 };
