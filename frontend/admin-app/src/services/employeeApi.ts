@@ -37,7 +37,7 @@ export interface CreateEmployeePayload {
 	username: string;
 	email: string;
 	roles: number[];
-	loanOfficer: boolean;
+	isLoanOfficer: boolean;
 	mobileNo?: string;
 	externalId?: string;
 	joiningDate?: string; // e.g., "01 January 2024"
@@ -47,7 +47,7 @@ export interface CreateEmployeePayload {
  * Payload for updating an existing Employee
  */
 export interface UpdateEmployeePayload {
-	loanOfficer: boolean;
+	isLoanOfficer: boolean;
 	mobileNo?: string;
 	firstname?: string;
 	lastname?: string;

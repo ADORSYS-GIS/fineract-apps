@@ -24,7 +24,7 @@ export const useEditUser = () => {
 				firstname: updatedUser.firstname,
 				lastname: updatedUser.lastname,
 				mobileNo: updatedUser.mobileNo,
-				loanOfficer: updatedUser.loanOfficer ?? false,
+				isLoanOfficer: updatedUser.isLoanOfficer ?? false,
 				roles: [updatedUser.roles],
 				officeId: updatedUser.officeId,
 			}),
@@ -34,7 +34,7 @@ export const useEditUser = () => {
 		firstname: user?.firstname ?? "",
 		lastname: user?.lastname ?? "",
 		mobileNo: user?.mobileNo ?? "",
-		loanOfficer: user?.loanOfficer ?? false,
+		isLoanOfficer: user?.staff?.isLoanOfficer ?? false,
 		roles: user?.selectedRoles?.[0]?.id ?? 0,
 		officeId: user?.officeId ?? 0,
 	};

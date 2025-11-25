@@ -28,6 +28,7 @@ export interface Employee {
 	staff?: {
 		id: number;
 		joiningDate: string;
+		isLoanOfficer: boolean;
 		[key: string]: unknown;
 	};
 }
