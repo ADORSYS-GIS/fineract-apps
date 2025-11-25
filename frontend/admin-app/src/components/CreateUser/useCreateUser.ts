@@ -38,7 +38,7 @@ export const useCreateUser = () => {
 		username: "",
 		email: "",
 		roles: 0,
-		loanOfficer: false,
+		isLoanOfficer: false,
 		mobileNo: "",
 		joiningDate: "",
 	};
@@ -92,7 +92,7 @@ export const useCreateUser = () => {
 		const payload: CreateEmployeePayload = {
 			...values,
 			joiningDate,
-			loanOfficer: values.loanOfficer ?? false,
+			isLoanOfficer: values.isLoanOfficer ?? false,
 			roles: [values.roles],
 		};
 		try {

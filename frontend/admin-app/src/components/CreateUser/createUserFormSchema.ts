@@ -7,7 +7,7 @@ export const createUserFormSchema = z.object({
 	username: z.string().min(1, "Username is required"),
 	email: z.string().email("Invalid email address"),
 	roles: z.coerce.number().min(1, "A role is required"),
-	loanOfficer: z.boolean().optional(),
+	isLoanOfficer: z.boolean().optional(),
 	mobileNo: z.string().optional(),
 	joiningDate: z.string().min(1, "Joining date is required"),
 });
