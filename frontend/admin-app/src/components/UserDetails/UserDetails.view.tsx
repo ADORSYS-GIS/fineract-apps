@@ -1,13 +1,10 @@
-import {
-	RoleData as Role,
-	GetUsersUserIdResponse as User,
-} from "@fineract-apps/fineract-api";
 import { Button, Card } from "@fineract-apps/ui";
 import { PasswordResetModal } from "@/components/PasswordResetModal";
+import { Employee } from "@/services/types";
 import { KeycloakStatusResponse } from "@/services/userSyncApi";
 
 export type UserDetailsViewProps = {
-	user: User;
+	user: Employee;
 	onEdit: () => void;
 	onBack: () => void;
 	isPasswordResetModalOpen: boolean;
@@ -59,8 +56,9 @@ export const UserDetailsView = ({
 							<p className="font-medium text-gray-500">Last Name</p>
 							<p className="font-medium text-gray-500">Email</p>
 							<p className="font-medium text-gray-500">Office</p>
+							<p className="font-medium text-gray-500">Loan Officer</p>
+							<p className="font-medium text-gray-500">Mobile Number</p>
 							<p className="font-medium text-gray-500">Roles</p>
-							<p className="font-medium text-gray-500">Joining Date</p>
 						</div>
 						<div className="space-y-4">
 							<p className="text-gray-900">{user.username}</p>
@@ -68,20 +66,11 @@ export const UserDetailsView = ({
 							<p className="text-gray-900">{user.lastname}</p>
 							<p className="text-gray-900">{user.email}</p>
 							<p className="text-gray-900">{user.officeName}</p>
+							<p className="text-gray-900">{user.loanOfficer ? "Yes" : "No"}</p>
+							<p className="text-gray-900">{user.mobileNo ?? "N/A"}</p>
 							<p className="text-gray-900">
-								{user.selectedRoles?.map((role: Role) => role.name).join(", ")}
-							</p>
-							<p className="text-gray-900">
-								{user.staff?.joiningDate
-									? new Date(user.staff.joiningDate).toLocaleDateString(
-											"en-US",
-											{
-												year: "numeric",
-												month: "long",
-												day: "numeric",
-											},
-										)
-									: "N/A"}
+								{user.selectedRoles?.map((role) => role.name).join(", ") ??
+									"N/A"}
 							</p>
 						</div>
 					</div>
@@ -97,13 +86,13 @@ export const UserDetailsView = ({
 							</div>
 							<div className="space-y-4">
 								<p className="text-gray-900">
-									{keycloakStatus?.keycloak_user?.id || "N/A"}
+									{keycloakStatus?.keycloak_user?.id ?? "N/A"}
 								</p>
 								<p className="text-gray-900">
 									{keycloakStatus?.keycloak_user?.emailVerified ? "Yes" : "No"}
 								</p>
 								<p className="text-gray-900">
-									{keycloakStatus?.keycloak_user?.requiredActions?.join(", ") ||
+									{keycloakStatus?.keycloak_user?.requiredActions?.join(", ") ??
 										"None"}
 								</p>
 							</div>
@@ -117,7 +106,7 @@ export const UserDetailsView = ({
 			<PasswordResetModal
 				isOpen={isPasswordResetModalOpen}
 				onClose={closePasswordResetModal}
-				userName={user.username!}
+				userName={user.username}
 				userEmail={user.email}
 			/>
 		</>

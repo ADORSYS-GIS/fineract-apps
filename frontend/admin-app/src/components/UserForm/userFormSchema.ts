@@ -25,8 +25,13 @@ export const userFormSchema = z.object({
 	roles: z.coerce.number().min(1, "At least one role is required"),
 });
 
-export const userEditFormSchema = userFormSchema.omit({
-	username: true,
+export const userEditFormSchema = z.object({
+	firstname: z.string().min(1, "First name is required"),
+	lastname: z.string().min(1, "Last name is required"),
+	mobileNo: z.string().optional(),
+	loanOfficer: z.boolean().optional(),
+	roles: z.coerce.number().min(1, "At least one role is required"),
+	officeId: z.coerce.number().min(1, "Office is required"),
 });
 
 export type UserFormValues = z.infer<typeof userFormSchema>;

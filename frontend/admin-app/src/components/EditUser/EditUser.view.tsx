@@ -1,3 +1,4 @@
+import { OfficesService, RolesService } from "@fineract-apps/fineract-api";
 import {
 	Button,
 	Card,
@@ -5,6 +6,7 @@ import {
 	Input,
 	SubmitButton,
 } from "@fineract-apps/ui";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Form, Formik } from "formik";
 import { ArrowLeft } from "lucide-react";
@@ -15,15 +17,33 @@ import { useEditUser } from "./useEditUser";
 export const EditUserView = () => {
 	const {
 		initialValues,
-		officeOptions,
-		staffOptions,
-		roleOptions,
 		isUpdatingUser,
 		isLoadingUser,
 		onSubmit,
 		user,
 		error,
 	} = useEditUser();
+	const { data: roles, isLoading: rolesLoading } = useQuery({
+		queryKey: ["roles"],
+		queryFn: () => RolesService.getV1Roles(),
+	});
+
+	const { data: offices, isLoading: officesLoading } = useQuery({
+		queryKey: ["offices"],
+		queryFn: () => OfficesService.getV1Offices(),
+	});
+
+	const roleOptions =
+		roles?.map((role) => ({
+			label: role.name || "",
+			value: role.id || 0,
+		})) || [];
+
+	const officeOptions =
+		offices?.map((office) => ({
+			label: office.name || "",
+			value: office.id || 0,
+		})) || [];
 
 	if (isLoadingUser) {
 		return (
@@ -43,7 +63,7 @@ export const EditUserView = () => {
 
 	return (
 		<div>
-			<Link to="/users/$userId" params={{ userId: user.id!.toString() }}>
+			<Link to="/users/$userId" params={{ userId: user.id.toString() }}>
 				<Button variant="ghost" size="sm" className="mb-4">
 					<ArrowLeft className="w-4 h-4 mr-2" />
 					Back to User Details
@@ -52,9 +72,7 @@ export const EditUserView = () => {
 
 			<div className="mb-6">
 				<h1 className="text-2xl font-bold text-gray-800">Edit User</h1>
-				<p className="text-sm text-gray-600 mt-1">
-					Update the details of {user.username}
-				</p>
+				<p className="text-sm text-gray-600 mt-1">Update the user's details</p>
 			</div>
 
 			<div className="max-w-3xl mx-auto">
@@ -77,15 +95,6 @@ export const EditUserView = () => {
 									)}
 
 									<div className="space-y-4">
-										<Input
-											name="username"
-											label="Username"
-											type="text"
-											placeholder="Enter username"
-											disabled
-											helperText="Username cannot be changed"
-										/>
-
 										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 											<Input
 												name="firstname"
@@ -105,38 +114,37 @@ export const EditUserView = () => {
 										</div>
 
 										<Input
-											name="email"
-											label="Email Address"
-											type="email"
-											placeholder="user@example.com"
-											required
+											name="mobileNo"
+											label="Mobile Number"
+											type="text"
+											placeholder="Enter mobile number"
 										/>
-
-										<Input
-											name="officeId"
-											label="Office"
-											type="select"
-											required
-											options={officeOptions}
-										/>
-
-										<Input
-											name="staffId"
-											label="Staff"
-											type="select"
-											required
-											options={staffOptions}
-										/>
-
+										<div className="flex items-center space-x-2">
+											<Input name="loanOfficer" type="checkbox" />
+											<label
+												htmlFor="loanOfficer"
+												className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+											>
+												Loan Officer
+											</label>
+										</div>
 										<Input
 											name="roles"
 											label="Roles"
 											type="select"
 											required
 											options={roleOptions}
-											helperText="Select one or more roles for this user"
+											disabled={rolesLoading}
+											helperText="Select a role"
 										/>
-
+										<Input
+											name="officeId"
+											label="Office"
+											type="select"
+											required
+											options={officeOptions}
+											disabled={officesLoading}
+										/>
 										<div className="pt-4 flex items-center gap-3">
 											<SubmitButton
 												label={
@@ -145,7 +153,7 @@ export const EditUserView = () => {
 											/>
 											<Link
 												to="/users/$userId"
-												params={{ userId: user.id!.toString() }}
+												params={{ userId: user.id.toString() }}
 											>
 												<Button type="button" variant="outline">
 													Cancel

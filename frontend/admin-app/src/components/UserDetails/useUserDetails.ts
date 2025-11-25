@@ -1,11 +1,12 @@
-import { UsersService } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { useToast } from "@/components/Toast";
+import { getEmployee } from "@/services/employeeApi";
 import {
 	forcePasswordChange,
 	getUserKeycloakStatus,
+	syncUser,
 	updateUserStatus,
 } from "@/services/userSyncApi";
 
@@ -16,15 +17,14 @@ export const useUserDetails = () => {
 	const queryClient = useQueryClient();
 	const toast = useToast();
 	const { data: user, isLoading } = useQuery({
-		queryKey: ["users", userId],
-		queryFn: () =>
-			UsersService.getV1UsersByUserId({ userId: Number.parseInt(userId, 10) }),
+		queryKey: ["employee", userId],
+		queryFn: () => getEmployee(Number.parseInt(userId, 10)),
 	});
 
 	const { data: keycloakStatus, isLoading: isKeycloakStatusLoading } = useQuery(
 		{
 			queryKey: ["keycloakStatus", user?.username],
-			queryFn: () => getUserKeycloakStatus(user!.username!),
+			queryFn: () => getUserKeycloakStatus(user!.username),
 			enabled: !!user?.username,
 		},
 	);
@@ -39,17 +39,17 @@ export const useUserDetails = () => {
 		}) => updateUserStatus(username, enabled),
 		onSuccess: (data) => {
 			if (data.status === "success") {
-				toast.success(data.message || "User status updated successfully.");
+				toast.success(data.message ?? "User status updated successfully.");
 				queryClient.invalidateQueries({ queryKey: ["users", userId] });
 				queryClient.invalidateQueries({
 					queryKey: ["keycloakStatus", user?.username],
 				});
 			} else {
-				toast.error(data.message || "An unknown error occurred.");
+				toast.error(data.message ?? "An unknown error occurred.");
 			}
 		},
 		onError: (error: Error) => {
-			toast.error(error.message || "Failed to update user status.");
+			toast.error(error.message ?? "Failed to update user status.");
 		},
 	});
 
@@ -58,18 +58,45 @@ export const useUserDetails = () => {
 		onSuccess: (data) => {
 			if (data.status === "success") {
 				toast.success(
-					data.message ||
+					data.message ??
 						"User will be required to change password on next login.",
 				);
 				queryClient.invalidateQueries({
 					queryKey: ["keycloakStatus", user?.username],
 				});
 			} else {
-				toast.error(data.message || "An unknown error occurred.");
+				toast.error(data.message ?? "An unknown error occurred.");
 			}
 		},
 		onError: (error: Error) => {
-			toast.error(error.message || "Failed to force password change.");
+			toast.error(error.message ?? "Failed to force password change.");
+		},
+	});
+
+	const syncUserMutation = useMutation({
+		mutationFn: () =>
+			syncUser({
+				userId: user!.id,
+				username: user!.username,
+				email: user!.email,
+				firstName: user!.firstname,
+				lastName: user!.lastname,
+				officeId: user!.officeId,
+				officeName: user!.officeName,
+				role: user!.selectedRoles?.[0]?.name,
+			}),
+		onSuccess: (data) => {
+			if (data.status === "success") {
+				toast.success(data.message ?? "User synced successfully.");
+				queryClient.invalidateQueries({
+					queryKey: ["keycloakStatus", user?.username],
+				});
+			} else {
+				toast.error(data.message ?? "An unknown error occurred.");
+			}
+		},
+		onError: (error: Error) => {
+			toast.error(error.message ?? "Failed to sync user.");
 		},
 	});
 
@@ -82,5 +109,6 @@ export const useUserDetails = () => {
 		closePasswordResetModal: () => setIsPasswordResetModalOpen(false),
 		updateUserStatus: updateUserStatusMutation.mutate,
 		forcePasswordChange: forcePasswordChangeMutation.mutate,
+		syncUser: syncUserMutation.mutate,
 	};
 };
