@@ -11,8 +11,9 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { Bell, UserCircle } from "lucide-react";
+import { UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
+import { NotificationBell } from "@/components/NotificationBell";
 
 function onLogout() {
 	const base = import.meta.env.BASE_URL ?? "/branchmanager/";
@@ -42,7 +43,7 @@ function RootLayout() {
 				<Navbar
 					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
 					links={null}
-					notifications={<Bell />}
+					notifications={<NotificationBell />}
 					userSection={
 						<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
 							<UserCircle className="w-5 h-5 text-gray-600" />

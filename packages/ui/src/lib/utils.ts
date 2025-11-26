@@ -36,3 +36,10 @@ export function formatToFineractDate(value: string): string {
 		year: "numeric",
 	});
 }
+
+export const parseFineractDateTime = (fineractDateTime: string): Date => {
+	// Fineract's format is "YYYY-MM-DD HH:mm:ss.SSSSSS"
+	// It is in UTC, so we need to append 'Z' to make it a valid ISO 8601 string
+	const isoString = fineractDateTime.replace(" ", "T") + "Z";
+	return new Date(isoString);
+};

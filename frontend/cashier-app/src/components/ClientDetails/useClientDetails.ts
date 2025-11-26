@@ -6,11 +6,12 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useState } from "react";
+import { TransactionRequestBody } from "@/components/ClientDetails/ClientDetails.types";
 import {
 	TransactionFormData,
 	TransactionType,
-} from "../TransactionForm/TransactionForm.types";
-import { TransactionRequestBody } from "./ClientDetails.types";
+} from "@/components/TransactionForm/TransactionForm.types";
+import { useSavingsTransactionReceipt } from "@/hooks/useSavingsTransactionReceipt";
 
 export const useClientDetails = (savingsId: number) => {
 	const queryClient = useQueryClient();
@@ -22,6 +23,10 @@ export const useClientDetails = (savingsId: number) => {
 		id?: number;
 		accountNo?: string;
 	} | null>(null);
+	const [selectedTransactionId, setSelectedTransactionId] = useState<
+		number | null
+	>(null);
+	const [outputType, setOutputType] = useState<"PDF" | "XLS" | "HTML">("PDF");
 
 	const {
 		data: savingsAccount,
@@ -117,6 +122,18 @@ export const useClientDetails = (savingsId: number) => {
 			);
 		}
 	};
+
+	const {
+		mutate: generateReceipt,
+		receipt,
+		setReceipt,
+	} = useSavingsTransactionReceipt();
+
+	const handleViewReceipt = (transactionId: number) => {
+		setSelectedTransactionId(transactionId);
+		generateReceipt({ transactionId, outputType });
+	};
+
 	return {
 		savingsAccount,
 		isLoading,
@@ -132,5 +149,11 @@ export const useClientDetails = (savingsId: number) => {
 		isSubmitting: transactionMutation.isPending,
 		isSuccess,
 		selectedAccount,
+		onViewReceipt: handleViewReceipt,
+		receipt,
+		setReceipt,
+		outputType,
+		setOutputType,
+		selectedTransactionId,
 	};
 };
