@@ -1,9 +1,8 @@
 import {
+	CashiersService,
 	CurrencyService,
 	FetchAuthenticatedUserDetailsService,
 	GetTellersTellerIdCashiersCashiersIdSummaryAndTransactionsResponse,
-	GetV1TellersByTellerIdCashiersResponse,
-	GetV1TellersResponse,
 	TellerCashManagementService,
 } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
@@ -40,24 +39,13 @@ export const useCashierTransactionSummary = (enabled: boolean) => {
 				throw new Error("StaffId or OfficeId not available from user details");
 			}
 
-			const tellers: GetV1TellersResponse =
-				await TellerCashManagementService.getV1Tellers({ officeId });
+			const cashierDataResponse = await CashiersService.getV1Cashiers({
+				officeId,
+				staffId,
+			});
 
-			for (const teller of tellers) {
-				if (teller.id) {
-					const cashiersResponse: GetV1TellersByTellerIdCashiersResponse =
-						await TellerCashManagementService.getV1TellersByTellerIdCashiers({
-							tellerId: teller.id,
-						});
-
-					const cashier = cashiersResponse?.cashiers?.find(
-						(c) => c.staffId === staffId,
-					);
-
-					if (cashier) {
-						return { ...cashier, tellerId: teller.id };
-					}
-				}
+			if (cashierDataResponse && cashierDataResponse.length > 0) {
+				return cashierDataResponse[0];
 			}
 
 			throw new Error(
