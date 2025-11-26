@@ -2,6 +2,8 @@ import { Button, formatCurrency } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
+import { ReceiptModal } from "@/components/ReceiptModal";
+import { TransactionActions } from "@/components/TransactionActions";
 import { TransactionForm } from "@/components/TransactionForm";
 import { ClientDetailsViewProps } from "./ClientDetails.types";
 
@@ -21,6 +23,12 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 	selectedAccount,
 	onDeposit,
 	onWithdraw,
+	onViewReceipt,
+	receipt,
+	setReceipt,
+	outputType,
+	setOutputType,
+	selectedTransactionId,
 }) => {
 	const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -214,17 +222,18 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 				<div className="border-t border-gray-200 px-6 py-6">
 					<h3 className="text-xl text-gray-700 mb-4">Recent Transactions</h3>
 					<div className="border border-gray-200 rounded-lg overflow-hidden">
-						<div className="hidden md:grid grid-cols-3 gap-4 p-4 border-b border-gray-200 items-center text-gray-500 font-medium">
+						<div className="hidden md:grid grid-cols-4 gap-4 p-4 border-b border-gray-200 items-center text-gray-500 font-medium">
 							<div>Date</div>
 							<div>Transaction Type</div>
 							<div className="text-right">Amount</div>
+							<div className="text-right">Actions</div>
 						</div>
 						<div className="divide-y divide-gray-200">
 							{recentTransactions.length > 0 ? (
 								recentTransactions.map((transaction) => (
 									<div
 										key={transaction.id}
-										className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 items-center"
+										className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 items-center"
 									>
 										<div>
 											{transaction.date
@@ -243,6 +252,15 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 												transaction.amount,
 												savingsAccount.currency?.code,
 											)}
+										</div>
+										<div className="text-right">
+											<TransactionActions
+												onViewReceipt={() => {
+													if (transaction.id) {
+														onViewReceipt(transaction.id);
+													}
+												}}
+											/>
 										</div>
 									</div>
 								))
@@ -289,6 +307,15 @@ export const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
 					errorMessage={transactionError}
 					isSubmitting={isSubmitting}
 					isSuccess={isSuccess}
+				/>
+			)}
+			{receipt && selectedTransactionId && (
+				<ReceiptModal
+					transactionId={selectedTransactionId}
+					receipt={receipt}
+					onClose={() => setReceipt(null)}
+					outputType={outputType}
+					setOutputType={setOutputType}
 				/>
 			)}
 		</div>
