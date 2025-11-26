@@ -1,60 +1,14 @@
 import {
-	CashiersService,
-	CurrencyService,
-	FetchAuthenticatedUserDetailsService,
 	GetTellersTellerIdCashiersCashiersIdSummaryAndTransactionsResponse,
 	TellerCashManagementService,
 } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
+import { useRouteContext } from "@tanstack/react-router";
 import { Route } from "@/routes/dashboard";
 
 export const useCashierTransactionSummary = (enabled: boolean) => {
 	const { page = 1, limit = 10 } = Route.useSearch();
-	const { data: userDetails, isLoading: isUserDetailsLoading } = useQuery({
-		queryKey: ["userDetails"],
-		queryFn: () => FetchAuthenticatedUserDetailsService.getV1Userdetails(),
-		staleTime: Infinity,
-		enabled,
-	});
-	const staffId = userDetails?.staffId;
-	const officeId = userDetails?.officeId;
-
-	const { data: currencies, isLoading: isCurrenciesLoading } = useQuery({
-		queryKey: ["currencies"],
-		queryFn: () => CurrencyService.getV1Currencies(),
-		staleTime: Infinity,
-		enabled,
-	});
-	const currencyCode = currencies?.selectedCurrencyOptions?.[0]?.code;
-
-	const {
-		data: cashierInfo,
-		isLoading: isCashierInfoLoading,
-		isError: isCashierInfoError,
-		error: cashierInfoError,
-	} = useQuery({
-		queryKey: ["cashierInfo", staffId, officeId],
-		queryFn: async () => {
-			if (!staffId || !officeId) {
-				throw new Error("StaffId or OfficeId not available from user details");
-			}
-
-			const cashierDataResponse = await CashiersService.getV1Cashiers({
-				officeId,
-				staffId,
-			});
-
-			if (cashierDataResponse && cashierDataResponse.length > 0) {
-				return cashierDataResponse[0];
-			}
-
-			throw new Error(
-				"No cashier data found for this user. Please contact an administrator.",
-			);
-		},
-		enabled: !!staffId && !!officeId && enabled,
-		staleTime: Infinity,
-	});
+	const { cashierInfo, currencyCode } = useRouteContext({ from: "__root__" });
 
 	const tellerId = cashierInfo?.tellerId;
 	const cashierId = cashierInfo?.id;
@@ -98,12 +52,8 @@ export const useCashierTransactionSummary = (enabled: boolean) => {
 	return {
 		cashierData,
 		currencyCode,
-		isLoading:
-			isUserDetailsLoading ||
-			isCurrenciesLoading ||
-			isCashierInfoLoading ||
-			isSummaryLoading,
-		isError: isCashierInfoError || isSummaryError,
-		error: cashierInfoError || summaryError,
+		isLoading: isSummaryLoading,
+		isError: isSummaryError,
+		error: summaryError,
 	};
 };
