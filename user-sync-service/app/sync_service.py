@@ -203,13 +203,14 @@ def sync_user():
         admin = get_keycloak_admin()
 
         # Check if user already exists
-        existing_users = admin.get_users({"username": username})
-        if existing_users:
-            logger.warning(f"User {username} already exists in Keycloak")
+        # Check if user already exists
+        user_id = admin.get_user_id(username)
+        if user_id:
+            logger.warning(f"User {username} already exists in Keycloak with ID {user_id}")
             return jsonify({
                 "status": "exists",
                 "message": f"User {username} already exists in Keycloak",
-                "keycloak_user_id": existing_users[0]['id']
+                "keycloak_user_id": user_id
             }), 200
 
         # Generate temporary password
@@ -305,16 +306,15 @@ def reset_password(username):
         admin = get_keycloak_admin()
 
         # Find user by username
-        users = admin.get_users({"username": username})
-        if not users:
+        user_id = admin.get_user_id(username)
+        if not user_id:
             logger.warning(f"Password reset failed: User {username} not found in Keycloak")
             return jsonify({
                 "status": "error",
                 "message": f"User {username} not found"
             }), 404
-
-        user = users[0]
-        user_id = user['id']
+        
+        user = admin.get_user(user_id)
         user_email = user.get('email')
 
         # Check if user has email
@@ -379,17 +379,14 @@ def update_user_status(username):
         admin = get_keycloak_admin()
 
         # Find user by username
-        users = admin.get_users({"username": username})
-        if not users:
+        user_id = admin.get_user_id(username)
+        if not user_id:
             logger.warning(f"Status update failed: User {username} not found in Keycloak")
             return jsonify({
                 "status": "error",
                 "message": f"User {username} not found"
             }), 404
-
-        user = users[0]
-        user_id = user['id']
-
+        
         # Update user enabled status
         admin.update_user(
             user_id=user_id,
@@ -429,16 +426,15 @@ def force_password_change(username):
         admin = get_keycloak_admin()
 
         # Find user by username
-        users = admin.get_users({"username": username})
-        if not users:
+        user_id = admin.get_user_id(username)
+        if not user_id:
             logger.warning(f"Force password change failed: User {username} not found in Keycloak")
             return jsonify({
                 "status": "error",
                 "message": f"User {username} not found"
             }), 404
-
-        user = users[0]
-        user_id = user['id']
+        
+        user = admin.get_user(user_id)
 
         # Get current required actions
         current_actions = user.get('requiredActions', [])
@@ -490,15 +486,14 @@ def get_keycloak_status(username):
         admin = get_keycloak_admin()
 
         # Find user by username
-        users = admin.get_users({"username": username})
-        if not users:
+        user_id = admin.get_user_id(username)
+        if not user_id:
             return jsonify({
                 "status": "not_found",
                 "message": f"User {username} not found in Keycloak"
             }), 404
 
-        user = users[0]
-        user_id = user['id']
+        user = admin.get_user(user_id)
 
         # Get user roles
         try:
