@@ -30,4 +30,10 @@ export interface ClientDetailsViewProps {
 		id?: number;
 		accountNo?: string;
 	} | null;
+	onViewReceipt: (transactionId: number) => void;
+	receipt: Blob | null;
+	setReceipt: React.Dispatch<React.SetStateAction<Blob | null>>;
+	outputType: "PDF" | "XLS" | "HTML";
+	setOutputType: (outputType: "PDF" | "XLS" | "HTML") => void;
+	selectedTransactionId: number | null;
 }

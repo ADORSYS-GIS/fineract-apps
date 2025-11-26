@@ -21,6 +21,12 @@ export function ClientDetails() {
 		isSubmitting,
 		isSuccess,
 		selectedAccount,
+		onViewReceipt,
+		receipt,
+		setReceipt,
+		outputType,
+		setOutputType,
+		selectedTransactionId,
 	} = useClientDetails(Number(clientId));
 	const { data: clientImage, isLoading: isClientImageLoading } = useClientImage(
 		String(savingsAccount?.clientId),
@@ -55,6 +61,12 @@ export function ClientDetails() {
 			isSubmitting={isSubmitting}
 			isSuccess={isSuccess}
 			selectedAccount={selectedAccount}
+			onViewReceipt={onViewReceipt}
+			receipt={receipt}
+			setReceipt={setReceipt}
+			outputType={outputType}
+			setOutputType={setOutputType}
+			selectedTransactionId={selectedTransactionId}
 		/>
 	);
 }
