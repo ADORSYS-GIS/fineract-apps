@@ -213,7 +213,6 @@ export const LoanRepaymentView: React.FC<LoanRepaymentViewProps> = ({
 				{transactionId && (
 					<Receipt
 						loan={loan}
-						loanId={loan.id as number}
 						transactionId={transactionId}
 						onClose={() => setTransactionId(null)}
 					/>
