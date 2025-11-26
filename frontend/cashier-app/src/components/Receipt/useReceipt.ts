@@ -1,17 +1,14 @@
-import {
-	ApiError,
-	GetLoansLoanIdTransactionsTransactionIdResponse,
-	LoanTransactionsService,
-} from "@fineract-apps/fineract-api";
+import { ApiError } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
+import { RunReportsService } from "@/services/RunReportsService";
 
-export const useReceipt = (loanId: number, transactionId: number) => {
-	return useQuery<GetLoansLoanIdTransactionsTransactionIdResponse, ApiError>({
-		queryKey: ["transaction", loanId, transactionId],
+export const useReceipt = (
+	transactionId: number,
+	outputType: "PDF" | "XLS" | "HTML",
+) => {
+	return useQuery<Blob, ApiError>({
+		queryKey: ["receipt", transactionId, outputType],
 		queryFn: () =>
-			LoanTransactionsService.getV1LoansByLoanIdTransactionsByTransactionId({
-				loanId,
-				transactionId,
-			}),
+			RunReportsService.getLoanTransactionReceipt(transactionId, outputType),
 	});
 };
