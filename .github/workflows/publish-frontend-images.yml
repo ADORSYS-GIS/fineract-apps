@@ -5,7 +5,6 @@ on:
     branches:
       - develop
       - main
-      - 116-update-cashier-frontend-to-use-teller-extension-for-direct-cashier-transaction-retrieval
     paths:
       - 'frontend/**'
       - 'packages/**'
@@ -102,8 +101,8 @@ jobs:
           file: ./Dockerfile.${{ matrix.app }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}
-            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.branch }}
+            ${{ env.REGISTRY }}/adorsys-gis/fineract-${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}
+            ${{ env.REGISTRY }}/adorsys-gis/fineract-${{ matrix.app }}-app:${{ steps.meta.outputs.branch }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ steps.meta.outputs.long_sha }}
@@ -116,18 +115,18 @@ jobs:
           echo "### ${{ matrix.app }} Image Built Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Registry**: \`${{ env.REGISTRY }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Repository**: \`adorsys-gis/fineract-apps/${{ matrix.app }}-app\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: \`adorsys-gis/fineract-${{ matrix.app }}-app\`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags**: \`${{ steps.meta.outputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pull Command**:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/adorsys-gis/fineract-${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
   trigger-gitops-update:
     name: Trigger GitOps Update
     needs: build-and-push
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/116-update-cashier-frontend-to-use-teller-extension-for-direct-cashier-transaction-retrieval'
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
