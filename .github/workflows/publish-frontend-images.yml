@@ -127,7 +127,7 @@ jobs:
   trigger-gitops-update:
     name: Trigger GitOps Update
     needs: build-and-push
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/116-update-cashier-frontend-to-use-teller-extension-for-direct-cashier-transaction-retrieval'
     runs-on: ubuntu-latest
 
     steps:
