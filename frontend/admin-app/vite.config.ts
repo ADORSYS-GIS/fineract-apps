@@ -23,6 +23,12 @@ export default mergeConfig(
 					secure: false,
 					changeOrigin: true,
 				},
+				"/api/user-sync": {
+					target: "http://localhost:5000",
+					secure: false,
+					changeOrigin: true,
+					rewrite: (path) => path.replace(/^\/api\/user-sync/, ""),
+				},
 			},
 		},
 		resolve: {
