@@ -116,7 +116,7 @@ export function CashierTransactionSummaryView({
 					</div>
 					<div className="flex justify-between">
 						<div>
-							<span className="text-sm text-gray-600">Daily Allocation: </span>
+							<span className="text-sm text-gray-600">Daily Allocations: </span>
 							<span className="font-semibold text-gray-900">
 								{formatCurrency(
 									cashierData?.sumCashAllocation ?? 0,
