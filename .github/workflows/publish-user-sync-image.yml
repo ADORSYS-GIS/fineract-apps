@@ -5,7 +5,6 @@ on:
     branches:
       - develop
       - main
-      - 116-update-cashier-frontend-to-use-teller-extension-for-direct-cashier-transaction-retrieval
     paths:
       - 'user-sync-service/**'
       - '.github/workflows/publish-user-sync-image.yml'
