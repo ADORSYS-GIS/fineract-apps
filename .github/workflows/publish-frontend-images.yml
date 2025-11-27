@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - main
+      - 116-update-cashier-frontend-to-use-teller-extension-for-direct-cashier-transaction-retrieval
     paths:
       - 'frontend/**'
       - 'packages/**'
