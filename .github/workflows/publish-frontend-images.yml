@@ -102,8 +102,8 @@ jobs:
           file: ./Dockerfile.${{ matrix.app }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/adorsys-gis/fineract-${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}
-            ${{ env.REGISTRY }}/adorsys-gis/fineract-${{ matrix.app }}-app:${{ steps.meta.outputs.branch }}
+            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}
+            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.branch }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ steps.meta.outputs.long_sha }}
@@ -116,12 +116,12 @@ jobs:
           echo "### ${{ matrix.app }} Image Built Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Registry**: \`${{ env.REGISTRY }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Repository**: \`adorsys-gis/fineract-${{ matrix.app }}-app\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: \`adorsys-gis/fineract-apps/${{ matrix.app }}-app\`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags**: \`${{ steps.meta.outputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pull Command**:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.REGISTRY }}/adorsys-gis/fineract-${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
   trigger-gitops-update:
