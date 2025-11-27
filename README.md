@@ -2,6 +2,7 @@
 [![Build](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/build.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/build.yml)
 [![Node.js CI](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/node.js.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/node.js.yml)
 [![Publish Frontend Images](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/publish-frontend-images.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/publish-frontend-images.yml)
+[![Publish User Sync Service Docker Image](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/publish-user-sync-image.yml/badge.svg)](https://github.com/ADORSYS-GIS/fineract-apps/actions/workflows/publish-user-sync-image.yml)
 
 
 # Fineract Frontend Apps

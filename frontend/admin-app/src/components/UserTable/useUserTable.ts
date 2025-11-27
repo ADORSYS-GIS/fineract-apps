@@ -1,4 +1,4 @@
-import { UsersService } from "@fineract-apps/fineract-api";
+import { GetUsersResponse, UsersService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { User } from "./UserTable.types";
@@ -9,18 +9,18 @@ export const useUserTable = () => {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
 	const { data, isLoading, isError } = useQuery({
-		queryKey: ["users"],
+		queryKey: ["employees"],
 		queryFn: () => UsersService.getV1Users(),
 	});
 
-	const users: User[] = (data || []).map((user) => ({
-		id: user.id || 0,
-		username: user.username || "",
-		firstname: user.firstname || "",
-		lastname: user.lastname || "",
-		email: user.email || "",
-		officeName: user.officeName,
-		available: user.staff?.isActive,
+	const users: User[] = (data || []).map((user: GetUsersResponse) => ({
+		id: user.id ?? 0,
+		username: user.username ?? "",
+		firstname: user.firstname ?? "",
+		lastname: user.lastname ?? "",
+		email: user.email ?? "",
+		officeName: user.officeName ?? "",
+		available: true, // Assuming all employees are active
 	}));
 
 	const filteredUsers = useMemo(

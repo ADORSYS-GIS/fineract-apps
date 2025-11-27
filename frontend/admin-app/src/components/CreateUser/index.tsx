@@ -1,5 +1,7 @@
-import { CreateUserView } from "./CreateUser.view";
+import { CreateUserView } from "@/components/CreateUser/CreateUser.view";
+import { useCreateUser } from "@/components/CreateUser/useCreateUser";
 
 export const CreateUser = () => {
-	return <CreateUserView />;
+	const props = useCreateUser();
+	return <CreateUserView {...props} />;
 };
