@@ -8,7 +8,8 @@
 			"!**/node_modules",
 			"!**/dist",
 			"!packages/fineract-api/**",
-			"!**/routeTree.gen.ts"
+			"!**/routeTree.gen.ts",
+			"!**/coverage/**"
 		]
 	},
 	"formatter": { "enabled": true, "indentStyle": "tab" },
