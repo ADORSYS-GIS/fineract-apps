@@ -12,12 +12,21 @@ export const useAuth = () => {
 				},
 			}),
 		staleTime: Infinity,
+		enabled: import.meta.env.VITE_AUTH_MODE === "basic",
 	});
 
 	const onLogout = () => {
-		globalThis.location.href = `/cashier/callback?logout=${encodeURIComponent(
-			globalThis.location.origin + "/account/",
-		)}`;
+		const base = import.meta.env.BASE_URL || "/account/";
+		const appBase = base.endsWith("/") ? base : `${base}/`;
+		const redirectTo = `${window.location.origin}${appBase}`;
+
+		if (import.meta.env.VITE_AUTH_MODE === "basic") {
+			window.location.href = appBase;
+		} else {
+			window.location.href = `${appBase}callback?logout=${encodeURIComponent(
+				redirectTo,
+			)}`;
+		}
 	};
 
 	return { onLogout, userData, isUserDataLoading };

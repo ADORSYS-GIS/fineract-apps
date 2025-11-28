@@ -14,17 +14,25 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import { NotificationBell } from "@/components/NotificationBell";
+import { configureApi } from "@/services/api";
 
 function onLogout() {
 	const base = import.meta.env.BASE_URL ?? "/branchmanager/";
 	const appBase = base.endsWith("/") ? base : `${base}/`;
 	const redirectTo = `${globalThis.location.origin}${appBase}`;
-	globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(
-		redirectTo,
-	)}`;
+	if (import.meta.env.VITE_AUTH_MODE === "basic") {
+		// For basic auth, just redirect to the base, as there's no real logout endpoint
+		window.location.href = appBase;
+	} else {
+		// The existing logic is for OAuth
+		globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(
+			redirectTo,
+		)}`;
+	}
 }
 
 function RootLayout() {
+	configureApi();
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
