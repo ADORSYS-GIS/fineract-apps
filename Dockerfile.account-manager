@@ -23,6 +23,9 @@ RUN pnpm --filter account-manager-app build
 # Stage 2: Serve with Nginx
 FROM nginx:alpine
 
+# Install wget for health check
+RUN apk --no-cache add wget
+
 # Copy built assets from builder stage
 COPY --from=builder /app/frontend/account-manager-app/dist /usr/share/nginx/html
 
