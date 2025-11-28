@@ -1,6 +1,6 @@
+import { OpenAPI, request } from "@fineract-apps/fineract-api";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { RunReportsService } from "@/services/runReport";
 
 export const useSavingsTransactionReceipt = () => {
 	const [receipt, setReceipt] = useState<Blob | null>(null);
@@ -9,15 +9,29 @@ export const useSavingsTransactionReceipt = () => {
 		mutationFn: (variables: {
 			transactionId: number;
 			outputType: "PDF" | "XLS" | "HTML";
-		}) =>
-			RunReportsService.getSavingsTransactionReceipt(
-				variables.transactionId,
-				variables.outputType,
-			),
-		onSuccess: (data) => {
+		}) => {
+			const params = {
+				tenantIdentifier: import.meta.env.VITE_FINERACT_TENANT_ID,
+				"output-type": variables.outputType,
+				R_transactionId: variables.transactionId,
+				locale: "en",
+				dateFormat: "dd MMMM yyyy",
+			};
+
+			return request<Blob>(OpenAPI, {
+				url: "/v1/runreports/Savings%20Transaction%20Receipt",
+				method: "GET",
+				query: params,
+				headers: {
+					"X-Response-Type-Blob": "true",
+					"Fineract-Platform-TenantId": params.tenantIdentifier,
+				},
+			});
+		},
+		onSuccess: (data: Blob) => {
 			setReceipt(data);
 		},
-		onError: (error) => {
+		onError: (error: Error) => {
 			console.error("Error generating receipt:", error);
 		},
 	});
