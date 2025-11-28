@@ -1,31 +1,31 @@
 /** Angular Imports */
-import { Injectable, EventEmitter } from '@angular/core';
+import { Injectable, EventEmitter } from "@angular/core";
 
 /** Custom Model */
-import { Alert } from './alert.model';
+import { Alert } from "./alert.model";
 
 /**
  * Alert service.
  */
 @Injectable({
-  providedIn: 'root'
+	providedIn: "root",
 })
 export class AlertService {
-  /** Alert event. */
-  public alertEvent: EventEmitter<Alert>;
+	/** Alert event. */
+	public alertEvent: EventEmitter<Alert>;
 
-  /**
-   * Initializes alert event.
-   */
-  constructor() {
-    this.alertEvent = new EventEmitter();
-  }
+	/**
+	 * Initializes alert event.
+	 */
+	constructor() {
+		this.alertEvent = new EventEmitter();
+	}
 
-  /**
-   * Emits an alert event.
-   * @param {Alert} alertEvent Alert event.
-   */
-  alert(alertEvent: Alert) {
-    this.alertEvent.emit(alertEvent);
-  }
+	/**
+	 * Emits an alert event.
+	 * @param {Alert} alertEvent Alert event.
+	 */
+	alert(alertEvent: Alert) {
+		this.alertEvent.emit(alertEvent);
+	}
 }

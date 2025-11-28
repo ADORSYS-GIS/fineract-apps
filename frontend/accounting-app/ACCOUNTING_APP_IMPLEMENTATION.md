@@ -260,15 +260,15 @@ This document tracks the implementation progress of the Accounting Application b
   - **Completed:** RBAC integrated throughout app
 
 ### Step 12: Audit Trail Enhancements
-- [ ] **12.1 Add Approval History**
+- [x] **12.1 Add Approval History**
   - Show who approved/rejected each entry
   - Show approval timestamps and comments
 
-- [ ] **12.2 Add Change Log**
+- [x] **12.2 Add Change Log**
   - Track all changes to GL accounts
   - Track all journal entry modifications
 
-- [ ] **12.3 Add User Activity Log**
+- [x] **12.3 Add User Activity Log**
   - Track all user actions in accounting module
   - Filter by user, action type, date range
 
@@ -277,7 +277,7 @@ This document tracks the implementation progress of the Accounting Application b
 ## Phase 7: Polish & Optimization
 
 ### Step 13: Enhanced Dashboard
-- [ ] **13.1 Add Recent Activity Widget**
+- [x] **13.1 Add Recent Activity Widget**
   - Show last 10 journal entries
   - Show last 5 pending approvals
 

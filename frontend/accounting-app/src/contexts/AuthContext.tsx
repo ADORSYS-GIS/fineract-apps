@@ -3,13 +3,24 @@ import {
 	type PostAuthenticationResponse,
 } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import "../lib/api";
+import {
+	type AuthUser,
+	clearStoredUser,
+	getStoredUser,
+	storeUser,
+} from "../lib/auth";
 
-export type UserRole = "Admin" | "Accountant" | "Manager" | "Viewer";
+export type UserRole =
+	| "Admin"
+	| "Accountant"
+	| "Manager"
+	| "Viewer"
+	| "Supervisor Accountant";
 
 export interface AuthContextType {
-	user: PostAuthenticationResponse | null;
+	user: AuthUser | null;
 	isLoading: boolean;
 	isAuthenticated: boolean;
 	roles: UserRole[];
@@ -17,26 +28,80 @@ export interface AuthContextType {
 	hasRole: (role: UserRole) => boolean;
 	hasPermission: (permission: string) => boolean;
 	hasAnyRole: (roles: UserRole[]) => boolean;
+	login: (
+		authData: PostAuthenticationResponse,
+		tokenType?: "basic" | "bearer",
+	) => void;
+	logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-	const { data: user, isLoading } = useQuery<PostAuthenticationResponse>({
-		queryKey: ["authentication"],
+	const [user, setUser] = useState<AuthUser | null>(() => {
+		const storedUser = getStoredUser();
+		if (storedUser) return storedUser;
+		// Temporary mock user for development
+		const mockUser: AuthUser = {
+			username: "mock-accountant",
+			base64EncodedAuthenticationKey: "mock-key",
+			authenticated: true,
+			permissions: [],
+			roles: [{ id: 1, name: "cashier " }],
+			token: "mock-token",
+			tokenType: "bearer",
+		};
+		storeUser(mockUser);
+		return mockUser;
+	});
+
+	const { isLoading } = useQuery({
+		queryKey: ["dev-authentication"],
 		queryFn: async () => {
+			const username = import.meta.env.VITE_FINERACT_USERNAME || "mifos";
+			const password = import.meta.env.VITE_FINERACT_PASSWORD || "password";
 			const response =
 				await AuthenticationHttpBasicService.postV1Authentication({
-					requestBody: {
-						username: import.meta.env.VITE_FINERACT_USERNAME || "mifos",
-						password: import.meta.env.VITE_FINERACT_PASSWORD || "password",
-					},
+					requestBody: { username, password },
 				});
-			return response;
+
+			const token = btoa(`${username}:${password}`);
+			const authUser: AuthUser = { ...response, token, tokenType: "basic" };
+			storeUser(authUser);
+			setUser(authUser);
+			return authUser;
 		},
-		staleTime: Number.POSITIVE_INFINITY, // Cache indefinitely
+		staleTime: Number.POSITIVE_INFINITY,
 		retry: 1,
+		// Only run this query if there's no stored user (for local dev)
+		enabled: false,
 	});
+
+	const login = useCallback(
+		(
+			authData: PostAuthenticationResponse,
+			tokenType: "basic" | "bearer" = "bearer",
+		) => {
+			if (!authData.base64EncodedAuthenticationKey) {
+				console.error("Login failed: authentication key is missing.");
+				logout(); // Clear user state if login fails
+				return;
+			}
+			const authUser: AuthUser = {
+				...authData,
+				token: authData.base64EncodedAuthenticationKey,
+				tokenType,
+			};
+			storeUser(authUser);
+			setUser(authUser);
+		},
+		[],
+	);
+
+	const logout = useCallback(() => {
+		clearStoredUser();
+		setUser(null);
+	}, []);
 
 	const isAuthenticated = user?.authenticated ?? false;
 
@@ -50,7 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 	// Helper function to check if user has a specific role
 	const hasRole = (role: UserRole): boolean => {
-		return roles.includes(role);
+		const lowerCaseRole = role.toLowerCase();
+		return roles.some((r) => r.toLowerCase() === lowerCaseRole);
 	};
 
 	// Helper function to check if user has a specific permission
@@ -64,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	};
 
 	const value: AuthContextType = {
-		user: user || null,
+		user,
 		isLoading,
 		isAuthenticated,
 		roles,
@@ -72,6 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		hasRole,
 		hasPermission,
 		hasAnyRole,
+		login,
+		logout,
 	};
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

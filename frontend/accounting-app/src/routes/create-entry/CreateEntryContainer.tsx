@@ -6,8 +6,10 @@ export function CreateEntryContainer() {
 		formData,
 		debits,
 		credits,
+		glAccounts,
 		isBalanced,
 		isSubmitting,
+		currencyCode,
 		onFormChange,
 		onAddDebit,
 		onRemoveDebit,
@@ -16,6 +18,7 @@ export function CreateEntryContainer() {
 		onDebitChange,
 		onCreditChange,
 		onSubmit,
+		onCancel,
 	} = useCreateEntry();
 
 	return (
@@ -23,8 +26,10 @@ export function CreateEntryContainer() {
 			formData={formData}
 			debits={debits}
 			credits={credits}
+			glAccounts={glAccounts}
 			isBalanced={isBalanced}
 			isSubmitting={isSubmitting}
+			currencyCode={currencyCode}
 			onFormChange={onFormChange}
 			onAddDebit={onAddDebit}
 			onRemoveDebit={onRemoveDebit}
@@ -33,6 +38,7 @@ export function CreateEntryContainer() {
 			onDebitChange={onDebitChange}
 			onCreditChange={onCreditChange}
 			onSubmit={onSubmit}
+			onCancel={onCancel}
 		/>
 	);
 }

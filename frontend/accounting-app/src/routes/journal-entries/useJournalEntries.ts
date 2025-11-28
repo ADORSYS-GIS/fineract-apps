@@ -1,4 +1,7 @@
-import { JournalEntriesService } from "@fineract-apps/fineract-api";
+import {
+	BusinessDateManagementService,
+	JournalEntriesService,
+} from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -15,15 +18,15 @@ export interface JournalEntry {
 }
 
 export interface DateRange {
-	from: string;
-	to: string;
+	from: Date;
+	to: Date;
 }
 
 export function useJournalEntries() {
-	const today = new Date().toISOString().split("T")[0];
-	const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-		.toISOString()
-		.split("T")[0];
+	const today = new Date();
+	const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+	const [offset, setOffset] = useState(0);
+	const [totalRecords, setTotalRecords] = useState(0);
 
 	const [dateRange, setDateRange] = useState<DateRange>({
 		from: thirtyDaysAgo,
@@ -32,15 +35,38 @@ export function useJournalEntries() {
 	const [transactionType, setTransactionType] = useState("");
 
 	const { data: journalEntries = [], isLoading } = useQuery<JournalEntry[]>({
-		queryKey: ["journal-entries", dateRange],
+		queryKey: ["journal-entries", dateRange, offset],
 		queryFn: async () => {
-			const response = await JournalEntriesService.getV1Journalentries({
-				fromDate: dateRange.from,
-				toDate: dateRange.to,
+			await BusinessDateManagementService.postV1Businessdate({
+				requestBody: {
+					date: dateRange.from.toISOString().split("T")[0],
+					dateFormat: "yyyy-MM-dd",
+					locale: "en",
+					type: "BUSINESS_DATE",
+				},
+			});
+			await BusinessDateManagementService.postV1Businessdate({
+				requestBody: {
+					date: dateRange.to.toISOString().split("T")[0],
+					dateFormat: "yyyy-MM-dd",
+					locale: "en",
+					type: "BUSINESS_DATE",
+				},
 			});
 
+			const response = await JournalEntriesService.getV1Journalentries({
+				// @ts-ignore
+				fromDate: dateRange.from.toISOString().split("T")[0],
+				// @ts-ignore
+				toDate: dateRange.to.toISOString().split("T")[0],
+				locale: "en",
+				dateFormat: "yyyy-MM-dd",
+				limit: 10,
+				offset,
+			});
 			// Map the response to our JournalEntry interface
 			const entries = response as unknown as {
+				totalFilteredRecords?: number;
 				pageItems?: Array<{
 					id: number;
 					transactionId: string;
@@ -51,6 +77,7 @@ export function useJournalEntries() {
 					comments?: string;
 				}>;
 			};
+			setTotalRecords(entries.totalFilteredRecords || 0);
 
 			const items = entries.pageItems || [];
 
@@ -135,6 +162,10 @@ export function useJournalEntries() {
 		console.log("View details for entry:", entryId);
 	};
 
+	const handlePageChange = (page: number) => {
+		setOffset((page - 1) * 10);
+	};
+
 	return {
 		journalEntries: filteredEntries,
 		isLoading,
@@ -144,5 +175,8 @@ export function useJournalEntries() {
 		onFilterByType: setTransactionType,
 		onExportCSV: handleExportCSV,
 		onViewDetails: handleViewDetails,
+		onPageChange: handlePageChange,
+		currentPage: offset / 10 + 1,
+		totalPages: Math.ceil(totalRecords / 10),
 	};
 }

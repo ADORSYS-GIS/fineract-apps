@@ -1,29 +1,29 @@
 /** Angular Imports */
-import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot } from '@angular/router';
+import { Injectable } from "@angular/core";
+import { ActivatedRouteSnapshot } from "@angular/router";
 
 /** rxjs Imports */
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 /** Custom Services */
-import { ProductsService } from '../../products.service';
+import { ProductsService } from "../../products.service";
 
 /**
  * Share product and template data resolver.
  */
 @Injectable()
 export class ShareProductAndTemplateResolver {
-  /**
-   * @param {ProductsService} productsService Products service.
-   */
-  constructor(private productsService: ProductsService) {}
+	/**
+	 * @param {ProductsService} productsService Products service.
+	 */
+	constructor(private productsService: ProductsService) {}
 
-  /**
-   * Returns the share product and template data.
-   * @returns {Observable<any>}
-   */
-  resolve(route: ActivatedRouteSnapshot): Observable<any> {
-    const productId = route.parent.paramMap.get('productId');
-    return this.productsService.getShareProduct(productId, true);
-  }
+	/**
+	 * Returns the share product and template data.
+	 * @returns {Observable<any>}
+	 */
+	resolve(route: ActivatedRouteSnapshot): Observable<any> {
+		const productId = route.parent.paramMap.get("productId");
+		return this.productsService.getShareProduct(productId, true);
+	}
 }

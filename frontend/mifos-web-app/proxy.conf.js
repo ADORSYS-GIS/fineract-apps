@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpsProxyAgent } = require("https-proxy-agent");
 
 /*
  * API proxy configuration.
@@ -9,37 +9,39 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
  * For more details and options, see https://github.com/angular/angular-cli#proxy-to-backend
  */
 const proxyConfig = [
-  {
-    context: '/api',
-    pathRewrite: { '^/api': '' },
-    target: 'https://api.chucknorris.io',
-    changeOrigin: true,
-    secure: false
-  }
+	{
+		context: "/api",
+		pathRewrite: { "^/api": "" },
+		target: "https://api.chucknorris.io",
+		changeOrigin: true,
+		secure: false,
+	},
 ];
 
 /*
  * Configures a proxy agent for the API proxy if needed.
  */
 function setupForProxy(proxyConfig) {
-  if (!Array.isArray(proxyConfig)) {
-    proxyConfig = [proxyConfig];
-  }
+	if (!Array.isArray(proxyConfig)) {
+		proxyConfig = [proxyConfig];
+	}
 
-  const proxyServer = process.env.http_proxy || process.env.HTTP_PROXY;
-  let agent = null;
+	const proxyServer = process.env.http_proxy || process.env.HTTP_PROXY;
+	let agent = null;
 
-  if (proxyServer) {
-    console.log(`Using proxy server: ${proxyServer}`);
-    agent = new HttpsProxyAgent(proxyServer);
-    proxyConfig.forEach((entry) => {
-      entry.agent = agent;
-    });
-  } else {
-    console.warn('No proxy server configured. API requests will not be proxied.');
-  }
+	if (proxyServer) {
+		console.log(`Using proxy server: ${proxyServer}`);
+		agent = new HttpsProxyAgent(proxyServer);
+		proxyConfig.forEach((entry) => {
+			entry.agent = agent;
+		});
+	} else {
+		console.warn(
+			"No proxy server configured. API requests will not be proxied.",
+		);
+	}
 
-  return proxyConfig;
+	return proxyConfig;
 }
 
 module.exports = setupForProxy(proxyConfig);

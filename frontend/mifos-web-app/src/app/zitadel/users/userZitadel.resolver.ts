@@ -1,30 +1,30 @@
 /** Angular Imports */
-import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot } from '@angular/router';
+import { Injectable } from "@angular/core";
+import { ActivatedRouteSnapshot } from "@angular/router";
 
 /** rxjs Imports */
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 /** Custom Services */
-import { UsersServiceZitadel } from './usersZitadel.service';
+import { UsersServiceZitadel } from "./usersZitadel.service";
 
 /**
  * UsersZitadel data resolver.
  */
 @Injectable()
 export class UserZitadelResolver {
-  /**
-   * @param {UsersServiceZitadel} usersServiceZitadel Users service.
-   */
-  constructor(private usersServiceZitadel: UsersServiceZitadel) {}
+	/**
+	 * @param {UsersServiceZitadel} usersServiceZitadel Users service.
+	 */
+	constructor(private usersServiceZitadel: UsersServiceZitadel) {}
 
-  /**
-   * Returns the user data.
-   * @returns {Observable<any>}
-   */
+	/**
+	 * Returns the user data.
+	 * @returns {Observable<any>}
+	 */
 
-  resolve(route: ActivatedRouteSnapshot): Observable<any> {
-    const userId = route.paramMap.get('id');
-    return this.usersServiceZitadel.getUser(userId);
-  }
+	resolve(route: ActivatedRouteSnapshot): Observable<any> {
+		const userId = route.paramMap.get("id");
+		return this.usersServiceZitadel.getUser(userId);
+	}
 }

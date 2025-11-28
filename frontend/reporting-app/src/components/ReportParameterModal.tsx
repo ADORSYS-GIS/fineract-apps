@@ -38,8 +38,7 @@ export function ReportParameterModal({
 			const initialValues: ParameterFormValues = {};
 			reportDetails.reportParameters?.forEach((param: ReportParameter) => {
 				if (param.parameterDefaultValue) {
-					initialValues[param.parameterVariable] =
-						param.parameterDefaultValue;
+					initialValues[param.parameterVariable] = param.parameterDefaultValue;
 				}
 			});
 			setFormValues(initialValues);
@@ -64,13 +63,17 @@ export function ReportParameterModal({
 				!formValues[param.parameterVariable]
 			) {
 				missingFields.push(
-					param.parameterLabel || param.parameterName || param.parameterVariable,
+					param.parameterLabel ||
+						param.parameterName ||
+						param.parameterVariable,
 				);
 			}
 		});
 
 		if (missingFields.length > 0) {
-			toast.error(`Please fill in required fields: ${missingFields.join(", ")}`);
+			toast.error(
+				`Please fill in required fields: ${missingFields.join(", ")}`,
+			);
 			return;
 		}
 
@@ -110,7 +113,9 @@ export function ReportParameterModal({
 								This report has no parameters. Click Run to execute it.
 							</p>
 							<button
-								onClick={() => onSubmit({ locale: "en", dateFormat: "dd MMMM yyyy" })}
+								onClick={() =>
+									onSubmit({ locale: "en", dateFormat: "dd MMMM yyyy" })
+								}
 								className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
 								type="button"
 							>
@@ -120,65 +125,69 @@ export function ReportParameterModal({
 					) : (
 						<form onSubmit={handleSubmit}>
 							<div className="space-y-4">
-								{reportDetails.reportParameters.map((param: ReportParameter) => {
-									if (param.parameterDisplayType === "none") return null;
+								{reportDetails.reportParameters.map(
+									(param: ReportParameter) => {
+										if (param.parameterDisplayType === "none") return null;
 
-									return (
-										<div key={param.id}>
-											<label className="block text-sm font-medium mb-2">
-												{param.parameterLabel || param.parameterName}
-												<span className="text-red-500 ml-1">*</span>
-											</label>
+										return (
+											<div key={param.id}>
+												<label className="block text-sm font-medium mb-2">
+													{param.parameterLabel || param.parameterName}
+													<span className="text-red-500 ml-1">*</span>
+												</label>
 
-											{param.parameterDisplayType === "select" ? (
-												<select
-													className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-													value={formValues[param.parameterVariable] || ""}
-													onChange={(e) =>
-														handleInputChange(
-															param.parameterVariable,
-															e.target.value,
-														)
-													}
-													required
-												>
-													<option value="">Select {param.parameterLabel}</option>
-													{param.parameterData?.map((option) => (
-														<option key={option.id} value={option.id}>
-															{option.name}
+												{param.parameterDisplayType === "select" ? (
+													<select
+														className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+														value={formValues[param.parameterVariable] || ""}
+														onChange={(e) =>
+															handleInputChange(
+																param.parameterVariable,
+																e.target.value,
+															)
+														}
+														required
+													>
+														<option value="">
+															Select {param.parameterLabel}
 														</option>
-													))}
-												</select>
-											) : param.parameterDisplayType === "date" ? (
-												<input
-													type="date"
-													className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-													value={formValues[param.parameterVariable] || ""}
-													onChange={(e) =>
-														handleInputChange(
-															param.parameterVariable,
-															e.target.value,
-														)
-													}
-													required
-												/>
-											) : (
-												<input
-													type="text"
-													className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-													value={formValues[param.parameterVariable] || ""}
-													onChange={(e) =>
-														handleInputChange(
-															param.parameterVariable,
-															e.target.value,
-														)
-													}
-													required
-												/>
-											)}
-										</div>
-									);
-								})}
+														{param.parameterData?.map((option) => (
+															<option key={option.id} value={option.id}>
+																{option.name}
+															</option>
+														))}
+													</select>
+												) : param.parameterDisplayType === "date" ? (
+													<input
+														type="date"
+														className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+														value={formValues[param.parameterVariable] || ""}
+														onChange={(e) =>
+															handleInputChange(
+																param.parameterVariable,
+																e.target.value,
+															)
+														}
+														required
+													/>
+												) : (
+													<input
+														type="text"
+														className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+														value={formValues[param.parameterVariable] || ""}
+														onChange={(e) =>
+															handleInputChange(
+																param.parameterVariable,
+																e.target.value,
+															)
+														}
+														required
+													/>
+												)}
+											</div>
+										);
+									},
+								)}
 							</div>
 
 							<div className="flex gap-3 mt-6">

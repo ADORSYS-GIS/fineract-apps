@@ -1,27 +1,27 @@
 /** Angular Imports */
-import { Injectable } from '@angular/core';
+import { Injectable } from "@angular/core";
 
 /** rxjs Imports */
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 /** Custom Services */
-import { TasksService } from '../tasks.service';
+import { TasksService } from "../tasks.service";
 
 /**
  * Loans data resolver.
  */
 @Injectable()
 export class GetLoansToBeApproved {
-  /**
-   * @param {TasksService} tasksService Tasks service.
-   */
-  constructor(private tasksService: TasksService) {}
+	/**
+	 * @param {TasksService} tasksService Tasks service.
+	 */
+	constructor(private tasksService: TasksService) {}
 
-  /**
-   * Returns all the loans data.
-   * @returns {Observable<any>}
-   */
-  resolve(): Observable<any> {
-    return this.tasksService.getAllLoansToBeApproved();
-  }
+	/**
+	 * Returns all the loans data.
+	 * @returns {Observable<any>}
+	 */
+	resolve(): Observable<any> {
+		return this.tasksService.getAllLoansToBeApproved();
+	}
 }

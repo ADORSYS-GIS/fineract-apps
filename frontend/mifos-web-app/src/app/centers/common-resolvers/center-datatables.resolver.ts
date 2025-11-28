@@ -1,27 +1,27 @@
 /** Angular Imports */
-import { Injectable } from '@angular/core';
+import { Injectable } from "@angular/core";
 
 /** rxjs Imports */
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 /** Custom Services */
-import { CentersService } from '../centers.service';
+import { CentersService } from "../centers.service";
 
 /**
  * center datatables resolver.
  */
 @Injectable()
 export class CenterDatatablesResolver {
-  /**
-   * @param {centersService} centersService centers service.
-   */
-  constructor(private centersService: CentersService) {}
+	/**
+	 * @param {centersService} centersService centers service.
+	 */
+	constructor(private centersService: CentersService) {}
 
-  /**
-   * Returns the center datatables.
-   * @returns {Observable<any>}
-   */
-  resolve(): Observable<any> {
-    return this.centersService.getcenterDatatables();
-  }
+	/**
+	 * Returns the center datatables.
+	 * @returns {Observable<any>}
+	 */
+	resolve(): Observable<any> {
+		return this.centersService.getcenterDatatables();
+	}
 }

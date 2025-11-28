@@ -3,24 +3,144 @@ import {
 	ArrowLeft,
 	Building,
 	Calendar,
+	CheckCircle2,
 	FileText,
+	History,
 	RotateCcw,
 	User,
+	Users,
+	XCircle,
 } from "lucide-react";
-import type { JournalEntryDetail } from "./useJournalEntryDetail";
+import type {
+	ApprovalHistory,
+	ChangeLog,
+	JournalEntryDetail,
+	UserActivityLog,
+} from "./useJournalEntryDetail";
 
 interface JournalEntryDetailViewProps {
 	entry: JournalEntryDetail | null;
 	isLoading: boolean;
 	isReversing: boolean;
+	approvalHistory: ApprovalHistory[];
+	changeLog: ChangeLog[];
+	userActivityLog: UserActivityLog[];
 	onBack: () => void;
 	onReverse: () => void;
 }
+
+const ApprovalHistoryCard = ({ history }: { history: ApprovalHistory[] }) => {
+	if (history.length === 0) return null;
+
+	const getActionIcon = (action: string) => {
+		switch (action) {
+			case "CREATE":
+				return <FileText className="h-4 w-4 text-blue-500" />;
+			case "APPROVE":
+				return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+			case "REJECT":
+				return <XCircle className="h-4 w-4 text-red-500" />;
+			default:
+				return <FileText className="h-4 w-4 text-gray-500" />;
+		}
+	};
+
+	return (
+		<Card className="p-6">
+			<h2 className="text-lg font-semibold mb-4">Approval History</h2>
+			<div className="space-y-4">
+				{history.map((item) => (
+					<div key={item.id} className="flex items-start gap-4">
+						<div className="flex-shrink-0">
+							{getActionIcon(item.actionName)}
+						</div>
+						<div>
+							<p className="font-medium">
+								{item.actionName} by {item.maker}
+							</p>
+							<p className="text-sm text-gray-500">
+								{new Date(item.madeOnDate).toLocaleString("en-US", {
+									dateStyle: "medium",
+									timeStyle: "short",
+								})}
+							</p>
+						</div>
+					</div>
+				))}
+			</div>
+		</Card>
+	);
+};
+
+const ChangeLogCard = ({ log }: { log: ChangeLog[] }) => {
+	if (log.length === 0) return null;
+
+	return (
+		<Card className="p-6">
+			<h2 className="text-lg font-semibold mb-4">Change Log</h2>
+			<div className="space-y-4">
+				{log.map((item) => (
+					<div key={item.id} className="flex items-start gap-4">
+						<div className="flex-shrink-0">
+							<History className="h-4 w-4 text-gray-500" />
+						</div>
+						<div>
+							<p className="font-medium">
+								{item.actionName} by {item.maker}
+							</p>
+							<p className="text-sm text-gray-500">
+								{new Date(item.madeOnDate).toLocaleString("en-US", {
+									dateStyle: "medium",
+									timeStyle: "short",
+								})}
+							</p>
+							<p className="text-sm text-gray-500">{item.command}</p>
+						</div>
+					</div>
+				))}
+			</div>
+		</Card>
+	);
+};
+
+const UserActivityLogCard = ({ log }: { log: UserActivityLog[] }) => {
+	if (log.length === 0) return null;
+
+	return (
+		<Card className="p-6">
+			<h2 className="text-lg font-semibold mb-4">User Activity Log</h2>
+			<div className="space-y-4">
+				{log.map((item) => (
+					<div key={item.id} className="flex items-start gap-4">
+						<div className="flex-shrink-0">
+							<Users className="h-4 w-4 text-gray-500" />
+						</div>
+						<div>
+							<p className="font-medium">
+								{item.actionName} on {item.entityName} ({item.resourceId}) by{" "}
+								{item.maker}
+							</p>
+							<p className="text-sm text-gray-500">
+								{new Date(item.madeOnDate).toLocaleString("en-US", {
+									dateStyle: "medium",
+									timeStyle: "short",
+								})}
+							</p>
+						</div>
+					</div>
+				))}
+			</div>
+		</Card>
+	);
+};
 
 export function JournalEntryDetailView({
 	entry,
 	isLoading,
 	isReversing,
+	approvalHistory,
+	changeLog,
+	userActivityLog,
 	onBack,
 	onReverse,
 }: JournalEntryDetailViewProps) {
@@ -254,6 +374,15 @@ export function JournalEntryDetailView({
 						</div>
 					</div>
 				</Card>
+			</div>
+			<div className="mt-6">
+				<ApprovalHistoryCard history={approvalHistory} />
+			</div>
+			<div className="mt-6">
+				<ChangeLogCard log={changeLog} />
+			</div>
+			<div className="mt-6">
+				<UserActivityLogCard log={userActivityLog} />
 			</div>
 
 			{!isBalanced && (

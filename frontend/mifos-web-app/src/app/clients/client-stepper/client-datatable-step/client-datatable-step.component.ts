@@ -1,101 +1,112 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from "@angular/core";
 import {
-  UntypedFormBuilder,
-  UntypedFormControl,
-  UntypedFormGroup,
-  Validators,
-  ReactiveFormsModule
-} from '@angular/forms';
-import { Datatables } from 'app/core/utils/datatables';
-import { SettingsService } from 'app/settings/settings.service';
-import { MatCheckbox } from '@angular/material/checkbox';
-import { MatStepperPrevious, MatStepperNext } from '@angular/material/stepper';
-import { FaIconComponent } from '@fortawesome/angular-fontawesome';
-import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+	UntypedFormBuilder,
+	UntypedFormControl,
+	UntypedFormGroup,
+	Validators,
+	ReactiveFormsModule,
+} from "@angular/forms";
+import { Datatables } from "app/core/utils/datatables";
+import { SettingsService } from "app/settings/settings.service";
+import { MatCheckbox } from "@angular/material/checkbox";
+import { MatStepperPrevious, MatStepperNext } from "@angular/material/stepper";
+import { FaIconComponent } from "@fortawesome/angular-fontawesome";
+import { STANDALONE_SHARED_IMPORTS } from "app/standalone-shared.module";
 
 @Component({
-  selector: 'mifosx-client-datatable-step',
-  templateUrl: './client-datatable-step.component.html',
-  styleUrls: ['./client-datatable-step.component.scss'],
-  imports: [
-    ...STANDALONE_SHARED_IMPORTS,
-    MatCheckbox,
-    MatStepperPrevious,
-    FaIconComponent,
-    MatStepperNext
-  ]
+	selector: "mifosx-client-datatable-step",
+	templateUrl: "./client-datatable-step.component.html",
+	styleUrls: ["./client-datatable-step.component.scss"],
+	imports: [
+		...STANDALONE_SHARED_IMPORTS,
+		MatCheckbox,
+		MatStepperPrevious,
+		FaIconComponent,
+		MatStepperNext,
+	],
 })
 export class ClientDatatableStepComponent implements OnInit {
-  /** Input Fields Data */
-  @Input() datatableData: any;
-  /** Create Input Form */
-  datatableForm: UntypedFormGroup;
+	/** Input Fields Data */
+	@Input() datatableData: any;
+	/** Create Input Form */
+	datatableForm: UntypedFormGroup;
 
-  datatableInputs: any = [];
+	datatableInputs: any = [];
 
-  constructor(
-    private formBuilder: UntypedFormBuilder,
-    private settingsService: SettingsService,
-    private datatableService: Datatables
-  ) {}
+	constructor(
+		private formBuilder: UntypedFormBuilder,
+		private settingsService: SettingsService,
+		private datatableService: Datatables,
+	) {}
 
-  ngOnInit(): void {
-    this.datatableInputs = this.datatableService.filterSystemColumns(this.datatableData.columnHeaderData);
-    const inputItems: any = {};
-    this.datatableInputs.forEach((input: any) => {
-      input.controlName = this.getInputName(input);
-      if (!input.isColumnNullable) {
-        if (this.isNumeric(input.columnDisplayType)) {
-          inputItems[input.controlName] = new UntypedFormControl(0, [Validators.required]);
-        } else {
-          inputItems[input.controlName] = new UntypedFormControl('', [Validators.required]);
-        }
-      } else {
-        inputItems[input.controlName] = new UntypedFormControl('');
-      }
-    });
-    this.datatableForm = this.formBuilder.group(inputItems);
-  }
+	ngOnInit(): void {
+		this.datatableInputs = this.datatableService.filterSystemColumns(
+			this.datatableData.columnHeaderData,
+		);
+		const inputItems: any = {};
+		this.datatableInputs.forEach((input: any) => {
+			input.controlName = this.getInputName(input);
+			if (!input.isColumnNullable) {
+				if (this.isNumeric(input.columnDisplayType)) {
+					inputItems[input.controlName] = new UntypedFormControl(0, [
+						Validators.required,
+					]);
+				} else {
+					inputItems[input.controlName] = new UntypedFormControl("", [
+						Validators.required,
+					]);
+				}
+			} else {
+				inputItems[input.controlName] = new UntypedFormControl("");
+			}
+		});
+		this.datatableForm = this.formBuilder.group(inputItems);
+	}
 
-  getInputName(datatableInput: any): string {
-    return this.datatableService.getInputName(datatableInput);
-  }
+	getInputName(datatableInput: any): string {
+		return this.datatableService.getInputName(datatableInput);
+	}
 
-  isNumeric(columnType: string) {
-    return this.datatableService.isNumeric(columnType);
-  }
+	isNumeric(columnType: string) {
+		return this.datatableService.isNumeric(columnType);
+	}
 
-  isDate(columnType: string) {
-    return this.datatableService.isDate(columnType);
-  }
+	isDate(columnType: string) {
+		return this.datatableService.isDate(columnType);
+	}
 
-  isBoolean(columnType: string) {
-    return this.datatableService.isBoolean(columnType);
-  }
+	isBoolean(columnType: string) {
+		return this.datatableService.isBoolean(columnType);
+	}
 
-  isDropdown(columnType: string) {
-    return this.datatableService.isDropdown(columnType);
-  }
+	isDropdown(columnType: string) {
+		return this.datatableService.isDropdown(columnType);
+	}
 
-  isString(columnType: string) {
-    return this.datatableService.isString(columnType);
-  }
+	isString(columnType: string) {
+		return this.datatableService.isString(columnType);
+	}
 
-  isText(columnType: string) {
-    return this.datatableService.isText(columnType);
-  }
+	isText(columnType: string) {
+		return this.datatableService.isText(columnType);
+	}
 
-  get payload(): any {
-    const dateFormat = this.settingsService.dateFormat;
-    const datatableDataValues = this.datatableForm.value;
+	get payload(): any {
+		const dateFormat = this.settingsService.dateFormat;
+		const datatableDataValues = this.datatableForm.value;
 
-    const data = this.datatableService.buildPayload(this.datatableInputs, datatableDataValues, dateFormat, {
-      locale: this.settingsService.language.code
-    });
+		const data = this.datatableService.buildPayload(
+			this.datatableInputs,
+			datatableDataValues,
+			dateFormat,
+			{
+				locale: this.settingsService.language.code,
+			},
+		);
 
-    return {
-      registeredTableName: this.datatableData.registeredTableName,
-      data: data
-    };
-  }
+		return {
+			registeredTableName: this.datatableData.registeredTableName,
+			data: data,
+		};
+	}
 }

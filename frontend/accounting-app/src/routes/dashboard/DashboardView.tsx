@@ -7,6 +7,68 @@ interface DashboardViewProps {
 	isLoading: boolean;
 }
 
+const RecentJournalEntriesCard = ({
+	entries,
+}: {
+	entries: AccountingStats["recentJournalEntries"];
+}) => {
+	return (
+		<Card title="Recent Activity" className="p-6">
+			{entries && entries.length > 0 ? (
+				<div className="space-y-2">
+					{entries.map((entry) => (
+						<a
+							key={entry.id}
+							href={`/accounting/journal-entries/${entry.id}`}
+							className="block p-3 hover:bg-gray-50 rounded border"
+						>
+							<p className="font-medium">{entry.transactionId}</p>
+							<p className="text-sm text-gray-600">
+								{new Date(entry.transactionDate).toLocaleDateString()}
+							</p>
+						</a>
+					))}
+				</div>
+			) : (
+				<div className="text-center text-gray-500 py-8">
+					<FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+					<p>No recent journal entries</p>
+				</div>
+			)}
+		</Card>
+	);
+};
+
+const PendingApprovalsCard = ({
+	approvals,
+}: {
+	approvals: AccountingStats["pendingApprovalsList"];
+}) => {
+	return (
+		<Card title="Pending Approvals" className="p-6">
+			{approvals && approvals.length > 0 ? (
+				<div className="space-y-2">
+					{approvals.map((approval) => (
+						<a
+							key={approval.id}
+							href={`/accounting/approval-queue`}
+							className="block p-3 hover:bg-gray-50 rounded border"
+						>
+							<p className="font-medium">{approval.actionName}</p>
+							<p className="text-sm text-gray-600">{approval.entityName}</p>
+						</a>
+					))}
+				</div>
+			) : (
+				<div className="text-center text-gray-500 py-8">
+					<Lock className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+					<p>No pending approvals</p>
+				</div>
+			)}
+		</Card>
+	);
+};
+
 export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 	if (isLoading) {
 		return (
@@ -81,42 +143,8 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 			</div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<Card className="p-6">
-					<h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-					<div className="space-y-2">
-						<a
-							href="/accounting/gl-accounts"
-							className="block p-3 hover:bg-gray-50 rounded border"
-						>
-							<p className="font-medium">View GL Accounts</p>
-							<p className="text-sm text-gray-600">Browse chart of accounts</p>
-						</a>
-						<a
-							href="/accounting/journal-entries"
-							className="block p-3 hover:bg-gray-50 rounded border"
-						>
-							<p className="font-medium">View Journal Entries</p>
-							<p className="text-sm text-gray-600">
-								Browse all accounting entries
-							</p>
-						</a>
-						<a
-							href="/accounting/create-entry"
-							className="block p-3 hover:bg-gray-50 rounded border"
-						>
-							<p className="font-medium">Create Manual Entry</p>
-							<p className="text-sm text-gray-600">Record new transaction</p>
-						</a>
-					</div>
-				</Card>
-
-				<Card className="p-6">
-					<h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-					<div className="text-center text-gray-500 py-8">
-						<FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-						<p>Recent journal entries will appear here</p>
-					</div>
-				</Card>
+				<RecentJournalEntriesCard entries={stats?.recentJournalEntries || []} />
+				<PendingApprovalsCard approvals={stats?.pendingApprovalsList || []} />
 			</div>
 		</div>
 	);

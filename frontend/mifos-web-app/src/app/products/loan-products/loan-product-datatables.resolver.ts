@@ -1,22 +1,22 @@
-import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot } from '@angular/router';
-import { SystemService } from 'app/system/system.service';
-import { Observable } from 'rxjs';
+import { Injectable } from "@angular/core";
+import { ActivatedRouteSnapshot } from "@angular/router";
+import { SystemService } from "app/system/system.service";
+import { Observable } from "rxjs";
 
 @Injectable({
-  providedIn: 'root'
+	providedIn: "root",
 })
 export class LoanProductDatatablesResolver {
-  /**
-   * @param {SystemService} systemService Products service.
-   */
-  constructor(private systemService: SystemService) {}
+	/**
+	 * @param {SystemService} systemService Products service.
+	 */
+	constructor(private systemService: SystemService) {}
 
-  /**
-   * Returns the loan product data.
-   * @returns {Observable<any>}
-   */
-  resolve(route: ActivatedRouteSnapshot): Observable<any> {
-    return this.systemService.getEntityDatatables('m_product_loan');
-  }
+	/**
+	 * Returns the loan product data.
+	 * @returns {Observable<any>}
+	 */
+	resolve(route: ActivatedRouteSnapshot): Observable<any> {
+		return this.systemService.getEntityDatatables("m_product_loan");
+	}
 }

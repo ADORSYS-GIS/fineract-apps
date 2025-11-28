@@ -1,13 +1,16 @@
 import { Button, Card } from "@fineract-apps/ui";
 import { AlertCircle, Minus, Plus } from "lucide-react";
+import type { GLAccount } from "../gl-accounts/useGLAccounts";
 import type { EntryFormData, EntryLine } from "./useCreateEntry";
 
 interface CreateEntryViewProps {
 	formData: EntryFormData;
 	debits: EntryLine[];
 	credits: EntryLine[];
+	glAccounts: GLAccount[];
 	isBalanced: boolean;
 	isSubmitting: boolean;
+	currencyCode?: string;
 	onFormChange: (field: keyof EntryFormData, value: string) => void;
 	onAddDebit: () => void;
 	onRemoveDebit: (index: number) => void;
@@ -20,14 +23,17 @@ interface CreateEntryViewProps {
 		value: string,
 	) => void;
 	onSubmit: (e: React.FormEvent) => void;
+	onCancel: () => void;
 }
 
 export function CreateEntryView({
 	formData,
 	debits,
 	credits,
+	glAccounts,
 	isBalanced,
 	isSubmitting,
+	currencyCode,
 	onFormChange,
 	onAddDebit,
 	onRemoveDebit,
@@ -36,6 +42,7 @@ export function CreateEntryView({
 	onDebitChange,
 	onCreditChange,
 	onSubmit,
+	onCancel,
 }: CreateEntryViewProps) {
 	const totalDebits = debits.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 	const totalCredits = credits.reduce(
@@ -121,9 +128,11 @@ export function CreateEntryView({
 											className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 										>
 											<option value="">Select GL Account</option>
-											<option value="1">Cash - 1000</option>
-											<option value="2">Accounts Receivable - 1100</option>
-											<option value="3">Inventory - 1200</option>
+											{glAccounts.map((account) => (
+												<option key={account.id} value={account.id}>
+													{account.name} - {account.glCode}
+												</option>
+											))}
 										</select>
 									</div>
 									<div className="w-32">
@@ -161,7 +170,7 @@ export function CreateEntryView({
 							<div className="flex justify-between items-center">
 								<span className="font-medium">Total Debits:</span>
 								<span className="text-lg font-bold">
-									${totalDebits.toLocaleString()}
+									{totalDebits.toLocaleString()} {currencyCode}
 								</span>
 							</div>
 						</div>
@@ -193,9 +202,11 @@ export function CreateEntryView({
 											className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 										>
 											<option value="">Select GL Account</option>
-											<option value="10">Revenue - 4000</option>
-											<option value="11">Sales - 4100</option>
-											<option value="12">Interest Income - 4200</option>
+											{glAccounts.map((account) => (
+												<option key={account.id} value={account.id}>
+													{account.name} - {account.glCode}
+												</option>
+											))}
 										</select>
 									</div>
 									<div className="w-32">
@@ -233,7 +244,7 @@ export function CreateEntryView({
 							<div className="flex justify-between items-center">
 								<span className="font-medium">Total Credits:</span>
 								<span className="text-lg font-bold">
-									${totalCredits.toLocaleString()}
+									{totalCredits.toLocaleString()} {currencyCode}
 								</span>
 							</div>
 						</div>
@@ -249,8 +260,9 @@ export function CreateEntryView({
 							</p>
 						</div>
 						<p className="text-sm text-yellow-700 mt-1 ml-7">
-							Difference: $
-							{Math.abs(totalDebits - totalCredits).toLocaleString()}
+							Difference:{" "}
+							{Math.abs(totalDebits - totalCredits).toLocaleString()}{" "}
+							{currencyCode}
 						</p>
 					</Card>
 				)}
@@ -271,7 +283,7 @@ export function CreateEntryView({
 				)}
 
 				<div className="flex justify-end gap-4">
-					<Button type="button" variant="outline">
+					<Button type="button" variant="outline" onClick={onCancel}>
 						Cancel
 					</Button>
 					<Button

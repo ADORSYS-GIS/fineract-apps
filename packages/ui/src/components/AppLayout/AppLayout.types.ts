@@ -4,4 +4,5 @@ export interface AppLayoutProps {
 	children: ReactNode;
 	navbar?: ReactNode;
 	sidebar?: ReactNode;
+	isMenuOpen?: boolean;
 }

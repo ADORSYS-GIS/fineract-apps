@@ -1,23 +1,22 @@
 /** Angular Imports */
-import { NgModule } from '@angular/core';
-import { Routes, RouterModule } from '@angular/router';
+import { NgModule } from "@angular/core";
+import { Routes, RouterModule } from "@angular/router";
 
 /** Routing Imports */
-import { Route } from '../core/route/route.service';
+import { Route } from "../core/route/route.service";
 
 /** Custom Components */
-import { SettingsComponent } from './settings.component';
+import { SettingsComponent } from "./settings.component";
 
 /** Settings Routes */
 const routes: Routes = [
-  Route.withShell([
-    {
-      path: 'settings',
-      component: SettingsComponent,
-      data: { title: 'Settings', breadcrumb: 'Settings' }
-    }
-  ])
-
+	Route.withShell([
+		{
+			path: "settings",
+			component: SettingsComponent,
+			data: { title: "Settings", breadcrumb: "Settings" },
+		},
+	]),
 ];
 
 /**
@@ -26,8 +25,8 @@ const routes: Routes = [
  * Configures the settings and web app configuration routes.
  */
 @NgModule({
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule],
-  providers: []
+	imports: [RouterModule.forChild(routes)],
+	exports: [RouterModule],
+	providers: [],
 })
 export class SettingsRoutingModule {}

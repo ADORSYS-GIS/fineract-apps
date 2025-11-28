@@ -1,26 +1,26 @@
-import { Injectable } from '@angular/core';
+import { Injectable } from "@angular/core";
 
 @Injectable({
-  providedIn: 'root'
+	providedIn: "root",
 })
 export class Dialogs {
-  constructor() {}
+	constructor() {}
 
-  public setColor(dataType: string): string {
-    let color = 'primary';
-    switch (dataType) {
-      case 'Basic':
-        color = 'primary';
-        break;
-      case 'Mild':
-        color = 'primary';
-        break;
-      case 'Strong':
-        color = 'warn';
-        break;
-      default:
-        color = 'warn';
-    }
-    return color;
-  }
+	public setColor(dataType: string): string {
+		let color = "primary";
+		switch (dataType) {
+			case "Basic":
+				color = "primary";
+				break;
+			case "Mild":
+				color = "primary";
+				break;
+			case "Strong":
+				color = "warn";
+				break;
+			default:
+				color = "warn";
+		}
+		return color;
+	}
 }

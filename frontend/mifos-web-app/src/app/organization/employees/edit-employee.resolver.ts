@@ -1,29 +1,29 @@
 /** Angular Imports */
-import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot } from '@angular/router';
+import { Injectable } from "@angular/core";
+import { ActivatedRouteSnapshot } from "@angular/router";
 
 /** rxjs Imports */
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 /** Custom Services */
-import { OrganizationService } from '../organization.service';
+import { OrganizationService } from "../organization.service";
 
 /**
  * Employees data resolver.
  */
 @Injectable()
 export class EditEmployeeResolver {
-  /**
-   * @param {OrganizationService} organizationService Organization service.
-   */
-  constructor(private organizationService: OrganizationService) {}
+	/**
+	 * @param {OrganizationService} organizationService Organization service.
+	 */
+	constructor(private organizationService: OrganizationService) {}
 
-  /**
-   * Returns the employees data.
-   * @returns {Observable<any>}
-   */
-  resolve(route: ActivatedRouteSnapshot): Observable<any> {
-    const employeeId = route.paramMap.get('id');
-    return this.organizationService.getEmployee(employeeId);
-  }
+	/**
+	 * Returns the employees data.
+	 * @returns {Observable<any>}
+	 */
+	resolve(route: ActivatedRouteSnapshot): Observable<any> {
+		const employeeId = route.paramMap.get("id");
+		return this.organizationService.getEmployee(employeeId);
+	}
 }

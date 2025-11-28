@@ -1,27 +1,27 @@
 /** Angular Imports */
-import { Injectable } from '@angular/core';
+import { Injectable } from "@angular/core";
 
 /** rxjs Imports */
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 /** Custom Services */
-import { TemplatesService } from '../templates.service';
+import { TemplatesService } from "../templates.service";
 
 /**
  * Create Template data resolver.
  */
 @Injectable()
 export class CreateTemplateResolver {
-  /**
-   * @param {TemplatesService} templatesService Templates service.
-   */
-  constructor(private templatesService: TemplatesService) {}
+	/**
+	 * @param {TemplatesService} templatesService Templates service.
+	 */
+	constructor(private templatesService: TemplatesService) {}
 
-  /**
-   * Returns the template data.
-   * @returns {Observable<any>}
-   */
-  resolve(): Observable<any> {
-    return this.templatesService.getCreateTemplateData();
-  }
+	/**
+	 * Returns the template data.
+	 * @returns {Observable<any>}
+	 */
+	resolve(): Observable<any> {
+		return this.templatesService.getCreateTemplateData();
+	}
 }

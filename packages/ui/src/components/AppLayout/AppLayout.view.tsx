@@ -7,7 +7,7 @@ import { AppLayoutProps } from "./AppLayout.types";
 
 // Clean, single AppLayout implementation
 export const AppLayoutView = React.forwardRef<HTMLDivElement, AppLayoutProps>(
-	({ children, navbar, sidebar }, ref) => {
+	({ children, navbar, sidebar, isMenuOpen }, ref) => {
 		// Detect desktop vs mobile and keep sidebar open on desktop
 		const [isDesktop, setIsDesktop] = useState<boolean>(() =>
 			typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -18,6 +18,12 @@ export const AppLayoutView = React.forwardRef<HTMLDivElement, AppLayoutProps>(
 		const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(
 			() => isDesktop,
 		);
+
+		useEffect(() => {
+			if (isMenuOpen !== undefined) {
+				setIsSidebarOpen(isMenuOpen);
+			}
+		}, [isMenuOpen]);
 
 		useEffect(() => {
 			if (

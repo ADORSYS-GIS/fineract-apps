@@ -1,19 +1,22 @@
-import { Injectable } from '@angular/core';
-import { NestedTreeControl } from '@angular/cdk/tree';
+import { Injectable } from "@angular/core";
+import { NestedTreeControl } from "@angular/cdk/tree";
 
 @Injectable({
-  providedIn: 'root'
+	providedIn: "root",
 })
 export class TreeControlService {
-  constructor() {}
+	constructor() {}
 
-  toggleExpandCollapse(nestedTreeControl: NestedTreeControl<any>, isTreeExpanded: boolean) {
-    if (isTreeExpanded) {
-      nestedTreeControl.collapseAll();
-    } else {
-      nestedTreeControl.expandAll();
-    }
-    // Toggle the state
-    return !isTreeExpanded;
-  }
+	toggleExpandCollapse(
+		nestedTreeControl: NestedTreeControl<any>,
+		isTreeExpanded: boolean,
+	) {
+		if (isTreeExpanded) {
+			nestedTreeControl.collapseAll();
+		} else {
+			nestedTreeControl.expandAll();
+		}
+		// Toggle the state
+		return !isTreeExpanded;
+	}
 }

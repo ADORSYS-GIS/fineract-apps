@@ -1,111 +1,104 @@
 /** Angular Imports */
-import { Component, OnInit } from '@angular/core';
-import { OrganizationService } from 'app/organization/organization.service';
-import { UntypedFormGroup, UntypedFormBuilder, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { Component, OnInit } from "@angular/core";
+import { OrganizationService } from "app/organization/organization.service";
+import {
+	UntypedFormGroup,
+	UntypedFormBuilder,
+	FormControl,
+	Validators,
+	ReactiveFormsModule,
+} from "@angular/forms";
+import { Router, ActivatedRoute, RouterLink } from "@angular/router";
 
 /** Custom Services */
-import { ProductsService } from '../../products.service';
-import { SettingsService } from 'app/settings/settings.service';
-import { Dates } from 'app/core/utils/dates';
-import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { ProductsService } from "../../products.service";
+import { SettingsService } from "app/settings/settings.service";
+import { Dates } from "app/core/utils/dates";
+import { STANDALONE_SHARED_IMPORTS } from "app/standalone-shared.module";
 
 /**
  * Create Collateral component.
  */
 @Component({
-  selector: 'mifosx-create-collateral',
-  templateUrl: './create-collateral.component.html',
-  styleUrls: ['./create-collateral.component.scss'],
-  imports: [
-    ...STANDALONE_SHARED_IMPORTS
-  ]
+	selector: "mifosx-create-collateral",
+	templateUrl: "./create-collateral.component.html",
+	styleUrls: ["./create-collateral.component.scss"],
+	imports: [...STANDALONE_SHARED_IMPORTS],
 })
 export class CreateCollateralComponent implements OnInit {
-  /** Collateral form */
-  collateralForm: UntypedFormGroup;
-  /** Charges Template data */
-  collateralTemplateData: any;
+	/** Collateral form */
+	collateralForm: UntypedFormGroup;
+	/** Charges Template data */
+	collateralTemplateData: any;
 
-  /**
-   * Retrieves the collateral template data
-   * @param {FormBuilder} formBuilder Form Builder
-   * @param {ProductsService} productsService Products Service.
-   * @param {ActivatedRoute} route Activated Route.
-   * @param {Router} router Router for navigation.
-   * @param {SettingsService} settingsService Settings Service
-   */
-  constructor(
-    private formBuilder: UntypedFormBuilder,
-    private productsService: ProductsService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private settingsService: SettingsService,
-    private organizationService: OrganizationService
-  ) {
-    this.route.data.subscribe((data: { collateralTemplate: any }) => {
-      this.organizationService.getCurrencies().subscribe((orgCurrencies: any) => {
-        let orgCurrencyList = Array.isArray(orgCurrencies.selectedCurrencyOptions)
-          ? orgCurrencies.selectedCurrencyOptions
-          : [];
-        this.collateralTemplateData = data.collateralTemplate.filter((currency: any) =>
-          orgCurrencyList.some((orgCurrency: any) => orgCurrency.code === currency.code)
-        );
-      });
-    });
-  }
+	/**
+	 * Retrieves the collateral template data
+	 * @param {FormBuilder} formBuilder Form Builder
+	 * @param {ProductsService} productsService Products Service.
+	 * @param {ActivatedRoute} route Activated Route.
+	 * @param {Router} router Router for navigation.
+	 * @param {SettingsService} settingsService Settings Service
+	 */
+	constructor(
+		private formBuilder: UntypedFormBuilder,
+		private productsService: ProductsService,
+		private route: ActivatedRoute,
+		private router: Router,
+		private settingsService: SettingsService,
+		private organizationService: OrganizationService,
+	) {
+		this.route.data.subscribe((data: { collateralTemplate: any }) => {
+			this.organizationService
+				.getCurrencies()
+				.subscribe((orgCurrencies: any) => {
+					let orgCurrencyList = Array.isArray(
+						orgCurrencies.selectedCurrencyOptions,
+					)
+						? orgCurrencies.selectedCurrencyOptions
+						: [];
+					this.collateralTemplateData = data.collateralTemplate.filter(
+						(currency: any) =>
+							orgCurrencyList.some(
+								(orgCurrency: any) => orgCurrency.code === currency.code,
+							),
+					);
+				});
+		});
+	}
 
-  /**
-   * Create and sets Collateral Form
-   */
-  ngOnInit(): void {
-    this.createCollateralForm();
-  }
+	/**
+	 * Create and sets Collateral Form
+	 */
+	ngOnInit(): void {
+		this.createCollateralForm();
+	}
 
-  /**
-   * Create the Collateral Form
-   */
-  createCollateralForm() {
-    this.collateralForm = this.formBuilder.group({
-      name: [
-        '',
-        Validators.required
-      ],
-      unitType: [
-        '',
-        Validators.required
-      ],
-      basePrice: [
-        '',
-        Validators.required
-      ],
-      pctToBase: [
-        '',
-        Validators.required
-      ],
-      currency: [
-        '',
-        Validators.required
-      ],
-      quality: [
-        '',
-        Validators.required
-      ]
-    });
-  }
+	/**
+	 * Create the Collateral Form
+	 */
+	createCollateralForm() {
+		this.collateralForm = this.formBuilder.group({
+			name: ["", Validators.required],
+			unitType: ["", Validators.required],
+			basePrice: ["", Validators.required],
+			pctToBase: ["", Validators.required],
+			currency: ["", Validators.required],
+			quality: ["", Validators.required],
+		});
+	}
 
-  /**
-   * Submit a new collateral Product form
-   */
-  submit() {
-    const collateralFormData = this.collateralForm.value;
-    const locale = this.settingsService.language.code;
-    const data = {
-      ...collateralFormData,
-      locale
-    };
-    this.productsService.createCollateral(data).subscribe((response: any) => {
-      this.router.navigate(['../'], { relativeTo: this.route });
-    });
-  }
+	/**
+	 * Submit a new collateral Product form
+	 */
+	submit() {
+		const collateralFormData = this.collateralForm.value;
+		const locale = this.settingsService.language.code;
+		const data = {
+			...collateralFormData,
+			locale,
+		};
+		this.productsService.createCollateral(data).subscribe((response: any) => {
+			this.router.navigate(["../"], { relativeTo: this.route });
+		});
+	}
 }

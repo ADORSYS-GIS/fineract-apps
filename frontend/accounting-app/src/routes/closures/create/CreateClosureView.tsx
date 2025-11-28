@@ -11,6 +11,12 @@ interface CreateClosureViewProps {
 	onCancel: () => void;
 }
 
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/closures/create/CreateClosureView")({
+	component: CreateClosureView,
+});
+
 export function CreateClosureView({
 	formData,
 	errors,

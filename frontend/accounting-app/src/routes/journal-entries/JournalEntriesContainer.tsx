@@ -11,6 +11,9 @@ export function JournalEntriesContainer() {
 		onFilterByType,
 		onExportCSV,
 		onViewDetails,
+		currentPage,
+		totalPages,
+		onPageChange,
 	} = useJournalEntries();
 
 	return (
@@ -23,6 +26,9 @@ export function JournalEntriesContainer() {
 			onFilterByType={onFilterByType}
 			onExportCSV={onExportCSV}
 			onViewDetails={onViewDetails}
+			currentPage={currentPage}
+			totalPages={totalPages}
+			onPageChange={onPageChange}
 		/>
 	);
 }

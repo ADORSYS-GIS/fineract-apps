@@ -25,6 +25,13 @@ export default mergeConfig(
 		},
 		server: {
 			port: 5006,
+			proxy: {
+				"/fineract-provider/api": {
+					target: "https://demo.fineract.dev",
+					changeOrigin: true,
+					secure: false,
+				},
+			},
 		},
 	}),
 );

@@ -168,6 +168,9 @@ importers:
       formik:
         specifier: ^2.4.6
         version: 2.4.9(@types/react@19.2.2)(react@19.2.0)
+      jwt-decode:
+        specifier: ^4.0.0
+        version: 4.0.0
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.0)

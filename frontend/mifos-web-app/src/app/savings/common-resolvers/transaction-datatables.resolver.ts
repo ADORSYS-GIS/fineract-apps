@@ -1,26 +1,26 @@
 // Angular Imports
-import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot } from '@angular/router';
+import { Injectable } from "@angular/core";
+import { ActivatedRouteSnapshot } from "@angular/router";
 
 // rxjs Imports
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 // Custom Service
-import { SavingsService } from '../savings.service';
+import { SavingsService } from "../savings.service";
 
 @Injectable()
 export class TransactionDatatablesResolver {
-  /**
-   *
-   * @param savingsService Savings Service
-   */
-  constructor(private savingsService: SavingsService) {}
-  /**
-   *
-   * @param route
-   * @returns {Observable<any>}
-   */
-  resolve(route: ActivatedRouteSnapshot): Observable<any> {
-    return this.savingsService.getSavingsTransactionDatatables();
-  }
+	/**
+	 *
+	 * @param savingsService Savings Service
+	 */
+	constructor(private savingsService: SavingsService) {}
+	/**
+	 *
+	 * @param route
+	 * @returns {Observable<any>}
+	 */
+	resolve(route: ActivatedRouteSnapshot): Observable<any> {
+		return this.savingsService.getSavingsTransactionDatatables();
+	}
 }

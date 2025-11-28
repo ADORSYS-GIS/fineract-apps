@@ -1,27 +1,27 @@
-import { FormfieldBase } from './formfield-base';
+import { FormfieldBase } from "./formfield-base";
 
 interface SelectOption {
-  label: string;
-  value: string;
-  data: {}[];
+	label: string;
+	value: string;
+	data: {}[];
 }
 
 interface SelectBaseOptions {
-  options?: SelectOption;
-  controlType?: string;
-  controlName?: string;
-  label?: string;
-  value?: any;
-  required?: boolean;
-  order?: number;
+	options?: SelectOption;
+	controlType?: string;
+	controlName?: string;
+	label?: string;
+	value?: any;
+	required?: boolean;
+	order?: number;
 }
 
 export class SelectBase extends FormfieldBase {
-  controlType = 'select';
-  options: SelectOption;
+	controlType = "select";
+	options: SelectOption;
 
-  constructor(options: SelectBaseOptions = {}) {
-    super(options);
-    this.options = options.options || { label: '', value: '', data: [] };
-  }
+	constructor(options: SelectBaseOptions = {}) {
+		super(options);
+		this.options = options.options || { label: "", value: "", data: [] };
+	}
 }

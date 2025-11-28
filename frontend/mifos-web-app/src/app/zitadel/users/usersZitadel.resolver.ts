@@ -1,11 +1,11 @@
 /** Angular Imports */
-import { Injectable } from '@angular/core';
+import { Injectable } from "@angular/core";
 
 /** rxjs Imports */
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 /** Custom Services */
-import { UsersServiceZitadel } from './usersZitadel.service';
+import { UsersServiceZitadel } from "./usersZitadel.service";
 
 /**
  * UsersZitadel data resolver.
@@ -13,17 +13,17 @@ import { UsersServiceZitadel } from './usersZitadel.service';
 
 @Injectable()
 export class UsersZitadelResolver {
-  /**
-   * @param {UsersServiceZitadel} usersServiceZitadel Users service.
-   */
-  constructor(private usersServiceZitadel: UsersServiceZitadel) {}
+	/**
+	 * @param {UsersServiceZitadel} usersServiceZitadel Users service.
+	 */
+	constructor(private usersServiceZitadel: UsersServiceZitadel) {}
 
-  /**
-   * Returns the users data.
-   * @returns {Observable<any>}
-   */
+	/**
+	 * Returns the users data.
+	 * @returns {Observable<any>}
+	 */
 
-  resolve(): Observable<any> {
-    return this.usersServiceZitadel.getUsers();
-  }
+	resolve(): Observable<any> {
+		return this.usersServiceZitadel.getUsers();
+	}
 }

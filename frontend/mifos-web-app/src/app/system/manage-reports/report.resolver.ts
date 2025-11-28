@@ -1,29 +1,29 @@
 /** Angular Imports */
-import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot } from '@angular/router';
+import { Injectable } from "@angular/core";
+import { ActivatedRouteSnapshot } from "@angular/router";
 
 /** rxjs Imports */
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 /** Custom Services */
-import { SystemService } from '../system.service';
+import { SystemService } from "../system.service";
 
 /**
  * Report data resolver.
  */
 @Injectable()
 export class ReportResolver {
-  /**
-   * @param {SystemService} systemService System service.
-   */
-  constructor(private systemService: SystemService) {}
+	/**
+	 * @param {SystemService} systemService System service.
+	 */
+	constructor(private systemService: SystemService) {}
 
-  /**
-   * Returns the Report data.
-   * @returns {Observable<any>}
-   */
-  resolve(route: ActivatedRouteSnapshot): Observable<any> {
-    const reportId = route.paramMap.get('id');
-    return this.systemService.getReport(reportId);
-  }
+	/**
+	 * Returns the Report data.
+	 * @returns {Observable<any>}
+	 */
+	resolve(route: ActivatedRouteSnapshot): Observable<any> {
+		const reportId = route.paramMap.get("id");
+		return this.systemService.getReport(reportId);
+	}
 }

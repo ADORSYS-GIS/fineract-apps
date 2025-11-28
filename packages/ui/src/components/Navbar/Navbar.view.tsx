@@ -7,7 +7,7 @@ import { LanguageSwitcher } from "../LanguageSwitcher";
 import { NavbarProps } from "./Navbar.types";
 import { navbarVariant } from "./Navbar.variant";
 
-const MobileMenuButton = ({
+export const MobileMenuButton = ({
 	isOpen,
 	onClick,
 }: {

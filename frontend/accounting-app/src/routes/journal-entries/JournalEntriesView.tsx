@@ -1,4 +1,4 @@
-import { Button, Card } from "@fineract-apps/ui";
+import { Button, Card, Pagination } from "@fineract-apps/ui";
 import { Download, Eye } from "lucide-react";
 import type { DateRange, JournalEntry } from "./useJournalEntries";
 
@@ -11,6 +11,9 @@ interface JournalEntriesViewProps {
 	onFilterByType: (type: string) => void;
 	onExportCSV: () => void;
 	onViewDetails: (entryId: number) => void;
+	currentPage: number;
+	totalPages: number;
+	onPageChange: (page: number) => void;
 }
 
 export function JournalEntriesView({
@@ -22,6 +25,9 @@ export function JournalEntriesView({
 	onFilterByType,
 	onExportCSV,
 	onViewDetails,
+	currentPage,
+	totalPages,
+	onPageChange,
 }: JournalEntriesViewProps) {
 	return (
 		<div className="p-6">
@@ -41,9 +47,12 @@ export function JournalEntriesView({
 						</label>
 						<input
 							type="date"
-							value={dateRange.from}
+							value={dateRange.from.toISOString().split("T")[0]}
 							onChange={(e) =>
-								onDateRangeChange({ ...dateRange, from: e.target.value })
+								onDateRangeChange({
+									...dateRange,
+									from: new Date(e.target.value),
+								})
 							}
 							className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
@@ -54,9 +63,12 @@ export function JournalEntriesView({
 						</label>
 						<input
 							type="date"
-							value={dateRange.to}
+							value={dateRange.to.toISOString().split("T")[0]}
 							onChange={(e) =>
-								onDateRangeChange({ ...dateRange, to: e.target.value })
+								onDateRangeChange({
+									...dateRange,
+									to: new Date(e.target.value),
+								})
 							}
 							className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
@@ -152,6 +164,15 @@ export function JournalEntriesView({
 							</tbody>
 						</table>
 					</div>
+					{totalPages > 1 && (
+						<div className="p-4">
+							<Pagination
+								currentPage={currentPage}
+								totalPages={totalPages}
+								onPageChange={onPageChange}
+							/>
+						</div>
+					)}
 				</Card>
 			)}
 		</div>

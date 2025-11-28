@@ -1,8 +1,13 @@
-import { JournalEntriesService } from "@fineract-apps/fineract-api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+	GeneralLedgerAccountService,
+	JournalEntriesService,
+} from "@fineract-apps/fineract-api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useCurrency } from "../../hooks/useCurrency";
+import type { GLAccount } from "../gl-accounts/useGLAccounts";
 import "../../lib/api";
 
 export interface EntryLine {
@@ -20,6 +25,7 @@ export function useCreateEntry() {
 	const today = new Date().toISOString().split("T")[0];
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const { currencyCode } = useCurrency();
 
 	const [formData, setFormData] = useState<EntryFormData>({
 		transactionDate: today,
@@ -35,6 +41,18 @@ export function useCreateEntry() {
 		{ glAccountId: "", amount: "" },
 	]);
 
+	const { data: glAccounts = [] } = useQuery<GLAccount[]>({
+		queryKey: ["gl-accounts"],
+		queryFn: async () => {
+			const response = await GeneralLedgerAccountService.getV1Glaccounts({
+				manualEntriesAllowed: true,
+				usage: 1, // DETAIL accounts
+				disabled: false,
+			});
+			return response as unknown as GLAccount[];
+		},
+	});
+
 	const totalDebits = debits.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 	const totalCredits = credits.reduce(
 		(sum, c) => sum + Number(c.amount || 0),
@@ -48,6 +66,7 @@ export function useCreateEntry() {
 			transactionDate: string;
 			referenceNumber?: string;
 			comments?: string;
+			currencyCode?: string;
 			credits: Array<{ glAccountId: number; amount: number }>;
 			debits: Array<{ glAccountId: number; amount: number }>;
 		}) => {
@@ -60,13 +79,14 @@ export function useCreateEntry() {
 				transactionDate: formattedDate,
 				referenceNumber: entryData.referenceNumber,
 				comments: entryData.comments,
+				currencyCode: entryData.currencyCode,
 				credits: entryData.credits,
 				debits: entryData.debits,
 				locale: "en",
 				dateFormat: "dd MM yyyy",
 			};
 
-			const response = await JournalEntriesService.postV1Journalentries1({
+			const response = await JournalEntriesService.postV1Journalentries({
 				requestBody,
 			});
 
@@ -93,10 +113,7 @@ export function useCreateEntry() {
 			setDebits([{ glAccountId: "", amount: "" }]);
 			setCredits([{ glAccountId: "", amount: "" }]);
 
-			// Navigate to approval queue after a short delay
-			setTimeout(() => {
-				navigate({ to: "/approval-queue" });
-			}, 1500);
+			// navigate({ to: "/journal-entries" });
 		},
 		onError: (error: Error) => {
 			toast.error(`Failed to create journal entry: ${error.message}`);
@@ -156,6 +173,7 @@ export function useCreateEntry() {
 			transactionDate: formData.transactionDate,
 			referenceNumber: formData.referenceNumber,
 			comments: formData.comments,
+			currencyCode,
 			debits: debits.map((d) => ({
 				glAccountId: Number(d.glAccountId),
 				amount: Number(d.amount),
@@ -169,10 +187,15 @@ export function useCreateEntry() {
 		createEntryMutation.mutate(entryData);
 	};
 
+	const handleCancel = () => {
+		navigate({ to: "/journal-entries" });
+	};
+
 	return {
 		formData,
 		debits,
 		credits,
+		glAccounts,
 		isBalanced,
 		isSubmitting: createEntryMutation.isPending,
 		onFormChange: handleFormChange,
@@ -183,5 +206,7 @@ export function useCreateEntry() {
 		onDebitChange: handleDebitChange,
 		onCreditChange: handleCreditChange,
 		onSubmit: handleSubmit,
+		onCancel: handleCancel,
+		currencyCode,
 	};
 }

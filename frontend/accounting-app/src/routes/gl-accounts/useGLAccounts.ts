@@ -14,6 +14,13 @@ export interface GLAccount {
 	balance?: number;
 	disabled?: boolean;
 }
+export enum GLAccountType {
+	ASSET = 1,
+	LIABILITY = 2,
+	EQUITY = 3,
+	INCOME = 4,
+	EXPENSE = 5,
+}
 
 export function useGLAccounts() {
 	const navigate = useNavigate();
@@ -22,10 +29,15 @@ export function useGLAccounts() {
 	const [accountType, setAccountType] = useState("");
 
 	const { data: glAccounts = [], isLoading } = useQuery<GLAccount[]>({
-		queryKey: ["gl-accounts"],
+		queryKey: ["gl-accounts", accountType],
 		queryFn: async () => {
-			const response = await GeneralLedgerAccountService.getV1GlAccounts({
+			const type =
+				accountType && accountType in GLAccountType
+					? GLAccountType[accountType as keyof typeof GLAccountType]
+					: undefined;
+			const response = await GeneralLedgerAccountService.getV1Glaccounts({
 				disabled: false,
+				type,
 			});
 
 			// Map the response to our GLAccount interface
@@ -61,9 +73,7 @@ export function useGLAccounts() {
 			account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 			account.glCode.toLowerCase().includes(searchTerm.toLowerCase());
 
-		const matchesType = accountType === "" || account.type === accountType;
-
-		return matchesSearch && matchesType;
+		return matchesSearch;
 	});
 
 	const handleExportCSV = () => {

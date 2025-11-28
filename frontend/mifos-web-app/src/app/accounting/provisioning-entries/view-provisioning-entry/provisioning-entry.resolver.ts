@@ -1,29 +1,29 @@
 /** Angular Imports */
-import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot } from '@angular/router';
+import { Injectable } from "@angular/core";
+import { ActivatedRouteSnapshot } from "@angular/router";
 
 /** rxjs Imports */
-import { Observable } from 'rxjs';
+import { Observable } from "rxjs";
 
 /** Custom Services */
-import { AccountingService } from '../../accounting.service';
+import { AccountingService } from "../../accounting.service";
 
 /**
  * Provisioning entry data resolver.
  */
 @Injectable()
 export class ProvisioningEntryResolver {
-  /**
-   * @param {AccountingService} accountingService Accounting service.
-   */
-  constructor(private accountingService: AccountingService) {}
+	/**
+	 * @param {AccountingService} accountingService Accounting service.
+	 */
+	constructor(private accountingService: AccountingService) {}
 
-  /**
-   * Returns the provisioning entry data.
-   * @returns {Observable<any>}
-   */
-  resolve(route: ActivatedRouteSnapshot): Observable<any> {
-    const provisioningEntryId = route.paramMap.get('id');
-    return this.accountingService.getProvisioningEntry(provisioningEntryId);
-  }
+	/**
+	 * Returns the provisioning entry data.
+	 * @returns {Observable<any>}
+	 */
+	resolve(route: ActivatedRouteSnapshot): Observable<any> {
+		const provisioningEntryId = route.paramMap.get("id");
+		return this.accountingService.getProvisioningEntry(provisioningEntryId);
+	}
 }

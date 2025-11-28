@@ -6,15 +6,25 @@ import { OpenAPI } from "@fineract-apps/fineract-api";
  */
 const FINERACT_API_URL =
 	import.meta.env.VITE_FINERACT_API_URL || "/fineract-provider/api";
-const FINERACT_USERNAME = import.meta.env.VITE_FINERACT_USERNAME || "mifos";
-const FINERACT_PASSWORD = import.meta.env.VITE_FINERACT_PASSWORD || "password";
 const FINERACT_TENANT_ID = import.meta.env.VITE_FINERACT_TENANT_ID || "default";
+import { getStoredUser } from "./auth";
 
 OpenAPI.BASE = FINERACT_API_URL;
-OpenAPI.USERNAME = FINERACT_USERNAME;
-OpenAPI.PASSWORD = FINERACT_PASSWORD;
-OpenAPI.HEADERS = {
-	"Fineract-Platform-TenantId": FINERACT_TENANT_ID,
+OpenAPI.HEADERS = async () => {
+	const user = getStoredUser();
+	const headers: Record<string, string> = {
+		"Fineract-Platform-TenantId": FINERACT_TENANT_ID,
+	};
+
+	if (user) {
+		const token =
+			user.tokenType === "basic"
+				? `Basic ${user.token}`
+				: `Bearer ${user.token}`;
+		headers.Authorization = token;
+	}
+
+	return headers;
 };
 
 export { OpenAPI };

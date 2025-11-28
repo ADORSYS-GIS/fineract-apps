@@ -1,4 +1,8 @@
-import { JournalEntriesService } from "@fineract-apps/fineract-api";
+import {
+	AuditsService,
+	JournalEntriesService,
+	MakerCheckerOr4EyeFunctionalityService,
+} from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import toast from "react-hot-toast";
@@ -27,6 +31,64 @@ export interface JournalEntryDetail {
 	}>;
 }
 
+export interface ApprovalHistory {
+	id: number;
+	actionName: string;
+	maker: string;
+	madeOnDate: string;
+}
+
+export interface ChangeLog {
+	id: number;
+	actionName: string;
+	maker: string;
+	madeOnDate: string;
+	command: string;
+}
+
+export interface UserActivityLog {
+	id: number;
+	actionName: string;
+	entityName: string;
+	resourceId: number;
+	maker: string;
+	madeOnDate: string;
+}
+
+// Helper function to transform API response to local JournalEntryDetail type
+// biome-ignore lint/suspicious/noExplicitAny: The auto-generated Fineract API client types are incomplete
+const transformJournalEntry = (apiEntry: any): JournalEntryDetail => {
+	// The API's CreditDebit type might be incomplete in the generated client.
+	// We assume glAccountName and glAccountCode are present in the response.
+	const mapCreditDebit = (
+		// biome-ignore lint/suspicious/noExplicitAny: The auto-generated Fineract API client types are incomplete
+		item: any,
+	): {
+		glAccountId: number;
+		glAccountName: string;
+		glAccountCode: string;
+		amount: number;
+	} => ({
+		glAccountId: item.glAccountId,
+		glAccountName: item.glAccountName,
+		glAccountCode: item.glAccountCode,
+		amount: item.amount,
+	});
+
+	return {
+		id: apiEntry.id || 0,
+		transactionId: apiEntry.transactionId || "",
+		transactionDate: apiEntry.transactionDate || "",
+		officeName: apiEntry.officeName || "",
+		comments: apiEntry.comments,
+		createdBy: apiEntry.submittedByUsername || "N/A",
+		createdDate: apiEntry.submittedOnDate || "",
+		debits: apiEntry.transactionDetails?.debits?.map(mapCreditDebit) || [],
+		credits: apiEntry.transactionDetails?.credits?.map(mapCreditDebit) || [],
+		referenceNumber: apiEntry.transactionDetails?.referenceNumber,
+	};
+};
+
 export function useJournalEntryDetail() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
@@ -35,37 +97,107 @@ export function useJournalEntryDetail() {
 	const { data: entry, isLoading } = useQuery<JournalEntryDetail | null>({
 		queryKey: ["journal-entry-detail", entryId],
 		queryFn: async () => {
-			// For now, return mock data since the API endpoint might not support individual entry fetch
-			// In production, you would call: JournalEntriesService.getV1JournalentriesById({ id: entryId })
+			if (!entryId) return null;
+			try {
+				const journalEntryData =
+					await JournalEntriesService.getV1JournalentriesByJournalEntryId({
+						journalEntryId: Number(entryId),
+						transactionDetails: true,
+					});
 
-			// Mock data for development
-			return {
-				id: Number(entryId),
-				transactionId: `JE-${entryId}`,
-				transactionDate: new Date().toISOString(),
-				officeName: "Head Office",
-				referenceNumber: "REF-001",
-				comments: "Monthly journal entry",
-				createdBy: "admin",
-				createdDate: new Date().toISOString(),
-				debits: [
-					{
-						glAccountId: 1,
-						glAccountName: "Cash",
-						glAccountCode: "1000",
-						amount: 5000,
-					},
-				],
-				credits: [
-					{
-						glAccountId: 10,
-						glAccountName: "Revenue",
-						glAccountCode: "4000",
-						amount: 5000,
-					},
-				],
-			};
+				if (!journalEntryData) return null;
+
+				// biome-ignore lint/suspicious/noExplicitAny: The auto-generated Fineract API client types are incomplete
+				return transformJournalEntry(journalEntryData as any);
+			} catch (error) {
+				console.error("Failed to fetch journal entry:", error);
+				toast.error("Failed to fetch journal entry details.");
+				return null;
+			}
 		},
+	});
+
+	const { data: approvalHistory } = useQuery<ApprovalHistory[]>({
+		queryKey: ["journal-entry-approval-history", entryId],
+		queryFn: async () => {
+			if (!entry) return [];
+			const history =
+				await MakerCheckerOr4EyeFunctionalityService.getV1Makercheckers({
+					loanid: Number(entry.id),
+				});
+			// The API returns all history, so we map it to our simpler type
+			return (
+				history.map(
+					// biome-ignore lint/suspicious/noExplicitAny: The auto-generated Fineract API client types are incomplete
+					(item: any) =>
+						({
+							id: item.id,
+							actionName: item.actionName,
+							maker: item.maker,
+							madeOnDate: item.madeOnDate,
+						}) as ApprovalHistory,
+				) || []
+			);
+		},
+		enabled: !!entry, // Only run this query after the main entry is fetched
+	});
+
+	const { data: changeLog } = useQuery<ChangeLog[]>({
+		queryKey: ["journal-entry-change-log", entryId],
+		queryFn: async () => {
+			if (!entry) return [];
+			// This is a placeholder for the actual API call
+			// You would replace this with the correct AuditsService method
+			const log = await AuditsService.getV1Audits({
+				resourceId: entry.id,
+			});
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			const parsedLog = JSON.parse(log as any);
+			return (
+				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+				parsedLog.pageItems?.map(
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+					(item: any) =>
+						({
+							id: item.id,
+							actionName: item.actionName,
+							maker: item.maker,
+							madeOnDate: item.madeOnDate,
+							command: item.command,
+						}) as ChangeLog,
+				) || []
+			);
+		},
+		enabled: !!entry,
+	});
+
+	const { data: userActivityLog } = useQuery<UserActivityLog[]>({
+		queryKey: ["journal-entry-user-activity", entry?.createdBy],
+		queryFn: async () => {
+			if (!entry) return [];
+			const log = await AuditsService.getV1Audits({
+				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+				makerId: entry.createdBy as any,
+			});
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			const parsedLog = JSON.parse(log as any);
+			return (
+				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+				parsedLog.pageItems?.map(
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+					(item: any) =>
+						({
+							id: item.id,
+							actionName: item.actionName,
+							entityName: item.entityName,
+							resourceId: item.resourceId,
+							maker: item.maker,
+							madeOnDate: item.madeOnDate,
+						}) as UserActivityLog,
+				) || []
+			);
+		},
+		enabled: !!entry,
 	});
 
 	const reverseMutation = useMutation({
@@ -76,7 +208,8 @@ export function useJournalEntryDetail() {
 					command: "reverse",
 					requestBody: {
 						comments: data.comments,
-					},
+						// biome-ignore lint/suspicious/noExplicitAny: The auto-generated Fineract API client types are incomplete for this command
+					} as any,
 				});
 			return response;
 		},
@@ -129,6 +262,9 @@ export function useJournalEntryDetail() {
 		entry,
 		isLoading,
 		isReversing: reverseMutation.isPending,
+		approvalHistory: approvalHistory || [],
+		changeLog: changeLog || [],
+		userActivityLog: userActivityLog || [],
 		onBack: handleBack,
 		onReverse: handleReverse,
 	};

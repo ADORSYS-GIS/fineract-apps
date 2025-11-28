@@ -44,11 +44,11 @@ export const menuReporting: MenuItem[] = [
 ];
 
 export const menuAccounting: MenuItem[] = [
-	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "gl_accounts", link: "/gl-accounts", icon: BookOpen },
-	{ name: "journal_entries", link: "/journal-entries", icon: FileText },
-	{ name: "create_entry", link: "/create-entry", icon: PlusCircle },
-	{ name: "approval_queue", link: "/approval-queue", icon: CheckCircle },
-	{ name: "closures", link: "/closures", icon: Lock },
-	{ name: "cash_short_over", link: "/cash-short-over", icon: Calculator },
+	{ name: "Dashboard", link: "/dashboard", icon: Home },
+	{ name: "GL Accounts", link: "/gl-accounts", icon: BookOpen },
+	{ name: "Journal Entries", link: "/journal-entries", icon: FileText },
+	{ name: "Create Entry", link: "/create-entry", icon: PlusCircle },
+	{ name: "Approval Queue", link: "/approval-queue", icon: CheckCircle },
+	{ name: "Closures", link: "/closures", icon: Lock },
+	{ name: "Cash Short Over", link: "/cash-short-over", icon: Calculator },
 ];
