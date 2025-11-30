@@ -21,7 +21,7 @@ export function useLoanReview() {
 		queryKey: ["loan", loanId],
 		queryFn: () =>
 			LoansService.getV1LoansByLoanId({
-				loanId: parseInt(loanId, 10),
+				loanId: Number.parseInt(loanId, 10),
 				associations: "all",
 			}),
 	});
@@ -29,7 +29,7 @@ export function useLoanReview() {
 	const approveMutation = useMutation({
 		mutationFn: (note: string) =>
 			LoansService.postV1LoansByLoanId({
-				loanId: parseInt(loanId, 10),
+				loanId: Number.parseInt(loanId, 10),
 				command: "approve",
 				requestBody: {
 					approvedOnDate: new Date().toLocaleDateString("en-GB"),
@@ -48,7 +48,7 @@ export function useLoanReview() {
 	const rejectMutation = useMutation({
 		mutationFn: (note: string) =>
 			LoansService.postV1LoansByLoanId({
-				loanId: parseInt(loanId, 10),
+				loanId: Number.parseInt(loanId, 10),
 				command: "reject",
 				requestBody: {
 					rejectedOnDate: new Date().toLocaleDateString("en-GB"),

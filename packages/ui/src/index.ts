@@ -24,5 +24,9 @@ export { Table } from "./components/Table";
 export type { TableColumn, TableProps } from "./components/Table/Table.types";
 export { useOnClickOutside } from "./hooks/useOnClickOutside";
 export { cn, formatCurrency, formatToFineractDate } from "./lib/utils";
-export { BusinessDateService } from "./services/businessDateService";
+export {
+	BusinessDateService,
+	getBusinessDate,
+	getBusinessDateByType,
+} from "./services/businessDateService";
 export * from "./utils/auth";
