@@ -28,7 +28,7 @@ export const formatCurrency = (
 export function formatToFineractDate(value: string): string {
 	const date = new Date(value + "T00:00:00");
 	if (Number.isNaN(date.getTime())) {
-		throw new Error("Invalid date value");
+		throw new TypeError("Invalid date value");
 	}
 	return date.toLocaleDateString("en-GB", {
 		day: "2-digit",
