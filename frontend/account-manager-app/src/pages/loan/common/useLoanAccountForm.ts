@@ -84,17 +84,25 @@ export const useLoanAccountForm = ({
 
 	const createLoanPayload = (
 		values: LoanDetailsFormValues,
-	): PostLoansRequest => ({
-		...createBaseLoanPayload(values),
-		clientId: Number(clientId) || loanData?.clientId,
-		loanOfficerId: values.loanOfficerId,
-		loanPurposeId: values.loanPurposeId,
-		fundId: values.fundId,
-		charges: values.charges?.map((charge) => ({
-			chargeId: charge.id,
-			amount: charge.amount,
-		})),
-	});
+	): PostLoansRequest => {
+		const payload: PostLoansRequest = {
+			...createBaseLoanPayload(values),
+			clientId: Number(clientId) || loanData?.clientId,
+			loanPurposeId: values.loanPurposeId,
+			fundId: values.fundId,
+			charges: values.charges?.map((charge) => ({
+				chargeId: charge.id,
+				amount: charge.amount,
+			})),
+		};
+
+		// Only include loanOfficerId if it's defined
+		if (values.loanOfficerId !== undefined) {
+			payload.loanOfficerId = values.loanOfficerId;
+		}
+
+		return payload;
+	};
 
 	const createEditLoanPayload = (
 		values: LoanDetailsFormValues,
@@ -189,10 +197,6 @@ export const useLoanAccountForm = ({
 	const { values, setValues } = formik;
 
 	const handleSubmit = () => {
-		if (!userData?.staffId) {
-			toast.error("Loan officer ID is not available. Please try again.");
-			return;
-		}
 		formik.handleSubmit();
 	};
 
