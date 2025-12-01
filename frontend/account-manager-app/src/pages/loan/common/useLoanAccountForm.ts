@@ -378,6 +378,16 @@ export const useLoanAccountForm = ({
 		}
 	}, [isEditMode, userData, setValues]);
 
+	useEffect(() => {
+		if (!isEditMode && businessDate) {
+			setValues((currentValues) => ({
+				...currentValues,
+				submittedOnDate: businessDate,
+				expectedDisbursementDate: businessDate,
+			}));
+		}
+	}, [isEditMode, businessDate, setValues]);
+
 	return {
 		formik,
 		loanTemplate,
