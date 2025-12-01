@@ -5,6 +5,7 @@ import {
 	PutLoansLoanIdRequest,
 	PutLoansLoanIdResponse,
 } from "@fineract-apps/fineract-api";
+import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
@@ -41,6 +42,7 @@ export const useLoanAccountForm = ({
 
 	const isEditMode = !!loanId;
 	const { userData, isUserDataLoading } = useAuth();
+	const { businessDate } = useBusinessDate();
 
 	const { data: loanData, isLoading: isLoanDataLoading } = useQuery({
 		queryKey: ["loan", loanId],
@@ -158,8 +160,8 @@ export const useLoanAccountForm = ({
 			loanOfficerId: undefined,
 			loanPurposeId: undefined,
 			fundId: undefined,
-			submittedOnDate: new Date().toISOString().split("T")[0],
-			expectedDisbursementDate: new Date().toISOString().split("T")[0],
+			submittedOnDate: businessDate,
+			expectedDisbursementDate: businessDate,
 			principal: 0,
 			loanTermFrequency: 0,
 			loanTermFrequencyType: undefined,

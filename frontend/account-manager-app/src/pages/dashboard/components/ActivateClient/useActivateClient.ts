@@ -1,4 +1,5 @@
 import { PostV1ClientsByClientIdData } from "@fineract-apps/fineract-api";
+import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
@@ -12,6 +13,7 @@ import {
 
 export const useActivateClient = ({ client, onClose }: ActivateClientProps) => {
 	const queryClient = useQueryClient();
+	const { businessDate } = useBusinessDate();
 
 	const { mutate: activateClient, isPending: isActivatingClient } = useMutation(
 		{
@@ -46,7 +48,10 @@ export const useActivateClient = ({ client, onClose }: ActivateClientProps) => {
 	};
 
 	return {
-		initialValues,
+		initialValues: {
+			...initialValues,
+			activationDate: businessDate,
+		},
 		validationSchema: activateClientValidationSchema,
 		onSubmit,
 		isActivatingClient,

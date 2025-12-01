@@ -22,6 +22,7 @@ export { SearchBar } from "./components/SearchBar";
 export * from "./components/Sidebar";
 export { Table } from "./components/Table";
 export type { TableColumn, TableProps } from "./components/Table/Table.types";
+export { useBusinessDate } from "./hooks/useBusinessDate";
 export { useOnClickOutside } from "./hooks/useOnClickOutside";
 export { cn, formatCurrency, formatToFineractDate } from "./lib/utils";
 export {

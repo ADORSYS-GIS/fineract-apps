@@ -2,9 +2,9 @@ import {
 	GetLoansLoanIdTransactionsTemplateResponse,
 	PostLoansLoanIdRequest,
 } from "@fineract-apps/fineract-api";
-import { Button, Form, getBusinessDate, Input } from "@fineract-apps/ui";
+import { Button, Form, Input, useBusinessDate } from "@fineract-apps/ui";
 import { format } from "date-fns";
-import { FC, useEffect, useState } from "react";
+import { FC } from "react";
 import { Modal } from "@/components/Modal/Modal";
 
 interface DisbursementModalProps {
@@ -24,17 +24,7 @@ export const DisbursementModal: FC<DisbursementModalProps> = ({
 	isSubmitting,
 	variant,
 }) => {
-	const [businessDate, setBusinessDate] = useState("");
-
-	useEffect(() => {
-		const fetchBusinessDate = async () => {
-			const date = await getBusinessDate();
-			setBusinessDate(date);
-		};
-		if (isOpen) {
-			fetchBusinessDate();
-		}
-	}, [isOpen]);
+	const { businessDate } = useBusinessDate();
 
 	if (!isOpen) return null;
 

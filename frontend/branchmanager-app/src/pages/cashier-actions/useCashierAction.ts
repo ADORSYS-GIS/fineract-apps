@@ -1,8 +1,7 @@
 import { TellerCashManagementService } from "@fineract-apps/fineract-api";
-import { formatToFineractDate, getBusinessDate } from "@fineract-apps/ui";
+import { formatToFineractDate, useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { z } from "zod";
 
@@ -40,15 +39,7 @@ export function useCashierAction(
 	cashierId: number,
 	currencyCode: string,
 ) {
-	const [businessDate, setBusinessDate] = useState("");
-
-	useEffect(() => {
-		const fetchBusinessDate = async () => {
-			const date = await getBusinessDate();
-			setBusinessDate(date);
-		};
-		fetchBusinessDate();
-	}, []);
+	const { businessDate } = useBusinessDate();
 
 	const initialValues: CashierActionFormValues = {
 		amount: 0,
