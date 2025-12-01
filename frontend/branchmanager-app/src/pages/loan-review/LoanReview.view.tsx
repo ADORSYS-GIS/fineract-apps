@@ -1,4 +1,4 @@
-import { Button } from "@fineract-apps/ui";
+import { Button, formatCurrency } from "@fineract-apps/ui";
 import { Check, X } from "lucide-react";
 import { useState } from "react";
 import { BackButton } from "@/components/BackButton";
@@ -50,7 +50,7 @@ export const LoanReviewView = ({
 							<DetailRow label="Product" value={loan.loanProductName} />
 							<DetailRow
 								label="Principal"
-								value={`${loan.principal} ${loan.currency?.displaySymbol}`}
+								value={formatCurrency(loan.principal, loan.currency?.code)}
 							/>
 							<DetailRow
 								label="Term"

@@ -1,5 +1,5 @@
 import { GetLoansLoanIdResponse } from "@fineract-apps/fineract-api";
-import { Card } from "@fineract-apps/ui";
+import { Card, formatCurrency } from "@fineract-apps/ui";
 import { format } from "date-fns";
 import { FC, ReactNode } from "react";
 
@@ -33,15 +33,15 @@ export const LoanDetails: FC<LoanDetailsProps> = ({ loan }) => {
 					<DetailRow label="External Id" value={loan.externalId} />
 					<DetailRow
 						label="Proposed Amount"
-						value={loan.proposedPrincipal?.toLocaleString()}
+						value={formatCurrency(loan.proposedPrincipal, loan.currency?.code)}
 					/>
 					<DetailRow
 						label="Approved Amount"
-						value={loan.approvedPrincipal?.toLocaleString()}
+						value={formatCurrency(loan.approvedPrincipal, loan.currency?.code)}
 					/>
 					<DetailRow
 						label="Disburse Amount"
-						value={loan.netDisbursalAmount?.toLocaleString()}
+						value={formatCurrency(loan.netDisbursalAmount, loan.currency?.code)}
 					/>
 				</tbody>
 			</table>
