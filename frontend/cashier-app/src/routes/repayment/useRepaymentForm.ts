@@ -24,12 +24,8 @@ export const useRepaymentForm = (
 
 	useEffect(() => {
 		const fetchBusinessDate = async () => {
-			try {
-				const businessDate = await getBusinessDate();
-				setTransactionDate(new Date(businessDate));
-			} catch (error) {
-				console.error("Failed to fetch business date:", error);
-			}
+			const businessDate = await getBusinessDate();
+			setTransactionDate(new Date(businessDate));
 		};
 		fetchBusinessDate();
 	}, []);

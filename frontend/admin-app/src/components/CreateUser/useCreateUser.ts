@@ -1,8 +1,9 @@
 import { OfficesService, RolesService } from "@fineract-apps/fineract-api";
+import { getBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { FormikHelpers } from "formik";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CreateUserFormValues } from "@/components/CreateUser/createUserFormSchema";
 import { useToast } from "@/components/Toast";
 import { CreateEmployeePayload, createEmployee } from "@/services/employeeApi";
@@ -27,6 +28,16 @@ export const useCreateUser = () => {
 	const [creationStep, setCreationStep] = useState<CreationStep>({
 		step: "form",
 	});
+	const [businessDate, setBusinessDate] = useState("");
+
+	useEffect(() => {
+		const fetchBusinessDate = async () => {
+			const date = await getBusinessDate();
+			setBusinessDate(date);
+		};
+		fetchBusinessDate();
+	}, []);
+
 	const navigate = useNavigate();
 	const { success, error } = useToast();
 	const queryClient = useQueryClient();
@@ -40,7 +51,7 @@ export const useCreateUser = () => {
 		roles: 0,
 		isLoanOfficer: false,
 		mobileNo: "",
-		joiningDate: "",
+		joiningDate: businessDate,
 	};
 
 	// Mutation to create the employee in Fineract

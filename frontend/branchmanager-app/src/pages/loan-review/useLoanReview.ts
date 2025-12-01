@@ -1,4 +1,5 @@
 import { LoansService } from "@fineract-apps/fineract-api";
+import { getBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
@@ -27,17 +28,20 @@ export function useLoanReview() {
 	});
 
 	const approveMutation = useMutation({
-		mutationFn: (note: string) =>
-			LoansService.postV1LoansByLoanId({
+		mutationFn: async (note: string) => {
+			const businessDate = await getBusinessDate();
+			const date = new Date(businessDate);
+			return LoansService.postV1LoansByLoanId({
 				loanId: Number.parseInt(loanId, 10),
 				command: "approve",
 				requestBody: {
-					approvedOnDate: new Date().toLocaleDateString("en-GB"),
+					approvedOnDate: date.toLocaleDateString("en-GB"),
 					dateFormat: "dd/MM/yyyy",
 					locale: "en",
 					note,
 				},
-			}),
+			});
+		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["pendingLoans"] });
 			navigate({ to: "/approve/loans", search: { q: "" } });
@@ -46,17 +50,20 @@ export function useLoanReview() {
 	});
 
 	const rejectMutation = useMutation({
-		mutationFn: (note: string) =>
-			LoansService.postV1LoansByLoanId({
+		mutationFn: async (note: string) => {
+			const businessDate = await getBusinessDate();
+			const date = new Date(businessDate);
+			return LoansService.postV1LoansByLoanId({
 				loanId: Number.parseInt(loanId, 10),
 				command: "reject",
 				requestBody: {
-					rejectedOnDate: new Date().toLocaleDateString("en-GB"),
+					rejectedOnDate: date.toLocaleDateString("en-GB"),
 					dateFormat: "dd/MM/yyyy",
 					locale: "en",
 					note,
 				},
-			}),
+			});
+		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["pendingLoans"] });
 			navigate({ to: "/approve/loans", search: { q: "" } });
