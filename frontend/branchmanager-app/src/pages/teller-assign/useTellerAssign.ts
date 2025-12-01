@@ -3,9 +3,9 @@ import {
 	useTellerCashManagementServiceGetV1TellersByTellerId,
 	useTellerCashManagementServiceGetV1TellersByTellerIdCashiersTemplate,
 } from "@fineract-apps/fineract-api";
-import { getBusinessDate } from "@fineract-apps/ui";
+import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { FormValues, StaffOption } from "./TellerAssign.types";
 
 type TellerTemplate = {
@@ -63,16 +63,7 @@ export function useTellerAssign(
 	);
 
 	const queryClient = useQueryClient();
-
-	const [businessDate, setBusinessDate] = useState("");
-
-	useEffect(() => {
-		const fetchBusinessDate = async () => {
-			const date = await getBusinessDate();
-			setBusinessDate(date);
-		};
-		fetchBusinessDate();
-	}, []);
+	const { businessDate } = useBusinessDate();
 
 	const mutation = useMutation({
 		mutationFn: async (values: FormValues) => {
