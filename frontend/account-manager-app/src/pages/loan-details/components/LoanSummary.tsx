@@ -1,5 +1,5 @@
 import { GetLoansLoanIdResponse } from "@fineract-apps/fineract-api";
-import { Card } from "@fineract-apps/ui";
+import { Card, formatCurrency } from "@fineract-apps/ui";
 import { FC } from "react";
 
 interface LoanSummaryProps {
@@ -15,35 +15,37 @@ interface LoanSummaryRowData {
 	principalOverdue?: number;
 }
 
-const LoanSummaryRow: FC<{ label: string; data: LoanSummaryRowData }> = ({
-	label,
-	data,
-}) => (
+const LoanSummaryRow: FC<{
+	label: string;
+	data: LoanSummaryRowData;
+	currencyCode?: string;
+}> = ({ label, data, currencyCode }) => (
 	<tr className="border-b border-gray-200">
 		<td className="py-3 px-4 font-semibold text-gray-700">{label}</td>
 		<td className="py-3 px-4 text-gray-600">
-			{data.totalPrincipal?.toLocaleString()}
+			{formatCurrency(data.totalPrincipal, currencyCode)}
 		</td>
 		<td className="py-3 px-4 text-gray-600">
-			{data.principalPaid?.toLocaleString()}
+			{formatCurrency(data.principalPaid, currencyCode)}
 		</td>
 		<td className="py-3 px-4 text-gray-600">
-			{data.totalWaived?.toLocaleString()}
+			{formatCurrency(data.totalWaived, currencyCode)}
 		</td>
 		<td className="py-3 px-4 text-gray-600">
-			{data.principalWrittenOff?.toLocaleString()}
+			{formatCurrency(data.principalWrittenOff, currencyCode)}
 		</td>
 		<td className="py-3 px-4 text-gray-600">
-			{data.principalOutstanding?.toLocaleString()}
+			{formatCurrency(data.principalOutstanding, currencyCode)}
 		</td>
 		<td className="py-3 px-4 text-gray-600">
-			{data.principalOverdue?.toLocaleString()}
+			{formatCurrency(data.principalOverdue, currencyCode)}
 		</td>
 	</tr>
 );
 
 export const LoanSummary: FC<LoanSummaryProps> = ({ loan }) => {
 	const summary = loan.summary;
+	const currencyCode = loan.currency?.code;
 	if (!summary) return null;
 
 	return (
@@ -76,6 +78,7 @@ export const LoanSummary: FC<LoanSummaryProps> = ({ loan }) => {
 					<tbody className="divide-y divide-gray-200">
 						<LoanSummaryRow
 							label="Principal"
+							currencyCode={currencyCode}
 							data={{
 								totalPrincipal: summary.totalPrincipal,
 								principalPaid: summary.principalPaid,
@@ -87,6 +90,7 @@ export const LoanSummary: FC<LoanSummaryProps> = ({ loan }) => {
 						/>
 						<LoanSummaryRow
 							label="Interest"
+							currencyCode={currencyCode}
 							data={{
 								totalPrincipal: summary.interestCharged,
 								principalPaid: summary.interestPaid,
@@ -98,6 +102,7 @@ export const LoanSummary: FC<LoanSummaryProps> = ({ loan }) => {
 						/>
 						<LoanSummaryRow
 							label="Fees"
+							currencyCode={currencyCode}
 							data={{
 								totalPrincipal: summary.feeChargesCharged,
 								principalPaid: summary.feeChargesPaid,
@@ -109,6 +114,7 @@ export const LoanSummary: FC<LoanSummaryProps> = ({ loan }) => {
 						/>
 						<LoanSummaryRow
 							label="Penalties"
+							currencyCode={currencyCode}
 							data={{
 								totalPrincipal: summary.penaltyChargesCharged,
 								principalPaid: summary.penaltyChargesPaid,
@@ -121,22 +127,22 @@ export const LoanSummary: FC<LoanSummaryProps> = ({ loan }) => {
 						<tr className="border-b border-gray-200 font-bold text-gray-800">
 							<td className="py-3 px-4">Total</td>
 							<td className="py-3 px-4">
-								{summary.totalExpectedRepayment?.toLocaleString()}
+								{formatCurrency(summary.totalExpectedRepayment, currencyCode)}
 							</td>
 							<td className="py-3 px-4">
-								{summary.totalRepayment?.toLocaleString()}
+								{formatCurrency(summary.totalRepayment, currencyCode)}
 							</td>
 							<td className="py-3 px-4">
-								{summary.totalWaived?.toLocaleString()}
+								{formatCurrency(summary.totalWaived, currencyCode)}
 							</td>
 							<td className="py-3 px-4">
-								{summary.totalWrittenOff?.toLocaleString()}
+								{formatCurrency(summary.totalWrittenOff, currencyCode)}
 							</td>
 							<td className="py-3 px-4">
-								{summary.totalOutstanding?.toLocaleString()}
+								{formatCurrency(summary.totalOutstanding, currencyCode)}
 							</td>
 							<td className="py-3 px-4">
-								{summary.totalOverdue?.toLocaleString()}
+								{formatCurrency(summary.totalOverdue, currencyCode)}
 							</td>
 						</tr>
 					</tbody>

@@ -33,7 +33,7 @@ export function useCashierDetail(
 		],
 		queryFn: async () => {
 			if (!currencyCode) {
-				return Promise.reject(new Error("Currency code not available"));
+				throw new Error("Currency code not available");
 			}
 			return (
 				(await TellerCashManagementService.getV1TellersByTellerIdCashiersByCashierIdSummaryandtransactions(

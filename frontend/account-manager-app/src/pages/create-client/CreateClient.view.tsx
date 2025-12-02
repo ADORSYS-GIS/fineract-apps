@@ -40,6 +40,14 @@ const CreateClientForm: FC = () => {
 			<div className="flex items-center justify-between mt-6">
 				<Input name="active" type="checkbox" label="Active?" />
 			</div>
+			<div className="mt-4">
+				<Input
+					name="activationDate"
+					label="Activation Date"
+					type="date"
+					placeholder="Select activation date"
+				/>
+			</div>
 		</>
 	);
 };

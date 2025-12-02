@@ -2,6 +2,7 @@ import {
 	PostSavingsAccountsRequest,
 	SavingsAccountService,
 } from "@fineract-apps/fineract-api";
+import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -11,6 +12,8 @@ import {
 } from "./OpenSavingsAccount.types";
 
 export const useOpenSavingsAccount = (clientId: number) => {
+	const { businessDate } = useBusinessDate();
+
 	const { mutate } = useMutation<
 		unknown,
 		Error,
@@ -44,7 +47,10 @@ export const useOpenSavingsAccount = (clientId: number) => {
 	};
 
 	return {
-		initialValues,
+		initialValues: {
+			...initialValues,
+			submittedOnDate: businessDate,
+		},
 		validationSchema: openSavingsAccountValidationSchema,
 		onSubmit,
 	};
