@@ -26,8 +26,9 @@ export function Form<T extends Values = Values>({
 	onSubmit,
 	children,
 	className,
+	enableReinitialize = true,
 	...rest
-}: Readonly<FormProps<T>>) {
+}: Readonly<FormProps<T> & { enableReinitialize?: boolean }>) {
 	const handleSubmit = async (values: T, _formikHelpers: FormikHelpers<T>) => {
 		if (onSubmit) {
 			await onSubmit(values);
@@ -43,6 +44,7 @@ export function Form<T extends Values = Values>({
 					: undefined
 			}
 			onSubmit={handleSubmit}
+			enableReinitialize={enableReinitialize}
 		>
 			<FormikForm
 				noValidate
@@ -77,7 +79,7 @@ export const FormTitle: React.FC<{
 /**
  * Hook to consume typed form context inside inputs/components.
  */
-export const useFormContext = useFormikContext;
+export { useFormikContext as useFormContext } from "formik";
 
 /**
  * Optional warning/notice block styled similar to your screenshot.

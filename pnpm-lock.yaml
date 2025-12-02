@@ -100,7 +100,7 @@ importers:
         version: 2.4.9(@types/react@19.2.6)(react@19.2.0)
       lucide-react:
         specifier: ^0.544.0
-        version: 0.554.0(react@19.2.0)
+        version: 0.544.0(react@19.2.0)
       react:
         specifier: ^19.1.1
         version: 19.2.0
@@ -115,13 +115,13 @@ importers:
         version: 2.6.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react-i18next:
         specifier: ^15.0.0
-        version: 16.3.5(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+        version: 15.7.4(i18next@25.6.3(typescript@5.8.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
       zod:
         specifier: ^3.25.76
-        version: 4.1.12
+        version: 3.25.76
       zod-formik-adapter:
         specifier: ^1.2.0
-        version: 2.0.0(formik@2.4.9(@types/react@19.2.6)(react@19.2.0))(zod@4.1.12)
+        version: 1.3.0(formik@2.4.9(@types/react@19.2.6)(react@19.2.0))(zod@3.25.76)
     devDependencies:
       '@fineract-apps/config':
         specifier: workspace:*
@@ -140,7 +140,7 @@ importers:
         version: 4.2.2(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6))
       typescript:
         specifier: ~5.8.3
-        version: 5.9.3
+        version: 5.8.3
       vite:
         specifier: ^7.1.2
         version: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)
@@ -167,7 +167,7 @@ importers:
         version: 2.4.9(@types/react@19.2.6)(react@19.2.0)
       lucide-react:
         specifier: ^0.544.0
-        version: 0.554.0(react@19.2.0)
+        version: 0.544.0(react@19.2.0)
       react:
         specifier: ^19.1.1
         version: 19.2.0
@@ -198,7 +198,7 @@ importers:
         version: 4.2.2(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6))
       typescript:
         specifier: ~5.8.3
-        version: 5.9.3
+        version: 5.8.3
       vite:
         specifier: ^7.1.2
         version: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)
@@ -228,7 +228,7 @@ importers:
         version: 2.4.9(@types/react@19.2.6)(react@19.2.0)
       lucide-react:
         specifier: ^0.544.0
-        version: 0.554.0(react@19.2.0)
+        version: 0.544.0(react@19.2.0)
       react:
         specifier: ^19.1.1
         version: 19.2.0
@@ -240,7 +240,7 @@ importers:
         version: 2.6.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react-i18next:
         specifier: ^15.0.0
-        version: 16.3.5(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+        version: 15.7.4(i18next@25.6.3(typescript@5.8.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
       zod:
         specifier: ^4.1.9
         version: 4.1.12
@@ -265,7 +265,7 @@ importers:
         version: 4.2.2(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6))
       typescript:
         specifier: ~5.8.3
-        version: 5.9.3
+        version: 5.8.3
       vite:
         specifier: ^7.1.2
         version: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)
@@ -292,10 +292,10 @@ importers:
         version: 1.139.0(@tanstack/react-router@1.139.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.139.0)(@types/node@24.10.1)(csstype@3.2.3)(jiti@2.6.1)(lightningcss@1.30.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(solid-js@1.9.10)(tsx@4.20.6)
       '@tanstack/react-store':
         specifier: ^0.7.7
-        version: 0.8.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 0.7.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@tanstack/store':
         specifier: ^0.7.7
-        version: 0.8.0
+        version: 0.7.7
       axios:
         specifier: ^1.12.2
         version: 1.13.2
@@ -307,7 +307,7 @@ importers:
         version: 2.4.9(@types/react@19.2.6)(react@19.2.0)
       lucide-react:
         specifier: ^0.544.0
-        version: 0.554.0(react@19.2.0)
+        version: 0.544.0(react@19.2.0)
       react:
         specifier: ^19.1.1
         version: 19.2.0
@@ -319,7 +319,7 @@ importers:
         version: 2.6.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react-i18next:
         specifier: ^15.0.0
-        version: 16.3.5(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+        version: 15.7.4(i18next@25.6.3(typescript@5.8.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
       zod:
         specifier: ^4.1.9
         version: 4.1.12
@@ -344,7 +344,7 @@ importers:
         version: 4.2.2(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6))
       typescript:
         specifier: ~5.8.3
-        version: 5.9.3
+        version: 5.8.3
       vite:
         specifier: ^7.1.2
         version: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)
@@ -374,26 +374,32 @@ importers:
     dependencies:
       i18next:
         specifier: ^23.12.2
-        version: 25.6.3(typescript@5.9.3)
+        version: 23.16.8
       i18next-browser-languagedetector:
         specifier: ^8.0.0
         version: 8.2.0
       react-i18next:
         specifier: ^15.0.0
-        version: 16.3.5(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+        version: 15.7.4(i18next@23.16.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
     devDependencies:
       '@fineract-apps/config':
         specifier: workspace:*
         version: link:../config
       typescript:
         specifier: ~5.8.3
-        version: 5.9.3
+        version: 5.8.3
 
   packages/ui:
     dependencies:
+      '@fineract-apps/fineract-api':
+        specifier: workspace:*
+        version: link:../fineract-api
       '@fineract-apps/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@tanstack/react-query':
+        specifier: ^5.90.1
+        version: 5.90.10(react@19.2.0)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -402,13 +408,13 @@ importers:
         version: 2.1.1
       date-fns:
         specifier: ^3.6.0
-        version: 4.1.0
+        version: 3.6.0
       formik:
         specifier: ^2.4.6
         version: 2.4.9(@types/react@19.2.6)(react@19.2.0)
       lucide-react:
         specifier: ^0.544.0
-        version: 0.554.0(react@19.2.0)
+        version: 0.544.0(react@19.2.0)
       react:
         specifier: ^19.1.1
         version: 19.2.0
@@ -420,7 +426,7 @@ importers:
         version: 2.6.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react-i18next:
         specifier: ^15.0.0
-        version: 16.3.5(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+        version: 15.7.4(i18next@25.6.3(typescript@5.8.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.4.0
@@ -442,7 +448,7 @@ importers:
         version: 4.2.2(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6))
       typescript:
         specifier: ~5.8.3
-        version: 5.9.3
+        version: 5.8.3
       vite:
         specifier: ^7.1.2
         version: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)
@@ -1544,6 +1550,12 @@ packages:
       react: '>=18.0.0 || >=19.0.0'
       react-dom: '>=18.0.0 || >=19.0.0'
 
+  '@tanstack/react-store@0.7.7':
+    resolution: {integrity: sha512-qqT0ufegFRDGSof9D/VqaZgjNgp4tRPHZIJq2+QIHkMUtHjaJ0lYrrXjeIUJvjnTbgPfSD1XgOMEt0lmANn6Zg==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   '@tanstack/react-store@0.8.0':
     resolution: {integrity: sha512-1vG9beLIuB7q69skxK9r5xiLN3ztzIPfSQSs0GfeqWGO2tGIyInZx0x1COhpx97RKaONSoAb8C3dxacWksm1ow==}
     peerDependencies:
@@ -1600,6 +1612,9 @@ packages:
   '@tanstack/router-utils@1.139.0':
     resolution: {integrity: sha512-jT7D6NimWqoFSkid4vCno8gvTyfL1+NHpgm3es0B2UNhKKRV3LngOGilm1m6v8Qvk/gy6Fh/tvB+s+hBl6GhOg==}
     engines: {node: '>=12'}
+
+  '@tanstack/store@0.7.7':
+    resolution: {integrity: sha512-xa6pTan1bcaqYDS9BDpSiS63qa6EoDkPN9RsRaxHuDdVDNntzq3xNwR5YKTU/V3SkSyC9T4YVOPh2zRQN0nhIQ==}
 
   '@tanstack/store@0.8.0':
     resolution: {integrity: sha512-Om+BO0YfMZe//X2z0uLF2j+75nQga6TpTJgLJQBiq85aOyZNIhkCgleNcud2KQg4k4v9Y9l+Uhru3qWMPGTOzQ==}
@@ -2131,6 +2146,9 @@ packages:
     resolution: {integrity: sha512-ZYP5VBHshaDAiVZxjbRVcFJpc+4xGgT0bK3vzy1HLN8jTO975HEbuYzZJcHoQEY5K1a0z8YayJkyVETa08eNTg==}
     engines: {node: '>=18'}
 
+  date-fns@3.6.0:
+    resolution: {integrity: sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww==}
+
   date-fns@4.1.0:
     resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
 
@@ -2474,6 +2492,9 @@ packages:
 
   i18next-browser-languagedetector@8.2.0:
     resolution: {integrity: sha512-P+3zEKLnOF0qmiesW383vsLdtQVyKtCNA9cjSoKCppTKPQVfKd2W8hbVo5ZhNJKDqeM7BOcvNoKJOjpHh4Js9g==}
+
+  i18next@23.16.8:
+    resolution: {integrity: sha512-06r/TitrM88Mg5FdUXAKL96dJMzgqLE5dv3ryBAra4KCwD9mJ4ndOTS95ZuymIGoE+2hzfdaMak2X11/es7ZWg==}
 
   i18next@25.6.3:
     resolution: {integrity: sha512-AEQvoPDljhp67a1+NsnG/Wb1Nh6YoSvtrmeEd24sfGn3uujCtXCF3cXpr7ulhMywKNFF7p3TX1u2j7y+caLOJg==}
@@ -2910,8 +2931,8 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@0.554.0:
-    resolution: {integrity: sha512-St+z29uthEJVx0Is7ellNkgTEhaeSoA42I7JjOCBCrc5X6LYMGSv0P/2uS5HDLTExP5tpiqRD2PyUEOS6s9UXA==}
+  lucide-react@0.544.0:
+    resolution: {integrity: sha512-t5tS44bqd825zAW45UQxpG2CvcC4urOwn2TrwSH8u+MjeE+1NnWl6QqeQ/6NdjMqdOygyiT9p3Ev0p1NJykxjw==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -3202,10 +3223,10 @@ packages:
       react: '>=16'
       react-dom: '>=16'
 
-  react-i18next@16.3.5:
-    resolution: {integrity: sha512-F7Kglc+T0aE6W2rO5eCAFBEuWRpNb5IFmXOYEgztjZEuiuSLTe/xBIEG6Q3S0fbl8GXMNo+Q7gF8bpokFNWJww==}
+  react-i18next@15.7.4:
+    resolution: {integrity: sha512-nyU8iKNrI5uDJch0z9+Y5XEr34b0wkyYj3Rp+tfbahxtlswxSCjcUL9H0nqXo9IR3/t5Y5PKIA3fx3MfUyR9Xw==}
     peerDependencies:
-      i18next: '>= 25.6.2'
+      i18next: '>= 23.4.0'
       react: '>= 16.8.0'
       react-dom: '*'
       react-native: '*'
@@ -3526,6 +3547,11 @@ packages:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
     engines: {node: '>=16'}
 
+  typescript@5.8.3:
+    resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
@@ -3710,6 +3736,12 @@ packages:
   yocto-queue@1.2.2:
     resolution: {integrity: sha512-4LCcse/U2MHZ63HAJVE+v71o7yOdIe4cZ70Wpf8D/IyjDKYQLV5GD46B+hSTjJsvV5PztjvHoU580EftxjDZFQ==}
     engines: {node: '>=12.20'}
+
+  zod-formik-adapter@1.3.0:
+    resolution: {integrity: sha512-qWsVwRYqpRod5BL35pRXHD6UOugiyaEyLPO04rCN/uKTCFCR+VElPEG26+3wNrxGP7y5XmJM+4/0MrABnRYZrw==}
+    peerDependencies:
+      formik: ^2.2.9
+      zod: ^3.22.4
 
   zod-formik-adapter@2.0.0:
     resolution: {integrity: sha512-cLykLmQgmCmhx8C/mwR+rUNKRw6kEukejGRrByB+56zV1XtHF+xmOiQ2Lp2w5R0BdN3z42QKFekOI0Vy39vR8Q==}
@@ -4830,6 +4862,13 @@ snapshots:
       tiny-invariant: 1.3.3
       tiny-warning: 1.0.3
 
+  '@tanstack/react-store@0.7.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      '@tanstack/store': 0.7.7
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+      use-sync-external-store: 1.6.0(react@19.2.0)
+
   '@tanstack/react-store@0.8.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@tanstack/store': 0.8.0
@@ -4923,6 +4962,8 @@ snapshots:
       tinyglobby: 0.2.15
     transitivePeerDependencies:
       - supports-color
+
+  '@tanstack/store@0.7.7': {}
 
   '@tanstack/store@0.8.0': {}
 
@@ -5451,6 +5492,8 @@ snapshots:
       whatwg-mimetype: 4.0.0
       whatwg-url: 14.2.0
 
+  date-fns@3.6.0: {}
+
   date-fns@4.1.0: {}
 
   debug@4.4.3:
@@ -5807,11 +5850,15 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.4
 
-  i18next@25.6.3(typescript@5.9.3):
+  i18next@23.16.8:
+    dependencies:
+      '@babel/runtime': 7.28.4
+
+  i18next@25.6.3(typescript@5.8.3):
     dependencies:
       '@babel/runtime': 7.28.4
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 5.8.3
 
   iconv-lite@0.6.3:
     dependencies:
@@ -6383,7 +6430,7 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@0.554.0(react@19.2.0):
+  lucide-react@0.544.0(react@19.2.0):
     dependencies:
       react: 19.2.0
 
@@ -6635,16 +6682,25 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  react-i18next@16.3.5(i18next@25.6.3(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3):
+  react-i18next@15.7.4(i18next@23.16.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3):
     dependencies:
       '@babel/runtime': 7.28.4
       html-parse-stringify: 3.0.1
-      i18next: 25.6.3(typescript@5.9.3)
+      i18next: 23.16.8
       react: 19.2.0
-      use-sync-external-store: 1.6.0(react@19.2.0)
     optionalDependencies:
       react-dom: 19.2.0(react@19.2.0)
-      typescript: 5.9.3
+      typescript: 5.8.3
+
+  react-i18next@15.7.4(i18next@25.6.3(typescript@5.8.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3):
+    dependencies:
+      '@babel/runtime': 7.28.4
+      html-parse-stringify: 3.0.1
+      i18next: 25.6.3(typescript@5.8.3)
+      react: 19.2.0
+    optionalDependencies:
+      react-dom: 19.2.0(react@19.2.0)
+      typescript: 5.8.3
 
   react-is@16.13.1: {}
 
@@ -6923,6 +6979,8 @@ snapshots:
 
   type-fest@4.41.0: {}
 
+  typescript@5.8.3: {}
+
   typescript@5.9.3: {}
 
   ufo@1.6.1: {}
@@ -7080,6 +7138,11 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   yocto-queue@1.2.2: {}
+
+  zod-formik-adapter@1.3.0(formik@2.4.9(@types/react@19.2.6)(react@19.2.0))(zod@3.25.76):
+    dependencies:
+      formik: 2.4.9(@types/react@19.2.6)(react@19.2.0)
+      zod: 3.25.76
 
   zod-formik-adapter@2.0.0(formik@2.4.9(@types/react@19.2.6)(react@19.2.0))(zod@4.1.12):
     dependencies:

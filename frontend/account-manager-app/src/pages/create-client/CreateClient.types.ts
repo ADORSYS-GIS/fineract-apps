@@ -19,6 +19,6 @@ export const initialValues: CreateClientForm = {
 	lastname: "",
 	emailAddress: "",
 	mobileNo: "",
-	activationDate: "",
+	activationDate: new Date().toISOString().split("T")[0], // Will be overridden with business date
 	active: false,
 };

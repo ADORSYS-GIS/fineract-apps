@@ -1,4 +1,5 @@
 import { OfficesService, RolesService } from "@fineract-apps/fineract-api";
+import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { FormikHelpers } from "formik";
@@ -27,6 +28,8 @@ export const useCreateUser = () => {
 	const [creationStep, setCreationStep] = useState<CreationStep>({
 		step: "form",
 	});
+	const { businessDate } = useBusinessDate();
+
 	const navigate = useNavigate();
 	const { success, error } = useToast();
 	const queryClient = useQueryClient();
@@ -40,7 +43,7 @@ export const useCreateUser = () => {
 		roles: 0,
 		isLoanOfficer: false,
 		mobileNo: "",
-		joiningDate: "",
+		joiningDate: businessDate,
 	};
 
 	// Mutation to create the employee in Fineract

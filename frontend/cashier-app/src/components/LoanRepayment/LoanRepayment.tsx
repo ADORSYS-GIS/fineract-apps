@@ -22,11 +22,11 @@ export function LoanRepayment() {
 	} = useQuery<GetLoansLoanIdResponse, ApiError>({
 		queryKey: ["loan", loanId],
 		queryFn: () =>
-			LoansService.getV1LoansByLoanId({ loanId: parseInt(loanId, 10) }),
+			LoansService.getV1LoansByLoanId({ loanId: Number.parseInt(loanId, 10) }),
 	});
 
 	const repaymentForm = useRepaymentForm(
-		parseInt(loanId, 10),
+		Number.parseInt(loanId, 10),
 		setTransactionId,
 		refetch,
 	);

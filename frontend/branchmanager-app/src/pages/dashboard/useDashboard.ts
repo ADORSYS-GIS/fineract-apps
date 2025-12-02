@@ -79,13 +79,6 @@ export function useDashboard() {
 		[filteredAssignments, page],
 	);
 
-	function onLogout() {
-		const base = import.meta.env.BASE_URL || "/branchmanager/";
-		const appBase = base.endsWith("/") ? base : `${base}/`;
-		const redirectTo = `${window.location.origin}${appBase}`;
-		window.location.href = `${appBase}callback?logout=${encodeURIComponent(redirectTo)}`;
-	}
-
 	return {
 		title: "Branch Manager Dashboard",
 		query,
@@ -101,4 +94,11 @@ export function useDashboard() {
 		setPage,
 		onLogout,
 	};
+}
+
+function onLogout() {
+	const base = import.meta.env.BASE_URL || "/branchmanager/";
+	const appBase = base.endsWith("/") ? base : `${base}/`;
+	const redirectTo = `${globalThis.location.origin}${appBase}`;
+	globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(redirectTo)}`;
 }
