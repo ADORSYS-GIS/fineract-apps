@@ -397,6 +397,9 @@ importers:
       '@fineract-apps/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@tanstack/react-query':
+        specifier: ^5.90.1
+        version: 5.90.10(react@19.2.0)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1

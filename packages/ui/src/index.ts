@@ -24,9 +24,13 @@ export { Table } from "./components/Table";
 export type { TableColumn, TableProps } from "./components/Table/Table.types";
 export { useBusinessDate } from "./hooks/useBusinessDate";
 export { useOnClickOutside } from "./hooks/useOnClickOutside";
-export { cn, formatCurrency, formatToFineractDate } from "./lib/utils";
 export {
-	BusinessDateService,
+	cn,
+	formatBusinessDateForInput,
+	formatCurrency,
+	formatToFineractDate,
+} from "./lib/utils";
+export {
 	getBusinessDate,
 	getBusinessDateByType,
 } from "./services/businessDateService";
