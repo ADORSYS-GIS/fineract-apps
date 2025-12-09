@@ -1,9 +1,4 @@
-import {
-	AppLayout,
-	menuReporting,
-	Navbar,
-	Sidebar,
-} from "@fineract-apps/ui";
+import { AppLayout, menuReporting, Navbar, Sidebar } from "@fineract-apps/ui";
 import {
 	createRootRoute,
 	Outlet,

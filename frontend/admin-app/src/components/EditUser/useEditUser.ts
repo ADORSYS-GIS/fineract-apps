@@ -1,17 +1,10 @@
-import {
-	OfficesService,
-	RolesService,
-	StaffService,
-	UsersService,
-} from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { useToast } from "@/components/Toast";
-import {
-	UserEditFormValues,
-	userEditFormSchema,
-} from "@/components/UserForm/userFormSchema";
+import { UserEditFormValues } from "@/components/UserForm/userFormSchema";
+import { getEmployee, updateEmployee } from "@/services/employeeApi";
+import { Employee } from "@/services/types";
 
 export const useEditUser = () => {
 	const { userId } = useParams({ from: "/users/$userId/edit" });
@@ -21,77 +14,49 @@ export const useEditUser = () => {
 	const [error, setError] = useState<string | null>(null);
 
 	const { data: user, isLoading: isLoadingUser } = useQuery({
-		queryKey: ["users", userId],
-		queryFn: () =>
-			UsersService.getV1UsersByUserId({ userId: Number.parseInt(userId, 10) }),
-	});
-
-	const { data: offices } = useQuery({
-		queryKey: ["offices"],
-		queryFn: () => OfficesService.getV1Offices(),
-	});
-
-	const { data: roles } = useQuery({
-		queryKey: ["roles"],
-		queryFn: () => RolesService.getV1Roles(),
-	});
-
-	const { data: staffData } = useQuery({
-		queryKey: ["staff"],
-		queryFn: () => StaffService.getV1Staff(),
+		queryKey: ["employee", userId],
+		queryFn: () => getEmployee(Number.parseInt(userId, 10)),
 	});
 
 	const { mutateAsync: updateUser, isPending: isUpdatingUser } = useMutation({
 		mutationFn: (updatedUser: UserEditFormValues) =>
-			UsersService.putV1UsersByUserId({
-				userId: Number.parseInt(userId, 10),
-				requestBody: {
-					...updatedUser,
-					roles: [updatedUser.roles],
-				},
+			updateEmployee(Number.parseInt(userId, 10), {
+				firstname: updatedUser.firstname,
+				lastname: updatedUser.lastname,
+				mobileNo: updatedUser.mobileNo,
+				isLoanOfficer: updatedUser.isLoanOfficer ?? false,
+				roles: [updatedUser.roles],
+				officeId: updatedUser.officeId,
 			}),
 	});
 
-	const officeOptions = (offices || []).map((office) => ({
-		label: office.name || "",
-		value: office.id || 0,
-	}));
-
-	const staffOptions =
-		staffData?.map((staff) => ({
-			label: staff.displayName!,
-			value: staff.id!,
-		})) || [];
-
-	const roleOptions = (roles || []).map((role) => ({
-		label: role.name || "",
-		value: role.id || 0,
-	}));
-
 	const initialValues = {
-		username: user?.username || "",
-		firstname: user?.firstname || "",
-		lastname: user?.lastname || "",
-		email: user?.email || "",
-		officeId: user?.officeId || 0,
-		staffId: user?.staff?.id || 0,
-		roles: user?.selectedRoles?.[0]?.id || 0,
+		firstname: user?.firstname ?? "",
+		lastname: user?.lastname ?? "",
+		mobileNo: user?.mobileNo ?? "",
+		isLoanOfficer: user?.staff?.isLoanOfficer ?? false,
+		roles: user?.selectedRoles?.[0]?.id ?? 0,
+		officeId: user?.officeId ?? 0,
 	};
 
 	const onSubmit = async (values: UserEditFormValues) => {
 		setError(null);
 		try {
-			const updatedUser = userEditFormSchema.parse(values);
-			await updateUser(updatedUser);
+			await updateUser(values);
 
 			toast.success("User updated successfully!");
 			queryClient.invalidateQueries({ queryKey: ["users"] });
+			queryClient.setQueryData(
+				["employee", userId],
+				(oldData: Employee | undefined) =>
+					oldData ? { ...oldData, ...values } : undefined,
+			);
 			navigate({ to: `/users/${userId}` });
 		} catch (err: unknown) {
 			const errorMessage =
 				(err as { body?: { errors?: Array<{ developerMessage?: string }> } })
-					.body?.errors?.[0]?.developerMessage ||
-				(err instanceof Error ? err.message : null) ||
+					.body?.errors?.[0]?.developerMessage ??
+				(err instanceof Error ? err.message : null) ??
 				"Failed to update user. Please try again.";
 			setError(errorMessage);
 		}
@@ -99,9 +64,6 @@ export const useEditUser = () => {
 
 	return {
 		initialValues,
-		officeOptions,
-		staffOptions,
-		roleOptions,
 		isUpdatingUser,
 		isLoadingUser,
 		onSubmit,

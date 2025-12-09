@@ -48,14 +48,14 @@ export function useReportViewer({
 		}
 	};
 
-	const handleExportExcel = () => {
+	const handleExportExcel = async () => {
 		if (!reportData) {
 			toast.error("No data to export");
 			return;
 		}
 
 		try {
-			exportToExcel(
+			await exportToExcel(
 				reportData.columnHeaders,
 				reportData.data,
 				`${reportName}_${new Date().toISOString().split("T")[0]}.xlsx`,

@@ -17,10 +17,7 @@ export function ReportViewerView({
 	onExportCSV,
 	onExportExcel,
 }: ReportViewerViewProps) {
-	const formatCellValue = (
-		value: unknown,
-		columnType: string,
-	): string => {
+	const formatCellValue = (value: unknown, columnType: string): string => {
 		if (value === null || value === undefined) return "-";
 
 		switch (columnType) {
@@ -37,6 +34,17 @@ export function ReportViewerView({
 					: String(value);
 			case "DATE":
 			case "DATETIME":
+				if (Array.isArray(value) && value.length >= 3) {
+					try {
+						// Handles dates like [2024, 2, 1]
+						const [year, month, day] = value;
+						const date = new Date(year, month - 1, day);
+						return date.toLocaleDateString();
+					} catch {
+						// Fallback for unexpected array format
+						return value.join("-");
+					}
+				}
 				// Format date if it's a string date
 				if (typeof value === "string" && value.includes("-")) {
 					try {
@@ -133,12 +141,12 @@ export function ReportViewerView({
 								<tbody className="bg-white divide-y divide-gray-200">
 									{data.map((row, rowIndex) => (
 										<tr
-											key={rowIndex}
+											key={`row-${rowIndex}-${row.row[0]}`}
 											className="hover:bg-gray-50 transition-colors"
 										>
 											{row.row.map((cell, cellIndex) => (
 												<td
-													key={`${rowIndex}-${cellIndex}`}
+													key={`${columnHeaders[cellIndex]?.columnName || cellIndex}-${rowIndex}`}
 													className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
 												>
 													{formatCellValue(

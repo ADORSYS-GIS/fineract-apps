@@ -2,7 +2,13 @@ import { AuditsService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import type { AuditEntry, AuditFilters, AuditTrailData } from "./AuditTrail.types";
+import type { ColumnHeader } from "@/pages/reports/report-viewer/ReportViewer.types";
+import { exportToCSV, exportToExcel } from "@/utils/exportHelpers";
+import type {
+	AuditEntry,
+	AuditFilters,
+	AuditTrailData,
+} from "./AuditTrail.types";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -25,14 +31,16 @@ export function useAuditTrail(): AuditTrailData {
 				limit: ITEMS_PER_PAGE,
 				orderBy: "id",
 				sortOrder: "DESC",
+				dateFormat: "dd MMMM yyyy",
+				locale: "en",
 			};
 
 			// Add filters if provided
 			if (filters.fromDate) {
-				params.makerDateTimeFrom = `${filters.fromDate} 00:00:00`;
+				params.fromDate = `${filters.fromDate}T00:00:00.000Z`;
 			}
 			if (filters.toDate) {
-				params.makerDateTimeTo = `${filters.toDate} 23:59:59`;
+				params.toDate = `${filters.toDate}T23:59:59.999Z`;
 			}
 			if (filters.actionName) {
 				params.actionName = filters.actionName;
@@ -42,7 +50,10 @@ export function useAuditTrail(): AuditTrailData {
 			}
 
 			const response = await AuditsService.getV1Audits(params);
-			return response as unknown as { pageItems: AuditEntry[]; totalFilteredRecords: number };
+			return response as unknown as {
+				pageItems: AuditEntry[];
+				totalFilteredRecords: number;
+			};
 		},
 	});
 
@@ -51,9 +62,126 @@ export function useAuditTrail(): AuditTrailData {
 		setCurrentPage(1); // Reset to first page when filters change
 	};
 
-	const handleExport = () => {
-		toast.success("Exporting audit trail...");
-		// TODO: Implement export functionality
+	const handleExportCSV = () => {
+		if (!audits || audits.length === 0) {
+			toast.error("No data to export");
+			return;
+		}
+
+		try {
+			const headers = [
+				{
+					columnName: "ID",
+					columnDisplayType: "INTEGER" as const,
+					columnType: "Integer",
+				},
+				{
+					columnName: "Action",
+					columnDisplayType: "TEXT" as const,
+					columnType: "String",
+				},
+				{
+					columnName: "Entity",
+					columnDisplayType: "TEXT" as const,
+					columnType: "String",
+				},
+				{
+					columnName: "Made By",
+					columnDisplayType: "TEXT" as const,
+					columnType: "String",
+				},
+				{
+					columnName: "Made On",
+					columnDisplayType: "DATE" as const,
+					columnType: "Date",
+				},
+				{
+					columnName: "Status",
+					columnDisplayType: "TEXT" as const,
+					columnType: "String",
+				},
+			];
+			const data = audits.map((audit) => ({
+				row: [
+					audit.id,
+					audit.actionName,
+					audit.entityName,
+					audit.maker,
+					audit.madeOnDate,
+					audit.processingResult,
+				],
+			}));
+			exportToCSV(
+				headers as ColumnHeader[],
+				data,
+				`audit_trail_${new Date().toISOString().split("T")[0]}.csv`,
+			);
+			toast.success("Audit trail exported to CSV");
+		} catch (error) {
+			toast.error("Failed to export CSV");
+			console.error("CSV export error:", error);
+		}
+	};
+
+	const handleExportExcel = () => {
+		if (!audits || audits.length === 0) {
+			toast.error("No data to export");
+			return;
+		}
+
+		try {
+			const headers = [
+				{
+					columnName: "ID",
+					columnDisplayType: "INTEGER" as const,
+					columnType: "Integer",
+				},
+				{
+					columnName: "Action",
+					columnDisplayType: "TEXT" as const,
+					columnType: "String",
+				},
+				{
+					columnName: "Entity",
+					columnDisplayType: "TEXT" as const,
+					columnType: "String",
+				},
+				{
+					columnName: "Made By",
+					columnDisplayType: "TEXT" as const,
+					columnType: "String",
+				},
+				{
+					columnName: "Made On",
+					columnDisplayType: "DATE" as const,
+					columnType: "Date",
+				},
+				{
+					columnName: "Status",
+					columnDisplayType: "TEXT" as const,
+					columnType: "String",
+				},
+			];
+			const data = audits.map((audit) => ({
+				row: [
+					audit.id,
+					audit.actionName,
+					audit.entityName,
+					audit.maker,
+					audit.madeOnDate,
+					audit.processingResult,
+				],
+			}));
+			exportToExcel(
+				headers as ColumnHeader[],
+				data,
+				`audit_trail_${new Date().toISOString().split("T")[0]}.xlsx`,
+			);
+			toast.success("Audit trail exported to Excel");
+		} catch (error) {
+			toast.error("Failed to export Excel");
+			console.error("Excel export error:", error);
+		}
 	};
 
 	const audits = auditsData?.pageItems || [];
@@ -71,6 +199,7 @@ export function useAuditTrail(): AuditTrailData {
 		filters,
 		onFilterChange: handleFilterChange,
 		onPageChange: setCurrentPage,
-		onExport: handleExport,
+		onExportCSV: handleExportCSV,
+		onExportExcel: handleExportExcel,
 	};
 }

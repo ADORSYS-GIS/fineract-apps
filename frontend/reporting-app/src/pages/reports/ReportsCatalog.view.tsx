@@ -55,12 +55,18 @@ export function ReportsCatalogView({
 							<div className="flex items-start mb-4">
 								<FileText className="w-6 h-6 text-blue-500 mr-3 flex-shrink-0" />
 								<div className="flex-1">
-									<h3 className="font-semibold text-lg mb-1">{report.reportName}</h3>
+									<h3 className="font-semibold text-lg mb-1">
+										{report.reportName}
+									</h3>
 									{report.reportType && (
-										<p className="text-sm text-gray-600 mb-2">{report.reportType}</p>
+										<p className="text-sm text-gray-600 mb-2">
+											{report.reportType}
+										</p>
 									)}
 									{report.description && (
-										<p className="text-sm text-gray-700 mb-4">{report.description}</p>
+										<p className="text-sm text-gray-700 mb-4">
+											{report.description}
+										</p>
 									)}
 								</div>
 							</div>

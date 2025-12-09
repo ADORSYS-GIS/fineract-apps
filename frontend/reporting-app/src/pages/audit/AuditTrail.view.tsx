@@ -3,10 +3,14 @@ import { Download, Filter, Shield } from "lucide-react";
 import type { AuditTrailData } from "./AuditTrail.types";
 
 export function AuditTrailView({
+	audits,
 	isLoading,
+	pagination,
 	filters,
 	onFilterChange,
-	onExport,
+	onPageChange,
+	onExportCSV,
+	onExportExcel,
 }: AuditTrailData) {
 	if (isLoading) {
 		return (
@@ -24,13 +28,22 @@ export function AuditTrailView({
 					<Shield className="w-8 h-8 mr-3 text-purple-500" />
 					<h1 className="text-3xl font-bold">Audit Trail</h1>
 				</div>
-				<button
-					onClick={onExport}
-					className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 flex items-center"
-				>
-					<Download className="w-4 h-4 mr-2" />
-					Export
-				</button>
+				<div className="flex gap-2">
+					<button
+						onClick={onExportCSV}
+						className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 flex items-center"
+					>
+						<Download className="w-4 h-4 mr-2" />
+						Export CSV
+					</button>
+					<button
+						onClick={onExportExcel}
+						className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 flex items-center"
+					>
+						<Download className="w-4 h-4 mr-2" />
+						Export Excel
+					</button>
+				</div>
 			</div>
 
 			<Card className="p-6 mb-6">
@@ -90,8 +103,86 @@ export function AuditTrailView({
 				</div>
 			</Card>
 
-			<Card className="p-6 text-center text-gray-600">
-				No audit entries found. Audit trail will be displayed here.
+			<Card className="p-6">
+				{audits.length > 0 ? (
+					<>
+						<div className="overflow-x-auto">
+							<table className="min-w-full divide-y divide-gray-200">
+								<thead className="bg-gray-50">
+									<tr>
+										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											ID
+										</th>
+										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											Action
+										</th>
+										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											Entity
+										</th>
+										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											Made By
+										</th>
+										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											Made On
+										</th>
+										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+											Status
+										</th>
+									</tr>
+								</thead>
+								<tbody className="bg-white divide-y divide-gray-200">
+									{audits.map((audit) => (
+										<tr key={audit.id}>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+												{audit.id}
+											</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+												{audit.actionName}
+											</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+												{audit.entityName}
+											</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+												{audit.maker}
+											</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+												{new Date(audit.madeOnDate).toLocaleDateString()}
+											</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+												{audit.processingResult}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+						<div className="flex justify-between items-center mt-4">
+							<span className="text-sm text-gray-700">
+								Showing {audits.length} of {pagination.totalItems} results
+							</span>
+							<div className="flex gap-2">
+								<button
+									onClick={() => onPageChange(pagination.currentPage - 1)}
+									disabled={pagination.currentPage === 1}
+									className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+								>
+									Previous
+								</button>
+								<button
+									onClick={() => onPageChange(pagination.currentPage + 1)}
+									disabled={pagination.currentPage === pagination.totalPages}
+									className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+								>
+									Next
+								</button>
+							</div>
+						</div>
+					</>
+				) : (
+					<div className="text-center text-gray-600">
+						No audit entries found for the selected filters.
+					</div>
+				)}
 			</Card>
 		</div>
 	);

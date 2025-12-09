@@ -1,7 +1,13 @@
 import { SavingsAccountTransactionData } from "@fineract-apps/fineract-api";
 import { HandCoins } from "lucide-react";
 import { AccountDetailsLayout } from "@/components/AccountDetails/AccountDetailsLayout";
-import { AccountActions, BlockAccountModal } from "./components";
+import {
+	AccountActions,
+	BankStatementForm,
+	BankStatementFormSchema,
+	BankStatementModal,
+	BlockAccountModal,
+} from "./components";
 import { useSavingsAccountDetails } from "./useSavingsAccountDetails";
 
 export const SavingsAccountDetailsView = (
@@ -9,6 +15,11 @@ export const SavingsAccountDetailsView = (
 		isBlockModalOpen: boolean;
 		openBlockModal: () => void;
 		closeBlockModal: () => void;
+		onGenerateStatement: (data: BankStatementFormSchema) => void;
+		receipt: Blob | null;
+		setReceipt: React.Dispatch<React.SetStateAction<Blob | null>>;
+		outputType: "PDF" | "XLS" | "CSV";
+		setOutputType: (outputType: "PDF" | "XLS" | "CSV") => void;
 	},
 ) => {
 	const {
@@ -21,6 +32,11 @@ export const SavingsAccountDetailsView = (
 		isBlockModalOpen,
 		openBlockModal,
 		closeBlockModal,
+		onGenerateStatement,
+		receipt,
+		setReceipt,
+		outputType,
+		setOutputType,
 	} = props;
 
 	if (isLoading) {
@@ -221,11 +237,12 @@ export const SavingsAccountDetailsView = (
 			),
 		},
 		{
-			title: "Balance Sheet",
+			title: "Bank Statement",
 			content: (
-				<div>
-					<h2 className="text-xl font-bold mb-4">Balance Sheet</h2>
-					<p>Balance sheet content will be displayed here.</p>
+				<div className="flex justify-center">
+					<div className="w-full md:w-1/2">
+						<BankStatementForm onSubmit={onGenerateStatement} />
+					</div>
 				</div>
 			),
 		},
@@ -244,6 +261,15 @@ export const SavingsAccountDetailsView = (
 				blockReasons={blockReasons}
 				onConfirm={blockAccount}
 			/>
+			{receipt && (
+				<BankStatementModal
+					accountNo={account?.accountNo || ""}
+					receipt={receipt}
+					onClose={() => setReceipt(null)}
+					outputType={outputType}
+					setOutputType={setOutputType}
+				/>
+			)}
 		</>
 	);
 };

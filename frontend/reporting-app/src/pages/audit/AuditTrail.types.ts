@@ -35,5 +35,6 @@ export interface AuditTrailData {
 	filters: AuditFilters;
 	onFilterChange: (key: keyof AuditFilters, value: string) => void;
 	onPageChange: (page: number) => void;
-	onExport: () => void;
+	onExportCSV: () => void;
+	onExportExcel: () => void;
 }

@@ -4,7 +4,7 @@ export const transactionSchema = z.object({
 	amount: z
 		.string()
 		.min(1, "Amount is required")
-		.refine((val) => !isNaN(parseFloat(val)), {
+		.refine((val) => !Number.isNaN(parseFloat(val)), {
 			message: "Amount must be a number",
 		})
 		.refine((val) => parseFloat(val) > 0, {
