@@ -1,4 +1,4 @@
-import { RunReportsService } from "@fineract-apps/fineract-api";
+import { OpenAPI, request } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { exportToCSV, exportToExcel } from "@/utils/exportHelpers";
@@ -20,9 +20,10 @@ export function useReportViewer({
 	} = useQuery({
 		queryKey: ["run-report", reportName, parameters],
 		queryFn: async () => {
-			const response = await RunReportsService.getV1RunreportsByReportName({
-				reportName,
-				...parameters,
+			const response = await request(OpenAPI, {
+				method: "GET",
+				url: `/v1/runreports/${reportName}`,
+				query: parameters,
 			});
 			return response as unknown as ReportExecutionResponse;
 		},

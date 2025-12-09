@@ -22,7 +22,10 @@ export function ReportParameterModal({
 	);
 
 	const handleSubmit = (values: ParameterFormValues) => {
-		const parameters: Record<string, string> = {};
+		const parameters: Record<string, string> = {
+			locale: "en",
+			dateFormat: "yyyy-MM-dd",
+		};
 
 		reportDetails?.reportParameters?.forEach((param) => {
 			const formKey = param.parameterVariable || param.parameterName;
@@ -113,7 +116,12 @@ export function ReportParameterModal({
 								This report has no parameters. Click Run to execute it.
 							</p>
 							<button
-								onClick={() => onSubmit({})}
+								onClick={() =>
+									onSubmit({
+										locale: "en",
+										dateFormat: "yyyy-MM-dd",
+									})
+								}
 								className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
 								type="button"
 							>
