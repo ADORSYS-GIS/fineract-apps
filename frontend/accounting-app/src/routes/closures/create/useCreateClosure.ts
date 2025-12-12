@@ -1,5 +1,9 @@
-import { AccountingClosureService } from "@fineract-apps/fineract-api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+	AccountingClosureService,
+	type GetOfficesResponse,
+	OfficesService,
+} from "@fineract-apps/fineract-api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -27,6 +31,14 @@ export function useCreateClosure() {
 		comments: "",
 	});
 	const [errors, setErrors] = useState<FormErrors>({});
+
+	// Fetch offices for the dropdown
+	const { data: offices = [], isLoading: isLoadingOffices } = useQuery<
+		GetOfficesResponse[]
+	>({
+		queryKey: ["offices"],
+		queryFn: () => OfficesService.getV1Offices({}),
+	});
 
 	const validateForm = (): boolean => {
 		const newErrors: FormErrors = {};
@@ -108,6 +120,8 @@ export function useCreateClosure() {
 	return {
 		formData,
 		errors,
+		offices,
+		isLoadingOffices,
 		isSubmitting: createMutation.isPending,
 		onFormChange: handleFormChange,
 		onSubmit: handleSubmit,

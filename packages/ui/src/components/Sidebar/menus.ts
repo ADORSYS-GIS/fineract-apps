@@ -1,7 +1,6 @@
 import {
 	BarChart3,
 	BookOpen,
-	Calculator,
 	CheckCircle,
 	FileText,
 	History,
@@ -44,11 +43,30 @@ export const menuReporting: MenuItem[] = [
 ];
 
 export const menuAccounting: MenuItem[] = [
-	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "gl_accounts", link: "/gl-accounts", icon: BookOpen },
-	{ name: "journal_entries", link: "/journal-entries", icon: FileText },
-	{ name: "create_entry", link: "/create-entry", icon: PlusCircle },
-	{ name: "approval_queue", link: "/approval-queue", icon: CheckCircle },
-	{ name: "closures", link: "/closures", icon: Lock },
-	{ name: "cash_short_over", link: "/cash-short-over", icon: Calculator },
+	{ name: "dashboard", title: "Dashboard", link: "/dashboard", icon: Home },
+	{
+		name: "gl_accounts",
+		title: "GL Accounts",
+		link: "/gl-accounts",
+		icon: BookOpen,
+	},
+	{
+		name: "journal_entries",
+		title: "Journal Entries",
+		link: "/journal-entries",
+		icon: FileText,
+	},
+	{
+		name: "create_entry",
+		title: "Create Entry",
+		link: "/create-entry",
+		icon: PlusCircle,
+	},
+	{
+		name: "approval_queue",
+		title: "Approval Queue",
+		link: "/approval-queue",
+		icon: CheckCircle,
+	},
+	{ name: "closures", title: "Closures", link: "/closures", icon: Lock },
 ];

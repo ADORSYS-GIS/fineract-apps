@@ -17,10 +17,7 @@ export function ReportViewerView({
 	onExportCSV,
 	onExportExcel,
 }: ReportViewerViewProps) {
-	const formatCellValue = (
-		value: unknown,
-		columnType: string,
-	): string => {
+	const formatCellValue = (value: unknown, columnType: string): string => {
 		if (value === null || value === undefined) return "-";
 
 		switch (columnType) {

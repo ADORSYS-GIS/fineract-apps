@@ -2,7 +2,11 @@ import { AuditsService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import type { AuditEntry, AuditFilters, AuditTrailData } from "./AuditTrail.types";
+import type {
+	AuditEntry,
+	AuditFilters,
+	AuditTrailData,
+} from "./AuditTrail.types";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -42,7 +46,10 @@ export function useAuditTrail(): AuditTrailData {
 			}
 
 			const response = await AuditsService.getV1Audits(params);
-			return response as unknown as { pageItems: AuditEntry[]; totalFilteredRecords: number };
+			return response as unknown as {
+				pageItems: AuditEntry[];
+				totalFilteredRecords: number;
+			};
 		},
 	});
 

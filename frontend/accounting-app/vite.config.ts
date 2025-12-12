@@ -11,11 +11,12 @@ export default mergeConfig(
 	baseViteConfig,
 	defineConfig({
 		publicDir: "../../public",
-		base: "/accounting/",
+		base: "/dashboard",
 		plugins: [
 			tanstackRouter({
 				target: "react",
 				autoCodeSplitting: true,
+				routeFileIgnorePattern: ".*(Container|View|use.*)\\.(tsx|ts)$",
 			}),
 		],
 		resolve: {

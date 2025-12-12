@@ -1,9 +1,20 @@
-import { JournalEntriesService } from "@fineract-apps/fineract-api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+	CurrencyService,
+	GeneralLedgerAccountService,
+	type GetGLAccountsResponse,
+	type GetOfficesResponse,
+	type GetPaymentTypesResponse,
+	type GetV1CurrenciesResponse,
+	JournalEntriesService,
+	OfficesService,
+	PaymentTypeService,
+} from "@fineract-apps/fineract-api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import "../../lib/api";
+import { format } from "date-fns";
 
 export interface EntryLine {
 	glAccountId: string;
@@ -11,10 +22,20 @@ export interface EntryLine {
 }
 
 export interface EntryFormData {
+	officeId: string;
 	transactionDate: string;
+	currencyCode: string;
+	paymentTypeId: string;
 	referenceNumber: string;
 	comments: string;
 }
+
+// Helper function to format date string from yyyy-MM-dd to dd MMMM yyyy
+const formatTransactionDate = (dateString: string) => {
+	if (!dateString) return "";
+	const date = new Date(dateString);
+	return format(date, "dd MMMM yyyy");
+};
 
 export function useCreateEntry() {
 	const today = new Date().toISOString().split("T")[0];
@@ -22,7 +43,10 @@ export function useCreateEntry() {
 	const queryClient = useQueryClient();
 
 	const [formData, setFormData] = useState<EntryFormData>({
+		officeId: "",
 		transactionDate: today,
+		currencyCode: "",
+		paymentTypeId: "",
 		referenceNumber: "",
 		comments: "",
 	});
@@ -35,6 +59,38 @@ export function useCreateEntry() {
 		{ glAccountId: "", amount: "" },
 	]);
 
+	// Fetching data for form dropdowns
+	const { data: glAccounts = [], isLoading: isLoadingGLAccounts } = useQuery<
+		GetGLAccountsResponse[]
+	>({
+		queryKey: ["gl-accounts-manual"],
+		queryFn: () =>
+			GeneralLedgerAccountService.getV1Glaccounts({
+				manualEntriesAllowed: true,
+				usage: 1,
+				disabled: false,
+			}),
+	});
+
+	const { data: offices = [], isLoading: isLoadingOffices } = useQuery<
+		GetOfficesResponse[]
+	>({
+		queryKey: ["offices"],
+		queryFn: () => OfficesService.getV1Offices({}),
+	});
+
+	const { data: currencies, isLoading: isLoadingCurrencies } =
+		useQuery<GetV1CurrenciesResponse>({
+			queryKey: ["currencies"],
+			queryFn: () => CurrencyService.getV1Currencies(),
+		});
+
+	const { data: paymentTypes = [], isLoading: isLoadingPaymentTypes } =
+		useQuery<GetPaymentTypesResponse[]>({
+			queryKey: ["payment-types"],
+			queryFn: () => PaymentTypeService.getV1Paymenttypes(),
+		});
+
 	const totalDebits = debits.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 	const totalCredits = credits.reduce(
 		(sum, c) => sum + Number(c.amount || 0),
@@ -43,63 +99,35 @@ export function useCreateEntry() {
 	const isBalanced = totalDebits === totalCredits && totalDebits > 0;
 
 	const createEntryMutation = useMutation({
-		mutationFn: async (entryData: {
+		mutationFn: (entryData: {
 			officeId: number;
+			currencyCode: string;
+			paymentTypeId: number;
 			transactionDate: string;
 			referenceNumber?: string;
 			comments?: string;
 			credits: Array<{ glAccountId: number; amount: number }>;
 			debits: Array<{ glAccountId: number; amount: number }>;
 		}) => {
-			// Convert date to Fineract format [day, month, year]
-			const dateParts = entryData.transactionDate.split("-");
-			const formattedDate = `${dateParts[2]} ${dateParts[1]} ${dateParts[0]}`;
-
 			const requestBody = {
-				officeId: entryData.officeId,
-				transactionDate: formattedDate,
-				referenceNumber: entryData.referenceNumber,
-				comments: entryData.comments,
-				credits: entryData.credits,
-				debits: entryData.debits,
+				...entryData,
 				locale: "en",
-				dateFormat: "dd MM yyyy",
+				dateFormat: "dd MMMM yyyy",
 			};
-
-			const response = await JournalEntriesService.postV1Journalentries1({
+			return JournalEntriesService.postV1Journalentries({
 				requestBody,
 			});
-
-			return response;
 		},
 		onSuccess: () => {
-			// Show success message with pending approval status
-			toast.success(
-				"Journal entry submitted successfully! Pending approval from admin.",
-				{ duration: 6000 },
-			);
-
-			// Invalidate relevant queries to refresh data
-			queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
-			queryClient.invalidateQueries({ queryKey: ["accounting-stats"] });
-			queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
-
-			// Reset form
-			setFormData({
-				transactionDate: today,
-				referenceNumber: "",
-				comments: "",
+			toast.success("Journal entry submitted successfully! Pending approval.", {
+				duration: 6000,
 			});
-			setDebits([{ glAccountId: "", amount: "" }]);
-			setCredits([{ glAccountId: "", amount: "" }]);
-
-			// Navigate to approval queue after a short delay
-			setTimeout(() => {
-				navigate({ to: "/approval-queue" });
-			}, 1500);
+			queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+			queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
+			setTimeout(() => navigate({ to: "/journal-entries" }), 1500);
 		},
 		onError: (error: Error) => {
-			toast.error(`Failed to create journal entry: ${error.message}`);
+			toast.error(`Submission failed: ${error.message}`);
 		},
 	});
 
@@ -107,21 +135,14 @@ export function useCreateEntry() {
 		setFormData((prev) => ({ ...prev, [field]: value }));
 	};
 
-	const handleAddDebit = () => {
+	const handleAddDebit = () =>
 		setDebits((prev) => [...prev, { glAccountId: "", amount: "" }]);
-	};
-
-	const handleRemoveDebit = (index: number) => {
+	const handleRemoveDebit = (index: number) =>
 		setDebits((prev) => prev.filter((_, i) => i !== index));
-	};
-
-	const handleAddCredit = () => {
+	const handleAddCredit = () =>
 		setCredits((prev) => [...prev, { glAccountId: "", amount: "" }]);
-	};
-
-	const handleRemoveCredit = (index: number) => {
+	const handleRemoveCredit = (index: number) =>
 		setCredits((prev) => prev.filter((_, i) => i !== index));
-	};
 
 	const handleDebitChange = (
 		index: number,
@@ -145,15 +166,16 @@ export function useCreateEntry() {
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-
 		if (!isBalanced) {
 			toast.error("Entry is not balanced. Debits must equal credits.");
 			return;
 		}
 
 		const entryData = {
-			officeId: 1, // This would come from user context
-			transactionDate: formData.transactionDate,
+			officeId: Number(formData.officeId),
+			currencyCode: formData.currencyCode,
+			paymentTypeId: Number(formData.paymentTypeId),
+			transactionDate: formatTransactionDate(formData.transactionDate),
 			referenceNumber: formData.referenceNumber,
 			comments: formData.comments,
 			debits: debits.map((d) => ({
@@ -174,6 +196,15 @@ export function useCreateEntry() {
 		debits,
 		credits,
 		isBalanced,
+		glAccounts,
+		offices,
+		currencies: currencies?.selectedCurrencyOptions || [],
+		paymentTypes,
+		isLoading:
+			isLoadingGLAccounts ||
+			isLoadingOffices ||
+			isLoadingCurrencies ||
+			isLoadingPaymentTypes,
 		isSubmitting: createEntryMutation.isPending,
 		onFormChange: handleFormChange,
 		onAddDebit: handleAddDebit,

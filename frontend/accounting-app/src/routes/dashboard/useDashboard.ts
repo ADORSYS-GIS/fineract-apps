@@ -1,59 +1,99 @@
 import {
 	GeneralLedgerAccountService,
+	type GetGLAccountsResponse,
+	type GetV1JournalentriesResponse,
+	type GetV1MakercheckersResponse,
 	JournalEntriesService,
 	MakerCheckerOr4EyeFunctionalityService,
 } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import "../../lib/api";
+import { format } from "date-fns";
 
 export interface AccountingStats {
 	glAccountsCount: number;
 	journalEntriesToday: number;
 	pendingApprovals: number;
 	totalBalance: number;
+	recentActivities: Array<{
+		id: string;
+		type: string;
+		title: string;
+		description: string;
+		amount: number | undefined;
+		entryType: string | undefined;
+		timestamp: string | undefined;
+		icon: string;
+		color: string;
+	}>;
 }
 
 export function useDashboard() {
 	const { data: stats, isLoading } = useQuery<AccountingStats>({
 		queryKey: ["accounting-stats"],
 		queryFn: async () => {
-			const today = new Date().toISOString().split("T")[0];
+			const today = format(new Date(), "yyyy-MM-dd");
 
-			// Fetch GL accounts count
+			// Fetch GL accounts and calculate total balance
 			const glAccountsResponse =
-				await GeneralLedgerAccountService.getV1GlAccounts({
+				(await GeneralLedgerAccountService.getV1Glaccounts({
 					disabled: false,
-				});
-			const glAccounts = glAccountsResponse as unknown as Array<{
-				id: number;
-			}>;
-			const glAccountsCount = glAccounts?.length || 0;
+				})) as GetGLAccountsResponse[];
+			const glAccountsCount = glAccountsResponse?.length || 0;
+			const totalBalance =
+				glAccountsResponse?.reduce(
+					(acc, account) => acc + (account.organizationRunningBalance || 0),
+					0,
+				) || 0;
 
 			// Fetch journal entries for today
 			const journalEntriesResponse =
-				await JournalEntriesService.getV1Journalentries({
+				(await JournalEntriesService.getV1Journalentries({
 					fromDate: today,
 					toDate: today,
-				});
-			const journalEntries = journalEntriesResponse as unknown as Array<{
-				id: number;
-			}>;
-			const journalEntriesToday = journalEntries?.length || 0;
+					dateFormat: "yyyy-MM-dd",
+					locale: "en",
+				} as unknown as Parameters<
+					typeof JournalEntriesService.getV1Journalentries
+				>[0])) as GetV1JournalentriesResponse;
+			const journalEntriesToday =
+				journalEntriesResponse?.pageItems?.length || 0;
 
 			// Fetch pending approvals count
 			const approvalsResponse =
-				await MakerCheckerOr4EyeFunctionalityService.getV1Makercheckers({});
-			const approvals = approvalsResponse as unknown as Array<{ id: number }>;
-			const pendingApprovals = approvals?.length || 0;
+				(await MakerCheckerOr4EyeFunctionalityService.getV1Makercheckers(
+					{},
+				)) as GetV1MakercheckersResponse[];
+			const pendingApprovals = approvalsResponse?.length || 0;
 
-			// Note: Total balance would need additional calculation
-			// For now, returning 0 as placeholder
+			// Fetch recent journal entries (representing recent accounting activities)
+			const recentEntriesResponse =
+				(await JournalEntriesService.getV1Journalentries({
+					limit: 10,
+					offset: 0,
+				})) as GetV1JournalentriesResponse;
+
+			// Create activity items from journal entries
+			const recentActivities = (recentEntriesResponse?.pageItems || []).map(
+				(entry) => ({
+					id: `entry-${entry.id}`,
+					type: "journal_entry",
+					title: `Journal Entry #${entry.transactionId || entry.id}`,
+					description: `Created on ${entry.transactionDate ? new Date(entry.transactionDate).toLocaleDateString() : "N/A"}`,
+					amount: entry.amount,
+					entryType: entry.entryType?.value,
+					timestamp: entry.transactionDate,
+					icon: "FileText",
+					color: "blue",
+				}),
+			);
 
 			return {
 				glAccountsCount,
 				journalEntriesToday,
 				pendingApprovals,
-				totalBalance: 0,
+				totalBalance,
+				recentActivities,
 			};
 		},
 	});

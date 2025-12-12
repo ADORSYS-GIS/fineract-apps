@@ -1,5 +1,6 @@
-import { Button, Card } from "@fineract-apps/ui";
+import { Button } from "@fineract-apps/ui";
 import { Calendar, Lock, Plus, Trash2 } from "lucide-react";
+import { PageHeader } from "../../components";
 import type { Closure } from "./useClosures";
 
 interface ClosuresViewProps {
@@ -16,30 +17,29 @@ export function ClosuresView({
 	onDeleteClosure,
 }: ClosuresViewProps) {
 	return (
-		<div className="p-6">
-			<div className="flex items-center justify-between mb-6">
-				<div>
-					<h1 className="text-2xl font-bold">Accounting Closures</h1>
-					<p className="text-gray-600 mt-1">
-						Manage period-end accounting closures
-					</p>
-				</div>
-				<Button onClick={onCreateClosure} className="flex items-center gap-2">
-					<Plus className="h-4 w-4" />
-					Create Closure
-				</Button>
-			</div>
+		<div className="p-6 min-h-screen">
+			<PageHeader
+				title="Accounting Closures"
+				subtitle="Manage period-end accounting closures"
+				actions={[
+					{
+						label: "Create Closure",
+						onClick: onCreateClosure,
+						icon: <Plus className="h-4 w-4" />,
+					},
+				]}
+			/>
 
 			{isLoading ? (
-				<Card className="p-6">
+				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 					<div className="animate-pulse space-y-4">
 						{[...Array(3)].map((_, i) => (
 							<div key={i} className="h-20 bg-gray-200 rounded" />
 						))}
 					</div>
-				</Card>
+				</div>
 			) : closures.length === 0 ? (
-				<Card className="p-12 text-center">
+				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
 					<Lock className="h-16 w-16 mx-auto mb-4 text-gray-400" />
 					<h3 className="text-lg font-semibold mb-2">No Closures Yet</h3>
 					<p className="text-gray-500 mb-4">
@@ -49,11 +49,14 @@ export function ClosuresView({
 						<Plus className="h-4 w-4" />
 						Create First Closure
 					</Button>
-				</Card>
+				</div>
 			) : (
 				<div className="space-y-4">
 					{closures.map((closure) => (
-						<Card key={closure.id} className="p-6">
+						<div
+							key={closure.id}
+							className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+						>
 							<div className="flex items-start justify-between">
 								<div className="flex items-start gap-4 flex-1">
 									<div className="p-3 bg-blue-50 rounded-lg">
@@ -117,13 +120,13 @@ export function ClosuresView({
 									Delete
 								</Button>
 							</div>
-						</Card>
+						</div>
 					))}
 				</div>
 			)}
 
 			{closures.length > 0 && (
-				<Card className="p-4 mt-6 bg-blue-50 border-blue-200">
+				<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
 					<div className="flex items-start gap-2 text-blue-800">
 						<Lock className="h-5 w-5 mt-0.5" />
 						<div className="text-sm">
@@ -135,7 +138,7 @@ export function ClosuresView({
 							</p>
 						</div>
 					</div>
-				</Card>
+				</div>
 			)}
 		</div>
 	);

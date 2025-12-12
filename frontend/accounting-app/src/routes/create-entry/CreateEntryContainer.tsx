@@ -7,6 +7,11 @@ export function CreateEntryContainer() {
 		debits,
 		credits,
 		isBalanced,
+		glAccounts,
+		offices,
+		currencies,
+		paymentTypes,
+		isLoading,
 		isSubmitting,
 		onFormChange,
 		onAddDebit,
@@ -24,6 +29,11 @@ export function CreateEntryContainer() {
 			debits={debits}
 			credits={credits}
 			isBalanced={isBalanced}
+			glAccounts={glAccounts}
+			offices={offices}
+			currencies={currencies}
+			paymentTypes={paymentTypes}
+			isLoading={isLoading}
 			isSubmitting={isSubmitting}
 			onFormChange={onFormChange}
 			onAddDebit={onAddDebit}

@@ -1,148 +1,217 @@
-import { Button, Card } from "@fineract-apps/ui";
-import { Check, Clock, X } from "lucide-react";
-import type { PendingApproval } from "./useApprovalQueue";
+import { type GetV1MakercheckersResponse } from "@fineract-apps/fineract-api";
+import { Button } from "@fineract-apps/ui";
+import { format } from "date-fns";
+import { Check, ThumbsDown, Trash2 } from "lucide-react";
+import { useState } from "react";
+import {
+	ConfirmationModal,
+	DataTable,
+	FiltersBar,
+	PageHeader,
+} from "../../components";
+
+interface DateRange {
+	from: string;
+	to: string;
+}
 
 interface ApprovalQueueViewProps {
-	pendingApprovals: PendingApproval[];
+	pendingEntries: GetV1MakercheckersResponse[] | undefined;
 	isLoading: boolean;
-	canApprove: boolean;
-	canReject: boolean;
-	onApprove: (auditId: number) => void;
-	onReject: (auditId: number) => void;
-	isApproving: number | null;
-	isRejecting: number | null;
+	isProcessing: boolean;
+	dateRange: DateRange;
+	onDateRangeChange: (range: DateRange) => void;
+	onApprove: (entry: GetV1MakercheckersResponse) => void;
+	onReject: (entry: GetV1MakercheckersResponse) => void;
+	onDelete: (entry: GetV1MakercheckersResponse) => void;
 }
 
 export function ApprovalQueueView({
-	pendingApprovals,
+	pendingEntries,
 	isLoading,
-	canApprove,
-	canReject,
+	isProcessing,
+	dateRange,
+	onDateRangeChange,
 	onApprove,
 	onReject,
-	isApproving,
-	isRejecting,
+	onDelete,
 }: ApprovalQueueViewProps) {
+	const [confirmationModal, setConfirmationModal] = useState<{
+		isOpen: boolean;
+		title: string;
+		message: string;
+		confirmText: string;
+		action: () => void;
+	}>({
+		isOpen: false,
+		title: "",
+		message: "",
+		confirmText: "",
+		action: () => {
+			// Default empty action for initial state
+		},
+	});
+
+	const openConfirmationModal = (
+		title: string,
+		message: string,
+		confirmText: string,
+		action: () => void,
+	) => {
+		setConfirmationModal({
+			isOpen: true,
+			title,
+			message,
+			confirmText,
+			action,
+		});
+	};
+
+	const closeConfirmationModal = () => {
+		setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
+	};
+
+	const handleConfirmAction = () => {
+		confirmationModal.action();
+		closeConfirmationModal();
+	};
+
+	const columns = [
+		{
+			key: "madeOnDate",
+			header: "Made On",
+			className: "min-w-[140px]",
+			render: (value: unknown) =>
+				value ? format(new Date(value as string), "dd MMM yyyy, h:mm a") : "-",
+		},
+		{
+			key: "maker",
+			header: "Maker",
+			className: "min-w-[120px] hidden md:table-cell",
+		},
+		{
+			key: "actionName",
+			header: "Action",
+			className: "min-w-[100px]",
+		},
+		{
+			key: "entityName",
+			header: "Entity",
+			className: "min-w-[100px] hidden sm:table-cell",
+		},
+		{
+			key: "actions",
+			header: "Actions",
+			className: "text-right min-w-[200px]",
+			render: (_: unknown, entry: GetV1MakercheckersResponse) => (
+				<div className="flex flex-col sm:flex-row justify-end gap-1 sm:gap-2">
+					<Button
+						onClick={() =>
+							openConfirmationModal(
+								"Approve Entry",
+								"Are you sure you want to approve this journal entry?",
+								"Approve",
+								() => onApprove(entry),
+							)
+						}
+						disabled={isProcessing}
+						size="sm"
+						className="bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm"
+					>
+						<Check className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+						<span className="hidden sm:inline">Approve</span>
+						<span className="sm:hidden">✓</span>
+					</Button>
+					<Button
+						onClick={() =>
+							openConfirmationModal(
+								"Reject Entry",
+								"Are you sure you want to reject this journal entry? This action cannot be undone.",
+								"Reject",
+								() => onReject(entry),
+							)
+						}
+						disabled={isProcessing}
+						size="sm"
+						variant="outline"
+						className="text-yellow-600 border-yellow-500 hover:bg-yellow-50 text-xs sm:text-sm"
+					>
+						<ThumbsDown className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+						<span className="hidden sm:inline">Reject</span>
+						<span className="sm:hidden">✗</span>
+					</Button>
+					<Button
+						onClick={() =>
+							openConfirmationModal(
+								"Delete Entry",
+								"Are you sure you want to delete this pending entry? This will remove it from the queue entirely.",
+								"Delete",
+								() => onDelete(entry),
+							)
+						}
+						disabled={isProcessing}
+						size="sm"
+						variant="destructive"
+						className="text-xs sm:text-sm"
+					>
+						<Trash2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+						<span className="hidden sm:inline">Delete</span>
+						<span className="sm:hidden">🗑️</span>
+					</Button>
+				</div>
+			),
+		},
+	];
+
 	return (
 		<div className="p-6">
-			<div className="flex items-center justify-between mb-6">
-				<div>
-					<h1 className="text-2xl font-bold">Approval Queue</h1>
-					<p className="text-gray-600 mt-1">
-						Review and approve pending accounting entries
-					</p>
-				</div>
-				<div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
-					<Clock className="h-5 w-5 text-blue-600" />
-					<span className="text-sm font-medium text-blue-900">
-						{pendingApprovals.length} Pending
-					</span>
-				</div>
+			<PageHeader
+				title="Approval Queue"
+				subtitle="Review and approve pending journal entries."
+			/>
+
+			<div className="mb-6">
+				<FiltersBar
+					filters={[
+						{
+							key: "fromDate",
+							label: "From Date",
+							type: "date",
+							value: dateRange.from,
+							onChange: (value) =>
+								onDateRangeChange({ ...dateRange, from: value }),
+						},
+						{
+							key: "toDate",
+							label: "To Date",
+							type: "date",
+							value: dateRange.to,
+							onChange: (value) =>
+								onDateRangeChange({ ...dateRange, to: value }),
+						},
+					]}
+				/>
 			</div>
 
-			{isLoading ? (
-				<Card className="p-6">
-					<div className="animate-pulse space-y-4">
-						{[...Array(3)].map((_, i) => (
-							<div key={i} className="h-24 bg-gray-200 rounded" />
-						))}
-					</div>
-				</Card>
-			) : pendingApprovals.length === 0 ? (
-				<Card className="p-12 text-center">
-					<Check className="h-16 w-16 mx-auto mb-4 text-green-500" />
-					<h3 className="text-lg font-semibold mb-2">All caught up!</h3>
-					<p className="text-gray-600">
-						There are no pending approvals at this time.
-					</p>
-				</Card>
-			) : (
-				<div className="space-y-4">
-					{pendingApprovals.map((approval) => (
-						<Card key={approval.id} className="p-6">
-							<div className="flex items-start justify-between">
-								<div className="flex-1">
-									<div className="flex items-center gap-3 mb-2">
-										<h3 className="text-lg font-semibold">
-											{approval.actionName}
-										</h3>
-										<span className="px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-											Pending Approval
-										</span>
-									</div>
-									<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-										<div>
-											<span className="text-gray-600">Entity:</span>
-											<p className="font-medium">{approval.entityName}</p>
-										</div>
-										<div>
-											<span className="text-gray-600">Resource ID:</span>
-											<p className="font-medium">{approval.resourceId}</p>
-										</div>
-										<div>
-											<span className="text-gray-600">Submitted by:</span>
-											<p className="font-medium">{approval.maker}</p>
-										</div>
-										<div>
-											<span className="text-gray-600">Submitted on:</span>
-											<p className="font-medium">
-												{new Date(approval.madeOnDate).toLocaleDateString()}
-											</p>
-										</div>
-									</div>
-									{approval.processingResult && (
-										<div className="mt-3 p-3 bg-gray-50 rounded">
-											<span className="text-sm text-gray-600">Details:</span>
-											<p className="text-sm mt-1">
-												{approval.processingResult}
-											</p>
-										</div>
-									)}
-								</div>
-								{canApprove || canReject ? (
-									<div className="flex gap-2 ml-4">
-										{canApprove && (
-											<Button
-												onClick={() => onApprove(approval.id)}
-												disabled={
-													isApproving === approval.id ||
-													isRejecting === approval.id
-												}
-												className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-											>
-												<Check className="h-4 w-4" />
-												{isApproving === approval.id
-													? "Approving..."
-													: "Approve"}
-											</Button>
-										)}
-										{canReject && (
-											<Button
-												onClick={() => onReject(approval.id)}
-												disabled={
-													isApproving === approval.id ||
-													isRejecting === approval.id
-												}
-												variant="outline"
-												className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
-											>
-												<X className="h-4 w-4" />
-												{isRejecting === approval.id
-													? "Rejecting..."
-													: "Reject"}
-											</Button>
-										)}
-									</div>
-								) : (
-									<div className="ml-4 px-3 py-2 bg-gray-100 rounded text-sm text-gray-600">
-										View only (Admin role required)
-									</div>
-								)}
-							</div>
-						</Card>
-					))}
-				</div>
-			)}
+			<div className="overflow-x-auto">
+				<DataTable
+					data={pendingEntries || []}
+					columns={columns}
+					isLoading={isLoading}
+					emptyMessage="No pending approvals found."
+					className="min-w-full"
+				/>
+			</div>
+
+			<ConfirmationModal
+				isOpen={confirmationModal.isOpen}
+				title={confirmationModal.title}
+				message={confirmationModal.message}
+				confirmText={confirmationModal.confirmText}
+				onConfirm={handleConfirmAction}
+				onCancel={closeConfirmationModal}
+				isLoading={isProcessing}
+			/>
 		</div>
 	);
 }

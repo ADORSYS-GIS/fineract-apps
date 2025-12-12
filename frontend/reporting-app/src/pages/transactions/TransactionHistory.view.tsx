@@ -61,7 +61,9 @@ export function TransactionHistoryView({
 						<select
 							className="w-full px-3 py-2 border border-gray-300 rounded-lg"
 							value={filters.transactionType}
-							onChange={(e) => onFilterChange("transactionType", e.target.value)}
+							onChange={(e) =>
+								onFilterChange("transactionType", e.target.value)
+							}
 						>
 							<option value="">All Types</option>
 							<option value="deposit">Deposit</option>

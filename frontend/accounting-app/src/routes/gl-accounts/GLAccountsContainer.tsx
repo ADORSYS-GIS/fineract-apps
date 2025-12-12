@@ -8,8 +8,12 @@ export function GLAccountsContainer() {
 		isLoading,
 		searchTerm,
 		accountType,
+		currentPage,
+		totalPages,
+		totalCount,
 		onSearch,
 		onFilterByType,
+		onPageChange,
 		onExportCSV,
 		onCreateAccount,
 		onEditAccount,
@@ -25,11 +29,15 @@ export function GLAccountsContainer() {
 			isLoading={isLoading}
 			searchTerm={searchTerm}
 			accountType={accountType}
+			currentPage={currentPage}
+			totalPages={totalPages}
+			totalCount={totalCount}
 			canCreateAccount={canCreateGLAccount}
 			canEditAccount={canEditGLAccount}
 			canDeleteAccount={canDeleteGLAccount}
 			onSearch={onSearch}
 			onFilterByType={onFilterByType}
+			onPageChange={onPageChange}
 			onExportCSV={onExportCSV}
 			onCreateAccount={onCreateAccount}
 			onEditAccount={onEditAccount}

@@ -4,25 +4,23 @@ import { useJournalEntries } from "./useJournalEntries";
 export function JournalEntriesContainer() {
 	const {
 		journalEntries,
+		offices,
+		glAccounts,
+		filters,
 		isLoading,
-		dateRange,
-		transactionType,
-		onDateRangeChange,
-		onFilterByType,
+		onFilterChange,
 		onExportCSV,
-		onViewDetails,
 	} = useJournalEntries();
 
 	return (
 		<JournalEntriesView
 			journalEntries={journalEntries}
+			offices={offices}
+			glAccounts={glAccounts}
+			filters={filters}
 			isLoading={isLoading}
-			dateRange={dateRange}
-			transactionType={transactionType}
-			onDateRangeChange={onDateRangeChange}
-			onFilterByType={onFilterByType}
+			onFilterChange={onFilterChange}
 			onExportCSV={onExportCSV}
-			onViewDetails={onViewDetails}
 		/>
 	);
 }

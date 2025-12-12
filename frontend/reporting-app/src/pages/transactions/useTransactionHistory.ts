@@ -17,10 +17,7 @@ export function useTransactionHistory(): TransactionHistoryData {
 	// This would use ClientsService, LoansService, or SavingsAccountsService
 	// depending on the transaction type needed
 
-	const handleFilterChange = (
-		key: keyof TransactionFilters,
-		value: string,
-	) => {
+	const handleFilterChange = (key: keyof TransactionFilters, value: string) => {
 		setFilters((prev) => ({ ...prev, [key]: value }));
 		setCurrentPage(1); // Reset to first page when filters change
 	};

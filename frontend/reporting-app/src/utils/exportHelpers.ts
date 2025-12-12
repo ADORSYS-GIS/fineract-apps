@@ -1,4 +1,7 @@
-import type { ColumnHeader, ReportDataRow } from "@/pages/reports/report-viewer/ReportViewer.types";
+import type {
+	ColumnHeader,
+	ReportDataRow,
+} from "@/pages/reports/report-viewer/ReportViewer.types";
 
 /**
  * Export report data to CSV format
@@ -21,7 +24,11 @@ export function exportToCSV(
 				const cellStr = String(cell);
 
 				// Escape quotes and wrap in quotes if contains comma, quote, or newline
-				if (cellStr.includes(",") || cellStr.includes('"') || cellStr.includes("\n")) {
+				if (
+					cellStr.includes(",") ||
+					cellStr.includes('"') ||
+					cellStr.includes("\n")
+				) {
 					return `"${cellStr.replace(/"/g, '""')}"`;
 				}
 

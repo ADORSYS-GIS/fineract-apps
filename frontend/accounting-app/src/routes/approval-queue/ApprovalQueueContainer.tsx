@@ -1,29 +1,28 @@
-import { usePermissions } from "../../hooks/usePermissions";
 import { ApprovalQueueView } from "./ApprovalQueueView";
 import { useApprovalQueue } from "./useApprovalQueue";
 
 export function ApprovalQueueContainer() {
 	const {
-		pendingApprovals,
+		pendingEntries,
 		isLoading,
+		isProcessing,
+		dateRange,
+		onDateRangeChange,
 		onApprove,
 		onReject,
-		isApproving,
-		isRejecting,
+		onDelete,
 	} = useApprovalQueue();
-
-	const { canApproveEntries, canRejectEntries } = usePermissions();
 
 	return (
 		<ApprovalQueueView
-			pendingApprovals={pendingApprovals}
+			pendingEntries={pendingEntries}
 			isLoading={isLoading}
-			canApprove={canApproveEntries}
-			canReject={canRejectEntries}
+			isProcessing={isProcessing}
+			dateRange={dateRange}
+			onDateRangeChange={onDateRangeChange}
 			onApprove={onApprove}
 			onReject={onReject}
-			isApproving={isApproving}
-			isRejecting={isRejecting}
+			onDelete={onDelete}
 		/>
 	);
 }

@@ -1,149 +1,124 @@
-import { MakerCheckerOr4EyeFunctionalityService } from "@fineract-apps/fineract-api";
+import {
+	type GetV1MakercheckersResponse,
+	MakerCheckerOr4EyeFunctionalityService,
+} from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import "../../lib/api";
 
-export interface PendingApproval {
-	id: number;
-	actionName: string;
-	entityName: string;
-	resourceId: number;
-	maker: string;
-	madeOnDate: string;
-	processingResult?: string;
+export interface DateRange {
+	from: string;
+	to: string;
 }
 
-export function useApprovalQueue() {
+export interface ApprovalQueueProps {
+	pendingEntries: GetV1MakercheckersResponse[] | undefined;
+	isLoading: boolean;
+	isProcessing: boolean;
+	dateRange: DateRange;
+	onDateRangeChange: (range: DateRange) => void;
+	onApprove: (entry: GetV1MakercheckersResponse) => void;
+	onReject: (entry: GetV1MakercheckersResponse) => void;
+	onDelete: (entry: GetV1MakercheckersResponse) => void;
+}
+
+export function useApprovalQueue(): ApprovalQueueProps {
 	const queryClient = useQueryClient();
-	const [approvingId, setApprovingId] = useState<number | null>(null);
-	const [rejectingId, setRejectingId] = useState<number | null>(null);
 
-	const { data: pendingApprovals = [], isLoading } = useQuery<
-		PendingApproval[]
-	>({
-		queryKey: ["pending-approvals"],
-		queryFn: async () => {
+	const today = new Date().toISOString().split("T")[0];
+	const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+		.toISOString()
+		.split("T")[0];
+
+	const [dateRange, setDateRange] = useState<DateRange>({
+		from: thirtyDaysAgo,
+		to: today,
+	});
+
+	const { data: pendingEntries, isLoading } = useQuery({
+		queryKey: ["makercheckers", dateRange],
+		queryFn: async (): Promise<GetV1MakercheckersResponse[]> => {
 			const response =
-				await MakerCheckerOr4EyeFunctionalityService.getV1Makercheckers({});
-
-			// Map the response to our PendingApproval interface
-			const approvals = response as unknown as Array<{
-				id: number;
-				actionName: string;
-				entityName: string;
-				resourceId: number;
-				maker: string;
-				madeOnDate: number[];
-				processingResult?: string;
-			}>;
-
-			return approvals.map((approval) => {
-				// Convert date array [year, month, day] to ISO string
-				const date = approval.madeOnDate
-					? new Date(
-							approval.madeOnDate[0],
-							approval.madeOnDate[1] - 1,
-							approval.madeOnDate[2],
-						).toISOString()
-					: new Date().toISOString();
-
-				return {
-					id: approval.id,
-					actionName: approval.actionName,
-					entityName: approval.entityName,
-					resourceId: approval.resourceId,
-					maker: approval.maker,
-					madeOnDate: date,
-					processingResult: approval.processingResult,
-				};
-			});
+				await MakerCheckerOr4EyeFunctionalityService.getV1Makercheckers({
+					entityName: "JOURNALENTRY", // Filter for journal entries only
+					makerDateTimeFrom: dateRange.from,
+					makerDateTimeTo: dateRange.to,
+				});
+			return response as GetV1MakercheckersResponse[];
 		},
-		refetchInterval: 30000, // Refetch every 30 seconds
+		refetchInterval: 30000, // Auto-refresh every 30 seconds
 	});
 
 	const approveMutation = useMutation({
-		mutationFn: async (auditId: number) => {
-			const response =
-				await MakerCheckerOr4EyeFunctionalityService.postV1MakercheckersByAuditId(
-					{
-						auditId,
-						requestBody: { command: "approve" },
-					},
-				);
-			return response;
-		},
-		onMutate: (auditId) => {
-			setApprovingId(auditId);
-		},
+		mutationFn: (auditId: number) =>
+			MakerCheckerOr4EyeFunctionalityService.postV1MakercheckersByAuditId({
+				auditId,
+				command: "approve",
+			}),
 		onSuccess: () => {
 			toast.success("Entry approved successfully!");
-			// Invalidate queries to refresh data
-			queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
+			queryClient.invalidateQueries({ queryKey: ["makercheckers"] });
 			queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
 			queryClient.invalidateQueries({ queryKey: ["accounting-stats"] });
 		},
 		onError: (error: Error) => {
-			toast.error(`Failed to approve entry: ${error.message}`);
-		},
-		onSettled: () => {
-			setApprovingId(null);
+			toast.error(`Approval failed: ${error.message}`);
 		},
 	});
 
 	const rejectMutation = useMutation({
-		mutationFn: async (auditId: number) => {
-			const response =
-				await MakerCheckerOr4EyeFunctionalityService.deleteV1MakercheckersByAuditId(
-					{
-						auditId,
-					},
-				);
-			return response;
-		},
-		onMutate: (auditId) => {
-			setRejectingId(auditId);
-		},
+		mutationFn: (auditId: number) =>
+			MakerCheckerOr4EyeFunctionalityService.postV1MakercheckersByAuditId({
+				auditId,
+				command: "reject",
+			}),
 		onSuccess: () => {
 			toast.success("Entry rejected successfully!");
-			// Invalidate queries to refresh data
-			queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
+			queryClient.invalidateQueries({ queryKey: ["makercheckers"] });
 		},
 		onError: (error: Error) => {
-			toast.error(`Failed to reject entry: ${error.message}`);
-		},
-		onSettled: () => {
-			setRejectingId(null);
+			toast.error(`Rejection failed: ${error.message}`);
 		},
 	});
 
-	const handleApprove = (auditId: number) => {
-		if (
-			window.confirm(
-				"Are you sure you want to approve this entry? This action cannot be undone.",
-			)
-		) {
-			approveMutation.mutate(auditId);
-		}
+	const deleteMutation = useMutation({
+		mutationFn: (auditId: number) =>
+			MakerCheckerOr4EyeFunctionalityService.deleteV1MakercheckersByAuditId({
+				auditId,
+			}),
+		onSuccess: () => {
+			toast.success("Pending entry deleted successfully!");
+			queryClient.invalidateQueries({ queryKey: ["makercheckers"] });
+		},
+		onError: (error: Error) => {
+			toast.error(`Delete failed: ${error.message}`);
+		},
+	});
+
+	const handleApprove = (entry: GetV1MakercheckersResponse) => {
+		approveMutation.mutate((entry as unknown as { id: number }).id);
 	};
 
-	const handleReject = (auditId: number) => {
-		const reason = window.prompt(
-			"Please enter a reason for rejecting this entry:",
-		);
-		if (reason && reason.trim()) {
-			rejectMutation.mutate(auditId);
-		} else if (reason !== null) {
-			toast.error("Rejection reason is required");
-		}
+	const handleReject = (entry: GetV1MakercheckersResponse) => {
+		rejectMutation.mutate((entry as unknown as { id: number }).id);
+	};
+
+	const handleDelete = (entry: GetV1MakercheckersResponse) => {
+		deleteMutation.mutate((entry as unknown as { id: number }).id);
 	};
 
 	return {
-		pendingApprovals,
+		pendingEntries,
 		isLoading,
+		isProcessing:
+			approveMutation.isPending ||
+			rejectMutation.isPending ||
+			deleteMutation.isPending,
+		dateRange,
+		onDateRangeChange: setDateRange,
 		onApprove: handleApprove,
 		onReject: handleReject,
-		isApproving: approvingId,
-		isRejecting: rejectingId,
+		onDelete: handleDelete,
 	};
 }

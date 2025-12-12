@@ -1,5 +1,7 @@
 import { Card } from "@fineract-apps/ui";
+import { Link } from "@tanstack/react-router";
 import { BookOpen, FileText, Lock, TrendingUp } from "lucide-react";
+import { PageHeader } from "../../components";
 import type { AccountingStats } from "./useDashboard";
 
 interface DashboardViewProps {
@@ -27,96 +29,167 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 	}
 
 	return (
-		<div className="p-6">
-			<h1 className="text-2xl font-bold mb-6">Accounting Dashboard</h1>
+		<div className="p-6 bg-gray-200 min-h-screen">
+			<PageHeader title="Accounting Dashboard" />
 
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-				<Card className="p-6">
+				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
 					<div className="flex items-center justify-between">
 						<div>
-							<p className="text-sm text-gray-600">GL Accounts</p>
-							<p className="text-3xl font-bold">
+							<p className="text-sm font-medium text-gray-600 mb-1">
+								GL Accounts
+							</p>
+							<p className="text-3xl font-bold text-gray-900">
 								{stats?.glAccountsCount || 0}
 							</p>
 						</div>
-						<BookOpen className="h-12 w-12 text-blue-500" />
+						<div className="p-3 bg-blue-50 rounded-lg">
+							<BookOpen className="h-8 w-8 text-blue-600" />
+						</div>
 					</div>
-				</Card>
+				</div>
 
-				<Card className="p-6">
+				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
 					<div className="flex items-center justify-between">
 						<div>
-							<p className="text-sm text-gray-600">Journal Entries (Today)</p>
-							<p className="text-3xl font-bold">
+							<p className="text-sm font-medium text-gray-600 mb-1">
+								Journal Entries (Today)
+							</p>
+							<p className="text-3xl font-bold text-gray-900">
 								{stats?.journalEntriesToday || 0}
 							</p>
 						</div>
-						<FileText className="h-12 w-12 text-green-500" />
+						<div className="p-3 bg-green-50 rounded-lg">
+							<FileText className="h-8 w-8 text-green-600" />
+						</div>
 					</div>
-				</Card>
+				</div>
 
-				<Card className="p-6">
+				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
 					<div className="flex items-center justify-between">
 						<div>
-							<p className="text-sm text-gray-600">Pending Approvals</p>
-							<p className="text-3xl font-bold">
+							<p className="text-sm font-medium text-gray-600 mb-1">
+								Pending Approvals
+							</p>
+							<p className="text-3xl font-bold text-gray-900">
 								{stats?.pendingApprovals || 0}
 							</p>
 						</div>
-						<Lock className="h-12 w-12 text-orange-500" />
+						<div className="p-3 bg-orange-50 rounded-lg">
+							<Lock className="h-8 w-8 text-orange-600" />
+						</div>
 					</div>
-				</Card>
+				</div>
 
-				<Card className="p-6">
+				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
 					<div className="flex items-center justify-between">
 						<div>
-							<p className="text-sm text-gray-600">Account Balance</p>
-							<p className="text-3xl font-bold">
+							<p className="text-sm font-medium text-gray-600 mb-1">
+								Total Balance
+							</p>
+							<p className="text-3xl font-bold text-gray-900">
 								${stats?.totalBalance?.toLocaleString() || "0"}
 							</p>
 						</div>
-						<TrendingUp className="h-12 w-12 text-purple-500" />
+						<div className="p-3 bg-purple-50 rounded-lg">
+							<TrendingUp className="h-8 w-8 text-purple-600" />
+						</div>
 					</div>
-				</Card>
+				</div>
 			</div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<Card className="p-6">
-					<h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-					<div className="space-y-2">
-						<a
-							href="/accounting/gl-accounts"
-							className="block p-3 hover:bg-gray-50 rounded border"
+				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+					<h2 className="text-xl font-semibold text-gray-900 mb-4">
+						Quick Actions
+					</h2>
+					<div className="space-y-3">
+						<Link
+							to="/gl-accounts"
+							className="block p-4 hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
 						>
-							<p className="font-medium">View GL Accounts</p>
+							<p className="font-medium text-gray-900 group-hover:text-blue-600">
+								View GL Accounts
+							</p>
 							<p className="text-sm text-gray-600">Browse chart of accounts</p>
-						</a>
-						<a
-							href="/accounting/journal-entries"
-							className="block p-3 hover:bg-gray-50 rounded border"
+						</Link>
+						<Link
+							to="/journal-entries"
+							className="block p-4 hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
 						>
-							<p className="font-medium">View Journal Entries</p>
+							<p className="font-medium text-gray-900 group-hover:text-blue-600">
+								View Journal Entries
+							</p>
 							<p className="text-sm text-gray-600">
 								Browse all accounting entries
 							</p>
-						</a>
-						<a
-							href="/accounting/create-entry"
-							className="block p-3 hover:bg-gray-50 rounded border"
+						</Link>
+						<Link
+							to="/create-entry"
+							className="block p-4 hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
 						>
-							<p className="font-medium">Create Manual Entry</p>
+							<p className="font-medium text-gray-900 group-hover:text-blue-600">
+								Create Manual Entry
+							</p>
 							<p className="text-sm text-gray-600">Record new transaction</p>
-						</a>
+						</Link>
 					</div>
-				</Card>
+				</div>
 
-				<Card className="p-6">
-					<h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-					<div className="text-center text-gray-500 py-8">
-						<FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-						<p>Recent journal entries will appear here</p>
-					</div>
-				</Card>
+				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+					<h2 className="text-xl font-semibold text-gray-900 mb-4">
+						Recent Activity
+					</h2>
+					{stats?.recentActivities && stats.recentActivities.length > 0 ? (
+						<div className="space-y-3">
+							{stats.recentActivities.slice(0, 5).map((activity) => (
+								<div
+									key={activity.id}
+									className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+								>
+									<div className="flex items-center gap-3">
+										<div className="p-2 bg-blue-50 rounded-lg">
+											<FileText className="h-4 w-4 text-blue-600" />
+										</div>
+										<div>
+											<p className="text-sm font-medium text-gray-900">
+												{activity.title}
+											</p>
+											<p className="text-xs text-gray-600">
+												{activity.description}
+											</p>
+										</div>
+									</div>
+									<div className="text-right">
+										<p className="text-sm font-medium text-gray-900">
+											${activity.amount?.toLocaleString() || "0"}
+										</p>
+										<p className="text-xs text-gray-600 capitalize">
+											{activity.entryType?.toLowerCase() || "N/A"}
+										</p>
+									</div>
+								</div>
+							))}
+							{stats.recentActivities.length > 5 && (
+								<div className="text-center pt-2">
+									<Link
+										to="/journal-entries"
+										className="text-sm text-blue-600 hover:text-blue-700"
+									>
+										View all entries →
+									</Link>
+								</div>
+							)}
+						</div>
+					) : (
+						<div className="text-center text-gray-500 py-8">
+							<div className="p-3 bg-gray-50 rounded-full w-fit mx-auto mb-3">
+								<FileText className="h-8 w-8 text-gray-400" />
+							</div>
+							<p className="text-sm">No recent activity</p>
+						</div>
+					)}
+				</div>
 			</div>
 		</div>
 	);
