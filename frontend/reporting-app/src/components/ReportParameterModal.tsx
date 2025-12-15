@@ -8,7 +8,10 @@ import type {
 	ReportParameter,
 	ReportParameterModalProps,
 } from "./ReportParameterModal.types";
-import { useDependentParameterOptions, useReportParameters } from "./useReportParameters";
+import {
+	useDependentParameterOptions,
+	useReportParameters,
+} from "./useReportParameters";
 
 // Component for rendering individual parameter inputs with dependency support
 function ParameterInput({ param }: Readonly<{ param: ReportParameter }>) {
@@ -17,14 +20,20 @@ function ParameterInput({ param }: Readonly<{ param: ReportParameter }>) {
 	const label = param.parameterLabel || param.parameterName;
 
 	// Handle dependent parameters
-	let options = param.parameterData?.map((opt) => ({
-		label: opt.name,
-		value: opt.id,
-	})) || [];
+	let options =
+		param.parameterData?.map((opt) => ({
+			label: opt.name,
+			value: opt.id,
+		})) || [];
 
 	if (param.parentParameterName) {
 		// This is a dependent parameter - get parent value and fetch dynamic options
-		const parentKey = param.parentParameterName.replace(/Select(One|All)$/, "").charAt(0).toLowerCase() + param.parentParameterName.replace(/Select(One|All)$/, "").slice(1);
+		const parentKey =
+			param.parentParameterName
+				.replace(/Select(One|All)$/, "")
+				.charAt(0)
+				.toLowerCase() +
+			param.parentParameterName.replace(/Select(One|All)$/, "").slice(1);
 		const parentValue = values[parentKey];
 
 		// Handle both single values and arrays
@@ -32,13 +41,17 @@ function ParameterInput({ param }: Readonly<{ param: ReportParameter }>) {
 		if (parentValue) {
 			if (Array.isArray(parentValue)) {
 				// For multi-select, use the first value or join them
-				parentValues[parentKey] = parentValue.length > 0 ? String(parentValue[0]) : "";
+				parentValues[parentKey] =
+					parentValue.length > 0 ? String(parentValue[0]) : "";
 			} else {
 				parentValues[parentKey] = String(parentValue);
 			}
 		}
 
-		const { data: dependentOptions } = useDependentParameterOptions(param, parentValues);
+		const { data: dependentOptions } = useDependentParameterOptions(
+			param,
+			parentValues,
+		);
 
 		if (dependentOptions) {
 			options = dependentOptions.map((opt) => ({
@@ -51,10 +64,7 @@ function ParameterInput({ param }: Readonly<{ param: ReportParameter }>) {
 	if (param.selectAll) {
 		return (
 			<div key={`${param.id}`}>
-				<label
-					htmlFor={key}
-					className="block text-sm font-medium mb-2"
-				>
+				<label htmlFor={key} className="block text-sm font-medium mb-2">
 					{label}
 					<span className="text-red-500 ml-1">*</span>
 				</label>
@@ -66,10 +76,7 @@ function ParameterInput({ param }: Readonly<{ param: ReportParameter }>) {
 					className="w-full px-3 py-2 border border-gray-300 rounded-lg"
 				>
 					{options.map((option) => (
-						<option
-							key={String(option.value)}
-							value={String(option.value)}
-						>
+						<option key={String(option.value)} value={String(option.value)}>
 							{option.label}
 						</option>
 					))}
@@ -252,10 +259,17 @@ export function ReportParameterModal({
 								onSubmit={handleSubmit}
 								className="p-0 shadow-none space-y-4"
 							>
-								{reportDetails.reportParameters.map((param: ReportParameter) => {
-									if (param.parameterDisplayType === "none") return null;
-									return <ParameterInput key={`${report?.id}-${param.id}`} param={param} />;
-								})}
+								{reportDetails.reportParameters.map(
+									(param: ReportParameter) => {
+										if (param.parameterDisplayType === "none") return null;
+										return (
+											<ParameterInput
+												key={`${report?.id}-${param.id}`}
+												param={param}
+											/>
+										);
+									},
+								)}
 
 								<div className="flex gap-3 pt-2">
 									<button

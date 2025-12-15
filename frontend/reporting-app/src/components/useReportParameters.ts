@@ -15,10 +15,10 @@ interface FullParameterListResponse {
 		isColumnPrimaryKey: boolean;
 		isColumnUnique: boolean;
 		isColumnIndexed: boolean;
-		columnValues: any[];
+		columnValues: unknown[];
 	}>;
 	data: Array<{
-		row: any[];
+		row: unknown[];
 	}>;
 }
 
@@ -167,6 +167,52 @@ export function useReportParameters(
 				};
 			});
 
+			// Fix for missing dependencies: Link loan officer parameters to office parameters
+			// We look for a parameter that maps to the 'officeId' variable
+			const officeParam = normalizedParams.find(
+				(p) =>
+					p.parameterVariable === "officeId" ||
+					p.parameterName === "OfficeIdSelectOne",
+			);
+
+			if (officeParam) {
+				for (const param of normalizedParams) {
+					if (
+						param.parameterName === "loanOfficerIdSelectAll" &&
+						!param.parentParameterName
+					) {
+						console.debug(
+							`[ReportParams] Linking ${param.parameterName} to parent ${officeParam.parameterName}`,
+						);
+						param.parentParameterName = officeParam.parameterName;
+					}
+				}
+			}
+
+			// Fix for missing dependencies: Link loan product parameters to currency parameters
+			// We look for a parameter that maps to the 'currencyId' variable
+			const currencyParam = normalizedParams.find(
+				(p) =>
+					p.parameterVariable === "currencyId" ||
+					p.parameterName.toLowerCase().includes("currency"),
+			);
+
+			if (currencyParam) {
+				for (const param of normalizedParams) {
+					if (
+						param.parameterName === "loanProductIdSelectAll" &&
+						!param.parentParameterName
+					) {
+						console.debug(
+							`[ReportParams] Linking ${param.parameterName} to parent ${currencyParam.parameterName}`,
+						);
+						param.parentParameterName = currencyParam.parameterName;
+					}
+				}
+			}
+
+			console.debug("[ReportParams] Normalized Parameters:", normalizedParams);
+
 			return {
 				...basicResponse,
 				reportParameters: normalizedParams,
@@ -189,6 +235,12 @@ export function useReportParameters(
 					reportDetails.reportParameters.map(async (param) => {
 						// For now, fetch options without parent dependencies
 						// Dependent parameters will be handled dynamically in the form
+
+						// Skip fetching options for dependent parameters during initial load
+						if (param.parentParameterName) {
+							return { ...param, parameterData: [] };
+						}
+
 						const options = await fetchParameterOptions(param);
 						const sanitizedOptions = options.map((opt) => ({
 							...opt,

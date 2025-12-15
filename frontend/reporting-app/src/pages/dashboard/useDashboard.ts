@@ -33,7 +33,6 @@ export function useDashboard(): DashboardData {
 			totalReports,
 			recentTransactions,
 			auditEntries,
-			generatedReports: 0, // TODO: Implement generated reports count
 		},
 	};
 }
