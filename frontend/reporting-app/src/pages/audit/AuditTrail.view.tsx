@@ -11,7 +11,7 @@ export function AuditTrailView({
 	onPageChange,
 	onExportCSV,
 	onExportExcel,
-}: AuditTrailData) {
+}: Readonly<AuditTrailData>) {
 	if (isLoading) {
 		return (
 			<div className="p-6">

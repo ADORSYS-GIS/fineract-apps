@@ -11,6 +11,7 @@ export interface ReportParameter {
 	parameterDefaultValue?: string;
 	selectOne?: boolean;
 	selectAll?: boolean;
+	parentParameterName?: string;
 	parameterData?: {
 		id: number | string;
 		name: string;
