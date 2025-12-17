@@ -1,14 +1,8 @@
 import { type GetV1MakercheckersResponse } from "@fineract-apps/fineract-api";
 import { Button } from "@fineract-apps/ui";
+import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { Check, ThumbsDown, Trash2 } from "lucide-react";
-import { useState } from "react";
-import {
-	ConfirmationModal,
-	DataTable,
-	FiltersBar,
-	PageHeader,
-} from "../../components";
+import { DataTable, FiltersBar, PageHeader } from "../../components";
 
 interface DateRange {
 	from: string;
@@ -21,9 +15,6 @@ interface ApprovalQueueViewProps {
 	isProcessing: boolean;
 	dateRange: DateRange;
 	onDateRangeChange: (range: DateRange) => void;
-	onApprove: (entry: GetV1MakercheckersResponse) => void;
-	onReject: (entry: GetV1MakercheckersResponse) => void;
-	onDelete: (entry: GetV1MakercheckersResponse) => void;
 }
 
 export function ApprovalQueueView({
@@ -32,50 +23,7 @@ export function ApprovalQueueView({
 	isProcessing,
 	dateRange,
 	onDateRangeChange,
-	onApprove,
-	onReject,
-	onDelete,
 }: ApprovalQueueViewProps) {
-	const [confirmationModal, setConfirmationModal] = useState<{
-		isOpen: boolean;
-		title: string;
-		message: string;
-		confirmText: string;
-		action: () => void;
-	}>({
-		isOpen: false,
-		title: "",
-		message: "",
-		confirmText: "",
-		action: () => {
-			// Default empty action for initial state
-		},
-	});
-
-	const openConfirmationModal = (
-		title: string,
-		message: string,
-		confirmText: string,
-		action: () => void,
-	) => {
-		setConfirmationModal({
-			isOpen: true,
-			title,
-			message,
-			confirmText,
-			action,
-		});
-	};
-
-	const closeConfirmationModal = () => {
-		setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
-	};
-
-	const handleConfirmAction = () => {
-		confirmationModal.action();
-		closeConfirmationModal();
-	};
-
 	const columns = [
 		{
 			key: "madeOnDate",
@@ -104,60 +52,16 @@ export function ApprovalQueueView({
 			header: "Actions",
 			className: "text-right min-w-[200px]",
 			render: (_: unknown, entry: GetV1MakercheckersResponse) => (
-				<div className="flex flex-col sm:flex-row justify-end gap-1 sm:gap-2">
-					<Button
-						onClick={() =>
-							openConfirmationModal(
-								"Approve Entry",
-								"Are you sure you want to approve this journal entry?",
-								"Approve",
-								() => onApprove(entry),
-							)
-						}
-						disabled={isProcessing}
-						size="sm"
-						className="bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm"
+				<div className="flex justify-end">
+					<Link
+						to="/approval-queue/$auditId"
+						params={{
+							// @ts-expect-error id is not in the type but it exists
+							auditId: entry.id,
+						}}
 					>
-						<Check className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-						<span className="hidden sm:inline">Approve</span>
-						<span className="sm:hidden">✓</span>
-					</Button>
-					<Button
-						onClick={() =>
-							openConfirmationModal(
-								"Reject Entry",
-								"Are you sure you want to reject this journal entry? This action cannot be undone.",
-								"Reject",
-								() => onReject(entry),
-							)
-						}
-						disabled={isProcessing}
-						size="sm"
-						variant="outline"
-						className="text-yellow-600 border-yellow-500 hover:bg-yellow-50 text-xs sm:text-sm"
-					>
-						<ThumbsDown className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-						<span className="hidden sm:inline">Reject</span>
-						<span className="sm:hidden">✗</span>
-					</Button>
-					<Button
-						onClick={() =>
-							openConfirmationModal(
-								"Delete Entry",
-								"Are you sure you want to delete this pending entry? This will remove it from the queue entirely.",
-								"Delete",
-								() => onDelete(entry),
-							)
-						}
-						disabled={isProcessing}
-						size="sm"
-						variant="destructive"
-						className="text-xs sm:text-sm"
-					>
-						<Trash2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-						<span className="hidden sm:inline">Delete</span>
-						<span className="sm:hidden">🗑️</span>
-					</Button>
+						<Button>Review</Button>
+					</Link>
 				</div>
 			),
 		},
@@ -202,16 +106,6 @@ export function ApprovalQueueView({
 					className="min-w-full"
 				/>
 			</div>
-
-			<ConfirmationModal
-				isOpen={confirmationModal.isOpen}
-				title={confirmationModal.title}
-				message={confirmationModal.message}
-				confirmText={confirmationModal.confirmText}
-				onConfirm={handleConfirmAction}
-				onCancel={closeConfirmationModal}
-				isLoading={isProcessing}
-			/>
 		</div>
 	);
 }

@@ -6,6 +6,7 @@ import {
 } from "@fineract-apps/fineract-api";
 import { Button } from "@fineract-apps/ui";
 import { AlertCircle, Loader2, Minus, Plus } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Input, Select, Textarea } from "../../components";
 import type { EntryFormData, EntryLine } from "./useCreateEntry";
 
@@ -54,6 +55,7 @@ export function CreateEntryView({
 	onCreditChange,
 	onSubmit,
 }: CreateEntryViewProps) {
+	const { currencyCode } = useCurrency();
 	const totalDebits = debits.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 	const totalCredits = credits.reduce(
 		(sum, c) => sum + Number(c.amount || 0),
@@ -220,7 +222,7 @@ export function CreateEntryView({
 							<div className="flex justify-between items-center">
 								<span className="font-medium">Total Debits:</span>
 								<span className="text-lg font-bold">
-									${totalDebits.toLocaleString()}
+									{currencyCode} {totalDebits.toLocaleString()}
 								</span>
 							</div>
 						</div>
@@ -289,7 +291,7 @@ export function CreateEntryView({
 							<div className="flex justify-between items-center">
 								<span className="font-medium">Total Credits:</span>
 								<span className="text-lg font-bold">
-									${totalCredits.toLocaleString()}
+									{currencyCode} {totalCredits.toLocaleString()}
 								</span>
 							</div>
 						</div>
@@ -305,7 +307,7 @@ export function CreateEntryView({
 							</p>
 						</div>
 						<p className="text-sm text-yellow-700 mt-1 ml-7">
-							Difference: $
+							Difference: {currencyCode}{" "}
 							{Math.abs(totalDebits - totalCredits).toLocaleString()}
 						</p>
 					</div>

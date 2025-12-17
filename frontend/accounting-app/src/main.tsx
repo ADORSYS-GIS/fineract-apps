@@ -1,17 +1,34 @@
-import "./index.css";
-
-import { StrictMode } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createRouter, RouterProvider } from "@tanstack/react-router";
+import { StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
+import "@fineract-apps/ui/styles.css";
+import "@fineract-apps/i18n";
+import "./index.css";
+import { queryClient } from "./query-client";
+import { routeTree } from "./routeTree.gen";
 
-const rootElement = document.getElementById("root");
+// Create a new router instance from the generated route tree
+const router = createRouter({
+	routeTree,
+	context: { queryClient },
+	basepath: "/accounting",
+});
 
-if (!rootElement) {
-	throw new Error("Root element not found");
+// Register the router instance for type safety (important for TypeScript)
+declare module "@tanstack/react-router" {
+	interface Register {
+		router: typeof router;
+	}
 }
 
-createRoot(rootElement).render(
+// Render your React application with the router
+createRoot(document.getElementById("root")!).render(
 	<StrictMode>
-		<App />
+		<Suspense fallback={<div>Loading...</div>}>
+			<QueryClientProvider client={queryClient}>
+				<RouterProvider router={router} />
+			</QueryClientProvider>
+		</Suspense>
 	</StrictMode>,
 );

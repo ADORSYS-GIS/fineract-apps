@@ -1,6 +1,7 @@
 import { Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, FileText, Lock, TrendingUp } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 import { PageHeader } from "../../components";
 import type { AccountingStats } from "./useDashboard";
 
@@ -10,6 +11,7 @@ interface DashboardViewProps {
 }
 
 export function DashboardView({ stats, isLoading }: DashboardViewProps) {
+	const { currencyCode } = useCurrency();
 	if (isLoading) {
 		return (
 			<div className="p-6">
@@ -88,7 +90,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 								Total Balance
 							</p>
 							<p className="text-3xl font-bold text-gray-900">
-								${stats?.totalBalance?.toLocaleString() || "0"}
+								{currencyCode} {stats?.totalBalance?.toLocaleString() || "0"}
 							</p>
 						</div>
 						<div className="p-3 bg-purple-50 rounded-lg">
@@ -162,7 +164,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 									</div>
 									<div className="text-right">
 										<p className="text-sm font-medium text-gray-900">
-											${activity.amount?.toLocaleString() || "0"}
+											{currencyCode} {activity.amount?.toLocaleString() || "0"}
 										</p>
 										<p className="text-xs text-gray-600 capitalize">
 											{activity.entryType?.toLowerCase() || "N/A"}

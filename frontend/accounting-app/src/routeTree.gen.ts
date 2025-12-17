@@ -16,9 +16,10 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as CreateEntryIndexRouteImport } from './routes/create-entry/index'
 import { Route as ClosuresIndexRouteImport } from './routes/closures/index'
 import { Route as ApprovalQueueIndexRouteImport } from './routes/approval-queue/index'
-import { Route as JournalEntriesEntryIdRouteImport } from './routes/journal-entries/$entryId'
 import { Route as GlAccountsCreateRouteImport } from './routes/gl-accounts/create'
 import { Route as ClosuresCreateRouteImport } from './routes/closures/create'
+import { Route as JournalEntriesEntryIdIndexRouteImport } from './routes/journal-entries/$entryId/index'
+import { Route as ApprovalQueueAuditIdIndexRouteImport } from './routes/approval-queue/$auditId/index'
 import { Route as GlAccountsAccountIdEditRouteImport } from './routes/gl-accounts/$accountId/edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -56,11 +57,6 @@ const ApprovalQueueIndexRoute = ApprovalQueueIndexRouteImport.update({
   path: '/approval-queue/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const JournalEntriesEntryIdRoute = JournalEntriesEntryIdRouteImport.update({
-  id: '/journal-entries/$entryId',
-  path: '/journal-entries/$entryId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const GlAccountsCreateRoute = GlAccountsCreateRouteImport.update({
   id: '/gl-accounts/create',
   path: '/gl-accounts/create',
@@ -71,6 +67,18 @@ const ClosuresCreateRoute = ClosuresCreateRouteImport.update({
   path: '/closures/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JournalEntriesEntryIdIndexRoute =
+  JournalEntriesEntryIdIndexRouteImport.update({
+    id: '/journal-entries/$entryId/',
+    path: '/journal-entries/$entryId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApprovalQueueAuditIdIndexRoute =
+  ApprovalQueueAuditIdIndexRouteImport.update({
+    id: '/approval-queue/$auditId/',
+    path: '/approval-queue/$auditId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const GlAccountsAccountIdEditRoute = GlAccountsAccountIdEditRouteImport.update({
   id: '/gl-accounts/$accountId/edit',
   path: '/gl-accounts/$accountId/edit',
@@ -81,7 +89,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/closures/create': typeof ClosuresCreateRoute
   '/gl-accounts/create': typeof GlAccountsCreateRoute
-  '/journal-entries/$entryId': typeof JournalEntriesEntryIdRoute
   '/approval-queue': typeof ApprovalQueueIndexRoute
   '/closures': typeof ClosuresIndexRoute
   '/create-entry': typeof CreateEntryIndexRoute
@@ -89,12 +96,13 @@ export interface FileRoutesByFullPath {
   '/gl-accounts': typeof GlAccountsIndexRoute
   '/journal-entries': typeof JournalEntriesIndexRoute
   '/gl-accounts/$accountId/edit': typeof GlAccountsAccountIdEditRoute
+  '/approval-queue/$auditId': typeof ApprovalQueueAuditIdIndexRoute
+  '/journal-entries/$entryId': typeof JournalEntriesEntryIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/closures/create': typeof ClosuresCreateRoute
   '/gl-accounts/create': typeof GlAccountsCreateRoute
-  '/journal-entries/$entryId': typeof JournalEntriesEntryIdRoute
   '/approval-queue': typeof ApprovalQueueIndexRoute
   '/closures': typeof ClosuresIndexRoute
   '/create-entry': typeof CreateEntryIndexRoute
@@ -102,13 +110,14 @@ export interface FileRoutesByTo {
   '/gl-accounts': typeof GlAccountsIndexRoute
   '/journal-entries': typeof JournalEntriesIndexRoute
   '/gl-accounts/$accountId/edit': typeof GlAccountsAccountIdEditRoute
+  '/approval-queue/$auditId': typeof ApprovalQueueAuditIdIndexRoute
+  '/journal-entries/$entryId': typeof JournalEntriesEntryIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/closures/create': typeof ClosuresCreateRoute
   '/gl-accounts/create': typeof GlAccountsCreateRoute
-  '/journal-entries/$entryId': typeof JournalEntriesEntryIdRoute
   '/approval-queue/': typeof ApprovalQueueIndexRoute
   '/closures/': typeof ClosuresIndexRoute
   '/create-entry/': typeof CreateEntryIndexRoute
@@ -116,6 +125,8 @@ export interface FileRoutesById {
   '/gl-accounts/': typeof GlAccountsIndexRoute
   '/journal-entries/': typeof JournalEntriesIndexRoute
   '/gl-accounts/$accountId/edit': typeof GlAccountsAccountIdEditRoute
+  '/approval-queue/$auditId/': typeof ApprovalQueueAuditIdIndexRoute
+  '/journal-entries/$entryId/': typeof JournalEntriesEntryIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -123,7 +134,6 @@ export interface FileRouteTypes {
     | '/'
     | '/closures/create'
     | '/gl-accounts/create'
-    | '/journal-entries/$entryId'
     | '/approval-queue'
     | '/closures'
     | '/create-entry'
@@ -131,12 +141,13 @@ export interface FileRouteTypes {
     | '/gl-accounts'
     | '/journal-entries'
     | '/gl-accounts/$accountId/edit'
+    | '/approval-queue/$auditId'
+    | '/journal-entries/$entryId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/closures/create'
     | '/gl-accounts/create'
-    | '/journal-entries/$entryId'
     | '/approval-queue'
     | '/closures'
     | '/create-entry'
@@ -144,12 +155,13 @@ export interface FileRouteTypes {
     | '/gl-accounts'
     | '/journal-entries'
     | '/gl-accounts/$accountId/edit'
+    | '/approval-queue/$auditId'
+    | '/journal-entries/$entryId'
   id:
     | '__root__'
     | '/'
     | '/closures/create'
     | '/gl-accounts/create'
-    | '/journal-entries/$entryId'
     | '/approval-queue/'
     | '/closures/'
     | '/create-entry/'
@@ -157,13 +169,14 @@ export interface FileRouteTypes {
     | '/gl-accounts/'
     | '/journal-entries/'
     | '/gl-accounts/$accountId/edit'
+    | '/approval-queue/$auditId/'
+    | '/journal-entries/$entryId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClosuresCreateRoute: typeof ClosuresCreateRoute
   GlAccountsCreateRoute: typeof GlAccountsCreateRoute
-  JournalEntriesEntryIdRoute: typeof JournalEntriesEntryIdRoute
   ApprovalQueueIndexRoute: typeof ApprovalQueueIndexRoute
   ClosuresIndexRoute: typeof ClosuresIndexRoute
   CreateEntryIndexRoute: typeof CreateEntryIndexRoute
@@ -171,6 +184,8 @@ export interface RootRouteChildren {
   GlAccountsIndexRoute: typeof GlAccountsIndexRoute
   JournalEntriesIndexRoute: typeof JournalEntriesIndexRoute
   GlAccountsAccountIdEditRoute: typeof GlAccountsAccountIdEditRoute
+  ApprovalQueueAuditIdIndexRoute: typeof ApprovalQueueAuditIdIndexRoute
+  JournalEntriesEntryIdIndexRoute: typeof JournalEntriesEntryIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -224,13 +239,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApprovalQueueIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/journal-entries/$entryId': {
-      id: '/journal-entries/$entryId'
-      path: '/journal-entries/$entryId'
-      fullPath: '/journal-entries/$entryId'
-      preLoaderRoute: typeof JournalEntriesEntryIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/gl-accounts/create': {
       id: '/gl-accounts/create'
       path: '/gl-accounts/create'
@@ -243,6 +251,20 @@ declare module '@tanstack/react-router' {
       path: '/closures/create'
       fullPath: '/closures/create'
       preLoaderRoute: typeof ClosuresCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal-entries/$entryId/': {
+      id: '/journal-entries/$entryId/'
+      path: '/journal-entries/$entryId'
+      fullPath: '/journal-entries/$entryId'
+      preLoaderRoute: typeof JournalEntriesEntryIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/approval-queue/$auditId/': {
+      id: '/approval-queue/$auditId/'
+      path: '/approval-queue/$auditId'
+      fullPath: '/approval-queue/$auditId'
+      preLoaderRoute: typeof ApprovalQueueAuditIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gl-accounts/$accountId/edit': {
@@ -259,7 +281,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClosuresCreateRoute: ClosuresCreateRoute,
   GlAccountsCreateRoute: GlAccountsCreateRoute,
-  JournalEntriesEntryIdRoute: JournalEntriesEntryIdRoute,
   ApprovalQueueIndexRoute: ApprovalQueueIndexRoute,
   ClosuresIndexRoute: ClosuresIndexRoute,
   CreateEntryIndexRoute: CreateEntryIndexRoute,
@@ -267,6 +288,8 @@ const rootRouteChildren: RootRouteChildren = {
   GlAccountsIndexRoute: GlAccountsIndexRoute,
   JournalEntriesIndexRoute: JournalEntriesIndexRoute,
   GlAccountsAccountIdEditRoute: GlAccountsAccountIdEditRoute,
+  ApprovalQueueAuditIdIndexRoute: ApprovalQueueAuditIdIndexRoute,
+  JournalEntriesEntryIdIndexRoute: JournalEntriesEntryIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

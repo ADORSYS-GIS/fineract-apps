@@ -57,9 +57,7 @@ function RootLayout() {
 					/>
 				}
 			>
-				<div className="flex-1 overflow-auto ml-50">
-					<Outlet />
-				</div>
+				<Outlet />
 				<Toaster />
 				<TanStackRouterDevtools />
 				<ReactQueryDevtools />

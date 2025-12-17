@@ -3,8 +3,10 @@ import {
 	type GetOfficesResponse,
 } from "@fineract-apps/fineract-api";
 import { Button } from "@fineract-apps/ui";
+import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Download, Eye } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 import { DataTable, FiltersBar, PageHeader } from "../../components";
 import type { Filters, JournalEntry } from "./useJournalEntries";
 
@@ -27,6 +29,7 @@ export function JournalEntriesView({
 	onFilterChange,
 	onExportCSV,
 }: JournalEntriesViewProps) {
+	const { currencyCode } = useCurrency();
 	const actions = [
 		{
 			label: "Export CSV",
@@ -53,24 +56,27 @@ export function JournalEntriesView({
 			key: "amount",
 			header: "Amount",
 			className: "text-right",
-			render: (value: unknown) => `$${Number(value).toLocaleString()}`,
+			render: (value: unknown) =>
+				`${currencyCode} ${Number(value).toLocaleString()}`,
 		},
 		{
 			key: "actions",
 			header: "Actions",
 			className: "text-center",
 			render: (_: unknown, entry: JournalEntry) => (
-				<Button
-					onClick={() => {
-						/* Handle view details */
-					}}
-					variant="ghost"
-					size="sm"
-					className="inline-flex items-center gap-1"
+				<Link
+					to="/journal-entries/$entryId"
+					params={{ entryId: String(entry.id) }}
 				>
-					<Eye className="h-4 w-4" />
-					View
-				</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="inline-flex items-center gap-1"
+					>
+						<Eye className="h-4 w-4" />
+						View
+					</Button>
+				</Link>
 			),
 		},
 	];
@@ -86,53 +92,55 @@ export function JournalEntriesView({
 	}));
 
 	return (
-		<div className="p-6 min-h-screen">
+		<div className="p-4 sm:p-6">
 			<PageHeader title="Journal Entries" actions={actions} />
-
-			<FiltersBar
-				filters={[
-					{
-						key: "fromDate",
-						label: "From Date",
-						type: "date",
-						value: filters.fromDate,
-						onChange: (value) => onFilterChange("fromDate", value),
-					},
-					{
-						key: "toDate",
-						label: "To Date",
-						type: "date",
-						value: filters.toDate,
-						onChange: (value) => onFilterChange("toDate", value),
-					},
-					{
-						key: "officeId",
-						label: "Office",
-						type: "select",
-						value: filters.officeId,
-						onChange: (value) => onFilterChange("officeId", value),
-						options: [{ value: "", label: "All Offices" }, ...officeOptions],
-					},
-					{
-						key: "glAccountId",
-						label: "GL Account",
-						type: "select",
-						value: filters.glAccountId,
-						onChange: (value) => onFilterChange("glAccountId", value),
-						options: [
-							{ value: "", label: "All GL Accounts" },
-							...glAccountOptions,
-						],
-					},
-				]}
-			/>
-
-			<DataTable
-				data={journalEntries}
-				columns={columns}
-				isLoading={isLoading}
-				emptyMessage="No journal entries found for the selected filters."
-			/>
+			<div className="bg-white rounded-lg shadow p-6 my-6">
+				<FiltersBar
+					filters={[
+						{
+							key: "fromDate",
+							label: "From Date",
+							type: "date",
+							value: filters.fromDate,
+							onChange: (value) => onFilterChange("fromDate", value),
+						},
+						{
+							key: "toDate",
+							label: "To Date",
+							type: "date",
+							value: filters.toDate,
+							onChange: (value) => onFilterChange("toDate", value),
+						},
+						{
+							key: "officeId",
+							label: "Office",
+							type: "select",
+							value: filters.officeId,
+							onChange: (value) => onFilterChange("officeId", value),
+							options: [{ value: "", label: "All Offices" }, ...officeOptions],
+						},
+						{
+							key: "glAccountId",
+							label: "GL Account",
+							type: "select",
+							value: filters.glAccountId,
+							onChange: (value) => onFilterChange("glAccountId", value),
+							options: [
+								{ value: "", label: "All GL Accounts" },
+								...glAccountOptions,
+							],
+						},
+					]}
+				/>
+			</div>
+			<div className="bg-white rounded-lg shadow p-6">
+				<DataTable
+					data={journalEntries}
+					columns={columns}
+					isLoading={isLoading}
+					emptyMessage="No journal entries found for the selected filters."
+				/>
+			</div>
 		</div>
 	);
 }

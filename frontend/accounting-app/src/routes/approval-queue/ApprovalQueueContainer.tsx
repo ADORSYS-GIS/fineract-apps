@@ -8,9 +8,6 @@ export function ApprovalQueueContainer() {
 		isProcessing,
 		dateRange,
 		onDateRangeChange,
-		onApprove,
-		onReject,
-		onDelete,
 	} = useApprovalQueue();
 
 	return (
@@ -20,9 +17,6 @@ export function ApprovalQueueContainer() {
 			isProcessing={isProcessing}
 			dateRange={dateRange}
 			onDateRangeChange={onDateRangeChange}
-			onApprove={onApprove}
-			onReject={onReject}
-			onDelete={onDelete}
 		/>
 	);
 }

@@ -1,8 +1,12 @@
-import { JournalEntriesService } from "@fineract-apps/fineract-api";
+import {
+	JournalEntriesService,
+	MakerCheckerOr4EyeFunctionalityService,
+} from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 import "../../../lib/api";
+import { Route } from "./index";
 
 export interface JournalEntryDetail {
 	id: number;
@@ -25,45 +29,39 @@ export interface JournalEntryDetail {
 		glAccountCode: string;
 		amount: number;
 	}>;
+	status: string;
 }
 
 export function useJournalEntryDetail() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const { entryId } = useParams({ from: "/journal-entries/$entryId" });
+	const { entryId } = useParams({ from: "/journal-entries/$entryId/" });
+	const { auditId } = Route.useSearch();
 
 	const { data: entry, isLoading } = useQuery<JournalEntryDetail | null>({
 		queryKey: ["journal-entry-detail", entryId],
 		queryFn: async () => {
-			// For now, return mock data since the API endpoint might not support individual entry fetch
-			// In production, you would call: JournalEntriesService.getV1JournalentriesById({ id: entryId })
+			const response =
+				await JournalEntriesService.getV1JournalentriesByJournalEntryId({
+					journalEntryId: Number(entryId),
+				});
 
-			// Mock data for development
+			// The type from the generated client is likely incorrect. We cast to any to bypass type errors.
+			// biome-ignore lint/suspicious/noExplicitAny: The type from the generated client is likely incorrect.
+			const data = response as any;
+
 			return {
-				id: Number(entryId),
-				transactionId: `JE-${entryId}`,
-				transactionDate: new Date().toISOString(),
-				officeName: "Head Office",
-				referenceNumber: "REF-001",
-				comments: "Monthly journal entry",
-				createdBy: "admin",
-				createdDate: new Date().toISOString(),
-				debits: [
-					{
-						glAccountId: 1,
-						glAccountName: "Cash",
-						glAccountCode: "1000",
-						amount: 5000,
-					},
-				],
-				credits: [
-					{
-						glAccountId: 10,
-						glAccountName: "Revenue",
-						glAccountCode: "4000",
-						amount: 5000,
-					},
-				],
+				id: data.id,
+				transactionId: data.transactionId,
+				transactionDate: data.transactionDate,
+				officeName: data.officeName,
+				referenceNumber: data.referenceNumber,
+				comments: data.comments,
+				createdBy: data.createdByUserName,
+				createdDate: data.createdDate,
+				debits: data.transactionDetails?.debits || [],
+				credits: data.transactionDetails?.credits || [],
+				status: data.status,
 			};
 		},
 	});
@@ -74,6 +72,7 @@ export function useJournalEntryDetail() {
 				await JournalEntriesService.postV1JournalentriesByTransactionId({
 					transactionId: data.transactionId,
 					command: "reverse",
+					// @ts-expect-error comments is not in the type but it exists
 					requestBody: {
 						comments: data.comments,
 					},
@@ -125,11 +124,59 @@ export function useJournalEntryDetail() {
 		}
 	};
 
+	const approveMutation = useMutation({
+		mutationFn: (auditId: number) =>
+			MakerCheckerOr4EyeFunctionalityService.postV1MakercheckersByAuditId({
+				auditId,
+				command: "approve",
+			}),
+		onSuccess: () => {
+			toast.success("Entry approved successfully!");
+			queryClient.invalidateQueries({ queryKey: ["makercheckers"] });
+			queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+			queryClient.invalidateQueries({ queryKey: ["accounting-stats"] });
+			navigate({ to: "/approval-queue" });
+		},
+		onError: (error: Error) => {
+			toast.error(`Approval failed: ${error.message}`);
+		},
+	});
+
+	const rejectMutation = useMutation({
+		mutationFn: (auditId: number) =>
+			MakerCheckerOr4EyeFunctionalityService.postV1MakercheckersByAuditId({
+				auditId,
+				command: "reject",
+			}),
+		onSuccess: () => {
+			toast.success("Entry rejected successfully!");
+			queryClient.invalidateQueries({ queryKey: ["makercheckers"] });
+			navigate({ to: "/approval-queue" });
+		},
+		onError: (error: Error) => {
+			toast.error(`Rejection failed: ${error.message}`);
+		},
+	});
+
+	const handleApprove = () => {
+		if (!auditId) return;
+		approveMutation.mutate(auditId);
+	};
+
+	const handleReject = () => {
+		if (!auditId) return;
+		rejectMutation.mutate(auditId);
+	};
+
 	return {
 		entry,
 		isLoading,
 		isReversing: reverseMutation.isPending,
+		isProcessing: approveMutation.isPending || rejectMutation.isPending,
 		onBack: handleBack,
 		onReverse: handleReverse,
+		onApprove: handleApprove,
+		onReject: handleReject,
+		showApprovalActions: !!auditId,
 	};
 }
