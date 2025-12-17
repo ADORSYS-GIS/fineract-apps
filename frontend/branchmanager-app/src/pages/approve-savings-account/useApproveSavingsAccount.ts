@@ -2,6 +2,7 @@ import {
 	type SavingsAccountData,
 	SavingsAccountService,
 } from "@fineract-apps/fineract-api";
+import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -92,6 +93,8 @@ export function useApproveSavingsAccountDetail(
 	opts?: { enabled?: boolean },
 ) {
 	const navigate = useNavigate({ from: "/approve/savings/account" });
+	const { businessDate } = useBusinessDate();
+
 	const { data, isLoading } = useQuery({
 		queryKey: [
 			"SavingsAccountServiceGetV1SavingsaccountsByAccountId",
@@ -145,9 +148,9 @@ export function useApproveSavingsAccountDetail(
 			accountNo: data.accountNo,
 			status: data.status?.value,
 			balance: data.summary?.accountBalance,
-			defaultDate: new Date().toISOString().split("T")[0],
+			defaultDate: businessDate,
 		};
-	}, [data]);
+	}, [data, businessDate]);
 
 	const onSubmit = (values: ApproveFormValues) => {
 		mutation.mutate({ accountId, values });

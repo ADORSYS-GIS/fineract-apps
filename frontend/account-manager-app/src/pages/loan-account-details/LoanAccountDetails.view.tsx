@@ -1,4 +1,5 @@
 import { GetLoansLoanIdTransactions } from "@fineract-apps/fineract-api";
+import { formatCurrency } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, HandCoins } from "lucide-react";
 import { useState } from "react";
@@ -58,15 +59,19 @@ export const LoanAccountDetailsView = (
 								<div>
 									<p className="text-md opacity-80">Principal</p>
 									<p className="font-bold text-2xl">
-										{account?.summary?.currency?.displaySymbol}
-										{account?.summary?.principalDisbursed}
+										{formatCurrency(
+											account?.summary?.principalDisbursed,
+											account?.currency?.code,
+										)}
 									</p>
 								</div>
 								<div>
 									<p className="text-md opacity-80">Outstanding</p>
 									<p className="font-bold text-2xl">
-										{account?.summary?.currency?.displaySymbol}
-										{account?.summary?.totalOutstanding}
+										{formatCurrency(
+											account?.summary?.totalOutstanding,
+											account?.currency?.code,
+										)}
 									</p>
 								</div>
 							</div>

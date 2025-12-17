@@ -3,6 +3,7 @@ import {
 	SavingsAccountService,
 	SavingsAccountTransactionsService,
 } from "@fineract-apps/fineract-api";
+import { getBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -43,7 +44,7 @@ export const useClientDetails = (savingsId: number) => {
 	});
 
 	const transactionMutation = useMutation({
-		mutationFn: ({
+		mutationFn: async ({
 			savingsId,
 			command,
 			body,
@@ -52,9 +53,12 @@ export const useClientDetails = (savingsId: number) => {
 			command: "deposit" | "withdrawal";
 			body: TransactionFormData;
 		}) => {
-			const date = new Date();
-			const transactionDate = format(date, "yyyy-MM-dd HH:mm:ss");
-			const transactionAmount = parseFloat(body.amount);
+			const businessDate = await getBusinessDate();
+			const transactionDate = format(
+				new Date(businessDate),
+				"yyyy-MM-dd HH:mm:ss",
+			);
+			const transactionAmount = Number.parseFloat(body.amount);
 			return SavingsAccountTransactionsService.postV1SavingsaccountsBySavingsIdTransactions(
 				{
 					savingsId,
