@@ -1,4 +1,6 @@
+import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import { AppLayout, menuReporting, Navbar, Sidebar } from "@fineract-apps/ui";
+import { useQuery } from "@tanstack/react-query";
 import {
 	createRootRoute,
 	Outlet,
@@ -7,10 +9,8 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
-import { Toaster } from "react-hot-toast";
-import { useQuery } from "@tanstack/react-query";
-import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import { useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 
 function onLogout() {
 	const base = import.meta.env.BASE_URL ?? "/reporting/";

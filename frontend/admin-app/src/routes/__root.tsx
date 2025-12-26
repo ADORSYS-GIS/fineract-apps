@@ -1,3 +1,4 @@
+import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import {
 	AppLayout,
 	Button,
@@ -6,13 +7,12 @@ import {
 	Navbar,
 	Sidebar,
 } from "@fineract-apps/ui";
+import { useQuery } from "@tanstack/react-query";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
-import { ToastContainer, ToastProvider } from "@/components/Toast";
-import { useQuery } from "@tanstack/react-query";
-import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import { useEffect } from "react";
+import { ToastContainer, ToastProvider } from "@/components/Toast";
 
 function RootLayout() {
 	const { data: authData } = useQuery({

@@ -1,3 +1,4 @@
+import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -9,9 +10,8 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
-import { Toaster } from "react-hot-toast";
-import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import { useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 
 export interface MyRouterContext {
 	queryClient: QueryClient;
