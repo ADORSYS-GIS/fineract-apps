@@ -1,5 +1,5 @@
 import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
 	createRootRouteWithContext,
@@ -10,6 +10,8 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
+import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
+import { useEffect } from "react";
 
 export interface MyRouterContext {
 	queryClient: QueryClient;
@@ -27,6 +29,22 @@ function RootLayout() {
 			redirectTo,
 		)}`;
 	}
+	const { data: authData } = useQuery({
+		queryKey: ["authentication"],
+		queryFn: () =>
+			AuthenticationHttpBasicService.postV1Authentication({
+				requestBody: {
+					username: import.meta.env.VITE_FINERACT_USERNAME,
+					password: import.meta.env.VITE_FINERACT_PASSWORD,
+				},
+			}),
+		staleTime: Infinity,
+	});
+	useEffect(() => {
+		if (authData) {
+			sessionStorage.setItem("auth", JSON.stringify(authData));
+		}
+	}, [authData]);
 	return (
 		<AppLayout
 			sidebar={

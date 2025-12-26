@@ -10,9 +10,30 @@ import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { ToastContainer, ToastProvider } from "@/components/Toast";
+import { useQuery } from "@tanstack/react-query";
+import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
+import { useEffect } from "react";
 
 function RootLayout() {
+	const { data: authData } = useQuery({
+		queryKey: ["authentication"],
+		queryFn: () =>
+			AuthenticationHttpBasicService.postV1Authentication({
+				requestBody: {
+					username: import.meta.env.VITE_FINERACT_USERNAME,
+					password: import.meta.env.VITE_FINERACT_PASSWORD,
+				},
+			}),
+		staleTime: Infinity,
+	});
+	useEffect(() => {
+		if (authData) {
+			sessionStorage.setItem("auth", JSON.stringify(authData));
+		}
+	}, [authData]);
+
 	const handleLogout = () => logout();
+
 	return (
 		<ToastProvider>
 			<AppLayout

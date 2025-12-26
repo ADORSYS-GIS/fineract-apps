@@ -3,7 +3,7 @@ import {
 	type PostAuthenticationResponse,
 } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 import "../lib/api";
 
 export type UserRole = "Admin" | "Accountant" | "Manager" | "Viewer";
@@ -37,6 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		staleTime: Number.POSITIVE_INFINITY, // Cache indefinitely
 		retry: 1,
 	});
+
+	useEffect(() => {
+		if (user) {
+			sessionStorage.setItem("auth", JSON.stringify(user));
+		}
+	}, [user]);
 
 	const isAuthenticated = user?.authenticated ?? false;
 

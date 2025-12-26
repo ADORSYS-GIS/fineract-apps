@@ -8,6 +8,9 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
+import { useQuery } from "@tanstack/react-query";
+import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
+import { useEffect } from "react";
 
 function onLogout() {
 	const base = import.meta.env.BASE_URL ?? "/reporting/";
@@ -22,6 +25,22 @@ function RootLayout() {
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
+	const { data: authData } = useQuery({
+		queryKey: ["authentication"],
+		queryFn: () =>
+			AuthenticationHttpBasicService.postV1Authentication({
+				requestBody: {
+					username: import.meta.env.VITE_FINERACT_USERNAME,
+					password: import.meta.env.VITE_FINERACT_PASSWORD,
+				},
+			}),
+		staleTime: Infinity,
+	});
+	useEffect(() => {
+		if (authData) {
+			sessionStorage.setItem("auth", JSON.stringify(authData));
+		}
+	}, [authData]);
 	return (
 		<AppLayout
 			sidebar={
