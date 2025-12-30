@@ -13,15 +13,19 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
-import { useAuth } from "../hooks/useAuth";
+
+import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createRootRouteWithContext()({
 	component: RootLayout,
 });
 
 function RootLayout() {
-	const { onLogout } = useAuth();
+	const { onLogout, userData } = useAuth();
 	const { location } = useRouterState();
+
+	const { t } = useTranslation();
 
 	// Don't render the layout on the login page
 	if (location.pathname === "/login") {
@@ -39,7 +43,11 @@ function RootLayout() {
 				sidebar={<Sidebar menuItems={menuAccountManager} onLogout={onLogout} />}
 				navbar={
 					<Navbar
-						logo={<h1 className="text-lg font-bold">Account Manager</h1>}
+						logo={
+							<h1 className="text-lg font-bold">
+								{t("welcome")}, {userData?.staffDisplayName}
+							</h1>
+						}
 						links={null}
 						notifications={<Bell />}
 						userSection={

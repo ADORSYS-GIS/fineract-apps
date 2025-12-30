@@ -10,7 +10,9 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
-import { AuthProvider, useAuth } from "../contexts/AuthContext";
+
+import { useTranslation } from "react-i18next";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 export interface MyRouterContext {
 	queryClient: QueryClient;
@@ -22,6 +24,8 @@ function RootComponent() {
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
 	const userRole = user?.roles?.[0]?.name;
+
+	const { t } = useTranslation();
 
 	if (isLoading) {
 		return <div>Loading...</div>;
@@ -69,7 +73,11 @@ function RootComponent() {
 			}
 			navbar={
 				<Navbar
-					logo={<h1 className="text-lg font-bold">Accounting App</h1>}
+					logo={
+						<h1 className="text-lg font-bold">
+							{t("welcome")}, {user.staffDisplayName}
+						</h1>
+					}
 					links={null}
 					notifications={<Bell />}
 					userSection={

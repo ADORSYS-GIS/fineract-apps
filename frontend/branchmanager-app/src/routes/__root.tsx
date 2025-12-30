@@ -59,7 +59,11 @@ function RootLayout() {
 			}
 			navbar={
 				<Navbar
-					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
+					logo={
+						<h1 className="text-lg font-bold">
+							Welcome, {authData?.staffDisplayName}
+						</h1>
+					}
 					links={null}
 					notifications={<Bell />}
 					userSection={

@@ -12,6 +12,8 @@ import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { useEffect } from "react";
+
+import { useTranslation } from "react-i18next";
 import { ToastContainer, ToastProvider } from "@/components/Toast";
 
 function RootLayout() {
@@ -33,6 +35,7 @@ function RootLayout() {
 	}, [authData]);
 
 	const handleLogout = () => logout();
+	const { t } = useTranslation();
 
 	return (
 		<ToastProvider>
@@ -40,7 +43,11 @@ function RootLayout() {
 				sidebar={<Sidebar menuItems={menuAdmin} onLogout={handleLogout} />}
 				navbar={
 					<Navbar
-						logo={<h1 className="text-lg font-bold">Administration</h1>}
+						logo={
+							<h1 className="text-lg font-bold">
+								{t("welcome")}, {authData?.staffDisplayName}
+							</h1>
+						}
 						links={null}
 						notifications={<Bell />}
 						userSection={
