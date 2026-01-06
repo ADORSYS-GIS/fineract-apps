@@ -2,7 +2,7 @@ import {
 	GetLoansLoanIdTransactionsTemplateResponse,
 	PostLoansLoanIdRequest,
 } from "@fineract-apps/fineract-api";
-import { Button, Form, Input } from "@fineract-apps/ui";
+import { Button, Form, Input, useBusinessDate } from "@fineract-apps/ui";
 import { format } from "date-fns";
 import { FC } from "react";
 import { Modal } from "@/components/Modal/Modal";
@@ -24,6 +24,8 @@ export const DisbursementModal: FC<DisbursementModalProps> = ({
 	isSubmitting,
 	variant,
 }) => {
+	const { businessDate } = useBusinessDate();
+
 	if (!isOpen) return null;
 
 	const title =
@@ -45,7 +47,7 @@ export const DisbursementModal: FC<DisbursementModalProps> = ({
 					});
 				}}
 				initialValues={{
-					actualDisbursementDate: new Date().toLocaleDateString("en-CA"),
+					actualDisbursementDate: businessDate,
 					transactionAmount: template?.amount,
 				}}
 			>

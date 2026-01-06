@@ -1,13 +1,13 @@
 import { cva } from "class-variance-authority";
 
 export const cardVariants = cva(
-	"inline-flex flex-col justify-start rounded-lg transition-shadow",
+	"w-full flex flex-col justify-start rounded-lg transition-shadow",
 	{
 		variants: {
 			variant: {
-				default: "bg-card text-card-foreground border border-card-border",
+				default: "bg-card text-card-foreground shadow-sm",
 				muted: "bg-card-muted text-card-foreground",
-				elevated: "bg-card text-card-foreground shadow-md",
+				elevated: "bg-card text-card-foreground shadow-lg",
 				outlined: "border border-card-border bg-transparent",
 			},
 			size: {

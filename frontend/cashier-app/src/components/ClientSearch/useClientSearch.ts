@@ -35,8 +35,8 @@ export const useClientSearch = () => {
 	}, [queryResult.data, navigate]);
 
 	const search = (query: string) => {
-		const id = parseInt(query, 10);
-		if (!isNaN(id) && id > 0) {
+		const id = Number.parseInt(query, 10);
+		if (!Number.isNaN(id) && id > 0) {
 			setAccountId(id);
 		} else {
 			setAccountId(null);

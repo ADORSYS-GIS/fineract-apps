@@ -11,6 +11,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 function onLogout() {
 	const base = import.meta.env.BASE_URL ?? "/reporting/";
@@ -23,6 +24,7 @@ function onLogout() {
 
 function RootLayout() {
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
 	const { data: authData } = useQuery({
@@ -56,7 +58,7 @@ function RootLayout() {
 				<Navbar
 					logo={
 						<h1 className="text-lg font-bold">
-							Welcome, {authData?.staffDisplayName}
+							{t("welcome")}, {authData?.staffDisplayName}
 						</h1>
 					}
 					links={null}

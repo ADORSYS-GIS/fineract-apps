@@ -2,6 +2,7 @@
  * User Sync Service API Client
  *
  * Provides functions to interact with the User Sync Service for:
+ * - User creation in Keycloak
  * - Password reset (triggers email to user)
  * - User status management (activate/deactivate in Keycloak)
  * - Force password change on next login
@@ -11,18 +12,78 @@
 const USER_SYNC_API_BASE = "/api/user-sync";
 
 /**
- * API Response type for User Sync operations
+ * Generic API Response type for User Sync operations
  */
-interface UserSyncResponse {
-	status: "success" | "error";
+export interface UserSyncApiResponse {
+	status: "success" | "error" | "exists" | "not_found";
 	message: string;
+}
+
+/**
+ * Payload for syncing a new user to Keycloak
+ */
+export interface SyncUserPayload {
+	// The backend requires a userId, but the integration plan states this call
+	// happens *before* the Fineract user is created. This needs to be resolved.
+	// A placeholder or a change in the backend might be required.
+	userId: number; // Assuming a placeholder like 0 will be sent.
+	username: string;
+	email: string;
+	firstName?: string;
+	lastName?: string;
+	role?: string;
+	officeId?: number;
+	officeName?: string;
+}
+
+/**
+ * Response from a successful user sync operation
+ */
+export interface SyncUserResponse extends UserSyncApiResponse {
+	keycloak_user_id?: string;
+	temporary_password?: string;
+	required_actions?: string[];
+}
+
+/**
+ * Response from getting a user's Keycloak status
+ */
+export interface KeycloakStatusResponse extends UserSyncApiResponse {
 	keycloak_user?: {
+		id: string;
 		enabled: boolean;
 		emailVerified: boolean;
 		requiredActions: string[];
 		roles: string[];
 		groups: string[];
 	};
+}
+
+/**
+ * Sync a single user to Keycloak.
+ * This should be the first step in the user creation process.
+ *
+ * @param userData - The user data to sync
+ * @returns Promise with sync result, including temporary password
+ */
+export async function syncUser(
+	userData: SyncUserPayload,
+): Promise<SyncUserResponse> {
+	const response = await fetch(`${USER_SYNC_API_BASE}/sync/user`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include", // Include OIDC session cookies
+		body: JSON.stringify(userData),
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		throw new Error(error.message || "Failed to sync user to Keycloak");
+	}
+
+	return response.json();
 }
 
 /**
@@ -33,7 +94,7 @@ interface UserSyncResponse {
  */
 export async function resetUserPassword(
 	username: string,
-): Promise<UserSyncResponse> {
+): Promise<UserSyncApiResponse> {
 	const response = await fetch(
 		`${USER_SYNC_API_BASE}/users/${username}/reset-password`,
 		{
@@ -41,7 +102,7 @@ export async function resetUserPassword(
 			headers: {
 				"Content-Type": "application/json",
 			},
-			credentials: "include", // Include OIDC session cookies
+			credentials: "include",
 		},
 	);
 
@@ -63,7 +124,7 @@ export async function resetUserPassword(
 export async function updateUserStatus(
 	username: string,
 	enabled: boolean,
-): Promise<UserSyncResponse> {
+): Promise<UserSyncApiResponse> {
 	const response = await fetch(
 		`${USER_SYNC_API_BASE}/users/${username}/status`,
 		{
@@ -92,7 +153,7 @@ export async function updateUserStatus(
  */
 export async function forcePasswordChange(
 	username: string,
-): Promise<UserSyncResponse> {
+): Promise<UserSyncApiResponse> {
 	const response = await fetch(
 		`${USER_SYNC_API_BASE}/users/${username}/force-password-change`,
 		{
@@ -120,7 +181,7 @@ export async function forcePasswordChange(
  */
 export async function getUserKeycloakStatus(
 	username: string,
-): Promise<UserSyncResponse> {
+): Promise<KeycloakStatusResponse> {
 	const response = await fetch(
 		`${USER_SYNC_API_BASE}/users/${username}/keycloak-status`,
 		{

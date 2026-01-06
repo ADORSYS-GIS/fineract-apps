@@ -3,14 +3,16 @@ import {
 	SavingsAccountService,
 	SavingsAccountTransactionsService,
 } from "@fineract-apps/fineract-api";
+import { getBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useState } from "react";
+import { TransactionRequestBody } from "@/components/ClientDetails/ClientDetails.types";
 import {
 	TransactionFormData,
 	TransactionType,
-} from "../TransactionForm/TransactionForm.types";
-import { TransactionRequestBody } from "./ClientDetails.types";
+} from "@/components/TransactionForm/TransactionForm.types";
+import { useSavingsTransactionReceipt } from "@/hooks/useSavingsTransactionReceipt";
 
 export const useClientDetails = (savingsId: number) => {
 	const queryClient = useQueryClient();
@@ -22,6 +24,10 @@ export const useClientDetails = (savingsId: number) => {
 		id?: number;
 		accountNo?: string;
 	} | null>(null);
+	const [selectedTransactionId, setSelectedTransactionId] = useState<
+		number | null
+	>(null);
+	const [outputType, setOutputType] = useState<"PDF" | "XLS" | "HTML">("PDF");
 
 	const {
 		data: savingsAccount,
@@ -38,7 +44,7 @@ export const useClientDetails = (savingsId: number) => {
 	});
 
 	const transactionMutation = useMutation({
-		mutationFn: ({
+		mutationFn: async ({
 			savingsId,
 			command,
 			body,
@@ -47,9 +53,12 @@ export const useClientDetails = (savingsId: number) => {
 			command: "deposit" | "withdrawal";
 			body: TransactionFormData;
 		}) => {
-			const date = new Date();
-			const transactionDate = format(date, "yyyy-MM-dd HH:mm:ss");
-			const transactionAmount = parseFloat(body.amount);
+			const businessDate = await getBusinessDate();
+			const transactionDate = format(
+				new Date(businessDate),
+				"yyyy-MM-dd HH:mm:ss",
+			);
+			const transactionAmount = Number.parseFloat(body.amount);
 			return SavingsAccountTransactionsService.postV1SavingsaccountsBySavingsIdTransactions(
 				{
 					savingsId,
@@ -117,6 +126,18 @@ export const useClientDetails = (savingsId: number) => {
 			);
 		}
 	};
+
+	const {
+		mutate: generateReceipt,
+		receipt,
+		setReceipt,
+	} = useSavingsTransactionReceipt();
+
+	const handleViewReceipt = (transactionId: number) => {
+		setSelectedTransactionId(transactionId);
+		generateReceipt({ transactionId, outputType });
+	};
+
 	return {
 		savingsAccount,
 		isLoading,
@@ -132,5 +153,11 @@ export const useClientDetails = (savingsId: number) => {
 		isSubmitting: transactionMutation.isPending,
 		isSuccess,
 		selectedAccount,
+		onViewReceipt: handleViewReceipt,
+		receipt,
+		setReceipt,
+		outputType,
+		setOutputType,
+		selectedTransactionId,
 	};
 };

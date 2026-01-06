@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.2.3/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.3.6/schema.json",
 	"vcs": { "enabled": false, "clientKind": "git", "useIgnoreFile": false },
 	"files": {
 		"ignoreUnknown": false,
@@ -8,10 +8,16 @@
 			"!**/node_modules",
 			"!**/dist",
 			"!packages/fineract-api/**",
-			"!**/routeTree.gen.ts"
+			"!**/routeTree.gen.ts",
+			"!**/coverage/**"
 		]
 	},
 	"formatter": { "enabled": true, "indentStyle": "tab" },
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"linter": {
 		"enabled": true,
 		"rules": { "recommended": false }

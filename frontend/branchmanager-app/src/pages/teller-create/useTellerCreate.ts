@@ -3,6 +3,7 @@ import {
 	PostTellersRequest,
 	TellerCashManagementService,
 } from "@fineract-apps/fineract-api";
+import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
@@ -30,18 +31,13 @@ export function useTellerCreate() {
 		staleTime: Infinity,
 	});
 	const branchManagerOfficeId = officesData?.[0]?.id;
-
-	const today = new Date();
-	const yyyy = today.getFullYear();
-	const mm = String(today.getMonth() + 1).padStart(2, "0");
-	const dd = String(today.getDate()).padStart(2, "0");
-	const todayIso = `${yyyy}-${mm}-${dd}`;
+	const { businessDate } = useBusinessDate();
 
 	const initialValues: TellerCreateFormValues = {
 		officeId: branchManagerOfficeId ?? 0,
 		name: "",
 		description: "",
-		startDate: todayIso,
+		startDate: businessDate,
 		endDate: "",
 		status: 300,
 	};

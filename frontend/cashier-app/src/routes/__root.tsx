@@ -9,15 +9,18 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { Bell, UserCircle } from "lucide-react";
+import { UserCircle } from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
+import { NotificationBell } from "@/components/NotificationBell";
+import { configureApi } from "@/services/api";
 
 export interface MyRouterContext {
 	queryClient: QueryClient;
 }
 
 function RootLayout() {
+	configureApi();
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
@@ -45,12 +48,17 @@ function RootLayout() {
 			sessionStorage.setItem("auth", JSON.stringify(authData));
 		}
 	}, [authData]);
+
+	const transformedMenu = menuCashier.map((item) =>
+		item.name === "Loan Repayment" ? { ...item, name: "loanRepayment" } : item,
+	);
+
 	return (
 		<AppLayout
 			sidebar={
 				<Sidebar
 					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
-					menuItems={menuCashier}
+					menuItems={transformedMenu}
 					activePath={currentPath}
 					onNavigate={(to) => navigate({ to })}
 					onLogout={onLogout}
@@ -64,7 +72,7 @@ function RootLayout() {
 						</h1>
 					}
 					links={null}
-					notifications={<Bell />}
+					notifications={<NotificationBell />}
 					userSection={
 						<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
 							<UserCircle className="w-5 h-5 text-gray-600" />
