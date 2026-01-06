@@ -1,3 +1,4 @@
+import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import {
 	AppLayout,
 	Button,
@@ -6,20 +7,47 @@ import {
 	Navbar,
 	Sidebar,
 } from "@fineract-apps/ui";
+import { useQuery } from "@tanstack/react-query";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
+import { useEffect } from "react";
+
+import { useTranslation } from "react-i18next";
 import { ToastContainer, ToastProvider } from "@/components/Toast";
 
 function RootLayout() {
+	const { data: authData } = useQuery({
+		queryKey: ["authentication"],
+		queryFn: () =>
+			AuthenticationHttpBasicService.postV1Authentication({
+				requestBody: {
+					username: import.meta.env.VITE_FINERACT_USERNAME,
+					password: import.meta.env.VITE_FINERACT_PASSWORD,
+				},
+			}),
+		staleTime: Infinity,
+	});
+	useEffect(() => {
+		if (authData) {
+			sessionStorage.setItem("auth", JSON.stringify(authData));
+		}
+	}, [authData]);
+
 	const handleLogout = () => logout();
+	const { t } = useTranslation();
+
 	return (
 		<ToastProvider>
 			<AppLayout
 				sidebar={<Sidebar menuItems={menuAdmin} onLogout={handleLogout} />}
 				navbar={
 					<Navbar
-						logo={<h1 className="text-lg font-bold">Administration</h1>}
+						logo={
+							<h1 className="text-lg font-bold">
+								{t("welcome")}, {authData?.staffDisplayName}
+							</h1>
+						}
 						links={null}
 						notifications={<Bell />}
 						userSection={

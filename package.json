@@ -14,7 +14,11 @@
 		"test:coverage": "jest --coverage",
 		"prepare": "husky",
 		"postinstall": "pnpm codegen",
-		"codegen": "pnpm --filter @fineract-apps/fineract-api codegen"
+		"codegen": "pnpm --filter @fineract-apps/fineract-api codegen",
+		"dev:mifos": "cd frontend/mifos-web-app && npm start",
+		"build:mifos": "cd frontend/mifos-web-app && npm run build",
+		"test:mifos": "cd frontend/mifos-web-app && npm test",
+		"install:mifos": "cd frontend/mifos-web-app && npm install"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.6",

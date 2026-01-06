@@ -1,5 +1,6 @@
+import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
 	createRootRouteWithContext,
@@ -9,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { UserCircle } from "lucide-react";
+import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { NotificationBell } from "@/components/NotificationBell";
 import { configureApi } from "@/services/api";
@@ -30,6 +32,22 @@ function RootLayout() {
 			redirectTo,
 		)}`;
 	}
+	const { data: authData } = useQuery({
+		queryKey: ["authentication"],
+		queryFn: () =>
+			AuthenticationHttpBasicService.postV1Authentication({
+				requestBody: {
+					username: import.meta.env.VITE_FINERACT_USERNAME,
+					password: import.meta.env.VITE_FINERACT_PASSWORD,
+				},
+			}),
+		staleTime: Infinity,
+	});
+	useEffect(() => {
+		if (authData) {
+			sessionStorage.setItem("auth", JSON.stringify(authData));
+		}
+	}, [authData]);
 
 	const transformedMenu = menuCashier.map((item) =>
 		item.name === "Loan Repayment" ? { ...item, name: "loanRepayment" } : item,
@@ -48,7 +66,11 @@ function RootLayout() {
 			}
 			navbar={
 				<Navbar
-					logo={null}
+					logo={
+						<h1 className="text-lg font-bold">
+							Welcome, {authData?.staffDisplayName}
+						</h1>
+					}
 					links={null}
 					notifications={<NotificationBell />}
 					userSection={
