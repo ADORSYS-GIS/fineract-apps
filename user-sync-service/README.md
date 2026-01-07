@@ -151,8 +151,7 @@ The service is configured using environment variables. A `.env` file is used to 
 -   `KEYCLOAK_REALM`: The Keycloak realm to use.
 -   `KEYCLOAK_CLIENT_ID`: The client ID for the service to authenticate with Keycloak.
 -   `KEYCLOAK_CLIENT_SECRET`: The client secret for the service.
--   `KEYCLOAK_ADMIN_USER`: The username of a Keycloak admin user.
--   `KEYCLOAK_ADMIN_PASSWORD`: The password for the Keycloak admin user.
+
 -   `PORT`: The port on which the service will run (defaults to 5000).
 
 ## Production Configuration (Gunicorn)
