@@ -3,8 +3,9 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
+import { I18nextProvider } from "react-i18next";
 import "@fineract-apps/ui/styles.css";
-import "@fineract-apps/i18n";
+import { i18n } from "@fineract-apps/i18n";
 import "./index.css";
 import { routeTree } from "./routeTree.gen.ts";
 import { configureApi } from "./services/api";
@@ -26,11 +27,13 @@ declare module "@tanstack/react-router" {
 // Render your React application with the router
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
-		<QueryClientProvider client={queryClient}>
-			<Suspense fallback={<div>Loading...</div>}>
-				<RouterProvider router={router} />
-				<ReactQueryDevtools position="bottom" />
-			</Suspense>
-		</QueryClientProvider>
+		<I18nextProvider i18n={i18n}>
+			<QueryClientProvider client={queryClient}>
+				<Suspense fallback={<div>Loading...</div>}>
+					<RouterProvider router={router} />
+					<ReactQueryDevtools position="bottom" />
+				</Suspense>
+			</QueryClientProvider>
+		</I18nextProvider>
 	</StrictMode>,
 );
