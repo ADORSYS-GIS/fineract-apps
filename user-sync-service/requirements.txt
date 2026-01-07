@@ -1,5 +1,5 @@
 Flask==3.0.0
-python-keycloak==3.9.0
+python-keycloak==7.0.1
 requests==2.31.0
 python-dotenv==0.21.0
 
