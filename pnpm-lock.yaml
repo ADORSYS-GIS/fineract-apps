@@ -13,13 +13,13 @@ importers:
         version: 2.3.6
       '@commitlint/cli':
         specifier: ^20.1.0
-        version: "20.3.0(@types/node@24.10.0)(typescript@5.9.3)"
+        version: 20.3.0(@types/node@24.10.0)(typescript@5.9.3)
       '@commitlint/config-conventional':
         specifier: ^20.0.0
         version: 20.3.0
       '@tailwindcss/vite':
         specifier: ^4.1.17
-        version: "4.1.17(vite@7.3.0(@types/node@24.10.0)(jiti@2.6.1)(less@4.2.2)(lightningcss@1.30.2)(sass@1.85.0)(terser@5.39.0)(tsx@4.20.6)(yaml@2.8.1))"
+        version: 4.1.17(vite@7.3.0(@types/node@24.10.0)(jiti@2.6.1)(less@4.2.2)(lightningcss@1.30.2)(sass@1.85.0)(terser@5.39.0)(tsx@4.20.6)(yaml@2.8.1))
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -220,6 +220,9 @@ importers:
       '@fineract-apps/fineract-api':
         specifier: workspace:*
         version: link:../../packages/fineract-api
+      '@fineract-apps/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@fineract-apps/ui':
         specifier: workspace:*
         version: link:../../packages/ui

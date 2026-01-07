@@ -10,6 +10,7 @@
 	},
 	"dependencies": {
 		"@fineract-apps/fineract-api": "workspace:*",
+		"@fineract-apps/i18n": "workspace:*",
 		"@fineract-apps/ui": "workspace:*",
 		"@tanstack/react-query": "^5.90.1",
 		"@tanstack/react-router": "^1.131.44",
