@@ -45,7 +45,6 @@ function RootLayout() {
 		}
 	}, [authData]);
 
-	const handleLogout = () => logout();
 	const { t } = useTranslation();
 
 	return (
