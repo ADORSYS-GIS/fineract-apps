@@ -9,3 +9,12 @@ coverage
 # Fineract API
 packages/fineract-api/src/generated
 .roo_lessons.md
+
+# Local environment overrides (contain secrets)
+.env.local
+.env.*.local
+*/.env.local
+**/.env.local
+
+# User sync service secrets
+user-sync-service/.env.local
