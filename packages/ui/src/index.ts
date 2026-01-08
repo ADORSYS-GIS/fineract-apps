@@ -16,27 +16,18 @@ export {
 } from "./components/Form";
 export * from "./components/LanguageSwitcher";
 export { Navbar } from "./components/Navbar";
-export {
-	NotificationCard,
-	NotificationCard,
-} from "./components/NotificationCard";
+export { NotificationCard } from "./components/NotificationCard";
 export { Pagination } from "./components/Pagination";
 export { SearchBar } from "./components/SearchBar";
 export * from "./components/Sidebar";
 export { Table } from "./components/Table";
 export type { TableColumn, TableProps } from "./components/Table/Table.types";
 export { useBusinessDate } from "./hooks/useBusinessDate";
+export { useOnClickOutside } from "./hooks/useOnClickOutside";
 export {
-	useOnClickOutside,
-	useOnClickOutside,
-} from "./hooks/useOnClickOutside";
-export {
-	cn,
 	cn,
 	formatBusinessDateForInput,
 	formatCurrency,
-	formatCurrency,
-	formatToFineractDate,
 	formatToFineractDate,
 } from "./lib/utils";
 export {
