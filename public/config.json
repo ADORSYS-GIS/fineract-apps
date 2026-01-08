@@ -1,5 +1,5 @@
 {
-  "apiUrl": "",
-  "apiProvider": "/fineract-provider/api",
-  "tenantId": "default"
+	"apiUrl": "",
+	"apiProvider": "/fineract-provider/api",
+	"tenantId": "default"
 }
