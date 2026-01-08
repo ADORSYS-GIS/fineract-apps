@@ -9,7 +9,7 @@ import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { useFormik } from "formik";
+import { FormikProps, useFormik } from "formik";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,11 +27,24 @@ interface UseLoanAccountFormOptions {
 	onClose?: () => void;
 }
 
+export type LoanAccountForm = {
+	formik: FormikProps<LoanDetailsFormValues>;
+	loanTemplate: LoanDetailsTemplate | undefined;
+	isLoading: boolean;
+	loanDetails: LoanDetailsTemplate | undefined;
+	isLoadingLoanDetails: boolean;
+	repaymentSchedule: LoanRepaymentSchedule | null;
+	isCalculatingSchedule: boolean;
+	handleCalculateSchedule: () => void;
+	handleSubmit: () => void;
+	isSubmitting: boolean;
+};
+
 export const useLoanAccountForm = ({
 	clientId,
 	loanId,
 	onClose,
-}: UseLoanAccountFormOptions) => {
+}: UseLoanAccountFormOptions): LoanAccountForm => {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 	const [selectedProductId, setSelectedProductId] = useState<number | null>(

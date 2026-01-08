@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { fineractApi } from "@/services/api";
 
 export const useAuth = () => {
@@ -14,6 +15,12 @@ export const useAuth = () => {
 		staleTime: Infinity,
 		enabled: import.meta.env.VITE_AUTH_MODE === "basic",
 	});
+
+	useEffect(() => {
+		if (userData) {
+			sessionStorage.setItem("auth", JSON.stringify(userData));
+		}
+	}, [userData]);
 
 	const onLogout = () => {
 		const base = import.meta.env.BASE_URL || "/account/";

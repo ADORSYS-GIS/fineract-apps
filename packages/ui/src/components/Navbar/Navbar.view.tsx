@@ -1,6 +1,6 @@
 import { Menu, X } from "lucide-react";
 import React from "react";
-import { useTranslation } from "react-i18next";
+
 import { cn } from "../../lib/utils";
 import { Button } from "../Button";
 import { LanguageSwitcher } from "../LanguageSwitcher";
@@ -42,7 +42,6 @@ export const NavbarView = React.forwardRef<HTMLElement, NavbarProps>(
 		},
 		ref,
 	) => {
-		const { t } = useTranslation();
 		const classes = cn(
 			navbarVariant({ variant, size, className }),
 			isMenuOpen && "shadow-lg",
@@ -54,7 +53,7 @@ export const NavbarView = React.forwardRef<HTMLElement, NavbarProps>(
 				<div className="flex items-center gap-6">
 					{sidebarToggle}
 					{logo && <div className="flex items-center gap-2">{logo}</div>}
-					<span>{t("welcome")}</span>
+
 					<nav className="hidden md:flex gap-4">{links}</nav>
 				</div>
 

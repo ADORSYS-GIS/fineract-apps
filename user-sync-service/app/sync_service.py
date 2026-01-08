@@ -28,10 +28,6 @@ KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM")
 KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID")
 KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET")
 
-# Keycloak Mifos credentials (for password reset and user management)
-KEYCLOAK_ADMIN_USER = os.getenv("KEYCLOAK_ADMIN_USER")
-KEYCLOAK_ADMIN_PASSWORD = os.getenv("KEYCLOAK_ADMIN_PASSWORD")
-
 # Fineract role → Keycloak role mapping
 # Handles Fineract roles with spaces → Keycloak kebab-case roles
 # See: operations/keycloak-config/ROLE_MAPPING.md for full documentation
@@ -65,17 +61,18 @@ DEFAULT_ROLE = "staff"
 
 # Initialize Keycloak Admin Client
 def get_keycloak_admin():
-    """Get Keycloak Admin client with mifos credentials"""
+    """Get Keycloak Admin client using client credentials."""
     try:
         admin = KeycloakAdmin(
             server_url=KEYCLOAK_URL,
-            username=KEYCLOAK_ADMIN_USER,
-            password=KEYCLOAK_ADMIN_PASSWORD,
-            realm_name=KEYCLOAK_REALM,  # mifos user is in the target realm
-            user_realm_name=KEYCLOAK_REALM,  # But operates on fineract realm
+            client_id=KEYCLOAK_CLIENT_ID,
+            client_secret_key=KEYCLOAK_CLIENT_SECRET,
+            realm_name=KEYCLOAK_REALM,
             verify=True
         )
-        logger.info("Successfully connected to Keycloak with mifos credentials")
+        # Test connection by getting server info
+        admin.get_server_info()
+        logger.info("Successfully connected to Keycloak with client credentials")
         return admin
     except Exception as e:
         logger.error(f"Failed to connect to Keycloak: {str(e)}")
