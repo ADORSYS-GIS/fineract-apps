@@ -70,8 +70,8 @@ def get_keycloak_admin():
             realm_name=KEYCLOAK_REALM,
             verify=True
         )
-        # Test connection by getting server info
-        admin.get_server_info()
+        # Test connection by getting realm info (get_server_info() fails with /auth path)
+        admin.get_realm(KEYCLOAK_REALM)
         logger.info("Successfully connected to Keycloak with client credentials")
         return admin
     except Exception as e:
