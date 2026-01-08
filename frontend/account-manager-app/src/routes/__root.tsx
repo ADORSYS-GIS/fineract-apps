@@ -13,15 +13,16 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
-
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import { configureApi } from "@/services/api";
 
 export const Route = createRootRouteWithContext()({
 	component: RootLayout,
 });
 
 function RootLayout() {
+	configureApi();
 	const { onLogout, userData } = useAuth();
 	const { location } = useRouterState();
 

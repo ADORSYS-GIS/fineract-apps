@@ -28,9 +28,15 @@ function RootLayout() {
 		const base = import.meta.env.BASE_URL || "/cashier/";
 		const appBase = base.endsWith("/") ? base : `${base}/`;
 		const redirectTo = `${window.location.origin}${appBase}`;
-		window.location.href = `${appBase}callback?logout=${encodeURIComponent(
-			redirectTo,
-		)}`;
+		if (import.meta.env.VITE_AUTH_MODE === "basic") {
+			// For basic auth, just redirect to the base, as there's no real logout endpoint
+			window.location.href = appBase;
+		} else {
+			// The existing logic is for OAuth
+			window.location.href = `${appBase}callback?logout=${encodeURIComponent(
+				redirectTo,
+			)}`;
+		}
 	}
 	const { data: authData } = useQuery({
 		queryKey: ["authentication"],
