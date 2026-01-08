@@ -5,14 +5,6 @@ import { useState } from "react";
 export const useSavingsAccountStatement = () => {
 	const [receipt, setReceipt] = useState<Blob | null>(null);
 
-	// compute a locale matching Java Locale.toString() (e.g. en-US -> en_US)
-	const getLocale = () => {
-		if (typeof navigator !== "undefined" && navigator.language) {
-			return navigator.language.replace("-", "_");
-		}
-		return "en";
-	};
-
 	const mutation = useMutation({
 		mutationFn: (variables: {
 			accountNo: string;
@@ -26,7 +18,7 @@ export const useSavingsAccountStatement = () => {
 				R_accountNo: variables.accountNo,
 				R_fromDate: variables.fromDate,
 				R_toDate: variables.toDate,
-				locale: getLocale(),
+				locale: "en",
 				dateFormat: "dd MMMM yyyy",
 			};
 
@@ -36,10 +28,6 @@ export const useSavingsAccountStatement = () => {
 				query: params,
 				headers: {
 					"X-Response-Type-Blob": "true",
-					"Accept-Language":
-						typeof navigator !== "undefined" && navigator.language
-							? navigator.language
-							: "en",
 				},
 			});
 		},

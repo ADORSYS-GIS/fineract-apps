@@ -2,7 +2,7 @@ import {
 	GetLoansLoanIdResponse,
 	PaymentType,
 } from "@fineract-apps/fineract-api";
-import { Button, Card } from "@fineract-apps/ui";
+import { Button, Card, formatCurrency } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
@@ -83,19 +83,19 @@ export const LoanRepaymentView: React.FC<LoanRepaymentViewProps> = ({
 									{t("outstandingBalance")}
 								</p>
 								<p className="text-xl font-bold text-gray-800">
-									{new Intl.NumberFormat("en-US").format(
+									{formatCurrency(
 										loan.summary?.totalOutstanding || 0,
-									)}{" "}
-									XAF
+										loan.currency?.code,
+									)}
 								</p>
 							</div>
 							<div className="bg-gray-100 p-4 rounded-lg">
 								<p className="text-sm text-gray-500">{t("nextInstallment")}</p>
 								<p className="text-xl font-bold text-gray-800">
-									{new Intl.NumberFormat("en-US").format(
+									{formatCurrency(
 										loan.summary?.totalOutstanding || 0,
-									)}{" "}
-									XAF
+										loan.currency?.code,
+									)}
 								</p>
 							</div>
 							<div className="bg-gray-100 p-4 rounded-lg">

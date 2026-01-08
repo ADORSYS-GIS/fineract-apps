@@ -4,9 +4,10 @@ import {
 	PostLoansLoanIdTransactionsRequest,
 	PostLoansLoanIdTransactionsResponse,
 } from "@fineract-apps/fineract-api";
+import { getBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
@@ -20,6 +21,14 @@ export const useRepaymentForm = (
 	const [paymentTypeId, setPaymentTypeId] = useState("");
 	const [transactionDate, setTransactionDate] = useState(new Date());
 	const [note, setNote] = useState("");
+
+	useEffect(() => {
+		const fetchBusinessDate = async () => {
+			const businessDate = await getBusinessDate();
+			setTransactionDate(new Date(businessDate));
+		};
+		fetchBusinessDate();
+	}, []);
 
 	const queryClient = useQueryClient();
 
@@ -60,8 +69,8 @@ export const useRepaymentForm = (
 			dateFormat: "dd MMMM yyyy",
 			locale: "en",
 			transactionDate: format(transactionDate, "dd MMMM yyyy"),
-			transactionAmount: parseFloat(amount),
-			paymentTypeId: parseInt(paymentTypeId, 10),
+			transactionAmount: Number.parseFloat(amount),
+			paymentTypeId: Number.parseInt(paymentTypeId, 10),
 			note,
 		};
 		mutation.mutate(repaymentRequest);

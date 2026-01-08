@@ -1,11 +1,10 @@
 import {
-	GetNotification as FineractNotification,
 	GetNotificationsResponse,
 	NotificationService,
 } from "@fineract-apps/fineract-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export type { FineractNotification };
+export type { GetNotification as FineractNotification } from "@fineract-apps/fineract-api";
 
 export const useNotifications = () => {
 	const queryClient = useQueryClient();

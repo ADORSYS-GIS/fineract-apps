@@ -3,6 +3,7 @@ import {
 	useTellerCashManagementServiceGetV1TellersByTellerId,
 	useTellerCashManagementServiceGetV1TellersByTellerIdCashiersTemplate,
 } from "@fineract-apps/fineract-api";
+import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { FormValues, StaffOption } from "./TellerAssign.types";
@@ -62,6 +63,7 @@ export function useTellerAssign(
 	);
 
 	const queryClient = useQueryClient();
+	const { businessDate } = useBusinessDate();
 
 	const mutation = useMutation({
 		mutationFn: async (values: FormValues) => {
@@ -81,7 +83,7 @@ export function useTellerAssign(
 			if (!values.isFullDay) {
 				const parseTime = (t?: string) => {
 					if (!t) return null;
-					const [hh, mm] = t.split(":").map((p) => Number(p));
+					const [hh, mm] = t.split(":").map(Number);
 					if (Number.isFinite(hh) && Number.isFinite(mm)) return { hh, mm };
 					return null;
 				};
@@ -116,11 +118,7 @@ export function useTellerAssign(
 		},
 	});
 
-	const today = new Date();
-	const yyyy = today.getFullYear();
-	const mm = String(today.getMonth() + 1).padStart(2, "0");
-	const dd = String(today.getDate()).padStart(2, "0");
-	const todayIso = `${yyyy}-${mm}-${dd}`;
+	const todayIso = businessDate;
 
 	// Helper to convert [year, month, day] arrays to ISO date string yyyy-mm-dd
 	const arrayToIso = (arr: unknown): string | null => {

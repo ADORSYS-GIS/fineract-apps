@@ -3,7 +3,7 @@
 	"private": true,
 	"version": "1.0.0",
 	"type": "module",
-	"packageManager": "pnpm@9.6.0",
+	"packageManager": "pnpm@10.24.0",
 	"scripts": {
 		"dev": "pnpm --parallel --filter \"./frontend/*\" dev",
 		"build": "pnpm --filter \"./packages/ui\" build && pnpm --filter \"./frontend/*\" build",
@@ -21,6 +21,11 @@
 		"install:mifos": "cd frontend/mifos-web-app && npm install"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "2.3.6",
+		"@commitlint/cli": "^20.1.0",
+		"@commitlint/config-conventional": "^20.0.0",
+		"@tailwindcss/vite": "^4.1.17",
+		"@testing-library/jest-dom": "^6.9.1",
 		"@biomejs/biome": "2.3.6",
 		"@commitlint/cli": "^20.1.0",
 		"@commitlint/config-conventional": "^20.0.0",

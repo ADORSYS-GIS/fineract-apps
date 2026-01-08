@@ -5,10 +5,11 @@ import {
 	PutLoansLoanIdRequest,
 	PutLoansLoanIdResponse,
 } from "@fineract-apps/fineract-api";
+import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { useFormik } from "formik";
+import { FormikProps, useFormik } from "formik";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,11 +27,24 @@ interface UseLoanAccountFormOptions {
 	onClose?: () => void;
 }
 
+export type LoanAccountForm = {
+	formik: FormikProps<LoanDetailsFormValues>;
+	loanTemplate: LoanDetailsTemplate | undefined;
+	isLoading: boolean;
+	loanDetails: LoanDetailsTemplate | undefined;
+	isLoadingLoanDetails: boolean;
+	repaymentSchedule: LoanRepaymentSchedule | null;
+	isCalculatingSchedule: boolean;
+	handleCalculateSchedule: () => void;
+	handleSubmit: () => void;
+	isSubmitting: boolean;
+};
+
 export const useLoanAccountForm = ({
 	clientId,
 	loanId,
 	onClose,
-}: UseLoanAccountFormOptions) => {
+}: UseLoanAccountFormOptions): LoanAccountForm => {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 	const [selectedProductId, setSelectedProductId] = useState<number | null>(
@@ -41,6 +55,7 @@ export const useLoanAccountForm = ({
 
 	const isEditMode = !!loanId;
 	const { userData, isUserDataLoading } = useAuth();
+	const { businessDate } = useBusinessDate();
 
 	const { data: loanData, isLoading: isLoanDataLoading } = useQuery({
 		queryKey: ["loan", loanId],
@@ -82,17 +97,25 @@ export const useLoanAccountForm = ({
 
 	const createLoanPayload = (
 		values: LoanDetailsFormValues,
-	): PostLoansRequest => ({
-		...createBaseLoanPayload(values),
-		clientId: Number(clientId) || loanData?.clientId,
-		loanOfficerId: values.loanOfficerId,
-		loanPurposeId: values.loanPurposeId,
-		fundId: values.fundId,
-		charges: values.charges?.map((charge) => ({
-			chargeId: charge.id,
-			amount: charge.amount,
-		})),
-	});
+	): PostLoansRequest => {
+		const payload: PostLoansRequest = {
+			...createBaseLoanPayload(values),
+			clientId: Number(clientId) || loanData?.clientId,
+			loanPurposeId: values.loanPurposeId,
+			fundId: values.fundId,
+			charges: values.charges?.map((charge) => ({
+				chargeId: charge.id,
+				amount: charge.amount,
+			})),
+		};
+
+		// Only include loanOfficerId if it's defined
+		if (values.loanOfficerId !== undefined) {
+			payload.loanOfficerId = values.loanOfficerId;
+		}
+
+		return payload;
+	};
 
 	const createEditLoanPayload = (
 		values: LoanDetailsFormValues,
@@ -158,8 +181,8 @@ export const useLoanAccountForm = ({
 			loanOfficerId: undefined,
 			loanPurposeId: undefined,
 			fundId: undefined,
-			submittedOnDate: new Date().toISOString().split("T")[0],
-			expectedDisbursementDate: new Date().toISOString().split("T")[0],
+			submittedOnDate: businessDate,
+			expectedDisbursementDate: businessDate,
 			principal: 0,
 			loanTermFrequency: 0,
 			loanTermFrequencyType: undefined,
@@ -187,10 +210,6 @@ export const useLoanAccountForm = ({
 	const { values, setValues } = formik;
 
 	const handleSubmit = () => {
-		if (!userData?.staffId) {
-			toast.error("Loan officer ID is not available. Please try again.");
-			return;
-		}
 		formik.handleSubmit();
 	};
 
@@ -371,6 +390,16 @@ export const useLoanAccountForm = ({
 			}));
 		}
 	}, [isEditMode, userData, setValues]);
+
+	useEffect(() => {
+		if (!isEditMode && businessDate) {
+			setValues((currentValues) => ({
+				...currentValues,
+				submittedOnDate: businessDate,
+				expectedDisbursementDate: businessDate,
+			}));
+		}
+	}, [isEditMode, businessDate, setValues]);
 
 	return {
 		formik,

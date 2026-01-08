@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { fineractApi } from "@/services/api";
 
 export const useAuth = () => {
@@ -13,6 +14,12 @@ export const useAuth = () => {
 			}),
 		staleTime: Infinity,
 	});
+
+	useEffect(() => {
+		if (userData) {
+			sessionStorage.setItem("auth", JSON.stringify(userData));
+		}
+	}, [userData]);
 
 	const onLogout = () => {
 		globalThis.location.href = `/cashier/callback?logout=${encodeURIComponent(

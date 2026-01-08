@@ -1,9 +1,11 @@
+import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import {
 	AppLayout,
 	menuBranchManager,
 	Navbar,
 	Sidebar,
 } from "@fineract-apps/ui";
+import { useQuery } from "@tanstack/react-query";
 import {
 	createRootRoute,
 	Outlet,
@@ -12,7 +14,9 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { UserCircle } from "lucide-react";
+import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import { NotificationBell } from "@/components/NotificationBell";
 
 function onLogout() {
@@ -25,6 +29,23 @@ function onLogout() {
 }
 
 function RootLayout() {
+	const { t } = useTranslation();
+	const { data: authData } = useQuery({
+		queryKey: ["authentication"],
+		queryFn: () =>
+			AuthenticationHttpBasicService.postV1Authentication({
+				requestBody: {
+					username: import.meta.env.VITE_FINERACT_USERNAME,
+					password: import.meta.env.VITE_FINERACT_PASSWORD,
+				},
+			}),
+		staleTime: Infinity,
+	});
+	useEffect(() => {
+		if (authData) {
+			sessionStorage.setItem("auth", JSON.stringify(authData));
+		}
+	}, [authData]);
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
@@ -41,7 +62,11 @@ function RootLayout() {
 			}
 			navbar={
 				<Navbar
-					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
+					logo={
+						<h1 className="text-lg font-bold">
+							{t("welcome")}, {authData?.staffDisplayName}
+						</h1>
+					}
 					links={null}
 					notifications={<NotificationBell />}
 					userSection={

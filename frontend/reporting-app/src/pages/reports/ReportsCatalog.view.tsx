@@ -21,7 +21,7 @@ export function ReportsCatalogView({
 	viewerReportName,
 	viewerParameters,
 	onCloseViewer,
-}: ReportsCatalogData) {
+}: Readonly<ReportsCatalogData>) {
 	if (isLoading) {
 		return (
 			<div className="p-6 h-full flex items-center justify-center">
