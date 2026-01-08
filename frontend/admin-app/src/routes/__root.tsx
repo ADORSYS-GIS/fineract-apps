@@ -15,8 +15,19 @@ import { useEffect } from "react";
 
 import { useTranslation } from "react-i18next";
 import { ToastContainer, ToastProvider } from "@/components/Toast";
+import { configureApi } from "@/services/api";
 
 function RootLayout() {
+	configureApi();
+	const handleLogout = () => {
+		if (import.meta.env.VITE_AUTH_MODE === "basic") {
+			const base = import.meta.env.BASE_URL || "/";
+			const appBase = base.endsWith("/") ? base : `${base}/`;
+			window.location.href = appBase;
+		} else {
+			logout();
+		}
+	};
 	const { data: authData } = useQuery({
 		queryKey: ["authentication"],
 		queryFn: () =>
@@ -34,7 +45,6 @@ function RootLayout() {
 		}
 	}, [authData]);
 
-	const handleLogout = () => logout();
 	const { t } = useTranslation();
 
 	return (
