@@ -92,20 +92,43 @@ jobs:
   trigger-gitops-update:
     name: Trigger GitOps Update
     needs: build-and-push
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/mifosweb'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger GitOps repo update
-        run: |
-          echo "🔄 GitOps update workflow would be triggered here"
-          echo "This requires implementing update-gitops-repo workflow"
-          echo "For now, update GitOps repo manually or implement automation"
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-          echo "### GitOps Update Required" >> $GITHUB_STEP_SUMMARY
+      - name: Extract metadata
+        id: meta
+        run: |
+          BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          # For web-app, include branch prefix in tag like the docker-metadata-action does
+          echo "tag=${BRANCH}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Trigger GitOps repo update
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_PAT }}
+        run: |
+          BRANCH="${{ steps.meta.outputs.branch }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/adorsys-gis/fineract-gitops/dispatches \
+            -f event_type='update-image-tag' \
+            -f client_payload[app]='web-app' \
+            -f client_payload[tag]="$TAG" \
+            -f client_payload[branch]="$BRANCH"
+
+          echo "### GitOps Update Triggered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "MIFOS Web App image has been published. To deploy:" >> $GITHUB_STEP_SUMMARY
+          echo "**App**: web-app (MIFOS Web App)" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag**: \`$TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`$BRANCH\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. Update image tag in \`fineract-gitops\` repository" >> $GITHUB_STEP_SUMMARY
-          echo "2. Commit changes to trigger ArgoCD sync" >> $GITHUB_STEP_SUMMARY
-          echo "3. Monitor deployment in ArgoCD UI" >> $GITHUB_STEP_SUMMARY
+          echo "A PR will be created in the fineract-gitops repository to update the image tag." >> $GITHUB_STEP_SUMMARY
