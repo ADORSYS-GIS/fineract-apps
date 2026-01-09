@@ -1,0 +1,264 @@
+{
+	"translation": {
+		"accountManagerHomePage": "Welcome to the Account Manager Home Page!",
+		"createLoanAccount": {
+			"title": "Create Loan Account",
+			"loanProduct": "Loan Product",
+			"selectProduct": "Select a product",
+			"loanDetails": "Loan Details",
+			"externalId": "External ID",
+			"loanOfficer": "Loan Officer",
+			"loanPurpose": "Loan Purpose",
+			"fund": "Fund",
+			"submittedOn": "Submitted On",
+			"disbursementOn": "Disbursement On"
+		},
+		"createClient": {
+			"firstName": {
+				"label": "First Name",
+				"placeholder": "Enter first name"
+			},
+			"lastName": {
+				"label": "Last Name",
+				"placeholder": "Enter last name"
+			},
+			"email": {
+				"label": "Email",
+				"placeholder": "Enter email address"
+			},
+			"mobileNumber": {
+				"label": "Mobile Number",
+				"placeholder": "Enter mobile number"
+			},
+			"active": {
+				"label": "Active?"
+			},
+			"activationDate": {
+				"label": "Activation Date",
+				"placeholder": "Select activation date"
+			},
+			"title": "Create New Client",
+			"description": "Fill in the details below to create a new client record."
+		},
+		"creatingClient": "Creating Client...",
+		"dashboard": {
+			"clients": "Clients",
+			"searchClientsByName": "Search clients by name",
+			"addClient": "Add Client",
+			"loadingClients": "Loading clients...",
+			"accountNo": "Account No",
+			"activate": "Activate"
+		},
+		"activateAccount": {
+			"title": "Activate Account",
+			"confirmMessage": "Are you sure you want to activate this account?",
+			"activateNowButton": "Activate Now",
+			"activatedTitle": "Account Activated",
+			"activatedMessage": "The account is now active."
+		},
+		"clientDetails": {
+			"loading": "Loading...",
+			"clientProfile": "Client Profile",
+			"loadingImage": "Loading...",
+			"noImage": "No Image",
+			"upload": "Upload",
+			"capture": "Capture",
+			"delete": "Delete",
+			"clientId": "Client ID",
+			"phone": "Phone",
+			"joined": "Joined",
+			"openAccount": "Open Account",
+			"accounts": "Accounts",
+			"addAnotherAccount": "Add Another Account",
+			"noAccountOpenedYet": "No Account Opened yet"
+		},
+		"addIdentityDocument": {
+			"title": "Add Identity Document",
+			"documentType": {
+				"label": "Document Type",
+				"passport": "Passport",
+				"idCard": "ID Card",
+				"driversLicense": "Driver's License",
+				"otherTypes": "Other Types"
+			},
+			"status": {
+				"label": "Status",
+				"active": "Active",
+				"inactive": "Inactive"
+			},
+			"documentKey": {
+				"label": "Document Key",
+				"placeholder": "Enter Document Key"
+			},
+			"submitButton": "Submit",
+			"submittingButton": "Submitting..."
+		},
+		"captureImage": {
+			"title": "Capture Image",
+			"retakeButton": "Retake",
+			"uploadButton": "Upload",
+			"captureButton": "Capture"
+		},
+		"editClientDetails": {
+			"title": "Edit Client Details",
+			"saveChangesButton": "Save Changes",
+			"savingButton": "Saving..."
+		},
+		"editLoanAccount": {
+			"title": "Edit Loan Account"
+		},
+		"kycManagement": {
+			"title": "KYC Management",
+			"loadingDocuments": "Loading documents...",
+			"documents": "Documents:",
+			"identitiesTitle": "Identities",
+			"addIdentityButton": "+ Add",
+			"documentType": "Document Type:",
+			"documentKey": "Document Key:",
+			"status": "Status:"
+		},
+		"selectAccountType": {
+			"currentAccount": {
+				"title": "Current Account",
+				"description": "A flexible account for daily transactions."
+			},
+			"savingsAccount": {
+				"title": "Savings Account",
+				"description": "Grow your funds with interest and secure savings.",
+				"label": "Savings Account"
+			},
+			"loanAccount": {
+				"title": "Loan Account",
+				"description": "Access funds for personal or business needs.",
+				"label": "Loan Account"
+			},
+			"title": "Select Account Type",
+			"shareAccount": {
+				"label": "Share Account",
+				"description": "Purchase new shares."
+			},
+			"recurringDepositAccount": {
+				"label": "Recurring Deposit Account",
+				"description": "Start a recurring deposit."
+			},
+			"fixedDepositsAccount": {
+				"label": "Fixed Deposits Account",
+				"description": "Open a fixed deposit account."
+			}
+		},
+		"openAccount": {
+			"title": "Open Account",
+			"accountType": {
+				"label": "Account Type"
+			},
+			"productName": {
+				"label": "Product Name"
+			},
+			"createAccountButton": "Create Account"
+		},
+		"savingsAccountDetails": {
+			"loading": "Loading...",
+			"blocked": "Blocked",
+			"accountOverview": "Account Overview",
+			"current": "Current",
+			"available": "Available",
+			"transactionsTab": "Transactions",
+			"allTransactions": "All Transactions",
+			"balance": "Balance",
+			"transactionDate": "Transaction Date",
+			"transactionType": "Transaction Type",
+			"debit": "Debit",
+			"credit": "Credit",
+			"balanceHeader": "Balance",
+			"na": "N/A",
+			"bankStatementTab": "Bank Statement"
+		},
+		"bankStatementForm": {
+			"startDateRequired": "Start date is required",
+			"endDateRequired": "End date is required",
+			"startDate": "Start Date",
+			"endDate": "End Date",
+			"format": "Format",
+			"generateReport": "Generate Report",
+			"bankStatement": "Bank Statement"
+		},
+		"blockAccountModal": {
+			"blockAccount": "Block Account",
+			"selectReason": "Select Reason",
+			"selectReasonPlaceholder": "Select a reason",
+			"cancel": "Cancel",
+			"confirm": "Confirm"
+		},
+		"bankStatementModal": {
+			"bankStatement": "Bank Statement",
+			"statementFormat": "Statement Format",
+			"receipt": "Receipt",
+			"printStatement": "Print Statement",
+			"download": "Download"
+		},
+		"common": {
+			"na": "N/A",
+			"done": "Done",
+			"cancel": "Cancel",
+			"closeModal": "Close modal",
+			"loading": "Loading...",
+			"back": "Back",
+			"pdf": "PDF",
+			"xls": "XLS",
+			"csv": "CSV",
+			"save": "Save"
+		},
+		"loanProduct": "Loan Product",
+		"loanPurpose": "Loan Purpose",
+		"fund": "Fund",
+		"submittedOn": "Submitted On",
+		"disbursementOn": "Disbursement On",
+		"linkSavings": "Link Savings",
+		"charge": "Charge",
+		"selectACharge": "Select a charge",
+		"add": "Add",
+		"name": "Name",
+		"type": "Type",
+		"amount": "Amount",
+		"collectedOn": "Collected On",
+		"actions": "Actions",
+		"principal": "Principal",
+		"loanTerm": "Loan Term",
+		"numberOfRepayments": "Number of Repayments",
+		"repaidEvery": "Repaid Every",
+		"nominalInterestRate": "Nominal Interest Rate",
+		"amortization": "Amortization",
+		"interestMethod": "Interest Method",
+		"interestCalculationPeriod": "Interest Calculation Period",
+		"repaymentStrategy": "Repayment Strategy",
+		"period": "Period",
+		"days": "Days",
+		"date": "Date",
+		"principalDue": "Principal Due",
+		"interest": "Interest",
+		"fees": "Fees",
+		"penalties": "Penalties",
+		"due": "Due",
+		"outstanding": "Outstanding",
+		"preview": "Preview",
+		"details": "Details",
+		"product": "Product",
+		"loanOfficer": "Loan Officer",
+		"noLoanOfficerName": "Unknown Officer",
+		"noLoanOfficer": "Not Assigned",
+		"terms": "Terms",
+		"repaymentSchedule": "Repayment Schedule",
+		"calculating": "Calculating...",
+		"calculateSchedule": "Calculate Schedule",
+		"loading": "Loading...",
+		"edit": "Edit",
+		"delete": "Delete",
+		"back": "Back",
+		"next": "Next",
+		"submitting": "Submitting...",
+		"submit": "Submit",
+		"office": "Office",
+		"email": "Email",
+		"status": "Status"
+	}
+}

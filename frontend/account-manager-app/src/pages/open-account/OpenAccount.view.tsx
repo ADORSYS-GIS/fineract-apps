@@ -2,14 +2,16 @@ import { Button, Form, Input } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { useOpenAccount } from "./useOpenAccount";
 
 export const OpenAccountView: FC<
 	ReturnType<typeof useOpenAccount> & { clientId: number }
 > = ({ onSubmit, initialValues, products, clientId }) => {
+	const { t } = useTranslation();
 	return (
 		<div className="bg-gray-50 min-h-screen">
-			<header className="p-4 flex items-center border-b bg-white md:ml-64">
+			<header className="p-4 flex items-center border-b bg-white ">
 				<Link
 					to="/select-account-type/$clientId"
 					params={{ clientId: String(clientId) }}
@@ -18,16 +20,20 @@ export const OpenAccountView: FC<
 						<ArrowLeft className="h-6 w-6" />
 					</Button>
 				</Link>
-				<h1 className="text-lg font-semibold ml-4">Open Account</h1>
+				<h1 className="text-lg font-semibold ml-4">{t("openAccount.title")}</h1>
 			</header>
 
-			<main className="p-6 md:ml-64">
+			<main className="p-6 ">
 				<Form initialValues={initialValues} onSubmit={onSubmit}>
 					<div className="space-y-4">
-						<Input name="accountType" label="Account Type" disabled />
+						<Input
+							name="accountType"
+							label={t("openAccount.accountType.label")}
+							disabled
+						/>
 						<Input
 							name="productName"
-							label="Product Name"
+							label={t("openAccount.productName.label")}
 							type="select"
 							options={
 								products
@@ -40,7 +46,7 @@ export const OpenAccountView: FC<
 						/>
 					</div>
 					<Button type="submit" className="w-full mt-8">
-						Create Account
+						{t("openAccount.createAccountButton")}
 					</Button>
 				</Form>
 			</main>

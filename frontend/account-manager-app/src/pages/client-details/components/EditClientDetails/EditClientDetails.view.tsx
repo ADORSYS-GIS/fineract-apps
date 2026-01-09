@@ -1,6 +1,7 @@
 import { ClientData } from "@fineract-apps/fineract-api";
 import { Button, Form, Input } from "@fineract-apps/ui";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { Modal } from "../../../../components/Modal/Modal";
 import { useEditClient } from "./useEditClient";
 
@@ -10,9 +11,14 @@ export const EditClientDetails: FC<{
 	client: ClientData | undefined;
 }> = ({ isOpen, onClose, client }) => {
 	const { onSubmit, isEditingClient } = useEditClient(onClose);
+	const { t } = useTranslation();
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Edit Client Details">
+		<Modal
+			isOpen={isOpen}
+			onClose={onClose}
+			title={t("editClientDetails.title")}
+		>
 			<Form
 				initialValues={{
 					firstname: client?.firstname ?? "",
@@ -25,32 +31,34 @@ export const EditClientDetails: FC<{
 				<div className="space-y-4">
 					<Input
 						name="firstname"
-						label="First Name"
-						placeholder="Enter first name"
+						label={t("createClient.firstName.label")}
+						placeholder={t("createClient.firstName.placeholder")}
 					/>
 					<Input
 						name="lastname"
-						label="Last Name"
-						placeholder="Enter last name"
+						label={t("createClient.lastName.label")}
+						placeholder={t("createClient.lastName.placeholder")}
 					/>
 					<Input
 						name="emailAddress"
-						label="Email"
+						label={t("createClient.email.label")}
 						type="email"
-						placeholder="Enter email address"
+						placeholder={t("createClient.email.placeholder")}
 					/>
 					<Input
 						name="mobileNo"
-						label="Phone"
+						label={t("clientDetails.phone")}
 						type="text"
-						placeholder="Enter mobile number"
+						placeholder={t("createClient.mobileNumber.placeholder")}
 					/>
 					<Button
 						type="submit"
 						className="w-full bg-green-500 hover:bg-green-600 text-white"
 						disabled={isEditingClient}
 					>
-						{isEditingClient ? "Saving..." : "Save Changes"}
+						{isEditingClient
+							? t("editClientDetails.savingButton")
+							: t("editClientDetails.saveChangesButton")}
 					</Button>
 				</div>
 			</Form>

@@ -1,6 +1,7 @@
 import { SavingsAccountTransactionData } from "@fineract-apps/fineract-api";
 import { formatCurrency } from "@fineract-apps/ui";
 import { HandCoins } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { AccountDetailsLayout } from "@/components/AccountDetails/AccountDetailsLayout";
 import {
 	AccountActions,
@@ -23,6 +24,7 @@ export const SavingsAccountDetailsView = (
 		setOutputType: (outputType: "PDF" | "XLS" | "CSV") => void;
 	},
 ) => {
+	const { t } = useTranslation();
 	const {
 		account,
 		isLoading,
@@ -41,7 +43,7 @@ export const SavingsAccountDetailsView = (
 	} = props;
 
 	if (isLoading) {
-		return <div>Loading...</div>;
+		return <div>{t("savingsAccountDetails.loading")}</div>;
 	}
 
 	const isBlocked = account?.subStatus?.block || false;
@@ -59,7 +61,7 @@ export const SavingsAccountDetailsView = (
 							<p className="text-xl font-bold">{account?.clientName}</p>
 							{isBlocked && (
 								<span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-500 text-white">
-									Blocked
+									{t("savingsAccountDetails.blocked")}
 								</span>
 							)}
 						</div>
@@ -67,10 +69,14 @@ export const SavingsAccountDetailsView = (
 				</div>
 				<div className="hidden md:flex items-center gap-4">
 					<div className="text-right bg-white/10 p-6 rounded-lg">
-						<p className="text-2xl font-bold">Account Overview</p>
+						<p className="text-2xl font-bold">
+							{t("savingsAccountDetails.accountOverview")}
+						</p>
 						<div className="flex gap-8 mt-4">
 							<div>
-								<p className="text-md opacity-80">Current</p>
+								<p className="text-md opacity-80">
+									{t("savingsAccountDetails.current")}
+								</p>
 								<p className="font-bold text-2xl">
 									{formatCurrency(
 										account?.summary?.accountBalance,
@@ -79,7 +85,9 @@ export const SavingsAccountDetailsView = (
 								</p>
 							</div>
 							<div>
-								<p className="text-md opacity-80">Available</p>
+								<p className="text-md opacity-80">
+									{t("savingsAccountDetails.available")}
+								</p>
 								<p className="font-bold text-2xl">
 									{formatCurrency(
 										account?.summary?.availableBalance,
@@ -104,10 +112,14 @@ export const SavingsAccountDetailsView = (
 				</div>
 			</div>
 			<div className="md:hidden text-center bg-white/10 p-4 rounded-lg w-full mt-4">
-				<p className="text-xl font-bold">Account Overview</p>
+				<p className="text-xl font-bold">
+					{t("savingsAccountDetails.accountOverview")}
+				</p>
 				<div className="flex justify-center gap-6 mt-2">
 					<div>
-						<p className="text-sm opacity-80">Current</p>
+						<p className="text-sm opacity-80">
+							{t("savingsAccountDetails.current")}
+						</p>
 						<p className="font-bold text-lg">
 							{formatCurrency(
 								account?.summary?.accountBalance,
@@ -116,7 +128,9 @@ export const SavingsAccountDetailsView = (
 						</p>
 					</div>
 					<div>
-						<p className="text-sm opacity-80">Available</p>
+						<p className="text-sm opacity-80">
+							{t("savingsAccountDetails.available")}
+						</p>
 						<p className="font-bold text-lg">
 							{formatCurrency(
 								account?.summary?.availableBalance,
@@ -131,10 +145,12 @@ export const SavingsAccountDetailsView = (
 
 	const tabs = [
 		{
-			title: "Transactions",
+			title: t("savingsAccountDetails.transactionsTab"),
 			content: (
 				<div>
-					<h2 className="text-xl font-bold mb-4">All Transactions</h2>
+					<h2 className="text-xl font-bold mb-4">
+						{t("savingsAccountDetails.allTransactions")}
+					</h2>
 					{/* Mobile View */}
 					<div className="md:hidden space-y-4">
 						{transactions?.map((transaction: SavingsAccountTransactionData) => {
@@ -172,7 +188,7 @@ export const SavingsAccountDetailsView = (
 										{formattedDate}
 									</div>
 									<div className="text-sm text-gray-600">
-										Balance:{" "}
+										{t("savingsAccountDetails.balance")}:{" "}
 										<span className="font-medium">
 											{transaction.runningBalance}
 										</span>
@@ -187,19 +203,19 @@ export const SavingsAccountDetailsView = (
 							<thead className="bg-gray-50">
 								<tr>
 									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Transaction Date
+										{t("savingsAccountDetails.transactionDate")}
 									</th>
 									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Transaction Type
+										{t("savingsAccountDetails.transactionType")}
 									</th>
 									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Debit
+										{t("savingsAccountDetails.debit")}
 									</th>
 									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Credit
+										{t("savingsAccountDetails.credit")}
 									</th>
 									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Balance
+										{t("savingsAccountDetails.balanceHeader")}
 									</th>
 								</tr>
 							</thead>
@@ -227,10 +243,14 @@ export const SavingsAccountDetailsView = (
 													{transaction.transactionType?.value}
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
-													{isDeposit ? "N/A" : transaction.amount}
+													{isDeposit
+														? t("savingsAccountDetails.na")
+														: transaction.amount}
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
-													{isDeposit ? transaction.amount : "N/A"}
+													{isDeposit
+														? transaction.amount
+														: t("savingsAccountDetails.na")}
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 													{transaction.runningBalance}
@@ -246,7 +266,7 @@ export const SavingsAccountDetailsView = (
 			),
 		},
 		{
-			title: "Bank Statement",
+			title: t("savingsAccountDetails.bankStatementTab"),
 			content: (
 				<div className="flex justify-center">
 					<div className="w-full md:w-1/2">

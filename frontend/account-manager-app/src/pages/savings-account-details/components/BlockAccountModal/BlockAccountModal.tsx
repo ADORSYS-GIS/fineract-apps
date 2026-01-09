@@ -2,6 +2,7 @@ import { CodeValueData } from "@fineract-apps/fineract-api";
 import { Button } from "@fineract-apps/ui";
 import { X } from "lucide-react";
 import { FC, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface BlockAccountModalProps {
 	isOpen: boolean;
@@ -16,6 +17,7 @@ export const BlockAccountModal: FC<BlockAccountModalProps> = ({
 	blockReasons,
 	onConfirm,
 }) => {
+	const { t } = useTranslation();
 	const [selectedReason, setSelectedReason] = useState<number | null>(null);
 
 	if (!isOpen) {
@@ -29,7 +31,7 @@ export const BlockAccountModal: FC<BlockAccountModalProps> = ({
 				type="button"
 				className="fixed inset-0 z-40 bg-black/40"
 				onClick={onClose}
-				aria-label="Close modal"
+				aria-label={t("common.closeModal")}
 			/>
 
 			{/* Modal */}
@@ -48,7 +50,7 @@ export const BlockAccountModal: FC<BlockAccountModalProps> = ({
 					</button>
 					<div className="hidden md:block">
 						<h2 className="text-xl font-bold text-center mb-6">
-							Block Account
+							{t("blockAccountModal.blockAccount")}
 						</h2>
 					</div>
 					<div className="md:hidden flex justify-center mb-4">
@@ -56,17 +58,19 @@ export const BlockAccountModal: FC<BlockAccountModalProps> = ({
 					</div>
 					<div className="md:hidden">
 						<h2 className="text-xl font-bold text-center mb-6">
-							Block Account
+							{t("blockAccountModal.blockAccount")}
 						</h2>
 					</div>
 					<p className="text-sm text-gray-600 mb-4">
-						Please select a reason for blocking this account.
+						{t("blockAccountModal.selectReason")}
 					</p>
 					<select
 						onChange={(e) => setSelectedReason(Number(e.target.value))}
 						className="border rounded p-2 w-full mb-4"
 					>
-						<option value="">Select a reason</option>
+						<option value="">
+							{t("blockAccountModal.selectReasonPlaceholder")}
+						</option>
 						{blockReasons?.map((reason) => (
 							<option key={reason.id} value={reason.id}>
 								{reason.name}
@@ -75,7 +79,7 @@ export const BlockAccountModal: FC<BlockAccountModalProps> = ({
 					</select>
 					<div className="flex justify-end gap-4">
 						<Button variant="outline" onClick={onClose}>
-							Cancel
+							{t("blockAccountModal.cancel")}
 						</Button>
 						<Button
 							onClick={() => {
@@ -85,7 +89,7 @@ export const BlockAccountModal: FC<BlockAccountModalProps> = ({
 							}}
 							disabled={!selectedReason}
 						>
-							Confirm
+							{t("blockAccountModal.confirm")}
 						</Button>
 					</div>
 				</dialog>

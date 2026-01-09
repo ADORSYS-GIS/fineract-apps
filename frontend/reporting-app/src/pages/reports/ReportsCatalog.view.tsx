@@ -1,5 +1,6 @@
 import { Card } from "@fineract-apps/ui";
 import { Download, FileText, Play, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ReportParameterModal } from "@/components/ReportParameterModal";
 import { ReportViewer } from "../reports/report-viewer/ReportViewer";
 import type { ReportsCatalogData } from "./ReportsCatalog.types";
@@ -22,12 +23,13 @@ export function ReportsCatalogView({
 	viewerParameters,
 	onCloseViewer,
 }: Readonly<ReportsCatalogData>) {
+	const { t } = useTranslation();
 	if (isLoading) {
 		return (
 			<div className="p-6 h-full flex items-center justify-center">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold mb-6">Reports Catalog</h1>
-					<p>Loading reports...</p>
+					<h1 className="text-3xl font-bold mb-6">{t("reports.title")}</h1>
+					<p>{t("reports.loading")}</p>
 				</div>
 			</div>
 		);
@@ -36,7 +38,7 @@ export function ReportsCatalogView({
 	return (
 		<div className="p-6 h-[calc(100vh-var(--header-height,64px))] flex flex-col overflow-hidden">
 			<div className="flex justify-between items-center mb-6 flex-shrink-0">
-				<h1 className="text-3xl font-bold">Reports Catalog</h1>
+				<h1 className="text-3xl font-bold">{t("reports.title")}</h1>
 			</div>
 
 			<div className="mb-6 flex-shrink-0 relative">
@@ -45,14 +47,14 @@ export function ReportsCatalogView({
 					className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10"
 					value={searchTerm}
 					onChange={(e) => onSearchChange(e.target.value)}
-					placeholder="Search reports..."
+					placeholder={t("reports.searchPlaceholder")}
 				/>
 				{searchTerm && (
 					<button
 						onClick={() => onSearchChange("")}
 						className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full hover:bg-gray-300 text-gray-600 transition-colors z-10"
 						type="button"
-						aria-label="Clear search"
+						aria-label={t("reports.clearSearch")}
 					>
 						<X className="w-4 h-4" />
 					</button>
@@ -62,7 +64,9 @@ export function ReportsCatalogView({
 			{reports.length === 0 ? (
 				<div className="flex-1 flex items-center justify-center">
 					<Card className="p-6 w-full max-w-md">
-						<p className="text-gray-600 text-center">No reports available</p>
+						<p className="text-gray-600 text-center">
+							{t("reports.noReports")}
+						</p>
 					</Card>
 				</div>
 			) : (
@@ -103,7 +107,7 @@ export function ReportsCatalogView({
 											onClick={() => onRunReport(report.id, report.reportName)}
 										>
 											<Play className="w-4 h-4 mr-1" />
-											Run Report
+											{t("reports.runReport")}
 										</button>
 										<button className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
 											<Download className="w-4 h-4" />
@@ -126,10 +130,10 @@ export function ReportsCatalogView({
 										: "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
 								}`}
 							>
-								Previous
+								{t("reports.previous")}
 							</button>
 							<span className="text-sm text-gray-600">
-								Page {currentPage} of {totalPages}
+								{t("reports.page", { currentPage, totalPages })}
 							</span>
 							<button
 								onClick={() =>
@@ -142,13 +146,12 @@ export function ReportsCatalogView({
 										: "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
 								}`}
 							>
-								Next
+								{t("reports.next")}
 							</button>
 						</div>
 					)}
 				</div>
 			)}
-
 			{/* Report Parameter Modal */}
 			<ReportParameterModal
 				isOpen={isParameterModalOpen}
