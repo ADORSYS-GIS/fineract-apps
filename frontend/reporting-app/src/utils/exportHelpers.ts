@@ -1,3 +1,5 @@
+import * as ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import type {
 	ColumnHeader,
 	ReportDataRow,
@@ -58,49 +60,44 @@ export function exportToCSV(
  * Export report data to Excel format using a simple HTML table method
  * For more advanced Excel features, consider using a library like exceljs
  */
-export function exportToExcel(
+export async function exportToExcel(
 	columnHeaders: ColumnHeader[],
 	data: ReportDataRow[],
 	filename: string,
-): void {
-	// Create HTML table
-	const tableHTML = `
-		<table>
-			<thead>
-				<tr>
-					${columnHeaders.map((h) => `<th>${h.columnName}</th>`).join("")}
-				</tr>
-			</thead>
-			<tbody>
-				${data
-					.map(
-						(row) => `
-					<tr>
-						${row.row.map((cell) => `<td>${cell ?? ""}</td>`).join("")}
-					</tr>
-				`,
-					)
-					.join("")}
-			</tbody>
-		</table>
-	`;
-
-	// Create blob with Excel MIME type
-	const blob = new Blob([tableHTML], {
-		type: "application/vnd.ms-excel",
+): Promise<void> {
+	const workbook = new ExcelJS.Workbook();
+	const worksheet = workbook.addWorksheet(filename, {
+		views: [{ showGridLines: false }],
 	});
 
-	// Create download link
-	const link = document.createElement("a");
-	const url = URL.createObjectURL(blob);
+	// Add title
+	worksheet.addRow([filename]).font = { size: 16, bold: true };
+	worksheet.mergeCells("A1", "E1");
+	worksheet.addRow([]);
 
-	link.setAttribute("href", url);
-	link.setAttribute("download", filename);
-	link.style.visibility = "hidden";
-	document.body.appendChild(link);
-	link.click();
-	document.body.removeChild(link);
-	URL.revokeObjectURL(url);
+	// Add headers
+	worksheet.columns = columnHeaders.map((header) => ({
+		header: header.columnName,
+		key: header.columnName.toLowerCase().replace(/\s/g, "-"),
+		width: 20,
+	}));
+
+	// Add data rows
+	data.forEach((rowData) => {
+		const rowObject: { [key: string]: unknown } = {};
+		columnHeaders.forEach((header, index) => {
+			const key = header.columnName.toLowerCase().replace(/\s/g, "-");
+			rowObject[key] = rowData.row[index];
+		});
+		worksheet.addRow(rowObject);
+	});
+
+	// Generate and save the file
+	const buffer = await workbook.xlsx.writeBuffer();
+	const blob = new Blob([buffer], {
+		type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	});
+	saveAs(blob, filename);
 }
 
 /**

@@ -1,6 +1,4 @@
-import { Card } from "@fineract-apps/ui";
 import { Search } from "lucide-react";
-import { ReactNode } from "react";
 
 interface FilterField {
 	key: string;

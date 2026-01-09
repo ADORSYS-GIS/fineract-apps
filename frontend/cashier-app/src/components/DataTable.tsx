@@ -1,4 +1,3 @@
-import { Card } from "@fineract-apps/ui";
 import { ReactNode } from "react";
 
 interface Column<T> {
@@ -34,9 +33,9 @@ export function DataTable<T>({
 					<table className="w-full">
 						<thead className="text-xs text-white uppercase bg-primary">
 							<tr>
-								{columns.map((column, index) => (
+								{columns.map((column) => (
 									<th
-										key={index}
+										key={String(column.key)}
 										className={`px-6 py-3 text-left ${column.className || ""}`}
 									>
 										{column.header}
@@ -46,9 +45,13 @@ export function DataTable<T>({
 						</thead>
 						<tbody className="bg-white divide-y divide-gray-200">
 							{[...Array(loadingRows)].map((_, rowIndex) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: Skeleton loader
 								<tr key={rowIndex} className="animate-pulse">
-									{columns.map((_, colIndex) => (
-										<td key={colIndex} className="px-6 py-4 whitespace-nowrap">
+									{columns.map((column) => (
+										<td
+											key={String(column.key)}
+											className="px-6 py-4 whitespace-nowrap"
+										>
 											<div className="h-4 bg-gray-200 rounded w-3/4" />
 										</td>
 									))}
@@ -79,9 +82,9 @@ export function DataTable<T>({
 				<table className="w-full">
 					<thead className="text-xs text-white uppercase bg-primary">
 						<tr>
-							{columns.map((column, index) => (
+							{columns.map((column) => (
 								<th
-									key={index}
+									key={String(column.key)}
 									className={`px-6 py-3 text-left ${column.className || ""}`}
 								>
 									{column.header}
@@ -91,10 +94,11 @@ export function DataTable<T>({
 					</thead>
 					<tbody className="bg-white divide-y divide-gray-200">
 						{data.map((item, rowIndex) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: Data row might not have unique ID
 							<tr key={rowIndex} className="hover:bg-gray-50">
-								{columns.map((column, colIndex) => (
+								{columns.map((column) => (
 									<td
-										key={colIndex}
+										key={String(column.key)}
 										className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${column.className || ""}`}
 									>
 										{column.render

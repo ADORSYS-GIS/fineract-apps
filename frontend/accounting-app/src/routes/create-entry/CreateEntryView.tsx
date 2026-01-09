@@ -174,6 +174,7 @@ export function CreateEntryView({
 						</div>
 						<div className="space-y-4">
 							{debits.map((debit, index) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: Form array needs persistent index for now
 								<div key={index} className="flex gap-2">
 									<div className="flex-1">
 										<Select
@@ -243,6 +244,7 @@ export function CreateEntryView({
 						</div>
 						<div className="space-y-4">
 							{credits.map((credit, index) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: Form array needs persistent index for now
 								<div key={index} className="flex gap-2">
 									<div className="flex-1">
 										<Select

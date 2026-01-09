@@ -35,7 +35,7 @@ export const NotificationCardView: React.FC<NotificationCardProps> = ({
 			</div>
 			{!notification.isRead && (
 				<div className="flex-shrink-0 self-center">
-					<div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
+					<div className="w-2.5 h-2.5 bg-blue-500 rounded-full" />
 				</div>
 			)}
 		</div>

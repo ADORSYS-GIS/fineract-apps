@@ -34,6 +34,7 @@ export function ClosuresView({
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 					<div className="animate-pulse space-y-4">
 						{[...Array(3)].map((_, i) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: Skeleton loader constant array
 							<div key={i} className="h-20 bg-gray-200 rounded" />
 						))}
 					</div>

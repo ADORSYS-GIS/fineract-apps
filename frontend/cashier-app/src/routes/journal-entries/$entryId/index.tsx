@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { JournalEntryDetailContainer } from "./JournalEntryDetailContainer";
+import { JournalEntryDetailContainer } from "./JournalEntryDetailContainer.tsx";
 
 const journalEntrySearchSchema = z.object({
 	auditId: z.number().optional(),

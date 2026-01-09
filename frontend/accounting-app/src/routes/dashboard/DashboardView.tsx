@@ -18,6 +18,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 				<h1 className="text-2xl font-bold mb-6">Accounting Dashboard</h1>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 					{[...Array(4)].map((_, i) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: Skeleton loader constant array
 						<Card key={i} className="p-6">
 							<div className="animate-pulse">
 								<div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />

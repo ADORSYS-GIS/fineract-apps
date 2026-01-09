@@ -15,9 +15,9 @@ export function PageHeaderView({
 			</div>
 			{actions.length > 0 && (
 				<div className="flex gap-2">
-					{actions.map((action, index) => (
+					{actions.map((action) => (
 						<Button
-							key={index}
+							key={action.label}
 							onClick={action.onClick}
 							variant={action.variant || "default"}
 							disabled={action.disabled}

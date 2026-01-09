@@ -3,10 +3,14 @@ import { Download, Filter } from "lucide-react";
 import type { TransactionHistoryData } from "./TransactionHistory.types";
 
 export function TransactionHistoryView({
+	transactions,
 	isLoading,
+	pagination,
 	filters,
 	onFilterChange,
-	onExport,
+	onPageChange,
+	onExportCSV,
+	onExportExcel,
 }: TransactionHistoryData) {
 	if (isLoading) {
 		return (
@@ -21,13 +25,22 @@ export function TransactionHistoryView({
 		<div className="p-6">
 			<div className="flex justify-between items-center mb-6">
 				<h1 className="text-3xl font-bold">Transaction History</h1>
-				<button
-					onClick={onExport}
-					className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 flex items-center"
-				>
-					<Download className="w-4 h-4 mr-2" />
-					Export
-				</button>
+				<div className="flex gap-2">
+					<button
+						onClick={onExportCSV}
+						className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 flex items-center"
+					>
+						<Download className="w-4 h-4 mr-2" />
+						Export CSV
+					</button>
+					<button
+						onClick={onExportExcel}
+						className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 flex items-center"
+					>
+						<Download className="w-4 h-4 mr-2" />
+						Export Excel
+					</button>
+				</div>
 			</div>
 
 			<Card className="p-6 mb-6">
@@ -74,8 +87,66 @@ export function TransactionHistoryView({
 				</div>
 			</Card>
 
-			<Card className="p-6 text-center text-gray-600">
-				No transactions found. Transaction history will be displayed here.
+			<Card className="p-6">
+				{transactions.length > 0 ? (
+					<>
+						<div className="overflow-x-auto">
+							<table className="w-full">
+								<thead>
+									<tr className="border-b">
+										<th className="text-left p-2">ID</th>
+										<th className="text-left p-2">Action</th>
+										<th className="text-left p-2">Entity</th>
+										<th className="text-left p-2">Made By</th>
+										<th className="text-left p-2">Date</th>
+										<th className="text-left p-2">Status</th>
+									</tr>
+								</thead>
+								<tbody>
+									{transactions.map((transaction) => (
+										<tr key={transaction.id} className="border-b">
+											<td className="p-2">{transaction.id}</td>
+											<td className="p-2">{transaction.actionName}</td>
+											<td className="p-2">{transaction.entityName}</td>
+											<td className="p-2">{transaction.maker}</td>
+											<td className="p-2">{transaction.madeOnDate}</td>
+											<td className="p-2">{transaction.processingResult}</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+						<div className="flex justify-between items-center mt-4">
+							<p className="text-sm text-gray-600">
+								Showing {transactions.length} of {pagination.totalItems}{" "}
+								transactions
+							</p>
+							<div className="flex gap-2">
+								<button
+									onClick={() => onPageChange(pagination.currentPage - 1)}
+									disabled={pagination.currentPage === 1}
+									className="px-3 py-1 border rounded disabled:opacity-50"
+								>
+									Previous
+								</button>
+								<span className="px-3 py-1">
+									Page {pagination.currentPage} of {pagination.totalPages}
+								</span>
+								<button
+									onClick={() => onPageChange(pagination.currentPage + 1)}
+									disabled={pagination.currentPage === pagination.totalPages}
+									className="px-3 py-1 border rounded disabled:opacity-50"
+								>
+									Next
+								</button>
+							</div>
+						</div>
+					</>
+				) : (
+					<p className="text-center text-gray-600">
+						No transactions found. Transaction history will be displayed here.
+					</p>
+				)}
 			</Card>
 		</div>
 	);
