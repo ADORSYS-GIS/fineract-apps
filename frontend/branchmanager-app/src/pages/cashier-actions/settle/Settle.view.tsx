@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { CashierActionForm } from "@/components/CashierActionForm";
 import type { FormValues } from "./Settle.types";
 
@@ -14,6 +15,7 @@ export const SettleView = ({
 	submitLabel?: string;
 	onCancel?: () => void;
 }) => {
+	const { t } = useTranslation();
 	return (
 		<CashierActionForm
 			initialValues={initialValues}
@@ -21,7 +23,7 @@ export const SettleView = ({
 			isSubmitting={isSubmitting}
 			submitLabel={submitLabel}
 			onCancel={onCancel}
-			title="Settle Funds"
+			title={t("settle.settleFunds")}
 		/>
 	);
 };

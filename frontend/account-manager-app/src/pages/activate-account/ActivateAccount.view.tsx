@@ -2,11 +2,13 @@ import { Button, Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import { FC, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useActivateAccount } from "./useActivateAccount";
 
 export const ActivateAccountView: FC<
 	ReturnType<typeof useActivateAccount>
 > = () => {
+	const { t } = useTranslation();
 	const [isActivated, setIsActivated] = useState(false);
 
 	const handleActivate = () => {
@@ -22,12 +24,12 @@ export const ActivateAccountView: FC<
 					</Button>
 				</Link>
 				<div className="text-center mb-6">
-					<h2 className="text-2xl font-bold">Activate Account</h2>
+					<h2 className="text-2xl font-bold">{t("activateAccount.title")}</h2>
 				</div>
 				<div className="space-y-4">
-					<p>Are you sure you want to activate this account?</p>
+					<p>{t("activateAccount.confirmMessage")}</p>
 					<Button onClick={handleActivate} className="w-full">
-						Activate Now
+						{t("activateAccount.activateNowButton")}
 					</Button>
 				</div>
 			</Card>
@@ -36,11 +38,15 @@ export const ActivateAccountView: FC<
 				<div className="fixed inset-0 bg-black bg-opacity-60 flex items-end justify-center p-4">
 					<Card className="w-full max-w-md p-6 text-center">
 						<div className="mb-4">
-							<h3 className="text-xl font-bold">Account Activated</h3>
-							<p className="text-gray-600 mt-2">The account is now active.</p>
+							<h3 className="text-xl font-bold">
+								{t("activateAccount.activatedTitle")}
+							</h3>
+							<p className="text-gray-600 mt-2">
+								{t("activateAccount.activatedMessage")}
+							</p>
 						</div>
 						<Link to="/dashboard">
-							<Button className="w-full">Done</Button>
+							<Button className="w-full">{t("common.done")}</Button>
 						</Link>
 					</Card>
 				</div>

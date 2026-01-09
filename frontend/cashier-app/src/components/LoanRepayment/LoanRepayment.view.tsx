@@ -109,7 +109,7 @@ export const LoanRepaymentView: React.FC<LoanRepaymentViewProps> = ({
 												),
 												"dd MMM yyyy",
 											)
-										: "N/A"}
+										: t("common.na")}
 								</p>
 							</div>
 						</div>

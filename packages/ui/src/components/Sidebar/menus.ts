@@ -15,58 +15,118 @@ import {
 import { MenuItem } from "./Sidebar.types";
 
 export const menuAccountManager: MenuItem[] = [
-	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "settings", link: "/settings", icon: Settings },
+	{
+		name: "dashboard",
+		title: "sidebar.dashboard",
+		link: "/dashboard",
+		icon: Home,
+	},
+	{
+		name: "settings",
+		title: "sidebar.settings",
+		link: "/settings",
+		icon: Settings,
+	},
 ];
 
 export const menuBranchManager: MenuItem[] = [
-	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "staff", link: "/staff", icon: Users },
-	{ name: "tellers/cashiers", link: "/tellers", icon: Users },
-	{ name: "pending", link: "/approve/account", icon: Users },
+	{
+		name: "dashboard",
+		title: "sidebar.dashboard",
+		link: "/dashboard",
+		icon: Home,
+	},
+	{ name: "staff", title: "sidebar.staff", link: "/staff", icon: Users },
+	{
+		name: "tellers/cashiers",
+		title: "sidebar.tellersCashiers",
+		link: "/tellers",
+		icon: Users,
+	},
+	{
+		name: "pending",
+		title: "sidebar.pending",
+		link: "/approve/account",
+		icon: Users,
+	},
 ];
 
 export const menuCashier: MenuItem[] = [
-	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "Loan Repayment", link: "/repayment", icon: Send },
+	{
+		name: "dashboard",
+		title: "sidebar.dashboard",
+		link: "/dashboard",
+		icon: Home,
+	},
+	{
+		name: "Loan Repayment",
+		title: "sidebar.loanRepayment",
+		link: "/repayment",
+		icon: Send,
+	},
 ];
 
 export const menuAdmin: MenuItem[] = [
-	{ name: "Dashboard", link: "/", icon: Home },
+	{ name: "Dashboard", title: "sidebar.dashboard", link: "/", icon: Home },
 ];
 
 export const menuReporting: MenuItem[] = [
-	{ name: "dashboard", link: "/dashboard", icon: Home },
-	{ name: "reports", link: "/reports", icon: BarChart3 },
-	{ name: "transactions", link: "/transactions", icon: History },
-	{ name: "audit", link: "/audit", icon: Shield },
+	{
+		name: "dashboard",
+		title: "sidebar.dashboard",
+		link: "/dashboard",
+		icon: Home,
+	},
+	{
+		name: "reports",
+		title: "sidebar.reports",
+		link: "/reports",
+		icon: BarChart3,
+	},
+	{
+		name: "transactions",
+		title: "sidebar.transactions",
+		link: "/transactions",
+		icon: History,
+	},
+	{ name: "audit", title: "sidebar.audit", link: "/audit", icon: Shield },
 ];
 
 export const menuAccounting: MenuItem[] = [
-	{ name: "dashboard", title: "Dashboard", link: "/dashboard", icon: Home },
+	{
+		name: "dashboard",
+		title: "sidebar.dashboard",
+		link: "/dashboard",
+		icon: Home,
+	},
 	{
 		name: "gl_accounts",
-		title: "GL Accounts",
+		title: "sidebar.glAccounts",
 		link: "/gl-accounts",
 		icon: BookOpen,
 	},
 	{
 		name: "journal_entries",
-		title: "Journal Entries",
+		title: "sidebar.journalEntries",
 		link: "/journal-entries",
 		icon: FileText,
 	},
 	{
 		name: "create_entry",
-		title: "Create Entry",
+		title: "sidebar.createEntry",
 		link: "/create-entry",
 		icon: PlusCircle,
 	},
 	{
 		name: "approval_queue",
-		title: "Approval Queue",
+		title: "sidebar.approvalQueue",
 		link: "/approval-queue",
 		icon: CheckCircle,
 	},
-	{ name: "closures", title: "Closures", link: "/closures", icon: Lock },
+	{
+		name: "closures",
+		title: "sidebar.closures",
+		link: "/closures",
+		icon: Lock,
+	},
 ];

@@ -2,12 +2,14 @@ import { NotificationCard, useOnClickOutside } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	FineractNotification,
 	useNotifications,
 } from "@/hooks/useNotifications";
 
 export const NotificationBell = () => {
+	const { t } = useTranslation();
 	const { unreadCount, notifications, markAllAsRead } = useNotifications();
 	const [isOpen, setIsOpen] = useState(false);
 	const navigate = useNavigate();
@@ -61,7 +63,7 @@ export const NotificationBell = () => {
 				<div className="absolute right-0 z-10 mt-2 w-80 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
 					<div className="py-1">
 						<div className="border-b px-4 py-2 text-sm font-medium text-gray-900">
-							Notifications
+							{t("notificationBell.notifications")}
 						</div>
 						{notifications && notifications.length > 0 ? (
 							notifications.map((notif) => (
@@ -73,7 +75,7 @@ export const NotificationBell = () => {
 							))
 						) : (
 							<div className="px-4 py-2 text-sm text-gray-500">
-								No new notifications
+								{t("notificationBell.noNewNotifications")}
 							</div>
 						)}
 					</div>

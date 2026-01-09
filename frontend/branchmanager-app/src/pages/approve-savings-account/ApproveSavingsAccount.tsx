@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Route } from "@/routes/approve.savings.account";
 import {
 	ApproveSavingsAccountDetailView,
@@ -9,6 +10,7 @@ import {
 } from "./useApproveSavingsAccount";
 
 export const ApproveSavingsAccount = () => {
+	const { t } = useTranslation();
 	const searchParams = Route.useSearch() as unknown as Record<
 		string,
 		string | number | undefined
@@ -25,7 +27,7 @@ export const ApproveSavingsAccount = () => {
 
 	if (accountId) {
 		if (detail.isLoading || !detail.detail)
-			return <div>Loading account details...</div>;
+			return <div>{t("approveSavingsAccount.loadingAccountDetails")}</div>;
 		return (
 			<ApproveSavingsAccountDetailView
 				data={detail.detail}

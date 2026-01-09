@@ -1,10 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Route } from "@/routes/tellers.$tellerId.assign";
 import { type FormValues, tellerAssignSchema } from "./TellerAssign.types";
 import { TellerAssignView } from "./TellerAssign.view";
 import { useTellerAssign } from "./useTellerAssign";
 
 export const TellerAssign = () => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { tellerId } = Route.useParams();
 	const tellerIdNum = Number(tellerId);
@@ -45,7 +47,7 @@ export const TellerAssign = () => {
 				isLoadingStaff={isLoadingStaff}
 				onSubmit={handleSubmit}
 				isSubmitting={isSubmitting}
-				submitLabel="Assign"
+				submitLabel={t("tellerAssign.assign")}
 				onCancel={() =>
 					navigate({
 						to: "/tellers/$tellerId",

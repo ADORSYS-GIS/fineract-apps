@@ -1,5 +1,6 @@
 import { Button, Form, Input } from "@fineract-apps/ui";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { Modal } from "../../../../components/Modal/Modal";
 import { useUploadDocument } from "./useUploadDocument";
 
@@ -12,19 +13,24 @@ export const UploadDocument: FC<{
 		identityId,
 		onClose,
 	);
+	const { t } = useTranslation();
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Upload Document">
+		<Modal isOpen={isOpen} onClose={onClose} title={t("uploadDocument.title")}>
 			<Form initialValues={initialValues} onSubmit={onSubmit}>
 				<div className="space-y-4">
-					<Input name="name" label="File Name" placeholder="Enter file name" />
-					<Input name="file" label="Browse" type="file" />
+					<Input
+						name="name"
+						label={t("uploadDocument.fileName.label")}
+						placeholder={t("uploadDocument.fileName.placeholder")}
+					/>
+					<Input name="file" label={t("uploadDocument.browse")} type="file" />
 					<div className="flex justify-end space-x-4">
 						<Button variant="secondary" onClick={onClose}>
-							Cancel
+							{t("common.cancel")}
 						</Button>
 						<Button type="submit" disabled={isPending}>
-							{isPending ? "Uploading..." : "Confirm"}
+							{isPending ? t("uploadDocument.uploading") : t("common.confirm")}
 						</Button>
 					</div>
 				</div>

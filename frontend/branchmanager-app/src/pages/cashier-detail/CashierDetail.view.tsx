@@ -1,5 +1,6 @@
 import { Button, Card, formatCurrency } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/hooks/useCurrency";
 import { CashierDetailViewProps } from "./CashierDetail.types";
 
@@ -12,15 +13,16 @@ export const CashierDetailView = ({
 	total = 0,
 	actionButtons,
 }: CashierDetailViewProps & { actionButtons?: React.ReactNode }) => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { currencyCode } = useCurrency();
 
 	if (isLoading) {
-		return <div>Loading...</div>;
+		return <div>{t("cashierDetail.loading")}</div>;
 	}
 
 	if (error) {
-		return <div>Error: {error.message}</div>;
+		return <div>{t("cashierDetail.error", { message: error.message })}</div>;
 	}
 
 	const transactions = data?.cashierTransactions?.pageItems || [];
@@ -36,31 +38,41 @@ export const CashierDetailView = ({
 				<div className="p-6">
 					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
 						<div className="p-4 bg-gray-50 rounded-lg">
-							<p className="font-semibold text-gray-600">Net Cash</p>
+							<p className="font-semibold text-gray-600">
+								{t("cashierDetail.netCash")}
+							</p>
 							<p className="text-gray-800 text-lg font-bold">
 								{formatAmount(data?.netCash)}
 							</p>
 						</div>
 						<div className="p-4 bg-gray-50 rounded-lg">
-							<p className="font-semibold text-gray-600">Cash Allocations</p>
+							<p className="font-semibold text-gray-600">
+								{t("cashierDetail.cashAllocations")}
+							</p>
 							<p className="text-gray-800 text-lg font-bold">
 								{formatAmount(data?.sumCashAllocation)}
 							</p>
 						</div>
 						<div className="p-4 bg-gray-50 rounded-lg">
-							<p className="font-semibold text-gray-600">Cash Settlements</p>
+							<p className="font-semibold text-gray-600">
+								{t("cashierDetail.cashSettlements")}
+							</p>
 							<p className="text-gray-800 text-lg font-bold">
 								{formatAmount(data?.sumCashSettlement)}
 							</p>
 						</div>
 						<div className="p-4 bg-gray-50 rounded-lg">
-							<p className="font-semibold text-gray-600">Inward Cash</p>
+							<p className="font-semibold text-gray-600">
+								{t("cashierDetail.inwardCash")}
+							</p>
 							<p className="text-gray-800 text-lg font-bold">
 								{formatAmount(data?.sumInwardCash)}
 							</p>
 						</div>
 						<div className="p-4 bg-gray-50 rounded-lg">
-							<p className="font-semibold text-gray-600">Outward Cash</p>
+							<p className="font-semibold text-gray-600">
+								{t("cashierDetail.outwardCash")}
+							</p>
 							<p className="text-gray-800 text-lg font-bold">
 								{formatAmount(data?.sumOutwardCash)}
 							</p>
@@ -76,14 +88,18 @@ export const CashierDetailView = ({
 
 			<Card
 				className="w-full mt-6"
-				title={<span className="text-xl font-bold">Transactions</span>}
+				title={
+					<span className="text-xl font-bold">
+						{t("cashierDetail.transactions")}
+					</span>
+				}
 			>
 				<div>
 					{/* Mobile and Tablet View: Card List */}
 					<div className="md:hidden">
 						{transactions.length === 0 ? (
 							<div className="px-6 py-4 text-gray-500">
-								No transactions found.
+								{t("cashierDetail.noTransactionsFound")}
 							</div>
 						) : (
 							transactions.map((tx) => (
@@ -91,19 +107,29 @@ export const CashierDetailView = ({
 									key={tx.id}
 									className="border-b px-4 py-4 grid grid-cols-2 gap-x-4 gap-y-2"
 								>
-									<div className="font-semibold text-gray-600">Date</div>
+									<div className="font-semibold text-gray-600">
+										{t("cashierDetail.date")}
+									</div>
 									<div>{tx.txnDate ?? tx.createdDate}</div>
 
-									<div className="font-semibold text-gray-600">Type</div>
+									<div className="font-semibold text-gray-600">
+										{t("cashierDetail.type")}
+									</div>
 									<div>{tx.txnType?.value}</div>
 
-									<div className="font-semibold text-gray-600">Amount</div>
+									<div className="font-semibold text-gray-600">
+										{t("cashierDetail.amount")}
+									</div>
 									<div>{formatAmount(tx.txnAmount)}</div>
 
-									<div className="font-semibold text-gray-600">Entity</div>
+									<div className="font-semibold text-gray-600">
+										{t("cashierDetail.entity")}
+									</div>
 									<div>{tx.entityType}</div>
 
-									<div className="font-semibold text-gray-600">Note</div>
+									<div className="font-semibold text-gray-600">
+										{t("cashierDetail.note")}
+									</div>
 									<div>{tx.txnNote}</div>
 								</div>
 							))
@@ -115,18 +141,18 @@ export const CashierDetailView = ({
 						<table className="w-full text-sm text-left text-gray-500">
 							<thead className="text-xs text-gray-700 uppercase bg-gray-50">
 								<tr>
-									<th className="px-6 py-3">Date</th>
-									<th className="px-6 py-3">Type</th>
-									<th className="px-6 py-3">Amount</th>
-									<th className="px-6 py-3">Entity</th>
-									<th className="px-6 py-3">Note</th>
+									<th className="px-6 py-3">{t("cashierDetail.date")}</th>
+									<th className="px-6 py-3">{t("cashierDetail.type")}</th>
+									<th className="px-6 py-3">{t("cashierDetail.amount")}</th>
+									<th className="px-6 py-3">{t("cashierDetail.entity")}</th>
+									<th className="px-6 py-3">{t("cashierDetail.note")}</th>
 								</tr>
 							</thead>
 							<tbody>
 								{transactions.length === 0 ? (
 									<tr className="bg-white border-b">
 										<td className="px-6 py-4 text-gray-500" colSpan={5}>
-											No transactions found.
+											{t("cashierDetail.noTransactionsFound")}
 										</td>
 									</tr>
 								) : (
@@ -156,7 +182,8 @@ export const CashierDetailView = ({
 								{" "}
 								{(page - 1) * pageSize +
 									Math.min(transactions.length ? 1 : 0, 1)}
-								-{(page - 1) * pageSize + transactions.length} of {total}
+								-{(page - 1) * pageSize + transactions.length}{" "}
+								{t("cashierDetail.of")} {total}
 							</span>
 						) : null}
 					</div>
@@ -181,7 +208,7 @@ export const CashierDetailView = ({
 						>
 							{[10, 20, 50, 100].map((s) => (
 								<option key={s} value={s}>
-									{s} / page
+									{t("cashierDetail.page", { page: s })}
 								</option>
 							))}
 						</select>
@@ -203,7 +230,7 @@ export const CashierDetailView = ({
 								})
 							}
 						>
-							Previous
+							{t("cashierDetail.previous")}
 						</Button>
 						<Button
 							variant="secondary"
@@ -227,7 +254,7 @@ export const CashierDetailView = ({
 								})
 							}
 						>
-							Next
+							{t("cashierDetail.next")}
 						</Button>
 					</div>
 				</div>

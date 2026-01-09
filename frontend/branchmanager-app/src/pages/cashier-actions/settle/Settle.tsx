@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/hooks/useCurrency";
 import { Route } from "@/routes/tellers.$tellerId.cashiers.$cashierId.settle";
 import { type FormValues, settleSchema } from "./Settle.types";
@@ -6,6 +7,7 @@ import { SettleView } from "./Settle.view";
 import { useSettle } from "./useSettle";
 
 export const Settle = () => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { tellerId, cashierId } = Route.useParams();
 	const { currencyCode } = useCurrency();
@@ -27,7 +29,7 @@ export const Settle = () => {
 				initialValues={initialValues}
 				onSubmit={handleSubmit}
 				isSubmitting={isSubmitting}
-				submitLabel="Settle"
+				submitLabel={t("settle.settle")}
 				onCancel={() =>
 					navigate({
 						to: "/tellers/$tellerId/cashiers/$cashierId",

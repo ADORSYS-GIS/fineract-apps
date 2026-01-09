@@ -1,5 +1,6 @@
 import { Button } from "@fineract-apps/ui";
 import { Calendar, Lock, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components";
 import type { Closure } from "./useClosures";
 
@@ -16,14 +17,15 @@ export function ClosuresView({
 	onCreateClosure,
 	onDeleteClosure,
 }: ClosuresViewProps) {
+	const { t } = useTranslation();
 	return (
 		<div className="p-6 min-h-screen">
 			<PageHeader
-				title="Accounting Closures"
-				subtitle="Manage period-end accounting closures"
+				title={t("closures.title")}
+				subtitle={t("closures.subtitle")}
 				actions={[
 					{
-						label: "Create Closure",
+						label: t("closures.createClosure"),
 						onClick: onCreateClosure,
 						icon: <Plus className="h-4 w-4" />,
 					},
@@ -42,13 +44,15 @@ export function ClosuresView({
 			) : closures.length === 0 ? (
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
 					<Lock className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-					<h3 className="text-lg font-semibold mb-2">No Closures Yet</h3>
+					<h3 className="text-lg font-semibold mb-2">
+						{t("closures.noClosures")}
+					</h3>
 					<p className="text-gray-500 mb-4">
-						Create your first accounting closure to lock a period
+						{t("closures.noClosuresMessage")}
 					</p>
 					<Button onClick={onCreateClosure} className="flex items-center gap-2">
 						<Plus className="h-4 w-4" />
-						Create First Closure
+						{t("closures.createFirstClosure")}
 					</Button>
 				</div>
 			) : (
@@ -69,14 +73,14 @@ export function ClosuresView({
 												{closure.officeName}
 											</h3>
 											<span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-												Active
+												{t("closures.active")}
 											</span>
 										</div>
 										<div className="space-y-2 text-sm text-gray-600">
 											<div className="flex items-center gap-2">
 												<Calendar className="h-4 w-4" />
 												<span>
-													Closing Date:{" "}
+													{t("closures.closingDate")}{" "}
 													<span className="font-medium text-gray-900">
 														{new Date(closure.closingDate).toLocaleDateString(
 															"en-US",
@@ -92,12 +96,14 @@ export function ClosuresView({
 											{closure.createdDate && (
 												<div className="flex items-center gap-2">
 													<span>
-														Created:{" "}
+														{t("closures.created")}{" "}
 														{new Date(closure.createdDate).toLocaleDateString(
 															"en-US",
 														)}{" "}
 														{closure.createdByUsername && (
-															<span>by {closure.createdByUsername}</span>
+															<span>
+																{t("closures.by")} {closure.createdByUsername}
+															</span>
 														)}
 													</span>
 												</div>
@@ -118,7 +124,7 @@ export function ClosuresView({
 									className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:border-red-300"
 								>
 									<Trash2 className="h-3 w-3" />
-									Delete
+									{t("closures.delete")}
 								</Button>
 							</div>
 						</div>
@@ -131,12 +137,8 @@ export function ClosuresView({
 					<div className="flex items-start gap-2 text-blue-800">
 						<Lock className="h-5 w-5 mt-0.5" />
 						<div className="text-sm">
-							<p className="font-medium">About Accounting Closures</p>
-							<p className="mt-1">
-								Accounting closures prevent any transactions from being posted
-								before the closing date. This ensures period-end integrity and
-								compliance.
-							</p>
+							<p className="font-medium">{t("closures.aboutTitle")}</p>
+							<p className="mt-1">{t("closures.aboutMessage")}</p>
 						</div>
 					</div>
 				</div>

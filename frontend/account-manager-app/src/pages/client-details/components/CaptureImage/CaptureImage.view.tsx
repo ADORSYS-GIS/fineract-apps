@@ -1,6 +1,7 @@
 import { Button } from "@fineract-apps/ui";
 import { ArrowLeft, X } from "lucide-react";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { useCaptureImage } from "./useCaptureImage";
 
 export const CaptureImage: FC<{
@@ -16,6 +17,7 @@ export const CaptureImage: FC<{
 		handleRetake,
 		handleClose,
 	} = useCaptureImage(isOpen);
+	const { t } = useTranslation();
 
 	const handleUpload = async () => {
 		if (capturedImage) {
@@ -43,7 +45,9 @@ export const CaptureImage: FC<{
 					<Button variant="ghost" onClick={() => handleClose(onClose)}>
 						<ArrowLeft className="h-6 w-6" />
 					</Button>
-					<h1 className="text-xl font-semibold ml-4">Capture Image</h1>
+					<h1 className="text-xl font-semibold ml-4">
+						{t("captureImage.title")}
+					</h1>
 				</header>
 				<main className="p-4">
 					<div className="flex flex-col items-center">
@@ -62,14 +66,20 @@ export const CaptureImage: FC<{
 						<div className="mt-4 flex space-x-4">
 							{capturedImage ? (
 								<>
-									<Button onClick={handleRetake}>Retake</Button>
-									<Button onClick={handleUpload}>Upload</Button>
+									<Button onClick={handleRetake}>
+										{t("captureImage.retakeButton")}
+									</Button>
+									<Button onClick={handleUpload}>
+										{t("captureImage.uploadButton")}
+									</Button>
 								</>
 							) : (
-								<Button onClick={handleCapture}>Capture</Button>
+								<Button onClick={handleCapture}>
+									{t("captureImage.captureButton")}
+								</Button>
 							)}
 							<Button variant="secondary" onClick={() => handleClose(onClose)}>
-								Cancel
+								{t("common.cancel")}
 							</Button>
 						</div>
 					</div>

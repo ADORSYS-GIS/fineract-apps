@@ -2,6 +2,7 @@ import { Card, Form, Input, SubmitButton } from "@fineract-apps/ui";
 import { ErrorMessage, Field, useFormikContext } from "formik";
 import { X } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import type {
 	ParameterFormValues,
@@ -115,6 +116,7 @@ export function ReportParameterModal({
 	report,
 	onSubmit,
 }: Readonly<ReportParameterModalProps>) {
+	const { t } = useTranslation();
 	const { reportDetails, isLoading } = useReportParameters(
 		report?.id ?? null,
 		report?.reportName ?? null,
@@ -184,20 +186,20 @@ export function ReportParameterModal({
 
 			if (param.selectAll) {
 				schemaShape[key] = z.array(z.string()).nonempty({
-					message: `Please select at least one ${label}`,
+					message: t("reportParameters.selectPlaceholder", { label }),
 				});
 			} else if (param.parameterDisplayType === "date") {
 				// Date validation - required and validate format
 				schemaShape[key] = z
 					.string()
-					.min(1, { message: `${label} is required` })
+					.min(1, { message: t("reportParameters.requiredError", { label }) })
 					.refine((val) => /^\d{4}-\d{2}-\d{2}$/.test(val), {
-						message: `${label} must be a valid date in YYYY-MM-DD format`,
+						message: t("reportParameters.dateError", { label }),
 					});
 			} else {
 				schemaShape[key] = z
 					.string()
-					.min(1, { message: `${label} is required` });
+					.min(1, { message: t("reportParameters.requiredError", { label }) });
 			}
 		});
 
@@ -226,7 +228,7 @@ export function ReportParameterModal({
 				<div className="p-6">
 					{(() => {
 						if (isLoading) {
-							return <p>Loading report parameters...</p>;
+							return <p>{t("reportParameters.loading")}</p>;
 						}
 						if (
 							!reportDetails?.reportParameters ||
@@ -235,7 +237,7 @@ export function ReportParameterModal({
 							return (
 								<div>
 									<p className="text-gray-600 mb-4">
-										This report has no parameters. Click Run to execute it.
+										{t("reportParameters.noParameters")}
 									</p>
 									<button
 										onClick={() =>
@@ -247,7 +249,7 @@ export function ReportParameterModal({
 										className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
 										type="button"
 									>
-										Run Report
+										{t("reportParameters.runReport")}
 									</button>
 								</div>
 							);
@@ -277,9 +279,12 @@ export function ReportParameterModal({
 										onClick={onClose}
 										className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
 									>
-										Cancel
+										{t("reportParameters.cancel")}
 									</button>
-									<SubmitButton label="Run Report" className="flex-1" />
+									<SubmitButton
+										label={t("reportParameters.runReport")}
+										className="flex-1"
+									/>
 								</div>
 							</Form>
 						);

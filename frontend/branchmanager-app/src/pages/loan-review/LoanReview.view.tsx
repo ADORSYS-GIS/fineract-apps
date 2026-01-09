@@ -1,6 +1,7 @@
 import { Button, formatCurrency } from "@fineract-apps/ui";
 import { Check, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { BackButton } from "@/components/BackButton";
 import { LoanReviewViewProps } from "./LoanReview.types";
 
@@ -11,10 +12,11 @@ export const LoanReviewView = ({
 	onApprove,
 	onReject,
 }: LoanReviewViewProps) => {
+	const { t } = useTranslation();
 	const [note, setNote] = useState("");
 
 	if (isLoading) {
-		return <div>Loading...</div>;
+		return <div>{t("loanReview.loading")}</div>;
 	}
 
 	if (error) {
@@ -22,7 +24,7 @@ export const LoanReviewView = ({
 	}
 
 	if (!loan) {
-		return <div>Loan not found</div>;
+		return <div>{t("loanReview.loanNotFound")}</div>;
 	}
 
 	return (
@@ -32,41 +34,51 @@ export const LoanReviewView = ({
 					<BackButton to="/approve/loans/" />
 				</div>
 				<h1 className="text-2xl font-bold text-center sm:text-left order-2 sm:order-1">
-					Review Loan: {loan.accountNo} - {loan.clientName}
+					{t("loanReview.reviewLoan")} {loan.accountNo} - {loan.clientName}
 				</h1>
 			</div>
 			<div className="bg-white rounded-lg shadow p-6 mb-6">
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
 					<div>
-						<h3 className="text-lg font-semibold mb-4">Client Details</h3>
+						<h3 className="text-lg font-semibold mb-4">
+							{t("loanReview.clientDetails")}
+						</h3>
 						<div className="space-y-3">
-							<DetailRow label="Name" value={loan.clientName} />
+							<DetailRow label={t("loanReview.name")} value={loan.clientName} />
 						</div>
 					</div>
 
 					<div>
-						<h3 className="text-lg font-semibold mb-4">Loan Terms</h3>
+						<h3 className="text-lg font-semibold mb-4">
+							{t("loanReview.loanTerms")}
+						</h3>
 						<div className="space-y-3">
-							<DetailRow label="Product" value={loan.loanProductName} />
 							<DetailRow
-								label="Principal"
+								label={t("loanReview.product")}
+								value={loan.loanProductName}
+							/>
+							<DetailRow
+								label={t("loanReview.principal")}
 								value={formatCurrency(loan.principal, loan.currency?.code)}
 							/>
 							<DetailRow
-								label="Term"
+								label={t("loanReview.term")}
 								value={`${loan.termFrequency} ${loan.termPeriodFrequencyType?.description}`}
 							/>
 							<DetailRow
-								label="Interest Rate"
-								value={`${loan.annualInterestRate}% per annum`}
+								label={t("loanReview.interestRate")}
+								value={`${loan.annualInterestRate}% ${t("loanReview.perAnnum")}`}
 							/>
-							<DetailRow label="Loan Officer" value={loan.loanOfficerName} />
 							<DetailRow
-								label="Submitted On"
+								label={t("loanReview.loanOfficer")}
+								value={loan.loanOfficerName}
+							/>
+							<DetailRow
+								label={t("loanReview.submittedOn")}
 								value={loan.timeline?.submittedOnDate?.toString()}
 							/>
 							<DetailRow
-								label="Expected Disbursement"
+								label={t("loanReview.expectedDisbursement")}
 								value={loan.timeline?.expectedDisbursementDate?.toString()}
 							/>
 						</div>
@@ -74,14 +86,20 @@ export const LoanReviewView = ({
 				</div>
 
 				<div className="mt-6 pt-6 border-t">
-					<h3 className="text-lg font-semibold mb-4">Collateral & Charges</h3>
+					<h3 className="text-lg font-semibold mb-4">
+						{t("loanReview.collateralCharges")}
+					</h3>
 					<div className="grid grid-cols-2 gap-8">
 						<div className="bg-gray-50 p-4 rounded-lg">
-							<p className="text-sm font-medium mb-2">Collateral:</p>
+							<p className="text-sm font-medium mb-2">
+								{t("loanReview.collateral")}
+							</p>
 							{/* Add collateral details here */}
 						</div>
 						<div className="bg-gray-50 p-4 rounded-lg">
-							<p className="text-sm font-medium mb-2">Charges:</p>
+							<p className="text-sm font-medium mb-2">
+								{t("loanReview.charges")}
+							</p>
 							{/* Add charges details here */}
 						</div>
 					</div>
@@ -89,11 +107,13 @@ export const LoanReviewView = ({
 			</div>
 
 			<div className="bg-white rounded-lg shadow p-6">
-				<h3 className="text-lg font-semibold mb-4">Decision</h3>
+				<h3 className="text-lg font-semibold mb-4">
+					{t("loanReview.decision")}
+				</h3>
 				<textarea
 					id="note"
 					name="note"
-					placeholder="Add approval or rejection notes..."
+					placeholder={t("loanReview.addNotesPlaceholder")}
 					className="w-full p-3 border border-gray-300 rounded-lg mb-4"
 					rows={4}
 					value={note}
@@ -105,14 +125,14 @@ export const LoanReviewView = ({
 						className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium"
 					>
 						<Check size={20} />
-						Approve Loan
+						{t("loanReview.approveLoan")}
 					</Button>
 					<Button
 						onClick={() => onReject(note)}
 						className="flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-medium"
 					>
 						<X size={20} />
-						Reject Loan
+						{t("loanReview.rejectLoan")}
 					</Button>
 				</div>
 			</div>

@@ -1,5 +1,6 @@
 import { Card } from "@fineract-apps/ui";
 import { Download, FileSpreadsheet, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { ReportViewerData } from "./ReportViewer.types";
 
 interface ReportViewerViewProps extends ReportViewerData {
@@ -17,6 +18,7 @@ export function ReportViewerView({
 	onExportCSV,
 	onExportExcel,
 }: ReportViewerViewProps) {
+	const { t } = useTranslation();
 	const formatCellValue = (value: unknown, columnType: string): string => {
 		if (value === null || value === undefined) return "-";
 
@@ -56,7 +58,7 @@ export function ReportViewerView({
 				}
 				return String(value);
 			case "BOOLEAN":
-				return value ? "Yes" : "No";
+				return value ? t("reportViewer.yes") : t("reportViewer.no");
 			default:
 				return String(value);
 		}
@@ -77,7 +79,7 @@ export function ReportViewerView({
 									type="button"
 								>
 									<Download className="w-4 h-4" />
-									CSV
+									{t("reportViewer.csv")}
 								</button>
 								<button
 									onClick={onExportExcel}
@@ -85,7 +87,7 @@ export function ReportViewerView({
 									type="button"
 								>
 									<FileSpreadsheet className="w-4 h-4" />
-									Excel
+									{t("reportViewer.excel")}
 								</button>
 							</>
 						)}
@@ -105,23 +107,21 @@ export function ReportViewerView({
 						<div className="flex items-center justify-center h-64">
 							<div className="text-center">
 								<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-								<p className="text-gray-600">Loading report data...</p>
+								<p className="text-gray-600">{t("reportViewer.loading")}</p>
 							</div>
 						</div>
 					) : error ? (
 						<div className="flex items-center justify-center h-64">
 							<div className="text-center">
 								<p className="text-red-600 font-semibold mb-2">
-									Error loading report
+									{t("reportViewer.error")}
 								</p>
 								<p className="text-gray-600">{error.message}</p>
 							</div>
 						</div>
 					) : data.length === 0 ? (
 						<div className="flex items-center justify-center h-64">
-							<p className="text-gray-600">
-								No data available for the selected parameters
-							</p>
+							<p className="text-gray-600">{t("reportViewer.noData")}</p>
 						</div>
 					) : (
 						<div className="overflow-x-auto">
@@ -162,7 +162,7 @@ export function ReportViewerView({
 							</table>
 
 							<div className="mt-4 text-sm text-gray-600">
-								Showing {data.length} row{data.length !== 1 ? "s" : ""}
+								{t("reportViewer.showingRows", { count: data.length })}
 							</div>
 						</div>
 					)}

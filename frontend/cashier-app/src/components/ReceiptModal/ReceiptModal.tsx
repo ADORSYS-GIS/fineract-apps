@@ -1,6 +1,7 @@
 import { Button, Card } from "@fineract-apps/ui";
 import { Download, Printer, X } from "lucide-react";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ReceiptModalProps {
 	transactionId: number;
@@ -17,6 +18,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 	outputType,
 	setOutputType,
 }) => {
+	const { t } = useTranslation();
 	const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
 
 	const handlePrint = () => {
@@ -49,7 +51,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 				<div className="p-6">
 					<div className="flex justify-between items-center mb-4">
 						<h2 className="text-2xl font-semibold text-gray-800">
-							Transaction Receipt
+							{t("receiptModal.transactionReceipt")}
 						</h2>
 						<Button
 							variant="ghost"
@@ -64,7 +66,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 							htmlFor="outputType"
 							className="block text-sm font-medium text-gray-700"
 						>
-							Receipt Format
+							{t("receiptModal.receiptFormat")}
 						</label>
 						<select
 							id="outputType"
@@ -75,9 +77,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 							}
 							className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
 						>
-							<option value="PDF">PDF</option>
-							<option value="XLS">XLS</option>
-							<option value="HTML">HTML</option>
+							<option value="PDF">{t("common.pdf")}</option>
+							<option value="XLS">{t("common.xls")}</option>
+							<option value="HTML">{t("receiptModal.html")}</option>
 						</select>
 					</div>
 					<div className="h-96">
@@ -85,7 +87,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 							<iframe
 								src={receiptUrl || URL.createObjectURL(receipt)}
 								className="w-full h-full"
-								title="Receipt"
+								title={t("receiptModal.receiptTitle")}
 							/>
 						)}
 					</div>
@@ -95,14 +97,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 							className="bg-gray-800 hover:bg-gray-900 text-white"
 						>
 							<Printer size={20} className="mr-2" />
-							Print Receipt
+							{t("receiptModal.printReceipt")}
 						</Button>
 						<Button
 							onClick={handleDownload}
 							className="bg-gray-800 hover:bg-gray-900 text-white"
 						>
 							<Download size={20} className="mr-2" />
-							Download
+							{t("receiptModal.download")}
 						</Button>
 					</div>
 				</div>

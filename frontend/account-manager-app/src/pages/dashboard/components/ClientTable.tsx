@@ -2,6 +2,7 @@ import { GetClientsPageItemsResponse } from "@fineract-apps/fineract-api";
 import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { getStatusClass, getStatusFromCode } from "../utils";
 
 interface ClientTableProps {
@@ -13,25 +14,26 @@ export const ClientTable: FC<ClientTableProps> = ({
 	clients,
 	onActivateClient,
 }) => {
+	const { t } = useTranslation();
 	return (
 		<div className="hidden md:block">
 			<table className="min-w-full bg-white">
 				<thead>
 					<tr>
 						<th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-							Name
+							{t("name")}
 						</th>
 						<th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-							Account No.
+							{t("accountNo")}
 						</th>
 						<th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-							Office
+							{t("office")}
 						</th>
 						<th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-							Email
+							{t("email")}
 						</th>
 						<th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-							Status
+							{t("status")}
 						</th>
 					</tr>
 				</thead>
@@ -73,7 +75,7 @@ export const ClientTable: FC<ClientTableProps> = ({
 										params={{ clientId: String(client.id) }}
 										className="block"
 									>
-										{client.emailAddress ?? "N/A"}
+										{client.emailAddress ?? t("common.na")}
 									</Link>
 								</td>
 								<td className="py-4 px-6 whitespace-nowrap">
@@ -95,7 +97,7 @@ export const ClientTable: FC<ClientTableProps> = ({
 											variant="outline"
 											onClick={() => onActivateClient(client)}
 										>
-											Activate
+											{t("dashboard.activate")}
 										</Button>
 									)}
 								</td>

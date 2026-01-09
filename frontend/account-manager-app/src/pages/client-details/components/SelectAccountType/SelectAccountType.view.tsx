@@ -2,11 +2,13 @@ import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { Home, Landmark, PiggyBank, X } from "lucide-react";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { useSelectAccountType } from "./useSelectAccountType";
 
 export const SelectAccountTypeView: FC<
 	ReturnType<typeof useSelectAccountType> & { clientId?: number }
 > = ({ isOpen, closeModal, clientId }) => {
+	const { t } = useTranslation();
 	if (!isOpen) return null;
 
 	return (
@@ -17,7 +19,7 @@ export const SelectAccountTypeView: FC<
 				className="fixed inset-0 z-40 bg-black/40"
 				onClick={closeModal}
 				onKeyDown={(e) => e.key === "Escape" && closeModal()}
-				aria-label="Close modal"
+				aria-label={t("common.closeModal")}
 			/>
 
 			{/* Modal */}
@@ -35,13 +37,17 @@ export const SelectAccountTypeView: FC<
 						<X className="w-6 h-6" />
 					</button>
 					<div className="hidden md:block">
-						<h2 className="text-xl font-bold text-center mb-6">Open Account</h2>
+						<h2 className="text-xl font-bold text-center mb-6">
+							{t("clientDetails.openAccount")}
+						</h2>
 					</div>
 					<div className="md:hidden flex justify-center mb-4">
 						<div className="w-12 h-1.5 bg-gray-300 rounded-full" />
 					</div>
 					<div className="md:hidden">
-						<h2 className="text-xl font-bold text-center mb-6">Open Account</h2>
+						<h2 className="text-xl font-bold text-center mb-6">
+							{t("clientDetails.openAccount")}
+						</h2>
 					</div>
 
 					<div className="space-y-4">
@@ -57,9 +63,11 @@ export const SelectAccountTypeView: FC<
 							>
 								<Home className="h-6 w-6 mr-4" />
 								<div>
-									<p className="font-semibold">Current Account</p>
+									<p className="font-semibold">
+										{t("selectAccountType.currentAccount.title")}
+									</p>
 									<p className="text-sm text-gray-500">
-										A transactional account for daily use
+										{t("selectAccountType.currentAccount.description")}
 									</p>
 								</div>
 							</Button>
@@ -77,9 +85,11 @@ export const SelectAccountTypeView: FC<
 							>
 								<PiggyBank className="h-6 w-6 mr-4" />
 								<div>
-									<p className="font-semibold">Savings Account</p>
+									<p className="font-semibold">
+										{t("selectAccountType.savingsAccount.title")}
+									</p>
 									<p className="text-sm text-gray-500">
-										An account for saving money with interest
+										{t("selectAccountType.savingsAccount.description")}
 									</p>
 								</div>
 							</Button>
@@ -97,9 +107,11 @@ export const SelectAccountTypeView: FC<
 							>
 								<Landmark className="h-6 w-6 mr-4" />
 								<div>
-									<p className="font-semibold">Loan Account</p>
+									<p className="font-semibold">
+										{t("selectAccountType.loanAccount.title")}
+									</p>
 									<p className="text-sm text-gray-500">
-										Borrow money with a repayment plan
+										{t("selectAccountType.loanAccount.description")}
 									</p>
 								</div>
 							</Button>

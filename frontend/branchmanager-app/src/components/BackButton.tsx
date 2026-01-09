@@ -1,7 +1,9 @@
 import { Button } from "@fineract-apps/ui";
 import { useNavigate, useRouter } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export const BackButton = ({ to }: { to?: string }) => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const router = useRouter();
 	const handleNavigate = () => {
@@ -14,7 +16,7 @@ export const BackButton = ({ to }: { to?: string }) => {
 
 	return (
 		<Button variant="default" onClick={handleNavigate}>
-			Back
+			{t("common.back")}
 		</Button>
 	);
 };

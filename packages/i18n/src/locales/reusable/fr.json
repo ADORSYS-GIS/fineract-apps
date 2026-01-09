@@ -1,0 +1,24 @@
+{
+	"translation": {
+		"sidebar": {
+			"dashboard": "Tableau de bord",
+			"settings": "Paramètres",
+			"staff": "Personnel",
+			"tellersCashiers": "Guichetiers/Caissiers",
+			"pending": "En attente",
+			"loanRepayment": "Remboursement de prêt",
+			"reports": "Rapports",
+			"transactions": "Transactions",
+			"audit": "Audit",
+			"glAccounts": "Comptes GL",
+			"journalEntries": "Écritures de journal",
+			"createEntry": "Créer une écriture",
+			"approvalQueue": "File d'attente d'approbation",
+			"closures": "Clôtures",
+			"logout": "Déconnexion"
+		},
+		"navbar": {
+			"onlineBank": "Banque en ligne"
+		}
+	}
+}

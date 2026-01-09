@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/hooks/useCurrency";
 import { Route } from "@/routes/tellers.$tellerId.cashiers.$cashierId.allocate";
 import { allocateSchema, type FormValues } from "./Allocate.types";
@@ -6,6 +7,7 @@ import { AllocateView } from "./Allocate.view";
 import { useAllocate } from "./useAllocate";
 
 export const Allocate = () => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { tellerId, cashierId } = Route.useParams();
 	const { currencyCode } = useCurrency();
@@ -27,7 +29,7 @@ export const Allocate = () => {
 				initialValues={initialValues}
 				onSubmit={handleSubmit}
 				isSubmitting={isSubmitting}
-				submitLabel="Allocate"
+				submitLabel={t("allocate.allocate")}
 				onCancel={() =>
 					navigate({
 						to: "/tellers/$tellerId/cashiers/$cashierId",

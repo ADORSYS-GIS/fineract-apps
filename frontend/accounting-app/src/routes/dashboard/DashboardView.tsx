@@ -1,6 +1,7 @@
 import { Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, FileText, Lock, TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/hooks/useCurrency";
 import { PageHeader } from "../../components";
 import type { AccountingStats } from "./useDashboard";
@@ -11,11 +12,12 @@ interface DashboardViewProps {
 }
 
 export function DashboardView({ stats, isLoading }: DashboardViewProps) {
+	const { t } = useTranslation();
 	const { currencyCode } = useCurrency();
 	if (isLoading) {
 		return (
 			<div className="p-6">
-				<h1 className="text-2xl font-bold mb-6">Accounting Dashboard</h1>
+				<h1 className="text-2xl font-bold mb-6">{t("accountingDashboard")}</h1>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 					{[...Array(4)].map((_, i) => (
 						// biome-ignore lint/suspicious/noArrayIndexKey: Skeleton loader constant array
@@ -33,14 +35,14 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 
 	return (
 		<div className="p-6 bg-gray-200 min-h-screen">
-			<PageHeader title="Accounting Dashboard" />
+			<PageHeader title={t("accountingDashboard")} />
 
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm font-medium text-gray-600 mb-1">
-								GL Accounts
+								{t("glAccounts")}
 							</p>
 							<p className="text-3xl font-bold text-gray-900">
 								{stats?.glAccountsCount || 0}
@@ -56,7 +58,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm font-medium text-gray-600 mb-1">
-								Journal Entries (Today)
+								{t("journalEntriesToday")}
 							</p>
 							<p className="text-3xl font-bold text-gray-900">
 								{stats?.journalEntriesToday || 0}
@@ -72,7 +74,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm font-medium text-gray-600 mb-1">
-								Pending Approvals
+								{t("pendingApprovals")}
 							</p>
 							<p className="text-3xl font-bold text-gray-900">
 								{stats?.pendingApprovals || 0}
@@ -88,7 +90,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm font-medium text-gray-600 mb-1">
-								Total Balance
+								{t("totalBalance")}
 							</p>
 							<p className="text-3xl font-bold text-gray-900">
 								{currencyCode} {stats?.totalBalance?.toLocaleString() || "0"}
@@ -104,7 +106,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 					<h2 className="text-xl font-semibold text-gray-900 mb-4">
-						Quick Actions
+						{t("quickActions")}
 					</h2>
 					<div className="space-y-3">
 						<Link
@@ -112,19 +114,21 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 							className="block p-4 hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
 						>
 							<p className="font-medium text-gray-900 group-hover:text-blue-600">
-								View GL Accounts
+								{t("viewGLAccounts")}
 							</p>
-							<p className="text-sm text-gray-600">Browse chart of accounts</p>
+							<p className="text-sm text-gray-600">
+								{t("browseChartOfAccounts")}
+							</p>
 						</Link>
 						<Link
 							to="/journal-entries"
 							className="block p-4 hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
 						>
 							<p className="font-medium text-gray-900 group-hover:text-blue-600">
-								View Journal Entries
+								{t("viewJournalEntries")}
 							</p>
 							<p className="text-sm text-gray-600">
-								Browse all accounting entries
+								{t("browseAllAccountingEntries")}
 							</p>
 						</Link>
 						<Link
@@ -132,16 +136,18 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 							className="block p-4 hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
 						>
 							<p className="font-medium text-gray-900 group-hover:text-blue-600">
-								Create Manual Entry
+								{t("createManualEntry")}
 							</p>
-							<p className="text-sm text-gray-600">Record new transaction</p>
+							<p className="text-sm text-gray-600">
+								{t("recordNewTransaction")}
+							</p>
 						</Link>
 					</div>
 				</div>
 
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 					<h2 className="text-xl font-semibold text-gray-900 mb-4">
-						Recent Activity
+						{t("recentActivity")}
 					</h2>
 					{stats?.recentActivities && stats.recentActivities.length > 0 ? (
 						<div className="space-y-3">
@@ -179,7 +185,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 										to="/journal-entries"
 										className="text-sm text-blue-600 hover:text-blue-700"
 									>
-										View all entries →
+										{t("viewAllEntries")}
 									</Link>
 								</div>
 							)}
@@ -189,7 +195,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 							<div className="p-3 bg-gray-50 rounded-full w-fit mx-auto mb-3">
 								<FileText className="h-8 w-8 text-gray-400" />
 							</div>
-							<p className="text-sm">No recent activity</p>
+							<p className="text-sm">{t("noRecentActivity")}</p>
 						</div>
 					)}
 				</div>

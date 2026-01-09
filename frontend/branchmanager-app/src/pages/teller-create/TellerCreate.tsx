@@ -1,4 +1,5 @@
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import { ZodError } from "zod";
 import {
 	type TellerCreateFormValues,
@@ -8,6 +9,7 @@ import { TellerCreateView } from "./TellerCreate.view";
 import { useTellerCreate } from "./useTellerCreate";
 
 export function TellerCreate() {
+	const { t } = useTranslation();
 	const { initialValues, onSubmit, isSubmitting } = useTellerCreate();
 
 	const handleSubmit = async (values: TellerCreateFormValues) => {
@@ -16,7 +18,9 @@ export function TellerCreate() {
 			onSubmit(values);
 		} catch (err) {
 			if (err instanceof ZodError) {
-				toast.error(err.issues[0].message);
+				toast.error(
+					t("tellerCreate.validationError", { message: err.issues[0].message }),
+				);
 			}
 		}
 	};

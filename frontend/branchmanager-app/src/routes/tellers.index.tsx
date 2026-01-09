@@ -2,6 +2,7 @@ import { useTellerCashManagementServiceGetV1Tellers } from "@fineract-apps/finer
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Teller {
 	id: number;
@@ -12,6 +13,7 @@ interface Teller {
 }
 
 function TellersListPage() {
+	const { t } = useTranslation();
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(20);
 	const [q, setQ] = useState("");
@@ -45,17 +47,19 @@ function TellersListPage() {
 		<div className="max-w-screen-xl mx-auto p-4 sm:p-6">
 			<div className="flex justify-between items-center mb-4">
 				<div>
-					<h1 className="text-2xl font-bold">Tellers</h1>
+					<h1 className="text-2xl font-bold">{t("tellers.tellers")}</h1>
 				</div>
 				<Link to="/tellers/create">
-					<Button>Create Teller</Button>
+					<Button>{t("tellers.createTeller")}</Button>
 				</Link>
 			</div>
 
 			<div className="grid grid-cols-1 gap-6">
 				<Card
 					className="h-full"
-					title={<span className="text-xl">Available Tellers</span>}
+					title={
+						<span className="text-xl">{t("tellers.availableTellers")}</span>
+					}
 				>
 					<SearchBar
 						value={q}
@@ -63,15 +67,25 @@ function TellersListPage() {
 							setQ(value);
 							setPage(1);
 						}}
-						placeholder="Filter tellers..."
+						placeholder={t("tellers.filterTellersPlaceholder")}
 					/>
 					<div className="mt-4 space-y-3">
-						{isLoading && <div>Loading...</div>}
+						{isLoading && <div>{t("common.loading")}</div>}
 						{isError && (
-							<div className="text-red-600">{(error as Error)?.message}</div>
+							<div className="text-red-600">
+								{t("tellers.errorFetchingTellers", {
+									message: (error as Error)?.message,
+								})}
+							</div>
+						)}
+						{!isLoading && !isError && pageItems.length === 0 && (
+							<div className="text-center text-gray-500">
+								{t("tellers.noTellersFound")}
+							</div>
 						)}
 						{!isLoading &&
 							!isError &&
+							pageItems.length > 0 &&
 							pageItems.map((teller) => {
 								const isSelected = selectedTellerId === teller.id;
 								return (
@@ -99,7 +113,9 @@ function TellersListPage() {
 											</p>
 										</div>
 										<span className="text-sm text-gray-500">
-											{teller.status}
+											{teller.status === "ACTIVE"
+												? t("tellers.status.active")
+												: t("tellers.status.inactive")}
 										</span>
 									</button>
 								);
@@ -110,7 +126,8 @@ function TellersListPage() {
 						<div className="text-sm text-gray-600">
 							{pageItems.length > 0 && (
 								<span>
-									{start + 1}-{start + pageItems.length} of {total}
+									{start + 1}-{start + pageItems.length} {t("tellers.of")}{" "}
+									{total}
 								</span>
 							)}
 						</div>
@@ -125,7 +142,7 @@ function TellersListPage() {
 							>
 								{[10, 20, 50, 100].map((s) => (
 									<option key={s} value={s}>
-										{s} / page
+										{t("tellers.perPage", { count: s })}
 									</option>
 								))}
 							</select>
@@ -134,14 +151,14 @@ function TellersListPage() {
 								disabled={page <= 1}
 								onClick={() => setPage((prev) => Math.max(1, prev - 1))}
 							>
-								Previous
+								{t("tellers.previous")}
 							</Button>
 							<Button
 								variant="secondary"
 								disabled={page * pageSize >= total}
 								onClick={() => setPage((prev) => prev + 1)}
 							>
-								Next
+								{t("tellers.next")}
 							</Button>
 						</div>
 					</div>

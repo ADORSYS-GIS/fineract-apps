@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Form, Formik } from "formik";
 import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { userEditFormSchema } from "@/components/UserForm/userFormSchema";
 import { useEditUser } from "./useEditUser";
@@ -23,6 +24,7 @@ export const EditUserView = () => {
 		user,
 		error,
 	} = useEditUser();
+	const { t } = useTranslation();
 	const { data: roles, isLoading: rolesLoading } = useQuery({
 		queryKey: ["roles"],
 		queryFn: () => RolesService.getV1Roles(),
@@ -48,7 +50,9 @@ export const EditUserView = () => {
 	if (isLoadingUser) {
 		return (
 			<Card variant="elevated">
-				<div className="p-8 text-center text-gray-500">Loading user...</div>
+				<div className="p-8 text-center text-gray-500">
+					{t("editUser.loading")}
+				</div>
 			</Card>
 		);
 	}
@@ -56,7 +60,9 @@ export const EditUserView = () => {
 	if (!user) {
 		return (
 			<Card variant="elevated">
-				<div className="p-8 text-center text-red-500">User not found.</div>
+				<div className="p-8 text-center text-red-500">
+					{t("editUser.notFound")}
+				</div>
 			</Card>
 		);
 	}
@@ -66,13 +72,15 @@ export const EditUserView = () => {
 			<Link to="/users/$userId" params={{ userId: user.id.toString() }}>
 				<Button variant="ghost" size="sm" className="mb-4">
 					<ArrowLeft className="w-4 h-4 mr-2" />
-					Back to User Details
+					{t("editUser.backToUserDetails")}
 				</Button>
 			</Link>
 
 			<div className="mb-6">
-				<h1 className="text-2xl font-bold text-gray-800">Edit User</h1>
-				<p className="text-sm text-gray-600 mt-1">Update the user's details</p>
+				<h1 className="text-2xl font-bold text-gray-800">
+					{t("editUser.title")}
+				</h1>
+				<p className="text-sm text-gray-600 mt-1">{t("editUser.subtitle")}</p>
 			</div>
 
 			<div className="max-w-3xl mx-auto">
@@ -86,7 +94,7 @@ export const EditUserView = () => {
 						>
 							{() => (
 								<Form>
-									<FormTitle>User Information</FormTitle>
+									<FormTitle>{t("editUser.formTitle")}</FormTitle>
 
 									{error && (
 										<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -98,26 +106,26 @@ export const EditUserView = () => {
 										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 											<Input
 												name="firstname"
-												label="First Name"
+												label={t("createUser.firstNameLabel")}
 												type="text"
-												placeholder="Enter first name"
+												placeholder={t("createUser.firstNamePlaceholder")}
 												required
 											/>
 
 											<Input
 												name="lastname"
-												label="Last Name"
+												label={t("createUser.lastNameLabel")}
 												type="text"
-												placeholder="Enter last name"
+												placeholder={t("createUser.lastNamePlaceholder")}
 												required
 											/>
 										</div>
 
 										<Input
 											name="mobileNo"
-											label="Mobile Number"
+											label={t("createUser.mobileNumberLabel")}
 											type="text"
-											placeholder="Enter mobile number"
+											placeholder={t("createUser.mobileNumberPlaceholder")}
 										/>
 										<div className="flex items-center space-x-2">
 											<Input name="isLoanOfficer" type="checkbox" />
@@ -125,21 +133,21 @@ export const EditUserView = () => {
 												htmlFor="isLoanOfficer"
 												className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 											>
-												Loan Officer
+												{t("createUser.loanOfficerLabel")}
 											</label>
 										</div>
 										<Input
 											name="roles"
-											label="Roles"
+											label={t("createUser.rolesLabel")}
 											type="select"
 											required
 											options={roleOptions}
 											disabled={rolesLoading}
-											helperText="Select a role"
+											helperText={t("createUser.selectRole")}
 										/>
 										<Input
 											name="officeId"
-											label="Office"
+											label={t("createUser.officeLabel")}
 											type="select"
 											required
 											options={officeOptions}
@@ -148,7 +156,9 @@ export const EditUserView = () => {
 										<div className="pt-4 flex items-center gap-3">
 											<SubmitButton
 												label={
-													isUpdatingUser ? "Updating User..." : "Update User"
+													isUpdatingUser
+														? t("editUser.updating")
+														: t("editUser.updateUser")
 												}
 											/>
 											<Link
@@ -156,7 +166,7 @@ export const EditUserView = () => {
 												params={{ userId: user.id.toString() }}
 											>
 												<Button type="button" variant="outline">
-													Cancel
+													{t("editUser.cancel")}
 												</Button>
 											</Link>
 										</div>

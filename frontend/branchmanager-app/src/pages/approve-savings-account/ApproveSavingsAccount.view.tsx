@@ -10,9 +10,11 @@ import {
 } from "@fineract-apps/ui";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { BackButton } from "@/components/BackButton";
 
 function SearchBarWrapper() {
+	const { t } = useTranslation();
 	const search = useSearch({ from: "/approve/savings/account" });
 	const initial = String(search?.q ?? "");
 	const [value, setValue] = useState(initial);
@@ -37,7 +39,7 @@ function SearchBarWrapper() {
 				value={value}
 				onValueChange={handleValueChange}
 				onSearch={handleSearch}
-				placeholder="product, client, account no"
+				placeholder={t("approveSavingsAccountList.searchPlaceholder")}
 			/>
 		</div>
 	);
@@ -63,99 +65,113 @@ export const ApproveSavingsAccountListView = ({
 	page: number;
 	limit: number;
 	total: number;
-}) => (
-	<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
-		<div className="flex justify-between items-center mb-6">
-			<h1 className="text-2xl font-bold">Approve Savings Account</h1>
-			<BackButton />
-		</div>
-		{/* Filter and sort controls - wired to URL search params */}
-		<SearchBarWrapper />
-		{isLoading && <div>Loading...</div>}
-		{isError && <div>Error fetching accounts</div>}
-		{!isLoading && !isError && items.length > 0 && (
-			<>
-				<div className="overflow-x-auto">
-					<Table
-						columns={[
-							{
-								key: "savingsProductName",
-								title: "Product",
-								sortable: true,
-								className:
-									"text-xs text-white uppercase bg-primary rounded-l-lg",
-								cellClassName: "whitespace-normal px-2 sm:px-6",
-							},
-							{
-								key: "clientName",
-								title: "Client",
-								sortable: true,
-								className: "text-xs text-white uppercase bg-primary",
-								cellClassName: "whitespace-normal px-2 sm:px-6",
-							},
-							{
-								key: "accountNo",
-								title: "Account No",
-								sortable: true,
-								className:
-									"hidden md:table-cell text-xs text-white uppercase bg-primary",
-								cellClassName: "hidden md:table-cell",
-							},
-							{
-								key: "status",
-								title: "Status",
-								sortable: true,
-								className:
-									"hidden md:table-cell text-xs text-white uppercase bg-primary",
-								cellClassName: "hidden md:table-cell",
-							},
-							{
-								key: "actions",
-								title: "Actions",
-								className:
-									"text-xs text-white uppercase bg-primary rounded-r-lg",
-								cellClassName: "px-2 sm:px-6",
-								render: (row: ApproveSavingsAccountListItem) => (
-									<Link
-										to="/approve/savings/account"
-										search={{ accountId: row.id }}
-									>
-										<Button>View</Button>
-									</Link>
-								),
-							},
-						]}
-						data={items}
-					/>
-				</div>
-				<div className="flex flex-wrap justify-center items-center mt-6 space-x-2">
-					<Link
-						to="/approve/savings/account"
-						search={(prev) => ({ ...prev, page: page - 1, limit })}
-						disabled={page === 1}
-					>
-						<Button disabled={page === 1}>Previous</Button>
-					</Link>
-					<span className="mx-2 text-sm">
-						Page {page} of {Math.ceil(total / (limit > 0 ? limit : 1))}
-					</span>
-					<Link
-						to="/approve/savings/account"
-						search={(prev) => ({ ...prev, page: page + 1, limit })}
-						disabled={page * limit >= total}
-					>
-						<Button disabled={page * limit >= total}>Next</Button>
-					</Link>
-				</div>
-			</>
-		)}
-		{!isLoading && !isError && items.length === 0 && (
-			<div className="text-center py-10">
-				<p>No pending savings accounts to approve.</p>
+}) => {
+	const { t } = useTranslation();
+	return (
+		<div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
+			<div className="flex justify-between items-center mb-6">
+				<h1 className="text-2xl font-bold">
+					{t("approveSavingsAccountList.approveSavingsAccount")}
+				</h1>
+				<BackButton />
 			</div>
-		)}
-	</div>
-);
+			{/* Filter and sort controls - wired to URL search params */}
+			<SearchBarWrapper />
+			{isLoading && <div>{t("approveSavingsAccountList.loading")}</div>}
+			{isError && (
+				<div>{t("approveSavingsAccountList.errorFetchingAccounts")}</div>
+			)}
+			{!isLoading && !isError && items.length > 0 && (
+				<>
+					<div className="overflow-x-auto">
+						<Table
+							columns={[
+								{
+									key: "savingsProductName",
+									title: t("approveSavingsAccountList.product"),
+									sortable: true,
+									className:
+										"text-xs text-white uppercase bg-primary rounded-l-lg",
+									cellClassName: "whitespace-normal px-2 sm:px-6",
+								},
+								{
+									key: "clientName",
+									title: t("approveSavingsAccountList.client"),
+									sortable: true,
+									className: "text-xs text-white uppercase bg-primary",
+									cellClassName: "whitespace-normal px-2 sm:px-6",
+								},
+								{
+									key: "accountNo",
+									title: t("approveSavingsAccountList.accountNo"),
+									sortable: true,
+									className:
+										"hidden md:table-cell text-xs text-white uppercase bg-primary",
+									cellClassName: "hidden md:table-cell",
+								},
+								{
+									key: "status",
+									title: t("approveSavingsAccountList.status"),
+									sortable: true,
+									className:
+										"hidden md:table-cell text-xs text-white uppercase bg-primary",
+									cellClassName: "hidden md:table-cell",
+								},
+								{
+									key: "actions",
+									title: t("approveSavingsAccountList.actions"),
+									className:
+										"text-xs text-white uppercase bg-primary rounded-r-lg",
+									cellClassName: "px-2 sm:px-6",
+									render: (row: ApproveSavingsAccountListItem) => (
+										<Link
+											to="/approve/savings/account"
+											search={{ accountId: row.id }}
+										>
+											<Button>{t("approveSavingsAccountList.view")}</Button>
+										</Link>
+									),
+								},
+							]}
+							data={items}
+						/>
+					</div>
+					<div className="flex flex-wrap justify-center items-center mt-6 space-x-2">
+						<Link
+							to="/approve/savings/account"
+							search={(prev) => ({ ...prev, page: page - 1, limit })}
+							disabled={page === 1}
+						>
+							<Button disabled={page === 1}>
+								{t("approveSavingsAccountList.previous")}
+							</Button>
+						</Link>
+						<span className="mx-2 text-sm">
+							{t("approveSavingsAccountList.pageOf", {
+								page,
+								total: Math.ceil(total / (limit > 0 ? limit : 1)),
+							})}
+						</span>
+						<Link
+							to="/approve/savings/account"
+							search={(prev) => ({ ...prev, page: page + 1, limit })}
+							disabled={page * limit >= total}
+						>
+							<Button disabled={page * limit >= total}>
+								{t("approveSavingsAccountList.next")}
+							</Button>
+						</Link>
+					</div>
+				</>
+			)}
+			{!isLoading && !isError && items.length === 0 && (
+				<div className="text-center py-10">
+					<p>{t("approveSavingsAccountList.noPendingAccounts")}</p>
+				</div>
+			)}
+		</div>
+	);
+};
 
 import { useCurrency } from "@/hooks/useCurrency";
 
@@ -170,6 +186,7 @@ export const ApproveSavingsAccountDetailView = ({
 	submitting: boolean;
 	onBack: () => void;
 }) => {
+	const { t } = useTranslation();
 	const { currencyCode } = useCurrency();
 	return (
 		<div className="w-full mx-auto p-4 sm:p-6 lg:p-8">
@@ -179,30 +196,46 @@ export const ApproveSavingsAccountDetailView = ({
 						{data.clientName} ({data.accountNo})
 					</h2>
 					<p>
-						<strong>Client:</strong> {data.clientName}
+						<strong>{t("approveSavingsAccountDetail.client")}</strong>{" "}
+						{data.clientName}
 					</p>
 					<p>
-						<strong>Account No:</strong> {data.accountNo}
+						<strong>{t("approveSavingsAccountDetail.accountNo")}</strong>{" "}
+						{data.accountNo}
 					</p>
 					<p>
-						<strong>Status:</strong> {data.status}
+						<strong>{t("approveSavingsAccountDetail.status")}</strong>{" "}
+						{data.status}
 					</p>
 					<p>
-						<strong>Balance:</strong>{" "}
+						<strong>{t("approveSavingsAccountDetail.balance")}</strong>{" "}
 						{formatCurrency(Number(data.balance), currencyCode)}
 					</p>
 					<Form
 						initialValues={{ approvedOnDate: data.defaultDate, note: "" }}
 						onSubmit={onSubmit}
 					>
-						<Input name="approvedOnDate" label="Approval Date" type="date" />
-						<Input name="note" label="Note (Optional)" type="textarea" />
-						<SubmitButton label="Approve" disabled={submitting} />
+						<Input
+							name="approvedOnDate"
+							label={t("approveSavingsAccountDetail.approvalDate")}
+							type="date"
+						/>
+						<Input
+							name="note"
+							label={t("approveSavingsAccountDetail.noteOptional")}
+							type="textarea"
+						/>
+						<SubmitButton
+							label={t("approveSavingsAccountDetail.approve")}
+							disabled={submitting}
+						/>
 					</Form>
 				</Card>
 			</div>
 			<div className="flex justify-center mt-4">
-				<Button onClick={onBack}>Back to List</Button>
+				<Button onClick={onBack}>
+					{t("approveSavingsAccountDetail.backToList")}
+				</Button>
 			</div>
 		</div>
 	);

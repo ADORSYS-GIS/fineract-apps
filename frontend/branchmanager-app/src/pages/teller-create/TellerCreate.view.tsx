@@ -1,5 +1,6 @@
 import { Button, Card, Form, Input, SubmitButton } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import type { TellerCreateFormValues } from "./TellerCreate.types";
 
 export function TellerCreateView({
@@ -11,13 +12,16 @@ export function TellerCreateView({
 	onSubmit: (values: TellerCreateFormValues) => Promise<void> | void;
 	isSubmitting: boolean;
 }>) {
+	const { t } = useTranslation();
 	const navigate = useNavigate({ from: "/tellers/create" });
 	return (
 		<div className="flex justify-center">
 			<div className="w-full max-w-2xl">
 				<Card>
 					<div className="p-6 sm:p-8">
-						<h2 className="text-2xl font-bold mb-6">Create Teller</h2>
+						<h2 className="text-2xl font-bold mb-6">
+							{t("tellerCreate.createTeller")}
+						</h2>
 						<Form<TellerCreateFormValues>
 							initialValues={initialValues}
 							onSubmit={onSubmit}
@@ -26,30 +30,38 @@ export function TellerCreateView({
 								<div className="sm:col-span-2">
 									<Input
 										name="name"
-										label="Teller Name *"
-										placeholder="Enter teller name"
+										label={t("tellerCreate.tellerName")}
+										placeholder={t("tellerCreate.enterTellerName")}
 									/>
 								</div>
 								<div className="sm:col-span-2">
 									<Input
 										name="status"
-										label="Status *"
+										label={t("tellerCreate.status")}
 										type="select"
 										options={[
-											{ label: "Active", value: 300 },
-											{ label: "Inactive", value: 400 },
+											{ label: t("tellerCreate.active"), value: 300 },
+											{ label: t("tellerCreate.inactive"), value: 400 },
 										]}
 									/>
 								</div>
 								<div className="sm:col-span-2">
 									<Input
 										name="description"
-										label="Description"
-										placeholder="Description (optional)"
+										label={t("tellerCreate.description")}
+										placeholder={t("tellerCreate.descriptionOptional")}
 									/>
 								</div>
-								<Input name="startDate" label="Start Date *" type="date" />
-								<Input name="endDate" label="End Date" type="date" />
+								<Input
+									name="startDate"
+									label={t("tellerCreate.startDate")}
+									type="date"
+								/>
+								<Input
+									name="endDate"
+									label={t("tellerCreate.endDate")}
+									type="date"
+								/>
 							</div>
 							<div className="mt-8 flex flex-col sm:flex-row justify-end gap-4">
 								<Button
@@ -61,10 +73,14 @@ export function TellerCreateView({
 										})
 									}
 								>
-									Cancel
+									{t("tellerCreate.cancel")}
 								</Button>
 								<SubmitButton
-									label={isSubmitting ? "Submitting..." : "Submit"}
+									label={
+										isSubmitting
+											? t("tellerCreate.submitting")
+											: t("tellerCreate.submit")
+									}
 								/>
 							</div>
 						</Form>

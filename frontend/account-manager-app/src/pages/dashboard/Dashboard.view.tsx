@@ -3,6 +3,7 @@ import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { Briefcase, Mail, UserPlus } from "lucide-react";
 import { FC, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivateClient, ClientTable } from "./components";
 import { useDashboard } from "./useDashboard";
 import { getStatusClass, getStatusFromCode } from "./utils";
@@ -17,6 +18,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	totalPages,
 	onPageChange,
 }) => {
+	const { t } = useTranslation();
 	const [selectedClient, setSelectedClient] =
 		useState<GetClientsPageItemsResponse | null>(null);
 
@@ -25,27 +27,27 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 			<main className="p-4 sm:p-6 lg:p-8">
 				<div className="flex flex-col md:flex-row justify-between items-center mb-8">
 					<h1 className="text-4xl font-bold text-gray-800 mb-4 md:mb-0">
-						Clients
+						{t("dashboard.clients")}
 					</h1>
 					<div className="flex items-center space-x-4 w-full md:w-auto">
 						<SearchBar
 							value={searchValue}
 							onValueChange={onSearchValueChange}
 							onSearch={onSearch}
-							placeholder="Search clients by name"
+							placeholder={t("dashboard.searchClientsByName")}
 							className="w-full md:w-64"
 						/>
 						<Link to="/create-client">
 							<Button className="flex items-center space-x-2">
 								<UserPlus className="h-5 w-5" />
-								<span>Add Client</span>
+								<span>{t("dashboard.addClient")}</span>
 							</Button>
 						</Link>
 					</div>
 				</div>
 
 				{isFetchingClients ? (
-					<p>Loading clients...</p>
+					<p>{t("dashboard.loadingClients")}</p>
 				) : (
 					<>
 						<div className="md:hidden">
@@ -67,7 +69,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 															{client.displayName}
 														</h2>
 														<p className="text-sm text-gray-500">
-															Account No: {client.accountNo}
+															{t("dashboard.accountNo")}: {client.accountNo}
 														</p>
 													</div>
 													<span
@@ -85,7 +87,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 													</div>
 													<div className="flex items-center text-sm text-gray-600">
 														<Mail className="h-4 w-4 mr-2" />
-														<span>{client.emailAddress ?? "N/A"}</span>
+														<span>{client.emailAddress ?? t("common.na")}</span>
 													</div>
 												</div>
 											</Link>
@@ -95,7 +97,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 														variant="outline"
 														onClick={() => setSelectedClient(client)}
 													>
-														Activate
+														{t("dashboard.activate")}
 													</Button>
 												</div>
 											)}

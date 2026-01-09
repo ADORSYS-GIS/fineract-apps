@@ -27,7 +27,9 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 			{/* Logo */}
 			<div className="p-4">
 				{logo ?? (
-					<div className="text-2xl font-bold text-blue-600">OnlineBank</div>
+					<div className="text-2xl font-bold text-blue-600">
+						{t("navbar.onlineBank")}
+					</div>
 				)}
 			</div>
 

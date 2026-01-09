@@ -6,6 +6,7 @@ import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Download, Eye } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/hooks/useCurrency";
 import { DataTable, FiltersBar, PageHeader } from "../../components";
 import type { Filters, JournalEntry } from "./useJournalEntries";
@@ -29,39 +30,40 @@ export function JournalEntriesView({
 	onFilterChange,
 	onExportCSV,
 }: JournalEntriesViewProps) {
+	const { t } = useTranslation();
 	const { currencyCode } = useCurrency();
 	const actions = [
 		{
-			label: "Export CSV",
+			label: t("exportCSV"),
 			onClick: onExportCSV,
 			icon: <Download className="h-4 w-4" />,
 		},
 	];
 
 	const columns = [
-		{ key: "transactionId", header: "Transaction ID" },
+		{ key: "transactionId", header: t("transactionId") },
 		{
 			key: "transactionDate",
-			header: "Date",
+			header: t("date"),
 			render: (value: unknown) =>
 				value ? format(new Date(value as string), "dd MMM yyyy") : "-",
 		},
-		{ key: "officeName", header: "Office" },
+		{ key: "officeName", header: t("office") },
 		{
 			key: "createdByUserName",
-			header: "Created By",
+			header: t("createdBy"),
 			render: (value: unknown) => String(value || "-"),
 		},
 		{
 			key: "amount",
-			header: "Amount",
+			header: t("amount"),
 			className: "text-right",
 			render: (value: unknown) =>
 				`${currencyCode} ${Number(value).toLocaleString()}`,
 		},
 		{
 			key: "actions",
-			header: "Actions",
+			header: t("actions"),
 			className: "text-center",
 			render: (_: unknown, entry: JournalEntry) => (
 				<Link
@@ -74,7 +76,7 @@ export function JournalEntriesView({
 						className="inline-flex items-center gap-1"
 					>
 						<Eye className="h-4 w-4" />
-						View
+						{t("view")}
 					</Button>
 				</Link>
 			),
@@ -93,40 +95,43 @@ export function JournalEntriesView({
 
 	return (
 		<div className="p-4 sm:p-6">
-			<PageHeader title="Journal Entries" actions={actions} />
+			<PageHeader title={t("journalEntries")} actions={actions} />
 			<div className="bg-white rounded-lg shadow p-6 my-6">
 				<FiltersBar
 					filters={[
 						{
 							key: "fromDate",
-							label: "From Date",
+							label: t("fromDate"),
 							type: "date",
 							value: filters.fromDate,
 							onChange: (value) => onFilterChange("fromDate", value),
 						},
 						{
 							key: "toDate",
-							label: "To Date",
+							label: t("toDate"),
 							type: "date",
 							value: filters.toDate,
 							onChange: (value) => onFilterChange("toDate", value),
 						},
 						{
 							key: "officeId",
-							label: "Office",
+							label: t("office"),
 							type: "select",
 							value: filters.officeId,
 							onChange: (value) => onFilterChange("officeId", value),
-							options: [{ value: "", label: "All Offices" }, ...officeOptions],
+							options: [
+								{ value: "", label: t("allOffices") },
+								...officeOptions,
+							],
 						},
 						{
 							key: "glAccountId",
-							label: "GL Account",
+							label: t("glAccount"),
 							type: "select",
 							value: filters.glAccountId,
 							onChange: (value) => onFilterChange("glAccountId", value),
 							options: [
-								{ value: "", label: "All GL Accounts" },
+								{ value: "", label: t("allGLAccounts") },
 								...glAccountOptions,
 							],
 						},
@@ -138,7 +143,7 @@ export function JournalEntriesView({
 					data={journalEntries}
 					columns={columns}
 					isLoading={isLoading}
-					emptyMessage="No journal entries found for the selected filters."
+					emptyMessage={t("noJournalEntriesFound")}
 				/>
 			</div>
 		</div>

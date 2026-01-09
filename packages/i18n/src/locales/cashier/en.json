@@ -1,0 +1,77 @@
+{
+	"translation": {
+		"cashierHomePage": "Welcome to the Cashier Home Page!",
+		"cashierApp.title": "Cashier App",
+		"search": "Search...",
+		"loadingLoanDetails": "Loading loan details...",
+		"errorFetchingLoanDetails": "Error fetching loan details: {{message}}",
+		"loanNotFound": "Loan not found.",
+		"repaymentSuccessful": "Repayment successful!",
+		"repaymentFailed": "Repayment failed: {{message}}",
+		"backToSearch": "Back to Search",
+		"clientSummary": "Client Summary",
+		"account": "Account",
+		"loanSummary": "Loan Summary",
+		"outstandingBalance": "Outstanding Balance",
+		"nextInstallment": "Next Installment",
+		"dueDate": "Due Date",
+		"transactionForm": "Transaction Form",
+		"repaymentAmount": "Repayment Amount",
+		"enterRepaymentAmount": "Enter repayment amount",
+		"transactionDate": "Transaction Date",
+		"paymentType": "Payment Type",
+		"selectPaymentType": "Select Payment Type",
+		"notesOptional": "Notes (Optional)",
+		"addAnyAdditionalNotes": "Add any additional notes...",
+		"submitting": "Submitting...",
+		"submitRepayment": "Submit Repayment",
+		"loadingReceipt": "Loading receipt...",
+		"errorFetchingReceipt": "Error fetching receipt: {{message}}",
+		"transactionNotFound": "Transaction not found.",
+		"loanRepayment": "Loan Repayment",
+		"searchForLoanAccount": "Search for a loan account to start the repayment process.",
+		"receiptModal": {
+			"transactionReceipt": "Transaction Receipt",
+			"receiptFormat": "Receipt Format",
+			"html": "HTML",
+			"receiptTitle": "Receipt",
+			"printReceipt": "Print Receipt",
+			"download": "Download"
+		},
+		"loanSearch": {
+			"error": "Error: {{message}}"
+		},
+		"clientSearch": {
+			"searchPlaceholder": "Search clients...",
+			"error": "Error: {{message}}"
+		},
+		"cashierTransactionSummary": {
+			"viewTransactionSummary": "View Transaction Summary",
+			"errorFetchingCashierData": "Error Fetching Cashier Data",
+			"anUnknownErrorOccurred": "An unknown error occurred.",
+			"branch": "Branch:",
+			"teller": "Teller:",
+			"cashier": "Cashier:",
+			"netCash": "Net Cash:",
+			"dailyAllocation": "Daily Allocation:",
+			"totalTransactions": "Total Transactions:",
+			"transactions": "Transactions",
+			"client": "Client",
+			"amount": "Amount",
+			"type": "Type",
+			"note": "Note",
+			"page": "Page",
+			"of": "of",
+			"previous": "Previous",
+			"next": "Next"
+		},
+		"common": {
+			"pdf": "PDF",
+			"xls": "XLS",
+			"na": "N/A"
+		},
+		"receipt": {
+			"title": "Receipt"
+		}
+	}
+}

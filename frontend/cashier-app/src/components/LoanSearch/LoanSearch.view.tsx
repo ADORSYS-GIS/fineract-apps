@@ -29,7 +29,11 @@ export const LoanSearchView = () => {
 						<Search size={20} />
 					</Button>
 				</div>
-				{error && <p className="text-red-500 mt-2">{error.message}</p>}
+				{error && (
+					<p className="text-red-500 mt-2">
+						{t("loanSearch.error", { message: error.message })}
+					</p>
+				)}
 			</div>
 		</Card>
 	);

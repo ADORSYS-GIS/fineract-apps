@@ -61,7 +61,9 @@ function RootLayout() {
 		<AppLayout
 			sidebar={
 				<Sidebar
-					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
+					logo={
+						<h1 className="text-lg font-bold">{t("branchManager.logo")}</h1>
+					}
 					menuItems={menuBranchManager}
 					activePath={currentPath}
 					onNavigate={(to) => navigate({ to })}

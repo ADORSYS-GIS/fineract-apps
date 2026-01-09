@@ -79,9 +79,9 @@ export const ReceiptView: React.FC<ReceiptProps> = ({
 							}
 							className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
 						>
-							<option value="PDF">PDF</option>
-							<option value="XLS">XLS</option>
-							<option value="HTML">HTML</option>
+							<option value="PDF">{t("common.pdf")}</option>
+							<option value="XLS">{t("common.xls")}</option>
+							<option value="HTML">{t("receiptModal.html")}</option>
 						</select>
 					</div>
 					<div className="h-96">
@@ -89,7 +89,7 @@ export const ReceiptView: React.FC<ReceiptProps> = ({
 							<iframe
 								src={receiptUrl || URL.createObjectURL(receipt)}
 								className="w-full h-full"
-								title="Receipt"
+								title={t("receipt.title")}
 							/>
 						)}
 					</div>

@@ -2,6 +2,7 @@ import { Button } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Trash2, Upload } from "lucide-react";
 import { FC, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { fineractApi } from "@/services/api";
 import { UploadDocument } from "../UploadDocument/UploadDocument.view";
 import { useDeleteIdentity } from "./useDeleteIdentity";
@@ -21,11 +22,16 @@ const useGetIdentifierDocuments = (identifierId: number) => {
 const IdentifierDocuments: FC<{ identifierId: number }> = ({
 	identifierId,
 }) => {
+	const { t } = useTranslation();
 	const { data: documents, isLoading } =
 		useGetIdentifierDocuments(identifierId);
 
 	if (isLoading) {
-		return <div className="text-sm text-gray-500">Loading documents...</div>;
+		return (
+			<div className="text-sm text-gray-500">
+				{t("kycManagement.loadingDocuments")}
+			</div>
+		);
 	}
 
 	if (!documents || documents.length === 0) {
@@ -34,7 +40,9 @@ const IdentifierDocuments: FC<{ identifierId: number }> = ({
 
 	return (
 		<div className="mt-2 border-t pt-2">
-			<h5 className="text-sm font-semibold text-gray-600 mb-1">Documents:</h5>
+			<h5 className="text-sm font-semibold text-gray-600 mb-1">
+				{t("kycManagement.documents")}
+			</h5>
 			<ul className="space-y-1">
 				{documents.map((doc) => (
 					<li key={doc.id} className="text-sm text-blue-600 hover:underline">
@@ -90,6 +98,7 @@ const formatStatus = (status: string | undefined) => {
 export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 	onAddIdentity,
 }) => {
+	const { t } = useTranslation();
 	const { identifiers, isLoading } = useKYCManagement();
 	const { deleteIdentity } = useDeleteIdentity();
 	const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -98,21 +107,23 @@ export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 	);
 
 	if (isLoading) {
-		return <div>Loading...</div>;
+		return <div>{t("clientDetails.loading")}</div>;
 	}
 
 	return (
 		<div className="mt-8">
 			<h3 className="text-lg font-semibold mb-4 text-gray-800">
-				KYC Management
+				{t("kycManagement.title")}
 			</h3>
 			<div className="bg-white rounded-lg shadow-md p-6">
-				<h4 className="font-semibold text-gray-700 mb-4">Identities</h4>
+				<h4 className="font-semibold text-gray-700 mb-4">
+					{t("kycManagement.identitiesTitle")}
+				</h4>
 				<Button
 					className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-6"
 					onClick={onAddIdentity}
 				>
-					+ Add
+					{t("kycManagement.addIdentityButton")}
 				</Button>
 				<div className="space-y-4">
 					{identifiers?.map((identity) => (
@@ -123,12 +134,14 @@ export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 							<div>
 								<p className="font-semibold text-gray-800">
 									<span className="font-normal text-gray-500">
-										Document Type:{" "}
+										{t("kycManagement.documentType")}{" "}
 									</span>
 									{identity.documentType?.name}
 								</p>
 								<p className="text-sm text-gray-500">
-									<span className="font-normal">Document Key: </span>
+									<span className="font-normal">
+										{t("kycManagement.documentKey")}{" "}
+									</span>
 									{identity.documentKey}
 								</p>
 								<p
@@ -138,7 +151,9 @@ export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 											: "text-red-600"
 									}`}
 								>
-									<span className="font-normal text-gray-500">Status: </span>
+									<span className="font-normal text-gray-500">
+										{t("kycManagement.status")}{" "}
+									</span>
 									{formatStatus(identity.status)}
 								</p>
 								{identity.id && (

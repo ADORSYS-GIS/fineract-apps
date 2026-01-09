@@ -1,11 +1,13 @@
 import { Button } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/PageHeader";
 import { Route } from "@/routes/tellers.$tellerId.cashiers.$cashierId.index";
 import { CashierDetailView } from "./CashierDetail.view";
 import { useCashierDetail } from "./useCashierDetail";
 
 export const CashierDetail = () => {
+	const { t } = useTranslation();
 	const { tellerId, cashierId } = Route.useParams();
 	const navigate = useNavigate();
 	const { page, pageSize } = Route.useSearch();
@@ -35,7 +37,7 @@ export const CashierDetail = () => {
 					})
 				}
 			>
-				Settle
+				{t("cashierDetail.settle")}
 			</Button>
 			<Button
 				onClick={() =>
@@ -52,7 +54,7 @@ export const CashierDetail = () => {
 					})
 				}
 			>
-				Allocate
+				{t("cashierDetail.allocate")}
 			</Button>
 		</div>
 	);

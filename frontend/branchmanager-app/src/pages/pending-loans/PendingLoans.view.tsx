@@ -1,6 +1,7 @@
 import { Button, Card, SearchBar } from "@fineract-apps/ui";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { BackButton } from "@/components/BackButton";
 import { PendingLoansViewProps } from "./PendingLoans.types";
 
@@ -9,6 +10,7 @@ export const PendingLoansView = ({
 	isLoading,
 	error,
 }: PendingLoansViewProps) => {
+	const { t } = useTranslation();
 	const search = useSearch({ from: "/approve/loans" });
 	const initial = String(search?.q ?? "");
 	const [value, setValue] = useState(initial);
@@ -29,7 +31,7 @@ export const PendingLoansView = ({
 		<div className="p-4 sm:p-6">
 			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
 				<h1 className="text-2xl font-bold text-center sm:text-left order-2 sm:order-1">
-					Pending Loan Approvals
+					{t("pendingLoans.pendingLoanApprovals")}
 				</h1>
 				<div className="order-1 sm:order-2">
 					<BackButton to="/approve/account" />
@@ -42,32 +44,36 @@ export const PendingLoansView = ({
 							value={value}
 							onValueChange={handleValueChange}
 							onSearch={handleSearch}
-							placeholder="Filter by client, loan officer or product..."
+							placeholder={t("pendingLoans.filterPlaceholder")}
 						/>
 					</div>
 					<div className="overflow-x-auto mt-4">
 						<table className="w-full text-sm text-left text-gray-500">
 							<thead className="text-xs text-white uppercase bg-primary">
 								<tr>
-									<th className="px-6 py-3 rounded-l-lg">Client Name</th>
-									<th className="px-6 py-3 hidden sm:table-cell">
-										Loan Officer
+									<th className="px-6 py-3 rounded-l-lg">
+										{t("pendingLoans.clientName")}
 									</th>
-									<th className="px-6 py-3">Principal</th>
+									<th className="px-6 py-3 hidden sm:table-cell">
+										{t("pendingLoans.loanOfficer")}
+									</th>
+									<th className="px-6 py-3">{t("pendingLoans.principal")}</th>
 									<th className="px-6 py-3 hidden md:table-cell">
-										Submitted On
+										{t("pendingLoans.submittedOn")}
 									</th>
 									<th className="px-6 py-3 hidden sm:table-cell">
-										Loan Product
+										{t("pendingLoans.loanProduct")}
 									</th>
-									<th className="px-6 py-3 rounded-r-lg">Action</th>
+									<th className="px-6 py-3 rounded-r-lg">
+										{t("pendingLoans.action")}
+									</th>
 								</tr>
 							</thead>
 							<tbody>
 								{isLoading && (
 									<tr className="bg-white border-b">
 										<td className="px-6 py-4 text-gray-500" colSpan={6}>
-											Loading...
+											{t("cashierDetail.loading")}
 										</td>
 									</tr>
 								)}
@@ -106,7 +112,7 @@ export const PendingLoansView = ({
 															q: value,
 														}}
 													>
-														<Button>Review</Button>
+														<Button>{t("pendingLoans.review")}</Button>
 													</Link>
 												</td>
 											</tr>
@@ -114,7 +120,7 @@ export const PendingLoansView = ({
 									) : (
 										<tr className="bg-white border-b">
 											<td className="px-6 py-4 text-gray-500" colSpan={6}>
-												No pending loans.
+												{t("pendingLoans.noPendingLoans")}
 											</td>
 										</tr>
 									))}
