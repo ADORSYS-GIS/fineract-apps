@@ -1,5 +1,6 @@
 import { Button, Pagination } from "@fineract-apps/ui";
 import { Download, Edit, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { DataTable, FiltersBar, PageHeader } from "../../components";
 import type { GLAccount } from "./useGLAccounts";
 
@@ -41,18 +42,19 @@ export function GLAccountsView({
 	onEditAccount,
 	onDeleteAccount,
 }: GLAccountsViewProps) {
+	const { t } = useTranslation();
 	const actions = [
 		...(canCreateAccount
 			? [
 					{
-						label: "Create Account",
+						label: t("createAccount"),
 						onClick: onCreateAccount,
 						icon: <Plus className="h-4 w-4" />,
 					},
 				]
 			: []),
 		{
-			label: "Export CSV",
+			label: t("exportCSV"),
 			onClick: onExportCSV,
 			variant: "outline" as const,
 			icon: <Download className="h-4 w-4" />,
@@ -60,11 +62,11 @@ export function GLAccountsView({
 	];
 
 	const columns = [
-		{ key: "glCode", header: "Account Code" },
-		{ key: "name", header: "Account Name" },
+		{ key: "glCode", header: t("accountCode") },
+		{ key: "name", header: t("accountName") },
 		{
 			key: "type",
-			header: "Type",
+			header: t("type"),
 			render: (value: unknown) => (
 				<span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
 					{String(value)}
@@ -73,7 +75,7 @@ export function GLAccountsView({
 		},
 		{
 			key: "usage",
-			header: "Usage",
+			header: t("usage"),
 			render: (value: unknown) => (
 				<span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
 					{String(value)}
@@ -82,7 +84,7 @@ export function GLAccountsView({
 		},
 		{
 			key: "actions",
-			header: "Actions",
+			header: t("actions"),
 			className: "text-right",
 			render: (_: unknown, account: GLAccount) => (
 				<div className="flex items-center justify-end gap-2">
@@ -93,7 +95,7 @@ export function GLAccountsView({
 							className="flex items-center gap-1"
 						>
 							<Edit className="h-3 w-3" />
-							Edit
+							{t("edit")}
 						</Button>
 					)}
 					{canDeleteAccount && (
@@ -103,11 +105,11 @@ export function GLAccountsView({
 							className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:border-red-300"
 						>
 							<Trash2 className="h-3 w-3" />
-							Delete
+							{t("delete")}
 						</Button>
 					)}
 					{!canEditAccount && !canDeleteAccount && (
-						<span className="text-gray-400 text-xs">View only</span>
+						<span className="text-gray-400 text-xs">{t("viewOnly")}</span>
 					)}
 				</div>
 			),
@@ -116,7 +118,7 @@ export function GLAccountsView({
 
 	return (
 		<div className="p-6 min-h-screen">
-			<PageHeader title="General Ledger Accounts" actions={actions} />
+			<PageHeader title={t("generalLedgerAccounts")} actions={actions} />
 
 			<FiltersBar
 				filters={[
@@ -125,21 +127,21 @@ export function GLAccountsView({
 						type: "text",
 						value: searchTerm,
 						onChange: onSearch,
-						placeholder: "Search by account name or code...",
+						placeholder: t("searchByAccountNameOrCode"),
 					},
 					{
 						key: "accountType",
-						label: "Account Type",
+						label: t("accountType"),
 						type: "select",
 						value: accountType,
 						onChange: onFilterByType,
 						options: [
-							{ value: "", label: "All Account Types" },
-							{ value: "ASSET", label: "Asset" },
-							{ value: "LIABILITY", label: "Liability" },
-							{ value: "EQUITY", label: "Equity" },
-							{ value: "INCOME", label: "Income" },
-							{ value: "EXPENSE", label: "Expense" },
+							{ value: "", label: t("allAccountTypes") },
+							{ value: "ASSET", label: t("asset") },
+							{ value: "LIABILITY", label: t("liability") },
+							{ value: "EQUITY", label: t("equity") },
+							{ value: "INCOME", label: t("income") },
+							{ value: "EXPENSE", label: t("expense") },
 						],
 					},
 				]}
@@ -149,7 +151,7 @@ export function GLAccountsView({
 				data={glAccounts}
 				columns={columns}
 				isLoading={isLoading}
-				emptyMessage="No GL accounts found matching your criteria."
+				emptyMessage={t("noGLAccountsFound")}
 			/>
 
 			{totalPages > 1 && (

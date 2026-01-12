@@ -1,0 +1,98 @@
+{
+	"translation": {
+		"createUser": {
+			"confirmUserSyncTitle": "Confirm User Sync",
+			"confirmUserSyncMessage": "Employee has been created in Fineract. Please confirm to sync this user to Keycloak.",
+			"usernameLabel": "Username",
+			"emailLabel": "Email",
+			"syncing": "Syncing...",
+			"completeCreation": "Complete Creation",
+			"formTitle": "Create New Employee",
+			"firstNameLabel": "First Name",
+			"firstNamePlaceholder": "Enter first name",
+			"lastNameLabel": "Last Name",
+			"lastNamePlaceholder": "Enter last name",
+			"usernamePlaceholder": "Enter username",
+			"emailAddressLabel": "Email Address",
+			"emailPlaceholder": "user@example.com",
+			"mobileNumberLabel": "Mobile Number",
+			"mobileNumberPlaceholder": "Enter mobile number",
+			"officeLabel": "Office",
+			"rolesLabel": "Roles",
+			"selectRole": "Select a role",
+			"joiningDateLabel": "Joining Date",
+			"loanOfficerLabel": "Loan Officer",
+			"creating": "Creating...",
+			"createEmployee": "Create Employee"
+		},
+		"editUser": {
+			"loading": "Loading user...",
+			"notFound": "User not found.",
+			"backToUserDetails": "Back to User Details",
+			"title": "Edit User",
+			"subtitle": "Update the user's details",
+			"formTitle": "User Information",
+			"updating": "Updating User...",
+			"updateUser": "Update User",
+			"cancel": "Cancel"
+		},
+		"passwordReset": {
+			"title": "Reset Password",
+			"confirmMessage": "Are you sure you want to send a password reset email to:",
+			"usernameLabel": "Username",
+			"emailLabel": "Email",
+			"infoMessage": "The user will receive an email with a secure link to reset their password. The link will expire after 24 hours.",
+			"cancel": "Cancel",
+			"sending": "Sending...",
+			"sendResetEmail": "Send Reset Email"
+		},
+		"userDetails": {
+			"edit": "Edit",
+			"resetPassword": "Reset Password",
+			"disableUser": "Disable User",
+			"enableUser": "Enable User",
+			"forcePasswordChange": "Force Password Change",
+			"loginName": "Login Name",
+			"firstName": "First Name",
+			"lastName": "Last Name",
+			"email": "Email",
+			"office": "Office",
+			"loanOfficer": "Loan Officer",
+			"mobileNumber": "Mobile Number",
+			"roles": "Roles",
+			"joiningDate": "Joining Date",
+			"keycloakStatus": "Keycloak Status",
+			"keycloakId": "Keycloak ID",
+			"emailVerified": "Email Verified",
+			"requiredActions": "Required Actions",
+			"none": "None",
+			"back": "Back",
+			"yes": "Yes",
+			"no": "No",
+			"na": "N/A"
+		},
+		"userTable": {
+			"loading": "Loading users...",
+			"searchPlaceholder": "Search by name or username...",
+			"username": "Username",
+			"name": "Name",
+			"email": "Email",
+			"office": "Office",
+			"status": "Status",
+			"actions": "Actions",
+			"viewUser": "View user",
+			"noUsersFound": "No users found."
+		},
+		"dashboard": {
+			"title": "Administration Dashboard",
+			"loading": "Loading stats...",
+			"totalEmployees": "Total Employees",
+			"manageUsers": "Manage Users",
+			"manageUsersDescription": "Create, edit, and manage user accounts and permissions."
+		},
+		"userList": {
+			"title": "Users",
+			"createUser": "Create User"
+		}
+	}
+}

@@ -48,14 +48,21 @@ This package is the heart of the i18n system.
 #### File Structure
 ```
 packages/i18n/
-├── package.json         # Declares dependencies and package metadata
-├── tsconfig.json        # TypeScript configuration for this package
+├── package.json
+├── tsconfig.json
 └── src/
-    ├── i18n.ts          # Core i18next configuration and initialization
-    ├── index.ts         # Main entry point, exports the configured i18n instance
+    ├── i18n.ts
+    ├── index.ts
     └── locales/
-        ├── en.json      # English translation resources
-        └── fr.json      # French translation resources
+        ├── en.json                 # Shared/common English translations
+        ├── fr.json                 # Shared/common French translations
+        ├── account-manager/        # Feature-specific translations
+        │   ├── en.json
+        │   └── fr.json
+        ├── accounting/
+        │   ├── en.json
+        │   └── fr.json
+        └── ... (other apps)
 ```
 
 #### Core Configuration (`src/i18n.ts`)
@@ -65,21 +72,44 @@ This file is responsible for initializing `i18next`.
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
+
+// Import shared translations
 import en from "./locales/en.json";
 import fr from "./locales/fr.json";
 
+// Import feature-specific translations
+import enAccountManager from "./locales/account-manager/en.json";
+import frAccountManager from "./locales/account-manager/fr.json";
+import enAccounting from "./locales/accounting/en.json";
+import frAccounting from "./locales/accounting/fr.json";
+// ... import other translations
+
 i18n
-  .use(LanguageDetector) // Detects user language
-  .use(initReactI18next) // Binds i18next to React
+  .use(LanguageDetector)
+  .use(initReactI18next)
   .init({
-    fallbackLng: "en", // Use English if detected language is not available
-    debug: import.meta.env.DEV, // Enable debug logs in development
+    fallbackLng: "en",
+    debug: import.meta.env.DEV,
     interpolation: {
-      escapeValue: false, // React already protects from XSS
+      escapeValue: false,
     },
-    resources: { // Load our translation files
-      en,
-      fr,
+    resources: {
+      en: {
+        translation: {
+          ...en.translation,
+          ...enAccountManager.translation,
+          ...enAccounting.translation,
+          // ... other English translations
+        },
+      },
+      fr: {
+        translation: {
+          ...fr.translation,
+          ...frAccountManager.translation,
+          ...frAccounting.translation,
+          // ... other French translations
+        },
+      },
     },
   });
 
@@ -137,9 +167,11 @@ Follow these steps every time you add new user-visible text to a component.
 
 First, decide on a unique, descriptive key for your new text. It's best practice to use a structured, lowercase format (e.g., `userProfile.welcomeMessage`, `buttons.save`).
 
-#### Step 2: Add the Key to `en.json`
+#### Step 2: Add the Key to the Correct JSON File
 
-Open `packages/i18n/src/locales/en.json` and add your new key with its English translation.
+Locate the correct translation file for your feature. For example, if you are working in the **Account Manager** app, you would open `packages/i18n/src/locales/account-manager/en.json`. If the translation is for a shared component in `@fineract-apps/ui`, add it to the root `packages/i18n/src/locales/en.json`.
+
+Add your new key with its English translation.
 
 ```json
 {
@@ -152,9 +184,9 @@ Open `packages/i18n/src/locales/en.json` and add your new key with its English t
 }
 ```
 
-#### Step 3: Add the Key to `fr.json`
+#### Step 3: Add the Key to the Corresponding French File
 
-Open `packages/i18n/src/locales/fr.json` and add the **exact same key** with its French translation.
+Open the corresponding `fr.json` file (e.g., `packages/i18n/src/locales/account-manager/fr.json`) and add the **exact same key** with its French translation.
 
 ```json
 {

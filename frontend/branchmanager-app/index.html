@@ -9,5 +9,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      import { i18n } from "@fineract-apps/i18n";
+
+      i18n.on("languageChanged", (lng) => {
+        document.title = i18n.t("branchManagerApp.title", { lng });
+      });
+      document.title = i18n.t("branchManagerApp.title");
+    </script>
   </body>
 </html>

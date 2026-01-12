@@ -1,6 +1,7 @@
 import { Button, Card, formatCurrency } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Route } from "@/routes/dashboard/index.tsx";
 import { extractClientNameFromTxnNote } from "@/utils/transaction";
 import { CashierTransactionSummaryViewProps } from "./CashierTransactionSummary.types";
@@ -43,6 +44,7 @@ export function CashierTransactionSummaryView({
 	onShowSummary,
 	showSummary,
 }: Readonly<CashierTransactionSummaryViewProps>) {
+	const { t } = useTranslation();
 	const { page = 1, limit = 10 } = Route.useSearch();
 	const totalRecords =
 		cashierData?.cashierTransactions?.totalFilteredRecords ?? 0;
@@ -51,7 +53,9 @@ export function CashierTransactionSummaryView({
 	if (!showSummary) {
 		return (
 			<div className="p-4">
-				<Button onClick={onShowSummary}>View Transaction Summary</Button>
+				<Button onClick={onShowSummary}>
+					{t("cashierTransactionSummary.viewTransactionSummary")}
+				</Button>
 			</div>
 		);
 	}
@@ -68,12 +72,12 @@ export function CashierTransactionSummaryView({
 						<AlertTriangle className="w-8 h-8 text-red-500" />
 						<div>
 							<h2 className="text-lg font-bold text-red-800">
-								Error Fetching Cashier Data
+								{t("cashierTransactionSummary.errorFetchingCashierData")}
 							</h2>
 							<p className="text-red-700">
 								{error instanceof Error
 									? error.message
-									: "An unknown error occurred."}
+									: t("cashierTransactionSummary.anUnknownErrorOccurred")}
 							</p>
 						</div>
 					</div>
@@ -88,13 +92,17 @@ export function CashierTransactionSummaryView({
 				<div className="space-y-2">
 					<div className="flex justify-between">
 						<div>
-							<span className="text-sm text-gray-600">Branch: </span>
+							<span className="text-sm text-gray-600">
+								{t("cashierTransactionSummary.branch")}{" "}
+							</span>
 							<span className="font-semibold text-gray-900">
 								{cashierData?.officeName}
 							</span>
 						</div>
 						<div>
-							<span className="text-sm text-gray-600">Teller: </span>
+							<span className="text-sm text-gray-600">
+								{t("cashierTransactionSummary.teller")}{" "}
+							</span>
 							<span className="font-semibold text-gray-900">
 								{cashierData?.tellerName}
 							</span>
@@ -102,13 +110,17 @@ export function CashierTransactionSummaryView({
 					</div>
 					<div className="flex justify-between">
 						<div>
-							<span className="text-sm text-gray-600">Cashier: </span>
+							<span className="text-sm text-gray-600">
+								{t("cashierTransactionSummary.cashier")}{" "}
+							</span>
 							<span className="font-semibold text-gray-900">
 								{cashierData?.cashierName}
 							</span>
 						</div>
 						<div>
-							<span className="text-sm text-gray-600">Net Cash: </span>
+							<span className="text-sm text-gray-600">
+								{t("cashierTransactionSummary.netCash")}{" "}
+							</span>
 							<span className="font-semibold text-gray-900">
 								{formatCurrency(cashierData?.netCash ?? 0, currencyCode)}
 							</span>
@@ -116,7 +128,9 @@ export function CashierTransactionSummaryView({
 					</div>
 					<div className="flex justify-between">
 						<div>
-							<span className="text-sm text-gray-600">Daily Allocation: </span>
+							<span className="text-sm text-gray-600">
+								{t("cashierTransactionSummary.dailyAllocation")}{" "}
+							</span>
 							<span className="font-semibold text-gray-900">
 								{formatCurrency(
 									cashierData?.sumCashAllocation ?? 0,
@@ -126,7 +140,7 @@ export function CashierTransactionSummaryView({
 						</div>
 						<div>
 							<span className="text-sm text-gray-600">
-								Total Transactions:{" "}
+								{t("cashierTransactionSummary.totalTransactions")}:{" "}
 							</span>
 							<span className="font-semibold text-gray-900">
 								{cashierData?.cashierTransactions?.pageItems?.length ?? 0}
@@ -136,22 +150,24 @@ export function CashierTransactionSummaryView({
 				</div>
 			</Card>
 			<Card className="p-4">
-				<h2 className="text-lg font-bold mb-4">Transactions</h2>
+				<h2 className="text-lg font-bold mb-4">
+					{t("cashierTransactionSummary.transactions")}
+				</h2>
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm text-left text-gray-500">
 						<thead className="text-xs text-gray-700 uppercase bg-gray-50">
 							<tr>
 								<th scope="col" className="px-6 py-3">
-									Client
+									{t("cashierTransactionSummary.client")}
 								</th>
 								<th scope="col" className="px-6 py-3">
-									Amount
+									{t("cashierTransactionSummary.amount")}
 								</th>
 								<th scope="col" className="px-6 py-3">
-									Type
+									{t("cashierTransactionSummary.type")}
 								</th>
 								<th scope="col" className="px-6 py-3">
-									Note
+									{t("cashierTransactionSummary.note")}
 								</th>
 							</tr>
 						</thead>
@@ -176,7 +192,9 @@ export function CashierTransactionSummaryView({
 				</div>
 				<div className="flex items-center justify-between pt-4">
 					<span className="text-sm text-gray-700">
-						Page <span className="font-semibold text-gray-900">{page}</span> of{" "}
+						{t("cashierTransactionSummary.page")}{" "}
+						<span className="font-semibold text-gray-900">{page}</span>{" "}
+						{t("cashierTransactionSummary.of")}{" "}
 						<span className="font-semibold text-gray-900">{totalPages}</span>
 					</span>
 					<div className="flex items-center gap-2">
@@ -186,7 +204,7 @@ export function CashierTransactionSummaryView({
 							disabled={page <= 1}
 						>
 							<Button variant="outline" size="sm" disabled={page <= 1}>
-								Previous
+								{t("cashierTransactionSummary.previous")}
 							</Button>
 						</Link>
 						<Link
@@ -198,7 +216,7 @@ export function CashierTransactionSummaryView({
 							disabled={page >= totalPages}
 						>
 							<Button variant="outline" size="sm" disabled={page >= totalPages}>
-								Next
+								{t("cashierTransactionSummary.next")}
 							</Button>
 						</Link>
 					</div>
