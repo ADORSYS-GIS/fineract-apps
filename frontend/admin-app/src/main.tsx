@@ -12,7 +12,11 @@ import { routeTree } from "./routeTree.gen.ts";
 const queryClient = new QueryClient();
 
 // Create a new router instance from the generated route tree
-const router = createRouter({ routeTree, context: { queryClient } });
+const router = createRouter({
+	routeTree,
+	basepath: "/administration",
+	context: { queryClient },
+});
 
 // Register the router instance for type safety (important for TypeScript)
 declare module "@tanstack/react-router" {
