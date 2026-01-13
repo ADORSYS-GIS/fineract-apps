@@ -36,7 +36,7 @@ function RootComponent() {
 	const authorizedRoles = [
 		"Accountant",
 		"Supervisor Accountant",
-		"Admin",
+		"Super user",
 	] as const;
 
 	if (!hasAnyRole([...authorizedRoles])) {

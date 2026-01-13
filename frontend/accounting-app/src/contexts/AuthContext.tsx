@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect } from "react";
 
 export type UserRole =
-	| "Admin"
+	| "Super user"
 	| "Accountant"
 	| "Supervisor Accountant"
 	| "Manager"
