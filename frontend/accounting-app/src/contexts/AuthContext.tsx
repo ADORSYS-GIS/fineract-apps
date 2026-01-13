@@ -45,7 +45,13 @@ function parseKeycloakRoles(rolesString: string): UserRole[] {
 		.split(",")
 		.map((role) => role.trim())
 		.filter((role): role is UserRole =>
-			["Admin", "Accountant", "Supervisor Accountant", "Manager", "Viewer"].includes(role)
+			[
+				"Admin",
+				"Accountant",
+				"Supervisor Accountant",
+				"Manager",
+				"Viewer",
+			].includes(role),
 		);
 }
 
