@@ -29,32 +29,8 @@ KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID")
 KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET")
 
 # Fineract role → Keycloak role mapping
-# Handles Fineract roles with spaces → Keycloak kebab-case roles
-# See: operations/keycloak-config/ROLE_MAPPING.md for full documentation
-ROLE_MAPPING = {
-    # Admin roles (highest privilege)
-    "Super user": "admin",         # Fineract default (lowercase 'user')
-    "Super User": "admin",         # Alternative capitalization
-    "superuser": "admin",          # No space variant
-    "Admin": "admin",
-
-    # Loan Officer
-    "Loan Officer": "loan-officer",
-    "loan officer": "loan-officer",
-
-    # Teller/Cashier
-
-    "Cashier": "cashier",          
-    "cashier": "cashier",
-
-    # Branch Manager
-    "Branch Manager": "branch-manager",
-    "branch manager": "branch-manager",
-
-    # Accountant
-    "Accountant": "accountant",
-    "accountant": "accountant",
-}
+# Note: We now use EXACT matching between Fineract and Keycloak roles.
+# The role name in Fineract must exist exactly as-is in Keycloak.
 
 # Default role for unmapped Fineract roles
 DEFAULT_ROLE = "staff"
@@ -122,34 +98,15 @@ def generate_temp_password(length=16) -> str:
 
 
 def map_fineract_role_to_keycloak(fineract_role: str) -> str:
-    """Map Fineract role to its corresponding Keycloak role."""
+    """Map Fineract role to its corresponding Keycloak role (Exact Match)."""
     if not fineract_role:
         logger.warning("Empty Fineract role provided, defaulting to DEFAULT_ROLE")
         return DEFAULT_ROLE
 
-    # Try exact match first (most common case)
-    if fineract_role in ROLE_MAPPING:
-        return ROLE_MAPPING[fineract_role]
-
-    # Try lowercase version
-    lower_role = fineract_role.lower()
-    if lower_role in ROLE_MAPPING:
-        return ROLE_MAPPING[lower_role]
-
-    # Try normalized (spaces → hyphens, lowercase)
-    normalized = lower_role.replace(" ", "-")
-
-    # Check if normalized version matches a Keycloak role directly
-    # Dynamically get the list of valid Keycloak roles from the mapping
-    valid_keycloak_roles = set(ROLE_MAPPING.values())
-
-    if normalized in valid_keycloak_roles:
-        logger.info(f"Normalized Fineract role '{fineract_role}' to Keycloak role '{normalized}'")
-        return normalized
-
-    # If still not found, log warning and use default
-    logger.warning(f"Unknown Fineract role '{fineract_role}', defaulting to '{DEFAULT_ROLE}'")
-    return DEFAULT_ROLE
+    # Enforce exact match: The Fineract role name is used directly as the Keycloak role name.
+    # This ensures consistency for permissions and access control.
+    logger.info(f"Using Fineract role '{fineract_role}' for Keycloak")
+    return fineract_role
 
 
 @app.route('/health', methods=['GET'])
@@ -253,14 +210,25 @@ def sync_user():
         except Exception as e:
             logger.error(f"Failed to assign role: {str(e)}")
 
-        # Add to appropriate group (based on office)
+        # Add to appropriate group (based on role)
         try:
-            # Group assignment is based on the Keycloak role
+            # Group assignment is based on the Role
             group_map = {
-                "admin": "head-office",
-                "branch-manager": "branch-managers",
-                "loan-officer": "loan-officers",
+                "Super user": "head-office",
+                "Super User": "head-office",
+                "superuser": "head-office",
+                "Admin": "head-office",
+                
+                "Branch Manager": "branch-managers",
+                "branch manager": "branch-managers",
+
+                "Loan Officer": "loan-officers",
+                "loan officer": "loan-officers",
+
+                "Cashier": "cashiers",
                 "cashier": "cashiers",
+
+                "Accountant": "accountants",
                 "accountant": "accountants",
             }
             group_name = group_map.get(keycloak_role)
