@@ -54,7 +54,7 @@ export const LoanSummary: FC<LoanSummaryProps> = ({ loan }) => {
 				<table className="w-full text-sm table-auto">
 					<thead>
 						<tr className="border-b border-gray-200">
-							<th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+							<th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" />
 							<th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 								Original
 							</th>

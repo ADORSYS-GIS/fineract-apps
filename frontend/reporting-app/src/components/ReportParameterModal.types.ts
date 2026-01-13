@@ -4,14 +4,20 @@ export interface ReportParameter {
 	reportId: number;
 	parameterName: string;
 	parameterVariable: string;
+	reportParameterName?: string;
 	parameterLabel?: string;
 	parameterDisplayType?: "text" | "select" | "date" | "none";
 	parameterFormatType?: string;
 	parameterDefaultValue?: string;
-	selectOne?: string;
-	selectAll?: string;
+	selectOne?: boolean;
+	selectAll?: boolean;
+	parentParameterName?: string;
 	parameterData?: {
-		id: number;
+		id: number | string;
+		name: string;
+	}[];
+	lookupTable?: {
+		id: number | string;
 		name: string;
 	}[];
 }
@@ -39,5 +45,5 @@ export interface ReportParameterModalProps {
 }
 
 export interface ParameterFormValues {
-	[key: string]: string;
+	[key: string]: string | string[];
 }

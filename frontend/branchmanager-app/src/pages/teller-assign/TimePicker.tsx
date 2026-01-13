@@ -1,5 +1,6 @@
 import { Input, useFormContext } from "@fineract-apps/ui";
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import type { FormValues } from "./TellerAssign.types";
 
 // Small time picker that ties into the Formik form context via useFormContext.
@@ -10,6 +11,7 @@ export const TimePicker: React.FC<{
 	endName: string;
 	disabled?: boolean;
 }> = ({ startName, endName, disabled }) => {
+	const { t } = useTranslation();
 	const formik = useFormContext<FormValues>();
 
 	// Determine whether time inputs should be disabled based on form state.
@@ -33,17 +35,17 @@ export const TimePicker: React.FC<{
 			<Input
 				name={startName}
 				type="text"
-				label="Start time"
-				placeholder="09:00"
-				helperText="Format HH:mm (required when not full day)"
+				label={t("timePicker.startTime")}
+				placeholder={t("timePicker.startTimePlaceholder")}
+				helperText={t("timePicker.helperText")}
 				disabled={isDisabled}
 			/>
 			<Input
 				name={endName}
 				type="text"
-				label="End time"
-				placeholder="17:00"
-				helperText="Format HH:mm (required when not full day)"
+				label={t("timePicker.endTime")}
+				placeholder={t("timePicker.endTimePlaceholder")}
+				helperText={t("timePicker.helperText")}
 				disabled={isDisabled}
 			/>
 		</>

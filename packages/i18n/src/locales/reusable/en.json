@@ -1,0 +1,24 @@
+{
+	"translation": {
+		"sidebar": {
+			"dashboard": "Dashboard",
+			"settings": "Settings",
+			"staff": "Staff",
+			"tellersCashiers": "Tellers/Cashiers",
+			"pending": "Pending",
+			"loanRepayment": "Loan Repayment",
+			"reports": "Reports",
+			"transactions": "Transactions",
+			"audit": "Audit",
+			"glAccounts": "GL Accounts",
+			"journalEntries": "Journal Entries",
+			"createEntry": "Create Entry",
+			"approvalQueue": "Approval Queue",
+			"closures": "Closures",
+			"logout": "Logout"
+		},
+		"navbar": {
+			"onlineBank": "OnlineBank"
+		}
+	}
+}

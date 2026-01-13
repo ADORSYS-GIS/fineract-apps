@@ -14,6 +14,12 @@ export interface ReportsCatalogData {
 	isLoading: boolean;
 	searchTerm: string;
 	onSearchChange: (term: string) => void;
+
+	// Pagination
+	currentPage: number;
+	totalPages: number;
+	onPageChange: (page: number) => void;
+
 	onRunReport: (reportId: number, reportName: string) => void;
 	// Modal and viewer state
 	isParameterModalOpen: boolean;

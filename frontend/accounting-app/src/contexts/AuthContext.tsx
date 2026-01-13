@@ -4,7 +4,6 @@ import {
 } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect } from "react";
-import "../lib/api";
 
 export type UserRole =
 	| "Admin"

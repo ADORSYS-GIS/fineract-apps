@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RepaymentIndexRouteImport } from './routes/repayment/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as ApprovalQueueIndexRouteImport } from './routes/approval-queue/index'
 import { Route as RepaymentLoanIdRouteImport } from './routes/repayment/$loanId'
 import { Route as ClientsClientIdRouteImport } from './routes/clients/$clientId'
+import { Route as JournalEntriesEntryIdIndexRouteImport } from './routes/journal-entries/$entryId/index'
+import { Route as ApprovalQueueAuditIdIndexRouteImport } from './routes/approval-queue/$auditId/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -30,6 +33,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/dashboard/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApprovalQueueIndexRoute = ApprovalQueueIndexRouteImport.update({
+  id: '/approval-queue/',
+  path: '/approval-queue/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RepaymentLoanIdRoute = RepaymentLoanIdRouteImport.update({
   id: '/repayment/$loanId',
   path: '/repayment/$loanId',
@@ -40,28 +48,49 @@ const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
   path: '/clients/$clientId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JournalEntriesEntryIdIndexRoute =
+  JournalEntriesEntryIdIndexRouteImport.update({
+    id: '/journal-entries/$entryId/',
+    path: '/journal-entries/$entryId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApprovalQueueAuditIdIndexRoute =
+  ApprovalQueueAuditIdIndexRouteImport.update({
+    id: '/approval-queue/$auditId/',
+    path: '/approval-queue/$auditId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/repayment/$loanId': typeof RepaymentLoanIdRoute
+  '/approval-queue': typeof ApprovalQueueIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/repayment': typeof RepaymentIndexRoute
+  '/approval-queue/$auditId': typeof ApprovalQueueAuditIdIndexRoute
+  '/journal-entries/$entryId': typeof JournalEntriesEntryIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/repayment/$loanId': typeof RepaymentLoanIdRoute
+  '/approval-queue': typeof ApprovalQueueIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/repayment': typeof RepaymentIndexRoute
+  '/approval-queue/$auditId': typeof ApprovalQueueAuditIdIndexRoute
+  '/journal-entries/$entryId': typeof JournalEntriesEntryIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/repayment/$loanId': typeof RepaymentLoanIdRoute
+  '/approval-queue/': typeof ApprovalQueueIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/repayment/': typeof RepaymentIndexRoute
+  '/approval-queue/$auditId/': typeof ApprovalQueueAuditIdIndexRoute
+  '/journal-entries/$entryId/': typeof JournalEntriesEntryIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -69,30 +98,42 @@ export interface FileRouteTypes {
     | '/'
     | '/clients/$clientId'
     | '/repayment/$loanId'
+    | '/approval-queue'
     | '/dashboard'
     | '/repayment'
+    | '/approval-queue/$auditId'
+    | '/journal-entries/$entryId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/clients/$clientId'
     | '/repayment/$loanId'
+    | '/approval-queue'
     | '/dashboard'
     | '/repayment'
+    | '/approval-queue/$auditId'
+    | '/journal-entries/$entryId'
   id:
     | '__root__'
     | '/'
     | '/clients/$clientId'
     | '/repayment/$loanId'
+    | '/approval-queue/'
     | '/dashboard/'
     | '/repayment/'
+    | '/approval-queue/$auditId/'
+    | '/journal-entries/$entryId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClientsClientIdRoute: typeof ClientsClientIdRoute
   RepaymentLoanIdRoute: typeof RepaymentLoanIdRoute
+  ApprovalQueueIndexRoute: typeof ApprovalQueueIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   RepaymentIndexRoute: typeof RepaymentIndexRoute
+  ApprovalQueueAuditIdIndexRoute: typeof ApprovalQueueAuditIdIndexRoute
+  JournalEntriesEntryIdIndexRoute: typeof JournalEntriesEntryIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -118,6 +159,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/approval-queue/': {
+      id: '/approval-queue/'
+      path: '/approval-queue'
+      fullPath: '/approval-queue'
+      preLoaderRoute: typeof ApprovalQueueIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/repayment/$loanId': {
       id: '/repayment/$loanId'
       path: '/repayment/$loanId'
@@ -132,6 +180,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsClientIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/journal-entries/$entryId/': {
+      id: '/journal-entries/$entryId/'
+      path: '/journal-entries/$entryId'
+      fullPath: '/journal-entries/$entryId'
+      preLoaderRoute: typeof JournalEntriesEntryIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/approval-queue/$auditId/': {
+      id: '/approval-queue/$auditId/'
+      path: '/approval-queue/$auditId'
+      fullPath: '/approval-queue/$auditId'
+      preLoaderRoute: typeof ApprovalQueueAuditIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -139,8 +201,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientsClientIdRoute: ClientsClientIdRoute,
   RepaymentLoanIdRoute: RepaymentLoanIdRoute,
+  ApprovalQueueIndexRoute: ApprovalQueueIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   RepaymentIndexRoute: RepaymentIndexRoute,
+  ApprovalQueueAuditIdIndexRoute: ApprovalQueueAuditIdIndexRoute,
+  JournalEntriesEntryIdIndexRoute: JournalEntriesEntryIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

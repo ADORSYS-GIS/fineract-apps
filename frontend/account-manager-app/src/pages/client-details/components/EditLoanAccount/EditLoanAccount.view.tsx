@@ -1,4 +1,5 @@
 import { FormikProvider } from "formik";
+import { useTranslation } from "react-i18next";
 import { Modal } from "@/components/Modal/Modal";
 import { LoanAccountForm } from "@/pages/loan/common/LoanAccountForm";
 import { useLoanAccountForm } from "@/pages/loan/common/useLoanAccountForm";
@@ -24,9 +25,15 @@ export const EditLoanAccountView = ({
 		handleSubmit,
 		isSubmitting,
 	} = useLoanAccountForm({ loanId, onClose });
+	const { t } = useTranslation();
 
 	return (
-		<Modal isOpen={true} onClose={onClose} title="Edit Loan Account" size="lg">
+		<Modal
+			isOpen={true}
+			onClose={onClose}
+			title={t("editLoanAccount.title")}
+			size="lg"
+		>
 			<FormikProvider value={formik}>
 				<LoanAccountForm
 					loanTemplate={loanTemplate}

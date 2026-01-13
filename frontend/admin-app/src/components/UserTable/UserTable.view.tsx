@@ -1,5 +1,6 @@
 import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
 import { Eye } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { UserStatusBadge } from "../UserStatusBadge";
 import type { UserTableProps } from "./UserTable.types";
 
@@ -13,10 +14,13 @@ export function UserTable({
 	setCurrentPage,
 	totalPages,
 }: Readonly<UserTableProps>) {
+	const { t } = useTranslation();
 	if (isLoading) {
 		return (
 			<Card variant="elevated">
-				<div className="p-8 text-center text-gray-500">Loading users...</div>
+				<div className="p-8 text-center text-gray-500">
+					{t("userTable.loading")}
+				</div>
 			</Card>
 		);
 	}
@@ -26,7 +30,7 @@ export function UserTable({
 			<Card variant="elevated">
 				<div className="p-4">
 					<SearchBar
-						placeholder="Search by name or username..."
+						placeholder={t("userTable.searchPlaceholder")}
 						value={searchTerm}
 						onValueChange={setSearchTerm}
 					/>
@@ -36,22 +40,22 @@ export function UserTable({
 						<thead className="bg-gray-50 border-b border-gray-200">
 							<tr>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Username
+									{t("userTable.username")}
 								</th>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Name
+									{t("userTable.name")}
 								</th>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Email
+									{t("userTable.email")}
 								</th>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Office
+									{t("userTable.office")}
 								</th>
 								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Status
+									{t("userTable.status")}
 								</th>
 								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Actions
+									{t("userTable.actions")}
 								</th>
 							</tr>
 						</thead>
@@ -92,7 +96,7 @@ export function UserTable({
 													e.stopPropagation();
 													onRowClick?.(user.id);
 												}}
-												aria-label="View user"
+												aria-label={t("userTable.viewUser")}
 											>
 												<Eye className="w-4 h-4" />
 											</Button>
@@ -104,7 +108,9 @@ export function UserTable({
 					</table>
 				</div>
 				{users.length === 0 && (
-					<div className="p-8 text-center text-gray-500">No users found.</div>
+					<div className="p-8 text-center text-gray-500">
+						{t("userTable.noUsersFound")}
+					</div>
 				)}
 			</Card>
 			{totalPages > 1 && (
