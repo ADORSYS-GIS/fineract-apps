@@ -2,8 +2,8 @@ import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { ZodError } from "zod";
 import {
+	getTellerCreateSchema,
 	type TellerCreateFormValues,
-	tellerCreateSchema,
 } from "./TellerCreate.types";
 import { TellerCreateView } from "./TellerCreate.view";
 import { useTellerCreate } from "./useTellerCreate";
@@ -14,6 +14,7 @@ export function TellerCreate() {
 
 	const handleSubmit = async (values: TellerCreateFormValues) => {
 		try {
+			const tellerCreateSchema = getTellerCreateSchema(t);
 			tellerCreateSchema.parse(values);
 			onSubmit(values);
 		} catch (err) {

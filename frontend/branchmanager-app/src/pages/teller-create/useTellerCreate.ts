@@ -75,6 +75,7 @@ export function useTellerCreate() {
 	return {
 		initialValues,
 		onSubmit,
-		isSubmitting: isPending || areOfficesLoading,
+		isSubmitting: isPending,
+		isLoading: areOfficesLoading,
 	};
 }
