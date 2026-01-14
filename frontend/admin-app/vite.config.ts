@@ -37,6 +37,14 @@ export default mergeConfig(
 			alias: {
 				"@": path.resolve(__dirname, "./src"),
 			},
+			dedupe: [
+				"react",
+				"react-dom",
+				"formik",
+				"react-i18next",
+				"@tanstack/react-query",
+				"react-hot-toast",
+			],
 		},
 	}),
 );
