@@ -41,7 +41,7 @@
 			"description": "Fill in the details below to create a new client record."
 		},
 		"creatingClient": "Creating Client...",
-		"dashboard": {
+		"accountManagerDashboard": {
 			"clients": "Clients",
 			"searchClientsByName": "Search clients by name",
 			"addClient": "Add Client",

@@ -174,7 +174,8 @@
 			"endTime": "End time",
 			"endTimePlaceholder": "17:00"
 		},
-		"dashboard": {
+		"branchManagerDashboard": {
+			"title": "Branch Manager Dashboard",
 			"currentAssignments": "Current Assignments",
 			"filterAssignmentsPlaceholder": "Filter by staff, teller or description...",
 			"tellers": "TELLERS",

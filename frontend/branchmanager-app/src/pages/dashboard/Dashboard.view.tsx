@@ -22,25 +22,37 @@ export const DashboardView = ({
 				<Card className="h-full w-full">
 					<div>
 						<h2 className="text-xl font-bold text-gray-800 mb-3">
-							{t("dashboard.currentAssignments")}
+							{t("branchManagerDashboard.currentAssignments")}
 						</h2>
 						<SearchBar
 							value={searchAssignments}
 							onValueChange={setSearchAssignments}
-							placeholder={t("dashboard.filterAssignmentsPlaceholder")}
+							placeholder={t(
+								"branchManagerDashboard.filterAssignmentsPlaceholder",
+							)}
 						/>
 					</div>
 					<div className="overflow-x-auto mt-4">
 						<table className="w-full text-sm text-left text-gray-500">
 							<thead className="text-xs text-white uppercase bg-primary">
 								<tr>
-									<th className="px-6 py-3">{t("dashboard.tellers")}</th>
-									<th className="px-6 py-3">{t("dashboard.staff")}</th>
-									<th className="px-6 py-3">{t("dashboard.start")}</th>
-									<th className="px-6 py-3">{t("dashboard.end")}</th>
-									<th className="px-6 py-3">{t("dashboard.fullDay")}</th>
+									<th className="px-6 py-3">
+										{t("branchManagerDashboard.tellers")}
+									</th>
+									<th className="px-6 py-3">
+										{t("branchManagerDashboard.staff")}
+									</th>
+									<th className="px-6 py-3">
+										{t("branchManagerDashboard.start")}
+									</th>
+									<th className="px-6 py-3">
+										{t("branchManagerDashboard.end")}
+									</th>
+									<th className="px-6 py-3">
+										{t("branchManagerDashboard.fullDay")}
+									</th>
 									<th className="px-6 py-3 hidden sm:table-cell">
-										{t("dashboard.description")}
+										{t("branchManagerDashboard.description")}
 									</th>
 								</tr>
 							</thead>
@@ -81,7 +93,7 @@ export const DashboardView = ({
 									) : (
 										<tr className="bg-white border-b">
 											<td className="px-6 py-4 text-gray-500" colSpan={6}>
-												{t("dashboard.noAssignments")}
+												{t("branchManagerDashboard.noAssignments")}
 											</td>
 										</tr>
 									))}
