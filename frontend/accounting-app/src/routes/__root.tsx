@@ -19,11 +19,12 @@ export interface MyRouterContext {
 }
 
 function RootComponent() {
-	const { user, isLoading } = useAuth();
+	const { user, keycloakUser, roles, isLoading, hasAnyRole } = useAuth();
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
-	const userRole = user?.roles?.[0]?.name;
+	// Use Keycloak roles (first role for display/filtering purposes)
+	const userRole = roles[0];
 
 	const { t } = useTranslation();
 
@@ -31,12 +32,21 @@ function RootComponent() {
 		return <div>Loading...</div>;
 	}
 
-	const authorizedRoles = ["Accountant", "Supervisor Accountant", "Admin"];
+	// Check authorization using Keycloak roles
+	const authorizedRoles = [
+		"Accountant",
+		"Supervisor Accountant",
+		"Super user",
+	] as const;
 
-	if (!userRole || !authorizedRoles.includes(userRole)) {
+	if (!hasAnyRole([...authorizedRoles])) {
 		return (
 			<div className="flex items-center justify-center h-screen">
 				<h1 className="text-2xl font-bold">Unauthorized Access</h1>
+				<p className="text-gray-600 mt-2">
+					Your role ({roles.join(", ") || "none"}) does not have access to this
+					application.
+				</p>
 			</div>
 		);
 	}
@@ -75,7 +85,8 @@ function RootComponent() {
 				<Navbar
 					logo={
 						<h1 className="text-lg font-bold">
-							{t("welcome")}, {user.staffDisplayName}
+							{t("welcome")},{" "}
+							{user?.staffDisplayName || keycloakUser?.user || "User"}
 						</h1>
 					}
 					links={null}
