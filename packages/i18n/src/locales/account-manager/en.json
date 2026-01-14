@@ -42,11 +42,11 @@
 		},
 		"creatingClient": "Creating Client...",
 		"dashboard": {
-			"clients": "Clients",
-			"searchClientsByName": "Search clients by name",
+			"title": "Dashboard",
+			"searchPlaceholder": "Search clients by name",
 			"addClient": "Add Client",
-			"loadingClients": "Loading clients...",
-			"accountNo": "Account No",
+			"loading": "Loading clients...",
+			"accountNumber": "Account No",
 			"activate": "Activate"
 		},
 		"activateAccount": {

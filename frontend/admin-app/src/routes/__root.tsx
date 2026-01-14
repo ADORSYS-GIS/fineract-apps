@@ -2,6 +2,7 @@ import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import {
 	AppLayout,
 	Button,
+	Footer,
 	logout,
 	menuAdmin,
 	Navbar,
@@ -79,6 +80,7 @@ function RootLayout() {
 				<ToastContainer />
 				<TanStackRouterDevtools />
 			</AppLayout>
+			<Footer />
 		</ToastProvider>
 	);
 }

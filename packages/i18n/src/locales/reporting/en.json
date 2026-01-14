@@ -13,7 +13,7 @@
 			"cancel": "Cancel"
 		},
 		"dashboard": {
-			"title": "Reporting Dashboard",
+			"title": "Dashboard",
 			"totalReports": "Total Reports",
 			"recentTransactions": "Recent Transactions",
 			"auditEntries": "Audit Entries",
@@ -23,7 +23,10 @@
 			"transactionHistory": "Transaction History",
 			"transactionHistoryDescription": "View all transactions",
 			"auditTrail": "Audit Trail",
-			"auditTrailDescription": "View system audit logs"
+			"auditTrailDescription": "View system audit logs",
+			"searchPlaceholder": "Search...",
+			"addClient": "Add Client",
+			"loading": "Loading..."
 		},
 		"reports": {
 			"title": "Reports Catalog",

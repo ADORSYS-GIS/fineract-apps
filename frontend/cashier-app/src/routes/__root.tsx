@@ -1,5 +1,11 @@
 import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
-import { AppLayout, menuCashier, Navbar, Sidebar } from "@fineract-apps/ui";
+import {
+	AppLayout,
+	Footer,
+	menuCashier,
+	Navbar,
+	Sidebar,
+} from "@fineract-apps/ui";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
@@ -60,40 +66,43 @@ function RootLayout() {
 	);
 
 	return (
-		<AppLayout
-			sidebar={
-				<Sidebar
-					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
-					menuItems={transformedMenu}
-					activePath={currentPath}
-					onNavigate={(to) => navigate({ to })}
-					onLogout={onLogout}
-				/>
-			}
-			navbar={
-				<Navbar
-					logo={
-						<h1 className="text-lg font-bold">
-							Welcome, {authData?.staffDisplayName}
-						</h1>
-					}
-					links={null}
-					notifications={<NotificationBell />}
-					userSection={
-						<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
-							<UserCircle className="w-5 h-5 text-gray-600" />
-						</div>
-					}
-					variant="primary"
-					size="md"
-				/>
-			}
-		>
-			<Outlet />
-			<Toaster />
-			<TanStackRouterDevtools />
-			<ReactQueryDevtools />
-		</AppLayout>
+		<>
+			<AppLayout
+				sidebar={
+					<Sidebar
+						logo={<h1 className="text-lg font-bold">Cashier App</h1>}
+						menuItems={transformedMenu}
+						activePath={currentPath}
+						onNavigate={(to) => navigate({ to })}
+						onLogout={onLogout}
+					/>
+				}
+				navbar={
+					<Navbar
+						logo={
+							<h1 className="text-lg font-bold">
+								Welcome, {authData?.staffDisplayName}
+							</h1>
+						}
+						links={null}
+						notifications={<NotificationBell />}
+						userSection={
+							<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
+								<UserCircle className="w-5 h-5 text-gray-600" />
+							</div>
+						}
+						variant="primary"
+						size="md"
+					/>
+				}
+			>
+				<Outlet />
+				<Toaster />
+				<TanStackRouterDevtools />
+				<ReactQueryDevtools />
+			</AppLayout>
+			<Footer />
+		</>
 	);
 }
 

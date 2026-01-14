@@ -42,11 +42,11 @@
 		},
 		"creatingClient": "Création du client...",
 		"dashboard": {
-			"clients": "Clients",
-			"searchClientsByName": "Rechercher des clients par nom",
+			"title": "Tableau de Bord",
+			"searchPlaceholder": "Rechercher des clients par nom",
 			"addClient": "Ajouter un Client",
-			"loadingClients": "Chargement des clients...",
-			"accountNo": "N° de Compte",
+			"loading": "Chargement des clients...",
+			"accountNumber": "N° de Compte",
 			"activate": "Activer"
 		},
 		"activateAccount": {

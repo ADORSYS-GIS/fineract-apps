@@ -1,6 +1,7 @@
 import {
 	AppLayout,
 	Button,
+	Footer,
 	menuAccountManager,
 	Navbar,
 	Sidebar,
@@ -69,6 +70,7 @@ function RootLayout() {
 				<Outlet />
 				<TanStackRouterDevtools />
 			</AppLayout>
+			<Footer />
 		</>
 	);
 }
