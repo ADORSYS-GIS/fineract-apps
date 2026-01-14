@@ -8,6 +8,7 @@ import {
 import {
 	createRootRouteWithContext,
 	Outlet,
+	useNavigate,
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
@@ -24,6 +25,7 @@ export const Route = createRootRouteWithContext()({
 function RootLayout() {
 	configureApi();
 	const { onLogout, userData } = useAuth();
+	const navigate = useNavigate();
 	const { location } = useRouterState();
 
 	const { t } = useTranslation();
@@ -41,7 +43,14 @@ function RootLayout() {
 		<>
 			<Toaster position="top-right" />
 			<AppLayout
-				sidebar={<Sidebar menuItems={menuAccountManager} onLogout={onLogout} />}
+				sidebar={
+					<Sidebar
+						menuItems={menuAccountManager}
+						onLogout={onLogout}
+						onNavigate={(to) => navigate({ to })}
+						activePath={location.pathname}
+					/>
+				}
 				navbar={
 					<Navbar
 						logo={
