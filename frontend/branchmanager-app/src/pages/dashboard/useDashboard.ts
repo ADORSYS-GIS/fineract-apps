@@ -97,7 +97,7 @@ export function useDashboard() {
 }
 
 function onLogout() {
-	const base = import.meta.env.BASE_URL || "/branchmanager/";
+	const base = import.meta.env.BASE_URL || "/branch/";
 	const appBase = base.endsWith("/") ? base : `${base}/`;
 	const redirectTo = `${globalThis.location.origin}${appBase}`;
 	globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(redirectTo)}`;
