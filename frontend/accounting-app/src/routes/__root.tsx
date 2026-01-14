@@ -1,4 +1,10 @@
-import { AppLayout, menuAccounting, Navbar, Sidebar } from "@fineract-apps/ui";
+import {
+	AppLayout,
+	Footer,
+	menuAccounting,
+	Navbar,
+	Sidebar,
+} from "@fineract-apps/ui";
 import { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {

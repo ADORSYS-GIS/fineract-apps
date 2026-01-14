@@ -1,6 +1,7 @@
 import { AuthenticationHttpBasicService } from "@fineract-apps/fineract-api";
 import {
 	AppLayout,
+	Footer,
 	menuBranchManager,
 	Navbar,
 	Sidebar,
@@ -58,41 +59,44 @@ function RootLayout() {
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
 	return (
-		<AppLayout
-			sidebar={
-				<Sidebar
-					logo={
-						<h1 className="text-lg font-bold">{t("branchManager.logo")}</h1>
-					}
-					menuItems={menuBranchManager}
-					activePath={currentPath}
-					onNavigate={(to) => navigate({ to })}
-					onLogout={onLogout}
-				/>
-			}
-			navbar={
-				<Navbar
-					logo={
-						<h1 className="text-lg font-bold">
-							{t("welcome")}, {authData?.staffDisplayName}
-						</h1>
-					}
-					links={null}
-					notifications={<NotificationBell />}
-					userSection={
-						<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
-							<UserCircle className="w-5 h-5 text-gray-600" />
-						</div>
-					}
-					variant="primary"
-					size="md"
-				/>
-			}
-		>
-			<Outlet />
-			<Toaster />
-			<TanStackRouterDevtools />
-		</AppLayout>
+		<>
+			<AppLayout
+				sidebar={
+					<Sidebar
+						logo={
+							<h1 className="text-lg font-bold">{t("branchManager.logo")}</h1>
+						}
+						menuItems={menuBranchManager}
+						activePath={currentPath}
+						onNavigate={(to) => navigate({ to })}
+						onLogout={onLogout}
+					/>
+				}
+				navbar={
+					<Navbar
+						logo={
+							<h1 className="text-lg font-bold">
+								{t("welcome")}, {authData?.staffDisplayName}
+							</h1>
+						}
+						links={null}
+						notifications={<NotificationBell />}
+						userSection={
+							<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
+								<UserCircle className="w-5 h-5 text-gray-600" />
+							</div>
+						}
+						variant="primary"
+						size="md"
+					/>
+				}
+			>
+				<Outlet />
+				<Toaster />
+				<TanStackRouterDevtools />
+			</AppLayout>
+			<Footer />
+		</>
 	);
 }
 

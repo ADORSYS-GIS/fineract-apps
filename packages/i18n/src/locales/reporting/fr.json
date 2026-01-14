@@ -13,7 +13,7 @@
 			"cancel": "Annuler"
 		},
 		"dashboard": {
-			"title": "Tableau de Bord de Reporting",
+			"title": "Tableau de Bord",
 			"totalReports": "Total des Rapports",
 			"recentTransactions": "Transactions Récentes",
 			"auditEntries": "Entrées d'Audit",
@@ -23,7 +23,9 @@
 			"transactionHistory": "Historique des Transactions",
 			"transactionHistoryDescription": "Voir toutes les transactions",
 			"auditTrail": "Piste d'Audit",
-			"auditTrailDescription": "Voir les journaux d'audit du système"
+			"auditTrailDescription": "Voir les journaux d'audit du système",
+			"searchPlaceholder": "Rechercher...",
+			"loading": "Chargement..."
 		},
 		"reports": {
 			"title": "Catalogue des Rapports",
