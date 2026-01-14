@@ -1,0 +1,226 @@
+{
+	"translation": {
+		"branchManagerHomePage": "Welcome to the Branch Manager Home Page!",
+		"branchManagerApp": {
+			"title": "Branch Manager App"
+		},
+		"cashierActionForm": {
+			"amount": "Amount",
+			"enterAmount": "Enter amount",
+			"currency": "Currency",
+			"notes": "Notes",
+			"notesOptional": "Notes (optional)",
+			"transactionDate": "Transaction date"
+		},
+		"notificationBell": {
+			"notifications": "Notifications",
+			"noNewNotifications": "No new notifications"
+		},
+		"approveSavingsAccountList": {
+			"searchPlaceholder": "product, client, account no",
+			"approveSavingsAccount": "Approve Savings Account",
+			"loading": "Loading...",
+			"errorFetchingAccounts": "Error fetching accounts",
+			"product": "Product",
+			"client": "Client",
+			"accountNo": "Account No",
+			"status": "Status",
+			"actions": "Actions",
+			"view": "View",
+			"previous": "Previous",
+			"pageOf": "Page {{page}} of {{total}}",
+			"next": "Next",
+			"noPendingAccounts": "No pending savings accounts to approve."
+		},
+		"approveSavingsAccountDetail": {
+			"client": "Client:",
+			"accountNo": "Account No:",
+			"status": "Status:",
+			"balance": "Balance:",
+			"approvalDate": "Approval Date",
+			"noteOptional": "Note (Optional)",
+			"approve": "Approve",
+			"backToList": "Back to List"
+		},
+		"approveSavingsAccount": {
+			"loadingAccountDetails": "Loading account details..."
+		},
+		"loanReview": {
+			"loading": "Loading...",
+			"loanNotFound": "Loan not found",
+			"reviewLoan": "Review Loan:",
+			"clientDetails": "Client Details",
+			"name": "Name",
+			"loanTerms": "Loan Terms",
+			"product": "Product",
+			"principal": "Principal",
+			"term": "Term",
+			"interestRate": "Interest Rate",
+			"perAnnum": "per annum",
+			"loanOfficer": "Loan Officer",
+			"submittedOn": "Submitted On",
+			"expectedDisbursement": "Expected Disbursement",
+			"collateralCharges": "Collateral & Charges",
+			"collateral": "Collateral:",
+			"charges": "Charges:",
+			"decision": "Decision",
+			"addNotesPlaceholder": "Add approval or rejection notes...",
+			"approveLoan": "Approve Loan",
+			"rejectLoan": "Reject Loan"
+		},
+		"staffDetail": {
+			"loading": "Loading...",
+			"firstName": "First Name",
+			"lastName": "Last Name",
+			"office": "Office",
+			"isLoanOfficer": "Is Loan Officer",
+			"mobileNumberForSMS": "Mobile Number for SMS",
+			"status": "Status",
+			"joiningDate": "Joining Date"
+		},
+		"tellerCreate": {
+			"validationError": "Zod validation error: {{message}}",
+			"officeRequired": "Office is required",
+			"nameRequired": "Name is required",
+			"startDateRequired": "Start date is required",
+			"statusInvalid": "Status must be 300 (Active) or 400 (Inactive)",
+			"endDateBeforeStartDate": "End date cannot be before start date",
+			"createdSuccessfully": "Teller created successfully",
+			"failedToCreate": "Failed to create teller",
+			"createTeller": "Create Teller",
+			"tellerName": "Teller Name",
+			"enterTellerName": "Enter teller name",
+			"status": "Status",
+			"active": "Active",
+			"inactive": "Inactive",
+			"description": "Description",
+			"descriptionOptional": "Description (Optional)",
+			"startDate": "Start Date",
+			"endDate": "End Date",
+			"cancel": "Cancel",
+			"submitting": "Submitting...",
+			"submit": "Submit"
+		},
+		"staff": {
+			"manageStaff": "Manage Staff",
+			"availableStaff": "Available Staff",
+			"filterStaffPlaceholder": "Filter staff...",
+			"noStaffMembersFound": "No staff members found."
+		},
+		"settle": {
+			"settleFunds": "Settle Funds",
+			"settle": "Settle"
+		},
+		"allocate": {
+			"allocateFunds": "Allocate Funds",
+			"allocate": "Allocate"
+		},
+		"pendingLoans": {
+			"pendingLoanApprovals": "Pending Loan Approvals",
+			"filterPlaceholder": "Filter by client, loan officer or product...",
+			"clientName": "Client Name",
+			"loanOfficer": "Loan Officer",
+			"principal": "Principal",
+			"submittedOn": "Submitted On",
+			"loanProduct": "Loan Product",
+			"action": "Action",
+			"review": "Review",
+			"noPendingLoans": "No pending loans."
+		},
+		"approveAccount": {
+			"approveAccount": "Approve Account",
+			"pendingAccounts": "Pending Accounts",
+			"reviewSavingsAccountApplications": "Review and approve savings account applications.",
+			"pendingLoans": "Pending Loans",
+			"reviewLoanApplications": "Review and approve loan applications."
+		},
+		"cashierDetail": {
+			"settle": "Settle",
+			"allocate": "Allocate",
+			"loading": "Loading...",
+			"error": "Error: {{message}}",
+			"netCash": "Net Cash",
+			"cashAllocations": "Cash Allocations",
+			"cashSettlements": "Cash Settlements",
+			"inwardCash": "Inward Cash",
+			"outwardCash": "Outward Cash",
+			"transactions": "Transactions",
+			"noTransactionsFound": "No transactions found.",
+			"date": "Date",
+			"type": "Type",
+			"amount": "Amount",
+			"entity": "Entity",
+			"note": "Note",
+			"page": "{{page}} / page",
+			"previous": "Previous",
+			"next": "Next",
+			"of": "of"
+		},
+		"tellerAssign": {
+			"assign": "Assign",
+			"assignStaffTo": "Assign Staff to {{tellerName}}",
+			"assignStaff": "Assign Staff",
+			"staff": "Staff",
+			"notesOptional": "Notes (optional)",
+			"startDate": "Start date",
+			"endDate": "End date",
+			"fullDay": "Full day",
+			"cancel": "Cancel"
+		},
+		"timePicker": {
+			"startTime": "Start time",
+			"startTimePlaceholder": "09:00",
+			"helperText": "Format HH:mm (required when not full day)",
+			"endTime": "End time",
+			"endTimePlaceholder": "17:00"
+		},
+		"branchManagerDashboard": {
+			"title": "Branch Manager Dashboard",
+			"currentAssignments": "Current Assignments",
+			"filterAssignmentsPlaceholder": "Filter by staff, teller or description...",
+			"tellers": "TELLERS",
+			"staff": "STAFF",
+			"start": "START",
+			"end": "END",
+			"fullDay": "FULL DAY",
+			"description": "DESCRIPTION",
+			"noAssignments": "No assignments."
+		},
+		"tellerDetail": {
+			"newAssignment": "New Assignment",
+			"assignedCashiers": "Assigned Cashiers",
+			"filterCashiersPlaceholder": "Filter cashiers...",
+			"staffName": "Staff Name",
+			"startDate": "Start Date",
+			"endDate": "End Date",
+			"description": "Description",
+			"noCashiersAssigned": "No cashiers assigned.",
+			"of": "of",
+			"perPage": "{{count}} / page",
+			"previous": "Previous",
+			"next": "Next"
+		},
+		"tellers": {
+			"tellers": "Tellers",
+			"createTeller": "Create Teller",
+			"availableTellers": "Available Tellers",
+			"filterTellersPlaceholder": "Filter tellers...",
+			"errorFetchingTellers": "Error fetching tellers: {{message}}",
+			"noTellersFound": "No tellers found.",
+			"status": {
+				"active": "ACTIVE",
+				"inactive": "INACTIVE"
+			}
+		},
+		"branchManager": {
+			"logo": "Branch Manager"
+		},
+		"common": {
+			"back": "Back",
+			"loading": "Loading...",
+			"cancel": "Cancel",
+			"yes": "Yes",
+			"no": "No"
+		}
+	}
+}

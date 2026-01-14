@@ -4,10 +4,9 @@ import {
 } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect } from "react";
-import "../lib/api";
 
 export type UserRole =
-	| "Admin"
+	| "Super user"
 	| "Accountant"
 	| "Supervisor Accountant"
 	| "Manager"
@@ -46,7 +45,13 @@ function parseKeycloakRoles(rolesString: string): UserRole[] {
 		.split(",")
 		.map((role) => role.trim())
 		.filter((role): role is UserRole =>
-			["Admin", "Accountant", "Supervisor Accountant", "Manager", "Viewer"].includes(role)
+			[
+				"Admin",
+				"Accountant",
+				"Supervisor Accountant",
+				"Manager",
+				"Viewer",
+			].includes(role),
 		);
 }
 

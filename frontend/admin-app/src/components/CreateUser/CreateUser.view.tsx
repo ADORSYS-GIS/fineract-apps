@@ -8,6 +8,7 @@ import {
 } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
+import { useTranslation } from "react-i18next";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { createUserFormSchema } from "@/components/CreateUser/createUserFormSchema";
 import { useCreateUser } from "./useCreateUser";
@@ -21,6 +22,7 @@ export const CreateUserView = ({
 	creationStep,
 	isLoading,
 }: CreateUserViewProps) => {
+	const { t } = useTranslation();
 	const { data: offices, isLoading: officesLoading } = useQuery({
 		queryKey: ["offices"],
 		queryFn: () => OfficesService.getV1Offices(),
@@ -47,17 +49,18 @@ export const CreateUserView = ({
 			<div className="flex flex-col items-center justify-center h-full">
 				<Card className="w-full max-w-md">
 					<div className="p-6">
-						<h2 className="text-xl font-semibold mb-4">Confirm User Sync</h2>
-						<p className="mb-4">
-							Employee has been created in Fineract. Please confirm to sync this
-							user to Keycloak.
-						</p>
+						<h2 className="text-xl font-semibold mb-4">
+							{t("createUser.confirmUserSyncTitle")}
+						</h2>
+						<p className="mb-4">{t("createUser.confirmUserSyncMessage")}</p>
 						<div className="space-y-2">
 							<p>
-								<strong>Username:</strong> {creationStep.newUser?.username}
+								<strong>{t("createUser.usernameLabel")}:</strong>{" "}
+								{creationStep.newUser?.username}
 							</p>
 							<p>
-								<strong>Email:</strong> {creationStep.newUser?.email}
+								<strong>{t("createUser.emailLabel")}:</strong>{" "}
+								{creationStep.newUser?.email}
 							</p>
 						</div>
 						<Button
@@ -65,7 +68,9 @@ export const CreateUserView = ({
 							disabled={isLoading}
 							className="mt-4 w-full"
 						>
-							{isLoading ? "Syncing..." : "Complete Creation"}
+							{isLoading
+								? t("createUser.syncing")
+								: t("createUser.completeCreation")}
 						</Button>
 					</div>
 				</Card>
@@ -85,46 +90,46 @@ export const CreateUserView = ({
 					>
 						{() => (
 							<Form>
-								<FormTitle>Create New Employee</FormTitle>
+								<FormTitle>{t("createUser.formTitle")}</FormTitle>
 
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
 									<Input
 										name="firstname"
-										label="First Name"
+										label={t("createUser.firstNameLabel")}
 										type="text"
-										placeholder="Enter first name"
+										placeholder={t("createUser.firstNamePlaceholder")}
 										required
 									/>
 									<Input
 										name="lastname"
-										label="Last Name"
+										label={t("createUser.lastNameLabel")}
 										type="text"
-										placeholder="Enter last name"
+										placeholder={t("createUser.lastNamePlaceholder")}
 										required
 									/>
 									<Input
 										name="username"
-										label="Username"
+										label={t("createUser.usernameLabel")}
 										type="text"
-										placeholder="Enter username"
+										placeholder={t("createUser.usernamePlaceholder")}
 										required
 									/>
 									<Input
 										name="email"
-										label="Email Address"
+										label={t("createUser.emailAddressLabel")}
 										type="email"
-										placeholder="user@example.com"
+										placeholder={t("createUser.emailPlaceholder")}
 										required
 									/>
 									<Input
 										name="mobileNo"
-										label="Mobile Number"
+										label={t("createUser.mobileNumberLabel")}
 										type="text"
-										placeholder="Enter mobile number"
+										placeholder={t("createUser.mobileNumberPlaceholder")}
 									/>
 									<Input
 										name="officeId"
-										label="Office"
+										label={t("createUser.officeLabel")}
 										type="select"
 										required
 										options={officeOptions}
@@ -132,16 +137,16 @@ export const CreateUserView = ({
 									/>
 									<Input
 										name="roles"
-										label="Roles"
+										label={t("createUser.rolesLabel")}
 										type="select"
 										required
 										options={roleOptions}
 										disabled={rolesLoading}
-										helperText="Select a role"
+										helperText={t("createUser.selectRole")}
 									/>
 									<Input
 										name="joiningDate"
-										label="Joining Date"
+										label={t("createUser.joiningDateLabel")}
 										type="date"
 										required
 									/>
@@ -151,14 +156,18 @@ export const CreateUserView = ({
 											htmlFor="isLoanOfficer"
 											className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 										>
-											Loan Officer
+											{t("createUser.loanOfficerLabel")}
 										</label>
 									</div>
 								</div>
 
 								<div className="pt-4 flex items-center gap-3">
 									<SubmitButton
-										label={isLoading ? "Creating..." : "Create Employee"}
+										label={
+											isLoading
+												? t("createUser.creating")
+												: t("createUser.createEmployee")
+										}
 									/>
 								</div>
 							</Form>

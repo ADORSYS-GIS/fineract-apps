@@ -33,14 +33,19 @@ function RootComponent() {
 	}
 
 	// Check authorization using Keycloak roles
-	const authorizedRoles = ["Accountant", "Supervisor Accountant", "Admin"] as const;
+	const authorizedRoles = [
+		"Accountant",
+		"Supervisor Accountant",
+		"Super user",
+	] as const;
 
 	if (!hasAnyRole([...authorizedRoles])) {
 		return (
 			<div className="flex items-center justify-center h-screen">
 				<h1 className="text-2xl font-bold">Unauthorized Access</h1>
 				<p className="text-gray-600 mt-2">
-					Your role ({roles.join(", ") || "none"}) does not have access to this application.
+					Your role ({roles.join(", ") || "none"}) does not have access to this
+					application.
 				</p>
 			</div>
 		);
@@ -80,7 +85,8 @@ function RootComponent() {
 				<Navbar
 					logo={
 						<h1 className="text-lg font-bold">
-							{t("welcome")}, {user?.staffDisplayName || keycloakUser?.user || "User"}
+							{t("welcome")},{" "}
+							{user?.staffDisplayName || keycloakUser?.user || "User"}
 						</h1>
 					}
 					links={null}

@@ -1,0 +1,226 @@
+{
+	"translation": {
+		"branchManagerHomePage": "Bienvenue sur la page d'accueil du directeur de succursale!",
+		"branchManagerApp": {
+			"title": "Application du Directeur de Succursale"
+		},
+		"cashierActionForm": {
+			"amount": "Montant",
+			"enterAmount": "Entrez le montant",
+			"currency": "Devise",
+			"notes": "Notes",
+			"notesOptional": "Notes (facultatif)",
+			"transactionDate": "Date de transaction"
+		},
+		"notificationBell": {
+			"notifications": "Notifications",
+			"noNewNotifications": "Aucune nouvelle notification"
+		},
+		"approveSavingsAccountList": {
+			"searchPlaceholder": "produit, client, numéro de compte",
+			"approveSavingsAccount": "Approuver le Compte d'Épargne",
+			"loading": "Chargement...",
+			"errorFetchingAccounts": "Erreur lors de la récupération des comptes",
+			"product": "Produit",
+			"client": "Client",
+			"accountNo": "N° de Compte",
+			"status": "Statut",
+			"actions": "Actions",
+			"view": "Voir",
+			"previous": "Précédent",
+			"pageOf": "Page {{page}} sur {{total}}",
+			"next": "Suivant",
+			"noPendingAccounts": "Aucun compte d'épargne en attente d'approbation."
+		},
+		"approveSavingsAccountDetail": {
+			"client": "Client :",
+			"accountNo": "N° de Compte :",
+			"status": "Statut :",
+			"balance": "Solde :",
+			"approvalDate": "Date d'approbation",
+			"noteOptional": "Note (Facultatif)",
+			"approve": "Approuver",
+			"backToList": "Retour à la Liste"
+		},
+		"approveSavingsAccount": {
+			"loadingAccountDetails": "Chargement des détails du compte..."
+		},
+		"loanReview": {
+			"loading": "Chargement...",
+			"loanNotFound": "Prêt non trouvé",
+			"reviewLoan": "Examiner le prêt :",
+			"clientDetails": "Détails du client",
+			"name": "Nom",
+			"loanTerms": "Conditions du prêt",
+			"product": "Produit",
+			"principal": "Principal",
+			"term": "Terme",
+			"interestRate": "Taux d'intérêt",
+			"perAnnum": "par an",
+			"loanOfficer": "Agent de prêt",
+			"submittedOn": "Soumis le",
+			"expectedDisbursement": "Décaissement prévu",
+			"collateralCharges": "Garanties et frais",
+			"collateral": "Garantie :",
+			"charges": "Frais :",
+			"decision": "Décision",
+			"addNotesPlaceholder": "Ajouter des notes d'approbation ou de rejet...",
+			"approveLoan": "Approuver le prêt",
+			"rejectLoan": "Rejeter le prêt"
+		},
+		"staffDetail": {
+			"loading": "Chargement...",
+			"firstName": "Prénom",
+			"lastName": "Nom de famille",
+			"office": "Bureau",
+			"isLoanOfficer": "Est agent de prêt",
+			"mobileNumberForSMS": "Numéro de mobile pour SMS",
+			"status": "Statut",
+			"joiningDate": "Date d'embauche"
+		},
+		"tellerCreate": {
+			"validationError": "Erreur de validation Zod : {{message}}",
+			"officeRequired": "Le bureau est requis",
+			"nameRequired": "Le nom est requis",
+			"startDateRequired": "La date de début est requise",
+			"statusInvalid": "Le statut doit être 300 (Actif) ou 400 (Inactif)",
+			"endDateBeforeStartDate": "La date de fin ne peut pas être antérieure à la date de début",
+			"createdSuccessfully": "Caissier créé avec succès",
+			"failedToCreate": "Échec de la création du caissier",
+			"createTeller": "Créer un Caissier",
+			"tellerName": "Nom du Caissier",
+			"enterTellerName": "Entrez le nom du caissier",
+			"status": "Statut",
+			"active": "Actif",
+			"inactive": "Inactif",
+			"description": "Description",
+			"descriptionOptional": "Description (facultatif)",
+			"startDate": "Date de Début",
+			"endDate": "Date de Fin",
+			"cancel": "Annuler",
+			"submitting": "Soumission...",
+			"submit": "Soumettre"
+		},
+		"staff": {
+			"manageStaff": "Gérer le Personnel",
+			"availableStaff": "Personnel Disponible",
+			"filterStaffPlaceholder": "Filtrer le personnel...",
+			"noStaffMembersFound": "Aucun membre du personnel trouvé."
+		},
+		"settle": {
+			"settleFunds": "Régler les Fonds",
+			"settle": "Régler"
+		},
+		"allocate": {
+			"allocateFunds": "Allouer des Fonds",
+			"allocate": "Allouer"
+		},
+		"pendingLoans": {
+			"pendingLoanApprovals": "Approbations de Prêts en Attente",
+			"filterPlaceholder": "Filtrer par client, agent de prêt ou produit...",
+			"clientName": "Nom du Client",
+			"loanOfficer": "Agent de Prêt",
+			"principal": "Principal",
+			"submittedOn": "Soumis le",
+			"loanProduct": "Produit de Prêt",
+			"action": "Action",
+			"review": "Examiner",
+			"noPendingLoans": "Aucun prêt en attente."
+		},
+		"approveAccount": {
+			"approveAccount": "Approuver le Compte",
+			"pendingAccounts": "Comptes en Attente",
+			"reviewSavingsAccountApplications": "Examiner et approuver les demandes de comptes d'épargne.",
+			"pendingLoans": "Prêts en Attente",
+			"reviewLoanApplications": "Examiner et approuver les demandes de prêt."
+		},
+		"cashierDetail": {
+			"settle": "Régler",
+			"allocate": "Allouer",
+			"loading": "Chargement...",
+			"error": "Erreur : {{message}}",
+			"netCash": "Liquidités nettes",
+			"cashAllocations": "Allocations de liquidités",
+			"cashSettlements": "Règlements en espèces",
+			"inwardCash": "Encaissements",
+			"outwardCash": "Décaissements",
+			"transactions": "Transactions",
+			"noTransactionsFound": "Aucune transaction trouvée.",
+			"date": "Date",
+			"type": "Type",
+			"amount": "Montant",
+			"entity": "Entité",
+			"note": "Note",
+			"page": "{{page}} / page",
+			"previous": "Précédent",
+			"next": "Suivant",
+			"of": "de"
+		},
+		"tellerAssign": {
+			"assign": "Attribuer",
+			"assignStaffTo": "Attribuer le personnel à {{tellerName}}",
+			"assignStaff": "Attribuer le Personnel",
+			"staff": "Personnel",
+			"notesOptional": "Notes (facultatif)",
+			"startDate": "Date de Début",
+			"endDate": "Date de Fin",
+			"fullDay": "Journée complète",
+			"cancel": "Annuler"
+		},
+		"timePicker": {
+			"startTime": "Heure de début",
+			"startTimePlaceholder": "09:00",
+			"helperText": "Format HH:mm (requis si pas journée complète)",
+			"endTime": "Heure de fin",
+			"endTimePlaceholder": "17:00"
+		},
+		"branchManagerDashboard": {
+			"title": "Tableau de Bord du Directeur de Succursale",
+			"currentAssignments": "Affectations Actuelles",
+			"filterAssignmentsPlaceholder": "Filtrer par personnel, caissier ou description...",
+			"tellers": "CAISSIERS",
+			"staff": "PERSONNEL",
+			"start": "DÉBUT",
+			"end": "FIN",
+			"fullDay": "JOURNÉE COMPLÈTE",
+			"description": "DESCRIPTION",
+			"noAssignments": "Aucune affectation."
+		},
+		"tellerDetail": {
+			"newAssignment": "Nouvelle Affectation",
+			"assignedCashiers": "Caissiers Affectés",
+			"filterCashiersPlaceholder": "Filtrer les caissiers...",
+			"staffName": "Nom du Personnel",
+			"startDate": "Date de Début",
+			"endDate": "Date de Fin",
+			"description": "Description",
+			"noCashiersAssigned": "Aucun caissier affecté.",
+			"of": "de",
+			"perPage": "{{count}} / page",
+			"previous": "Précédent",
+			"next": "Suivant"
+		},
+		"tellers": {
+			"tellers": "Caissiers",
+			"createTeller": "Créer un Caissier",
+			"availableTellers": "Caissiers Disponibles",
+			"filterTellersPlaceholder": "Filtrer les caissiers...",
+			"errorFetchingTellers": "Erreur lors de la récupération des caissiers : {{message}}",
+			"noTellersFound": "Aucun caissier trouvé.",
+			"status": {
+				"active": "ACTIF",
+				"inactive": "INACTIF"
+			}
+		},
+		"branchManager": {
+			"logo": "Directeur de succursale"
+		},
+		"common": {
+			"back": "Retour",
+			"loading": "Chargement...",
+			"cancel": "Annuler",
+			"yes": "Oui",
+			"no": "Non"
+		}
+	}
+}

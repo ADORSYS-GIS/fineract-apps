@@ -30,6 +30,10 @@ export function useReportsCatalog(): ReportsCatalogData {
 		},
 	});
 
+	// Pagination state
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 9;
+
 	// Filter reports based on search term
 	const filteredReports = useMemo(() => {
 		if (!reportsData) return [];
@@ -39,6 +43,19 @@ export function useReportsCatalog(): ReportsCatalogData {
 			report.reportName.toLowerCase().includes(searchTerm.toLowerCase()),
 		);
 	}, [reportsData, searchTerm]);
+
+	// Reset page when search changes
+	const handleSearchChange = (term: string) => {
+		setSearchTerm(term);
+		setCurrentPage(1);
+	};
+
+	// Calculate pagination
+	const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+	const paginatedReports = useMemo(() => {
+		const startIndex = (currentPage - 1) * itemsPerPage;
+		return filteredReports.slice(startIndex, startIndex + itemsPerPage);
+	}, [filteredReports, currentPage]);
 
 	const handleRunReport = (reportId: number, reportName: string) => {
 		setSelectedReport({ id: reportId, reportName });
@@ -70,10 +87,13 @@ export function useReportsCatalog(): ReportsCatalogData {
 	};
 
 	return {
-		reports: filteredReports,
+		reports: paginatedReports,
 		isLoading,
 		searchTerm,
-		onSearchChange: setSearchTerm,
+		onSearchChange: handleSearchChange,
+		currentPage,
+		totalPages,
+		onPageChange: setCurrentPage,
 		onRunReport: handleRunReport,
 		isParameterModalOpen,
 		selectedReport,

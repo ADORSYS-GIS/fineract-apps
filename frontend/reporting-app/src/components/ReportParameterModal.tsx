@@ -1,97 +1,219 @@
-import { ReportsService } from "@fineract-apps/fineract-api";
-import { Card } from "@fineract-apps/ui";
-import { useQuery } from "@tanstack/react-query";
+import { Card, Form, Input, SubmitButton } from "@fineract-apps/ui";
+import { ErrorMessage, Field, useFormikContext } from "formik";
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { z } from "zod";
 import type {
 	ParameterFormValues,
-	ReportDetails,
 	ReportParameter,
 	ReportParameterModalProps,
 } from "./ReportParameterModal.types";
+import {
+	useDependentParameterOptions,
+	useReportParameters,
+} from "./useReportParameters";
+
+// Component for rendering individual parameter inputs with dependency support
+function ParameterInput({ param }: Readonly<{ param: ReportParameter }>) {
+	const { values } = useFormikContext<ParameterFormValues>();
+	const key = param.parameterVariable || param.parameterName;
+	const label = param.parameterLabel || param.parameterName;
+
+	// Handle dependent parameters
+	let options =
+		param.parameterData?.map((opt) => ({
+			label: opt.name,
+			value: opt.id,
+		})) || [];
+
+	if (param.parentParameterName) {
+		// This is a dependent parameter - get parent value and fetch dynamic options
+		const parentKey =
+			param.parentParameterName
+				.replace(/Select(One|All)$/, "")
+				.charAt(0)
+				.toLowerCase() +
+			param.parentParameterName.replace(/Select(One|All)$/, "").slice(1);
+		const parentValue = values[parentKey];
+
+		// Handle both single values and arrays
+		let parentValues: Record<string, string> = {};
+		if (parentValue) {
+			if (Array.isArray(parentValue)) {
+				// For multi-select, use the first value or join them
+				parentValues[parentKey] =
+					parentValue.length > 0 ? String(parentValue[0]) : "";
+			} else {
+				parentValues[parentKey] = String(parentValue);
+			}
+		}
+
+		const { data: dependentOptions } = useDependentParameterOptions(
+			param,
+			parentValues,
+		);
+
+		if (dependentOptions) {
+			options = dependentOptions.map((opt) => ({
+				label: opt.name,
+				value: opt.id,
+			}));
+		}
+	}
+
+	if (param.selectAll) {
+		return (
+			<div key={`${param.id}`}>
+				<label htmlFor={key} className="block text-sm font-medium mb-2">
+					{label}
+					<span className="text-red-500 ml-1">*</span>
+				</label>
+				<Field
+					as="select"
+					multiple
+					id={key}
+					name={key}
+					className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+				>
+					{options.map((option) => (
+						<option key={String(option.value)} value={String(option.value)}>
+							{option.label}
+						</option>
+					))}
+				</Field>
+				<ErrorMessage
+					name={key}
+					component="div"
+					className="mt-1 text-sm text-red-600"
+				/>
+			</div>
+		);
+	}
+
+	let inputType: "text" | "select" | "date" = "text";
+	if (param.parameterDisplayType === "select") {
+		inputType = "select";
+	} else if (param.parameterDisplayType === "date") {
+		inputType = "date";
+	}
+
+	return (
+		<Input
+			key={param.id}
+			name={key}
+			label={`${label}`}
+			type={inputType}
+			options={options}
+			required
+		/>
+	);
+}
 
 export function ReportParameterModal({
 	isOpen,
 	onClose,
 	report,
 	onSubmit,
-}: ReportParameterModalProps) {
-	const [formValues, setFormValues] = useState<ParameterFormValues>({});
+}: Readonly<ReportParameterModalProps>) {
+	const { t } = useTranslation();
+	const { reportDetails, isLoading } = useReportParameters(
+		report?.id ?? null,
+		report?.reportName ?? null,
+		isOpen,
+	);
 
-	// Fetch report details including parameters
-	const { data: reportDetails, isLoading } = useQuery({
-		queryKey: ["report-details", report?.id],
-		queryFn: async () => {
-			if (!report?.id) return null;
-			const response = await ReportsService.getV1ReportsById({
-				id: report.id,
-			});
-			return response as unknown as ReportDetails;
-		},
-		enabled: isOpen && !!report?.id,
-	});
+	const handleSubmit = (values: ParameterFormValues) => {
+		const parameters: Record<string, string> = {
+			locale: "en",
+			dateFormat: "yyyy-MM-dd",
+		};
 
-	// Reset form when modal opens
-	useEffect(() => {
-		if (isOpen && reportDetails) {
-			const initialValues: ParameterFormValues = {};
-			reportDetails.reportParameters?.forEach((param: ReportParameter) => {
-				if (param.parameterDefaultValue) {
-					initialValues[param.parameterVariable] = param.parameterDefaultValue;
+		reportDetails?.reportParameters?.forEach((param) => {
+			const formKey = param.parameterVariable || param.parameterName;
+			const apiKey = `R_${formKey}`;
+			const value = values[formKey];
+
+			if (Array.isArray(value)) {
+				if (value.length > 0) {
+					parameters[apiKey] = value.join(",");
+				} else {
+					parameters[apiKey] = "-1";
 				}
-			});
-			setFormValues(initialValues);
-		}
-	}, [isOpen, reportDetails]);
-
-	const handleInputChange = (paramName: string, value: string) => {
-		setFormValues((prev) => ({
-			...prev,
-			[paramName]: value,
-		}));
-	};
-
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-
-		// Validate required fields
-		const missingFields: string[] = [];
-		reportDetails?.reportParameters?.forEach((param: ReportParameter) => {
-			if (
-				param.parameterDisplayType !== "none" &&
-				!formValues[param.parameterVariable]
-			) {
-				missingFields.push(
-					param.parameterLabel ||
-						param.parameterName ||
-						param.parameterVariable,
-				);
+			} else if (value !== undefined && value !== null && value !== "") {
+				parameters[apiKey] = String(value);
+			} else {
+				parameters[apiKey] = "-1";
 			}
 		});
-
-		if (missingFields.length > 0) {
-			toast.error(
-				`Please fill in required fields: ${missingFields.join(", ")}`,
-			);
-			return;
-		}
-
-		// Add standard parameters
-		const parameters: Record<string, string> = {
-			...formValues,
-			locale: "en",
-			dateFormat: "dd MMMM yyyy",
-		};
 
 		onSubmit(parameters);
 	};
 
+	// Memoize initial values to prevent unnecessary re-renders
+	const initialValues: ParameterFormValues = useMemo(() => {
+		const values: ParameterFormValues = {};
+		if (reportDetails?.reportParameters) {
+			reportDetails.reportParameters.forEach((param: ReportParameter) => {
+				const key = param.parameterVariable || param.parameterName;
+				let defaultValue =
+					param.parameterDefaultValue || (param.selectAll ? [] : "");
+
+				// Handle "today" default for date parameters
+				if (param.parameterDisplayType === "date") {
+					if (defaultValue === "today" || !param.parameterDefaultValue) {
+						const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+						defaultValue = today;
+					}
+				}
+
+				values[key] = defaultValue;
+			});
+		}
+		return values;
+	}, [reportDetails]);
+
+	// Generate validation schema dynamically based on the report parameters
+	const validationSchema = useMemo(() => {
+		if (!reportDetails?.reportParameters) return undefined;
+
+		const schemaShape: Record<string, z.ZodTypeAny> = {};
+		reportDetails.reportParameters.forEach((param: ReportParameter) => {
+			if (param.parameterDisplayType === "none") return;
+
+			const key = param.parameterVariable || param.parameterName;
+			const label = param.parameterLabel || param.parameterName;
+
+			if (param.selectAll) {
+				schemaShape[key] = z.array(z.string()).nonempty({
+					message: t("reportParameters.selectPlaceholder", { label }),
+				});
+			} else if (param.parameterDisplayType === "date") {
+				// Date validation - required and validate format
+				schemaShape[key] = z
+					.string()
+					.min(1, { message: t("reportParameters.requiredError", { label }) })
+					.refine((val) => /^\d{4}-\d{2}-\d{2}$/.test(val), {
+						message: t("reportParameters.dateError", { label }),
+					});
+			} else {
+				schemaShape[key] = z
+					.string()
+					.min(1, { message: t("reportParameters.requiredError", { label }) });
+			}
+		});
+
+		return z.object(schemaShape) as z.ZodType<ParameterFormValues>;
+	}, [reportDetails]);
+
 	if (!isOpen) return null;
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-			<Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+		<div
+			key={report?.id}
+			className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		>
+			<Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4 p-0">
 				<div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
 					<h2 className="text-xl font-bold">{report?.reportName}</h2>
 					<button
@@ -104,109 +226,69 @@ export function ReportParameterModal({
 				</div>
 
 				<div className="p-6">
-					{isLoading ? (
-						<p>Loading report parameters...</p>
-					) : !reportDetails?.reportParameters ||
-						reportDetails.reportParameters.length === 0 ? (
-						<div>
-							<p className="text-gray-600 mb-4">
-								This report has no parameters. Click Run to execute it.
-							</p>
-							<button
-								onClick={() =>
-									onSubmit({ locale: "en", dateFormat: "dd MMMM yyyy" })
-								}
-								className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-								type="button"
+					{(() => {
+						if (isLoading) {
+							return <p>{t("reportParameters.loading")}</p>;
+						}
+						if (
+							!reportDetails?.reportParameters ||
+							reportDetails.reportParameters.length === 0
+						) {
+							return (
+								<div>
+									<p className="text-gray-600 mb-4">
+										{t("reportParameters.noParameters")}
+									</p>
+									<button
+										onClick={() =>
+											onSubmit({
+												locale: "en",
+												dateFormat: "yyyy-MM-dd",
+											})
+										}
+										className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+										type="button"
+									>
+										{t("reportParameters.runReport")}
+									</button>
+								</div>
+							);
+						}
+						return (
+							<Form
+								initialValues={initialValues}
+								validationSchema={validationSchema}
+								onSubmit={handleSubmit}
+								className="p-0 shadow-none space-y-4"
 							>
-								Run Report
-							</button>
-						</div>
-					) : (
-						<form onSubmit={handleSubmit}>
-							<div className="space-y-4">
 								{reportDetails.reportParameters.map(
 									(param: ReportParameter) => {
 										if (param.parameterDisplayType === "none") return null;
-
 										return (
-											<div key={param.id}>
-												<label className="block text-sm font-medium mb-2">
-													{param.parameterLabel || param.parameterName}
-													<span className="text-red-500 ml-1">*</span>
-												</label>
-
-												{param.parameterDisplayType === "select" ? (
-													<select
-														className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-														value={formValues[param.parameterVariable] || ""}
-														onChange={(e) =>
-															handleInputChange(
-																param.parameterVariable,
-																e.target.value,
-															)
-														}
-														required
-													>
-														<option value="">
-															Select {param.parameterLabel}
-														</option>
-														{param.parameterData?.map((option) => (
-															<option key={option.id} value={option.id}>
-																{option.name}
-															</option>
-														))}
-													</select>
-												) : param.parameterDisplayType === "date" ? (
-													<input
-														type="date"
-														className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-														value={formValues[param.parameterVariable] || ""}
-														onChange={(e) =>
-															handleInputChange(
-																param.parameterVariable,
-																e.target.value,
-															)
-														}
-														required
-													/>
-												) : (
-													<input
-														type="text"
-														className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-														value={formValues[param.parameterVariable] || ""}
-														onChange={(e) =>
-															handleInputChange(
-																param.parameterVariable,
-																e.target.value,
-															)
-														}
-														required
-													/>
-												)}
-											</div>
+											<ParameterInput
+												key={`${report?.id}-${param.id}`}
+												param={param}
+											/>
 										);
 									},
 								)}
-							</div>
 
-							<div className="flex gap-3 mt-6">
-								<button
-									type="button"
-									onClick={onClose}
-									className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-								>
-									Cancel
-								</button>
-								<button
-									type="submit"
-									className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-								>
-									Run Report
-								</button>
-							</div>
-						</form>
-					)}
+								<div className="flex gap-3 pt-2">
+									<button
+										type="button"
+										onClick={onClose}
+										className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+									>
+										{t("reportParameters.cancel")}
+									</button>
+									<SubmitButton
+										label={t("reportParameters.runReport")}
+										className="flex-1"
+									/>
+								</div>
+							</Form>
+						);
+					})()}
 				</div>
 			</Card>
 		</div>

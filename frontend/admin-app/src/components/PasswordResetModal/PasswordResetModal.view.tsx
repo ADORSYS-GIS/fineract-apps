@@ -1,5 +1,6 @@
 import { Button } from "@fineract-apps/ui";
 import { AlertCircle, Mail, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { PasswordResetModalProps } from "./PasswordResetModal.types";
 
 export function PasswordResetModalView({
@@ -11,6 +12,7 @@ export function PasswordResetModalView({
 	isLoading = false,
 	error = null,
 }: PasswordResetModalProps) {
+	const { t } = useTranslation();
 	if (!isOpen) return null;
 
 	return (
@@ -30,7 +32,7 @@ export function PasswordResetModalView({
 							<Mail className="w-5 h-5 text-blue-600" />
 						</div>
 						<h2 className="text-lg font-semibold text-gray-800">
-							Reset Password
+							{t("passwordReset.title")}
 						</h2>
 					</div>
 					<button
@@ -53,20 +55,20 @@ export function PasswordResetModalView({
 
 					<div className="space-y-4">
 						<p className="text-sm text-gray-600">
-							Are you sure you want to send a password reset email to:
+							{t("passwordReset.confirmMessage")}
 						</p>
 
 						<div className="p-4 bg-gray-50 rounded-lg space-y-2">
 							<div>
 								<span className="text-xs font-medium text-gray-500">
-									Username
+									{t("passwordReset.usernameLabel")}
 								</span>
 								<p className="text-sm font-medium text-gray-900">{userName}</p>
 							</div>
 							{userEmail && (
 								<div>
 									<span className="text-xs font-medium text-gray-500">
-										Email
+										{t("passwordReset.emailLabel")}
 									</span>
 									<p className="text-sm font-medium text-gray-900">
 										{userEmail}
@@ -78,8 +80,7 @@ export function PasswordResetModalView({
 						<div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
 							<AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
 							<p className="text-xs text-blue-800">
-								The user will receive an email with a secure link to reset their
-								password. The link will expire after 24 hours.
+								{t("passwordReset.infoMessage")}
 							</p>
 						</div>
 					</div>
@@ -93,7 +94,7 @@ export function PasswordResetModalView({
 						size="default"
 						disabled={isLoading}
 					>
-						Cancel
+						{t("passwordReset.cancel")}
 					</Button>
 					<Button
 						onClick={onConfirm}
@@ -101,7 +102,9 @@ export function PasswordResetModalView({
 						size="default"
 						disabled={isLoading}
 					>
-						{isLoading ? "Sending..." : "Send Reset Email"}
+						{isLoading
+							? t("passwordReset.sending")
+							: t("passwordReset.sendResetEmail")}
 					</Button>
 				</div>
 			</div>

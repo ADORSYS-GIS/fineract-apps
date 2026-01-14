@@ -1,0 +1,98 @@
+{
+	"translation": {
+		"createUser": {
+			"confirmUserSyncTitle": "Confirmer la synchronisation de l'utilisateur",
+			"confirmUserSyncMessage": "L'employé a été créé dans Fineract. Veuillez confirmer pour synchroniser cet utilisateur avec Keycloak.",
+			"usernameLabel": "Nom d'utilisateur",
+			"emailLabel": "E-mail",
+			"syncing": "Synchronisation...",
+			"completeCreation": "Terminer la création",
+			"formTitle": "Créer un nouvel employé",
+			"firstNameLabel": "Prénom",
+			"firstNamePlaceholder": "Entrez le prénom",
+			"lastNameLabel": "Nom de famille",
+			"lastNamePlaceholder": "Entrez le nom de famille",
+			"usernamePlaceholder": "Entrez le nom d'utilisateur",
+			"emailAddressLabel": "Adresse e-mail",
+			"emailPlaceholder": "utilisateur@example.com",
+			"mobileNumberLabel": "Numéro de portable",
+			"mobileNumberPlaceholder": "Entrez le numéro de portable",
+			"officeLabel": "Bureau",
+			"rolesLabel": "Rôles",
+			"selectRole": "Sélectionnez un rôle",
+			"joiningDateLabel": "Date d'embauche",
+			"loanOfficerLabel": "Agent de crédit",
+			"creating": "Création en cours...",
+			"createEmployee": "Créer un employé"
+		},
+		"editUser": {
+			"loading": "Chargement de l'utilisateur...",
+			"notFound": "Utilisateur non trouvé.",
+			"backToUserDetails": "Retour aux détails de l'utilisateur",
+			"title": "Modifier l'utilisateur",
+			"subtitle": "Mettre à jour les détails de l'utilisateur",
+			"formTitle": "Informations sur l'utilisateur",
+			"updating": "Mise à jour de l'utilisateur...",
+			"updateUser": "Mettre à jour l'utilisateur",
+			"cancel": "Annuler"
+		},
+		"passwordReset": {
+			"title": "Réinitialiser le mot de passe",
+			"confirmMessage": "Êtes-vous sûr de vouloir envoyer un e-mail de réinitialisation de mot de passe à:",
+			"usernameLabel": "Nom d'utilisateur",
+			"emailLabel": "E-mail",
+			"infoMessage": "L'utilisateur recevra un e-mail avec un lien sécurisé pour réinitialiser son mot de passe. Le lien expirera après 24 heures.",
+			"cancel": "Annuler",
+			"sending": "Envoi...",
+			"sendResetEmail": "Envoyer l'e-mail de réinitialisation"
+		},
+		"userDetails": {
+			"edit": "Modifier",
+			"resetPassword": "Réinitialiser le mot de passe",
+			"disableUser": "Désactiver l'utilisateur",
+			"enableUser": "Activer l'utilisateur",
+			"forcePasswordChange": "Forcer le changement de mot de passe",
+			"loginName": "Nom de connexion",
+			"firstName": "Prénom",
+			"lastName": "Nom de famille",
+			"email": "E-mail",
+			"office": "Bureau",
+			"loanOfficer": "Agent de crédit",
+			"mobileNumber": "Numéro de portable",
+			"roles": "Rôles",
+			"joiningDate": "Date d'embauche",
+			"keycloakStatus": "Statut Keycloak",
+			"keycloakId": "ID Keycloak",
+			"emailVerified": "E-mail vérifié",
+			"requiredActions": "Actions requises",
+			"none": "Aucun",
+			"back": "Retour",
+			"yes": "Oui",
+			"no": "Non",
+			"na": "N/A"
+		},
+		"userTable": {
+			"loading": "Chargement des utilisateurs...",
+			"searchPlaceholder": "Rechercher par nom ou nom d'utilisateur...",
+			"username": "Nom d'utilisateur",
+			"name": "Nom",
+			"email": "E-mail",
+			"office": "Bureau",
+			"status": "Statut",
+			"actions": "Actions",
+			"viewUser": "Voir l'utilisateur",
+			"noUsersFound": "Aucun utilisateur trouvé."
+		},
+		"dashboard": {
+			"title": "Tableau de bord d'administration",
+			"loading": "Chargement des statistiques...",
+			"totalEmployees": "Total des employés",
+			"manageUsers": "Gérer les utilisateurs",
+			"manageUsersDescription": "Créez, modifiez et gérez les comptes utilisateur et les autorisations."
+		},
+		"userList": {
+			"title": "Utilisateurs",
+			"createUser": "Créer un utilisateur"
+		}
+	}
+}

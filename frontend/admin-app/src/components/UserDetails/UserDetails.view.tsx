@@ -1,4 +1,5 @@
 import { Button, Card } from "@fineract-apps/ui";
+import { useTranslation } from "react-i18next";
 import { PasswordResetModal } from "@/components/PasswordResetModal";
 import { Employee } from "@/services/types";
 import { KeycloakStatusResponse } from "@/services/userSyncApi";
@@ -26,6 +27,7 @@ export const UserDetailsView = ({
 	keycloakStatus,
 	onForcePasswordChange,
 }: UserDetailsViewProps) => {
+	const { t } = useTranslation();
 	const isUserEnabled = keycloakStatus?.keycloak_user?.enabled;
 
 	return (
@@ -33,33 +35,53 @@ export const UserDetailsView = ({
 			<div className="flex flex-col items-center justify-center p-6">
 				<div className="w-full max-w-5xl flex justify-end gap-4 mb-6">
 					<Button variant="outline" onClick={onEdit}>
-						Edit
+						{t("userDetails.edit")}
 					</Button>
 					<Button variant="secondary" onClick={openPasswordResetModal}>
-						Reset Password
+						{t("userDetails.resetPassword")}
 					</Button>
 					<Button
 						variant={isUserEnabled ? "destructive" : "default"}
 						onClick={() => onUpdateUserStatus(!isUserEnabled)}
 					>
-						{isUserEnabled ? "Disable User" : "Enable User"}
+						{isUserEnabled
+							? t("userDetails.disableUser")
+							: t("userDetails.enableUser")}
 					</Button>
 					<Button variant="secondary" onClick={onForcePasswordChange}>
-						Force Password Change
+						{t("userDetails.forcePasswordChange")}
 					</Button>
 				</div>
 				<Card variant="elevated" className="p-8 w-full max-w-5xl">
 					<div className="grid grid-cols-2 gap-x-8 gap-y-4">
 						<div className="space-y-4">
-							<p className="font-medium text-gray-500">Login Name</p>
-							<p className="font-medium text-gray-500">First Name</p>
-							<p className="font-medium text-gray-500">Last Name</p>
-							<p className="font-medium text-gray-500">Email</p>
-							<p className="font-medium text-gray-500">Office</p>
-							<p className="font-medium text-gray-500">Loan Officer</p>
-							<p className="font-medium text-gray-500">Mobile Number</p>
-							<p className="font-medium text-gray-500">Roles</p>
-							<p className="font-medium text-gray-500">Joining Date</p>
+							<p className="font-medium text-gray-500">
+								{t("userDetails.loginName")}
+							</p>
+							<p className="font-medium text-gray-500">
+								{t("userDetails.firstName")}
+							</p>
+							<p className="font-medium text-gray-500">
+								{t("userDetails.lastName")}
+							</p>
+							<p className="font-medium text-gray-500">
+								{t("userDetails.email")}
+							</p>
+							<p className="font-medium text-gray-500">
+								{t("userDetails.office")}
+							</p>
+							<p className="font-medium text-gray-500">
+								{t("userDetails.loanOfficer")}
+							</p>
+							<p className="font-medium text-gray-500">
+								{t("userDetails.mobileNumber")}
+							</p>
+							<p className="font-medium text-gray-500">
+								{t("userDetails.roles")}
+							</p>
+							<p className="font-medium text-gray-500">
+								{t("userDetails.joiningDate")}
+							</p>
 						</div>
 						<div className="space-y-4">
 							<p className="text-gray-900">{user.username}</p>
@@ -67,43 +89,55 @@ export const UserDetailsView = ({
 							<p className="text-gray-900">{user.lastname}</p>
 							<p className="text-gray-900">{user.email}</p>
 							<p className="text-gray-900">{user.officeName}</p>
-							<p className="text-gray-900">{user.loanOfficer ? "Yes" : "No"}</p>
-							<p className="text-gray-900">{user.mobileNo ?? "N/A"}</p>
 							<p className="text-gray-900">
-								{user.selectedRoles?.map((role) => role.name).join(", ") ??
-									"N/A"}
+								{user.loanOfficer ? t("userDetails.yes") : t("userDetails.no")}
 							</p>
 							<p className="text-gray-900">
-								{user.staff?.joiningDate ?? "N/A"}
+								{user.mobileNo ?? t("userDetails.na")}
+							</p>
+							<p className="text-gray-900">
+								{user.selectedRoles?.map((role) => role.name).join(", ") ??
+									t("userDetails.na")}
+							</p>
+							<p className="text-gray-900">
+								{user.staff?.joiningDate ?? t("userDetails.na")}
 							</p>
 						</div>
 					</div>
 					<div className="mt-8 border-t pt-6">
 						<h3 className="text-lg font-semibold text-gray-800 mb-4">
-							Keycloak Status
+							{t("userDetails.keycloakStatus")}
 						</h3>
 						<div className="grid grid-cols-2 gap-x-8 gap-y-4">
 							<div className="space-y-4">
-								<p className="font-medium text-gray-500">Keycloak ID</p>
-								<p className="font-medium text-gray-500">Email Verified</p>
-								<p className="font-medium text-gray-500">Required Actions</p>
+								<p className="font-medium text-gray-500">
+									{t("userDetails.keycloakId")}
+								</p>
+								<p className="font-medium text-gray-500">
+									{t("userDetails.emailVerified")}
+								</p>
+								<p className="font-medium text-gray-500">
+									{t("userDetails.requiredActions")}
+								</p>
 							</div>
 							<div className="space-y-4">
 								<p className="text-gray-900">
-									{keycloakStatus?.keycloak_user?.id ?? "N/A"}
+									{keycloakStatus?.keycloak_user?.id ?? t("userDetails.na")}
 								</p>
 								<p className="text-gray-900">
-									{keycloakStatus?.keycloak_user?.emailVerified ? "Yes" : "No"}
+									{keycloakStatus?.keycloak_user?.emailVerified
+										? t("userDetails.yes")
+										: t("userDetails.no")}
 								</p>
 								<p className="text-gray-900">
 									{keycloakStatus?.keycloak_user?.requiredActions?.join(", ") ??
-										"None"}
+										t("userDetails.none")}
 								</p>
 							</div>
 						</div>
 					</div>
 					<div className="mt-8 flex justify-end">
-						<Button onClick={onBack}>Back</Button>
+						<Button onClick={onBack}>{t("userDetails.back")}</Button>
 					</div>
 				</Card>
 			</div>

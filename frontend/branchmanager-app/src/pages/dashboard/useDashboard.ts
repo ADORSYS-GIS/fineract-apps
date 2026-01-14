@@ -1,6 +1,7 @@
 import { TellerCashManagementService } from "@fineract-apps/fineract-api";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type TellerAssignment = {
 	id: number;
@@ -14,6 +15,7 @@ type TellerAssignment = {
 };
 
 export function useDashboard() {
+	const { t } = useTranslation();
 	const [query, setQuery] = useState("");
 	const [searchAssignments, setSearchAssignments] = useState("");
 	const [page, setPage] = useState(1);
@@ -80,7 +82,7 @@ export function useDashboard() {
 	);
 
 	return {
-		title: "Branch Manager Dashboard",
+		title: t("branchManagerDashboard.title"),
 		query,
 		setQuery,
 		searchAssignments,
@@ -97,7 +99,7 @@ export function useDashboard() {
 }
 
 function onLogout() {
-	const base = import.meta.env.BASE_URL || "/branchmanager/";
+	const base = import.meta.env.BASE_URL || "/branch/";
 	const appBase = base.endsWith("/") ? base : `${base}/`;
 	const redirectTo = `${globalThis.location.origin}${appBase}`;
 	globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(redirectTo)}`;

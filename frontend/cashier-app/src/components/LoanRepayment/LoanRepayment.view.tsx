@@ -61,7 +61,7 @@ export const LoanRepaymentView: React.FC<LoanRepaymentViewProps> = ({
 							{t("clientSummary")}
 						</h2>
 						<div className="flex items-center mb-6">
-							<div className="w-16 h-16 bg-gray-200 rounded-full mr-4"></div>
+							<div className="w-16 h-16 bg-gray-200 rounded-full mr-4" />
 							<div>
 								<p className="text-lg font-bold text-gray-800">
 									{loan.clientName}
@@ -109,7 +109,7 @@ export const LoanRepaymentView: React.FC<LoanRepaymentViewProps> = ({
 												),
 												"dd MMM yyyy",
 											)
-										: "N/A"}
+										: t("common.na")}
 								</p>
 							</div>
 						</div>

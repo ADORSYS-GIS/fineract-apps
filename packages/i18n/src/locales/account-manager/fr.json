@@ -1,0 +1,264 @@
+{
+	"translation": {
+		"accountManagerHomePage": "Bienvenue sur la page d'accueil du gestionnaire de compte!",
+		"createLoanAccount": {
+			"title": "Créer un Compte de Prêt",
+			"loanProduct": "Produit de Prêt",
+			"selectProduct": "Sélectionner un produit",
+			"loanDetails": "Détails du Prêt",
+			"externalId": "ID Externe",
+			"loanOfficer": "Agent de Prêt",
+			"loanPurpose": "Objectif du Prêt",
+			"fund": "Fonds",
+			"submittedOn": "Soumis le",
+			"disbursementOn": "Déboursement le"
+		},
+		"createClient": {
+			"firstName": {
+				"label": "Prénom",
+				"placeholder": "Entrez le prénom"
+			},
+			"lastName": {
+				"label": "Nom de famille",
+				"placeholder": "Entrez le nom de famille"
+			},
+			"email": {
+				"label": "Email",
+				"placeholder": "Entrez l'adresse email"
+			},
+			"mobileNumber": {
+				"label": "Numéro de Téléphone",
+				"placeholder": "Entrez le numéro de téléphone"
+			},
+			"active": {
+				"label": "Actif?"
+			},
+			"activationDate": {
+				"label": "Date d'Activation",
+				"placeholder": "Sélectionnez la date d'activation"
+			},
+			"title": "Créer un Nouveau Client",
+			"description": "Remplissez les détails ci-dessous pour créer un nouvel enregistrement client."
+		},
+		"creatingClient": "Création du client...",
+		"accountManagerDashboard": {
+			"clients": "Cliente",
+			"searchClientsByName": "Rechercher des clients par nom",
+			"addClient": "Ajouter un Client",
+			"loadingClients": "Chargement des clients...",
+			"accountNo": "N° de Compte",
+			"activate": "Activer"
+		},
+		"activateAccount": {
+			"title": "Activer le Compte",
+			"confirmMessage": "Êtes-vous sûr de vouloir activer ce compte?",
+			"activateNowButton": "Activer Maintenant",
+			"activatedTitle": "Compte Activé",
+			"activatedMessage": "Le compte est maintenant actif."
+		},
+		"clientDetails": {
+			"loading": "Chargement...",
+			"clientProfile": "Profil du Client",
+			"loadingImage": "Chargement...",
+			"noImage": "Aucune Image",
+			"upload": "Télécharger",
+			"capture": "Capturer",
+			"delete": "Supprimer",
+			"clientId": "ID du Client",
+			"phone": "Téléphone",
+			"joined": "Rejoint",
+			"openAccount": "Ouvrir un Compte",
+			"accounts": "Comptes",
+			"addAnotherAccount": "Ajouter un Autre Compte",
+			"noAccountOpenedYet": "Aucun Compte Ouvert Encore"
+		},
+		"addIdentityDocument": {
+			"title": "Ajouter un document d'identité",
+			"documentType": {
+				"label": "Type de document",
+				"passport": "Passeport",
+				"idCard": "Carte d'identité",
+				"driversLicense": "Permis de conduire",
+				"otherTypes": "Autres types"
+			},
+			"status": {
+				"label": "Statut",
+				"active": "Actif",
+				"inactive": "Inactif"
+			},
+			"documentKey": {
+				"label": "Clé du document",
+				"placeholder": "Entrez la clé du document"
+			},
+			"submitButton": "Soumettre",
+			"submittingButton": "Soumission..."
+		},
+		"captureImage": {
+			"title": "Capturer l'image",
+			"retakeButton": "Reprendre",
+			"uploadButton": "Télécharger",
+			"captureButton": "Capturer"
+		},
+		"editClientDetails": {
+			"title": "Modifier les détails du client",
+			"saveChangesButton": "Enregistrer les modifications",
+			"savingButton": "Enregistrement..."
+		},
+		"editLoanAccount": {
+			"title": "Modifier le Compte de Prêt"
+		},
+		"kycManagement": {
+			"title": "Gestion KYC",
+			"loadingDocuments": "Chargement des documents...",
+			"documents": "Documents :",
+			"identitiesTitle": "Identités",
+			"addIdentityButton": "+ Ajouter",
+			"documentType": "Type de document :",
+			"documentKey": "Clé du document :",
+			"status": "Statut :"
+		},
+		"selectAccountType": {
+			"currentAccount": {
+				"title": "Compte Courant",
+				"description": "Un compte flexible pour les transactions quotidiennes."
+			},
+			"savingsAccount": {
+				"title": "Compte d'Épargne",
+				"description": "Faites fructifier vos fonds avec des intérêts et des économies sécurisées.",
+				"label": "Compte d'Épargne"
+			},
+			"loanAccount": {
+				"title": "Compte de Prêt",
+				"description": "Accédez à des fonds pour vos besoins personnels ou professionnels.",
+				"label": "Compte de Prêt"
+			},
+			"title": "Sélectionner le Type de Compte",
+			"shareAccount": {
+				"label": "Compte d'Actions",
+				"description": "Acheter de nouvelles actions."
+			},
+			"recurringDepositAccount": {
+				"label": "Compte de Dépôt Récurrent",
+				"description": "Démarrer un dépôt récurrent."
+			},
+			"fixedDepositsAccount": {
+				"label": "Compte de Dépôts à Terme",
+				"description": "Ouvrir un compte de dépôt à terme."
+			}
+		},
+		"openAccount": {
+			"title": "Ouvrir un Compte",
+			"accountType": {
+				"label": "Type de Compte"
+			},
+			"productName": {
+				"label": "Nom du Produit"
+			},
+			"createAccountButton": "Créer un Compte"
+		},
+		"savingsAccountDetails": {
+			"loading": "Chargement...",
+			"blocked": "Bloqué",
+			"accountOverview": "Aperçu du Compte",
+			"current": "Actuel",
+			"available": "Disponible",
+			"transactionsTab": "Transactions",
+			"allTransactions": "Toutes les Transactions",
+			"balance": "Solde",
+			"transactionDate": "Date de Transaction",
+			"transactionType": "Type de Transaction",
+			"debit": "Débit",
+			"credit": "Crédit",
+			"balanceHeader": "Solde",
+			"na": "N/A",
+			"bankStatementTab": "Relevé Bancaire"
+		},
+		"bankStatementForm": {
+			"startDateRequired": "La date de début est requise",
+			"endDateRequired": "La date de fin est requise",
+			"startDate": "Date de Début",
+			"endDate": "Date de Fin",
+			"format": "Format",
+			"generateReport": "Générer le Rapport",
+			"bankStatement": "Relevé Bancaire"
+		},
+		"blockAccountModal": {
+			"blockAccount": "Bloquer le Compte",
+			"selectReason": "Sélectionner une raison",
+			"selectReasonPlaceholder": "Sélectionner une raison",
+			"cancel": "Annuler",
+			"confirm": "Confirmer"
+		},
+		"bankStatementModal": {
+			"bankStatement": "Relevé Bancaire",
+			"statementFormat": "Format du relevé",
+			"receipt": "Reçu",
+			"printStatement": "Imprimer le relevé",
+			"download": "Télécharger"
+		},
+		"common": {
+			"na": "N/A",
+			"done": "Terminé",
+			"cancel": "Annuler",
+			"closeModal": "Fermer la fenêtre modale",
+			"loading": "Chargement...",
+			"back": "Retour",
+			"pdf": "PDF",
+			"xls": "XLS",
+			"csv": "CSV",
+			"save": "Enregistrer"
+		},
+		"loanProduct": "Produit de Prêt",
+		"loanPurpose": "Objectif du Prêt",
+		"fund": "Fonds",
+		"submittedOn": "Soumis le",
+		"disbursementOn": "Déboursement le",
+		"linkSavings": "Lier l'épargne",
+		"charge": "Charge",
+		"selectACharge": "Sélectionner une charge",
+		"add": "Ajouter",
+		"name": "Nom",
+		"type": "Type",
+		"amount": "Montant",
+		"collectedOn": "Collecté le",
+		"actions": "Actions",
+		"principal": "Principal",
+		"loanTerm": "Durée du prêt",
+		"numberOfRepayments": "Nombre de remboursements",
+		"repaidEvery": "Remboursé tous les",
+		"nominalInterestRate": "Taux d'intérêt nominal",
+		"amortization": "Amortissement",
+		"interestMethod": "Méthode d'intérêt",
+		"interestCalculationPeriod": "Période de calcul des intérêts",
+		"repaymentStrategy": "Stratégie de remboursement",
+		"period": "Période",
+		"days": "Jours",
+		"date": "Date",
+		"principalDue": "Principal dû",
+		"interest": "Intérêt",
+		"fees": "Frais",
+		"penalties": "Pénalités",
+		"due": "Dû",
+		"outstanding": "Restant",
+		"preview": "Aperçu",
+		"details": "Détails",
+		"product": "Produit",
+		"loanOfficer": "Agent de Prêt",
+		"noLoanOfficerName": "Agent inconnu",
+		"noLoanOfficer": "Non assigné",
+		"terms": "Conditions",
+		"repaymentSchedule": "Échéancier de remboursement",
+		"calculating": "Calcul...",
+		"calculateSchedule": "Calculer l'échéancier",
+		"loading": "Chargement...",
+		"edit": "Modifier",
+		"delete": "Supprimer",
+		"back": "Retour",
+		"next": "Suivant",
+		"submitting": "Soumission...",
+		"submit": "Soumettre",
+		"office": "Bureau",
+		"email": "Email",
+		"status": "Statut"
+	}
+}

@@ -7,6 +7,7 @@ import { useBusinessDate } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import type { TellerCreateFormValues } from "./TellerCreate.types";
 
 type TellerCreationRequestBody = Omit<PostTellersRequest, "status"> & {
@@ -23,6 +24,7 @@ function formatToFineractDate(value: string): string {
 }
 
 export function useTellerCreate() {
+	const { t, i18n } = useTranslation();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { data: officesData, isLoading: areOfficesLoading } = useQuery({
@@ -49,11 +51,11 @@ export function useTellerCreate() {
 			}),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["tellers"] });
-			toast.success("Teller created successfully");
+			toast.success(t("tellerCreate.createdSuccessfully"));
 			navigate({ to: "/tellers", search: { page: 1, pageSize: 10, q: "" } });
 		},
 		onError: () => {
-			toast.error("Failed to create teller");
+			toast.error(t("tellerCreate.failedToCreate"));
 		},
 	});
 
@@ -65,7 +67,7 @@ export function useTellerCreate() {
 			startDate: formatToFineractDate(values.startDate),
 			status: values.status,
 			dateFormat: "dd MMMM yyyy",
-			locale: "en",
+			locale: i18n.language,
 		};
 		mutate(requestBody);
 	};

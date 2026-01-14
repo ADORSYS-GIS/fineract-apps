@@ -1,10 +1,10 @@
 export interface Transaction {
-	id: string;
-	date: string;
-	clientName: string;
-	type: string;
-	amount: string;
-	status: string;
+	id: number;
+	actionName: string;
+	entityName: string;
+	maker: string;
+	madeOnDate: string;
+	processingResult: string;
 }
 
 export interface TransactionFilters {
@@ -26,5 +26,6 @@ export interface TransactionHistoryData {
 	filters: TransactionFilters;
 	onFilterChange: (key: keyof TransactionFilters, value: string) => void;
 	onPageChange: (page: number) => void;
-	onExport: () => void;
+	onExportCSV: () => void;
+	onExportExcel: () => void;
 }

@@ -21,7 +21,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { configureApi } from "@/services/api";
 
 function onLogout() {
-	const base = import.meta.env.BASE_URL ?? "/branchmanager/";
+	const base = import.meta.env.BASE_URL ?? "/branch/";
 	const appBase = base.endsWith("/") ? base : `${base}/`;
 	const redirectTo = `${globalThis.location.origin}${appBase}`;
 	if (import.meta.env.VITE_AUTH_MODE === "basic") {
@@ -61,7 +61,9 @@ function RootLayout() {
 		<AppLayout
 			sidebar={
 				<Sidebar
-					logo={<h1 className="text-lg font-bold">Branch Manager</h1>}
+					logo={
+						<h1 className="text-lg font-bold">{t("branchManager.logo")}</h1>
+					}
 					menuItems={menuBranchManager}
 					activePath={currentPath}
 					onNavigate={(to) => navigate({ to })}
