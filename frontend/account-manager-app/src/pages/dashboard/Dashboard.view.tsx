@@ -27,27 +27,27 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 			<main className="p-4 sm:p-6 lg:p-8">
 				<div className="flex flex-col md:flex-row justify-between items-center mb-8">
 					<h1 className="text-4xl font-bold text-gray-800 mb-4 md:mb-0">
-						{t("dashboard.clients")}
+						{t("accountManagerDashboard.clients")}
 					</h1>
 					<div className="flex items-center space-x-4 w-full md:w-auto">
 						<SearchBar
 							value={searchValue}
 							onValueChange={onSearchValueChange}
 							onSearch={onSearch}
-							placeholder={t("dashboard.searchClientsByName")}
+							placeholder={t("accountManagerDashboard.searchClientsByName")}
 							className="w-full md:w-64"
 						/>
 						<Link to="/create-client">
 							<Button className="flex items-center space-x-2">
 								<UserPlus className="h-5 w-5" />
-								<span>{t("dashboard.addClient")}</span>
+								<span>{t("accountManagerDashboard.addClient")}</span>
 							</Button>
 						</Link>
 					</div>
 				</div>
 
 				{isFetchingClients ? (
-					<p>{t("dashboard.loadingClients")}</p>
+					<p>{t("accountManagerDashboard.loadingClients")}</p>
 				) : (
 					<>
 						<div className="md:hidden">
@@ -69,7 +69,8 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 															{client.displayName}
 														</h2>
 														<p className="text-sm text-gray-500">
-															{t("dashboard.accountNo")}: {client.accountNo}
+															{t("accountManagerDashboard.accountNo")}:{" "}
+															{client.accountNo}
 														</p>
 													</div>
 													<span
@@ -97,7 +98,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 														variant="outline"
 														onClick={() => setSelectedClient(client)}
 													>
-														{t("dashboard.activate")}
+														{t("accountManagerDashboard.activate")}
 													</Button>
 												</div>
 											)}
