@@ -41,8 +41,8 @@
 			"description": "Remplissez les détails ci-dessous pour créer un nouvel enregistrement client."
 		},
 		"creatingClient": "Création du client...",
-		"dashboard": {
-			"clients": "Clients",
+		"accountManagerDashboard": {
+			"clients": "Cliente",
 			"searchClientsByName": "Rechercher des clients par nom",
 			"addClient": "Ajouter un Client",
 			"loadingClients": "Chargement des clients...",

@@ -174,7 +174,8 @@
 			"endTime": "Heure de fin",
 			"endTimePlaceholder": "17:00"
 		},
-		"dashboard": {
+		"branchManagerDashboard": {
+			"title": "Tableau de Bord du Directeur de Succursale",
 			"currentAssignments": "Affectations Actuelles",
 			"filterAssignmentsPlaceholder": "Filtrer par personnel, caissier ou description...",
 			"tellers": "CAISSIERS",
