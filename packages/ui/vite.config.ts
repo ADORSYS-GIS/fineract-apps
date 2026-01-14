@@ -18,11 +18,22 @@ export default mergeConfig(
 				formats: ["es"],
 			},
 			rollupOptions: {
-				external: ["react", "react-dom"],
+				external: [
+					"react",
+					"react-dom",
+					"formik",
+					"react-i18next",
+					"@tanstack/react-query",
+					"react-hot-toast",
+				],
 				output: {
 					globals: {
 						react: "React",
 						"react-dom": "ReactDOM",
+						formik: "Formik",
+						"react-i18next": "ReactI18next",
+						"@tanstack/react-query": "ReactQuery",
+						"react-hot-toast": "ReactHotToast",
 					},
 				},
 			},

@@ -3,7 +3,7 @@ name: Publish Frontend Docker Images
 on:
   push:
     branches:
-      - mifosweb
+      - fix/ui-lib-external-deps
       - develop
       - main
     paths:
