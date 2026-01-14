@@ -562,24 +562,9 @@ importers:
       date-fns:
         specifier: ^3.6.0
         version: 3.6.0
-      formik:
-        specifier: ^2.4.6
-        version: 2.4.9(@types/react@19.2.7)(react@19.2.0)
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.0)
-      react:
-        specifier: ^19.1.1
-        version: 19.2.0
-      react-dom:
-        specifier: ^19.1.1
-        version: 19.2.0(react@19.2.0)
-      react-hot-toast:
-        specifier: ^2.4.1
-        version: 2.6.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      react-i18next:
-        specifier: ^15.0.0
-        version: 15.7.4(i18next@25.7.4(typescript@5.8.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.4.0
@@ -599,6 +584,21 @@ importers:
       '@vitejs/plugin-react-swc':
         specifier: ^4.0.0
         version: 4.2.2(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(less@4.2.2)(lightningcss@1.30.2)(sass@1.85.0)(terser@5.39.0)(tsx@4.20.6)(yaml@2.8.1))
+      formik:
+        specifier: ^2.4.6
+        version: 2.4.9(@types/react@19.2.7)(react@19.2.0)
+      react:
+        specifier: ^19.1.1
+        version: 19.2.0
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.2.0(react@19.2.0)
+      react-hot-toast:
+        specifier: ^2.4.1
+        version: 2.6.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      react-i18next:
+        specifier: ^15.0.0
+        version: 15.7.4(i18next@25.7.4(typescript@5.8.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.8.3)
       typescript:
         specifier: ~5.8.3
         version: 5.8.3
