@@ -12,6 +12,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { UserCircle } from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import { NotificationBell } from "@/components/NotificationBell";
 import { configureApi } from "@/services/api";
 
@@ -55,6 +56,8 @@ function RootLayout() {
 		}
 	}, [authData]);
 
+	const { t } = useTranslation();
+
 	const transformedMenu = menuCashier.map((item) =>
 		item.name === "Loan Repayment" ? { ...item, name: "loanRepayment" } : item,
 	);
@@ -74,7 +77,7 @@ function RootLayout() {
 				<Navbar
 					logo={
 						<h1 className="text-lg font-bold">
-							Welcome, {authData?.staffDisplayName}
+							{t("welcome")}, {authData?.staffDisplayName}
 						</h1>
 					}
 					links={null}

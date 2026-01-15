@@ -12,7 +12,7 @@
 			"runReport": "Run Report",
 			"cancel": "Cancel"
 		},
-		"dashboard": {
+		"reportingDashboard": {
 			"title": "Reporting Dashboard",
 			"totalReports": "Total Reports",
 			"recentTransactions": "Recent Transactions",

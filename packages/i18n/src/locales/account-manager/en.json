@@ -42,6 +42,7 @@
 		},
 		"creatingClient": "Creating Client...",
 		"accountManagerDashboard": {
+			"title": "Account Manager Dashboard",
 			"clients": "Clients",
 			"searchClientsByName": "Search clients by name",
 			"addClient": "Add Client",

@@ -16,11 +16,11 @@ function DashboardPage() {
 
 	return (
 		<div className="p-6">
-			<h1 className="text-2xl font-bold text-gray-800 mb-6">
-				{t("dashboard.title")}
+			<h1 className="text-3xl font-bold text-gray-800 mb-6">
+				{t("adminDashboard.title")}
 			</h1>
 			{isLoading ? (
-				<p>{t("dashboard.loading")}</p>
+				<p>{t("adminDashboard.loading")}</p>
 			) : (
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
 					<Card variant="elevated" className="p-6">
@@ -30,7 +30,9 @@ function DashboardPage() {
 								<h2 className="text-xl font-semibold text-gray-800">
 									{totalUsers}
 								</h2>
-								<p className="text-gray-600">{t("dashboard.totalEmployees")}</p>
+								<p className="text-gray-600">
+									{t("adminDashboard.totalEmployees")}
+								</p>
 							</div>
 						</div>
 					</Card>
@@ -46,10 +48,10 @@ function DashboardPage() {
 							<Users className="w-8 h-8 text-gray-800" />
 							<div className="ml-4">
 								<h2 className="text-xl font-semibold text-gray-800">
-									{t("dashboard.manageUsers")}
+									{t("adminDashboard.manageUsers")}
 								</h2>
 								<p className="text-gray-600">
-									{t("dashboard.manageUsersDescription")}
+									{t("adminDashboard.manageUsersDescription")}
 								</p>
 							</div>
 						</div>

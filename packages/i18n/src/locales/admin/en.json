@@ -83,8 +83,8 @@
 			"viewUser": "View user",
 			"noUsersFound": "No users found."
 		},
-		"dashboard": {
-			"title": "Administration Dashboard",
+		"adminDashboard": {
+			"title": "Admin Dashboard",
 			"loading": "Loading stats...",
 			"totalEmployees": "Total Employees",
 			"manageUsers": "Manage Users",
