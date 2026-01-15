@@ -3,7 +3,6 @@ name: Publish Frontend Docker Images
 on:
   push:
     branches:
-      - fix/ui-lib-external-deps
       - develop
       - main
     paths:
@@ -76,10 +75,6 @@ jobs:
           BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
 
-          # Sanitize branch name for Docker tag
-          SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
-          echo "safe_branch=$SAFE_BRANCH" >> $GITHUB_OUTPUT
-
           # Extract git hashes
           SHORT_SHA=$(git rev-parse --short HEAD)
           LONG_SHA=$(git rev-parse HEAD)
@@ -92,6 +87,7 @@ jobs:
           elif [ "$BRANCH" == "main" ]; then
             TAGS="main,$SHORT_SHA,$LONG_SHA"
           else
+            SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
             TAGS="$SAFE_BRANCH,$SHORT_SHA"
           fi
 
@@ -106,7 +102,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}
-            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.safe_branch }}
+            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.branch }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ steps.meta.outputs.long_sha }}
