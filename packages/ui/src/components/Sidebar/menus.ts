@@ -67,7 +67,18 @@ export const menuCashier: MenuItem[] = [
 ];
 
 export const menuAdmin: MenuItem[] = [
-	{ name: "Dashboard", title: "sidebar.dashboard", link: "/", icon: Home },
+	{
+		name: "Dashboard",
+		title: "sidebar.dashboard",
+		link: "/dashboard",
+		icon: Home,
+	},
+	{
+		name: "settings",
+		title: "sidebar.settings",
+		link: "/settings",
+		icon: Settings,
+	},
 ];
 
 export const menuReporting: MenuItem[] = [

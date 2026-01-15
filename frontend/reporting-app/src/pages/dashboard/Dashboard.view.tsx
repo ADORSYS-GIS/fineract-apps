@@ -7,18 +7,20 @@ export function DashboardView({ stats }: DashboardData) {
 	const { t } = useTranslation();
 	return (
 		<div className="p-6">
-			<h1 className="text-3xl font-bold mb-6">{t("dashboard.title")}</h1>
+			<h1 className="text-3xl font-bold text-gray-800 mb-6">
+				{t("reportingDashboard.title")}
+			</h1>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
 				<Card className="p-6">
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm text-gray-600 mb-1">
-								{t("dashboard.totalReports")}
+								{t("reportingDashboard.totalReports")}
 							</p>
 							<p className="text-2xl font-bold">{stats.totalReports}</p>
 						</div>
-						<BarChart3 className="w-10 h-10 text-blue-500" />
+						<BarChart3 className="w-10 h-10 text-gray-800" />
 					</div>
 				</Card>
 
@@ -26,11 +28,11 @@ export function DashboardView({ stats }: DashboardData) {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm text-gray-600 mb-1">
-								{t("dashboard.recentTransactions")}
+								{t("reportingDashboard.recentTransactions")}
 							</p>
 							<p className="text-2xl font-bold">{stats.recentTransactions}</p>
 						</div>
-						<History className="w-10 h-10 text-green-500" />
+						<History className="w-10 h-10 text-gray-800" />
 					</div>
 				</Card>
 
@@ -38,11 +40,11 @@ export function DashboardView({ stats }: DashboardData) {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm text-gray-600 mb-1">
-								{t("dashboard.auditEntries")}
+								{t("reportingDashboard.auditEntries")}
 							</p>
 							<p className="text-2xl font-bold">{stats.auditEntries}</p>
 						</div>
-						<Shield className="w-10 h-10 text-purple-500" />
+						<Shield className="w-10 h-10 text-gray-800" />
 					</div>
 				</Card>
 			</div>
@@ -50,7 +52,7 @@ export function DashboardView({ stats }: DashboardData) {
 			<div className="grid grid-cols-1 gap-6">
 				<Card className="p-6">
 					<h2 className="text-xl font-semibold mb-4">
-						{t("dashboard.quickAccess")}
+						{t("reportingDashboard.quickAccess")}
 					</h2>
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<a
@@ -58,11 +60,13 @@ export function DashboardView({ stats }: DashboardData) {
 							className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
 						>
 							<div className="flex items-center">
-								<BarChart3 className="w-5 h-5 mr-3 text-blue-500" />
+								<BarChart3 className="w-5 h-5 mr-3 text-gray-800" />
 								<div>
-									<p className="font-medium">{t("dashboard.viewAllReports")}</p>
+									<p className="font-medium">
+										{t("reportingDashboard.viewAllReports")}
+									</p>
 									<p className="text-sm text-gray-600">
-										{t("dashboard.viewAllReportsDescription")}
+										{t("reportingDashboard.viewAllReportsDescription")}
 									</p>
 								</div>
 							</div>
@@ -72,13 +76,13 @@ export function DashboardView({ stats }: DashboardData) {
 							className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
 						>
 							<div className="flex items-center">
-								<History className="w-5 h-5 mr-3 text-green-500" />
+								<History className="w-5 h-5 mr-3 text-gray-800" />
 								<div>
 									<p className="font-medium">
-										{t("dashboard.transactionHistory")}
+										{t("reportingDashboard.transactionHistory")}
 									</p>
 									<p className="text-sm text-gray-600">
-										{t("dashboard.transactionHistoryDescription")}
+										{t("reportingDashboard.transactionHistoryDescription")}
 									</p>
 								</div>
 							</div>
@@ -88,11 +92,13 @@ export function DashboardView({ stats }: DashboardData) {
 							className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
 						>
 							<div className="flex items-center">
-								<Shield className="w-5 h-5 mr-3 text-purple-500" />
+								<Shield className="w-5 h-5 mr-3 text-gray-800" />
 								<div>
-									<p className="font-medium">{t("dashboard.auditTrail")}</p>
+									<p className="font-medium">
+										{t("reportingDashboard.auditTrail")}
+									</p>
 									<p className="text-sm text-gray-600">
-										{t("dashboard.auditTrailDescription")}
+										{t("reportingDashboard.auditTrailDescription")}
 									</p>
 								</div>
 							</div>

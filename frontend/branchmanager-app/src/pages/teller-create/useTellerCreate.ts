@@ -24,7 +24,7 @@ function formatToFineractDate(value: string): string {
 }
 
 export function useTellerCreate() {
-	const { t, i18n } = useTranslation();
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { data: officesData, isLoading: areOfficesLoading } = useQuery({
@@ -67,7 +67,7 @@ export function useTellerCreate() {
 			startDate: formatToFineractDate(values.startDate),
 			status: values.status,
 			dateFormat: "dd MMMM yyyy",
-			locale: i18n.language,
+			locale: "en",
 		};
 		mutate(requestBody);
 	};
@@ -75,6 +75,7 @@ export function useTellerCreate() {
 	return {
 		initialValues,
 		onSubmit,
-		isSubmitting: isPending || areOfficesLoading,
+		isSubmitting: isPending,
+		isLoading: areOfficesLoading,
 	};
 }
