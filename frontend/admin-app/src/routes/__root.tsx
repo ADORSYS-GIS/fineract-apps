@@ -60,6 +60,7 @@ function RootLayout() {
 			<AppLayout
 				sidebar={
 					<Sidebar
+						logo={<h1 className="text-lg font-bold">Admin</h1>}
 						menuItems={menuAdmin}
 						onLogout={handleLogout}
 						activePath={currentPath}

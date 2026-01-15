@@ -63,7 +63,7 @@ function RootLayout() {
 		<AppLayout
 			sidebar={
 				<Sidebar
-					logo={<h1 className="text-lg font-bold">Cashier App</h1>}
+					logo={<h1 className="text-lg font-bold">Cashier</h1>}
 					menuItems={transformedMenu}
 					activePath={currentPath}
 					onNavigate={(to) => navigate({ to })}

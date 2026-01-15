@@ -45,6 +45,7 @@ function RootLayout() {
 			<AppLayout
 				sidebar={
 					<Sidebar
+						logo={<h1 className="text-lg font-bold">Account manager</h1>}
 						menuItems={menuAccountManager}
 						onLogout={onLogout}
 						onNavigate={(to) => navigate({ to })}
