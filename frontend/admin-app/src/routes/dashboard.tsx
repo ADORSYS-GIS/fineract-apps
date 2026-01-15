@@ -25,7 +25,7 @@ function DashboardPage() {
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
 					<Card variant="elevated" className="p-6">
 						<div className="flex items-center">
-							<Users className="w-8 h-8 text-blue-600" />
+							<Users className="w-8 h-8 text-gray-800" />
 							<div className="ml-4">
 								<h2 className="text-xl font-semibold text-gray-800">
 									{totalUsers}
@@ -43,7 +43,7 @@ function DashboardPage() {
 						className="p-6 hover:shadow-lg transition-shadow"
 					>
 						<div className="flex items-center">
-							<Users className="w-8 h-8 text-blue-600" />
+							<Users className="w-8 h-8 text-gray-800" />
 							<div className="ml-4">
 								<h2 className="text-xl font-semibold text-gray-800">
 									{t("dashboard.manageUsers")}
