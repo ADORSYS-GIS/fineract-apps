@@ -51,9 +51,9 @@ const BankStatementFormFields: FC = () => {
 						name="outputType"
 						className="border border-gray-300 rounded-md p-2"
 					>
-						<option value="PDF">{t("common.pdf")}</option>
-						<option value="XLS">{t("common.xls")}</option>
-						<option value="CSV">{t("common.csv")}</option>
+						<option value="PDF">{t("accountManagerCommon.pdf")}</option>
+						<option value="XLS">{t("accountManagerCommon.xls")}</option>
+						<option value="CSV">{t("accountManagerCommon.csv")}</option>
 					</Field>
 				</div>
 			</div>

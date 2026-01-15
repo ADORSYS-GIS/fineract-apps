@@ -27,10 +27,12 @@ export const UploadDocument: FC<{
 					<Input name="file" label={t("uploadDocument.browse")} type="file" />
 					<div className="flex justify-end space-x-4">
 						<Button variant="secondary" onClick={onClose}>
-							{t("common.cancel")}
+							{t("accountManagerCommon.cancel")}
 						</Button>
 						<Button type="submit" disabled={isPending}>
-							{isPending ? t("uploadDocument.uploading") : t("common.confirm")}
+							{isPending
+								? t("uploadDocument.uploading")
+								: t("accountManagerCommon.confirm")}
 						</Button>
 					</div>
 				</div>

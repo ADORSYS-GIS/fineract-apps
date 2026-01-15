@@ -83,7 +83,9 @@ export const DashboardView = ({
 												<td className="px-6 py-4">{a.startDate ?? "-"}</td>
 												<td className="px-6 py-4">{a.endDate ?? "-"}</td>
 												<td className="px-6 py-4">
-													{a.isFullDay ? t("common.yes") : t("common.no")}
+													{a.isFullDay
+														? t("branchManagerCommon.yes")
+														: t("branchManagerCommon.no")}
 												</td>
 												<td className="px-6 py-4 hidden sm:table-cell">
 													{a.description ?? "-"}

@@ -197,7 +197,7 @@
 			"printStatement": "Print Statement",
 			"download": "Download"
 		},
-		"common": {
+		"accountManagerCommon": {
 			"na": "N/A",
 			"done": "Done",
 			"cancel": "Cancel",
@@ -207,7 +207,8 @@
 			"pdf": "PDF",
 			"xls": "XLS",
 			"csv": "CSV",
-			"save": "Save"
+			"save": "Save",
+			"confirm": "Confirm"
 		},
 		"loanProduct": "Loan Product",
 		"loanPurpose": "Loan Purpose",
@@ -260,6 +261,15 @@
 		"submit": "Submit",
 		"office": "Office",
 		"email": "Email",
-		"status": "Status"
+		"status": "Status",
+		"uploadDocument": {
+			"title": "Upload Document",
+			"fileName": {
+				"label": "File Name",
+				"placeholder": "Enter file name"
+			},
+			"browse": "Browse",
+			"uploading": "Uploading..."
+		}
 	}
 }

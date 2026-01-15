@@ -83,7 +83,7 @@ export const SelectAccountTypeView: FC = () => {
 							search={{ accountType: account.type }}
 							className="block"
 						>
-							<Card className="p-6 flex items-center space-x-4 hover:shadow-lg transition-shadow">
+							<Card className="p-6 flex items-start space-x-4 hover:shadow-lg transition-shadow">
 								<div className="flex-shrink-0">{account.icon}</div>
 								<div>
 									<h2 className="text-lg font-semibold">{t(account.label)}</h2>

@@ -79,7 +79,7 @@ export const CaptureImage: FC<{
 								</Button>
 							)}
 							<Button variant="secondary" onClick={() => handleClose(onClose)}>
-								{t("common.cancel")}
+								{t("accountManagerCommon.cancel")}
 							</Button>
 						</div>
 					</div>

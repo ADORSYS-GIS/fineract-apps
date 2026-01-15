@@ -16,7 +16,7 @@ export const BackButton = ({ to }: { to?: string }) => {
 
 	return (
 		<Button variant="default" onClick={handleNavigate}>
-			{t("common.back")}
+			{t("branchManagerCommon.back")}
 		</Button>
 	);
 };

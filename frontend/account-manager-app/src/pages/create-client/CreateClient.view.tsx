@@ -86,7 +86,11 @@ export const CreateClientView: FC<ReturnType<typeof useCreateClient>> = ({
 							{t("cancel")}
 						</Button>
 						<SubmitButton
-							label={isCreatingClient ? t("creatingClient") : t("common.save")}
+							label={
+								isCreatingClient
+									? t("creatingClient")
+									: t("accountManagerCommon.save")
+							}
 							disabled={isCreatingClient}
 						/>
 					</div>

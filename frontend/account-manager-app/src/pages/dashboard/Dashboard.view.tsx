@@ -88,7 +88,10 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 													</div>
 													<div className="flex items-center text-sm text-gray-600">
 														<Mail className="h-4 w-4 mr-2" />
-														<span>{client.emailAddress ?? t("common.na")}</span>
+														<span>
+															{client.emailAddress ??
+																t("accountManagerCommon.na")}
+														</span>
 													</div>
 												</div>
 											</Link>

@@ -75,7 +75,7 @@
 		"addIdentityDocument": {
 			"title": "Ajouter un document d'identité",
 			"documentType": {
-				"label": "Type de document",
+				"label": " Type de document",
 				"passport": "Passeport",
 				"idCard": "Carte d'identité",
 				"driversLicense": "Permis de conduire",
@@ -196,7 +196,7 @@
 			"printStatement": "Imprimer le relevé",
 			"download": "Télécharger"
 		},
-		"common": {
+		"accountManagerCommon": {
 			"na": "N/A",
 			"done": "Terminé",
 			"cancel": "Annuler",
@@ -206,7 +206,8 @@
 			"pdf": "PDF",
 			"xls": "XLS",
 			"csv": "CSV",
-			"save": "Enregistrer"
+			"save": "Enregistrer",
+			"confirm": "Confirmer"
 		},
 		"loanProduct": "Produit de Prêt",
 		"loanPurpose": "Objectif du Prêt",
@@ -259,6 +260,15 @@
 		"submit": "Soumettre",
 		"office": "Bureau",
 		"email": "Email",
-		"status": "Statut"
+		"status": "Statut",
+		"uploadDocument": {
+			"title": "Télécharger un document",
+			"fileName": {
+				"label": "Nom du fichier",
+				"placeholder": "Entrez le nom du fichier"
+			},
+			"browse": "Parcourir",
+			"uploading": "Téléchargement..."
+		}
 	}
 }

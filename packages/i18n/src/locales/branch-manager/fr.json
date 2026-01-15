@@ -210,12 +210,16 @@
 			"status": {
 				"active": "ACTIF",
 				"inactive": "INACTIF"
-			}
+			},
+			"of": "de",
+			"perPage": "{{count}} / page",
+			"previous": "Précédent",
+			"next": "Suivant"
 		},
 		"branchManager": {
 			"logo": "Directeur de succursale"
 		},
-		"common": {
+		"branchManagerCommon": {
 			"back": "Retour",
 			"loading": "Chargement...",
 			"cancel": "Annuler",

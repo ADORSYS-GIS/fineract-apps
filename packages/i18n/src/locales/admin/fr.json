@@ -83,7 +83,7 @@
 			"viewUser": "Voir l'utilisateur",
 			"noUsersFound": "Aucun utilisateur trouvé."
 		},
-		"dashboard": {
+		"adminDashboard": {
 			"title": "Tableau de bord d'administration",
 			"loading": "Chargement des statistiques...",
 			"totalEmployees": "Total des employés",

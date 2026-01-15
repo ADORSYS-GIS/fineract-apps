@@ -30,7 +30,7 @@ const App = () => {
 		<StrictMode>
 			<I18nextProvider i18n={i18n}>
 				<QueryClientProvider client={queryClient}>
-					<Suspense fallback={<div>{t("common.loading")}</div>}>
+					<Suspense fallback={<div>{t("branchManagerCommon.loading")}</div>}>
 						<RouterProvider router={router} />
 						<ReactQueryDevtools position="bottom" />
 					</Suspense>

@@ -94,7 +94,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 	};
 
 	if (isLoading) {
-		return <div>{t("common.loading")}</div>;
+		return <div>{t("accountManagerCommon.loading")}</div>;
 	}
 
 	return (
