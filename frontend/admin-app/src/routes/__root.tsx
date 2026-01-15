@@ -8,7 +8,12 @@ import {
 	Sidebar,
 } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	Outlet,
+	useNavigate,
+	useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { useEffect } from "react";
@@ -19,6 +24,9 @@ import { configureApi } from "@/services/api";
 
 function RootLayout() {
 	configureApi();
+	const navigate = useNavigate();
+	const routerState = useRouterState();
+	const currentPath = routerState.location.pathname;
 	const handleLogout = () => {
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
 			const base = import.meta.env.BASE_URL || "/";
@@ -50,7 +58,15 @@ function RootLayout() {
 	return (
 		<ToastProvider>
 			<AppLayout
-				sidebar={<Sidebar menuItems={menuAdmin} onLogout={handleLogout} />}
+				sidebar={
+					<Sidebar
+						logo={<h1 className="text-lg font-bold">Admin</h1>}
+						menuItems={menuAdmin}
+						onLogout={handleLogout}
+						activePath={currentPath}
+						onNavigate={(path) => navigate({ to: path })}
+					/>
+				}
 				navbar={
 					<Navbar
 						logo={

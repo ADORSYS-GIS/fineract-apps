@@ -9,12 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersListRouteImport } from './routes/users/list'
 import { Route as UsersCreateRouteImport } from './routes/users/create'
 import { Route as UsersUserIdIndexRouteImport } from './routes/users/$userId/index'
 import { Route as UsersUserIdEditRouteImport } from './routes/users/$userId/edit'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +55,8 @@ const UsersUserIdEditRoute = UsersUserIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/settings': typeof SettingsRoute
   '/users/create': typeof UsersCreateRoute
   '/users/list': typeof UsersListRoute
   '/users/$userId/edit': typeof UsersUserIdEditRoute
@@ -50,6 +64,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/settings': typeof SettingsRoute
   '/users/create': typeof UsersCreateRoute
   '/users/list': typeof UsersListRoute
   '/users/$userId/edit': typeof UsersUserIdEditRoute
@@ -58,6 +74,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/settings': typeof SettingsRoute
   '/users/create': typeof UsersCreateRoute
   '/users/list': typeof UsersListRoute
   '/users/$userId/edit': typeof UsersUserIdEditRoute
@@ -67,6 +85,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/dashboard'
+    | '/settings'
     | '/users/create'
     | '/users/list'
     | '/users/$userId/edit'
@@ -74,6 +94,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/dashboard'
+    | '/settings'
     | '/users/create'
     | '/users/list'
     | '/users/$userId/edit'
@@ -81,6 +103,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/dashboard'
+    | '/settings'
     | '/users/create'
     | '/users/list'
     | '/users/$userId/edit'
@@ -89,6 +113,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
+  SettingsRoute: typeof SettingsRoute
   UsersCreateRoute: typeof UsersCreateRoute
   UsersListRoute: typeof UsersListRoute
   UsersUserIdEditRoute: typeof UsersUserIdEditRoute
@@ -97,6 +123,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -137,6 +177,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
+  SettingsRoute: SettingsRoute,
   UsersCreateRoute: UsersCreateRoute,
   UsersListRoute: UsersListRoute,
   UsersUserIdEditRoute: UsersUserIdEditRoute,

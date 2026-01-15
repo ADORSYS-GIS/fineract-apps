@@ -1,6 +1,9 @@
 {
 	"translation": {
 		"cashierHomePage": "Welcome to the Cashier Home Page!",
+		"cashierDashboard": {
+			"title": "Cashier Dashboard"
+		},
 		"cashierApp.title": "Cashier App",
 		"search": "Search...",
 		"loadingLoanDetails": "Loading loan details...",

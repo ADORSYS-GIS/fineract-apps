@@ -60,7 +60,7 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 								handleClick(item.link);
 							}}
 							className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition ${
-								isActive ? "bg-blue-50 text-blue-600" : ""
+								isActive ? "bg-blue-50 text-gray-900" : ""
 							}`}
 						>
 							{Icon && <Icon className="w-5 h-5" />}

@@ -58,11 +58,14 @@ function parseKeycloakRoles(rolesString: string): UserRole[] {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 	// Fetch Keycloak user info from /api/userinfo endpoint
 	// This endpoint returns OAuth2 Proxy headers as JSON
+	// Use BASE_URL to construct the correct path (e.g., /accounting/api/userinfo)
 	const { data: keycloakUser, isLoading: isLoadingKeycloak } =
 		useQuery<KeycloakUserInfo>({
 			queryKey: ["keycloak-userinfo"],
 			queryFn: async () => {
-				const response = await fetch("/api/userinfo");
+				const baseUrl = import.meta.env.BASE_URL || "/";
+				const apiPath = `${baseUrl}api/userinfo`.replace("//", "/");
+				const response = await fetch(apiPath);
 				if (!response.ok) {
 					throw new Error("Failed to fetch user info");
 				}

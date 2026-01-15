@@ -26,8 +26,8 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 		<div className="bg-gray-50 min-h-screen">
 			<main className="p-4 sm:p-6 lg:p-8">
 				<div className="flex flex-col md:flex-row justify-between items-center mb-8">
-					<h1 className="text-4xl font-bold text-gray-800 mb-4 md:mb-0">
-						{t("accountManagerDashboard.clients")}
+					<h1 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0">
+						{t("accountManagerDashboard.title")}
 					</h1>
 					<div className="flex items-center space-x-4 w-full md:w-auto">
 						<SearchBar
