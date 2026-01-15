@@ -17,7 +17,7 @@ export const DashboardView = ({
 	const { t } = useTranslation();
 	return (
 		<div className="p-4 sm:p-6">
-			<h1 className="text-2xl font-bold mb-6">{title}</h1>
+			<h1 className="text-3xl font-bold text-gray-800 mb-6">{title}</h1>
 			<div className="mt-6">
 				<Card className="h-full w-full">
 					<div>
