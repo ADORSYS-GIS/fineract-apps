@@ -18,7 +18,7 @@ export function DashboardView({ stats }: DashboardData) {
 							</p>
 							<p className="text-2xl font-bold">{stats.totalReports}</p>
 						</div>
-						<BarChart3 className="w-10 h-10 text-blue-500" />
+						<BarChart3 className="w-10 h-10 text-gray-800" />
 					</div>
 				</Card>
 
@@ -30,7 +30,7 @@ export function DashboardView({ stats }: DashboardData) {
 							</p>
 							<p className="text-2xl font-bold">{stats.recentTransactions}</p>
 						</div>
-						<History className="w-10 h-10 text-green-500" />
+						<History className="w-10 h-10 text-gray-800" />
 					</div>
 				</Card>
 
@@ -42,7 +42,7 @@ export function DashboardView({ stats }: DashboardData) {
 							</p>
 							<p className="text-2xl font-bold">{stats.auditEntries}</p>
 						</div>
-						<Shield className="w-10 h-10 text-purple-500" />
+						<Shield className="w-10 h-10 text-gray-800" />
 					</div>
 				</Card>
 			</div>
@@ -58,7 +58,7 @@ export function DashboardView({ stats }: DashboardData) {
 							className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
 						>
 							<div className="flex items-center">
-								<BarChart3 className="w-5 h-5 mr-3 text-blue-500" />
+								<BarChart3 className="w-5 h-5 mr-3 text-gray-800" />
 								<div>
 									<p className="font-medium">{t("dashboard.viewAllReports")}</p>
 									<p className="text-sm text-gray-600">
@@ -72,7 +72,7 @@ export function DashboardView({ stats }: DashboardData) {
 							className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
 						>
 							<div className="flex items-center">
-								<History className="w-5 h-5 mr-3 text-green-500" />
+								<History className="w-5 h-5 mr-3 text-gray-800" />
 								<div>
 									<p className="font-medium">
 										{t("dashboard.transactionHistory")}
@@ -88,7 +88,7 @@ export function DashboardView({ stats }: DashboardData) {
 							className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
 						>
 							<div className="flex items-center">
-								<Shield className="w-5 h-5 mr-3 text-purple-500" />
+								<Shield className="w-5 h-5 mr-3 text-gray-800" />
 								<div>
 									<p className="font-medium">{t("dashboard.auditTrail")}</p>
 									<p className="text-sm text-gray-600">
