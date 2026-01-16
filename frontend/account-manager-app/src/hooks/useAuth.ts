@@ -30,7 +30,7 @@ export const useAuth = () => {
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
 			window.location.href = appBase;
 		} else {
-			window.location.href = `${appBase}callback?logout=${encodeURIComponent(
+			window.location.href = `${window.location.origin}/oauth2/sign_out?rd=${encodeURIComponent(
 				redirectTo,
 			)}`;
 		}
