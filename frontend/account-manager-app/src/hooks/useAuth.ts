@@ -29,7 +29,6 @@ export const useAuth = () => {
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
 			window.location.href = appBase;
 		} else {
-			
 			const appOrigin = window.location.origin;
 			// We cannot use post_logout_redirect_uri without id_token_hint (which is HttpOnly).
 			// So we redirect to the Keycloak logout endpoint to allow the user to logout interactively.
