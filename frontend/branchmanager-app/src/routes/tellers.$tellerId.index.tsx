@@ -118,7 +118,7 @@ function TellerDetailPage() {
 							{isLoading && (
 								<tr className="bg-white border-b">
 									<td className="px-6 py-4 text-gray-500" colSpan={4}>
-										{t("common.loading")}
+										{t("branchManagerCommon.loading")}
 									</td>
 								</tr>
 							)}

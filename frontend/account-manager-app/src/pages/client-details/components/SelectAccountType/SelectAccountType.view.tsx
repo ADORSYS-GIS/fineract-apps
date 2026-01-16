@@ -19,7 +19,7 @@ export const SelectAccountTypeView: FC<
 				className="fixed inset-0 z-40 bg-black/40"
 				onClick={closeModal}
 				onKeyDown={(e) => e.key === "Escape" && closeModal()}
-				aria-label={t("common.closeModal")}
+				aria-label={t("accountManagerCommon.closeModal")}
 			/>
 
 			{/* Modal */}

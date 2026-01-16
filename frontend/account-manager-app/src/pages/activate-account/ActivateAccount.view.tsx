@@ -46,7 +46,9 @@ export const ActivateAccountView: FC<
 							</p>
 						</div>
 						<Link to="/dashboard">
-							<Button className="w-full">{t("common.done")}</Button>
+							<Button className="w-full">
+								{t("accountManagerCommon.done")}
+							</Button>
 						</Link>
 					</Card>
 				</div>

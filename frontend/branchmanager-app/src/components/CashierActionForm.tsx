@@ -75,7 +75,7 @@ export const CashierActionForm = ({
 								onCancel ? onCancel() : navigate({ to: "/tellers" })
 							}
 						>
-							{t("common.cancel")}
+							{t("branchManagerCommon.cancel")}
 						</Button>
 					</div>
 				</div>

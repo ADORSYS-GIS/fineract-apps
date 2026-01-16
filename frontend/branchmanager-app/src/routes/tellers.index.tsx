@@ -70,7 +70,7 @@ function TellersListPage() {
 						placeholder={t("tellers.filterTellersPlaceholder")}
 					/>
 					<div className="mt-4 space-y-3">
-						{isLoading && <div>{t("common.loading")}</div>}
+						{isLoading && <div>{t("branchManagerCommon.loading")}</div>}
 						{isError && (
 							<div className="text-red-600">
 								{t("tellers.errorFetchingTellers", {

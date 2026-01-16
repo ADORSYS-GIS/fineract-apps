@@ -1,6 +1,7 @@
 import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { getStatusClass } from "../../../dashboard/utils";
 
 interface Account {
@@ -57,10 +58,11 @@ export const AccountCard: FC<AccountCardProps> = ({
 	onDelete,
 	onEdit,
 }) => {
+	const { t } = useTranslation();
 	const borderColorClass = getBorderColorClass(account.productName);
 	const isSavingsAccount = account.productName
 		?.toLowerCase()
-		.includes("savings");
+		.includes("saving");
 	const isLoanAccount = account.productName?.toLowerCase().includes("loan");
 	const isPending =
 		account.status?.submittedAndPendingApproval ||
@@ -86,8 +88,10 @@ export const AccountCard: FC<AccountCardProps> = ({
 					<p className="text-md">{account.accountNo}</p>
 				</div>
 				<div className="flex justify-end space-x-2">
-					{isSavingsAccount && account.status?.approved && (
-						<Button onClick={() => onActivate(account.id!)}>Activate</Button>
+					{isSavingsAccount && account.status?.value === "Approved" && (
+						<Button onClick={() => onActivate(account.id!)}>
+							{t("accountManagerDashboard.activate")}
+						</Button>
 					)}
 					{isPending && (
 						<Button
@@ -98,7 +102,7 @@ export const AccountCard: FC<AccountCardProps> = ({
 								onDelete(account.id!);
 							}}
 						>
-							Delete
+							{t("delete")}
 						</Button>
 					)}
 					{isLoanAccount && isPending && (
@@ -110,7 +114,7 @@ export const AccountCard: FC<AccountCardProps> = ({
 								onEdit?.(account.id!);
 							}}
 						>
-							Edit
+							{t("edit")}
 						</Button>
 					)}
 				</div>

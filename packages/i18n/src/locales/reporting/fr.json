@@ -12,7 +12,7 @@
 			"runReport": "Exécuter le rapport",
 			"cancel": "Annuler"
 		},
-		"dashboard": {
+		"reportingDashboard": {
 			"title": "Tableau de Bord de Reporting",
 			"totalReports": "Total des Rapports",
 			"recentTransactions": "Transactions Récentes",

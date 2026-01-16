@@ -68,7 +68,7 @@
 			"previous": "Previous",
 			"next": "Next"
 		},
-		"common": {
+		"cashierCommon": {
 			"pdf": "PDF",
 			"xls": "XLS",
 			"na": "N/A"

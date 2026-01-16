@@ -210,12 +210,16 @@
 			"status": {
 				"active": "ACTIVE",
 				"inactive": "INACTIVE"
-			}
+			},
+			"of": "of",
+			"perPage": "{{count}} / page",
+			"previous": "Previous",
+			"next": "Next"
 		},
 		"branchManager": {
 			"logo": "Branch Manager"
 		},
-		"common": {
+		"branchManagerCommon": {
 			"back": "Back",
 			"loading": "Loading...",
 			"cancel": "Cancel",

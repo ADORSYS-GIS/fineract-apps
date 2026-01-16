@@ -42,7 +42,7 @@ export const Input: React.FC<InputProps> = ({
 		if (type === "select") {
 			return (
 				<Field as="select" {...fieldProps}>
-					<option value="">{`Choose a ${label ?? "value"}`}</option>
+					<option value="">{` ${label ?? "value"}`}</option>
 					{options?.map((opt) => (
 						<option key={String(opt.value)} value={String(opt.value)}>
 							{opt.label}

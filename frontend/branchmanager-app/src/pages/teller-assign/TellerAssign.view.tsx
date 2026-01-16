@@ -53,7 +53,7 @@ export const TellerAssignView = ({
 					/>
 					<Input
 						name="description"
-						label={t("cashierDetail.description")}
+						label={t("tellerDetail.description")}
 						placeholder={t("tellerAssign.notesOptional")}
 					/>
 					<Input

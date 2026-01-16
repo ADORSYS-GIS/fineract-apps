@@ -75,7 +75,7 @@ export const ClientTable: FC<ClientTableProps> = ({
 										params={{ clientId: String(client.id) }}
 										className="block"
 									>
-										{client.emailAddress ?? t("common.na")}
+										{client.emailAddress ?? t("accountManagerCommon.na")}
 									</Link>
 								</td>
 								<td className="py-4 px-6 whitespace-nowrap">

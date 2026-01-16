@@ -31,7 +31,7 @@ export const BlockAccountModal: FC<BlockAccountModalProps> = ({
 				type="button"
 				className="fixed inset-0 z-40 bg-black/40"
 				onClick={onClose}
-				aria-label={t("common.closeModal")}
+				aria-label={t("accountManagerCommon.closeModal")}
 			/>
 
 			{/* Modal */}

@@ -45,7 +45,9 @@ export const StaffDetailView = ({
 									{t("staffDetail.isLoanOfficer")}
 								</p>
 								<p className="font-medium">
-									{data.isLoanOfficer ? t("common.yes") : t("common.no")}
+									{data.isLoanOfficer
+										? t("branchManagerCommon.yes")
+										: t("branchManagerCommon.no")}
 								</p>
 								<p className="text-gray-500">
 									{t("staffDetail.mobileNumberForSMS")}
@@ -53,7 +55,9 @@ export const StaffDetailView = ({
 								<p className="font-medium">{data.mobileNo ?? "-"}</p>
 								<p className="text-gray-500">{t("staffDetail.status")}</p>
 								<p className="font-medium">
-									{data.isActive ? t("status.active") : t("status.inactive")}
+									{data.isActive
+										? t("tellers.status.active")
+										: t("tellers.status.inactive")}
 								</p>
 								<p className="text-gray-500">{t("staffDetail.joiningDate")}</p>
 								<p className="font-medium">{data.joiningDate ?? "-"}</p>
