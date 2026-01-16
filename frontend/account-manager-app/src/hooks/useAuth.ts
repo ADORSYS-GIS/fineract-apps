@@ -29,10 +29,8 @@ export const useAuth = () => {
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
 			window.location.href = appBase;
 		} else {
-			// Pass post_logout_redirect_uri to ensure Keycloak sends user back to app after upstream logout
-			window.location.href = `${window.location.origin}/oauth2/sign_out?post_logout_redirect_uri=${encodeURIComponent(
-				window.location.origin,
-			)}`;
+			// Keycloak client configuration (Base URL) handles the redirect back to the app.
+			window.location.href = "/oauth2/sign_out";
 		}
 	};
 
