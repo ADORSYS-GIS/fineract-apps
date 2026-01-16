@@ -29,9 +29,15 @@ export const useAuth = () => {
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
 			window.location.href = appBase;
 		} else {
-			// Keycloak client configuration (Base URL) handles the redirect back to the app.
-			const redirectUrl = encodeURIComponent(window.location.origin + appBase);
-			window.location.href = `/oauth2/sign_out?rd=${redirectUrl}`;
+			// Standard OAuth2-Proxy logout flow:
+			// 1. Call /oauth2/sign_out to clear the proxy cookie
+			// 2. Redirect (rd) to Keycloak logout endpoint to clear upstream session
+			// 3. Keycloak redirects (post_logout_redirect_uri) back to the app
+			const appOrigin = window.location.origin;
+			const keycloakLogoutUrl = `${appOrigin}/realms/fineract/protocol/openid-connect/logout?post_logout_redirect_uri=${encodeURIComponent(
+				appOrigin + appBase,
+			)}`;
+			window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(keycloakLogoutUrl)}`;
 		}
 	};
 
