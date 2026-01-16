@@ -25,14 +25,11 @@ export const useAuth = () => {
 	const onLogout = () => {
 		const base = import.meta.env.BASE_URL || "/account/";
 		const appBase = base.endsWith("/") ? base : `${base}/`;
-		const redirectTo = `${window.location.origin}${appBase}`;
 
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
 			window.location.href = appBase;
 		} else {
-			window.location.href = `${window.location.origin}/oauth2/sign_out?rd=${encodeURIComponent(
-				redirectTo,
-			)}`;
+			window.location.href = `${window.location.origin}/oauth2/sign_out`;
 		}
 	};
 
