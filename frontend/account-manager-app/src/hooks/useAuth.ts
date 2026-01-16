@@ -30,7 +30,8 @@ export const useAuth = () => {
 			window.location.href = appBase;
 		} else {
 			// Keycloak client configuration (Base URL) handles the redirect back to the app.
-			window.location.href = "/oauth2/sign_out";
+			const redirectUrl = encodeURIComponent(window.location.origin + appBase);
+			window.location.href = `/oauth2/sign_out?rd=${redirectUrl}`;
 		}
 	};
 
