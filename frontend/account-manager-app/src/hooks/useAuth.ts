@@ -29,12 +29,8 @@ export const useAuth = () => {
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
 			window.location.href = appBase;
 		} else {
-			const appOrigin = window.location.origin;
-			// We cannot use post_logout_redirect_uri without id_token_hint (which is HttpOnly).
-			// So we redirect to the Keycloak logout endpoint to allow the user to logout interactively.
-			// This avoids the "Missing id_token_hint" error and the infinite reload loop.
-			const keycloakLogoutUrl = `${appOrigin}/realms/fineract/protocol/openid-connect/logout`;
-			window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(keycloakLogoutUrl)}`;
+			// Keycloak client configuration (Base URL) handles the redirect back to the app.
+			window.location.href = "/oauth2/sign_out";
 		}
 	};
 
