@@ -17,9 +17,16 @@ function onLogout() {
 	const base = import.meta.env.BASE_URL ?? "/reporting/";
 	const appBase = base.endsWith("/") ? base : `${base}/`;
 	const redirectTo = `${globalThis.location.origin}${appBase}`;
-	globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(
-		redirectTo,
-	)}`;
+	if (import.meta.env.VITE_AUTH_MODE === "basic") {
+		// For basic auth, just redirect to the base, as there's no real logout endpoint
+		window.location.href = appBase;
+	} else {
+		// OAuth mode: Use OAuth2 Proxy global logout
+		// This terminates the Keycloak session across ALL devices
+		localStorage.clear();
+		sessionStorage.clear();
+		globalThis.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(redirectTo)}`;
+	}
 }
 
 function RootLayout() {

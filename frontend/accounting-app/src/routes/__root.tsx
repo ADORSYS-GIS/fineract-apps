@@ -65,9 +65,11 @@ function RootComponent() {
 		const base = import.meta.env.BASE_URL || "/accounting/";
 		const appBase = base.endsWith("/") ? base : `${base}/`;
 		const redirectTo = `${window.location.origin}${appBase}`;
-		window.location.href = `${appBase}callback?logout=${encodeURIComponent(
-			redirectTo,
-		)}`;
+		// OAuth mode: Use OAuth2 Proxy global logout
+		// This terminates the Keycloak session across ALL devices
+		localStorage.clear();
+		sessionStorage.clear();
+		window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(redirectTo)}`;
 	}
 
 	return (
