@@ -218,15 +218,11 @@ def sync_user():
 
         # Assign role
         try:
-            # We already validated the role exists, so we can use the role_obj from earlier
-            # But strictly speaking we should probably fetch it again or pass it, but reusing is fine if scope allows
-            # Re-fetching just to be safe and consistent with previous flow structure, or use the object found
+            # Use the role object validated earlier
             admin.assign_realm_roles(user_id, [role_obj])
             logger.info(f"Assigned role '{keycloak_role}' to user {username}")
         except Exception as e:
             logger.error(f"Failed to assign role: {str(e)}")
-            # Note: User is already created at this point.
-            # Ideally we might want to rollback (delete user), but for now we log error.
 
         # Add to appropriate group (based on role)
         try:
