@@ -173,6 +173,25 @@ def sync_user():
         # Map role
         keycloak_role = map_fineract_role_to_keycloak(fineract_role)
 
+        # Validate role existence before creating user
+        try:
+            realm_roles = admin.get_realm_roles()
+            role_obj = next((r for r in realm_roles if r['name'] == keycloak_role), None)
+            
+            if not role_obj:
+                logger.error(f"Role '{keycloak_role}' not found in Keycloak. User creation aborted.")
+                return jsonify({
+                    "status": "error",
+                    "message": f"The role '{keycloak_role}' does not exist in the system."
+                }), 400
+                
+        except Exception as e:
+            logger.error(f"Failed to validate role: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": f"Failed to validate role: {str(e)}"
+            }), 500
+
         # Prepare user data for Keycloak
         user_data = {
             "username": username,
@@ -199,16 +218,15 @@ def sync_user():
 
         # Assign role
         try:
-            realm_roles = admin.get_realm_roles()
-            role_obj = next((r for r in realm_roles if r['name'] == keycloak_role), None)
-
-            if role_obj:
-                admin.assign_realm_roles(user_id, [role_obj])
-                logger.info(f"Assigned role '{keycloak_role}' to user {username}")
-            else:
-                logger.warning(f"Role '{keycloak_role}' not found in Keycloak")
+            # We already validated the role exists, so we can use the role_obj from earlier
+            # But strictly speaking we should probably fetch it again or pass it, but reusing is fine if scope allows
+            # Re-fetching just to be safe and consistent with previous flow structure, or use the object found
+            admin.assign_realm_roles(user_id, [role_obj])
+            logger.info(f"Assigned role '{keycloak_role}' to user {username}")
         except Exception as e:
             logger.error(f"Failed to assign role: {str(e)}")
+            # Note: User is already created at this point.
+            # Ideally we might want to rollback (delete user), but for now we log error.
 
         # Add to appropriate group (based on role)
         try:
