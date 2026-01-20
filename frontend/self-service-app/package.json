@@ -1,0 +1,38 @@
+{
+  "name": "@fineract/self-service-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "biome lint src/",
+    "format": "biome format --write src/",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fineract/ui": "workspace:*",
+    "@simplewebauthn/browser": "^10.0.0",
+    "@tanstack/react-query": "^5.28.0",
+    "@tanstack/react-router": "^1.20.0",
+    "oidc-client-ts": "^3.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-oidc-context": "^3.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.7.0",
+    "@tanstack/router-vite-plugin": "^1.20.0",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.3",
+    "vite": "^5.2.8",
+    "vitest": "^1.4.0"
+  }
+}
