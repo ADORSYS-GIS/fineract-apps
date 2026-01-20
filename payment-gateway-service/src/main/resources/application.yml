@@ -117,3 +117,12 @@ logging:
   level:
     root: INFO
     com.adorsys.fineract.gateway: INFO
+
+# Enable OTLP tracing
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}

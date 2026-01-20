@@ -40,6 +40,13 @@ spec:
               value: "kubernetes"
             - name: JAVA_OPTS
               value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+            # OpenTelemetry Configuration
+            - name: OTEL_SERVICE_NAME
+              value: "customer-registration-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring:4318"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=self-service,deployment.environment=production"
           envFrom:
             - configMapRef:
                 name: customer-registration-config

@@ -7,8 +7,12 @@ import { AuthProvider } from "react-oidc-context";
 import { Toaster } from "react-hot-toast";
 
 import i18n from "./lib/i18n";
+import { initTracing } from "./lib/tracing";
 import { routeTree } from "./routeTree.gen";
 import "./index.css";
+
+// Initialize OpenTelemetry tracing
+initTracing();
 
 // OIDC Configuration
 const oidcConfig = {

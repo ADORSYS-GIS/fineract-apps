@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="customer-registration-service"/>
+    <springProperty scope="context" name="appVersion" source="spring.application.version" defaultValue="1.0.0"/>
+
+    <!-- Console pattern for development -->
+    <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] [%X{traceId:-},%X{spanId:-}] %cyan(%logger{36}) - %msg%n"/>
+
+    <!-- JSON pattern for production (Loki/ELK compatible) -->
+    <property name="JSON_PATTERN" value='{"@timestamp":"%d{yyyy-MM-dd'\''T'\''HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","version":"${appVersion}","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","thread":"%thread","logger":"%logger{36}","message":"%msg","exception":"%ex{full}"}%n'/>
+
+    <!-- Console appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- JSON appender for structured logging -->
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>${JSON_PATTERN}</pattern>
+            </layout>
+        </encoder>
+    </appender>
+
+    <!-- Development profile - human-readable console output -->
+    <springProfile name="default,local,dev">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <logger name="com.adorsys.fineract.registration" level="DEBUG"/>
+        <logger name="org.springframework.security" level="INFO"/>
+        <logger name="org.keycloak" level="WARN"/>
+    </springProfile>
+
+    <!-- Kubernetes/Production profile - JSON structured logging -->
+    <springProfile name="kubernetes,prod,production">
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+        <logger name="com.adorsys.fineract.registration" level="INFO"/>
+        <logger name="org.springframework.security" level="WARN"/>
+        <logger name="org.keycloak" level="WARN"/>
+        <!-- Reduce noise from framework logging -->
+        <logger name="org.apache.http" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+    </springProfile>
+
+</configuration>
