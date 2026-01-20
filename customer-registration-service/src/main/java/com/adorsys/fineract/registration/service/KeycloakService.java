@@ -162,6 +162,62 @@ public class KeycloakService {
                 !requiredActions.contains("webauthn-register-passwordless");
     }
 
+    /**
+     * Get all users in the self-service-customers group.
+     */
+    public List<UserRepresentation> getUsersByGroup(String groupPath) {
+        log.info("Getting users in group: {}", groupPath);
+
+        RealmResource realmResource = keycloak.realm(keycloakConfig.getRealm());
+
+        // Find the group by path
+        List<GroupRepresentation> groups = realmResource.groups()
+                .groups(groupPath.substring(1), 0, 1, false);
+
+        if (groups.isEmpty()) {
+            log.warn("Group {} not found", groupPath);
+            return List.of();
+        }
+
+        String groupId = groups.get(0).getId();
+        return realmResource.groups().group(groupId).members(0, 1000);
+    }
+
+    /**
+     * Get all users with a specific KYC status.
+     */
+    public List<UserRepresentation> getUsersByKycStatus(String status) {
+        log.info("Getting users with KYC status: {}", status);
+
+        return keycloak.realm(keycloakConfig.getRealm())
+                .users()
+                .searchByAttributes("kyc_status:" + status);
+    }
+
+    /**
+     * Update user attributes.
+     */
+    public void updateUserAttributes(String userId, Map<String, List<String>> newAttributes) {
+        log.info("Updating attributes for user {}: {}", userId, newAttributes.keySet());
+
+        UserResource userResource = keycloak.realm(keycloakConfig.getRealm())
+                .users()
+                .get(userId);
+
+        UserRepresentation user = userResource.toRepresentation();
+
+        Map<String, List<String>> attributes = user.getAttributes();
+        if (attributes == null) {
+            attributes = new java.util.HashMap<>();
+        }
+        attributes.putAll(newAttributes);
+
+        user.setAttributes(attributes);
+        userResource.update(user);
+
+        log.info("Updated attributes for user {}", userId);
+    }
+
     private void assignToGroup(String userId) {
         String groupPath = keycloakConfig.getSelfServiceGroup();
         log.info("Assigning user {} to group {}", userId, groupPath);

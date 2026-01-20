@@ -146,6 +146,87 @@ public class FineractService {
         throw new UnsupportedOperationException("Document upload not yet implemented");
     }
 
+    /**
+     * Get documents for a client by external ID.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getClientDocumentsByExternalId(String externalId) {
+        log.info("Getting documents for client with external ID: {}", externalId);
+
+        Map<String, Object> client = getClientByExternalId(externalId);
+        if (client == null) {
+            log.warn("Client not found for external ID: {}", externalId);
+            return List.of();
+        }
+
+        Long clientId = ((Number) client.get("id")).longValue();
+        return getClientDocuments(clientId);
+    }
+
+    /**
+     * Get documents for a client by client ID.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getClientDocuments(Long clientId) {
+        log.info("Getting documents for client: {}", clientId);
+
+        try {
+            List<Map<String, Object>> response = fineractRestClient.get()
+                    .uri("/fineract-provider/api/v1/clients/{clientId}/documents", clientId)
+                    .retrieve()
+                    .body(List.class);
+
+            return response != null ? response : List.of();
+        } catch (Exception e) {
+            log.error("Failed to get documents for client {}: {}", clientId, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Get a specific document's metadata.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getDocument(Long clientId, Long documentId) {
+        log.info("Getting document {} for client {}", documentId, clientId);
+
+        try {
+            return fineractRestClient.get()
+                    .uri("/fineract-provider/api/v1/clients/{clientId}/documents/{documentId}", clientId, documentId)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception e) {
+            log.error("Failed to get document {} for client {}: {}", documentId, clientId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Activate a client account.
+     */
+    public void activateClient(Long clientId) {
+        log.info("Activating client: {}", clientId);
+
+        Map<String, Object> payload = Map.of(
+                "locale", "en",
+                "dateFormat", "dd MMMM yyyy",
+                "activationDate", java.time.LocalDate.now().format(DATE_FORMATTER)
+        );
+
+        try {
+            fineractRestClient.post()
+                    .uri("/fineract-provider/api/v1/clients/{clientId}?command=activate", clientId)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Activated client: {}", clientId);
+        } catch (Exception e) {
+            log.error("Failed to activate client {}: {}", clientId, e.getMessage(), e);
+            throw new RegistrationException("Failed to activate client", e);
+        }
+    }
+
     private Map<String, Object> buildClientPayload(RegistrationRequest request, String externalId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("officeId", fineractConfig.getDefaultOfficeId());
