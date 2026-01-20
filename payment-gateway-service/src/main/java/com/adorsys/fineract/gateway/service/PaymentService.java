@@ -7,6 +7,8 @@ import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.config.OrangeMoneyConfig;
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.exception.PaymentException;
+import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ public class PaymentService {
     private final FineractClient fineractClient;
     private final MtnMomoConfig mtnConfig;
     private final OrangeMoneyConfig orangeConfig;
+    private final PaymentMetrics paymentMetrics;
 
     // In-memory transaction store (in production, use database)
     private final Map<String, TransactionRecord> transactions = new ConcurrentHashMap<>();
@@ -44,6 +47,8 @@ public class PaymentService {
     public PaymentResponse initiateDeposit(DepositRequest request) {
         log.info("Initiating deposit: externalId={}, amount={}, provider={}",
             request.getExternalId(), request.getAmount(), request.getProvider());
+
+        Timer.Sample timerSample = paymentMetrics.startTimer();
 
         // Verify account ownership
         if (!fineractClient.verifyAccountOwnership(request.getExternalId(), request.getAccountId())) {
@@ -75,6 +80,11 @@ public class PaymentService {
             null
         ));
 
+        // Record metrics
+        paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.DEPOSIT, PaymentStatus.PENDING);
+        paymentMetrics.recordPaymentAmount(request.getProvider(), PaymentResponse.TransactionType.DEPOSIT, request.getAmount());
+        paymentMetrics.stopProcessingTimer(timerSample, request.getProvider(), PaymentResponse.TransactionType.DEPOSIT, PaymentStatus.PENDING);
+
         return response;
     }
 
@@ -85,6 +95,8 @@ public class PaymentService {
         log.info("Initiating withdrawal: externalId={}, amount={}, provider={}",
             request.getExternalId(), request.getAmount(), request.getProvider());
 
+        Timer.Sample timerSample = paymentMetrics.startTimer();
+
         // Verify account ownership
         if (!fineractClient.verifyAccountOwnership(request.getExternalId(), request.getAccountId())) {
             throw new PaymentException("Account does not belong to the customer");
@@ -94,6 +106,7 @@ public class PaymentService {
         Map<String, Object> account = fineractClient.getSavingsAccount(request.getAccountId());
         BigDecimal availableBalance = new BigDecimal(account.get("availableBalance").toString());
         if (availableBalance.compareTo(request.getAmount()) < 0) {
+            paymentMetrics.incrementInsufficientFunds();
             throw new PaymentException("Insufficient funds");
         }
 
@@ -120,6 +133,7 @@ public class PaymentService {
         } catch (Exception e) {
             // TODO: Reverse the Fineract transaction if provider call fails
             log.error("Withdrawal to provider failed, Fineract transaction may need reversal: {}", e.getMessage());
+            paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, PaymentStatus.FAILED);
             throw e;
         }
 
@@ -138,6 +152,11 @@ public class PaymentService {
             null,
             fineractTxnId
         ));
+
+        // Record metrics
+        paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, PaymentStatus.PROCESSING);
+        paymentMetrics.recordPaymentAmount(request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, request.getAmount());
+        paymentMetrics.stopProcessingTimer(timerSample, request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, PaymentStatus.PROCESSING);
 
         return response;
     }
@@ -165,10 +184,13 @@ public class PaymentService {
             );
 
             updateTransactionStatus(record.transactionId(), PaymentStatus.SUCCESSFUL, fineractTxnId);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.SUCCESSFUL);
+            paymentMetrics.recordPaymentAmountTotal(PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT, record.amount());
             log.info("Deposit completed: txnId={}, fineractTxnId={}", record.transactionId(), fineractTxnId);
 
         } else if (callback.isFailed()) {
             updateTransactionStatus(record.transactionId(), PaymentStatus.FAILED, null);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.FAILED);
             log.warn("Deposit failed: txnId={}, reason={}", record.transactionId(), callback.getReason());
         }
     }
@@ -188,11 +210,14 @@ public class PaymentService {
 
         if (callback.isSuccessful()) {
             updateTransactionStatus(record.transactionId(), PaymentStatus.SUCCESSFUL, record.fineractTransactionId());
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.SUCCESSFUL);
+            paymentMetrics.recordPaymentAmountTotal(PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.WITHDRAWAL, record.amount());
             log.info("Withdrawal completed: txnId={}", record.transactionId());
 
         } else if (callback.isFailed()) {
             // TODO: Reverse the Fineract withdrawal
             updateTransactionStatus(record.transactionId(), PaymentStatus.FAILED, record.fineractTransactionId());
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.FAILED);
             log.warn("Withdrawal failed: txnId={}, reason={}", record.transactionId(), callback.getReason());
         }
     }
@@ -219,16 +244,22 @@ public class PaymentService {
                     callback.getTransactionId()
                 );
                 updateTransactionStatus(record.transactionId(), PaymentStatus.SUCCESSFUL, fineractTxnId);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.SUCCESSFUL);
+                paymentMetrics.recordPaymentAmountTotal(PaymentProvider.ORANGE_MONEY, PaymentResponse.TransactionType.DEPOSIT, record.amount());
             } else {
                 updateTransactionStatus(record.transactionId(), PaymentStatus.FAILED, null);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.FAILED);
             }
         } else {
             // Withdrawal
             if (callback.isSuccessful()) {
                 updateTransactionStatus(record.transactionId(), PaymentStatus.SUCCESSFUL, record.fineractTransactionId());
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.SUCCESSFUL);
+                paymentMetrics.recordPaymentAmountTotal(PaymentProvider.ORANGE_MONEY, PaymentResponse.TransactionType.WITHDRAWAL, record.amount());
             } else {
                 // TODO: Reverse the Fineract withdrawal
                 updateTransactionStatus(record.transactionId(), PaymentStatus.FAILED, record.fineractTransactionId());
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.FAILED);
             }
         }
     }

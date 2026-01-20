@@ -3,18 +3,17 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY package.json pnpm-lock.yaml* ./
-COPY packages/ ./packages/
-
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Copy package files for dependency installation
+COPY package.json pnpm-lock.yaml* ./
+
+# Install dependencies (skip workspace dependency for standalone build)
+RUN pnpm install --ignore-workspace
 
 # Copy source code
-COPY frontend/self-service-app/ ./frontend/self-service-app/
+COPY . .
 
 # Build arguments for environment configuration
 ARG VITE_OIDC_AUTHORITY
@@ -35,23 +34,18 @@ ENV VITE_OTEL_EXPORTER_OTLP_ENDPOINT=$VITE_OTEL_EXPORTER_OTLP_ENDPOINT
 ENV VITE_APP_VERSION=$VITE_APP_VERSION
 
 # Build the application
-WORKDIR /app/frontend/self-service-app
 RUN pnpm build
 
 # Production stage
 FROM nginx:alpine AS production
 
-# Add non-root user
-RUN addgroup -g 101 -S nginx && \
-    adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx || true
-
 # Copy built files
-COPY --from=builder /app/frontend/self-service-app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx config template
-COPY frontend/self-service-app/nginx.conf /etc/nginx/nginx.conf
+# Copy nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Set proper permissions
+# Create nginx user directories and set permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \

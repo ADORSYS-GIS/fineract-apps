@@ -2,6 +2,8 @@ package com.adorsys.fineract.registration.service;
 
 import com.adorsys.fineract.registration.dto.*;
 import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -20,6 +22,7 @@ public class RegistrationService {
     private final KeycloakService keycloakService;
     private final FineractService fineractService;
     private final LimitsService limitsService;
+    private final RegistrationMetrics registrationMetrics;
 
     /**
      * Register a new self-service customer.
@@ -30,6 +33,10 @@ public class RegistrationService {
      */
     public RegistrationResponse register(RegistrationRequest request) {
         log.info("Starting registration for email: {}", request.getEmail());
+
+        // Record registration request
+        registrationMetrics.incrementRegistrationRequests();
+        Timer.Sample timerSample = registrationMetrics.startTimer();
 
         // Generate unique external ID (UUID) - this links Fineract and Keycloak
         String externalId = UUID.randomUUID().toString();
@@ -56,17 +63,24 @@ public class RegistrationService {
             log.info("Created Keycloak user: {}", keycloakUserId);
 
             log.info("Registration completed successfully for externalId: {}", externalId);
+
+            // Record success metrics
+            registrationMetrics.incrementRegistrationSuccess();
+            registrationMetrics.stopRegistrationTimer(timerSample);
+
             return RegistrationResponse.success(externalId);
 
         } catch (RegistrationException e) {
             // Known error - rollback and rethrow
             log.error("Registration failed: {}", e.getMessage());
+            registrationMetrics.incrementRegistrationFailure(e.getCode() != null ? e.getCode() : "unknown");
             rollback(fineractClientId, keycloakUserId);
             throw e;
 
         } catch (Exception e) {
             // Unexpected error - rollback and wrap
             log.error("Unexpected error during registration: {}", e.getMessage(), e);
+            registrationMetrics.incrementRegistrationFailure("unexpected_error");
             rollback(fineractClientId, keycloakUserId);
             throw new RegistrationException("Registration failed due to an unexpected error", e);
         }

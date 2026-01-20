@@ -1,3 +1,4 @@
+import { trace } from "@opentelemetry/api";
 import { ZoneContextManager } from "@opentelemetry/context-zone";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { DocumentLoadInstrumentation } from "@opentelemetry/instrumentation-document-load";
@@ -103,6 +104,5 @@ export function initTracing() {
  * Get the tracer for manual instrumentation
  */
 export function getTracer() {
-  const { trace } = require("@opentelemetry/api");
   return trace.getTracer("self-service-app");
 }
