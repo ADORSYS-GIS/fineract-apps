@@ -18,3 +18,8 @@ packages/fineract-api/src/generated
 
 # User sync service secrets
 user-sync-service/.env.local
+
+# Java build artifacts
+**/target/
+*.class
+*.jar
