@@ -1,0 +1,113 @@
+{
+  "app": {
+    "name": "Webank Libre-Service",
+    "tagline": "La banque simplifiée"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "submit": "Soumettre",
+    "cancel": "Annuler",
+    "back": "Retour",
+    "next": "Suivant",
+    "save": "Enregistrer",
+    "close": "Fermer"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "register": "S'inscrire",
+    "loginTitle": "Bienvenue",
+    "loginSubtitle": "Connectez-vous avec votre appareil WebAuthn",
+    "registerTitle": "Créez votre compte",
+    "registerSubtitle": "Rejoignez des milliers de clients Webank"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "transactions": "Transactions",
+    "deposit": "Dépôt",
+    "withdraw": "Retrait",
+    "kyc": "Vérification",
+    "settings": "Paramètres"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue, {{name}}",
+    "accountBalance": "Solde du compte",
+    "availableBalance": "Solde disponible",
+    "recentTransactions": "Transactions récentes",
+    "viewAll": "Voir tout",
+    "noTransactions": "Pas encore de transactions",
+    "kycStatus": "Statut de vérification",
+    "tier": "Niveau {{tier}}",
+    "limits": "Vos limites"
+  },
+  "kyc": {
+    "title": "Vérification du compte",
+    "subtitle": "Complétez votre vérification pour débloquer des limites plus élevées",
+    "tier1": "Basique",
+    "tier2": "Vérifié",
+    "status": {
+      "pending": "En attente",
+      "under_review": "En cours d'examen",
+      "approved": "Approuvé",
+      "rejected": "Rejeté"
+    },
+    "documents": {
+      "id_front": "Carte d'identité (Recto)",
+      "id_back": "Carte d'identité (Verso)",
+      "proof_of_address": "Justificatif de domicile",
+      "selfie_with_id": "Selfie avec pièce d'identité"
+    },
+    "upload": "Télécharger le document",
+    "uploadHint": "Cliquez pour télécharger ou glissez-déposez",
+    "maxSize": "Taille max: 10Mo"
+  },
+  "transactions": {
+    "deposit": "Dépôt",
+    "withdrawal": "Retrait",
+    "amount": "Montant",
+    "paymentMethod": "Mode de paiement",
+    "selectMethod": "Sélectionnez un mode de paiement",
+    "enterAmount": "Entrez le montant",
+    "confirm": "Confirmer la transaction",
+    "success": "Transaction réussie!",
+    "limits": {
+      "daily": "Limite journalière",
+      "perTransaction": "Par transaction",
+      "remaining": "Restant"
+    }
+  },
+  "paymentMethods": {
+    "mtn_transfer": "MTN Mobile Money",
+    "orange_transfer": "Orange Money",
+    "uba_bank_transfer": "Virement UBA",
+    "afriland_bank_transfer": "Virement Afriland"
+  },
+  "register": {
+    "title": "Créer un compte",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Adresse e-mail",
+    "phone": "Numéro de téléphone",
+    "dateOfBirth": "Date de naissance",
+    "gender": "Sexe",
+    "male": "Homme",
+    "female": "Femme",
+    "submit": "Créer le compte",
+    "haveAccount": "Vous avez déjà un compte?",
+    "success": "Inscription réussie! Vérifiez votre e-mail pour activer votre compte.",
+    "errors": {
+      "required": "Ce champ est obligatoire",
+      "invalidEmail": "Veuillez entrer un e-mail valide",
+      "invalidPhone": "Veuillez entrer un numéro de téléphone valide"
+    }
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite. Veuillez réessayer.",
+    "network": "Erreur réseau. Vérifiez votre connexion.",
+    "unauthorized": "Veuillez vous connecter pour continuer.",
+    "limitExceeded": "Limite de transaction dépassée",
+    "insufficientFunds": "Fonds insuffisants"
+  }
+}

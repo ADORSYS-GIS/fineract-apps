@@ -1,0 +1,115 @@
+{
+  "app": {
+    "name": "Webank Self-Service",
+    "tagline": "Banking made simple"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Try again",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "save": "Save",
+    "close": "Close"
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "register": "Register",
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in with your WebAuthn device",
+    "registerTitle": "Create your account",
+    "registerSubtitle": "Join thousands of customers using Webank"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "kyc": "Verification",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "accountBalance": "Account Balance",
+    "availableBalance": "Available Balance",
+    "recentTransactions": "Recent Transactions",
+    "viewAll": "View All",
+    "noTransactions": "No transactions yet",
+    "kycStatus": "Verification Status",
+    "tier": "Tier {{tier}}",
+    "limits": "Your Limits"
+  },
+  "kyc": {
+    "title": "Account Verification",
+    "subtitle": "Complete your verification to unlock higher limits",
+    "tier1": "Basic",
+    "tier2": "Verified",
+    "status": {
+      "pending": "Pending",
+      "under_review": "Under Review",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "uploaded": "Uploaded",
+      "verified": "Verified"
+    },
+    "documents": {
+      "id_front": "ID Card (Front)",
+      "id_back": "ID Card (Back)",
+      "proof_of_address": "Proof of Address",
+      "selfie_with_id": "Selfie with ID"
+    },
+    "upload": "Upload Document",
+    "uploadHint": "Click to upload or drag and drop",
+    "maxSize": "Max file size: 10MB"
+  },
+  "transactions": {
+    "deposit": "Deposit",
+    "withdrawal": "Withdrawal",
+    "amount": "Amount",
+    "paymentMethod": "Payment Method",
+    "selectMethod": "Select payment method",
+    "enterAmount": "Enter amount",
+    "confirm": "Confirm Transaction",
+    "success": "Transaction successful!",
+    "limits": {
+      "daily": "Daily limit",
+      "perTransaction": "Per transaction",
+      "remaining": "Remaining"
+    }
+  },
+  "paymentMethods": {
+    "mtn_transfer": "MTN Mobile Money",
+    "orange_transfer": "Orange Money",
+    "uba_bank_transfer": "UBA Bank Transfer",
+    "afriland_bank_transfer": "Afriland Bank Transfer"
+  },
+  "register": {
+    "title": "Create Account",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email Address",
+    "phone": "Phone Number",
+    "dateOfBirth": "Date of Birth",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "submit": "Create Account",
+    "haveAccount": "Already have an account?",
+    "success": "Registration successful! Check your email to verify your account.",
+    "errors": {
+      "required": "This field is required",
+      "invalidEmail": "Please enter a valid email",
+      "invalidPhone": "Please enter a valid phone number"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "Please log in to continue.",
+    "limitExceeded": "Transaction limit exceeded",
+    "insufficientFunds": "Insufficient funds"
+  }
+}
