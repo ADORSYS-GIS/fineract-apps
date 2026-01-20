@@ -2,6 +2,7 @@ import { type GetV1MakercheckersResponse } from "@fineract-apps/fineract-api";
 import { Button } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { DataTable, FiltersBar, PageHeader } from "../../components";
 
 interface DateRange {
@@ -24,32 +25,33 @@ export function ApprovalQueueView({
 	dateRange,
 	onDateRangeChange,
 }: ApprovalQueueViewProps) {
+	const { t } = useTranslation();
 	const columns = [
 		{
 			key: "madeOnDate",
-			header: "Made On",
+			header: t("madeOn"),
 			className: "min-w-[140px]",
 			render: (value: unknown) =>
 				value ? format(new Date(value as string), "dd MMM yyyy, h:mm a") : "-",
 		},
 		{
 			key: "maker",
-			header: "Maker",
+			header: t("maker"),
 			className: "min-w-[120px] hidden md:table-cell",
 		},
 		{
 			key: "actionName",
-			header: "Action",
+			header: t("action"),
 			className: "min-w-[100px]",
 		},
 		{
 			key: "entityName",
-			header: "Entity",
+			header: t("entity"),
 			className: "min-w-[100px] hidden sm:table-cell",
 		},
 		{
 			key: "actions",
-			header: "Actions",
+			header: t("actions"),
 			className: "text-right min-w-[200px]",
 			render: (_: unknown, entry: GetV1MakercheckersResponse) => (
 				<div className="flex justify-end">
@@ -60,7 +62,7 @@ export function ApprovalQueueView({
 							auditId: entry.id,
 						}}
 					>
-						<Button>Review</Button>
+						<Button>{t("review")}</Button>
 					</Link>
 				</div>
 			),
@@ -70,8 +72,8 @@ export function ApprovalQueueView({
 	return (
 		<div className="p-6">
 			<PageHeader
-				title="Approval Queue"
-				subtitle="Review and approve pending journal entries."
+				title={t("approvalQueue")}
+				subtitle={t("reviewAndApprovePendingJournalEntries")}
 			/>
 
 			<div className="mb-6">
@@ -79,7 +81,7 @@ export function ApprovalQueueView({
 					filters={[
 						{
 							key: "fromDate",
-							label: "From Date",
+							label: t("fromDate"),
 							type: "date",
 							value: dateRange.from,
 							onChange: (value) =>
@@ -87,7 +89,7 @@ export function ApprovalQueueView({
 						},
 						{
 							key: "toDate",
-							label: "To Date",
+							label: t("toDate"),
 							type: "date",
 							value: dateRange.to,
 							onChange: (value) =>
@@ -102,7 +104,7 @@ export function ApprovalQueueView({
 					data={pendingEntries || []}
 					columns={columns}
 					isLoading={isLoading}
-					emptyMessage="No pending approvals found."
+					emptyMessage={t("noPendingApprovalsFound")}
 					className="min-w-full"
 				/>
 			</div>

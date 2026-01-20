@@ -34,7 +34,7 @@ export function JournalEntriesView({
 	const { currencyCode } = useCurrency();
 	const actions = [
 		{
-			label: t("exportCSV"),
+			label: t("exportCsv"),
 			onClick: onExportCSV,
 			icon: <Download className="h-4 w-4" />,
 		},
@@ -131,7 +131,7 @@ export function JournalEntriesView({
 							value: filters.glAccountId,
 							onChange: (value) => onFilterChange("glAccountId", value),
 							options: [
-								{ value: "", label: t("allGLAccounts") },
+								{ value: "", label: t("allGlAccounts") },
 								...glAccountOptions,
 							],
 						},
@@ -144,6 +144,7 @@ export function JournalEntriesView({
 					columns={columns}
 					isLoading={isLoading}
 					emptyMessage={t("noJournalEntriesFound")}
+					getRowKey={(entry) => String(entry.id)}
 				/>
 			</div>
 		</div>

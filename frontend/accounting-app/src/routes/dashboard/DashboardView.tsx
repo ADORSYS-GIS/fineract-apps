@@ -19,8 +19,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 			<div className="p-6">
 				<h1 className="text-2xl font-bold mb-6">{t("accountingDashboard")}</h1>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-					{[...Array(4)].map((_, i) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: Skeleton loader constant array
+					{[1, 2, 3, 4].map((i) => (
 						<Card key={i} className="p-6">
 							<div className="animate-pulse">
 								<div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
@@ -114,7 +113,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 							className="block p-4 hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
 						>
 							<p className="font-medium text-gray-900 group-hover:text-blue-600">
-								{t("viewGLAccounts")}
+								{t("viewGlAccounts")}
 							</p>
 							<p className="text-sm text-gray-600">
 								{t("browseChartOfAccounts")}
@@ -185,7 +184,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 										to="/journal-entries"
 										className="text-sm text-blue-600 hover:text-blue-700"
 									>
-										{t("viewAllEntries")}
+										{t("viewAllEntries")} →
 									</Link>
 								</div>
 							)}

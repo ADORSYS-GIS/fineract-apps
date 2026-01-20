@@ -106,11 +106,24 @@
 			"aboutMessage": "Accounting closures prevent any transactions from being posted before the closing date. This ensures period-end integrity and compliance."
 		},
 		"approvalQueue": "Approval Queue",
+		"reviewAndApprovePendingJournalEntries": "Review and approve pending journal entries.",
+		"noPendingApprovalsFound": "No pending approvals found.",
+		"madeOn": "Made On",
+		"maker": "Maker",
+		"action": "Action",
+		"entity": "Entity",
+		"review": "Review",
 		"transactionId": "Transaction ID",
 		"date": "Date",
 		"office": "Office",
 		"createdBy": "Created By",
 		"amount": "Amount",
-		"view": "View"
+		"view": "View",
+		"accountingClosuresDescription": "Accounting closures prevent any transactions from being posted before the closing date. This ensures period-end integrity and compliance.",
+		"noClosuresYet": "No Closures Yet",
+		"createYourFirstAccountingClosure": "Create your first accounting closure to lock a period",
+		"createFirstClosure": "Create First Closure",
+		"accountingClosures": "Accounting Closures",
+		"managePeriodEndAccountingClosures": "Manage period-end accounting closures"
 	}
 }

@@ -17,6 +17,7 @@ import "../../lib/api";
 import { format } from "date-fns";
 
 export interface EntryLine {
+	id: string;
 	glAccountId: string;
 	amount: string;
 }
@@ -52,11 +53,11 @@ export function useCreateEntry() {
 	});
 
 	const [debits, setDebits] = useState<EntryLine[]>([
-		{ glAccountId: "", amount: "" },
+		{ id: `debit-${Date.now()}`, glAccountId: "", amount: "" },
 	]);
 
 	const [credits, setCredits] = useState<EntryLine[]>([
-		{ glAccountId: "", amount: "" },
+		{ id: `credit-${Date.now()}`, glAccountId: "", amount: "" },
 	]);
 
 	// Fetching data for form dropdowns
@@ -136,11 +137,17 @@ export function useCreateEntry() {
 	};
 
 	const handleAddDebit = () =>
-		setDebits((prev) => [...prev, { glAccountId: "", amount: "" }]);
+		setDebits((prev) => [
+			...prev,
+			{ id: `debit-${Date.now()}`, glAccountId: "", amount: "" },
+		]);
 	const handleRemoveDebit = (index: number) =>
 		setDebits((prev) => prev.filter((_, i) => i !== index));
 	const handleAddCredit = () =>
-		setCredits((prev) => [...prev, { glAccountId: "", amount: "" }]);
+		setCredits((prev) => [
+			...prev,
+			{ id: `credit-${Date.now()}`, glAccountId: "", amount: "" },
+		]);
 	const handleRemoveCredit = (index: number) =>
 		setCredits((prev) => prev.filter((_, i) => i !== index));
 

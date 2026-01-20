@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - main
+      - hotfix/fix-accounting-app-issues
     paths:
       - 'frontend/**'
       - 'packages/**'
