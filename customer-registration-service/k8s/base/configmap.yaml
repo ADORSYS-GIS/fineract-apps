@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: customer-registration-config
+  labels:
+    app: customer-registration
+data:
+  # Keycloak configuration
+  KEYCLOAK_URL: "http://keycloak.fineract.svc.cluster.local:8080"
+  KEYCLOAK_REALM: "fineract"
+  KEYCLOAK_SELF_SERVICE_GROUP: "/self-service-customers"
+  KEYCLOAK_ISSUER_URI: "http://keycloak.fineract.svc.cluster.local:8080/realms/fineract"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak.fineract.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/certs"
+
+  # Fineract configuration
+  FINERACT_URL: "http://fineract.fineract.svc.cluster.local:8443/fineract-provider"
+  FINERACT_TENANT: "default"
+  FINERACT_DEFAULT_OFFICE_ID: "1"
+  FINERACT_DEFAULT_SAVINGS_PRODUCT_ID: "1"
+
+  # Transaction limits configuration
+  LIMITS_TIER1_DAILY_DEPOSIT: "50000"
+  LIMITS_TIER1_DAILY_WITHDRAWAL: "25000"
+  LIMITS_TIER1_MONTHLY_DEPOSIT: "500000"
+  LIMITS_TIER1_MONTHLY_WITHDRAWAL: "250000"
+  LIMITS_TIER2_DAILY_DEPOSIT: "500000"
+  LIMITS_TIER2_DAILY_WITHDRAWAL: "250000"
+  LIMITS_TIER2_MONTHLY_DEPOSIT: "5000000"
+  LIMITS_TIER2_MONTHLY_WITHDRAWAL: "2500000"
+  LIMITS_TIER3_DAILY_DEPOSIT: "5000000"
+  LIMITS_TIER3_DAILY_WITHDRAWAL: "2500000"
+  LIMITS_TIER3_MONTHLY_DEPOSIT: "50000000"
+  LIMITS_TIER3_MONTHLY_WITHDRAWAL: "25000000"
