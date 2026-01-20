@@ -15,6 +15,7 @@
   "dependencies": {
     "@fineract/ui": "workspace:*",
     "@simplewebauthn/browser": "^10.0.0",
+    "@simplewebauthn/types": "^10.0.0",
     "@tanstack/react-query": "^5.28.0",
     "@tanstack/react-router": "^1.20.0",
     "axios": "^1.6.8",

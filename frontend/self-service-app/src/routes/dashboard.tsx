@@ -1,7 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "react-oidc-context";
 import { useTranslation } from "react-i18next";
-import { ArrowDownCircle, ArrowUpCircle, Shield, TrendingUp } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Shield, TrendingUp, Loader2 } from "lucide-react";
+import { useCustomer, usePrimarySavingsAccount, useTransactions, useLimits } from "../hooks";
+import { BalanceDisplay, RecentTransactions } from "../components/dashboard";
+import { KycTierBadge, LimitsProgress } from "../components/kyc";
+import { formatCurrency } from "../lib/formatters";
+import type { Transaction } from "../types";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
@@ -9,79 +14,92 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardPage() {
   const auth = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
 
   // Extract user info from OIDC claims
   const userName = auth.user?.profile?.given_name || auth.user?.profile?.name || "User";
   const kycTier = (auth.user?.profile?.kyc_tier as number) || 1;
   const kycStatus = (auth.user?.profile?.kyc_status as string) || "pending";
+  const externalId = auth.user?.profile?.fineract_external_id as string | undefined;
 
-  // Mock data - in real app, these would come from API hooks
-  const accountBalance = 125000;
-  const availableBalance = 125000;
-  const currency = "XAF";
+  // Fetch data using hooks
+  const { data: customer, isLoading: isLoadingCustomer } = useCustomer();
+  const { data: account, isLoading: isLoadingAccount } = usePrimarySavingsAccount(customer?.id);
+  const { data: transactions = [], isLoading: isLoadingTransactions } = useTransactions(account?.id);
+  const { data: limitsData, isLoading: isLoadingLimits } = useLimits();
 
-  const tierLimits = {
-    1: { daily: 50000, perTransaction: 25000 },
-    2: { daily: 500000, perTransaction: 200000 },
+  const currency = account?.currency?.code || "XAF";
+  const accountBalance = account?.accountBalance || 0;
+  const availableBalance = account?.availableBalance || accountBalance;
+
+  const isLoading = isLoadingCustomer || isLoadingAccount;
+
+  // Map transactions to the expected format
+  const mappedTransactions: Transaction[] = transactions.slice(0, 5).map((tx) => ({
+    ...tx,
+    id: tx.id.toString(),
+    accountId: account?.id || "",
+    accountNo: account?.accountNo || "",
+  }));
+
+  const handleViewAllTransactions = () => {
+    navigate({ to: "/transactions" });
   };
 
-  const limits = tierLimits[kycTier as keyof typeof tierLimits] || tierLimits[1];
-
-  const recentTransactions = [
-    { id: 1, type: "deposit", amount: 50000, method: "MTN Mobile Money", date: "2024-01-15", status: "completed" },
-    { id: 2, type: "withdrawal", amount: 25000, method: "Orange Money", date: "2024-01-14", status: "completed" },
-    { id: 3, type: "deposit", amount: 100000, method: "UBA Bank Transfer", date: "2024-01-10", status: "completed" },
-  ];
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-CM", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto" />
+          <p className="mt-4 text-gray-600">{t("common.loading")}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {t("dashboard.welcome", { name: userName })}
-        </h1>
-        <p className="text-gray-500 mt-1">
-          {t("dashboard.tier", { tier: kycTier })} • {t(`kyc.status.${kycStatus}`)}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t("dashboard.welcome", { name: userName })}
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <KycTierBadge tier={kycTier} size="sm" />
+            <span className="text-gray-400">•</span>
+            <span className="text-sm text-gray-500">{t(`kyc.status.${kycStatus}`)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Balance Cards */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">{t("dashboard.accountBalance")}</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {formatCurrency(accountBalance)} {currency}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
+          <BalanceDisplay
+            balance={accountBalance}
+            availableBalance={availableBalance}
+            currency={currency}
+            isLoading={isLoadingAccount}
+            size="md"
+          />
         </div>
 
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">{t("dashboard.availableBalance")}</p>
-              <p className="text-3xl font-bold text-green-600 mt-1">
-                {formatCurrency(availableBalance)} {currency}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
+        {limitsData && (
+          <div className="card">
+            <h3 className="text-sm font-medium text-gray-500 mb-3">{t("dashboard.limits")}</h3>
+            <LimitsProgress
+              limits={{
+                daily: limitsData.deposit.daily,
+                perTransaction: limitsData.deposit.perTransaction,
+                monthly: limitsData.deposit.monthly,
+                remaining: limitsData.deposit.remaining,
+              }}
+              currency={currency}
+            />
           </div>
-        </div>
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -116,90 +134,40 @@ function DashboardPage() {
         </a>
       </div>
 
-      {/* Limits Card */}
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("dashboard.limits")}</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm text-gray-500">{t("transactions.limits.daily")}</p>
-            <p className="text-xl font-bold text-gray-900">
-              {formatCurrency(limits.daily)} {currency}
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm text-gray-500">{t("transactions.limits.perTransaction")}</p>
-            <p className="text-xl font-bold text-gray-900">
-              {formatCurrency(limits.perTransaction)} {currency}
-            </p>
-          </div>
-        </div>
-        {kycTier < 2 && (
-          <p className="text-sm text-blue-600 mt-4">
-            <a href="/self-service/kyc" className="hover:underline">
-              Complete verification to unlock higher limits →
-            </a>
-          </p>
-        )}
-      </div>
-
       {/* Recent Transactions */}
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {t("dashboard.recentTransactions")}
-          </h2>
-          <a
-            href="/self-service/transactions"
-            className="text-sm text-blue-600 hover:underline"
-          >
-            {t("dashboard.viewAll")}
-          </a>
-        </div>
-
-        {recentTransactions.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">{t("dashboard.noTransactions")}</p>
-        ) : (
-          <div className="space-y-3">
-            {recentTransactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      tx.type === "deposit" ? "bg-green-100" : "bg-red-100"
-                    }`}
-                  >
-                    {tx.type === "deposit" ? (
-                      <ArrowDownCircle className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <ArrowUpCircle className="w-5 h-5 text-red-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {t(`transactions.${tx.type}`)}
-                    </p>
-                    <p className="text-sm text-gray-500">{tx.method}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p
-                    className={`font-medium ${
-                      tx.type === "deposit" ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    {tx.type === "deposit" ? "+" : "-"}
-                    {formatCurrency(tx.amount)} {currency}
-                  </p>
-                  <p className="text-sm text-gray-500">{tx.date}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <RecentTransactions
+          transactions={mappedTransactions}
+          isLoading={isLoadingTransactions}
+          maxItems={5}
+          currency={currency}
+          onViewAll={handleViewAllTransactions}
+        />
       </div>
+
+      {/* Upgrade prompt */}
+      {kycTier < 2 && (
+        <div className="card bg-blue-50 border-blue-200">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Shield className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900">Unlock Higher Limits</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                Complete your verification to upgrade to Tier 2 and increase your transaction limits to{" "}
+                {formatCurrency(500000, currency)} {currency} daily.
+              </p>
+              <a
+                href="/self-service/kyc"
+                className="inline-block mt-3 text-sm font-medium text-blue-600 hover:underline"
+              >
+                Start Verification →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
