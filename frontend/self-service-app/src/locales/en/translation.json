@@ -111,5 +111,22 @@
     "unauthorized": "Please log in to continue.",
     "limitExceeded": "Transaction limit exceeded",
     "insufficientFunds": "Insufficient funds"
+  },
+  "pwa": {
+    "offline": "You're offline",
+    "backOnline": "Back online",
+    "installTitle": "Install Webank",
+    "installDescription": "Add to home screen for quick access",
+    "install": "Install",
+    "updateTitle": "Update available",
+    "updateDescription": "A new version is ready to install",
+    "updateNow": "Update now"
+  },
+  "nav": {
+    "home": "Home",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "history": "History",
+    "profile": "Profile"
   }
 }

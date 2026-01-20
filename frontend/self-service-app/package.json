@@ -10,7 +10,8 @@
     "lint": "biome lint src/",
     "format": "biome format --write src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "generate-pwa-icons": "pwa-asset-generator ./public/icons/icon-512x512.svg ./public/icons -i ./index.html -m ./public/manifest.json"
   },
   "dependencies": {
     "@fineract/ui": "workspace:*",
@@ -47,6 +48,8 @@
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.3",
     "vite": "^5.2.8",
-    "vitest": "^1.4.0"
+    "vite-plugin-pwa": "^0.19.0",
+    "vitest": "^1.4.0",
+    "workbox-window": "^7.0.0"
   }
 }

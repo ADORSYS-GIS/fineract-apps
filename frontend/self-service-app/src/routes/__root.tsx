@@ -3,6 +3,8 @@ import { useAuth } from "react-oidc-context";
 import { useTranslation } from "react-i18next";
 import { Home, Wallet, ArrowDownCircle, ArrowUpCircle, Shield, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { OfflineIndicator, InstallPrompt, UpdatePrompt } from "@/components/pwa";
+import { BottomNav } from "@/components/navigation";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -147,10 +149,18 @@ function RootLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8 pb-20 md:pb-8">
           <Outlet />
         </main>
+
+        {/* Mobile bottom navigation */}
+        <BottomNav />
       </div>
+
+      {/* PWA Components */}
+      <OfflineIndicator />
+      <InstallPrompt />
+      <UpdatePrompt />
     </div>
   );
 }

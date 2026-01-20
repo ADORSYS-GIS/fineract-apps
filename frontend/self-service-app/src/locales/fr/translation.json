@@ -109,5 +109,22 @@
     "unauthorized": "Veuillez vous connecter pour continuer.",
     "limitExceeded": "Limite de transaction dépassée",
     "insufficientFunds": "Fonds insuffisants"
+  },
+  "pwa": {
+    "offline": "Vous êtes hors ligne",
+    "backOnline": "Connexion rétablie",
+    "installTitle": "Installer Webank",
+    "installDescription": "Ajouter à l'écran d'accueil pour un accès rapide",
+    "install": "Installer",
+    "updateTitle": "Mise à jour disponible",
+    "updateDescription": "Une nouvelle version est prête à installer",
+    "updateNow": "Mettre à jour"
+  },
+  "nav": {
+    "home": "Accueil",
+    "deposit": "Dépôt",
+    "withdraw": "Retrait",
+    "history": "Historique",
+    "profile": "Profil"
   }
 }

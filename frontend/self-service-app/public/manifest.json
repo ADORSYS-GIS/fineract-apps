@@ -1,0 +1,104 @@
+{
+  "name": "Webank Self-Service Banking",
+  "short_name": "Webank",
+  "description": "Self-service banking portal for deposits, withdrawals, and account management",
+  "start_url": "/self-service/",
+  "scope": "/self-service/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1e40af",
+  "categories": ["finance", "business"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/self-service/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/self-service/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/self-service/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/self-service/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/self-service/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/self-service/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/self-service/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/self-service/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/self-service/icons/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard view on desktop"
+    },
+    {
+      "src": "/self-service/icons/screenshot-narrow.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard view on mobile"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Deposit",
+      "short_name": "Deposit",
+      "description": "Make a deposit to your account",
+      "url": "/self-service/deposit",
+      "icons": [{ "src": "/self-service/icons/icon-deposit.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Withdraw",
+      "short_name": "Withdraw",
+      "description": "Withdraw from your account",
+      "url": "/self-service/withdraw",
+      "icons": [{ "src": "/self-service/icons/icon-withdraw.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Transactions",
+      "short_name": "History",
+      "description": "View transaction history",
+      "url": "/self-service/transactions",
+      "icons": [{ "src": "/self-service/icons/icon-transactions.png", "sizes": "96x96" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
