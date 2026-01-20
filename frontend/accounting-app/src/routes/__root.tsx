@@ -67,11 +67,16 @@ function RootComponent() {
 		const base = import.meta.env.BASE_URL || "/accounting/";
 		const appBase = base.endsWith("/") ? base : `${base}/`;
 		const redirectTo = `${window.location.origin}${appBase}`;
-		// OAuth mode: Use OAuth2 Proxy global logout
-		// This terminates the Keycloak session across ALL devices
-		localStorage.clear();
-		sessionStorage.clear();
-		window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(redirectTo)}`;
+
+		if (import.meta.env.VITE_AUTH_MODE === "basic") {
+			window.location.href = appBase;
+		} else {
+			// OAuth mode: Use OAuth2 Proxy global logout
+			// This terminates the Keycloak session across ALL devices
+			localStorage.clear();
+			sessionStorage.clear();
+			window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(redirectTo)}`;
+		}
 	}
 
 	return (
