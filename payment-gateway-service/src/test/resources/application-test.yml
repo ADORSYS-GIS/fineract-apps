@@ -1,0 +1,44 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://test-issuer.example.com
+          jwk-set-uri: https://test-issuer.example.com/.well-known/jwks.json
+
+mtn:
+  momo:
+    base-url: http://localhost:9999
+    collection-subscription-key: test-collection-key
+    disbursement-subscription-key: test-disbursement-key
+    api-user-id: test-api-user
+    api-key: test-api-key
+    target-environment: sandbox
+    callback-url: http://localhost:8082/api/callbacks
+    currency: XAF
+    timeout-seconds: 5
+    fineract-payment-type-id: 1
+    gl-account-code: 123456
+
+orange:
+  money:
+    base-url: http://localhost:9998
+    token-url: http://localhost:9998/oauth/token
+    client-id: test-client-id
+    client-secret: test-client-secret
+    merchant-code: test-merchant
+    callback-url: http://localhost:8082/api/callbacks
+    return-url: http://localhost:3000/success
+    cancel-url: http://localhost:3000/cancel
+    currency: XAF
+    timeout-seconds: 5
+    fineract-payment-type-id: 2
+    gl-account-code: 654321
+
+fineract:
+  url: http://localhost:8443/fineract-provider
+  tenant: default
+  username: test-user
+  password: test-password
+  timeout-seconds: 5
+  default-savings-product-id: 1
