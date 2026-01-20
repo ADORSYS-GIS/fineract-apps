@@ -1,5 +1,6 @@
 import { Button, Card } from "@fineract-apps/ui";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { UserDetailsView } from "./UserDetails.view";
 import { useUserDetails } from "./useUserDetails";
 
@@ -16,6 +17,7 @@ export const UserDetails = () => {
 		syncUser,
 	} = useUserDetails();
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 
 	if (isLoading) {
 		return <div>Loading...</div>;
@@ -30,9 +32,11 @@ export const UserDetails = () => {
 			<div className="flex flex-col items-center justify-center h-full">
 				<Card className="w-full max-w-md">
 					<div className="p-6 text-center">
-						<h2 className="text-xl font-semibold mb-4">User Not Synced</h2>
-						<p className="mb-6">This user has not been synced to Keycloak.</p>
-						<Button onClick={() => syncUser()}>Complete User Creation</Button>
+						<h2 className="text-xl font-semibold mb-4">
+							{t("userSync.title")}
+						</h2>
+						<p className="mb-6">{t("userSync.message")}</p>
+						<Button onClick={() => syncUser()}>{t("userSync.action")}</Button>
 					</div>
 				</Card>
 			</div>
