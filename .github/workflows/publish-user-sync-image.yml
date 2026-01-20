@@ -3,7 +3,6 @@ name: Publish User Sync Service Docker Image
 on:
   push:
     branches:
-      - logout
       - develop
       - main
     paths:

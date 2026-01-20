@@ -3,7 +3,6 @@ name: Publish Frontend Docker Images
 on:
   push:
     branches:
-      - logout           
       - develop
       - main
     paths:
