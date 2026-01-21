@@ -20,6 +20,9 @@ import java.util.Map;
 
 /**
  * Client for Fineract API to create savings transactions.
+ *
+ * Supports both OAuth2 (default) and Basic Auth authentication,
+ * controlled by fineract.auth-type configuration property.
  */
 @Slf4j
 @Component
@@ -27,6 +30,7 @@ import java.util.Map;
 public class FineractClient {
 
     private final FineractConfig config;
+    private final FineractTokenProvider tokenProvider;
 
     @Qualifier("fineractWebClient")
     private final WebClient webClient;
@@ -57,7 +61,7 @@ public class FineractClient {
         try {
             Map<String, Object> response = webClient.post()
                 .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}/transactions?command=deposit", accountId)
-                .header(HttpHeaders.AUTHORIZATION, getBasicAuth())
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .retrieve()
@@ -105,7 +109,7 @@ public class FineractClient {
         try {
             Map<String, Object> response = webClient.post()
                 .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}/transactions?command=withdrawal", accountId)
-                .header(HttpHeaders.AUTHORIZATION, getBasicAuth())
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .retrieve()
@@ -136,7 +140,7 @@ public class FineractClient {
         try {
             return webClient.get()
                 .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}", accountId)
-                .header(HttpHeaders.AUTHORIZATION, getBasicAuth())
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                 .retrieve()
                 .bodyToMono(Map.class)
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
@@ -155,7 +159,7 @@ public class FineractClient {
         try {
             Map<String, Object> response = webClient.get()
                 .uri("/fineract-provider/api/v1/clients?externalId={externalId}", externalId)
-                .header(HttpHeaders.AUTHORIZATION, getBasicAuth())
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                 .retrieve()
                 .bodyToMono(Map.class)
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
@@ -194,6 +198,17 @@ public class FineractClient {
                 externalId, accountId, e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Get authorization header based on configured auth type.
+     * Uses OAuth2 Bearer token if auth-type=oauth, otherwise Basic Auth.
+     */
+    private String getAuthHeader() {
+        if (config.isOAuthEnabled()) {
+            return "Bearer " + tokenProvider.getAccessToken();
+        }
+        return getBasicAuth();
     }
 
     private String getBasicAuth() {

@@ -49,6 +49,13 @@ orange:
 fineract:
   url: ${FINERACT_URL:http://localhost:8443/fineract-provider}
   tenant: ${FINERACT_TENANT:default}
+  # Authentication type: oauth (default) or basic
+  auth-type: ${FINERACT_AUTH_TYPE:oauth}
+  # OAuth settings (used when auth-type=oauth)
+  token-url: ${FINERACT_TOKEN_URL:http://keycloak:8080/realms/fineract/protocol/openid-connect/token}
+  client-id: ${FINERACT_CLIENT_ID:fineract-service}
+  client-secret: ${FINERACT_CLIENT_SECRET:}
+  # Basic auth settings (used when auth-type=basic)
   username: ${FINERACT_USERNAME:mifos}
   password: ${FINERACT_PASSWORD:password}
   timeout-seconds: 30
@@ -102,6 +109,7 @@ spring:
 
 fineract:
   url: http://fineract.fineract.svc.cluster.local:8443/fineract-provider
+  token-url: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/token
 
 mtn:
   momo:

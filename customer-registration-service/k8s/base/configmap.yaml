@@ -15,6 +15,8 @@ data:
   # Fineract configuration
   FINERACT_URL: "http://fineract.fineract.svc.cluster.local:8443/fineract-provider"
   FINERACT_TENANT: "default"
+  FINERACT_AUTH_TYPE: "oauth"
+  FINERACT_TOKEN_URL: "http://keycloak.fineract.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/token"
   FINERACT_DEFAULT_OFFICE_ID: "1"
   FINERACT_DEFAULT_SAVINGS_PRODUCT_ID: "1"
 
