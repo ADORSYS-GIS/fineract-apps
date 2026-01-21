@@ -25,6 +25,8 @@ function RootLayout() {
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
+	const authMode = import.meta.env.VITE_AUTH_MODE || "basic";
+
 	function onLogout() {
 		const base = import.meta.env.BASE_URL || "/cashier/";
 		const appBase = base.endsWith("/") ? base : `${base}/`;
@@ -40,6 +42,8 @@ function RootLayout() {
 			window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(redirectTo)}`;
 		}
 	}
+
+	// Fineract authentication (basic auth mode)
 	const { data: authData } = useQuery({
 		queryKey: ["authentication"],
 		queryFn: () =>
@@ -50,12 +54,41 @@ function RootLayout() {
 				},
 			}),
 		staleTime: Infinity,
+		enabled: authMode === "basic",
 	});
+
+	// Keycloak userinfo (OAuth mode)
+	const { data: keycloakUser } = useQuery<{
+		user: string;
+		email: string;
+		roles: string;
+	}>({
+		queryKey: ["keycloak-userinfo"],
+		queryFn: async () => {
+			const baseUrl = import.meta.env.BASE_URL || "/";
+			const apiPath = `${baseUrl}api/userinfo`.replace("//", "/");
+			const response = await fetch(apiPath);
+			if (!response.ok) {
+				throw new Error("Failed to fetch user info");
+			}
+			return response.json();
+		},
+		staleTime: Infinity,
+		retry: 1,
+		enabled: authMode === "oauth",
+	});
+
+	// Determine display name based on auth mode
+	const displayName =
+		authMode === "oauth" ? keycloakUser?.user : authData?.username;
+
 	useEffect(() => {
 		if (authData) {
 			sessionStorage.setItem("auth", JSON.stringify(authData));
+		} else if (keycloakUser) {
+			sessionStorage.setItem("auth", JSON.stringify(keycloakUser));
 		}
-	}, [authData]);
+	}, [authData, keycloakUser]);
 
 	const { t } = useTranslation();
 
@@ -78,7 +111,7 @@ function RootLayout() {
 				<Navbar
 					logo={
 						<h1 className="text-lg font-bold">
-							{t("welcome")}, {authData?.staffDisplayName}
+							{t("welcome")}, {displayName || "User"}
 						</h1>
 					}
 					links={null}

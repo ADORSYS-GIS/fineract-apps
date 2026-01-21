@@ -47,9 +47,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 								{stats?.glAccountsCount || 0}
 							</p>
 						</div>
-						<div className="p-3 bg-blue-50 rounded-lg">
-							<BookOpen className="h-8 w-8 text-blue-600" />
-						</div>
+						<BookOpen className="h-8 w-8 text-gray-800" />
 					</div>
 				</div>
 
@@ -63,9 +61,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 								{stats?.journalEntriesToday || 0}
 							</p>
 						</div>
-						<div className="p-3 bg-green-50 rounded-lg">
-							<FileText className="h-8 w-8 text-green-600" />
-						</div>
+						<FileText className="h-8 w-8 text-gray-800" />
 					</div>
 				</div>
 
@@ -79,9 +75,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 								{stats?.pendingApprovals || 0}
 							</p>
 						</div>
-						<div className="p-3 bg-orange-50 rounded-lg">
-							<Lock className="h-8 w-8 text-orange-600" />
-						</div>
+						<Lock className="h-8 w-8 text-gray-800" />
 					</div>
 				</div>
 
@@ -95,9 +89,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 								{currencyCode} {stats?.totalBalance?.toLocaleString() || "0"}
 							</p>
 						</div>
-						<div className="p-3 bg-purple-50 rounded-lg">
-							<TrendingUp className="h-8 w-8 text-purple-600" />
-						</div>
+						<TrendingUp className="h-8 w-8 text-gray-800" />
 					</div>
 				</div>
 			</div>
@@ -156,9 +148,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 									className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
 								>
 									<div className="flex items-center gap-3">
-										<div className="p-2 bg-blue-50 rounded-lg">
-											<FileText className="h-4 w-4 text-blue-600" />
-										</div>
+										<FileText className="h-4 w-4 text-gray-800" />
 										<div>
 											<p className="text-sm font-medium text-gray-900">
 												{activity.title}
