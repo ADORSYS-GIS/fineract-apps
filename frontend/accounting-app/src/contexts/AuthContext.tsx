@@ -7,12 +7,11 @@ import { createContext, useContext, useEffect } from "react";
 import "../lib/api";
 
 export type UserRole =
-	| "Super user"
-	| "Accountant"
-	| "Supervisor Accountant"
-	| "Manager"
-	| "Viewer";
-
+	| "super-user"
+	| "accountant"
+	| "supervisor-accountant"
+	| "manager"
+	| "viewer";
 // Keycloak user info from /api/userinfo endpoint
 // This data comes from OAuth2 Proxy headers passed through nginx ingress
 interface KeycloakUserInfo {
@@ -46,11 +45,11 @@ function parseKeycloakRoles(rolesString: string): UserRole[] {
 		.map((role) => role.trim())
 		.filter((role): role is UserRole =>
 			[
-				"Super user",
-				"Accountant",
-				"Supervisor Accountant",
-				"Manager",
-				"Viewer",
+				"super-user",
+				"accountant",
+				"supervisor-accountant",
+				"manager",
+				"viewer",
 			].includes(role),
 		);
 }

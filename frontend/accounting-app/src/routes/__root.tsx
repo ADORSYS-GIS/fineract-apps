@@ -36,9 +36,9 @@ function RootComponent() {
 
 	// Check authorization using Keycloak roles
 	const authorizedRoles: UserRole[] = [
-		"Accountant",
-		"Supervisor Accountant",
-		"Super user",
+		"accountant",
+		"supervisor-accountant",
+		"super-user",
 	];
 
 	if (!hasAnyRole(authorizedRoles)) {
@@ -54,10 +54,10 @@ function RootComponent() {
 	}
 
 	const filteredMenu = menuAccounting.filter((item) => {
-		if (userRole === "Accountant") {
+		if (userRole === "accountant") {
 			return item.name !== "approval_queue";
 		}
-		if (userRole === "Supervisor Accountant") {
+		if (userRole === "supervisor-accountant") {
 			return item.name !== "create_entry";
 		}
 		return true;

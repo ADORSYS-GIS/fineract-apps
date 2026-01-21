@@ -44,10 +44,10 @@ export interface AccountingPermissions {
 export function usePermissions(): AccountingPermissions {
 	const { hasRole, hasPermission } = useAuth();
 
-	const isSupueruser = hasRole("Super user");
-	const isAccountant = hasRole("Accountant");
-	const isManager = hasRole("Manager");
-	const isViewer = hasRole("Viewer");
+	const isSupueruser = hasRole("super-user");
+	const isAccountant = hasRole("accountant");
+	const isManager = hasRole("manager");
+	const isViewer = hasRole("viewer");
 
 	// Super user has all permissions
 	const canCreateGLAccount = isSupueruser || hasPermission("CREATE_GLACCOUNT");
