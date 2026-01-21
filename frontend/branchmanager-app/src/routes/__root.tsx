@@ -28,10 +28,11 @@ function onLogout() {
 		// For basic auth, just redirect to the base, as there's no real logout endpoint
 		window.location.href = appBase;
 	} else {
-		// The existing logic is for OAuth
-		globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(
-			redirectTo,
-		)}`;
+		// OAuth mode: Use OAuth2 Proxy global logout
+		// This terminates the Keycloak session across ALL devices
+		localStorage.clear();
+		sessionStorage.clear();
+		globalThis.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(redirectTo)}`;
 	}
 }
 
