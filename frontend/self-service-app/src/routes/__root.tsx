@@ -1,7 +1,7 @@
 import { createRootRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "react-oidc-context";
 import { useTranslation } from "react-i18next";
-import { Home, Wallet, ArrowDownCircle, ArrowUpCircle, Shield, LogOut, Menu, X } from "lucide-react";
+import { Home, Wallet, ArrowDownCircle, ArrowUpCircle, Shield, LogOut, Menu, X, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { OfflineIndicator, InstallPrompt, UpdatePrompt } from "@/components/pwa";
 import { BottomNav } from "@/components/navigation";
@@ -45,6 +45,7 @@ function RootLayout() {
 
   const menuItems = [
     { name: t("nav.dashboard"), path: "/dashboard", icon: Home },
+    { name: t("nav.account", { defaultValue: "Account" }), path: "/account", icon: CreditCard },
     { name: t("nav.deposit"), path: "/deposit", icon: ArrowDownCircle },
     { name: t("nav.withdraw"), path: "/withdraw", icon: ArrowUpCircle },
     { name: t("nav.transactions"), path: "/transactions", icon: Wallet },

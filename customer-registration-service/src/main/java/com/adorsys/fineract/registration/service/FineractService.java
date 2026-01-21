@@ -5,7 +5,13 @@ import com.adorsys.fineract.registration.dto.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
 import java.time.LocalDate;
@@ -137,14 +143,57 @@ public class FineractService {
 
     /**
      * Upload document for KYC.
+     *
+     * @param clientId    Fineract client ID
+     * @param name        Document name
+     * @param description Document description
+     * @param content     File content as byte array
+     * @param contentType MIME type of the file
+     * @param fileName    Original file name
+     * @return Fineract document ID
      */
-    public Long uploadDocument(Long clientId, String name, String description, byte[] content, String contentType) {
-        log.info("Uploading document for client {}: {}", clientId, name);
+    @SuppressWarnings("unchecked")
+    public Long uploadDocument(Long clientId, String name, String description, byte[] content, String contentType, String fileName) {
+        log.info("Uploading document for client {}: {} ({})", clientId, name, contentType);
 
-        // TODO: Implement multipart file upload to Fineract document API
-        // POST /fineract-provider/api/v1/clients/{clientId}/documents
+        try {
+            // Create a ByteArrayResource that provides a filename
+            ByteArrayResource fileResource = new ByteArrayResource(content) {
+                @Override
+                public String getFilename() {
+                    return fileName;
+                }
+            };
 
-        throw new UnsupportedOperationException("Document upload not yet implemented");
+            // Build multipart body
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("name", name);
+            body.add("description", description);
+
+            // Add file with proper headers
+            HttpHeaders fileHeaders = new HttpHeaders();
+            fileHeaders.setContentType(MediaType.parseMediaType(contentType));
+            HttpEntity<ByteArrayResource> filePart = new HttpEntity<>(fileResource, fileHeaders);
+            body.add("file", filePart);
+
+            Map<String, Object> response = fineractRestClient.post()
+                    .uri("/fineract-provider/api/v1/clients/{clientId}/documents", clientId)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+
+            if (response != null && response.containsKey("resourceId")) {
+                Long documentId = ((Number) response.get("resourceId")).longValue();
+                log.info("Uploaded document with ID: {} for client: {}", documentId, clientId);
+                return documentId;
+            }
+
+            throw new RegistrationException("Failed to upload document: invalid response");
+        } catch (Exception e) {
+            log.error("Failed to upload document for client {}: {}", clientId, e.getMessage(), e);
+            throw new RegistrationException("Failed to upload document: " + e.getMessage(), e);
+        }
     }
 
     /**

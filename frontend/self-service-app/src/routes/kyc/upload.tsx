@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useState, useRef } from "react";
-import { Upload, X, Camera, FileText, Check, ArrowLeft } from "lucide-react";
+import { Upload, X, Camera, FileText, Check, ArrowLeft, Loader2 } from "lucide-react";
+import { useKycUploadAll } from "../../hooks";
 
 export const Route = createFileRoute("/kyc/upload")({
   component: KycUploadPage,
@@ -23,8 +24,10 @@ function KycUploadPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeUpload, setActiveUpload] = useState<DocumentType | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, { progress: number; status: "uploading" | "success" | "error" }>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const kycUploadMutation = useKycUploadAll();
 
   const documentTypes: { type: DocumentType; icon: React.ReactNode }[] = [
     { type: "id_front", icon: <FileText className="w-6 h-6" /> },
@@ -92,19 +95,28 @@ function KycUploadPage() {
 
     setIsSubmitting(true);
     setError(null);
+    setUploadProgress({});
 
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      uploadedFiles.forEach((file) => {
-        formData.append(file.type, file.file);
+      const documents = uploadedFiles.map((f) => ({
+        type: f.type,
+        file: f.file,
+      }));
+
+      await kycUploadMutation.mutateAsync({
+        documents,
+        onDocumentProgress: (type, progress, status) => {
+          setUploadProgress((prev) => ({
+            ...prev,
+            [type]: { progress, status },
+          }));
+        },
       });
 
-      // In a real app, this would call the KYC upload API
-      await new Promise((resolve) => setTimeout(resolve, 2000));
       setSuccess(true);
     } catch (err) {
-      setError(t("errors.generic"));
+      const errorMessage = err instanceof Error ? err.message : t("errors.generic");
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -179,12 +191,39 @@ function KycUploadPage() {
                         alt={type}
                         className="w-full h-48 object-cover rounded-lg"
                       />
-                      <button
-                        onClick={() => removeFile(type)}
-                        className="absolute top-2 right-2 p-1 bg-red-100 rounded-full text-red-600 hover:bg-red-200"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
+                      {!isSubmitting && (
+                        <button
+                          onClick={() => removeFile(type)}
+                          className="absolute top-2 right-2 p-1 bg-red-100 rounded-full text-red-600 hover:bg-red-200"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      )}
+                      {/* Upload progress overlay */}
+                      {uploadProgress[type] && (
+                        <div className="absolute inset-0 bg-black/50 rounded-lg flex flex-col items-center justify-center">
+                          {uploadProgress[type].status === "uploading" && (
+                            <>
+                              <Loader2 className="w-8 h-8 text-white animate-spin mb-2" />
+                              <div className="w-3/4 bg-white/30 rounded-full h-2">
+                                <div
+                                  className="bg-white h-2 rounded-full transition-all"
+                                  style={{ width: `${uploadProgress[type].progress}%` }}
+                                />
+                              </div>
+                              <span className="text-white text-sm mt-2">
+                                {uploadProgress[type].progress}%
+                              </span>
+                            </>
+                          )}
+                          {uploadProgress[type].status === "success" && (
+                            <Check className="w-12 h-12 text-green-400" />
+                          )}
+                          {uploadProgress[type].status === "error" && (
+                            <X className="w-12 h-12 text-red-400" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <button
