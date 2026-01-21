@@ -21,8 +21,7 @@ export const useAuth = () => {
 	const { data: keycloakUser, isLoading: isKeycloakUserLoading } = useQuery({
 		queryKey: ["keycloak-userinfo"],
 		queryFn: async () => {
-			const baseUrl = import.meta.env.BASE_URL || "/";
-			const apiPath = `${baseUrl}api/userinfo`.replace("//", "/");
+			const apiPath = "/api/userinfo";
 			const response = await fetch(apiPath);
 			if (!response.ok) {
 				throw new Error("Failed to fetch user info");

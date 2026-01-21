@@ -38,21 +38,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  * Parse roles from Keycloak/OAuth2 Proxy response
  * The roles come as a comma-separated string from the X-Auth-Request-Groups header
  */
+// Helper to normalize roles to the expected format (case-insensitive)
+function normalizeRole(role: string): UserRole | undefined {
+	const lowerRole = role.trim().toLowerCase();
+	switch (lowerRole) {
+		case "super user":
+			return "Super user";
+		case "accountant":
+			return "Accountant";
+		case "supervisor accountant":
+			return "Supervisor Accountant";
+		case "manager":
+			return "Manager";
+		case "viewer":
+			return "Viewer";
+		default:
+			return undefined;
+	}
+}
+
+/**
+ * Parse roles from Keycloak/OAuth2 Proxy response
+ * The roles come as a comma-separated string from the X-Auth-Request-Groups header
+ */
 function parseKeycloakRoles(rolesString: string): UserRole[] {
 	if (!rolesString) return [];
 
 	return rolesString
 		.split(",")
-		.map((role) => role.trim())
-		.filter((role): role is UserRole =>
-			[
-				"Super user",
-				"Accountant",
-				"Supervisor Accountant",
-				"Manager",
-				"Viewer",
-			].includes(role),
-		);
+		.map((role) => normalizeRole(role))
+		.filter((role): role is UserRole => role !== undefined);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -62,8 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		useQuery<KeycloakUserInfo>({
 			queryKey: ["keycloak-userinfo"],
 			queryFn: async () => {
-				const baseUrl = import.meta.env.BASE_URL || "/";
-				const apiPath = `${baseUrl}api/userinfo`.replace("//", "/");
+				const apiPath = "/api/userinfo";
 				const response = await fetch(apiPath);
 				if (!response.ok) {
 					throw new Error("Failed to fetch user info");
@@ -102,8 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		authMode === "oauth"
 			? parseKeycloakRoles(keycloakUser?.roles || "")
 			: (fineractUser?.roles || [])
-					.map((role) => role.name as UserRole)
-					.filter(Boolean);
+					.map((role) => normalizeRole(role.name || ""))
+					.filter((role): role is UserRole => role !== undefined);
 
 	const permissions: string[] = fineractUser?.permissions || [];
 
