@@ -224,18 +224,22 @@ def sync_user():
                 "Super User": "head-office",
                 "superuser": "head-office",
                 "Admin": "head-office",
+                "admin": "head-office",
                 
                 "Branch Manager": "branch-managers",
                 "branch manager": "branch-managers",
+                "branch-manager": "branch-managers",
 
                 "Loan Officer": "loan-officers",
                 "loan officer": "loan-officers",
+                "account-manager": "loan-officers",
 
-                "Cashier": "cashiers",
-                "cashier": "cashiers",
+                "Cashier": "tellers",
+                "cashier": "tellers",
 
-                "Accountant": "accountants",
-                "accountant": "accountants",
+                "Accountant": "head-office",
+                "accountant": "head-office",
+                "supervisor-accountant": "head-office",
             }
             group_name = group_map.get(keycloak_role)
 
