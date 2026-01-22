@@ -105,12 +105,25 @@
 			"aboutTitle": "À propos des clôtures comptables",
 			"aboutMessage": "Les clôtures comptables empêchent toute transaction d'être enregistrée avant la date de clôture. Cela garantit l'intégrité et la conformité de fin de période."
 		},
+		"noClosuresYet": "Aucune clôture pour le moment",
+		"createYourFirstAccountingClosure": "Créez votre première clôture comptable pour verrouiller une période",
+		"createFirstClosure": "Créer la première clôture",
+		"accountingClosures": "Clôtures Comptables",
+		"managePeriodEndAccountingClosures": "Gérer les clôtures comptables de fin de période",
 		"approvalQueue": "File d'Approbation",
+		"reviewAndApprovePendingJournalEntries": "Réviser et approuver les écritures de journal en attente.",
+		"noPendingApprovalsFound": "Aucune approbation en attente trouvée.",
+		"madeOn": "Fait le",
+		"maker": "Auteur",
+		"action": "Action",
+		"entity": "Entité",
+		"review": "Réviser",
 		"transactionId": "ID de Transaction",
 		"date": "Date",
 		"office": "Bureau",
 		"createdBy": "Créé Par",
 		"amount": "Montant",
-		"view": "Voir"
+		"view": "Voir",
+		"accountingClosuresDescription": "Les clôtures comptables empêchent toute transaction d'être enregistrée avant la date de clôture. Cela garantit l'intégrité et la conformité de fin de période."
 	}
 }

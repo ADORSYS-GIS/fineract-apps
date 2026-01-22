@@ -16,12 +16,9 @@ export function GLAccountsContainer() {
 		onPageChange,
 		onExportCSV,
 		onCreateAccount,
-		onEditAccount,
-		onDeleteAccount,
 	} = useGLAccounts();
 
-	const { canCreateGLAccount, canEditGLAccount, canDeleteGLAccount } =
-		usePermissions();
+	const { canCreateGLAccount } = usePermissions();
 
 	return (
 		<GLAccountsView
@@ -33,15 +30,11 @@ export function GLAccountsContainer() {
 			totalPages={totalPages}
 			totalCount={totalCount}
 			canCreateAccount={canCreateGLAccount}
-			canEditAccount={canEditGLAccount}
-			canDeleteAccount={canDeleteGLAccount}
 			onSearch={onSearch}
 			onFilterByType={onFilterByType}
 			onPageChange={onPageChange}
 			onExportCSV={onExportCSV}
 			onCreateAccount={onCreateAccount}
-			onEditAccount={onEditAccount}
-			onDeleteAccount={onDeleteAccount}
 		/>
 	);
 }
