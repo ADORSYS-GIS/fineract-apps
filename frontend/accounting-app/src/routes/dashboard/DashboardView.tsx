@@ -19,8 +19,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 			<div className="p-6">
 				<h1 className="text-2xl font-bold mb-6">{t("accountingDashboard")}</h1>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-					{[...Array(4)].map((_, i) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: Skeleton loader constant array
+					{[1, 2, 3, 4].map((i) => (
 						<Card key={i} className="p-6">
 							<div className="animate-pulse">
 								<div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
@@ -48,9 +47,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 								{stats?.glAccountsCount || 0}
 							</p>
 						</div>
-						<div className="p-3 bg-blue-50 rounded-lg">
-							<BookOpen className="h-8 w-8 text-blue-600" />
-						</div>
+						<BookOpen className="h-8 w-8 text-gray-800" />
 					</div>
 				</div>
 
@@ -64,9 +61,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 								{stats?.journalEntriesToday || 0}
 							</p>
 						</div>
-						<div className="p-3 bg-green-50 rounded-lg">
-							<FileText className="h-8 w-8 text-green-600" />
-						</div>
+						<FileText className="h-8 w-8 text-gray-800" />
 					</div>
 				</div>
 
@@ -80,9 +75,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 								{stats?.pendingApprovals || 0}
 							</p>
 						</div>
-						<div className="p-3 bg-orange-50 rounded-lg">
-							<Lock className="h-8 w-8 text-orange-600" />
-						</div>
+						<Lock className="h-8 w-8 text-gray-800" />
 					</div>
 				</div>
 
@@ -96,9 +89,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 								{currencyCode} {stats?.totalBalance?.toLocaleString() || "0"}
 							</p>
 						</div>
-						<div className="p-3 bg-purple-50 rounded-lg">
-							<TrendingUp className="h-8 w-8 text-purple-600" />
-						</div>
+						<TrendingUp className="h-8 w-8 text-gray-800" />
 					</div>
 				</div>
 			</div>
@@ -114,7 +105,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 							className="block p-4 hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
 						>
 							<p className="font-medium text-gray-900 group-hover:text-blue-600">
-								{t("viewGLAccounts")}
+								{t("viewGlAccounts")}
 							</p>
 							<p className="text-sm text-gray-600">
 								{t("browseChartOfAccounts")}
@@ -157,9 +148,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 									className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
 								>
 									<div className="flex items-center gap-3">
-										<div className="p-2 bg-blue-50 rounded-lg">
-											<FileText className="h-4 w-4 text-blue-600" />
-										</div>
+										<FileText className="h-4 w-4 text-gray-800" />
 										<div>
 											<p className="text-sm font-medium text-gray-900">
 												{activity.title}
@@ -185,7 +174,7 @@ export function DashboardView({ stats, isLoading }: DashboardViewProps) {
 										to="/journal-entries"
 										className="text-sm text-blue-600 hover:text-blue-700"
 									>
-										{t("viewAllEntries")}
+										{t("viewAllEntries")} →
 									</Link>
 								</div>
 							)}
