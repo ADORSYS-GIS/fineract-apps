@@ -5,7 +5,6 @@ on:
     branches:
       - develop
       - main
-      - hotfix/fix-accounting-app-issues
     paths:
       - 'frontend/**'
       - 'packages/**'
@@ -89,7 +88,6 @@ jobs:
             TAGS="main,$SHORT_SHA,$LONG_SHA"
           else
             SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
-            echo "safe_branch=$SAFE_BRANCH" >> $GITHUB_OUTPUT
             TAGS="$SAFE_BRANCH,$SHORT_SHA"
           fi
 
@@ -104,7 +102,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.short_sha }}
-            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.safe_branch || steps.meta.outputs.branch }}
+            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app:${{ steps.meta.outputs.branch }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ steps.meta.outputs.long_sha }}
