@@ -123,10 +123,10 @@ export const useCreateUser = () => {
 		});
 
 		const primaryRole = roles.find(
-			(r) => r.id === creationStep.newUser!.roles[0],
+			(r) => r.id === Number(creationStep.newUser!.roles[0]),
 		);
 		const officeName = office.find(
-			(o) => o.id === creationStep.newUser!.officeId,
+			(o) => o.id === Number(creationStep.newUser!.officeId),
 		)?.name;
 
 		const payload: SyncUserPayload = {
