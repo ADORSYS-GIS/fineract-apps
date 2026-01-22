@@ -10,16 +10,18 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
-
 import { useTranslation } from "react-i18next";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { configureApi } from "@/services/api";
 
 export interface MyRouterContext {
 	queryClient: QueryClient;
 }
 
+import { type UserRole, useAuth } from "@/contexts/AuthContext";
+
 function RootComponent() {
-	const { user, keycloakUser, roles, isLoading, hasAnyRole } = useAuth();
+	configureApi();
+	const { user, roles, isLoading, hasAnyRole } = useAuth();
 	const navigate = useNavigate();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
@@ -33,13 +35,13 @@ function RootComponent() {
 	}
 
 	// Check authorization using Keycloak roles
-	const authorizedRoles = [
-		"Accountant",
-		"Supervisor Accountant",
-		"Super user",
-	] as const;
+	const authorizedRoles: UserRole[] = [
+		"accountant",
+		"supervisor-accountant",
+		"super-user",
+	];
 
-	if (!hasAnyRole([...authorizedRoles])) {
+	if (!hasAnyRole(authorizedRoles)) {
 		return (
 			<div className="flex items-center justify-center h-screen">
 				<h1 className="text-2xl font-bold">Unauthorized Access</h1>
@@ -52,10 +54,10 @@ function RootComponent() {
 	}
 
 	const filteredMenu = menuAccounting.filter((item) => {
-		if (userRole === "Accountant") {
+		if (userRole === "accountant") {
 			return item.name !== "approval_queue";
 		}
-		if (userRole === "Supervisor Accountant") {
+		if (userRole === "supervisor-accountant") {
 			return item.name !== "create_entry";
 		}
 		return true;
@@ -65,9 +67,16 @@ function RootComponent() {
 		const base = import.meta.env.BASE_URL || "/accounting/";
 		const appBase = base.endsWith("/") ? base : `${base}/`;
 		const redirectTo = `${window.location.origin}${appBase}`;
-		window.location.href = `${appBase}callback?logout=${encodeURIComponent(
-			redirectTo,
-		)}`;
+
+		if (import.meta.env.VITE_AUTH_MODE === "basic") {
+			window.location.href = appBase;
+		} else {
+			// OAuth mode: Use OAuth2 Proxy global logout
+			// This terminates the Keycloak session across ALL devices
+			localStorage.clear();
+			sessionStorage.clear();
+			window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(redirectTo)}`;
+		}
 	}
 
 	return (
@@ -77,7 +86,7 @@ function RootComponent() {
 					logo={<h1 className="text-lg font-bold">Accounting App</h1>}
 					menuItems={filteredMenu}
 					activePath={currentPath}
-					onNavigate={(to) => navigate({ to })}
+					onNavigate={(to: string) => navigate({ to })}
 					onLogout={onLogout}
 				/>
 			}
@@ -85,8 +94,7 @@ function RootComponent() {
 				<Navbar
 					logo={
 						<h1 className="text-lg font-bold">
-							{t("welcome")},{" "}
-							{user?.staffDisplayName || keycloakUser?.user || "User"}
+							{t("welcome")}, {user?.user || "User"}
 						</h1>
 					}
 					links={null}
@@ -108,6 +116,8 @@ function RootComponent() {
 		</AppLayout>
 	);
 }
+
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => (

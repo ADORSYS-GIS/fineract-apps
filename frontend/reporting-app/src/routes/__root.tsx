@@ -17,9 +17,16 @@ function onLogout() {
 	const base = import.meta.env.BASE_URL ?? "/reporting/";
 	const appBase = base.endsWith("/") ? base : `${base}/`;
 	const redirectTo = `${globalThis.location.origin}${appBase}`;
-	globalThis.location.href = `${appBase}callback?logout=${encodeURIComponent(
-		redirectTo,
-	)}`;
+	if (import.meta.env.VITE_AUTH_MODE === "basic") {
+		// For basic auth, just redirect to the base, as there's no real logout endpoint
+		window.location.href = appBase;
+	} else {
+		// OAuth mode: Use OAuth2 Proxy global logout
+		// This terminates the Keycloak session across ALL devices
+		localStorage.clear();
+		sessionStorage.clear();
+		globalThis.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(redirectTo)}`;
+	}
 }
 
 function RootLayout() {
@@ -27,6 +34,9 @@ function RootLayout() {
 	const { t } = useTranslation();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
+	const authMode = import.meta.env.VITE_AUTH_MODE || "basic";
+
+	// Fineract authentication (basic auth mode)
 	const { data: authData } = useQuery({
 		queryKey: ["authentication"],
 		queryFn: () =>
@@ -37,12 +47,41 @@ function RootLayout() {
 				},
 			}),
 		staleTime: Infinity,
+		enabled: authMode === "basic",
 	});
+
+	// Keycloak userinfo (OAuth mode)
+	const { data: keycloakUser } = useQuery<{
+		user: string;
+		email: string;
+		roles: string;
+	}>({
+		queryKey: ["keycloak-userinfo"],
+		queryFn: async () => {
+			const baseUrl = import.meta.env.BASE_URL || "/";
+			const apiPath = `${baseUrl}api/userinfo`.replace("//", "/");
+			const response = await fetch(apiPath);
+			if (!response.ok) {
+				throw new Error("Failed to fetch user info");
+			}
+			return response.json();
+		},
+		staleTime: Infinity,
+		retry: 1,
+		enabled: authMode === "oauth",
+	});
+
+	// Determine display name based on auth mode
+	const displayName =
+		authMode === "oauth" ? keycloakUser?.user : authData?.username;
+
 	useEffect(() => {
 		if (authData) {
 			sessionStorage.setItem("auth", JSON.stringify(authData));
+		} else if (keycloakUser) {
+			sessionStorage.setItem("auth", JSON.stringify(keycloakUser));
 		}
-	}, [authData]);
+	}, [authData, keycloakUser]);
 	return (
 		<AppLayout
 			sidebar={
@@ -58,7 +97,7 @@ function RootLayout() {
 				<Navbar
 					logo={
 						<h1 className="text-lg font-bold">
-							{t("welcome")}, {authData?.staffDisplayName}
+							{t("welcome")}, {displayName || "User"}
 						</h1>
 					}
 					links={null}

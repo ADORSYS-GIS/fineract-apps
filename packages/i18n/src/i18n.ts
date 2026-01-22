@@ -25,6 +25,8 @@ i18n
 		debug: import.meta.env.DEV,
 		interpolation: {
 			escapeValue: false, // React already safes from xss
+			prefix: "{",
+			suffix: "}",
 		},
 		resources: {
 			en: {

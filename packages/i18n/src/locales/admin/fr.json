@@ -93,6 +93,11 @@
 		"userList": {
 			"title": "Utilisateurs",
 			"createUser": "Créer un utilisateur"
+		},
+		"userSync": {
+			"title": "Activation du compte en attente",
+			"message": "Ce compte utilisateur n'est pas encore actif. Pour terminer la configuration, veuillez activer le compte.",
+			"action": "Activer le compte"
 		}
 	}
 }

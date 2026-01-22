@@ -3,13 +3,14 @@
  */
 
 /**
- * Performs a complete logout:
+ * Performs a complete global logout:
  * 1. Clears all browser storage (localStorage, sessionStorage, cookies)
- * 2. Redirects to Apache Gateway logout endpoint
- * 3. Apache Gateway will redirect to Keycloak logout
- * 4. Keycloak will perform RP-initiated logout and redirect back
+ * 2. Redirects to OAuth2 Proxy logout endpoint
+ * 3. OAuth2 Proxy redirects to Keycloak end_session_endpoint
+ * 4. Keycloak terminates SSO session (ALL devices logged out)
+ * 5. User redirected back to app login page
  */
-export const logout = () => {
+export const logout = (postLogoutRedirectUri?: string) => {
 	// Clear localStorage
 	localStorage.clear();
 
@@ -19,10 +20,10 @@ export const logout = () => {
 	// Clear all cookies
 	clearAllCookies();
 
-	// Redirect to logout endpoint
-	// mod_auth_openidc provides a standard logout endpoint at /redirect_uri?logout=
-	// This will clear the session and redirect to Keycloak logout
-	const logoutUrl = `${window.location.origin}/redirect_uri?logout=${encodeURIComponent(window.location.origin)}`;
+	// Construct logout URL using OAuth2 Proxy's sign_out endpoint
+	// The 'rd' parameter specifies where to redirect after logout completes
+	const redirectUri = postLogoutRedirectUri || window.location.origin;
+	const logoutUrl = `/oauth2/sign_out?rd=${encodeURIComponent(redirectUri)}`;
 
 	window.location.href = logoutUrl;
 };

@@ -4,14 +4,14 @@ import {
 } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect } from "react";
+import "../lib/api";
 
 export type UserRole =
-	| "Super user"
-	| "Accountant"
-	| "Supervisor Accountant"
-	| "Manager"
-	| "Viewer";
-
+	| "super-user"
+	| "accountant"
+	| "supervisor-accountant"
+	| "manager"
+	| "viewer";
 // Keycloak user info from /api/userinfo endpoint
 // This data comes from OAuth2 Proxy headers passed through nginx ingress
 interface KeycloakUserInfo {
@@ -21,8 +21,7 @@ interface KeycloakUserInfo {
 }
 
 export interface AuthContextType {
-	user: PostAuthenticationResponse | null;
-	keycloakUser: KeycloakUserInfo | null;
+	user: KeycloakUserInfo | null;
 	isLoading: boolean;
 	isAuthenticated: boolean;
 	roles: UserRole[];
@@ -46,19 +45,18 @@ function parseKeycloakRoles(rolesString: string): UserRole[] {
 		.map((role) => role.trim())
 		.filter((role): role is UserRole =>
 			[
-				"Admin",
-				"Accountant",
-				"Supervisor Accountant",
-				"Manager",
-				"Viewer",
+				"super-user",
+				"accountant",
+				"supervisor-accountant",
+				"manager",
+				"viewer",
 			].includes(role),
 		);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-	// Fetch Keycloak user info from /api/userinfo endpoint
-	// This endpoint returns OAuth2 Proxy headers as JSON
-	// Use BASE_URL to construct the correct path (e.g., /accounting/api/userinfo)
+	const authMode = import.meta.env.VITE_AUTH_MODE || "basic";
+
 	const { data: keycloakUser, isLoading: isLoadingKeycloak } =
 		useQuery<KeycloakUserInfo>({
 			queryKey: ["keycloak-userinfo"],
@@ -73,61 +71,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			},
 			staleTime: Number.POSITIVE_INFINITY,
 			retry: 1,
+			enabled: authMode === "oauth",
 		});
 
-	// Fetch Fineract user for permissions (still needed for fine-grained access control)
 	const { data: fineractUser, isLoading: isLoadingFineract } =
 		useQuery<PostAuthenticationResponse>({
 			queryKey: ["fineract-authentication"],
 			queryFn: async () => {
-				const response =
-					await AuthenticationHttpBasicService.postV1Authentication({
-						requestBody: {
-							username: import.meta.env.VITE_FINERACT_USERNAME || "mifos",
-							password: import.meta.env.VITE_FINERACT_PASSWORD || "password",
-						},
-					});
-				return response;
+				return AuthenticationHttpBasicService.postV1Authentication({
+					requestBody: {
+						username: import.meta.env.VITE_FINERACT_USERNAME || "mifos",
+						password: import.meta.env.VITE_FINERACT_PASSWORD || "password",
+					},
+				});
 			},
 			staleTime: Number.POSITIVE_INFINITY,
 			retry: 1,
+			enabled: authMode === "basic",
 		});
 
-	const isLoading = isLoadingKeycloak || isLoadingFineract;
+	const isLoading =
+		authMode === "oauth" ? isLoadingKeycloak : isLoadingFineract;
+	const isAuthenticated =
+		authMode === "oauth"
+			? !!keycloakUser?.user
+			: (fineractUser?.authenticated ?? false);
+
+	const roles: UserRole[] =
+		authMode === "oauth"
+			? parseKeycloakRoles(keycloakUser?.roles || "")
+			: (fineractUser?.roles || [])
+					.map((role) => role.name as UserRole)
+					.filter(Boolean);
+
+	const permissions: string[] = fineractUser?.permissions || [];
+
+	const user: KeycloakUserInfo | null =
+		authMode === "oauth"
+			? keycloakUser || null
+			: fineractUser
+				? {
+						user: fineractUser.username || "",
+						email: "", // Not available in basic auth
+						roles: (fineractUser.roles || []).map((r) => r.name).join(","),
+					}
+				: null;
 
 	useEffect(() => {
 		if (fineractUser) {
 			sessionStorage.setItem("auth", JSON.stringify(fineractUser));
+		} else if (keycloakUser) {
+			sessionStorage.setItem("auth", JSON.stringify(keycloakUser));
 		}
-	}, [fineractUser]);
+	}, [fineractUser, keycloakUser]);
 
-	// User is authenticated if we have Keycloak user info
-	const isAuthenticated = !!keycloakUser?.user;
+	const hasRole = (role: UserRole): boolean => roles.includes(role);
 
-	// Extract roles from Keycloak (primary source for authorization)
-	const roles: UserRole[] = parseKeycloakRoles(keycloakUser?.roles || "");
+	const hasPermission = (permission: string): boolean =>
+		permissions.includes(permission);
 
-	// Extract permissions from Fineract (for fine-grained access control)
-	const permissions: string[] = fineractUser?.permissions || [];
-
-	// Helper function to check if user has a specific role
-	const hasRole = (role: UserRole): boolean => {
-		return roles.includes(role);
-	};
-
-	// Helper function to check if user has a specific permission
-	const hasPermission = (permission: string): boolean => {
-		return permissions.includes(permission);
-	};
-
-	// Helper function to check if user has any of the specified roles
-	const hasAnyRole = (rolesToCheck: UserRole[]): boolean => {
-		return rolesToCheck.some((role) => roles.includes(role));
-	};
+	const hasAnyRole = (rolesToCheck: UserRole[]): boolean =>
+		rolesToCheck.some((role) => roles.includes(role));
 
 	const value: AuthContextType = {
-		user: fineractUser || null,
-		keycloakUser: keycloakUser || null,
+		user,
 		isLoading,
 		isAuthenticated,
 		roles,

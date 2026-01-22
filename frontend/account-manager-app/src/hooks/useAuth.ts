@@ -3,7 +3,9 @@ import { useEffect } from "react";
 import { fineractApi } from "@/services/api";
 
 export const useAuth = () => {
-	const { data: userData, isLoading: isUserDataLoading } = useQuery({
+	const authMode = import.meta.env.VITE_AUTH_MODE || "basic";
+
+	const { data: fineractUser, isLoading: isFineractUserLoading } = useQuery({
 		queryKey: ["user"],
 		queryFn: () =>
 			fineractApi.authentication.postV1Authentication({
@@ -13,15 +15,32 @@ export const useAuth = () => {
 				},
 			}),
 		staleTime: Infinity,
-		enabled: import.meta.env.VITE_AUTH_MODE === "basic",
+		enabled: authMode === "basic",
+	});
+
+	const { data: keycloakUser, isLoading: isKeycloakUserLoading } = useQuery({
+		queryKey: ["keycloak-userinfo"],
+		queryFn: async () => {
+			const baseUrl = import.meta.env.BASE_URL || "/";
+			const apiPath = `${baseUrl}api/userinfo`.replace("//", "/");
+			const response = await fetch(apiPath);
+			if (!response.ok) {
+				throw new Error("Failed to fetch user info");
+			}
+			return response.json();
+		},
+		staleTime: Infinity,
+		retry: 1,
+		enabled: authMode === "oauth",
 	});
 
 	useEffect(() => {
-		if (userData) {
-			sessionStorage.setItem("auth", JSON.stringify(userData));
+		if (fineractUser) {
+			sessionStorage.setItem("auth", JSON.stringify(fineractUser));
+		} else if (keycloakUser) {
+			sessionStorage.setItem("auth", JSON.stringify(keycloakUser));
 		}
-	}, [userData]);
-
+	}, [fineractUser, keycloakUser]);
 	const onLogout = () => {
 		const base = import.meta.env.BASE_URL || "/account/";
 		const appBase = base.endsWith("/") ? base : `${base}/`;
@@ -30,11 +49,22 @@ export const useAuth = () => {
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
 			window.location.href = appBase;
 		} else {
-			window.location.href = `${appBase}callback?logout=${encodeURIComponent(
+			// OAuth mode: Use OAuth2 Proxy global logout
+			// This terminates the Keycloak session across ALL devices
+			localStorage.clear();
+			sessionStorage.clear();
+			window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(
 				redirectTo,
 			)}`;
 		}
 	};
-
-	return { onLogout, userData, isUserDataLoading };
+	const isLoading =
+		authMode === "oauth" ? isKeycloakUserLoading : isFineractUserLoading;
+	const userData = authMode === "oauth" ? keycloakUser : fineractUser;
+	const user = {
+		...userData,
+		displayName:
+			authMode === "oauth" ? keycloakUser?.user : fineractUser?.username,
+	};
+	return { onLogout, userData: user, isUserDataLoading: isLoading };
 };
