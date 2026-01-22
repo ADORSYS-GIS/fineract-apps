@@ -1,7 +1,7 @@
 import { Card, Form, Input, SubmitButton } from "@fineract-apps/ui";
-import { ErrorMessage, Field, useFormikContext } from "formik";
+import { useFormikContext } from "formik";
 import { X } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import type {
@@ -15,87 +15,81 @@ import {
 } from "./useReportParameters";
 
 // Component for rendering individual parameter inputs with dependency support
-function ParameterInput({ param }: Readonly<{ param: ReportParameter }>) {
+function ParameterInput({
+	param,
+	allParams,
+}: Readonly<{ param: ReportParameter; allParams: ReportParameter[] }>) {
 	const { values } = useFormikContext<ParameterFormValues>();
 	const key = param.parameterVariable || param.parameterName;
 	const label = param.parameterLabel || param.parameterName;
 
-	// Handle dependent parameters
+	// Dynamically show/hide child parameters based on parent value
+	if (param.parentParameterName) {
+		const parentParam = allParams.find(
+			(p) => p.parameterName === param.parentParameterName,
+		);
+		const parentKey =
+			parentParam?.parameterVariable || parentParam?.parameterName;
+		const parentValue = parentKey ? values[parentKey] : undefined;
+		// Do not render child if parent is not selected or has a default/placeholder value
+		if (!parentValue || parentValue === "0" || parentValue === "") {
+			return null;
+		}
+	}
+
+	// Determine the base options (for non-dependent fields)
 	let options =
 		param.parameterData?.map((opt) => ({
 			label: opt.name,
 			value: opt.id,
 		})) || [];
 
+	// Handle dependent parameters
 	if (param.parentParameterName) {
-		// This is a dependent parameter - get parent value and fetch dynamic options
+		const parentParam = allParams.find(
+			(p) => p.parameterName === param.parentParameterName,
+		);
 		const parentKey =
-			param.parentParameterName
-				.replace(/Select(One|All)$/, "")
-				.charAt(0)
-				.toLowerCase() +
-			param.parentParameterName.replace(/Select(One|All)$/, "").slice(1);
-		const parentValue = values[parentKey];
-
-		// Handle both single values and arrays
-		let parentValues: Record<string, string> = {};
-		if (parentValue) {
-			if (Array.isArray(parentValue)) {
-				// For multi-select, use the first value or join them
-				parentValues[parentKey] =
-					parentValue.length > 0 ? String(parentValue[0]) : "";
-			} else {
-				parentValues[parentKey] = String(parentValue);
-			}
-		}
+			parentParam?.parameterVariable || parentParam?.parameterName;
+		const parentValue = parentKey ? values[parentKey] : undefined;
 
 		const { data: dependentOptions } = useDependentParameterOptions(
 			param,
-			parentValues,
+			parentKey && parentValue ? { [parentKey]: String(parentValue) } : {},
 		);
 
-		if (dependentOptions) {
-			options = dependentOptions.map((opt) => ({
+		// If we have dependent options, they become the list. Otherwise, the list is empty for now.
+		options =
+			dependentOptions?.map((opt) => ({
 				label: opt.name,
 				value: opt.id,
-			}));
-		}
+			})) || [];
 	}
 
+	// Post-process the options list to add "All" where appropriate
+	const isProductField = (param.parameterVariable || param.parameterName)
+		.toLowerCase()
+		.includes("product");
+
 	if (param.selectAll) {
-		return (
-			<div key={`${param.id}`}>
-				<label htmlFor={key} className="block text-sm font-medium mb-2">
-					{label}
-					<span className="text-red-500 ml-1">*</span>
-				</label>
-				<Field
-					as="select"
-					multiple
-					id={key}
-					name={key}
-					className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-				>
-					{options.map((option) => (
-						<option key={String(option.value)} value={String(option.value)}>
-							{option.label}
-						</option>
-					))}
-				</Field>
-				<ErrorMessage
-					name={key}
-					component="div"
-					className="mt-1 text-sm text-red-600"
-				/>
-			</div>
-		);
+		// For any "selectAll" field, ensure "All" is the first option.
+		if (!options.some((o) => o.value === "-1")) {
+			options.unshift({ label: "All", value: "-1" });
+		}
+	} else if (isProductField && options.length === 0) {
+		// For the product field specifically, if it's not a "selectAll" field
+		// and its dynamically fetched options are empty, add "All" as the only option.
+		options.push({ label: "All", value: "-1" });
 	}
 
 	let inputType: "text" | "select" | "date" = "text";
-	if (param.parameterDisplayType === "select") {
-		inputType = "select";
-	} else if (param.parameterDisplayType === "date") {
+	if (param.parameterDisplayType === "date") {
 		inputType = "date";
+	} else if (
+		param.parameterDisplayType === "select" ||
+		param.parameterName.toLowerCase().includes("select")
+	) {
+		inputType = "select";
 	}
 
 	return (
@@ -117,6 +111,7 @@ export function ReportParameterModal({
 	onSubmit,
 }: Readonly<ReportParameterModalProps>) {
 	const { t } = useTranslation();
+	const [outputType, setOutputType] = useState("HTML");
 	const { reportDetails, isLoading } = useReportParameters(
 		report?.id ?? null,
 		report?.reportName ?? null,
@@ -124,23 +119,57 @@ export function ReportParameterModal({
 	);
 
 	const handleSubmit = (values: ParameterFormValues) => {
+		const dateFormatString = "dd MMMM yyyy";
+
+		// Helper to format 'YYYY-MM-DD' to 'dd MMMM yyyy' without timezone issues
+		const formatDate = (dateString: string) => {
+			if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+			const [year, month, day] = dateString.split("-");
+			const monthNames = [
+				"January",
+				"February",
+				"March",
+				"April",
+				"May",
+				"June",
+				"July",
+				"August",
+				"September",
+				"October",
+				"November",
+				"December",
+			];
+			const monthIndex = parseInt(month, 10) - 1;
+			return `${parseInt(day, 10)} ${monthNames[monthIndex]} ${year}`;
+		};
+
 		const parameters: Record<string, string> = {
 			locale: "en",
-			dateFormat: "yyyy-MM-dd",
+			dateFormat: dateFormatString,
 		};
+
+		if (reportDetails?.reportType === "Pentaho") {
+			parameters["output-type"] = outputType;
+		}
 
 		reportDetails?.reportParameters?.forEach((param) => {
 			const formKey = param.parameterVariable || param.parameterName;
-			const apiKey = `R_${formKey}`;
-			const value = values[formKey];
+			let apiKey = `R_${formKey}`;
+			// For Pentaho reports, the API expects the 'reportParameterName' as the variable
+			if (
+				reportDetails?.reportType === "Pentaho" &&
+				param.reportParameterName
+			) {
+				apiKey = `R_${param.reportParameterName}`;
+			}
+			let value = values[formKey];
 
-			if (Array.isArray(value)) {
-				if (value.length > 0) {
-					parameters[apiKey] = value.join(",");
-				} else {
-					parameters[apiKey] = "-1";
-				}
-			} else if (value !== undefined && value !== null && value !== "") {
+			// If it's a date parameter, format it for the backend.
+			if (param.parameterDisplayType === "date" && typeof value === "string") {
+				value = formatDate(value);
+			}
+
+			if (value !== undefined && value !== null && value !== "") {
 				parameters[apiKey] = String(value);
 			} else {
 				parameters[apiKey] = "-1";
@@ -156,13 +185,12 @@ export function ReportParameterModal({
 		if (reportDetails?.reportParameters) {
 			reportDetails.reportParameters.forEach((param: ReportParameter) => {
 				const key = param.parameterVariable || param.parameterName;
-				let defaultValue =
-					param.parameterDefaultValue || (param.selectAll ? [] : "");
+				let defaultValue = param.parameterDefaultValue || "";
 
 				// Handle "today" default for date parameters
 				if (param.parameterDisplayType === "date") {
 					if (defaultValue === "today" || !param.parameterDefaultValue) {
-						const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+						const today = new Date().toISOString().split("T")[0];
 						defaultValue = today;
 					}
 				}
@@ -184,11 +212,7 @@ export function ReportParameterModal({
 			const key = param.parameterVariable || param.parameterName;
 			const label = param.parameterLabel || param.parameterName;
 
-			if (param.selectAll) {
-				schemaShape[key] = z.array(z.string()).nonempty({
-					message: t("reportParameters.selectPlaceholder", { label }),
-				});
-			} else if (param.parameterDisplayType === "date") {
+			if (param.parameterDisplayType === "date") {
 				// Date validation - required and validate format
 				schemaShape[key] = z
 					.string()
@@ -197,6 +221,7 @@ export function ReportParameterModal({
 						message: t("reportParameters.dateError", { label }),
 					});
 			} else {
+				// Treat all other fields, including all types of selects, as required strings
 				schemaShape[key] = z
 					.string()
 					.min(1, { message: t("reportParameters.requiredError", { label }) });
@@ -261,6 +286,26 @@ export function ReportParameterModal({
 								onSubmit={handleSubmit}
 								className="p-0 shadow-none space-y-4"
 							>
+								{reportDetails.reportType === "Pentaho" && (
+									<div>
+										<label
+											htmlFor="outputType"
+											className="block text-sm font-medium mb-2"
+										>
+											Output Type
+										</label>
+										<select
+											id="outputType"
+											name="outputType"
+											value={outputType}
+											onChange={(e) => setOutputType(e.target.value)}
+											className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+										>
+											<option>Output Type</option>
+											<option value="PDF">PDF format</option>
+										</select>
+									</div>
+								)}
 								{reportDetails.reportParameters.map(
 									(param: ReportParameter) => {
 										if (param.parameterDisplayType === "none") return null;
@@ -268,6 +313,7 @@ export function ReportParameterModal({
 											<ParameterInput
 												key={`${report?.id}-${param.id}`}
 												param={param}
+												allParams={reportDetails.reportParameters}
 											/>
 										);
 									},

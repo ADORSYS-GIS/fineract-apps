@@ -1,4 +1,4 @@
-import { ReportsService } from "@fineract-apps/fineract-api";
+import { OpenAPI, ReportsService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import type { Report, ReportsCatalogData } from "./ReportsCatalog.types";
@@ -20,6 +20,13 @@ export function useReportsCatalog(): ReportsCatalogData {
 		string,
 		string
 	> | null>(null);
+
+	// Pentaho viewer state
+	const [isPentahoViewerOpen, setIsPentahoViewerOpen] = useState(false);
+	const [pentahoReportBlob, setPentahoReportBlob] = useState<Blob | null>(null);
+	const [pentahoOutputType, setPentahoOutputType] = useState<string | null>(
+		null,
+	);
 
 	// Fetch all reports
 	const { data: reportsData, isLoading } = useQuery({
@@ -67,22 +74,56 @@ export function useReportsCatalog(): ReportsCatalogData {
 		setSelectedReport(null);
 	};
 
-	const handleSubmitParameters = (parameters: Record<string, string>) => {
+	const handleSubmitParameters = async (parameters: Record<string, string>) => {
 		if (!selectedReport) return;
 
 		// Close parameter modal
 		setIsParameterModalOpen(false);
 
-		// Open report viewer with parameters
-		setViewerReportName(selectedReport.reportName);
-		setViewerParameters(parameters);
-		setIsViewerOpen(true);
+		const outputType = parameters["output-type"];
+		const reportName = selectedReport.reportName;
+
+		if (outputType && reportName) {
+			// Handle Pentaho report download
+			const queryParams = new URLSearchParams(parameters);
+			const url = `${OpenAPI.BASE}/v1/runreports/${reportName}?${queryParams.toString()}`;
+			const headers = {
+				...OpenAPI.HEADERS,
+				Authorization: `Basic ${btoa(`${OpenAPI.USERNAME}:${OpenAPI.PASSWORD}`)}`,
+			};
+
+			try {
+				const response = await fetch(url, { headers });
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+				const blob = await response.blob();
+				setPentahoReportBlob(blob);
+				setPentahoOutputType(outputType);
+				setIsPentahoViewerOpen(true);
+			} catch (error) {
+				console.error("Error running Pentaho report:", error);
+				// You might want to show an error message to the user here
+			}
+		} else {
+			// Open report viewer with parameters for table reports
+			setViewerReportName(reportName);
+			setViewerParameters(parameters);
+			setIsViewerOpen(true);
+		}
 	};
 
 	const handleCloseViewer = () => {
 		setIsViewerOpen(false);
 		setViewerReportName(null);
 		setViewerParameters(null);
+		setSelectedReport(null);
+	};
+
+	const handleClosePentahoViewer = () => {
+		setIsPentahoViewerOpen(false);
+		setPentahoReportBlob(null);
+		setPentahoOutputType(null);
 		setSelectedReport(null);
 	};
 
@@ -103,5 +144,9 @@ export function useReportsCatalog(): ReportsCatalogData {
 		viewerReportName,
 		viewerParameters,
 		onCloseViewer: handleCloseViewer,
+		isPentahoViewerOpen,
+		pentahoReportBlob,
+		pentahoOutputType,
+		onClosePentahoViewer: handleClosePentahoViewer,
 	};
 }
