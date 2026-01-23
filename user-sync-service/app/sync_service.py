@@ -149,7 +149,13 @@ def sync_user():
         email = data['email']
         first_name = data.get('firstName', '')
         last_name = data.get('lastName', '')
-        fineract_role = data.get('role', 'Staff')
+        fineract_role = data.get('role')
+
+        if not fineract_role:
+            return jsonify({
+                "status": "error",
+                "message": "Role is required"
+            }), 400
 
         logger.info(f"Syncing user: {username}")
 
