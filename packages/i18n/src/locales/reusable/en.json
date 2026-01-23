@@ -19,6 +19,10 @@
 		},
 		"navbar": {
 			"onlineBank": "OnlineBank"
+		},
+		"reusable": {
+			"print": "Print",
+			"download": "Download"
 		}
 	}
 }

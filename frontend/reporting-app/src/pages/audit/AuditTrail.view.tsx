@@ -1,5 +1,5 @@
 import { Card } from "@fineract-apps/ui";
-import { Download, Filter, Shield } from "lucide-react";
+import { Download, Filter } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { AuditTrailData } from "./AuditTrail.types";
 
@@ -27,7 +27,6 @@ export function AuditTrailView({
 		<div className="p-6">
 			<div className="flex justify-between items-center mb-6">
 				<div className="flex items-center">
-					<Shield className="w-8 h-8 mr-3 text-purple-500" />
 					<h1 className="text-3xl font-bold">{t("audit.title")}</h1>
 				</div>
 				<div className="flex gap-2">

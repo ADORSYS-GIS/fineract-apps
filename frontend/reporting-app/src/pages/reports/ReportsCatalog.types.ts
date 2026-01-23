@@ -31,4 +31,10 @@ export interface ReportsCatalogData {
 	viewerReportName: string | null;
 	viewerParameters: Record<string, string> | null;
 	onCloseViewer: () => void;
+
+	// Pentaho Viewer Props
+	isPentahoViewerOpen: boolean;
+	pentahoReportBlob: Blob | null;
+	pentahoOutputType: string | null;
+	onClosePentahoViewer: () => void;
 }

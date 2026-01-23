@@ -94,128 +94,62 @@ export function useReportParameters(
 		queryFn: async () => {
 			if (!reportId || !reportName) return null;
 
-			// First get basic report info
-			const basicResponse = (await ReportsService.getV1ReportsById({
+			// The getV1ReportsById endpoint returns the definitive list of parameters for a report.
+			// We no longer need to call the generic FullParameterList endpoint.
+			const reportDetails = (await ReportsService.getV1ReportsById({
 				id: reportId,
 			})) as unknown as ReportDetails;
 
-			// Then get the full parameter list using the template approach
-			const headers = {
-				...OpenAPI.HEADERS,
-				Authorization: `Basic ${btoa(`${OpenAPI.USERNAME}:${OpenAPI.PASSWORD}`)}`,
-			};
-
-			const fullParamUrl = `${OpenAPI.BASE}/v1/runreports/FullParameterList?R_reportListing='${reportName}'&parameterType=true`;
-			const fullParamResponse = await fetch(fullParamUrl, { headers });
-
-			if (!fullParamResponse.ok) {
-				throw new Error(
-					`Failed to fetch parameter list: ${fullParamResponse.status}`,
-				);
-			}
-
-			const fullParamData: FullParameterListResponse =
-				await fullParamResponse.json();
-
-			// Transform the full parameter list into ReportParameter format
-			const reportParameters: ReportParameter[] = fullParamData.data.map(
-				(item, index) => {
-					const row = item.row;
-					const param: ReportParameter = {
-						id: index + 1,
-						parameterId: index + 1,
-						reportId: reportId,
-						parameterName: String(row[0]), // parameter_name
-						parameterVariable: String(row[1]), // parameter_variable
-						reportParameterName: String(row[1]), // parameter_variable
-						parameterLabel: String(row[2]), // parameter_label
-						parameterDisplayType: String(row[3]) as
-							| "text"
-							| "select"
-							| "date"
-							| "none", // parameter_displayType
-						parameterFormatType: String(row[4]), // parameter_FormatType
-						parameterDefaultValue: String(row[5]), // parameter_default
-						selectOne: String(row[7]) === "Y", // selectOne
-						selectAll: String(row[8]) === "Y", // selectAll
-						parentParameterName: row[9] ? String(row[9]) : undefined, // parentParameterName
-					};
-					return param;
+			// This is not ideal, but it's a step towards replicating the Angular logic without a full data source refactor.
+			const tempFullParamUrl = `${OpenAPI.BASE}/v1/runreports/FullParameterList?R_reportListing='${reportName}'&parameterType=true`;
+			const tempFullParamResponse = await fetch(tempFullParamUrl, {
+				headers: {
+					...OpenAPI.HEADERS,
+					Authorization: `Basic ${btoa(`${OpenAPI.USERNAME}:${OpenAPI.PASSWORD}`)}`,
 				},
-			);
-
-			// Normalize parameter variable and label (keeping existing logic for compatibility)
-			const normalizedParams = reportParameters.map((param) => {
-				let variableName = param.reportParameterName || param.parameterVariable;
-				if (!variableName && param.parameterName) {
-					const baseName = param.parameterName.replace(/Select(One|All)$/, "");
-					variableName = baseName.charAt(0).toLowerCase() + baseName.slice(1);
-				}
-
-				let label = param.parameterLabel;
-				if (!label && variableName) {
-					const spaced = variableName.replaceAll(/([A-Z])/g, " $1");
-					label = spaced.charAt(0).toUpperCase() + spaced.slice(1);
-				} else if (!label && param.parameterName) {
-					label = param.parameterName;
-				}
-
-				return {
-					...param,
-					parameterVariable: variableName,
-					parameterLabel: label,
-				};
 			});
+			const fullParamData: FullParameterListResponse =
+				await tempFullParamResponse.json();
 
-			// Fix for missing dependencies: Link loan officer parameters to office parameters
-			// We look for a parameter that maps to the 'officeId' variable
-			const officeParam = normalizedParams.find(
-				(p) =>
-					p.parameterVariable === "officeId" ||
-					p.parameterName === "OfficeIdSelectOne",
-			);
-
-			if (officeParam) {
-				for (const param of normalizedParams) {
-					if (
-						param.parameterName === "loanOfficerIdSelectAll" &&
-						!param.parentParameterName
-					) {
-						console.debug(
-							`[ReportParams] Linking ${param.parameterName} to parent ${officeParam.parameterName}`,
-						);
-						param.parentParameterName = officeParam.parameterName;
-					}
-				}
+			interface ReportParameterDetails {
+				parameterVariable: string;
+				parameterLabel: string;
+				parameterDisplayType: "text" | "select" | "date" | "none";
+				parameterDefaultValue: string;
+				selectOne: boolean;
+				selectAll: boolean;
+				parentParameterName: string | undefined;
 			}
 
-			// Fix for missing dependencies: Link loan product parameters to currency parameters
-			// We look for a parameter that maps to the 'currencyId' variable
-			const currencyParam = normalizedParams.find(
-				(p) =>
-					p.parameterVariable === "currencyId" ||
-					p.parameterName.toLowerCase().includes("currency"),
-			);
-
-			if (currencyParam) {
-				for (const param of normalizedParams) {
-					if (
-						param.parameterName === "loanProductIdSelectAll" &&
-						!param.parentParameterName
-					) {
-						console.debug(
-							`[ReportParams] Linking ${param.parameterName} to parent ${currencyParam.parameterName}`,
-						);
-						param.parentParameterName = currencyParam.parameterName;
-					}
-				}
-			}
-
-			console.debug("[ReportParams] Normalized Parameters:", normalizedParams);
+			const detailedParamsMap = new Map<string, ReportParameterDetails>();
+			fullParamData.data.forEach((item) => {
+				const row = item.row;
+				detailedParamsMap.set(String(row[0]), {
+					parameterVariable: String(row[1]),
+					parameterLabel: String(row[2]),
+					parameterDisplayType: String(row[3]) as
+						| "text"
+						| "select"
+						| "date"
+						| "none",
+					parameterDefaultValue: String(row[5]),
+					selectOne: String(row[6]) === "Y",
+					selectAll: String(row[7]) === "Y",
+					parentParameterName: row[8] ? String(row[8]) : undefined,
+				});
+			});
+			const fleshedOutParams =
+				reportDetails.reportParameters?.map((basicParam) => {
+					const details = detailedParamsMap.get(basicParam.parameterName);
+					return {
+						...basicParam,
+						...details,
+					};
+				}) || [];
 
 			return {
-				...basicResponse,
-				reportParameters: normalizedParams,
+				...reportDetails,
+				reportParameters: fleshedOutParams,
 			};
 		},
 		enabled: isOpen && !!reportId && !!reportName,
@@ -268,9 +202,16 @@ export function useDependentParameterOptions(
 	param: ReportParameter,
 	parentValues: Record<string, string>,
 ) {
+	const hasParentValues = Object.values(parentValues).some(
+		(v) => v && v !== "0" && v !== "-1" && v !== "",
+	);
 	return useQuery({
 		queryKey: ["dependent-param-options", param.parameterName, parentValues],
 		queryFn: () => fetchParameterOptions(param, parentValues),
-		enabled: !!param.parameterName && param.parameterDisplayType === "select",
+		enabled:
+			!!param.parameterName &&
+			(param.parameterDisplayType === "select" ||
+				param.parameterName.toLowerCase().includes("select")) &&
+			hasParentValues,
 	});
 }
