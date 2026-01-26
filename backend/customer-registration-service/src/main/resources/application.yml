@@ -8,8 +8,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/fineract}
-          jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:8080/realms/fineract/protocol/openid-connect/certs}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:9000/realms/fineract}
+          jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:9000/realms/fineract/protocol/openid-connect/certs}
 
 # CORS Configuration
 app:
@@ -18,7 +18,7 @@ app:
 
 # Keycloak Configuration
 keycloak:
-  url: ${KEYCLOAK_URL:http://localhost:8080}
+  url: ${KEYCLOAK_URL:http://localhost:9000}
   realm: ${KEYCLOAK_REALM:fineract}
   admin-realm: ${KEYCLOAK_ADMIN_REALM:master}
   client-id: ${KEYCLOAK_CLIENT_ID:customer-registration-service}
@@ -32,7 +32,7 @@ fineract:
   # Authentication type: oauth (default) or basic
   auth-type: ${FINERACT_AUTH_TYPE:oauth}
   # OAuth settings (used when auth-type=oauth)
-  token-url: ${FINERACT_TOKEN_URL:http://keycloak:8080/realms/fineract/protocol/openid-connect/token}
+  token-url: ${FINERACT_TOKEN_URL:http://keycloak:9000/realms/fineract/protocol/openid-connect/token}
   client-id: ${FINERACT_CLIENT_ID:fineract-service}
   client-secret: ${FINERACT_CLIENT_SECRET:}
   # Basic auth settings (used when auth-type=basic)
@@ -83,11 +83,11 @@ spring:
 
 # In Kubernetes, use service discovery
 keycloak:
-  url: http://keycloak-service:8080
+  url: http://keycloak-service:9000
 
 fineract:
   url: https://fineract-service:8443
-  token-url: http://keycloak-service:8080/realms/fineract/protocol/openid-connect/token
+  token-url: http://keycloak-service:9000/realms/fineract/protocol/openid-connect/token
 
 # Enable OTLP tracing
 management:
