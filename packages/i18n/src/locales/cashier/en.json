@@ -7,10 +7,10 @@
 		"cashierApp.title": "Cashier App",
 		"search": "Search...",
 		"loadingLoanDetails": "Loading loan details...",
-		"errorFetchingLoanDetails": "Error fetching loan details: {{message}}",
+		"errorFetchingLoanDetails": "Error fetching loan details: {message}",
 		"loanNotFound": "Loan not found.",
 		"repaymentSuccessful": "Repayment successful!",
-		"repaymentFailed": "Repayment failed: {{message}}",
+		"repaymentFailed": "Repayment failed: {message}",
 		"backToSearch": "Back to Search",
 		"clientSummary": "Client Summary",
 		"account": "Account",
@@ -29,7 +29,7 @@
 		"submitting": "Submitting...",
 		"submitRepayment": "Submit Repayment",
 		"loadingReceipt": "Loading receipt...",
-		"errorFetchingReceipt": "Error fetching receipt: {{message}}",
+		"errorFetchingReceipt": "Error fetching receipt: {message}",
 		"transactionNotFound": "Transaction not found.",
 		"loanRepayment": "Loan Repayment",
 		"searchForLoanAccount": "Search for a loan account to start the repayment process.",
@@ -42,11 +42,11 @@
 			"download": "Download"
 		},
 		"loanSearch": {
-			"error": "Error: {{message}}"
+			"error": "Error: {message}"
 		},
 		"clientSearch": {
 			"searchPlaceholder": "Search clients...",
-			"error": "Error: {{message}}"
+			"error": "Error: {message}"
 		},
 		"cashierTransactionSummary": {
 			"viewTransactionSummary": "View Transaction Summary",
@@ -75,6 +75,26 @@
 		},
 		"receipt": {
 			"title": "Receipt"
+		},
+		"clientDetails": {
+			"loading": "Loading client details...",
+			"noImage": "No Image",
+			"back": "Back",
+			"title": "Client Details",
+			"clientName": "Client Name",
+			"accountNo": "Account No:",
+			"lastActive": "Last Active:",
+			"accountBalance": "Account Balance:",
+			"availableBalance": "Available Balance:",
+			"deposit": "Deposit",
+			"withdraw": "Withdraw",
+			"recentTransactions": "Recent Transactions",
+			"date": "Date",
+			"transactionType": "Transaction Type",
+			"amount": "Amount",
+			"actions": "Actions",
+			"noTransactions": "No transactions found.",
+			"close": "Close"
 		}
 	}
 }
