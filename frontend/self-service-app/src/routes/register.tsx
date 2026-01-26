@@ -1,6 +1,6 @@
 import { Button, Card, Input } from "@fineract-apps/ui";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Form, Formik } from "formik";
 import { CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -195,9 +195,9 @@ function RegisterPage() {
 				</Formik>
 				<p className="text-center text-gray-500 mt-6">
 					{t("register.haveAccount")}{" "}
-					<a href="/self-service" className="text-blue-600 hover:underline">
+					<Link to="/" className="text-blue-600 hover:underline">
 						{t("auth.login")}
-					</a>
+					</Link>
 				</p>
 			</Card>
 		</div>

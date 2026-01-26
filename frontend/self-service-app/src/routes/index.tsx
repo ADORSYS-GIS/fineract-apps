@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Button } from "@fineract-apps/ui";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Shield, Smartphone, Wallet } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,15 +34,15 @@ function LandingPage() {
 						{t("app.name")}
 					</span>
 					<div className="flex items-center gap-4">
-						<a
-							href="/self-service/register"
+						<Link
+							to="/register"
 							className="text-gray-600 hover:text-gray-900 font-medium"
 						>
 							{t("auth.register")}
-						</a>
-						<button onClick={handleLogin} className="btn-primary">
+						</Link>
+						<Button onClick={handleLogin} variant="default" size="sm">
 							{t("auth.login")}
-						</button>
+						</Button>
 					</div>
 				</nav>
 			</header>
@@ -58,18 +59,14 @@ function LandingPage() {
 						Face ID and fingerprint.
 					</p>
 					<div className="flex flex-col sm:flex-row gap-4 justify-center">
-						<button
-							onClick={handleLogin}
-							className="btn-primary text-lg px-8 py-3"
-						>
+						<Button onClick={handleLogin} size="lg">
 							{t("auth.login")}
-						</button>
-						<a
-							href="/self-service/register"
-							className="btn-outline text-lg px-8 py-3"
-						>
-							{t("auth.register")}
-						</a>
+						</Button>
+						<Link to="/register">
+							<Button variant="outline" size="lg">
+								{t("auth.register")}
+							</Button>
+						</Link>
 					</div>
 				</div>
 
@@ -113,7 +110,7 @@ function LandingPage() {
 
 			{/* Footer */}
 			<footer className="container mx-auto px-4 py-8 text-center text-gray-500">
-				<p>&copy; 2024 Webank. All rights reserved.</p>
+				<p>&copy; 2026 Webank. All rights reserved.</p>
 			</footer>
 		</div>
 	);
