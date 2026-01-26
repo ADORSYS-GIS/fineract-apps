@@ -7,6 +7,8 @@ import { AuthProvider } from "react-oidc-context";
 
 import { initTracing } from "./lib/tracing";
 import { routeTree } from "./routeTree.gen";
+
+import "@fineract-apps/ui/src/styles.css";
 import "./index.css";
 
 // Initialize OpenTelemetry tracing
