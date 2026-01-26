@@ -13,6 +13,8 @@
 		"register.dateOfBirth": "Date of Birth",
 		"register.gender": "Gender",
 		"register.submit": "Submit",
-		"register.haveAccount": "Already have an account?"
+		"register.haveAccount": "Already have an account?",
+		"register.male": "Male",
+		"register.female": "Female"
 	}
 }

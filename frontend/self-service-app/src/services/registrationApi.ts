@@ -5,8 +5,15 @@ export interface RegistrationRequest {
 	lastName: string;
 	email: string;
 	phone: string;
-	dateOfBirth: string;
+	dateOfBirth: string; // Assuming format "YYYY-MM-DD"
 	gender: string;
+	nationalId?: string;
+	address?: {
+		street?: string;
+		city?: string;
+		postalCode?: string;
+		country?: string;
+	};
 }
 
 export interface RegistrationResponse {
