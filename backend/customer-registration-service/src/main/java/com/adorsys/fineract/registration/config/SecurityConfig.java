@@ -18,7 +18,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * Security configuration for JWT-based authentication with Keycloak.
@@ -66,7 +65,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/registration/register").permitAll()
                 .requestMatchers("/api/registration/health/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
 
                 // All other endpoints require authentication
                 .anyRequest().authenticated()

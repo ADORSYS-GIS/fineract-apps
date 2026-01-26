@@ -117,3 +117,13 @@ You can run the application using the Spring Boot Maven plugin:
 The application will start on `http://localhost:8080` by default.
 
 **Note:** The service requires several environment variables to be set to connect to Keycloak and Fineract, as detailed in the `README.md`.
+
+## 6. API Documentation
+
+The service uses SpringDoc to generate OpenAPI 3.0 documentation. Once the application is running, you can access the Swagger UI at:
+
+- **Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+
+The raw OpenAPI specification is available in JSON format at:
+
+- **OpenAPI Spec**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
