@@ -21,11 +21,11 @@ export function ClosuresView({
 	return (
 		<div className="p-6 min-h-screen">
 			<PageHeader
-				title={t("closures.title")}
-				subtitle={t("closures.subtitle")}
+				title={t("accountingClosures")}
+				subtitle={t("managePeriodEndAccountingClosures")}
 				actions={[
 					{
-						label: t("closures.createClosure"),
+						label: t("createClosure"),
 						onClick: onCreateClosure,
 						icon: <Plus className="h-4 w-4" />,
 					},
@@ -35,24 +35,24 @@ export function ClosuresView({
 			{isLoading ? (
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 					<div className="animate-pulse space-y-4">
-						{[...Array(3)].map((_, i) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: Skeleton loader constant array
-							<div key={i} className="h-20 bg-gray-200 rounded" />
+						{[1, 2, 3].map((i) => (
+							<div
+								key={`loading-closure-${i}`}
+								className="h-20 bg-gray-200 rounded"
+							/>
 						))}
 					</div>
 				</div>
 			) : closures.length === 0 ? (
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
 					<Lock className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-					<h3 className="text-lg font-semibold mb-2">
-						{t("closures.noClosures")}
-					</h3>
+					<h3 className="text-lg font-semibold mb-2">{t("noClosuresYet")}</h3>
 					<p className="text-gray-500 mb-4">
-						{t("closures.noClosuresMessage")}
+						{t("createYourFirstAccountingClosure")}
 					</p>
 					<Button onClick={onCreateClosure} className="flex items-center gap-2">
 						<Plus className="h-4 w-4" />
-						{t("closures.createFirstClosure")}
+						{t("createFirstClosure")}
 					</Button>
 				</div>
 			) : (
@@ -73,14 +73,14 @@ export function ClosuresView({
 												{closure.officeName}
 											</h3>
 											<span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-												{t("closures.active")}
+												{t("active")}
 											</span>
 										</div>
 										<div className="space-y-2 text-sm text-gray-600">
 											<div className="flex items-center gap-2">
 												<Calendar className="h-4 w-4" />
 												<span>
-													{t("closures.closingDate")}{" "}
+													{t("closingDate")}:{" "}
 													<span className="font-medium text-gray-900">
 														{new Date(closure.closingDate).toLocaleDateString(
 															"en-US",
@@ -96,13 +96,13 @@ export function ClosuresView({
 											{closure.createdDate && (
 												<div className="flex items-center gap-2">
 													<span>
-														{t("closures.created")}{" "}
+														{t("created")}:{" "}
 														{new Date(closure.createdDate).toLocaleDateString(
 															"en-US",
 														)}{" "}
 														{closure.createdByUsername && (
 															<span>
-																{t("closures.by")} {closure.createdByUsername}
+																{t("by")} {closure.createdByUsername}
 															</span>
 														)}
 													</span>
@@ -124,7 +124,7 @@ export function ClosuresView({
 									className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:border-red-300"
 								>
 									<Trash2 className="h-3 w-3" />
-									{t("closures.delete")}
+									{t("delete")}
 								</Button>
 							</div>
 						</div>
@@ -137,8 +137,8 @@ export function ClosuresView({
 					<div className="flex items-start gap-2 text-blue-800">
 						<Lock className="h-5 w-5 mt-0.5" />
 						<div className="text-sm">
-							<p className="font-medium">{t("closures.aboutTitle")}</p>
-							<p className="mt-1">{t("closures.aboutMessage")}</p>
+							<p className="font-medium">{t("aboutAccountingClosures")}</p>
+							<p className="mt-1">{t("accountingClosuresDescription")}</p>
 						</div>
 					</div>
 				</div>

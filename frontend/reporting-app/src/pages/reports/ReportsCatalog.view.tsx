@@ -1,6 +1,7 @@
 import { Card } from "@fineract-apps/ui";
 import { Download, FileText, Play, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PentahoReportViewerModal } from "@/components/PentahoReportViewerModal";
 import { ReportParameterModal } from "@/components/ReportParameterModal";
 import { ReportViewer } from "../reports/report-viewer/ReportViewer";
 import type { ReportsCatalogData } from "./ReportsCatalog.types";
@@ -22,6 +23,10 @@ export function ReportsCatalogView({
 	viewerReportName,
 	viewerParameters,
 	onCloseViewer,
+	isPentahoViewerOpen,
+	pentahoReportBlob,
+	pentahoOutputType,
+	onClosePentahoViewer,
 }: Readonly<ReportsCatalogData>) {
 	const { t } = useTranslation();
 	if (isLoading) {
@@ -166,6 +171,17 @@ export function ReportsCatalogView({
 					reportName={viewerReportName}
 					parameters={viewerParameters}
 					onClose={onCloseViewer}
+				/>
+			)}
+
+			{/* Pentaho Report Viewer Modal */}
+			{selectedReport && pentahoReportBlob && pentahoOutputType && (
+				<PentahoReportViewerModal
+					isOpen={isPentahoViewerOpen}
+					onClose={onClosePentahoViewer}
+					reportName={selectedReport.reportName}
+					reportBlob={pentahoReportBlob}
+					outputType={pentahoOutputType}
 				/>
 			)}
 		</div>

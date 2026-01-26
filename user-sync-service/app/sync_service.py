@@ -149,7 +149,13 @@ def sync_user():
         email = data['email']
         first_name = data.get('firstName', '')
         last_name = data.get('lastName', '')
-        fineract_role = data.get('role', 'Staff')
+        fineract_role = data.get('role')
+
+        if not fineract_role:
+            return jsonify({
+                "status": "error",
+                "message": "Role is required"
+            }), 400
 
         logger.info(f"Syncing user: {username}")
 
@@ -232,18 +238,22 @@ def sync_user():
                 "Super User": "head-office",
                 "superuser": "head-office",
                 "Admin": "head-office",
+                "admin": "head-office",
                 
                 "Branch Manager": "branch-managers",
                 "branch manager": "branch-managers",
+                "branch-manager": "branch-managers",
 
                 "Loan Officer": "loan-officers",
                 "loan officer": "loan-officers",
+                "account-manager": "loan-officers",
 
-                "Cashier": "cashiers",
-                "cashier": "cashiers",
+                "Cashier": "tellers",
+                "cashier": "tellers",
 
-                "Accountant": "accountants",
-                "accountant": "accountants",
+                "Accountant": "head-office",
+                "accountant": "head-office",
+                "supervisor-accountant": "head-office",
             }
             group_name = group_map.get(keycloak_role)
 

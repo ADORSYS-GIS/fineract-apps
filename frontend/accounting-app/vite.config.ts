@@ -16,7 +16,6 @@ export default mergeConfig(
 			tanstackRouter({
 				target: "react",
 				autoCodeSplitting: true,
-				routeFileIgnorePattern: ".*(Container|View|use.*)\\.(tsx|ts)$",
 			}),
 		],
 		resolve: {

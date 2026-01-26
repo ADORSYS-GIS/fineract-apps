@@ -20,6 +20,10 @@
 		},
 		"navbar": {
 			"onlineBank": "Banque en ligne"
+		},
+		"reusable": {
+			"print": "Imprimer",
+			"download": "Télécharger"
 		}
 	}
 }

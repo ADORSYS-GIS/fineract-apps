@@ -48,7 +48,7 @@ function RootLayout() {
 						logo={<h1 className="text-lg font-bold">Account manager</h1>}
 						menuItems={menuAccountManager}
 						onLogout={onLogout}
-						onNavigate={(to) => navigate({ to })}
+						onNavigate={(to: string) => navigate({ to })}
 						activePath={location.pathname}
 					/>
 				}
@@ -56,7 +56,7 @@ function RootLayout() {
 					<Navbar
 						logo={
 							<h1 className="text-lg font-bold">
-								{t("welcome")}, {userData?.staffDisplayName}
+								{t("welcome")}, {userData?.displayName}
 							</h1>
 						}
 						links={null}
