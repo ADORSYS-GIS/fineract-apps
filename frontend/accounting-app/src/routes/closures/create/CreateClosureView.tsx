@@ -1,6 +1,7 @@
 import { type GetOfficesResponse } from "@fineract-apps/fineract-api";
 import { Button } from "@fineract-apps/ui";
 import { AlertTriangle, ArrowLeft, Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Input, Select, Textarea } from "../../../components";
 import type { ClosureFormData, FormErrors } from "./useCreateClosure";
 
@@ -25,6 +26,7 @@ export function CreateClosureView({
 	onSubmit,
 	onCancel,
 }: CreateClosureViewProps) {
+	const { t } = useTranslation();
 	const officeOptions = offices.map((office) => ({
 		value: String(office.id),
 		label: office.nameDecorated || office.name || "",
@@ -39,28 +41,21 @@ export function CreateClosureView({
 					className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
 				>
 					<ArrowLeft className="h-4 w-4" />
-					Back to Closures
+					{t("createClosure.backToClosures")}
 				</button>
 				<h1 className="text-2xl font-bold flex items-center gap-2">
 					<Lock className="h-6 w-6" />
-					Create Accounting Closure
+					{t("createClosure.title")}
 				</h1>
-				<p className="text-gray-600 mt-1">
-					Lock an accounting period to prevent backdated transactions
-				</p>
+				<p className="text-gray-600 mt-1">{t("createClosure.subtitle")}</p>
 			</div>
 
 			<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
 				<div className="flex items-start gap-2 text-yellow-800">
 					<AlertTriangle className="h-5 w-5 mt-0.5" />
 					<div className="text-sm">
-						<p className="font-medium">Important</p>
-						<p className="mt-1">
-							Creating an accounting closure will prevent any transactions from
-							being posted on or before the closing date. This action helps
-							maintain period-end integrity. Only create closures for periods
-							you're certain are complete.
-						</p>
+						<p className="font-medium">{t("createClosure.important")}</p>
+						<p className="mt-1">{t("createClosure.importantMessage")}</p>
 					</div>
 				</div>
 			</div>
@@ -68,43 +63,43 @@ export function CreateClosureView({
 			<form onSubmit={onSubmit}>
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
 					<h2 className="text-lg font-semibold text-gray-900 mb-4">
-						Closure Details
+						{t("createClosure.closureDetails")}
 					</h2>
 					<div className="space-y-4">
 						<Input
-							label="Closing Date *"
+							label={t("createClosure.closingDateLabel")}
 							type="date"
 							value={formData.closingDate}
 							onChange={(e) => onFormChange("closingDate", e.target.value)}
 							max={new Date().toISOString().split("T")[0]}
 							error={errors.closingDate}
-							helperText="Transactions on or before this date will be locked"
+							helperText={t("createClosure.closingDateHelperText")}
 						/>
 
 						<Select
-							label="Office *"
+							label={t("createClosure.officeLabel")}
 							value={formData.officeId}
 							onChange={(e) => onFormChange("officeId", e.target.value)}
 							options={[
 								{
 									value: "",
 									label: isLoadingOffices
-										? "Loading offices..."
-										: "Select Office",
+										? t("createClosure.loadingOffices")
+										: t("createClosure.selectOffice"),
 								},
 								...officeOptions,
 							]}
 							error={errors.officeId}
-							helperText="Select the office for this closure"
+							helperText={t("createClosure.officeHelperText")}
 							disabled={isLoadingOffices}
 						/>
 
 						<Textarea
-							label="Comments (Optional)"
+							label={t("createClosure.commentsLabel")}
 							value={formData.comments}
 							onChange={(e) => onFormChange("comments", e.target.value)}
 							rows={3}
-							placeholder="Add any notes about this closure (e.g., 'Q4 2024 Period-End Closure')"
+							placeholder={t("createClosure.commentsPlaceholder")}
 						/>
 					</div>
 				</div>
@@ -113,9 +108,9 @@ export function CreateClosureView({
 					<div className="flex items-start gap-2 text-blue-800">
 						<Lock className="h-5 w-5 mt-0.5" />
 						<div className="text-sm">
-							<p className="font-medium">Closure Summary</p>
+							<p className="font-medium">{t("createClosure.summaryTitle")}</p>
 							<p className="mt-1">
-								Closing Date:{" "}
+								{t("createClosure.summaryClosingDate")}{" "}
 								<span className="font-semibold">
 									{formData.closingDate
 										? new Date(formData.closingDate).toLocaleDateString(
@@ -126,20 +121,17 @@ export function CreateClosureView({
 													day: "numeric",
 												},
 											)
-										: "Not selected"}
+										: t("createClosure.summaryNotSelected")}
 								</span>
 							</p>
-							<p className="mt-1">
-								All transactions on or before this date will be locked and
-								cannot be modified or deleted.
-							</p>
+							<p className="mt-1">{t("createClosure.summaryMessage")}</p>
 						</div>
 					</div>
 				</div>
 
 				<div className="flex justify-end gap-4">
 					<Button type="button" variant="outline" onClick={onCancel}>
-						Cancel
+						{t("createClosure.cancel")}
 					</Button>
 					<Button
 						type="submit"
@@ -147,7 +139,9 @@ export function CreateClosureView({
 						className="flex items-center gap-2"
 					>
 						<Lock className="h-4 w-4" />
-						{isSubmitting ? "Creating Closure..." : "Create Closure"}
+						{isSubmitting
+							? t("createClosure.creatingClosure")
+							: t("createClosure.createClosure")}
 					</Button>
 				</div>
 			</form>

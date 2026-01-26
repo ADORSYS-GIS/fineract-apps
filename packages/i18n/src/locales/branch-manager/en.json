@@ -28,7 +28,7 @@
 			"actions": "Actions",
 			"view": "View",
 			"previous": "Previous",
-			"pageOf": "Page {{page}} of {{total}}",
+			"pageOf": "Page {page} of {total}",
 			"next": "Next",
 			"noPendingAccounts": "No pending savings accounts to approve."
 		},
@@ -79,7 +79,7 @@
 			"joiningDate": "Joining Date"
 		},
 		"tellerCreate": {
-			"validationError": "Zod validation error: {{message}}",
+			"validationError": "Zod validation error: {message}",
 			"officeRequired": "Office is required",
 			"nameRequired": "Name is required",
 			"startDateRequired": "Start date is required",
@@ -138,7 +138,7 @@
 			"settle": "Settle",
 			"allocate": "Allocate",
 			"loading": "Loading...",
-			"error": "Error: {{message}}",
+			"error": "Error: {message}",
 			"netCash": "Net Cash",
 			"cashAllocations": "Cash Allocations",
 			"cashSettlements": "Cash Settlements",
@@ -151,14 +151,14 @@
 			"amount": "Amount",
 			"entity": "Entity",
 			"note": "Note",
-			"page": "{{page}} / page",
+			"page": "{page} / page",
 			"previous": "Previous",
 			"next": "Next",
 			"of": "of"
 		},
 		"tellerAssign": {
 			"assign": "Assign",
-			"assignStaffTo": "Assign Staff to {{tellerName}}",
+			"assignStaffTo": "Assign Staff to {tellerName}",
 			"assignStaff": "Assign Staff",
 			"staff": "Staff",
 			"notesOptional": "Notes (optional)",
@@ -196,7 +196,7 @@
 			"description": "Description",
 			"noCashiersAssigned": "No cashiers assigned.",
 			"of": "of",
-			"perPage": "{{count}} / page",
+			"perPage": "{count} / page",
 			"previous": "Previous",
 			"next": "Next"
 		},
@@ -205,14 +205,14 @@
 			"createTeller": "Create Teller",
 			"availableTellers": "Available Tellers",
 			"filterTellersPlaceholder": "Filter tellers...",
-			"errorFetchingTellers": "Error fetching tellers: {{message}}",
+			"errorFetchingTellers": "Error fetching tellers: {message}",
 			"noTellersFound": "No tellers found.",
 			"status": {
 				"active": "ACTIVE",
 				"inactive": "INACTIVE"
 			},
 			"of": "of",
-			"perPage": "{{count}} / page",
+			"perPage": "{count} / page",
 			"previous": "Previous",
 			"next": "Next"
 		},

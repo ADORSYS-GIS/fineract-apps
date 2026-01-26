@@ -28,7 +28,7 @@
 			"actions": "Actions",
 			"view": "Voir",
 			"previous": "Précédent",
-			"pageOf": "Page {{page}} sur {{total}}",
+			"pageOf": "Page {page} sur {total}",
 			"next": "Suivant",
 			"noPendingAccounts": "Aucun compte d'épargne en attente d'approbation."
 		},
@@ -79,7 +79,7 @@
 			"joiningDate": "Date d'embauche"
 		},
 		"tellerCreate": {
-			"validationError": "Erreur de validation Zod : {{message}}",
+			"validationError": "Erreur de validation Zod : {message}",
 			"officeRequired": "Le bureau est requis",
 			"nameRequired": "Le nom est requis",
 			"startDateRequired": "La date de début est requise",
@@ -138,7 +138,7 @@
 			"settle": "Régler",
 			"allocate": "Allouer",
 			"loading": "Chargement...",
-			"error": "Erreur : {{message}}",
+			"error": "Erreur : {message}",
 			"netCash": "Liquidités nettes",
 			"cashAllocations": "Allocations de liquidités",
 			"cashSettlements": "Règlements en espèces",
@@ -151,14 +151,14 @@
 			"amount": "Montant",
 			"entity": "Entité",
 			"note": "Note",
-			"page": "{{page}} / page",
+			"page": "{page} / page",
 			"previous": "Précédent",
 			"next": "Suivant",
 			"of": "de"
 		},
 		"tellerAssign": {
 			"assign": "Attribuer",
-			"assignStaffTo": "Attribuer le personnel à {{tellerName}}",
+			"assignStaffTo": "Attribuer le personnel à {tellerName}",
 			"assignStaff": "Attribuer le Personnel",
 			"staff": "Personnel",
 			"notesOptional": "Notes (facultatif)",
@@ -196,7 +196,7 @@
 			"description": "Description",
 			"noCashiersAssigned": "Aucun caissier affecté.",
 			"of": "de",
-			"perPage": "{{count}} / page",
+			"perPage": "{count} / page",
 			"previous": "Précédent",
 			"next": "Suivant"
 		},
@@ -205,14 +205,14 @@
 			"createTeller": "Créer un Caissier",
 			"availableTellers": "Caissiers Disponibles",
 			"filterTellersPlaceholder": "Filtrer les caissiers...",
-			"errorFetchingTellers": "Erreur lors de la récupération des caissiers : {{message}}",
+			"errorFetchingTellers": "Erreur lors de la récupération des caissiers : {message}",
 			"noTellersFound": "Aucun caissier trouvé.",
 			"status": {
 				"active": "ACTIF",
 				"inactive": "INACTIF"
 			},
 			"of": "de",
-			"perPage": "{{count}} / page",
+			"perPage": "{count} / page",
 			"previous": "Précédent",
 			"next": "Suivant"
 		},
