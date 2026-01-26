@@ -49,7 +49,7 @@ function LandingPage() {
 			{/* Hero Section */}
 			<main className="container mx-auto px-4 py-16">
 				<div className="max-w-3xl mx-auto text-center">
-					<h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+					<h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
 						{t("app.tagline")}
 					</h1>
 					<p className="text-xl text-gray-600 mb-8">

@@ -581,7 +581,7 @@ importers:
         version: 2.6.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react-i18next:
         specifier: ^14.1.0
-        version: 14.1.3(i18next@23.16.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 14.1.3(i18next@25.7.4(typescript@5.8.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react-oidc-context:
         specifier: ^3.1.0
         version: 3.3.0(oidc-client-ts@3.4.1)(react@19.2.0)
@@ -623,8 +623,8 @@ importers:
         specifier: ^10.4.19
         version: 10.4.23(postcss@8.5.6)
       i18next:
-        specifier: ^23.10.1
-        version: 23.16.8
+        specifier: ^25.7.4
+        version: 25.7.4(typescript@5.8.3)
       jsdom:
         specifier: ^24.0.0
         version: 24.1.3
@@ -4372,9 +4372,6 @@ packages:
 
   i18next-browser-languagedetector@8.2.0:
     resolution: {integrity: sha512-P+3zEKLnOF0qmiesW383vsLdtQVyKtCNA9cjSoKCppTKPQVfKd2W8hbVo5ZhNJKDqeM7BOcvNoKJOjpHh4Js9g==}
-
-  i18next@23.16.8:
-    resolution: {integrity: sha512-06r/TitrM88Mg5FdUXAKL96dJMzgqLE5dv3ryBAra4KCwD9mJ4ndOTS95ZuymIGoE+2hzfdaMak2X11/es7ZWg==}
 
   i18next@25.7.4:
     resolution: {integrity: sha512-hRkpEblXXcXSNbw8mBNq9042OEetgyB/ahc/X17uV/khPwzV+uB8RHceHh3qavyrkPJvmXFKXME2Sy1E0KjAfw==}
@@ -10743,10 +10740,6 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.4
 
-  i18next@23.16.8:
-    dependencies:
-      '@babel/runtime': 7.28.4
-
   i18next@25.7.4(typescript@5.8.3):
     dependencies:
       '@babel/runtime': 7.28.4
@@ -12020,11 +12013,11 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  react-i18next@14.1.3(i18next@23.16.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+  react-i18next@14.1.3(i18next@25.7.4(typescript@5.8.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
       '@babel/runtime': 7.28.4
       html-parse-stringify: 3.0.1
-      i18next: 23.16.8
+      i18next: 25.7.4(typescript@5.8.3)
       react: 19.2.0
     optionalDependencies:
       react-dom: 19.2.0(react@19.2.0)

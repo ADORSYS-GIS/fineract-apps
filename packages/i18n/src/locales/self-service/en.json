@@ -1,0 +1,18 @@
+{
+	"translation": {
+		"app.name": "Webank",
+		"app.tagline": "Send and receive money instantly with MTN Mobile Money, Orange Money, and bank transfers. Secure passwordless authentication with Face ID and fingerprint.",
+		"auth.login": "Login",
+		"auth.register": "Register",
+		"register.title": "Register",
+		"register.subtitle": "Create your account",
+		"register.firstName": "First Name",
+		"register.lastName": "Last Name",
+		"register.email": "Email",
+		"register.phone": "Phone",
+		"register.dateOfBirth": "Date of Birth",
+		"register.gender": "Gender",
+		"register.submit": "Submit",
+		"register.haveAccount": "Already have an account?"
+	}
+}

@@ -1,10 +1,11 @@
+import { i18n } from "@fineract-apps/i18n";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
+import { I18nextProvider } from "react-i18next";
 import { AuthProvider } from "react-oidc-context";
-
 import { initTracing } from "./lib/tracing";
 import { routeTree } from "./routeTree.gen";
 
@@ -72,13 +73,15 @@ function LoadingFallback() {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
 	<React.StrictMode>
-		<AuthProvider {...oidcConfig}>
-			<QueryClientProvider client={queryClient}>
-				<Suspense fallback={<LoadingFallback />}>
-					<RouterProvider router={router} />
-					<Toaster position="top-right" />
-				</Suspense>
-			</QueryClientProvider>
-		</AuthProvider>
+		<I18nextProvider i18n={i18n}>
+			<AuthProvider {...oidcConfig}>
+				<QueryClientProvider client={queryClient}>
+					<Suspense fallback={<LoadingFallback />}>
+						<RouterProvider router={router} />
+						<Toaster position="top-right" />
+					</Suspense>
+				</QueryClientProvider>
+			</AuthProvider>
+		</I18nextProvider>
 	</React.StrictMode>,
 );
