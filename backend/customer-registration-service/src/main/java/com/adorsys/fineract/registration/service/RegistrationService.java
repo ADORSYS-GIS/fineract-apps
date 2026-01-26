@@ -73,7 +73,7 @@ public class RegistrationService {
         } catch (RegistrationException e) {
             // Known error - rollback and rethrow
             log.error("Registration failed: {}", e.getMessage());
-            registrationMetrics.incrementRegistrationFailure(e.getCode() != null ? e.getCode() : "unknown");
+            registrationMetrics.incrementRegistrationFailure(e.getErrorCode() != null ? e.getErrorCode() : "unknown");
             rollback(fineractClientId, keycloakUserId);
             throw e;
 

@@ -8,7 +8,7 @@
     <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] [%X{traceId:-},%X{spanId:-}] %cyan(%logger{36}) - %msg%n"/>
 
     <!-- JSON pattern for production (Loki/ELK compatible) -->
-    <property name="JSON_PATTERN" value='{"@timestamp":"%d{yyyy-MM-dd'\''T'\''HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","version":"${appVersion}","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","thread":"%thread","logger":"%logger{36}","message":"%msg","exception":"%ex{full}"}%n'/>
+    <property name="JSON_PATTERN" value='{"@timestamp":"%d","level":"%level","service":"${appName}","version":"${appVersion}","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","thread":"%thread","logger":"%logger{36}","message":"%msg","exception":"%ex{full}"}%n'/>
 
     <!-- Console appender -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
