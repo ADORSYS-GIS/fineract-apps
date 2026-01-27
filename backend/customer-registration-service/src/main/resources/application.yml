@@ -52,7 +52,7 @@ fineract:
   default-office-id: ${DEFAULT_OFFICE_ID:1}
   default-savings-product-id: ${DEFAULT_SAVINGS_PRODUCT_ID:1}
   # Whether to verify SSL certificate from Fineract (for development with self-signed certs)
-  verify-ssl: ${FINERACT_VERIFY_SSL:false}
+  verifySsl: ${FINERACT_VERIFY_SSL:false}
 
 # Actuator Endpoints
 management:

@@ -4,34 +4,29 @@ import com.adorsys.fineract.registration.client.FineractTokenProvider;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.ssl.TrustStrategy;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
+import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.stream.Collectors;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 
-/**
- * Configuration for Fineract API client.
- * Supports both OAuth2 (default) and Basic Auth authentication.
- *
- * Auth type is controlled by the 'fineract.auth-type' property:
- * - oauth: Uses OAuth2 client credentials flow (default)
- * - basic: Uses HTTP Basic Authentication
- */
 @Slf4j
 @Configuration
 @ConfigurationProperties(prefix = "fineract")
@@ -41,28 +36,16 @@ public class FineractConfig {
 
     private String url;
     private String tenant = "default";
-
-    /**
-     * Authentication type: "oauth" (default) or "basic"
-     */
     private String authType = "oauth";
-
-    // OAuth2 settings (used when auth-type=oauth)
     private String tokenUrl;
     private String clientId;
     private String clientSecret;
-
     private String grantType = "client_credentials";
     private String oauthUsername;
     private String oauthPassword;
-
-    // Basic auth settings (used when auth-type=basic)
     private String username;
     private String password;
-
     private boolean verifySsl = true;
-
-    // Fineract defaults
     private Long defaultOfficeId = 1L;
     private Long defaultSavingsProductId = 1L;
 
@@ -73,9 +56,10 @@ public class FineractConfig {
     @Bean
     public RestClient fineractRestClient(FineractTokenProvider tokenProvider) {
         RestClient.Builder builder = RestClient.builder();
+        log.info("Fineract SSL verification is set to: {}", verifySsl);
 
         if (!verifySsl) {
-            builder.requestFactory(getUnsafeRequestFactory());
+            builder.requestFactory(getUnsafeRequestFactoryApache());
         }
 
         builder.baseUrl(url)
@@ -85,10 +69,8 @@ public class FineractConfig {
                 .requestInterceptor(loggingInterceptor());
 
         if (isOAuthEnabled()) {
-            // OAuth: Use request interceptor to add Bearer token dynamically
             builder.requestInterceptor(oauthInterceptor(tokenProvider));
         } else {
-            // Basic Auth: Add static header
             String credentials = username + ":" + password;
             String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
             builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedCredentials);
@@ -116,7 +98,6 @@ public class FineractConfig {
 
             log.debug("Response from Fineract: {}", response.getStatusCode());
             log.trace("Response headers: {}", response.getHeaders());
-            // Buffer the response body to be able to read it here and downstream
             var responseBody = new BufferedReader(new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))
                     .lines()
                     .collect(Collectors.joining("\n"));
@@ -128,30 +109,15 @@ public class FineractConfig {
         };
     }
 
-    private JdkClientHttpRequestFactory getUnsafeRequestFactory() {
+    private HttpComponentsClientHttpRequestFactory getUnsafeRequestFactoryApache() {
         try {
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                    new X509TrustManager() {
-                        public X509Certificate[] getAcceptedIssuers() {
-                            return new X509Certificate[0];
-                        }
-
-                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
-                        }
-
-                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
-                        }
-                    }
-            };
-
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-
-            HttpClient httpClient = HttpClient.newBuilder()
-                    .sslContext(sslContext)
+            TrustStrategy acceptingTrustStrategy = (cert, authType) -> true;
+            SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
+            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
+            CloseableHttpClient httpClient = HttpClients.custom()
+                    .setConnectionManager(PoolingHttpClientConnectionManagerBuilder.create().setSSLSocketFactory(sslsf).build())
                     .build();
-
-            return new JdkClientHttpRequestFactory(httpClient);
+            return new HttpComponentsClientHttpRequestFactory(httpClient);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create unsafe SSL context", e);
         }
