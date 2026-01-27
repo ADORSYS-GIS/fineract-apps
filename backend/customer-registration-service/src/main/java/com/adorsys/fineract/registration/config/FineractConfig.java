@@ -36,11 +36,11 @@ public class FineractConfig {
 
     private String url;
     private String tenant = "default";
-    private String authType = "oauth";
+    private String authType;
     private String tokenUrl;
     private String clientId;
     private String clientSecret;
-    private String grantType = "client_credentials";
+    private String grantType;
     private String oauthUsername;
     private String oauthPassword;
     private String username;
@@ -59,6 +59,7 @@ public class FineractConfig {
         RestClient.Builder builder = RestClient.builder();
 
         log.info("Fineract authentication type configured: {}", authType);
+        log.info("Fineract OAuth grant type configured: {}", grantType);
         log.info("Fineract SSL verification is set to: {}", verifySsl);
 
         if (!verifySsl) {
