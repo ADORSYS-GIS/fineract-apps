@@ -75,7 +75,7 @@ management:
 logging:
   level:
     root: INFO
-    com.adorsys.fineract.registration: ${LOGGING_LEVEL_COM_ADORSYS:DEBUG}
+    com.adorsys.fineract.registration: ${LOGGING_LEVEL_COM_ADORSYS:TRACE}
     org.keycloak: WARN
 
 # OpenAPI/Swagger
