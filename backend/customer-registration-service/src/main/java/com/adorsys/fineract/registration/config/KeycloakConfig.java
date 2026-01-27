@@ -8,7 +8,9 @@ import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Configuration
 @ConfigurationProperties(prefix = "keycloak")
 @Getter
@@ -22,14 +24,27 @@ public class KeycloakConfig {
     private String clientSecret;
     private String selfServiceGroup = "/self-service-customers";
 
+    private String grantType = OAuth2Constants.CLIENT_CREDENTIALS;
+    private String adminUsername;
+    private String adminPassword;
+
     @Bean
     public Keycloak keycloakAdminClient() {
-        return KeycloakBuilder.builder()
+        log.info("Configuring Keycloak admin client with grant type: {}", grantType);
+        KeycloakBuilder builder = KeycloakBuilder.builder()
                 .serverUrl(url)
                 .realm(adminRealm)
-                .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
+                .grantType(grantType)
                 .clientId(clientId)
-                .clientSecret(clientSecret)
-                .build();
+                .clientSecret(clientSecret);
+
+        if (OAuth2Constants.PASSWORD.equals(grantType)) {
+            if (adminUsername == null || adminPassword == null) {
+                throw new IllegalStateException("keycloak.admin-username and keycloak.admin-password are required for password grant type");
+            }
+            builder.username(adminUsername).password(adminPassword);
+        }
+
+        return builder.build();
     }
 }

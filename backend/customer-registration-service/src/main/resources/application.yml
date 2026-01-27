@@ -24,6 +24,11 @@ keycloak:
   client-id: ${KEYCLOAK_CLIENT_ID:customer-registration-service}
   client-secret: ${KEYCLOAK_CLIENT_SECRET:}
   self-service-group: ${DEFAULT_GROUP_PATH:/self-service-customers}
+  # Grant type for Keycloak admin client: client_credentials (default) or password
+  grant-type: ${KEYCLOAK_GRANT_TYPE:client_credentials}
+  # Admin credentials (used when grant-type=password)
+  admin-username: ${KEYCLOAK_ADMIN_USERNAME:}
+  admin-password: ${KEYCLOAK_ADMIN_PASSWORD:}
 
 # Fineract Configuration
 fineract:
@@ -35,6 +40,11 @@ fineract:
   token-url: ${FINERACT_TOKEN_URL:http://keycloak:9000/realms/fineract/protocol/openid-connect/token}
   client-id: ${FINERACT_CLIENT_ID:fineract-service}
   client-secret: ${FINERACT_CLIENT_SECRET:}
+  # OAuth grant type: client_credentials (default) or password
+  grant-type: ${FINERACT_OAUTH_GRANT_TYPE:client_credentials}
+  # OAuth credentials (used when grant-type=password)
+  oauth-username: ${FINERACT_OAUTH_USERNAME:mifos}
+  oauth-password: ${FINERACT_OAUTH_PASSWORD:password}
   # Basic auth settings (used when auth-type=basic)
   username: ${FINERACT_USERNAME:mifos}
   password: ${FINERACT_PASSWORD:password}

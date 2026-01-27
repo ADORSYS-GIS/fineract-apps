@@ -3,12 +3,10 @@ package com.adorsys.fineract.registration.client;
 import com.adorsys.fineract.registration.config.FineractConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,9 +69,7 @@ public class FineractTokenProvider {
         log.info("Fetching new Fineract OAuth token from: {}", config.getTokenUrl());
 
         try {
-            // Build credentials for Basic Auth header (client_id:client_secret)
-            String credentials = config.getClientId() + ":" + config.getClientSecret();
-            String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
+            String requestBody = buildTokenRequestBody();
 
             // Create a simple RestClient for token endpoint
             RestClient tokenClient = RestClient.builder()
@@ -81,9 +77,8 @@ public class FineractTokenProvider {
                     .build();
 
             Map<String, Object> response = tokenClient.post()
-                    .header(HttpHeaders.AUTHORIZATION, "Basic " + encodedCredentials)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body("grant_type=client_credentials")
+                    .body(requestBody)
                     .retrieve()
                     .body(Map.class);
 
@@ -108,12 +103,31 @@ public class FineractTokenProvider {
             tokenCache.put(CACHE_KEY, new TokenInfo(accessToken, expiresAt));
 
             log.info("Successfully obtained Fineract OAuth token (expires in {} seconds)", expiresIn);
+            log.debug("Fineract access token: {}...", accessToken.substring(0, 15));
             return accessToken;
 
         } catch (Exception e) {
             log.error("Failed to obtain Fineract OAuth token: {}", e.getMessage());
             throw new RuntimeException("Failed to obtain Fineract OAuth token", e);
         }
+    }
+
+    private String buildTokenRequestBody() {
+        String grantType = config.getGrantType();
+        log.info("Building Fineract token request with grant type: {}", grantType);
+        StringBuilder body = new StringBuilder("grant_type=").append(grantType);
+
+        body.append("&client_id=").append(config.getClientId());
+        body.append("&client_secret=").append(config.getClientSecret());
+
+        if ("password".equalsIgnoreCase(grantType)) {
+            body.append("&username=").append(config.getOauthUsername());
+            body.append("&password=").append(config.getOauthPassword());
+        }
+
+        String requestBody = body.toString();
+        log.debug("Fineract token request body: {}", requestBody.replaceAll("password=.*", "password=***"));
+        return requestBody;
     }
 
     private void validateOAuthConfig() {
@@ -125,6 +139,14 @@ public class FineractTokenProvider {
         }
         if (config.getClientSecret() == null || config.getClientSecret().isBlank()) {
             throw new IllegalStateException("fineract.client-secret is required for OAuth authentication");
+        }
+        if ("password".equalsIgnoreCase(config.getGrantType())) {
+            if (config.getOauthUsername() == null || config.getOauthUsername().isBlank()) {
+                throw new IllegalStateException("fineract.oauth-username is required for password grant type");
+            }
+            if (config.getOauthPassword() == null || config.getOauthPassword().isBlank()) {
+                throw new IllegalStateException("fineract.oauth-password is required for password grant type");
+            }
         }
     }
 
