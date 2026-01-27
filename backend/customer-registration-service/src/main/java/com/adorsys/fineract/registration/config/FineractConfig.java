@@ -17,15 +17,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RestClient;
 
 import javax.net.ssl.SSLContext;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Configuration
@@ -98,18 +99,17 @@ public class FineractConfig {
                 log.debug("Request body: {}", new String(body, StandardCharsets.UTF_8));
             }
 
-            var response = execution.execute(request, body);
+            ClientHttpResponse response = execution.execute(request, body);
 
             log.info("Received response from Fineract: {}", response.getStatusCode());
             log.debug("Response headers: {}", response.getHeaders());
-            var responseBody = new BufferedReader(new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))
-                    .lines()
-                    .collect(Collectors.joining("\n"));
-            if (!responseBody.isEmpty()) {
-                log.debug("Response body: {}", responseBody);
+
+            byte[] responseBodyBytes = StreamUtils.copyToByteArray(response.getBody());
+            if (responseBodyBytes.length > 0) {
+                log.debug("Response body: {}", new String(responseBodyBytes, StandardCharsets.UTF_8));
             }
 
-            return response;
+            return new BufferingClientHttpResponseWrapper(response, responseBodyBytes);
         };
     }
 
@@ -124,6 +124,58 @@ public class FineractConfig {
             return new HttpComponentsClientHttpRequestFactory(httpClient);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create unsafe SSL context", e);
+        }
+    }
+
+    private static class BufferingClientHttpResponseWrapper implements ClientHttpResponse {
+        private final ClientHttpResponse response;
+        private final byte[] body;
+
+        public BufferingClientHttpResponseWrapper(ClientHttpResponse response, byte[] body) {
+            this.response = response;
+            this.body = body;
+        }
+
+        @Override
+        public HttpHeaders getHeaders() {
+            return response.getHeaders();
+        }
+
+        @Override
+        public InputStream getBody() {
+            return new ByteArrayInputStream(body);
+        }
+
+        @Override
+        public void close() {
+            response.close();
+        }
+
+        @Override
+        public org.springframework.http.HttpStatusCode getStatusCode() {
+            try {
+                return response.getStatusCode();
+            } catch (java.io.IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public int getRawStatusCode() {
+            try {
+                return response.getRawStatusCode();
+            } catch (java.io.IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public String getStatusText() {
+            try {
+                return response.getStatusText();
+            } catch (java.io.IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }
