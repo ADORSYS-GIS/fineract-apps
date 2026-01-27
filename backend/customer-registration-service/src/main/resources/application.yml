@@ -32,7 +32,7 @@ keycloak:
 
 # Fineract Configuration
 fineract:
-  url: ${FINERACT_URL:https://localhost:8443}
+  url: ${FINERACT_URL:https://localhost:443}
   tenant: ${FINERACT_TENANT:default}
   # Authentication type: oauth (default) or basic
   auth-type: ${FINERACT_AUTH_TYPE:oauth}
@@ -51,6 +51,8 @@ fineract:
   # Fineract defaults
   default-office-id: ${DEFAULT_OFFICE_ID:1}
   default-savings-product-id: ${DEFAULT_SAVINGS_PRODUCT_ID:1}
+  # Whether to verify SSL certificate from Fineract (for development with self-signed certs)
+  verify-ssl: ${FINERACT_VERIFY_SSL:false}
 
 # Actuator Endpoints
 management:

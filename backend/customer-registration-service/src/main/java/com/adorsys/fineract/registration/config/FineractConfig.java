@@ -14,9 +14,15 @@ import org.springframework.web.client.RestClient;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 
 /**
  * Configuration for Fineract API client.
@@ -54,6 +60,8 @@ public class FineractConfig {
     private String username;
     private String password;
 
+    private boolean verifySsl = true;
+
     // Fineract defaults
     private Long defaultOfficeId = 1L;
     private Long defaultSavingsProductId = 1L;
@@ -64,8 +72,13 @@ public class FineractConfig {
 
     @Bean
     public RestClient fineractRestClient(FineractTokenProvider tokenProvider) {
-        RestClient.Builder builder = RestClient.builder()
-                .baseUrl(url)
+        RestClient.Builder builder = RestClient.builder();
+
+        if (!verifySsl) {
+            builder.requestFactory(getUnsafeRequestFactory());
+        }
+
+        builder.baseUrl(url)
                 .defaultHeader("Fineract-Platform-TenantId", tenant)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
@@ -113,5 +126,34 @@ public class FineractConfig {
 
             return response;
         };
+    }
+
+    private JdkClientHttpRequestFactory getUnsafeRequestFactory() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+
+            HttpClient httpClient = HttpClient.newBuilder()
+                    .sslContext(sslContext)
+                    .build();
+
+            return new JdkClientHttpRequestFactory(httpClient);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create unsafe SSL context", e);
+        }
     }
 }
