@@ -35,13 +35,13 @@ fineract:
   url: ${FINERACT_URL:https://localhost:443}
   tenant: ${FINERACT_TENANT:default}
   # Authentication type: oauth (default) or basic
-  auth-type: ${FINERACT_AUTH_TYPE:oauth}
+  auth-type: ${FINERACT_AUTH_TYPE_1:oauth}
   # OAuth settings (used when auth-type=oauth)
   token-url: ${FINERACT_TOKEN_URL:http://localhost:9000/realms/fineract/protocol/openid-connect/token}
   client-id: ${FINERACT_CLIENT_ID:setup-app-client}
   client-secret: ${FINERACT_CLIENT_SECRET:**********}
   # OAuth grant type: client_credentials (default) or password
-  grant-type: ${FINERACT_OAUTH_GRANT_TYPE:client_credentials}
+  grant-type: ${FINERACT_OAUTH_GRANT_TYPE:password}
   # OAuth credentials (used when grant-type=password)
   oauth-username: ${FINERACT_OAUTH_USERNAME:mifos}
   oauth-password: ${FINERACT_OAUTH_PASSWORD:password}
@@ -51,6 +51,7 @@ fineract:
   # Fineract defaults
   default-office-id: ${DEFAULT_OFFICE_ID:1}
   default-savings-product-id: ${DEFAULT_SAVINGS_PRODUCT_ID:1}
+  default-gender-id: ${DEFAULT_GENDER_ID:2}
   # Whether to verify SSL certificate from Fineract (for development with self-signed certs)
   verifySsl: ${FINERACT_VERIFY_SSL:false}
 

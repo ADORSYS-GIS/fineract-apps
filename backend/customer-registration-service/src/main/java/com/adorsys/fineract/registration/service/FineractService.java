@@ -295,10 +295,7 @@ public class FineractService {
         }
 
         if (request.getGender() != null) {
-            // Gender code value depends on Fineract configuration
-            // Typically: 1 = Male, 2 = Female
-            int genderCode = "Male".equalsIgnoreCase(request.getGender()) ? 1 : 2;
-            payload.put("genderId", genderCode);
+            payload.put("genderId", fineractConfig.getDefaultGenderId());
         }
 
         return payload;

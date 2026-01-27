@@ -48,6 +48,7 @@ public class FineractConfig {
     private boolean verifySsl = true;
     private Long defaultOfficeId = 1L;
     private Long defaultSavingsProductId = 1L;
+    private Long defaultGenderId = 1L;
 
     public boolean isOAuthEnabled() {
         return "oauth".equalsIgnoreCase(authType);
@@ -56,6 +57,8 @@ public class FineractConfig {
     @Bean
     public RestClient fineractRestClient(FineractTokenProvider tokenProvider) {
         RestClient.Builder builder = RestClient.builder();
+
+        log.info("Fineract authentication type configured: {}", authType);
         log.info("Fineract SSL verification is set to: {}", verifySsl);
 
         if (!verifySsl) {
@@ -88,21 +91,21 @@ public class FineractConfig {
 
     private ClientHttpRequestInterceptor loggingInterceptor() {
         return (request, body, execution) -> {
-            log.debug("Request to Fineract: {} {}", request.getMethod(), request.getURI());
-            log.trace("Request headers: {}", request.getHeaders());
+            log.info("Sending request to Fineract: {} {}", request.getMethod(), request.getURI());
+            log.debug("Request headers: {}", request.getHeaders());
             if (body.length > 0) {
-                log.trace("Request body: {}", new String(body, StandardCharsets.UTF_8));
+                log.debug("Request body: {}", new String(body, StandardCharsets.UTF_8));
             }
 
             var response = execution.execute(request, body);
 
-            log.debug("Response from Fineract: {}", response.getStatusCode());
-            log.trace("Response headers: {}", response.getHeaders());
+            log.info("Received response from Fineract: {}", response.getStatusCode());
+            log.debug("Response headers: {}", response.getHeaders());
             var responseBody = new BufferedReader(new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))
                     .lines()
                     .collect(Collectors.joining("\n"));
             if (!responseBody.isEmpty()) {
-                log.trace("Response body: {}", responseBody);
+                log.debug("Response body: {}", responseBody);
             }
 
             return response;

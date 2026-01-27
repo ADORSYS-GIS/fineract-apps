@@ -82,6 +82,8 @@ public class FineractTokenProvider {
                     .retrieve()
                     .body(Map.class);
 
+            log.info("Received response from Keycloak: {}", response);
+
             if (response == null) {
                 throw new RuntimeException("Empty response from token endpoint");
             }

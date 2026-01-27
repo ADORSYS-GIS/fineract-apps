@@ -111,7 +111,9 @@ public class RegistrationService {
         String kycStatus = getAttributeAsString(attributes, "kyc_status", "pending");
 
         // Check verification status
+        log.info("Verifying email status for userId: {}", userId);
         boolean emailVerified = keycloakService.isEmailVerified(userId);
+        log.info("Verifying WebAuthn status for userId: {}", userId);
         boolean webAuthnRegistered = keycloakService.isWebAuthnRegistered(userId);
 
         // Determine overall status
