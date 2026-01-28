@@ -4,6 +4,31 @@ This document provides `curl` commands to test the entire Customer Registration 
 
 ---
 
+## Prerequisites: Keycloak Configuration for Local Testing
+
+Before you begin testing, you must perform a one-time configuration in your local Keycloak instance to ensure the registration service can function correctly.
+
+### 1. Make the `externalId` Searchable
+
+The registration service needs to be able to find users by their `externalId`. You must tell Keycloak to make this attribute searchable.
+
+1.  Log in to the **Keycloak Admin Console** and select the `fineract` realm.
+2.  Go to **"Realm Settings"** -> **"User Profile"**.
+3.  Click on **"Create attribute"**.
+4.  Set the **"Name"** to `fineract_external_id`.
+5.  In the "Permission" section, turn on the **"Searchable"** toggle for the `admin` role.
+6.  Click **"Save"**.
+
+### 2. Configure the `mifos` Service Account
+
+The registration service uses a service account (username: `mifos`) to communicate with Fineract. You must ensure this account is active and has no pending required actions.
+
+1.  In the Keycloak Admin Console, go to **"Users"** and find the `mifos` user.
+2.  Go to the **"Details"** tab.
+3.  Ensure there are no **"Required Actions"** listed. If there are (e.g., "Update Password"), clear them and save the user.
+
+---
+
 ## Step 1: Register a New Customer and Store the externalId
 
 This command will register a new user and then automatically extract the `externalId` from the JSON response and store it in a shell variable called `EXTERNAL_ID`.
