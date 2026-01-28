@@ -15,7 +15,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8080",
+      "url": "http://localhost:8081",
       "description": "Generated server url"
     }
   ],
@@ -57,8 +57,8 @@
           "required": true
         },
         "responses": {
-          "201": {
-            "description": "Registration successful",
+          "400": {
+            "description": "Validation error or email already exists",
             "content": {
               "*/*": {
                 "schema": {
@@ -67,8 +67,8 @@
               }
             }
           },
-          "400": {
-            "description": "Validation error or email already exists",
+          "201": {
+            "description": "Registration successful",
             "content": {
               "*/*": {
                 "schema": {
@@ -372,8 +372,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Status retrieved",
+          "404": {
+            "description": "Customer not found",
             "content": {
               "*/*": {
                 "schema": {
@@ -382,8 +382,8 @@
               }
             }
           },
-          "404": {
-            "description": "Customer not found",
+          "200": {
+            "description": "Status retrieved",
             "content": {
               "*/*": {
                 "schema": {
@@ -415,8 +415,8 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Customer not found",
+          "200": {
+            "description": "Limits retrieved",
             "content": {
               "*/*": {
                 "schema": {
@@ -425,8 +425,8 @@
               }
             }
           },
-          "200": {
-            "description": "Limits retrieved",
+          "404": {
+            "description": "Customer not found",
             "content": {
               "*/*": {
                 "schema": {
@@ -468,8 +468,8 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Customer not found",
+          "200": {
+            "description": "KYC status retrieved",
             "content": {
               "*/*": {
                 "schema": {
@@ -478,8 +478,8 @@
               }
             }
           },
-          "200": {
-            "description": "KYC status retrieved",
+          "404": {
+            "description": "Customer not found",
             "content": {
               "*/*": {
                 "schema": {
