@@ -1,29 +1,14 @@
 import { Button } from "@fineract-apps/ui";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shield, Smartphone, Wallet } from "lucide-react";
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "react-oidc-context";
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
 });
 
 function LandingPage() {
-	const auth = useAuth();
-	const navigate = useNavigate();
 	const { t } = useTranslation();
-
-	// Redirect to dashboard if already authenticated
-	useEffect(() => {
-		if (auth.isAuthenticated) {
-			navigate({ to: "/dashboard" });
-		}
-	}, [auth.isAuthenticated, navigate]);
-
-	const handleLogin = () => {
-		auth.signinRedirect();
-	};
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -40,9 +25,11 @@ function LandingPage() {
 						>
 							{t("auth.register")}
 						</Link>
-						<Button onClick={handleLogin} variant="default" size="sm">
-							{t("auth.login")}
-						</Button>
+						<Link to="/login">
+							<Button variant="default" size="sm">
+								{t("auth.login")}
+							</Button>
+						</Link>
 					</div>
 				</nav>
 			</header>
@@ -59,9 +46,9 @@ function LandingPage() {
 						Face ID and fingerprint.
 					</p>
 					<div className="flex flex-col sm:flex-row gap-4 justify-center">
-						<Button onClick={handleLogin} size="lg">
-							{t("auth.login")}
-						</Button>
+						<Link to="/login">
+							<Button size="lg">{t("auth.login")}</Button>
+						</Link>
 						<Link to="/register">
 							<Button variant="outline" size="lg">
 								{t("auth.register")}

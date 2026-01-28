@@ -153,7 +153,7 @@ export function RegisterPage() {
 				</Formik>
 				<p className="text-center text-gray-500 mt-6">
 					{t("register.haveAccount")}{" "}
-					<Link to="/" className="text-blue-600 hover:underline">
+					<Link to="/login" className="text-blue-600 hover:underline">
 						{t("auth.login")}
 					</Link>
 				</p>

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WithdrawRouteImport } from './routes/withdraw'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as DepositRouteImport } from './routes/deposit'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CallbackRouteImport } from './routes/callback'
@@ -33,6 +34,11 @@ const TransactionsRoute = TransactionsRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DepositRoute = DepositRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/callback': typeof CallbackRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
+  '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/transactions': typeof TransactionsRoute
   '/withdraw': typeof WithdrawRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/callback': typeof CallbackRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
+  '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/transactions': typeof TransactionsRoute
   '/withdraw': typeof WithdrawRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/callback': typeof CallbackRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
+  '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/transactions': typeof TransactionsRoute
   '/withdraw': typeof WithdrawRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/callback'
     | '/dashboard'
     | '/deposit'
+    | '/login'
     | '/register'
     | '/transactions'
     | '/withdraw'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/callback'
     | '/dashboard'
     | '/deposit'
+    | '/login'
     | '/register'
     | '/transactions'
     | '/withdraw'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/callback'
     | '/dashboard'
     | '/deposit'
+    | '/login'
     | '/register'
     | '/transactions'
     | '/withdraw'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   CallbackRoute: typeof CallbackRoute
   DashboardRoute: typeof DashboardRoute
   DepositRoute: typeof DepositRoute
+  LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   TransactionsRoute: typeof TransactionsRoute
   WithdrawRoute: typeof WithdrawRoute
@@ -181,6 +194,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deposit': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   CallbackRoute: CallbackRoute,
   DashboardRoute: DashboardRoute,
   DepositRoute: DepositRoute,
+  LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   TransactionsRoute: TransactionsRoute,
   WithdrawRoute: WithdrawRoute,

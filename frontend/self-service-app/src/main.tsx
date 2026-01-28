@@ -19,8 +19,8 @@ initTracing();
 const oidcConfig = {
 	authority:
 		import.meta.env.VITE_OIDC_AUTHORITY ||
-		"http://localhost:8080/realms/fineract",
-	client_id: import.meta.env.VITE_OIDC_CLIENT_ID || "self-service-app",
+		"http://localhost:9000/realms/fineract",
+	client_id: "setup-app-client",
 	redirect_uri:
 		import.meta.env.VITE_OIDC_REDIRECT_URI ||
 		`${window.location.origin}/self-service/callback`,
