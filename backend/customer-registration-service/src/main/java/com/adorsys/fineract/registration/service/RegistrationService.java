@@ -50,15 +50,7 @@ public class RegistrationService {
             fineractClientId = fineractService.createClient(request, externalId);
             log.info("Created Fineract client: {}", fineractClientId);
 
-            // Step 2: Create savings account (optional, can fail without rollback)
-            try {
-                Long savingsId = fineractService.createSavingsAccount(fineractClientId);
-                log.info("Created savings account: {}", savingsId);
-            } catch (Exception e) {
-                log.warn("Failed to create savings account, continuing: {}", e.getMessage());
-            }
-
-            // Step 3: Create Keycloak user
+            // Step 2: Create Keycloak user
             keycloakUserId = keycloakService.createUser(request, externalId);
             log.info("Created Keycloak user: {}", keycloakUserId);
 
