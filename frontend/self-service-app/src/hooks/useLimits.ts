@@ -1,3 +1,4 @@
+import { RegistrationService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "react-oidc-context";
 
@@ -29,26 +30,6 @@ export interface TransactionLimits {
 		maxAmount: number;
 		requiresKycTier: number;
 	}[];
-}
-
-async function fetchLimits(
-	externalId: string,
-	accessToken: string,
-): Promise<TransactionLimits> {
-	const response = await fetch(
-		`${import.meta.env.VITE_REGISTRATION_API_URL || "/api"}/registration/limits?externalId=${externalId}`,
-		{
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-			},
-		},
-	);
-
-	if (!response.ok) {
-		throw new Error("Failed to fetch limits");
-	}
-
-	return response.json();
 }
 
 // Default limits based on KYC tier
@@ -131,10 +112,12 @@ export function useLimits() {
 	const query = useQuery({
 		queryKey: ["limits", externalId],
 		queryFn: () => {
-			if (!externalId || !auth.user?.access_token) {
+			if (!externalId) {
 				throw new Error("Not authenticated");
 			}
-			return fetchLimits(externalId, auth.user.access_token);
+			return RegistrationService.getApiRegistrationLimits({
+				xExternalId: externalId,
+			}) as unknown as TransactionLimits;
 		},
 		enabled: !!externalId && !!auth.user?.access_token,
 		staleTime: 60 * 1000, // 1 minute

@@ -1,3 +1,4 @@
+import { RegistrationService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "react-oidc-context";
 
@@ -17,26 +18,6 @@ export interface KycStatus {
 	};
 }
 
-async function fetchKycStatus(
-	externalId: string,
-	accessToken: string,
-): Promise<KycStatus> {
-	const response = await fetch(
-		`${import.meta.env.VITE_REGISTRATION_API_URL || "/api"}/registration/kyc/status?externalId=${externalId}`,
-		{
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-			},
-		},
-	);
-
-	if (!response.ok) {
-		throw new Error("Failed to fetch KYC status");
-	}
-
-	return response.json();
-}
-
 export function useKycStatus() {
 	const auth = useAuth();
 	const externalId = auth.user?.profile?.fineract_external_id as
@@ -50,10 +31,12 @@ export function useKycStatus() {
 	const query = useQuery({
 		queryKey: ["kycStatus", externalId],
 		queryFn: () => {
-			if (!externalId || !auth.user?.access_token) {
+			if (!externalId) {
 				throw new Error("Not authenticated");
 			}
-			return fetchKycStatus(externalId, auth.user.access_token);
+			return RegistrationService.getApiRegistrationKycStatus({
+				xExternalId: externalId,
+			}) as unknown as KycStatus;
 		},
 		enabled: !!externalId && !!auth.user?.access_token,
 		staleTime: 60 * 1000, // 1 minute

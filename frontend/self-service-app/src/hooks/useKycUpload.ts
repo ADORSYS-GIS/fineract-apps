@@ -1,3 +1,4 @@
+import { ApiError, KycDocumentsService } from "@fineract-apps/fineract-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "react-oidc-context";
 
@@ -15,58 +16,6 @@ export interface KycUploadProgress {
 	error?: string;
 }
 
-async function uploadKycDocument(
-	formData: FormData,
-	accessToken: string,
-	onProgress?: (progress: number) => void,
-): Promise<KycDocumentUploadResponse> {
-	const apiUrl = import.meta.env.VITE_REGISTRATION_API_URL || "/api";
-
-	return new Promise((resolve, reject) => {
-		const xhr = new XMLHttpRequest();
-		xhr.open("POST", `${apiUrl}/registration/kyc/documents`);
-		xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
-
-		xhr.upload.onprogress = (event) => {
-			if (event.lengthComputable && onProgress) {
-				const percentComplete = Math.round((event.loaded / event.total) * 100);
-				onProgress(percentComplete);
-			}
-		};
-
-		xhr.onload = () => {
-			if (xhr.status >= 200 && xhr.status < 300) {
-				try {
-					const response = JSON.parse(xhr.responseText);
-					resolve(response);
-				} catch {
-					resolve({
-						documentId: crypto.randomUUID(),
-						documentType: formData.get("documentType") as string,
-						status: "uploaded",
-						uploadedAt: new Date().toISOString(),
-					});
-				}
-			} else {
-				let errorMessage = "Failed to upload document";
-				try {
-					const errorResponse = JSON.parse(xhr.responseText);
-					errorMessage = errorResponse.message || errorMessage;
-				} catch {
-					// Use default error message
-				}
-				reject(new Error(errorMessage));
-			}
-		};
-
-		xhr.onerror = () => {
-			reject(new Error("Network error occurred during upload"));
-		};
-
-		xhr.send(formData);
-	});
-}
-
 export function useKycUpload() {
 	const auth = useAuth();
 	const queryClient = useQueryClient();
@@ -75,21 +24,22 @@ export function useKycUpload() {
 		mutationFn: async ({
 			documentType,
 			file,
-			onProgress,
 		}: {
 			documentType: string;
 			file: File;
-			onProgress?: (progress: number) => void;
+			// TODO: Add progress tracking back if supported by API client
+			// onProgress?: (progress: number) => void;
 		}) => {
 			if (!auth.user?.access_token) {
 				throw new Error("Not authenticated");
 			}
 
-			const formData = new FormData();
-			formData.append("documentType", documentType);
-			formData.append("file", file);
-
-			return uploadKycDocument(formData, auth.user.access_token, onProgress);
+			return KycDocumentsService.postApiRegistrationKycDocuments({
+				documentType,
+				formData: {
+					file,
+				},
+			}) as unknown as KycDocumentUploadResponse;
 		},
 		onSuccess: () => {
 			// Invalidate KYC status to refetch after upload
@@ -123,23 +73,26 @@ export function useKycUploadAll() {
 
 			for (const doc of documents) {
 				try {
+					// TODO: Add progress tracking back if supported by API client
 					onDocumentProgress?.(doc.type, 0, "uploading");
 
-					const formData = new FormData();
-					formData.append("documentType", doc.type);
-					formData.append("file", doc.file);
-
-					const result = await uploadKycDocument(
-						formData,
-						auth.user.access_token,
-						(progress) => onDocumentProgress?.(doc.type, progress, "uploading"),
-					);
+					const result =
+						(await KycDocumentsService.postApiRegistrationKycDocuments({
+							documentType: doc.type,
+							formData: {
+								file: doc.file,
+							},
+						})) as KycDocumentUploadResponse;
 
 					results.push(result);
 					onDocumentProgress?.(doc.type, 100, "success");
 				} catch (err) {
 					const errorMessage =
-						err instanceof Error ? err.message : "Upload failed";
+						err instanceof ApiError
+							? (err.body as { message?: string })?.message || err.message
+							: err instanceof Error
+								? err.message
+								: "Upload failed";
 					errors.push({ type: doc.type, error: errorMessage });
 					onDocumentProgress?.(doc.type, 0, "error");
 				}
