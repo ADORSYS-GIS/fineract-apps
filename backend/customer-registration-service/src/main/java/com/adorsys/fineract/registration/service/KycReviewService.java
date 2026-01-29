@@ -164,6 +164,15 @@ public class KycReviewService {
         keycloakService.updateUserAttributes(userOpt.get().getId(), updates);
 
         log.info("KYC approved: externalId={}, newTier={}", externalId, request.getNewTier());
+
+        // Activate Fineract client
+        Map<String, Object> client = fineractService.getClientByExternalId(externalId);
+        if (client != null && client.containsKey("id")) {
+            Long clientId = ((Number) client.get("id")).longValue();
+            fineractService.activateClient(clientId);
+        } else {
+            log.warn("Could not find Fineract client for external ID: {} to activate.", externalId);
+        }
     }
 
     /**
