@@ -15,6 +15,7 @@
 			"createEntry": "Create Entry",
 			"approvalQueue": "Approval Queue",
 			"closures": "Closures",
+			"kycReviews": "KYC Reviews",
 			"logout": "Logout"
 		},
 		"navbar": {
