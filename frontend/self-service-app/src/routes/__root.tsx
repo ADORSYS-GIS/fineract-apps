@@ -1,4 +1,9 @@
-import { createRootRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	Outlet,
+	useNavigate,
+	useRouterState,
+} from "@tanstack/react-router";
 import {
 	ArrowDownCircle,
 	ArrowUpCircle,
@@ -31,9 +36,9 @@ function RootLayout() {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 
 	// Don't show layout on login/register/callback pages
-	const publicPaths = ["/", "/register", "/callback"];
-	const currentPath =
-		window.location.pathname.replace("/self-service", "") || "/";
+	const publicPaths = ["/", "/login", "/register", "/callback"];
+	const { location } = useRouterState();
+	const currentPath = location.pathname;
 	const isPublicPage = publicPaths.includes(currentPath);
 
 	if (isPublicPage) {
