@@ -30,7 +30,7 @@ const oidcConfig = {
 		`${window.location.origin}/self-service/callback`,
 	post_logout_redirect_uri:
 		import.meta.env.VITE_OIDC_POST_LOGOUT_URI ||
-		`${window.location.origin}/self-service`,
+		`${window.location.origin}/self-service/`,
 	scope: "openid profile email offline_access",
 	response_type: "code",
 	automaticSilentRenew: true,
