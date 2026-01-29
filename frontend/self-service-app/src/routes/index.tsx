@@ -2,6 +2,7 @@ import { Button } from "@fineract-apps/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shield, Smartphone, Wallet } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Marquee } from "../components/landing/Marquee";
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
@@ -11,14 +12,14 @@ function LandingPage() {
 	const { t } = useTranslation();
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+		<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
 			{/* Header */}
 			<header className="container mx-auto px-4 py-6">
 				<nav className="flex items-center justify-between">
 					<span className="text-2xl font-bold text-blue-600">
 						{t("app.name")}
 					</span>
-					<div className="flex items-center gap-4">
+					<div className="hidden sm:flex items-center gap-4">
 						<Link
 							to="/register"
 							className="text-gray-600 hover:text-gray-900 font-medium"
@@ -35,30 +36,33 @@ function LandingPage() {
 			</header>
 
 			{/* Hero Section */}
-			<main className="container mx-auto px-4 py-16">
+			<main className="container mx-auto px-4 py-16 flex-grow flex flex-col justify-center">
 				<div className="max-w-3xl mx-auto text-center">
-					<h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
+					<h1 className="hidden sm:block text-2xl md:text-3xl font-bold text-gray-900 mb-6">
 						{t("app.tagline")}
 					</h1>
-					<p className="text-xl text-gray-600 mb-8">
+					<p className="hidden sm:block text-xl text-gray-600 mb-8">
 						Send and receive money instantly with MTN Mobile Money, Orange
 						Money, and bank transfers. Secure passwordless authentication with
 						Face ID and fingerprint.
 					</p>
-					<div className="flex flex-col sm:flex-row gap-4 justify-center">
-						<Link to="/login">
-							<Button size="lg">{t("auth.login")}</Button>
-						</Link>
-						<Link to="/register">
-							<Button variant="outline" size="lg">
-								{t("auth.register")}
+					<div className="w-full max-w-xs mx-auto">
+						<Link to="/login" className="w-full">
+							<Button size="lg" className="w-full">
+								{t("auth.login")}
 							</Button>
 						</Link>
+						<p className="text-center text-gray-500 mt-4">
+							{t("register.haveAccount")}{" "}
+							<Link to="/register" className="text-blue-600 hover:underline">
+								{t("auth.register")}
+							</Link>
+						</p>
 					</div>
 				</div>
 
 				{/* Features */}
-				<div className="grid md:grid-cols-3 gap-8 mt-20">
+				<div className="hidden md:grid md:grid-cols-3 gap-8 mt-20">
 					<div className="card text-center">
 						<div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
 							<Smartphone className="w-8 h-8 text-blue-600" />
@@ -95,8 +99,11 @@ function LandingPage() {
 				</div>
 			</main>
 
+			{/* Marquee */}
+			<Marquee />
+
 			{/* Footer */}
-			<footer className="container mx-auto px-4 py-8 text-center text-gray-500">
+			<footer className="hidden sm:block container mx-auto px-4 py-8 text-center text-gray-500">
 				<p>&copy; 2026 Webank. All rights reserved.</p>
 			</footer>
 		</div>

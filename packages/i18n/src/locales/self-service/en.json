@@ -59,6 +59,7 @@
 		"common.documents": "documents",
 		"common.submit": "Submit",
 		"kyc.uploadSubtitle": "Upload your documents to verify your identity",
-		"auth.logout": "Logout"
+		"auth.logout": "Logout",
+		"common.loading": "Loading..."
 	}
 }
