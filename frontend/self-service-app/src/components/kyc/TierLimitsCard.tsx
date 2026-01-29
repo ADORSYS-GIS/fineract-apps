@@ -1,8 +1,7 @@
 import { ArrowRight, Check, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { TransactionLimits } from "@/types";
 import { formatCurrency } from "../../lib/formatters";
-
-import type { TransactionLimits } from "../../types";
 
 interface TierLimitsCardProps {
 	tier: number;

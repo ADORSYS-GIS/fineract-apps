@@ -1,8 +1,8 @@
 import { CreditCard, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { SavingsAccount } from "@/types";
 import { formatAccountNumber, formatCurrency } from "../../lib/formatters";
-import type { SavingsAccount } from "../../types";
 
 interface AccountCardProps {
 	account: SavingsAccount;
@@ -35,9 +35,7 @@ export function AccountCard({
 						<CreditCard className="w-5 h-5 text-blue-600" />
 					</div>
 					<div>
-						<p className="font-medium text-gray-900">
-							{account.savingsProductName}
-						</p>
+						<p className="font-medium text-gray-900">{account.productName}</p>
 						<p className="text-sm text-gray-500">
 							{formatAccountNumber(account.accountNo)}
 						</p>
@@ -90,7 +88,7 @@ export function AccountCard({
 					<span className="text-gray-500">Status</span>
 					<span
 						className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-							account.status.active
+							account.status.code === "savingsAccountStatusType.active"
 								? "bg-green-100 text-green-700"
 								: "bg-yellow-100 text-yellow-700"
 						}`}

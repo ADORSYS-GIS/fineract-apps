@@ -4,6 +4,8 @@
  * Base configuration for API clients used throughout the application.
  */
 
+import { OpenAPI } from "@fineract-apps/fineract-api";
+
 export const API_CONFIG = {
 	fineract: {
 		baseUrl:
@@ -14,6 +16,18 @@ export const API_CONFIG = {
 		baseUrl: import.meta.env.VITE_REGISTRATION_API_URL || "/api",
 	},
 };
+
+export function configureApi() {
+	OpenAPI.BASE = import.meta.env.VITE_FINERACT_API_URL;
+	// Only set credentials if auth mode is basic
+	if (import.meta.env.VITE_AUTH_MODE === "basic") {
+		OpenAPI.USERNAME = import.meta.env.VITE_FINERACT_USERNAME;
+		OpenAPI.PASSWORD = import.meta.env.VITE_FINERACT_PASSWORD;
+		OpenAPI.HEADERS = {
+			"Fineract-Platform-TenantId": import.meta.env.VITE_FINERACT_TENANT_ID,
+		};
+	}
+}
 
 /**
  * Creates headers for Fineract API requests

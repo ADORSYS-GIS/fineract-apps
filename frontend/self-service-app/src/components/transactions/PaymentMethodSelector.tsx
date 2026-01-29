@@ -1,6 +1,6 @@
 import { Building2, Lock, Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { PaymentMethodId } from "../../types";
+import type { PaymentMethodId } from "@/types";
 
 export interface PaymentMethodOption {
 	id: PaymentMethodId;

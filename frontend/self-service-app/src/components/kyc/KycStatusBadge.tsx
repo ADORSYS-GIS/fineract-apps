@@ -1,6 +1,6 @@
 import { AlertCircle, Check, Clock, Shield, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { KycStatus } from "../../types";
+import type { KycStatus } from "@/types";
 
 interface KycStatusBadgeProps {
 	status: KycStatus;
@@ -26,11 +26,17 @@ export function KycStatusBadge({
 			textColor: "text-gray-700",
 			iconColor: "text-gray-500",
 		},
-		under_review: {
+		uploaded: {
 			icon: AlertCircle,
 			bgColor: "bg-yellow-100",
 			textColor: "text-yellow-700",
 			iconColor: "text-yellow-600",
+		},
+		verified: {
+			icon: Check,
+			bgColor: "bg-green-100",
+			textColor: "text-green-700",
+			iconColor: "text-green-600",
 		},
 		approved: {
 			icon: Check,

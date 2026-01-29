@@ -1,6 +1,7 @@
 import { ArrowUpCircle, Check, Loader2, Shield } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { PaymentMethodId, TransactionLimits } from "@/types";
 import { formatCurrency } from "../../lib/formatters";
 import {
 	getAuthenticatorTypeLabel,
@@ -8,7 +9,6 @@ import {
 	isWebAuthnSupported,
 	requestStepUpAuth,
 } from "../../lib/webauthn";
-import type { PaymentMethodId, TransactionLimits } from "../../types";
 import { AmountInput } from "./AmountInput";
 import { PaymentMethodSelector } from "./PaymentMethodSelector";
 

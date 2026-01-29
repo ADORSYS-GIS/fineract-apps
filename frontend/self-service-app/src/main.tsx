@@ -8,12 +8,16 @@ import { I18nextProvider } from "react-i18next";
 import { AuthProvider } from "react-oidc-context";
 import { initTracing } from "./lib/tracing";
 import { routeTree } from "./routeTree.gen";
+import { configureApi } from "./services/api";
 
 import "@fineract-apps/ui/src/styles.css";
 import "./index.css";
 
 // Initialize OpenTelemetry tracing
 initTracing();
+
+// Configure Fineract API
+configureApi();
 
 // OIDC Configuration
 const oidcConfig = {

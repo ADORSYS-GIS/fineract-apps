@@ -103,10 +103,8 @@ function DashboardPage() {
 						</h3>
 						<LimitsProgress
 							limits={{
-								daily: limitsData.deposit.daily,
-								perTransaction: limitsData.deposit.perTransaction,
-								monthly: limitsData.deposit.monthly,
-								remaining: limitsData.deposit.remaining,
+								weekly: 0,
+								...limitsData.deposit,
 							}}
 							currency={currency}
 						/>

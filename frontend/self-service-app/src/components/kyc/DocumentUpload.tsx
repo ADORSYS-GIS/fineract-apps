@@ -9,11 +9,11 @@ import {
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { KycDocumentStatus, KycDocumentType } from "../../types";
+import type { KycDocumentType, KycStatus } from "@/types";
 
 interface DocumentUploadProps {
 	documentType: KycDocumentType;
-	status?: KycDocumentStatus;
+	status?: KycStatus;
 	onUpload: (file: File) => Promise<void>;
 	onRemove?: () => void;
 	maxSizeMB?: number;
@@ -43,6 +43,7 @@ export function DocumentUpload({
 		id_front: <FileText className="w-6 h-6" />,
 		id_back: <FileText className="w-6 h-6" />,
 		selfie_with_id: <Camera className="w-6 h-6" />,
+		selfie: <Camera className="w-6 h-6" />,
 		proof_of_address: <FileText className="w-6 h-6" />,
 	};
 
@@ -122,14 +123,15 @@ export function DocumentUpload({
 		onRemove?.();
 	};
 
-	const statusColors = {
+	const statusColors: Record<KycStatus, string> = {
 		pending: "border-gray-200",
 		uploaded: "border-yellow-300",
 		verified: "border-green-300",
 		rejected: "border-red-300",
+		approved: "border-green-300",
 	};
 
-	const statusBadges = {
+	const statusBadges: Record<KycStatus, React.ReactNode> = {
 		pending: null,
 		uploaded: (
 			<span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">
@@ -144,6 +146,11 @@ export function DocumentUpload({
 		rejected: (
 			<span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
 				<AlertCircle className="w-3 h-3" /> Rejected
+			</span>
+		),
+		approved: (
+			<span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+				<Check className="w-3 h-3" /> Approved
 			</span>
 		),
 	};

@@ -1,19 +1,12 @@
 import {
-	ArrowDownCircle as ArrowDownCircleIcon,
-	ArrowUpCircle as ArrowUpCircleIcon,
-	ChevronRight as ChevronRightIcon,
-	Loader2 as Loader2Icon,
+	ArrowDownCircle,
+	ArrowUpCircle,
+	ChevronRight,
+	Loader2,
 } from "lucide-react";
-import type { ElementType } from "react";
 import { useTranslation } from "react-i18next";
+import type { Transaction } from "@/types";
 import { formatCurrency, formatDate } from "../../lib/formatters";
-
-const ArrowDownCircle = ArrowDownCircleIcon as ElementType;
-const ArrowUpCircle = ArrowUpCircleIcon as ElementType;
-const Loader2 = Loader2Icon as ElementType;
-const ChevronRight = ChevronRightIcon as ElementType;
-
-import type { Transaction } from "../../hooks/useTransactions";
 
 interface RecentTransactionsProps {
 	transactions: Transaction[];
