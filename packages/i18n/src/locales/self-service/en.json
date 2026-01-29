@@ -58,6 +58,7 @@
 		"kyc.uploadProgress": "Upload Progress",
 		"common.documents": "documents",
 		"common.submit": "Submit",
-		"kyc.uploadSubtitle": "Upload your documents to verify your identity"
+		"kyc.uploadSubtitle": "Upload your documents to verify your identity",
+		"auth.logout": "Logout"
 	}
 }
