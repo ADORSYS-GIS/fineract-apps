@@ -1,22 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-	ArrowDownCircle,
-	ArrowUpCircle,
-	Loader2,
-	Shield,
-	TrendingUp,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { ArrowDownCircle, ArrowUpCircle, Loader2, Shield } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "react-oidc-context";
-import { BalanceDisplay, RecentTransactions } from "../components/dashboard";
+import { BalanceDisplay } from "../components/dashboard";
 import { KycTierBadge, LimitsProgress } from "../components/kyc";
-import {
-	useCustomer,
-	useLimits,
-	usePrimarySavingsAccount,
-	useTransactions,
-} from "../hooks";
-import type { Transaction } from "../hooks/useTransactions";
+import { useCustomer, useLimits, usePrimarySavingsAccount } from "../hooks";
 import { formatCurrency } from "../lib/formatters";
 
 export const Route = createFileRoute("/dashboard")({
@@ -25,7 +13,6 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardPage() {
 	const auth = useAuth();
-	const navigate = useNavigate();
 	const { t } = useTranslation();
 
 	// Extract user info from OIDC claims
@@ -38,8 +25,6 @@ function DashboardPage() {
 	const { data: customer, isLoading: isLoadingCustomer } = useCustomer();
 	const { data: account, isLoading: isLoadingAccount } =
 		usePrimarySavingsAccount(customer?.id);
-	const { data: transactions = [], isLoading: isLoadingTransactions } =
-		useTransactions(account?.id);
 	const { data: limitsData } = useLimits();
 
 	const currency = account?.currency?.code || "XAF";
@@ -47,13 +32,6 @@ function DashboardPage() {
 	const availableBalance = account?.availableBalance || accountBalance;
 
 	const isLoading = isLoadingCustomer || isLoadingAccount;
-
-	// Map transactions to the expected format
-	const mappedTransactions: Transaction[] = transactions.slice(0, 5);
-
-	const handleViewAllTransactions = () => {
-		navigate({ to: "/transactions" });
-	};
 
 	if (isLoading) {
 		return (
@@ -110,51 +88,6 @@ function DashboardPage() {
 						/>
 					</div>
 				)}
-			</div>
-
-			{/* Quick Actions */}
-			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-				<a
-					href="/self-service/deposit"
-					className="card flex flex-col items-center justify-center py-6 hover:border-blue-300 hover:shadow-md transition-all"
-				>
-					<ArrowDownCircle className="w-8 h-8 text-green-600 mb-2" />
-					<span className="font-medium text-gray-700">{t("nav.deposit")}</span>
-				</a>
-				<a
-					href="/self-service/withdraw"
-					className="card flex flex-col items-center justify-center py-6 hover:border-blue-300 hover:shadow-md transition-all"
-				>
-					<ArrowUpCircle className="w-8 h-8 text-red-600 mb-2" />
-					<span className="font-medium text-gray-700">{t("nav.withdraw")}</span>
-				</a>
-				<a
-					href="/self-service/transactions"
-					className="card flex flex-col items-center justify-center py-6 hover:border-blue-300 hover:shadow-md transition-all"
-				>
-					<TrendingUp className="w-8 h-8 text-blue-600 mb-2" />
-					<span className="font-medium text-gray-700">
-						{t("nav.transactions")}
-					</span>
-				</a>
-				<a
-					href="/self-service/kyc"
-					className="card flex flex-col items-center justify-center py-6 hover:border-blue-300 hover:shadow-md transition-all"
-				>
-					<Shield className="w-8 h-8 text-purple-600 mb-2" />
-					<span className="font-medium text-gray-700">{t("nav.kyc")}</span>
-				</a>
-			</div>
-
-			{/* Recent Transactions */}
-			<div className="card">
-				<RecentTransactions
-					transactions={mappedTransactions}
-					isLoading={isLoadingTransactions}
-					maxItems={5}
-					currency={currency}
-					onViewAll={handleViewAllTransactions}
-				/>
 			</div>
 
 			{/* Upgrade prompt */}
