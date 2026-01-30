@@ -1,7 +1,6 @@
 import {
 	createRootRoute,
 	Outlet,
-	useNavigate,
 	useRouterState,
 } from "@tanstack/react-router";
 import {
@@ -31,7 +30,6 @@ export const Route = createRootRoute({
 
 function RootLayout() {
 	const auth = useAuth();
-	const navigate = useNavigate();
 	const { t } = useTranslation();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -59,7 +57,7 @@ function RootLayout() {
 
 	// Redirect to login if not authenticated
 	if (!auth.isAuthenticated) {
-		navigate({ to: "/" });
+		auth.signinRedirect();
 		return null;
 	}
 

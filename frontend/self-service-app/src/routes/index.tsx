@@ -2,6 +2,7 @@ import { Button } from "@fineract-apps/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shield, Smartphone, Wallet } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "react-oidc-context";
 import { Marquee } from "../components/landing/Marquee";
 
 export const Route = createFileRoute("/")({
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/")({
 
 function LandingPage() {
 	const { t } = useTranslation();
+	const auth = useAuth();
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
@@ -26,11 +28,13 @@ function LandingPage() {
 						>
 							{t("auth.register")}
 						</Link>
-						<Link to="/login">
-							<Button variant="default" size="sm">
-								{t("auth.login")}
-							</Button>
-						</Link>
+						<Button
+							variant="default"
+							size="sm"
+							onClick={() => auth.signinRedirect()}
+						>
+							{t("auth.login")}
+						</Button>
 					</div>
 				</nav>
 			</header>
@@ -47,11 +51,13 @@ function LandingPage() {
 						Face ID and fingerprint.
 					</p>
 					<div className="w-full max-w-xs mx-auto">
-						<Link to="/login" className="w-full">
-							<Button size="lg" className="w-full">
-								{t("auth.login")}
-							</Button>
-						</Link>
+						<Button
+							size="lg"
+							className="w-full"
+							onClick={() => auth.signinRedirect()}
+						>
+							{t("auth.login")}
+						</Button>
 						<p className="text-center text-gray-500 mt-4">
 							{t("register.haveAccount")}{" "}
 							<Link to="/register" className="text-blue-600 hover:underline">
