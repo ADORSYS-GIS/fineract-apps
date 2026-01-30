@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDownCircle, ArrowUpCircle, Loader2, Shield } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "react-oidc-context";
 import { BalanceDisplay } from "../components/dashboard";
