@@ -1,40 +1,31 @@
-import {
-	SavingsAccountData,
-	SavingsAccountService,
-	SavingsAccountTransactionData,
-} from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "react-oidc-context";
 import type { Transaction } from "@/types/transaction";
+import { accountsApi } from "@/services/accountsApi";
 
 export type { Transaction };
 
-async function fetchTransactions(accountId: string): Promise<Transaction[]> {
-	const data: SavingsAccountData =
-		await SavingsAccountService.getV1SavingsaccountsByAccountId({
-			accountId: parseInt(accountId),
-			associations: "transactions",
-		});
+/**
+ * Fetches transactions via customer-self-service API
+ *
+ * This endpoint verifies account ownership server-side before returning data.
+ */
+async function fetchTransactions(
+	accountId: number,
+	accessToken: string,
+): Promise<Transaction[]> {
+	const transactions = await accountsApi.getTransactions(accountId, accessToken);
 
-	return (data.transactions || []).map((tx: SavingsAccountTransactionData) => ({
-		id: (tx.id as number).toString(),
-		type: (tx.transactionType as { deposit?: boolean })?.deposit
-			? "deposit"
-			: "withdrawal",
-		amount: tx.amount as number,
-		currency: (tx.currency as { code: string })?.code || "XAF",
-		date: Array.isArray(tx.date)
-			? (tx.date as number[]).join("-")
-			: (tx.date as string),
-		runningBalance: tx.runningBalance as number,
-		paymentDetail: tx.paymentDetailData as Transaction["paymentDetail"],
-		submittedOnDate: Array.isArray(tx.submittedOnDate)
-			? (tx.submittedOnDate as number[]).join("-")
-			: (tx.submittedOnDate as string),
-		reversed: tx.reversed as boolean,
-	}));
+	// Transactions are already mapped by the backend
+	return transactions;
 }
 
+/**
+ * Hook to fetch transactions for a savings account
+ *
+ * Includes ownership verification - will return 403 if account doesn't belong
+ * to the authenticated customer.
+ */
 export function useTransactions(accountId: string | undefined) {
 	const auth = useAuth();
 
@@ -44,7 +35,7 @@ export function useTransactions(accountId: string | undefined) {
 			if (!accountId || !auth.user?.access_token) {
 				throw new Error("Not authenticated");
 			}
-			return fetchTransactions(accountId);
+			return fetchTransactions(parseInt(accountId), auth.user.access_token);
 		},
 		enabled: !!accountId && !!auth.user?.access_token,
 		staleTime: 30 * 1000, // 30 seconds

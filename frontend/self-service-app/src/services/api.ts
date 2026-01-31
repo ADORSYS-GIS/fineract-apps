@@ -15,6 +15,9 @@ export const API_CONFIG = {
 	registration: {
 		baseUrl: import.meta.env.VITE_REGISTRATION_API_URL || "/api",
 	},
+	accounts: {
+		baseUrl: import.meta.env.VITE_ACCOUNTS_API_URL || "/api/accounts",
+	},
 };
 
 export function configureApi() {
@@ -53,6 +56,16 @@ export function createRegistrationHeaders(accessToken?: string): HeadersInit {
 	}
 
 	return headers;
+}
+
+/**
+ * Creates headers for Accounts API requests (customer-self-service)
+ */
+export function createAccountsHeaders(accessToken: string): HeadersInit {
+	return {
+		Authorization: `Bearer ${accessToken}`,
+		"Content-Type": "application/json",
+	};
 }
 
 /**

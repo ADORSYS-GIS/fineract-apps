@@ -27,7 +27,7 @@ function TransactionsPage() {
 	// Fetch real data using hooks
 	const { data: customer, isLoading: isLoadingCustomer } = useCustomer();
 	const { data: account, isLoading: isLoadingAccount } =
-		usePrimarySavingsAccount(customer?.id);
+		usePrimarySavingsAccount();
 	const {
 		data: transactions = [],
 		isLoading: isLoadingTransactions,

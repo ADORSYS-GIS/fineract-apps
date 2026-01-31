@@ -1,51 +1,59 @@
-import {
-	GetSavingsAccountsResponse,
-	SavingsAccountService,
-} from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "react-oidc-context";
 import { SavingsAccount } from "@/types/account";
+import { accountsApi } from "@/services/accountsApi";
 
+/**
+ * Fetches savings accounts via customer-self-service API
+ *
+ * This endpoint uses JWT token to identify the customer and returns
+ * only accounts owned by the authenticated customer (ownership verified server-side).
+ */
 async function fetchSavingsAccounts(
-	clientId: string,
+	accessToken: string,
 ): Promise<SavingsAccount[]> {
-	const data: GetSavingsAccountsResponse =
-		await SavingsAccountService.getV1Savingsaccounts({
-			externalId: clientId,
-		});
+	const accounts = await accountsApi.getSavingsAccounts(accessToken);
 
-	return (data.pageItems || []).map((account: Record<string, unknown>) => ({
-		id: (account.id as number).toString(),
-		accountNo: account.accountNo as string,
-		productName: (account.savingsProductName || account.productName) as string,
-		status: account.status as SavingsAccount["status"],
-		currency: account.currency as SavingsAccount["currency"],
-		accountBalance: (account.accountBalance as number) || 0,
-		availableBalance:
-			(account.availableBalance as number) ||
-			(account.accountBalance as number) ||
-			0,
+	// Map response to frontend SavingsAccount type
+	return accounts.map((account) => ({
+		id: typeof account.id === "number" ? account.id.toString() : account.id,
+		accountNo: account.accountNo,
+		productName: account.productName,
+		status: account.status,
+		currency: account.currency,
+		accountBalance: account.accountBalance || 0,
+		availableBalance: account.availableBalance || account.accountBalance || 0,
 	}));
 }
 
-export function useSavingsAccounts(clientId: string | undefined) {
+/**
+ * Hook to fetch all savings accounts for the authenticated customer
+ *
+ * No clientId parameter needed - the backend extracts customer identity from JWT.
+ */
+export function useSavingsAccounts() {
 	const auth = useAuth();
 
 	return useQuery({
-		queryKey: ["savingsAccounts", clientId],
+		queryKey: ["savingsAccounts"],
 		queryFn: () => {
-			if (!clientId || !auth.user?.access_token) {
+			if (!auth.user?.access_token) {
 				throw new Error("Not authenticated");
 			}
-			return fetchSavingsAccounts(clientId);
+			return fetchSavingsAccounts(auth.user.access_token);
 		},
-		enabled: !!clientId,
+		enabled: !!auth.user?.access_token,
 		staleTime: 30 * 1000, // 30 seconds
 	});
 }
 
-export function usePrimarySavingsAccount(clientId: string | undefined) {
-	const { data: accounts, ...rest } = useSavingsAccounts(clientId);
+/**
+ * Hook to get the primary (first active) savings account
+ *
+ * Returns the first active account, or the first account if none are active.
+ */
+export function usePrimarySavingsAccount() {
+	const { data: accounts, ...rest } = useSavingsAccounts();
 
 	// Return the first active account as primary
 	const primaryAccount =

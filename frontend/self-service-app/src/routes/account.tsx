@@ -27,7 +27,7 @@ function AccountPage() {
 	// Fetch real data using hooks
 	const { data: customer, isLoading: isLoadingCustomer } = useCustomer();
 	const { data: account, isLoading: isLoadingAccount } =
-		usePrimarySavingsAccount(customer?.id);
+		usePrimarySavingsAccount();
 	const { data: transactions = [] } = useTransactions(account?.id);
 
 	const currency = account?.currency?.code || "XAF";
