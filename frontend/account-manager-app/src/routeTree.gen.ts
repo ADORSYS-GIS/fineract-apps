@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as KycReviewsRouteImport } from './routes/kyc-reviews'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CreateClientRouteImport } from './routes/create-client'
 import { Route as CreateAccountRouteImport } from './routes/create-account'
@@ -20,12 +21,18 @@ import { Route as SavingsAccountDetailsAccountIdRouteImport } from './routes/sav
 import { Route as OpenSavingsAccountClientIdRouteImport } from './routes/open-savings-account.$clientId'
 import { Route as OpenAccountClientIdRouteImport } from './routes/open-account.$clientId'
 import { Route as LoanAccountDetailsLoanIdRouteImport } from './routes/loan-account-details.$loanId'
+import { Route as KycReviewsExternalIdRouteImport } from './routes/kyc-reviews.$externalId'
 import { Route as ClientDetailsClientIdRouteImport } from './routes/client-details/$clientId'
 import { Route as LoanCreateLoanAccountClientIdRouteImport } from './routes/loan/create-loan-account.$clientId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KycReviewsRoute = KycReviewsRouteImport.update({
+  id: '/kyc-reviews',
+  path: '/kyc-reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -82,6 +89,11 @@ const LoanAccountDetailsLoanIdRoute =
     path: '/loan-account-details/$loanId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const KycReviewsExternalIdRoute = KycReviewsExternalIdRouteImport.update({
+  id: '/$externalId',
+  path: '/$externalId',
+  getParentRoute: () => KycReviewsRoute,
+} as any)
 const ClientDetailsClientIdRoute = ClientDetailsClientIdRouteImport.update({
   id: '/client-details/$clientId',
   path: '/client-details/$clientId',
@@ -100,8 +112,10 @@ export interface FileRoutesByFullPath {
   '/create-account': typeof CreateAccountRoute
   '/create-client': typeof CreateClientRoute
   '/dashboard': typeof DashboardRoute
+  '/kyc-reviews': typeof KycReviewsRouteWithChildren
   '/settings': typeof SettingsRoute
   '/client-details/$clientId': typeof ClientDetailsClientIdRoute
+  '/kyc-reviews/$externalId': typeof KycReviewsExternalIdRoute
   '/loan-account-details/$loanId': typeof LoanAccountDetailsLoanIdRoute
   '/open-account/$clientId': typeof OpenAccountClientIdRoute
   '/open-savings-account/$clientId': typeof OpenSavingsAccountClientIdRoute
@@ -115,8 +129,10 @@ export interface FileRoutesByTo {
   '/create-account': typeof CreateAccountRoute
   '/create-client': typeof CreateClientRoute
   '/dashboard': typeof DashboardRoute
+  '/kyc-reviews': typeof KycReviewsRouteWithChildren
   '/settings': typeof SettingsRoute
   '/client-details/$clientId': typeof ClientDetailsClientIdRoute
+  '/kyc-reviews/$externalId': typeof KycReviewsExternalIdRoute
   '/loan-account-details/$loanId': typeof LoanAccountDetailsLoanIdRoute
   '/open-account/$clientId': typeof OpenAccountClientIdRoute
   '/open-savings-account/$clientId': typeof OpenSavingsAccountClientIdRoute
@@ -131,8 +147,10 @@ export interface FileRoutesById {
   '/create-account': typeof CreateAccountRoute
   '/create-client': typeof CreateClientRoute
   '/dashboard': typeof DashboardRoute
+  '/kyc-reviews': typeof KycReviewsRouteWithChildren
   '/settings': typeof SettingsRoute
   '/client-details/$clientId': typeof ClientDetailsClientIdRoute
+  '/kyc-reviews/$externalId': typeof KycReviewsExternalIdRoute
   '/loan-account-details/$loanId': typeof LoanAccountDetailsLoanIdRoute
   '/open-account/$clientId': typeof OpenAccountClientIdRoute
   '/open-savings-account/$clientId': typeof OpenSavingsAccountClientIdRoute
@@ -148,8 +166,10 @@ export interface FileRouteTypes {
     | '/create-account'
     | '/create-client'
     | '/dashboard'
+    | '/kyc-reviews'
     | '/settings'
     | '/client-details/$clientId'
+    | '/kyc-reviews/$externalId'
     | '/loan-account-details/$loanId'
     | '/open-account/$clientId'
     | '/open-savings-account/$clientId'
@@ -163,8 +183,10 @@ export interface FileRouteTypes {
     | '/create-account'
     | '/create-client'
     | '/dashboard'
+    | '/kyc-reviews'
     | '/settings'
     | '/client-details/$clientId'
+    | '/kyc-reviews/$externalId'
     | '/loan-account-details/$loanId'
     | '/open-account/$clientId'
     | '/open-savings-account/$clientId'
@@ -178,8 +200,10 @@ export interface FileRouteTypes {
     | '/create-account'
     | '/create-client'
     | '/dashboard'
+    | '/kyc-reviews'
     | '/settings'
     | '/client-details/$clientId'
+    | '/kyc-reviews/$externalId'
     | '/loan-account-details/$loanId'
     | '/open-account/$clientId'
     | '/open-savings-account/$clientId'
@@ -194,6 +218,7 @@ export interface RootRouteChildren {
   CreateAccountRoute: typeof CreateAccountRoute
   CreateClientRoute: typeof CreateClientRoute
   DashboardRoute: typeof DashboardRoute
+  KycReviewsRoute: typeof KycReviewsRouteWithChildren
   SettingsRoute: typeof SettingsRoute
   ClientDetailsClientIdRoute: typeof ClientDetailsClientIdRoute
   LoanAccountDetailsLoanIdRoute: typeof LoanAccountDetailsLoanIdRoute
@@ -211,6 +236,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kyc-reviews': {
+      id: '/kyc-reviews'
+      path: '/kyc-reviews'
+      fullPath: '/kyc-reviews'
+      preLoaderRoute: typeof KycReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -283,6 +315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoanAccountDetailsLoanIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kyc-reviews/$externalId': {
+      id: '/kyc-reviews/$externalId'
+      path: '/$externalId'
+      fullPath: '/kyc-reviews/$externalId'
+      preLoaderRoute: typeof KycReviewsExternalIdRouteImport
+      parentRoute: typeof KycReviewsRoute
+    }
     '/client-details/$clientId': {
       id: '/client-details/$clientId'
       path: '/client-details/$clientId'
@@ -300,12 +339,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface KycReviewsRouteChildren {
+  KycReviewsExternalIdRoute: typeof KycReviewsExternalIdRoute
+}
+
+const KycReviewsRouteChildren: KycReviewsRouteChildren = {
+  KycReviewsExternalIdRoute: KycReviewsExternalIdRoute,
+}
+
+const KycReviewsRouteWithChildren = KycReviewsRoute._addFileChildren(
+  KycReviewsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivateAccountRoute: ActivateAccountRoute,
   CreateAccountRoute: CreateAccountRoute,
   CreateClientRoute: CreateClientRoute,
   DashboardRoute: DashboardRoute,
+  KycReviewsRoute: KycReviewsRouteWithChildren,
   SettingsRoute: SettingsRoute,
   ClientDetailsClientIdRoute: ClientDetailsClientIdRoute,
   LoanAccountDetailsLoanIdRoute: LoanAccountDetailsLoanIdRoute,

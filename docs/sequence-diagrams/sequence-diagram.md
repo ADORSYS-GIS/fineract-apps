@@ -12,6 +12,7 @@ The system supports three main roles, each with specific responsibilities:
 | **Cashier** | Handles client cash transactions | Deposits, withdrawals, settlements |
 | **Account Manager** | Manages clients and accounts | Onboarding, search, activation |
 | **Branch Manager** | Supervises operations | Approvals, teller creation, cash allocations |
+| **Self-Service Customer** | Mobile money customer (self-service) | Registration, deposits, withdrawals, KYC |
 
 Each role has a dedicated application that interacts with the Fineract Core Banking System through Keycloak-secured access tokens.
 
@@ -162,7 +163,141 @@ This section details the specific workflows for each role in the microfinance pl
 | **Vault Management** | `POST /vault/settlement` | Manage and reconcile Vault Settlements |
 
 
-## 5. Conclusion
+## 5. Self-Service Customer Flow
+
+The Self-Service App provides mobile money customers with a direct interface for managing their accounts through mobile payments (MTN MoMo, Orange Money).
+
+### 5.1 Components
+
+<details>
+<summary>View Mermaid Diagram Code</summary>
+
+```mermaid
+flowchart LR
+    subgraph UserApps [Self-Service Applications]
+        A[Self-Service App]
+    end
+
+    subgraph BackendServices [Backend Services]
+        B[Customer Registration Service]
+        C[Payment Gateway Service]
+    end
+
+    subgraph Security
+        D[Keycloak - Identity Provider]
+    end
+
+    subgraph Backend
+        E[Fineract Core Banking System]
+    end
+
+    subgraph ExternalPayments [External Payment Providers]
+        F[MTN MoMo API]
+        G[Orange Money API]
+    end
+
+    A --> D
+    A --> B
+    A --> C
+    A --> E
+    B --> E
+    B --> D
+    C --> E
+    C --> F
+    C --> G
+```
+</details>
+
+### 5.2 Key Responsibilities
+
+| Function | Service/API | Description |
+|----------|-------------|-------------|
+| **Authentication** | Keycloak OIDC | Passwordless WebAuthn authentication |
+| **Registration** | Customer Registration Service | Create Fineract client + Keycloak user |
+| **View Account** | Fineract API (direct) | `GET /savingsaccounts/{id}` |
+| **View Transactions** | Fineract API (direct) | `GET /savingsaccounts/{id}/transactions` |
+| **KYC Upload** | Customer Registration Service | Upload ID documents for verification |
+| **Deposits** | Payment Gateway Service | MTN MoMo or Orange Money collection |
+| **Withdrawals** | Payment Gateway Service | MTN MoMo or Orange Money disbursement |
+
+### 5.3 Registration Flow
+
+<details>
+<summary>View Mermaid Diagram Code</summary>
+
+```mermaid
+sequenceDiagram
+    participant Customer
+    participant SelfServiceApp
+    participant RegistrationService
+    participant Keycloak
+    participant Fineract
+
+    Customer->>SelfServiceApp: Register
+    SelfServiceApp->>RegistrationService: POST /register
+    RegistrationService->>Fineract: Create Client
+    Fineract-->>RegistrationService: Client ID
+    RegistrationService->>Fineract: Create Savings Account
+    Fineract-->>RegistrationService: Account ID
+    RegistrationService->>Keycloak: Create User
+    Keycloak-->>RegistrationService: User ID
+    RegistrationService-->>SelfServiceApp: Registration Success
+    SelfServiceApp-->>Customer: Verify Email
+```
+</details>
+
+### 5.4 Mobile Money Deposit Flow
+
+<details>
+<summary>View Mermaid Diagram Code</summary>
+
+```mermaid
+sequenceDiagram
+    participant Customer
+    participant SelfServiceApp
+    participant PaymentGateway
+    participant MTN as MTN MoMo
+    participant Fineract
+
+    Customer->>SelfServiceApp: Deposit Request
+    SelfServiceApp->>PaymentGateway: POST /deposits/mtn
+    PaymentGateway->>MTN: Request to Pay
+    MTN-->>PaymentGateway: Request ID
+    PaymentGateway-->>SelfServiceApp: Pending
+    MTN->>PaymentGateway: Callback (Success)
+    PaymentGateway->>Fineract: Create Deposit Transaction
+    Fineract-->>PaymentGateway: Transaction ID
+    PaymentGateway-->>SelfServiceApp: Deposit Complete
+    SelfServiceApp-->>Customer: Success Notification
+```
+</details>
+
+### 5.5 KYC Document Upload Flow
+
+<details>
+<summary>View Mermaid Diagram Code</summary>
+
+```mermaid
+sequenceDiagram
+    participant Customer
+    participant SelfServiceApp
+    participant RegistrationService
+    participant Fineract
+    participant Keycloak
+
+    Customer->>SelfServiceApp: Upload ID Document
+    SelfServiceApp->>RegistrationService: POST /kyc/documents
+    RegistrationService->>Fineract: Upload Document
+    Fineract-->>RegistrationService: Document ID
+    RegistrationService->>Keycloak: Update KYC Status
+    Keycloak-->>RegistrationService: OK
+    RegistrationService-->>SelfServiceApp: Upload Success
+    SelfServiceApp-->>Customer: Document Uploaded
+```
+</details>
+
+
+## 6. Conclusion
 
 This documentation provides a comprehensive overview of the microfinance platform's architecture and workflows. The system is designed with clear separation of responsibilities across three main roles:
 

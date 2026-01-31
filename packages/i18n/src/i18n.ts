@@ -16,6 +16,7 @@ import enReporting from "./locales/reporting/en.json";
 import frReporting from "./locales/reporting/fr.json";
 import enReusable from "./locales/reusable/en.json";
 import frReusable from "./locales/reusable/fr.json";
+import enSelfService from "./locales/self-service/en.json";
 
 i18n
 	.use(LanguageDetector)
@@ -38,6 +39,7 @@ i18n
 					...enAdmin.translation,
 					...enReporting.translation,
 					...enReusable.translation,
+					...enSelfService.translation,
 				},
 			},
 			fr: {
