@@ -40,6 +40,15 @@ const DEFAULT_METHODS: PaymentMethodOption[] = [
 		requiresKycTier: 1,
 	},
 	{
+		id: "cinetpay",
+		name: "CinetPay",
+		icon: "mobile",
+		color: "text-blue-600",
+		bgColor: "bg-blue-100",
+		enabled: true,
+		requiresKycTier: 1,
+	},
+	{
 		id: "uba_bank_transfer",
 		name: "UBA Bank Transfer",
 		icon: "bank",

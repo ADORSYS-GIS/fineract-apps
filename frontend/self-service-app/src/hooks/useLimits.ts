@@ -85,6 +85,14 @@ const defaultPaymentMethods = [
 		requiresKycTier: 1,
 	},
 	{
+		id: "cinetpay",
+		name: "CinetPay",
+		enabled: true,
+		minAmount: 100,
+		maxAmount: 500000,
+		requiresKycTier: 1,
+	},
+	{
 		id: "uba_bank_transfer",
 		name: "UBA Bank Transfer",
 		enabled: true,

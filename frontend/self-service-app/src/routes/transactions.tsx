@@ -75,6 +75,7 @@ function TransactionsPage() {
 			tx.paymentDetail?.paymentType?.name?.toLowerCase() || "";
 		if (paymentType.includes("mtn")) return "mtn_transfer";
 		if (paymentType.includes("orange")) return "orange_transfer";
+		if (paymentType.includes("cinetpay")) return "cinetpay";
 		if (paymentType.includes("uba")) return "uba_bank_transfer";
 		if (paymentType.includes("afriland")) return "afriland_bank_transfer";
 		return tx.paymentDetail?.paymentType?.name || "transfer";

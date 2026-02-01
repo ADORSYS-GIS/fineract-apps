@@ -34,6 +34,7 @@
 		"transactions.paymentMethod": "Payment Method",
 		"paymentMethods.mtn_transfer": "MTN Mobile Money",
 		"paymentMethods.orange_transfer": "Orange Money",
+		"paymentMethods.cinetpay": "CinetPay",
 		"paymentMethods.uba_bank_transfer": "UBA Bank Transfer",
 		"paymentMethods.afriland_bank_transfer": "Afriland Bank Transfer",
 		"transactions.amount": "Amount",

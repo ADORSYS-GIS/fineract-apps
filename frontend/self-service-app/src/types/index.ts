@@ -30,5 +30,6 @@ export interface TransactionLimits {
 export type PaymentMethodId =
 	| "mtn_transfer"
 	| "orange_transfer"
+	| "cinetpay"
 	| "uba_bank_transfer"
 	| "afriland_bank_transfer";
