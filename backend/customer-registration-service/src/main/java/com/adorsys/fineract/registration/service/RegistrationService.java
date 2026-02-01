@@ -54,6 +54,18 @@ public class RegistrationService {
             keycloakUserId = keycloakService.createUser(request, externalId);
             log.info("Created Keycloak user: {}", keycloakUserId);
 
+            // Step 3: Store fineract_client_id in Keycloak for fast ownership verification
+            try {
+                keycloakService.updateUserAttributes(keycloakUserId, Map.of(
+                        "fineract_client_id", List.of(String.valueOf(fineractClientId))
+                ));
+                log.info("Stored fineract_client_id {} in Keycloak user {}", fineractClientId, keycloakUserId);
+            } catch (Exception e) {
+                // Log but don't fail - fallback lookup via fineract_external_id will work
+                log.warn("Failed to store fineract_client_id in Keycloak for user {}: {}. " +
+                         "Ownership verification will use fallback lookup.", keycloakUserId, e.getMessage());
+            }
+
             log.info("Registration completed successfully for externalId: {}", externalId);
 
             // Record success metrics

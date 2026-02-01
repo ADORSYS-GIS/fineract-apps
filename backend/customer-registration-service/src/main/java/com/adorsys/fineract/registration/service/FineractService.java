@@ -142,6 +142,93 @@ public class FineractService {
     }
 
     /**
+     * Get all savings accounts for a client.
+     *
+     * @param clientId Fineract client ID
+     * @return List of savings accounts
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getSavingsAccountsByClientId(Long clientId) {
+        log.info("Getting savings accounts for client: {}", clientId);
+
+        try {
+            Map<String, Object> response = fineractRestClient.get()
+                    .uri("/fineract-provider/api/v1/savingsaccounts?clientId={clientId}", clientId)
+                    .retrieve()
+                    .body(Map.class);
+
+            if (response != null && response.containsKey("pageItems")) {
+                return (List<Map<String, Object>>) response.get("pageItems");
+            }
+            return List.of();
+        } catch (Exception e) {
+            log.error("Failed to get savings accounts for client {}: {}", clientId, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Get a specific savings account by ID.
+     *
+     * @param accountId Savings account ID
+     * @return Savings account details or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getSavingsAccount(Long accountId) {
+        log.info("Getting savings account: {}", accountId);
+
+        try {
+            return fineractRestClient.get()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}", accountId)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception e) {
+            log.error("Failed to get savings account {}: {}", accountId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get transactions for a savings account.
+     *
+     * @param accountId Savings account ID
+     * @return List of transactions
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getSavingsAccountTransactions(Long accountId) {
+        log.info("Getting transactions for savings account: {}", accountId);
+
+        try {
+            Map<String, Object> response = fineractRestClient.get()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}?associations=transactions", accountId)
+                    .retrieve()
+                    .body(Map.class);
+
+            if (response != null && response.containsKey("transactions")) {
+                return (List<Map<String, Object>>) response.get("transactions");
+            }
+            return List.of();
+        } catch (Exception e) {
+            log.error("Failed to get transactions for account {}: {}", accountId, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Get the owner (client ID) of a savings account.
+     *
+     * @param accountId Savings account ID
+     * @return Client ID that owns the account, or null if not found
+     */
+    public Long getSavingsAccountOwner(Long accountId) {
+        Map<String, Object> account = getSavingsAccount(accountId);
+        if (account != null && account.containsKey("clientId")) {
+            return ((Number) account.get("clientId")).longValue();
+        }
+        return null;
+    }
+
+    /**
      * Upload document for KYC.
      *
      * @param clientId    Fineract client ID

@@ -67,6 +67,9 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
 
+                // Account endpoints - require authentication with self-service role
+                .requestMatchers("/api/accounts/**").hasRole("self-service-customer")
+
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
