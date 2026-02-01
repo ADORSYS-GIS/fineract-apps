@@ -1,5 +1,6 @@
 package com.adorsys.fineract.gateway.controller;
 
+import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
 import com.adorsys.fineract.gateway.dto.MtnCallbackRequest;
 import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
 import com.adorsys.fineract.gateway.service.PaymentService;
@@ -102,6 +103,47 @@ public class CallbackController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process Orange cashout callback: {}", e.getMessage(), e);
+            return ResponseEntity.ok().build();
+        }
+    }
+
+    /**
+     * Handle CinetPay payment callback (deposit completed).
+     * CinetPay is a gateway - callback includes actual payment method (MOMO, OM).
+     */
+    @PostMapping("/cinetpay/payment")
+    @Operation(summary = "CinetPay payment callback", description = "Receive CinetPay payment (deposit) status update")
+    public ResponseEntity<Void> handleCinetPayPaymentCallback(
+            @RequestBody CinetPayCallbackRequest callback) {
+
+        log.info("Received CinetPay payment callback: transactionId={}, status={}, method={}",
+            callback.getTransactionId(), callback.getResultCode(), callback.getPaymentMethod());
+
+        try {
+            paymentService.handleCinetPayCallback(callback);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Failed to process CinetPay payment callback: {}", e.getMessage(), e);
+            return ResponseEntity.ok().build();
+        }
+    }
+
+    /**
+     * Handle CinetPay transfer callback (withdrawal completed).
+     */
+    @PostMapping("/cinetpay/transfer")
+    @Operation(summary = "CinetPay transfer callback", description = "Receive CinetPay transfer (withdrawal) status update")
+    public ResponseEntity<Void> handleCinetPayTransferCallback(
+            @RequestBody CinetPayCallbackRequest callback) {
+
+        log.info("Received CinetPay transfer callback: transactionId={}, status={}",
+            callback.getTransactionId(), callback.getResultCode());
+
+        try {
+            paymentService.handleCinetPayCallback(callback);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Failed to process CinetPay transfer callback: {}", e.getMessage(), e);
             return ResponseEntity.ok().build();
         }
     }

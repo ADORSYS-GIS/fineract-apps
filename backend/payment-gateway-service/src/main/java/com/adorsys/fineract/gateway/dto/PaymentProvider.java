@@ -6,6 +6,7 @@ package com.adorsys.fineract.gateway.dto;
 public enum PaymentProvider {
     MTN_MOMO("mtn_transfer", "MTN Mobile Money"),
     ORANGE_MONEY("orange_transfer", "Orange Money"),
+    CINETPAY("cinetpay", "CinetPay (Gateway)"),
     UBA_BANK("uba_bank_transfer", "UBA Bank Transfer"),
     AFRILAND_BANK("afriland_bank_transfer", "Afriland Bank Transfer");
 

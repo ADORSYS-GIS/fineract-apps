@@ -53,4 +53,11 @@ public class WebClientConfig {
             .defaultHeader("Fineract-Platform-TenantId", config.getTenant())
             .build();
     }
+
+    @Bean("cinetpayWebClient")
+    public WebClient cinetpayWebClient(WebClient.Builder builder, CinetPayConfig config) {
+        return builder
+            .baseUrl(config.getBaseUrl())
+            .build();
+    }
 }

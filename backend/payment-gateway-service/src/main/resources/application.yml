@@ -45,6 +45,26 @@ orange:
     fineract-payment-type-id: ${ORANGE_FINERACT_PAYMENT_TYPE_ID:2}
     gl-account-code: ${ORANGE_GL_ACCOUNT_CODE:}
 
+# CinetPay Configuration (Gateway - routes to MTN/Orange)
+# GL account mapping is dynamic based on cpm_payment_method from callback
+cinetpay:
+  base-url: ${CINETPAY_BASE_URL:https://api-checkout.cinetpay.com}
+  transfer-url: ${CINETPAY_TRANSFER_URL:https://client.cinetpay.com}
+  api-key: ${CINETPAY_API_KEY:}
+  site-id: ${CINETPAY_SITE_ID:}
+  api-password: ${CINETPAY_API_PASSWORD:}
+  currency: XAF
+  timeout-seconds: 30
+
+# Base URLs for dynamic callback/return URL construction
+payment:
+  gateway:
+    base-url: ${PAYMENT_GATEWAY_BASE_URL:http://localhost:8082}
+
+self-service:
+  app:
+    base-url: ${SELF_SERVICE_APP_BASE_URL:http://localhost:3000/self-service}
+
 # Fineract Configuration
 fineract:
   url: ${FINERACT_URL:http://localhost:8443/fineract-provider}
@@ -120,6 +140,15 @@ orange:
     callback-url: https://payments.webank.cm/api/callbacks
     return-url: https://self-service.webank.cm/transactions
     cancel-url: https://self-service.webank.cm/transactions
+
+# CinetPay uses dynamic URL construction from base URLs
+payment:
+  gateway:
+    base-url: https://payments.webank.cm
+
+self-service:
+  app:
+    base-url: https://self-service.webank.cm
 
 logging:
   level:

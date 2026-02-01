@@ -1,8 +1,10 @@
 package com.adorsys.fineract.gateway.service;
 
+import com.adorsys.fineract.gateway.client.CinetPayClient;
 import com.adorsys.fineract.gateway.client.FineractClient;
 import com.adorsys.fineract.gateway.client.MtnMomoClient;
 import com.adorsys.fineract.gateway.client.OrangeMoneyClient;
+import com.adorsys.fineract.gateway.config.CinetPayConfig;
 import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.config.OrangeMoneyConfig;
 import com.adorsys.fineract.gateway.dto.*;
@@ -33,9 +35,11 @@ public class PaymentService {
 
     private final MtnMomoClient mtnClient;
     private final OrangeMoneyClient orangeClient;
+    private final CinetPayClient cinetPayClient;
     private final FineractClient fineractClient;
     private final MtnMomoConfig mtnConfig;
     private final OrangeMoneyConfig orangeConfig;
+    private final CinetPayConfig cinetPayConfig;
     private final PaymentMetrics paymentMetrics;
 
     // In-memory transaction store (in production, use database)
@@ -61,6 +65,7 @@ public class PaymentService {
         PaymentResponse response = switch (request.getProvider()) {
             case MTN_MOMO -> initiateMtnDeposit(transactionId, request);
             case ORANGE_MONEY -> initiateOrangeDeposit(transactionId, request);
+            case CINETPAY -> initiateCinetPayDeposit(transactionId, request);
             default -> throw new PaymentException("Unsupported payment provider for deposits: " + request.getProvider());
         };
 
@@ -127,6 +132,7 @@ public class PaymentService {
             response = switch (request.getProvider()) {
                 case MTN_MOMO -> initiateMtnWithdrawal(transactionId, request);
                 case ORANGE_MONEY -> initiateOrangeWithdrawal(transactionId, request);
+                case CINETPAY -> initiateCinetPayWithdrawal(transactionId, request);
                 default -> throw new PaymentException("Unsupported payment provider for withdrawals: " + request.getProvider());
             };
             response.setFineractTransactionId(fineractTxnId);
@@ -372,10 +378,144 @@ public class PaymentService {
             .build();
     }
 
+    private PaymentResponse initiateCinetPayDeposit(String transactionId, DepositRequest request) {
+        CinetPayClient.PaymentInitResponse initResponse = cinetPayClient.initializePayment(
+            transactionId,
+            request.getAmount(),
+            "Deposit to Webank account",
+            request.getPhoneNumber()
+        );
+
+        return PaymentResponse.builder()
+            .transactionId(transactionId)
+            .providerReference(initResponse.paymentToken())
+            .provider(PaymentProvider.CINETPAY)
+            .type(PaymentResponse.TransactionType.DEPOSIT)
+            .amount(request.getAmount())
+            .currency("XAF")
+            .status(PaymentStatus.PENDING)
+            .message("Complete payment using the link below")
+            .paymentUrl(initResponse.paymentUrl())
+            .createdAt(Instant.now())
+            .build();
+    }
+
+    private PaymentResponse initiateCinetPayWithdrawal(String transactionId, WithdrawalRequest request) {
+        String normalizedPhone = cinetPayClient.normalizePhoneNumber(request.getPhoneNumber());
+        String prefix = "237";
+        String phone = normalizedPhone;
+        if (normalizedPhone.startsWith("237")) {
+            phone = normalizedPhone.substring(3);
+        }
+
+        String transferId = cinetPayClient.initiateTransfer(
+            transactionId,
+            request.getAmount(),
+            phone,
+            prefix
+        );
+
+        return PaymentResponse.builder()
+            .transactionId(transactionId)
+            .providerReference(transferId)
+            .provider(PaymentProvider.CINETPAY)
+            .type(PaymentResponse.TransactionType.WITHDRAWAL)
+            .amount(request.getAmount())
+            .currency("XAF")
+            .status(PaymentStatus.PROCESSING)
+            .message("Withdrawal is being processed")
+            .createdAt(Instant.now())
+            .build();
+    }
+
+    /**
+     * Handle CinetPay callback with dynamic GL mapping.
+     * CinetPay is a gateway - actual payment method (MTN/Orange) determines GL account.
+     */
+    public void handleCinetPayCallback(CinetPayCallbackRequest callback) {
+        log.info("Processing CinetPay callback: transactionId={}, status={}, paymentMethod={}",
+            callback.getTransactionId(), callback.getResultCode(), callback.getPaymentMethod());
+
+        // Validate callback signature
+        if (!cinetPayClient.validateCallbackSignature(callback)) {
+            log.warn("CinetPay callback signature validation failed: transactionId={}",
+                callback.getTransactionId());
+            return;
+        }
+
+        TransactionRecord record = transactions.get(callback.getTransactionId());
+        if (record == null) {
+            log.warn("Transaction not found for CinetPay callback: {}", callback.getTransactionId());
+            return;
+        }
+
+        if (record.type() == PaymentResponse.TransactionType.DEPOSIT) {
+            handleCinetPayDepositCallback(callback, record);
+        } else {
+            handleCinetPayWithdrawalCallback(callback, record);
+        }
+    }
+
+    private void handleCinetPayDepositCallback(CinetPayCallbackRequest callback, TransactionRecord record) {
+        if (callback.isSuccessful()) {
+            // Dynamic GL mapping based on actual payment method used
+            PaymentProvider actualProvider = callback.getActualProvider();
+            Long paymentTypeId;
+
+            if (actualProvider == PaymentProvider.MTN_MOMO) {
+                paymentTypeId = mtnConfig.getFineractPaymentTypeId();
+                log.info("CinetPay deposit via MTN MoMo: transactionId={}", record.transactionId());
+            } else if (actualProvider == PaymentProvider.ORANGE_MONEY) {
+                paymentTypeId = orangeConfig.getFineractPaymentTypeId();
+                log.info("CinetPay deposit via Orange Money: transactionId={}", record.transactionId());
+            } else {
+                // Unknown payment method - log warning and use default (MTN)
+                log.warn("Unknown CinetPay payment method: {}, defaulting to MTN",
+                    callback.getPaymentMethod());
+                paymentTypeId = mtnConfig.getFineractPaymentTypeId();
+            }
+
+            Long fineractTxnId = fineractClient.createDeposit(
+                record.accountId(),
+                record.amount(),
+                paymentTypeId,
+                callback.getPaymentId()
+            );
+
+            updateTransactionStatus(record.transactionId(), PaymentStatus.SUCCESSFUL, fineractTxnId);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.SUCCESSFUL);
+            paymentMetrics.recordPaymentAmountTotal(PaymentProvider.CINETPAY, PaymentResponse.TransactionType.DEPOSIT, record.amount());
+            log.info("CinetPay deposit completed: txnId={}, fineractTxnId={}", record.transactionId(), fineractTxnId);
+
+        } else if (callback.isFailed() || callback.isCancelled()) {
+            updateTransactionStatus(record.transactionId(), PaymentStatus.FAILED, null);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.FAILED);
+            log.warn("CinetPay deposit failed: txnId={}, reason={}", record.transactionId(), callback.getErrorMessage());
+        }
+    }
+
+    private void handleCinetPayWithdrawalCallback(CinetPayCallbackRequest callback, TransactionRecord record) {
+        if (callback.isSuccessful()) {
+            updateTransactionStatus(record.transactionId(), PaymentStatus.SUCCESSFUL, record.fineractTransactionId());
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.SUCCESSFUL);
+            paymentMetrics.recordPaymentAmountTotal(PaymentProvider.CINETPAY, PaymentResponse.TransactionType.WITHDRAWAL, record.amount());
+            log.info("CinetPay withdrawal completed: txnId={}", record.transactionId());
+
+        } else if (callback.isFailed() || callback.isCancelled()) {
+            // TODO: Reverse the Fineract withdrawal
+            updateTransactionStatus(record.transactionId(), PaymentStatus.FAILED, record.fineractTransactionId());
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.FAILED);
+            log.warn("CinetPay withdrawal failed: txnId={}, reason={}", record.transactionId(), callback.getErrorMessage());
+        }
+    }
+
     private Long getPaymentTypeId(PaymentProvider provider) {
         return switch (provider) {
             case MTN_MOMO -> mtnConfig.getFineractPaymentTypeId();
             case ORANGE_MONEY -> orangeConfig.getFineractPaymentTypeId();
+            // For CinetPay transfers, we default to MTN payment type
+            // (actual routing depends on phone number prefix)
+            case CINETPAY -> mtnConfig.getFineractPaymentTypeId();
             default -> throw new PaymentException("Unknown payment type for provider: " + provider);
         };
     }
