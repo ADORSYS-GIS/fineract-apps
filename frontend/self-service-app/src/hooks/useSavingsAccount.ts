@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "react-oidc-context";
-import { SavingsAccount } from "@/types/account";
 import { accountsApi } from "@/services/accountsApi";
+import { SavingsAccount } from "@/types/account";
 
 /**
  * Fetches savings accounts via customer-self-service API

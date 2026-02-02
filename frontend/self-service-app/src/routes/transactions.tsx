@@ -25,7 +25,7 @@ function TransactionsPage() {
 	const [searchTerm, setSearchTerm] = useState("");
 
 	// Fetch real data using hooks
-	const { data: customer, isLoading: isLoadingCustomer } = useCustomer();
+	const { isLoading: isLoadingCustomer } = useCustomer();
 	const { data: account, isLoading: isLoadingAccount } =
 		usePrimarySavingsAccount();
 	const {

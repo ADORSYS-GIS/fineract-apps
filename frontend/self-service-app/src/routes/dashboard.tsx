@@ -22,7 +22,7 @@ function DashboardPage() {
 	const kycStatus = (auth.user?.profile?.kyc_status as string) || "pending";
 
 	// Fetch data using hooks
-	const { data: customer, isLoading: isLoadingCustomer } = useCustomer();
+	const { isLoading: isLoadingCustomer } = useCustomer();
 	const { data: account, isLoading: isLoadingAccount } =
 		usePrimarySavingsAccount();
 	const { data: limitsData } = useLimits();

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "react-oidc-context";
-import type { Transaction } from "@/types/transaction";
 import { accountsApi } from "@/services/accountsApi";
+import type { Transaction } from "@/types/transaction";
 
 export type { Transaction };
 
@@ -14,7 +14,10 @@ async function fetchTransactions(
 	accountId: number,
 	accessToken: string,
 ): Promise<Transaction[]> {
-	const transactions = await accountsApi.getTransactions(accountId, accessToken);
+	const transactions = await accountsApi.getTransactions(
+		accountId,
+		accessToken,
+	);
 
 	// Transactions are already mapped by the backend
 	return transactions;

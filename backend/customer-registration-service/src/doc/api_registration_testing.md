@@ -4,6 +4,36 @@ This document provides `curl` commands to test the entire Customer Registration 
 
 ---
 
+## Architecture Overview
+
+The following diagram illustrates the registration and KYC flow, showing the interactions between the user, the customer registration service, Keycloak, and Fineract.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Customer Registration Service
+    participant Keycloak
+    participant Fineract
+
+    User->>+Customer Registration Service: POST /api/registration/register (with user details)
+    Customer Registration Service->>+Fineract: Create Client (inactive)
+    Fineract-->>-Customer Registration Service: Fineract Client ID
+    Customer Registration Service->>+Keycloak: Create User (with externalId and Fineract Client ID)
+    Keycloak-->>-Customer Registration Service: Keycloak User ID
+    Customer Registration Service-->>-User: Registration successful (with externalId)
+
+    User->>+Customer Registration Service: POST /api/registration/kyc/documents (upload documents)
+    Customer Registration Service->>+Fineract: Upload Document to Client
+    Fineract-->>-Customer Registration Service: Document ID
+    Customer Registration Service-->>-User: Document uploaded successfully
+
+    participant Staff
+    Staff->>+Customer Registration Service: POST /api/kyc/staff/submissions/{externalId}/approve
+    Customer Registration Service->>+Keycloak: Update User attributes (kyc_status='approved', kyc_tier=...)
+    Keycloak-->>-Customer Registration Service: Success
+    Customer Registration Service-->>-Staff: KYC Approved
+```
+
 ## Prerequisites: Keycloak Configuration for Local Testing
 
 Before you begin testing, you must perform a one-time configuration in your local Keycloak instance to ensure the registration service can function correctly.
@@ -26,6 +56,57 @@ The registration service uses a service account (username: `mifos`) to communica
 1.  In the Keycloak Admin Console, go to **"Users"** and find the `mifos` user.
 2.  Go to the **"Details"** tab.
 3.  Ensure there are no **"Required Actions"** listed. If there are (e.g., "Update Password"), clear them and save the user.
+
+### 3. Create and Configure the `self-service-customer` Role and Group
+
+The service requires users to have the `self-service-customer` role to access the account endpoints. This role is typically assigned to a group, and users are added to that group.
+
+#### a. Create the `self-service-customer` Role
+
+1.  In the Keycloak Admin Console, go to **"Realm Roles"** and click **"Create role"**.
+2.  Set the **"Role name"** to `self-service-customer`.
+3.  Click **"Save"**.
+
+#### b. Create the `self-service-customers` Group
+
+1.  Go to **"Groups"** and click **"Create group"**.
+2.  Set the **"Name"** to `self-service-customers`.
+3.  Click **"Save"**.
+
+#### c. Assign the Role to the Group
+
+1.  Click on the `self-service-customers` group you just created.
+2.  Go to the **"Role Mappings"** tab.
+3.  Click **"Assign role"**.
+4.  Select the `self-service-customer` role and click **"Assign"**.
+
+### 4. Clear Required Actions for the Registered User
+
+When a new customer is registered via the API, Keycloak assigns "Required Actions" to that user, such as verifying their email. For API testing, you must manually clear these actions to be able to obtain a token.
+
+1.  In the Keycloak Admin Console, go to **"Users"** and find the user you registered (e.g., `johndoe1@example.com`).
+2.  Go to the **"Details"** tab.
+3.  Ensure there are no **"Required Actions"** listed. If there are, clear them and save the user.
+
+### 5. Configure Keycloak Mappers to Add Custom Claims to JWT
+
+The registration service relies on custom claims within the JWT to identify the user. You must configure Keycloak to add the user's `fineract_external_id` and `fineract_client_id` attributes to the access token.
+
+**Note:** These instructions are for Keycloak 26. The navigation may differ slightly in other versions.
+
+1.  In the Keycloak Admin Console, go to **"Client Scopes"** in the left-hand menu.
+2.  Click on the client scope dedicated to your client, which is likely named `setup-app-client-dedicated`.
+3.  Go to the **"Mappers"** tab.
+4.  Click **"Add mapper"** and select **"By configuration"**.
+5.  From the list of mapper types, select **"User Attribute"**.
+6.  Configure the mapper for `fineract_external_id`:
+    *   **Name:** `fineract_external_id` (or something descriptive)
+    *   **User Attribute:** `fineract_external_id` (this must exactly match the attribute name on the user's profile)
+    *   **Token Claim Name:** `fineract_external_id` (this is the name that will appear in the JWT)
+    *   **Claim JSON Type:** `String`
+    *   **Add to access token:** Make sure this is toggled **ON**.
+7.  Click **"Save"**.
+8.  Repeat steps 4-7 to create another mapper for `fineract_client_id`.
 
 ---
 
@@ -123,6 +204,159 @@ Update the path to your document (`@/path/to/your/id_front.jpg`).
 ```bash
 curl --location --request POST "http://localhost:8081/api/registration/kyc/documents" \
 --header "Authorization: Bearer $TOKEN" \
+--header "X-External-Id: $EXTERNAL_ID" \
 --form "documentType=id_front" \
 --form "file=@/path/to/your/id_front.jpg"
 ```
+
+---
+
+## Step 4: Test the Account Endpoints
+
+These endpoints allow you to view account information.
+
+**Prerequisite:** The customer's Fineract client must be active (KYC approved) and have at least one savings account. A savings account is **not** created automatically during registration. You must create one manually in Fineract after the client has been activated.
+
+### Get All Savings Accounts
+
+**Command:**
+
+```bash
+curl --location --request GET "http://localhost:8081/api/accounts/savings" \
+--header "Authorization: Bearer $TOKEN"
+```
+
+The response will be a JSON object containing a list of accounts. You can use `jq` to extract the `id` of the first account and store it in a shell variable called `ACCOUNT_ID`.
+
+```bash
+ACCOUNT_ID=$(curl -s --location --request GET "http://localhost:8081/api/accounts/savings" \
+--header "Authorization: Bearer $TOKEN" | jq -r '.accounts[0].id')
+```
+
+You can check that the ID is stored by running `echo $ACCOUNT_ID`.
+
+### Get a Specific Savings Account
+
+**Command:**
+This command uses the `$ACCOUNT_ID` shell variable obtained in the previous step.
+
+```bash
+curl --location --request GET "http://localhost:8081/api/accounts/savings/$ACCOUNT_ID" \
+--header "Authorization: Bearer $TOKEN"
+```
+
+### Get Account Transactions
+
+**Command:**
+This command uses the `$ACCOUNT_ID` shell variable.
+
+```bash
+curl --location --request GET "http://localhost:8081/api/accounts/savings/$ACCOUNT_ID/transactions" \
+--header "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Step 5: Test the KYC Review Endpoints
+
+These endpoints are for staff members to review KYC submissions.
+
+**Prerequisite:** You must have a staff user with the `kyc-reviewer` or `admin` role in Keycloak. The customer registration service uses a service account (the `mifos` user) to communicate with Fineract. Therefore, the staff user only needs to exist in Keycloak with the appropriate roles.
+
+### How to get a staff token
+
+1.  **Create a staff user in Keycloak:**
+    *   Log in to the **Keycloak Admin Console** and select the `fineract` realm.
+    *   Go to **"Users"** and click on **"Add user"**.
+    *   Fill in the user details and click **"Save"**.
+    *   Go to the **"Credentials"** tab and set a password for the user.
+
+2.  **Assign the required role to the user:**
+    *   Go to the **"Role Mappings"** tab for the user.
+    *   Assign the `kyc-reviewer` or `admin` realm role to the user.
+
+3.  **Get the token:**
+    *   Use the same `curl` command as in "Step 2: Get an Authentication Token", but with the staff user's credentials.
+
+The prerequisite for these roles is defined in the `KycReviewController.java` file with the annotation `@PreAuthorize("hasAnyRole('kyc-reviewer', 'admin')")`.
+
+**Note:** The following commands assume you have a staff token stored in a shell variable called `STAFF_TOKEN`.
+
+### Get KYC Statistics
+
+**Command:**
+
+```bash
+curl --location --request GET "http://localhost:8081/api/kyc/staff/stats" \
+--header "Authorization: Bearer $STAFF_TOKEN"
+```
+
+### Get KYC Submissions
+
+**Command:**
+
+```bash
+curl --location --request GET "http://localhost:8081/api/kyc/staff/submissions" \
+--header "Authorization: Bearer $STAFF_TOKEN"
+```
+
+### Get a Single KYC Submission
+
+**Command:**
+Replace `{externalId}` with the customer's external ID.
+
+```bash
+curl --location --request GET "http://localhost:8081/api/kyc/staff/submissions/{externalId}" \
+--header "Authorization: Bearer $STAFF_TOKEN"
+```
+
+### Approve a KYC Submission
+
+**Command:**
+Replace `{externalId}` with the customer's external ID.
+
+```bash
+curl --location --request POST "http://localhost:8081/api/kyc/staff/submissions/{externalId}/approve" \
+--header "Content-Type: application/json" \
+--header "Authorization: Bearer $STAFF_TOKEN" \
+--data '{
+    "newTier": 1,
+    "notes": "KYC documents are clear and valid."
+}'
+```
+
+### Reject a KYC Submission
+
+**Command:**
+Replace `{externalId}` with the customer's external ID.
+
+```bash
+curl --location --request POST "http://localhost:8081/api/kyc/staff/submissions/{externalId}/reject" \
+--header "Content-Type: application/json" \
+--header "Authorization: Bearer $STAFF_TOKEN" \
+--data '{
+    "reason": "Invalid document"
+}'
+```
+
+### Request More Information
+
+**Command:**
+Replace `{externalId}` with the customer's external ID.
+
+```bash
+curl --location --request POST "http://localhost:8081/api/kyc/staff/submissions/{externalId}/request-info" \
+--header "Content-Type: application/json" \
+--header "Authorization: Bearer $STAFF_TOKEN" \
+--data '{
+    "comment": "Please upload a clearer picture of your ID."
+}'
+```
+
+---
+
+## Understanding `externalId` and `accountId`
+
+*   **`externalId`**: This is a unique identifier (UUID) generated by the customer registration service when a new customer is registered. It is used to identify the customer across the entire system, including in Keycloak and Fineract.
+
+*   **`accountId`**: This is the identifier for a specific savings account in Fineract. A customer can have multiple accounts, and each will have a unique `accountId`.

@@ -14,7 +14,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -60,44 +59,6 @@ public class FineractService {
         } catch (Exception e) {
             log.error("Failed to create Fineract client: {}", e.getMessage(), e);
             throw new RegistrationException("Failed to create client account", e);
-        }
-    }
-
-    /**
-     * Create a default savings account for the client.
-     *
-     * @param clientId Fineract client ID
-     * @return Savings account ID
-     */
-    public Long createSavingsAccount(Long clientId) {
-        log.info("Creating savings account for client: {}", clientId);
-
-        Map<String, Object> savingsPayload = Map.of(
-                "clientId", clientId,
-                "productId", fineractConfig.getDefaultSavingsProductId(),
-                "locale", "en",
-                "dateFormat", "dd MMMM yyyy",
-                "submittedOnDate", LocalDate.now().format(DATE_FORMATTER)
-        );
-
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = fineractRestClient.post()
-                    .uri("/fineract-provider/api/v1/savingsaccounts")
-                    .body(savingsPayload)
-                    .retrieve()
-                    .body(Map.class);
-
-            if (response != null && response.containsKey("savingsId")) {
-                Long savingsId = ((Number) response.get("savingsId")).longValue();
-                log.info("Created savings account with ID: {}", savingsId);
-                return savingsId;
-            }
-
-            throw new RegistrationException("Failed to create savings account: invalid response");
-        } catch (Exception e) {
-            log.error("Failed to create savings account: {}", e.getMessage(), e);
-            throw new RegistrationException("Failed to create savings account", e);
         }
     }
 
@@ -153,12 +114,12 @@ public class FineractService {
 
         try {
             Map<String, Object> response = fineractRestClient.get()
-                    .uri("/fineract-provider/api/v1/savingsaccounts?clientId={clientId}", clientId)
+                    .uri("/fineract-provider/api/v1/clients/{clientId}/accounts", clientId)
                     .retrieve()
                     .body(Map.class);
 
-            if (response != null && response.containsKey("pageItems")) {
-                return (List<Map<String, Object>>) response.get("pageItems");
+            if (response != null && response.containsKey("savingsAccounts")) {
+                return (List<Map<String, Object>>) response.get("savingsAccounts");
             }
             return List.of();
         } catch (Exception e) {
