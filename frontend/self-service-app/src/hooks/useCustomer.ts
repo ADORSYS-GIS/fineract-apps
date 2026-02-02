@@ -1,36 +1,47 @@
-import { ClientService, GetClientsResponse } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
+/**
+ * Maps OIDC user profile claims to the application's Customer type.
+ */
+import { UserProfile } from "oidc-client-ts";
 import { useAuth } from "react-oidc-context";
-import { ClientMap, Customer } from "@/types/customer";
+import { Customer } from "@/types/customer";
 
-async function fetchCustomer(externalId: string): Promise<Customer> {
-	const data: GetClientsResponse = await ClientService.getV1Clients({
-		externalId,
-	});
-	const client = data.pageItems?.[0];
-
-	if (!client) {
-		throw new Error("Customer not found");
-	}
-
-	return ClientMap(client);
+function mapProfileToCustomer(
+	profile: UserProfile & {
+		fineract_client_id?: string;
+		phone_number?: string;
+	},
+): Customer {
+	return {
+		id: profile.fineract_client_id || "",
+		displayName: profile.name || "",
+		email: profile.email || "",
+		phone: profile.phone_number || "",
+		status: "active", // An authenticated user is considered active
+	};
 }
 
+/**
+ * Hook to get the authenticated customer's details.
+ *
+ * This hook now sources customer data directly from the OIDC token's
+ * claims, avoiding a separate API call. It provides a consistent
+ * `Customer` object to the rest of the application.
+ */
 export function useCustomer() {
 	const auth = useAuth();
-	const externalId = auth.user?.profile?.fineract_external_id as
-		| string
-		| undefined;
+	const profile = auth.user?.profile;
 
 	return useQuery({
-		queryKey: ["customer", externalId],
+		queryKey: ["customer", profile?.fineract_external_id],
 		queryFn: () => {
-			if (!externalId) {
-				throw new Error("Not authenticated");
+			if (!profile) {
+				throw new Error("Not authenticated or profile not available");
 			}
-			return fetchCustomer(externalId);
+			return mapProfileToCustomer(profile);
 		},
-		enabled: !!externalId,
-		staleTime: 5 * 60 * 1000, // 5 minutes
+		enabled: !!profile,
+		staleTime: Infinity, // Data comes from the token, it's fresh until token refresh
+		gcTime: Infinity,
 	});
 }

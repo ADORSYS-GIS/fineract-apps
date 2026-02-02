@@ -1,6 +1,6 @@
+import { AccountsService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "react-oidc-context";
-import { accountsApi } from "@/services/accountsApi";
 import type { Transaction } from "@/types/transaction";
 
 export type { Transaction };
@@ -10,17 +10,14 @@ export type { Transaction };
  *
  * This endpoint verifies account ownership server-side before returning data.
  */
-async function fetchTransactions(
-	accountId: number,
-	accessToken: string,
-): Promise<Transaction[]> {
-	const transactions = await accountsApi.getTransactions(
-		accountId,
-		accessToken,
-	);
+async function fetchTransactions(accountId: number): Promise<Transaction[]> {
+	const response =
+		await AccountsService.getApiAccountsSavingsByAccountIdTransactions({
+			accountId,
+		});
 
 	// Transactions are already mapped by the backend
-	return transactions;
+	return (response.transactions || []) as unknown as Transaction[];
 }
 
 /**
@@ -35,10 +32,11 @@ export function useTransactions(accountId: string | undefined) {
 	return useQuery({
 		queryKey: ["transactions", accountId],
 		queryFn: () => {
-			if (!accountId || !auth.user?.access_token) {
-				throw new Error("Not authenticated");
+			if (!accountId) {
+				// Should not happen if enabled is set correctly
+				return Promise.resolve([]);
 			}
-			return fetchTransactions(parseInt(accountId), auth.user.access_token);
+			return fetchTransactions(parseInt(accountId, 10));
 		},
 		enabled: !!accountId && !!auth.user?.access_token,
 		staleTime: 30 * 1000, // 30 seconds

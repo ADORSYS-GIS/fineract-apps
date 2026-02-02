@@ -1,6 +1,6 @@
+import { AccountsService } from "@fineract-apps/fineract-api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "react-oidc-context";
-import { accountsApi } from "@/services/accountsApi";
 import { SavingsAccount } from "@/types/account";
 
 /**
@@ -9,14 +9,36 @@ import { SavingsAccount } from "@/types/account";
  * This endpoint uses JWT token to identify the customer and returns
  * only accounts owned by the authenticated customer (ownership verified server-side).
  */
-async function fetchSavingsAccounts(
-	accessToken: string,
-): Promise<SavingsAccount[]> {
-	const accounts = await accountsApi.getSavingsAccounts(accessToken);
+async function fetchSavingsAccounts(): Promise<SavingsAccount[]> {
+	const response = await AccountsService.getApiAccountsSavings();
+	const accounts = response.accounts || [];
+
+	// Define an explicit type for the objects coming from the API
+	// to avoid using `any`. This acts as a contract for the expected data structure.
+	interface ApiAccount {
+		id: number | string;
+		accountNo: string;
+		productName: string;
+		status: {
+			id: number;
+			code: string;
+			value: string;
+		};
+		currency: {
+			code: string;
+			name: string;
+			decimalPlaces: number;
+			displaySymbol: string;
+			nameCode: string;
+			displayLabel: string;
+		};
+		accountBalance?: number;
+		availableBalance?: number;
+	}
 
 	// Map response to frontend SavingsAccount type
-	return accounts.map((account) => ({
-		id: typeof account.id === "number" ? account.id.toString() : account.id,
+	return (accounts as unknown as ApiAccount[]).map((account) => ({
+		id: account.id.toString(),
 		accountNo: account.accountNo,
 		productName: account.productName,
 		status: account.status,
@@ -36,12 +58,7 @@ export function useSavingsAccounts() {
 
 	return useQuery({
 		queryKey: ["savingsAccounts"],
-		queryFn: () => {
-			if (!auth.user?.access_token) {
-				throw new Error("Not authenticated");
-			}
-			return fetchSavingsAccounts(auth.user.access_token);
-		},
+		queryFn: fetchSavingsAccounts,
 		enabled: !!auth.user?.access_token,
 		staleTime: 30 * 1000, // 30 seconds
 	});
