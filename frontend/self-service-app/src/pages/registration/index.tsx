@@ -1,5 +1,5 @@
 import { Button, Card, Input } from "@fineract-apps/ui";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Form, Formik } from "formik";
 import { CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -12,7 +12,6 @@ import {
 
 export function RegisterPage() {
 	const { t } = useTranslation();
-	const navigate = useNavigate();
 
 	const registerMutation = useRegistration();
 
@@ -32,7 +31,6 @@ export function RegisterPage() {
 	};
 
 	if (registerMutation.isSuccess) {
-		setTimeout(() => navigate({ to: "/" }), 3000);
 		return (
 			<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
 				<Card className="max-w-md w-full text-center">
@@ -40,9 +38,14 @@ export function RegisterPage() {
 						<CheckCircle className="w-8 h-8 text-green-600" />
 					</div>
 					<h2 className="text-xl font-semibold text-gray-900 mb-2">
-						{t("register.success")}
+						{t("register.success", "Registration Successful!")}
 					</h2>
-					<p className="text-gray-500">Redirecting to login...</p>
+					<p className="text-gray-500">
+						{t(
+							"register.successMessage",
+							"Please check your email to verify your account and set up your passkey.",
+						)}
+					</p>
 				</Card>
 			</div>
 		);
