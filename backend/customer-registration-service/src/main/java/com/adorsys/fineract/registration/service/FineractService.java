@@ -299,31 +299,6 @@ public class FineractService {
         }
     }
 
-    /**
-     * Activate a client account.
-     */
-    public void activateClient(Long clientId) {
-        log.info("Activating client: {}", clientId);
-
-        Map<String, Object> payload = Map.of(
-                "locale", "en",
-                "dateFormat", "dd MMMM yyyy",
-                "activationDate", java.time.LocalDate.now().format(DATE_FORMATTER)
-        );
-
-        try {
-            fineractRestClient.post()
-                    .uri("/fineract-provider/api/v1/clients/{clientId}?command=activate", clientId)
-                    .body(payload)
-                    .retrieve()
-                    .toBodilessEntity();
-
-            log.info("Activated client: {}", clientId);
-        } catch (Exception e) {
-            log.error("Failed to activate client {}: {}", clientId, e.getMessage(), e);
-            throw new RegistrationException("Failed to activate client", e);
-        }
-    }
 
     private Map<String, Object> buildClientPayload(RegistrationRequest request, String externalId) {
         Map<String, Object> payload = new HashMap<>();
