@@ -245,4 +245,26 @@ public class KeycloakService {
         }
         throw new RegistrationException("Failed to extract user ID from response");
     }
+    /**
+     * Programmatically trigger the "verify-email" required action email.
+     * This is used to ensure the email is sent immediately upon registration,
+     * as a fallback for when the Keycloak registration flow is not configured
+     * to send the email automatically.
+     * @param userId The ID of the user to send the email to.
+     */
+    public void sendVerificationEmail(String userId) {
+        log.info("Programmatically sending verification email for user {}", userId);
+        try {
+            keycloak.realm(keycloakConfig.getRealm())
+                    .users()
+                    .get(userId)
+                    .sendVerifyEmail();
+            log.info("Successfully triggered verification email for user {}", userId);
+        } catch (Exception e) {
+            // Log the error but do not rethrow. The user can still trigger the
+            // email manually by attempting to log in, so this should not
+            // fail the entire registration process.
+            log.error("Failed to send verification email for user {}: {}", userId, e.getMessage());
+        }
+    }
 }

@@ -66,6 +66,9 @@ public class RegistrationService {
                          "Ownership verification will use fallback lookup.", keycloakUserId, e.getMessage());
             }
 
+            // Step 4: Programmatically send the verification email
+            keycloakService.sendVerificationEmail(keycloakUserId);
+
             log.info("Registration completed successfully for externalId: {}", externalId);
 
             // Record success metrics
