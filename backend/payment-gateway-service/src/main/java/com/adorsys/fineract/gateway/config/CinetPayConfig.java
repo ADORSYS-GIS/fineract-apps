@@ -38,12 +38,22 @@ public class CinetPayConfig {
     /**
      * CinetPay site ID (merchant identifier)
      */
-    private String siteId;
+    private Integer siteId;
 
     /**
-     * CinetPay API password (for transfer authentication)
+     * CinetPay API password (legacy/checkout)
      */
     private String apiPassword;
+
+    /**
+     * CinetPay Transfer API password (for /auth/login)
+     */
+    private String transferPassword;
+
+    /**
+     * CinetPay Secret Key (for HMAC validation)
+     */
+    private String secretKey;
 
     /**
      * Currency code (XAF for Central Africa)

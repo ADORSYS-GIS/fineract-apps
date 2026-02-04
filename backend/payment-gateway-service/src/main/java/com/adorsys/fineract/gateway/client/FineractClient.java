@@ -2,7 +2,6 @@ package com.adorsys.fineract.gateway.client;
 
 import com.adorsys.fineract.gateway.config.FineractConfig;
 import com.adorsys.fineract.gateway.exception.PaymentException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
@@ -26,16 +25,19 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class FineractClient {
 
     private final FineractConfig config;
     private final FineractTokenProvider tokenProvider;
-
-    @Qualifier("fineractWebClient")
     private final WebClient webClient;
 
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+    public FineractClient(FineractConfig config, FineractTokenProvider tokenProvider, @Qualifier("fineractWebClient") WebClient webClient) {
+        this.config = config;
+        this.tokenProvider = tokenProvider;
+        this.webClient = webClient;
+    }
+
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMMM yyyy", java.util.Locale.ENGLISH);
 
     /**
      * Create a deposit transaction on a savings account.
@@ -47,16 +49,25 @@ public class FineractClient {
      * @return Transaction ID
      */
     public Long createDeposit(Long accountId, BigDecimal amount, Long paymentTypeId, String receiptNumber) {
-        log.info("Creating Fineract deposit: accountId={}, amount={}, paymentTypeId={}", accountId, amount, paymentTypeId);
+        LocalDate date = LocalDate.now();
+        
+        log.info("Creating Fineract deposit: accountId={}, amount={}, paymentTypeId={}, date={}",
+            accountId, amount, paymentTypeId, date);
+
+        if (paymentTypeId == null) {
+            log.error("PaymentTypeId is NULL! Cannot create deposit.");
+            throw new PaymentException("PaymentTypeId is missing for deposit creation");
+        }
 
         Map<String, Object> requestBody = Map.of(
             "locale", "en",
             "dateFormat", "dd MMMM yyyy",
-            "transactionDate", LocalDate.now().format(DATE_FORMAT),
+            "transactionDate", date.format(DATE_FORMAT),
             "transactionAmount", amount,
             "paymentTypeId", paymentTypeId,
             "receiptNumber", receiptNumber != null ? receiptNumber : ""
         );
+        log.debug("Fineract deposit payload: {}", requestBody);
 
         try {
             Map<String, Object> response = webClient.post()
@@ -73,7 +84,7 @@ public class FineractClient {
                 .block();
 
             Long transactionId = ((Number) response.get("resourceId")).longValue();
-            log.info("Fineract deposit created: accountId={}, transactionId={}", accountId, transactionId);
+            log.info("Fineract deposit created: accountId={}, transactionId={}, date={}", accountId, transactionId, date);
 
             return transactionId;
 
@@ -95,12 +106,15 @@ public class FineractClient {
      * @return Transaction ID
      */
     public Long createWithdrawal(Long accountId, BigDecimal amount, Long paymentTypeId, String receiptNumber) {
-        log.info("Creating Fineract withdrawal: accountId={}, amount={}, paymentTypeId={}", accountId, amount, paymentTypeId);
+        LocalDate date = LocalDate.now();
+
+        log.info("Creating Fineract withdrawal: accountId={}, amount={}, paymentTypeId={}, date={}",
+            accountId, amount, paymentTypeId, date);
 
         Map<String, Object> requestBody = Map.of(
             "locale", "en",
             "dateFormat", "dd MMMM yyyy",
-            "transactionDate", LocalDate.now().format(DATE_FORMAT),
+            "transactionDate", date.format(DATE_FORMAT),
             "transactionAmount", amount,
             "paymentTypeId", paymentTypeId,
             "receiptNumber", receiptNumber != null ? receiptNumber : ""

@@ -38,13 +38,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class MtnMomoClient {
 
     private final MtnMomoConfig config;
-
-    @Qualifier("mtnWebClient")
     private final WebClient webClient;
+
+    public MtnMomoClient(MtnMomoConfig config, @Qualifier("mtnWebClient") WebClient webClient) {
+        this.config = config;
+        this.webClient = webClient;
+    }
 
     // Simple token cache (in production, use Redis or similar)
     private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();

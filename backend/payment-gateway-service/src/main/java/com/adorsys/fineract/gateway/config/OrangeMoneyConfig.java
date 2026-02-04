@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "payment.orange")
+@ConfigurationProperties(prefix = "orange.money")
 public class OrangeMoneyConfig {
 
     /**

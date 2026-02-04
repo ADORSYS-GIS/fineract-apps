@@ -7,6 +7,35 @@ spring:
   application:
     name: payment-gateway-service
 
+  # Database configuration
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/payment_gateway}
+    username: ${SPRING_DATASOURCE_USERNAME:payment_gateway}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 20000
+
+  # JPA configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Flyway handles schema, Hibernate only validates
+    open-in-view: false   # Prevent lazy loading issues
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  # Flyway migrations
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
   security:
     oauth2:
       resourceserver:
@@ -23,7 +52,7 @@ mtn:
     api-user-id: ${MTN_API_USER_ID:}
     api-key: ${MTN_API_KEY:}
     target-environment: ${MTN_TARGET_ENV:sandbox}
-    callback-url: ${MTN_CALLBACK_URL:http://localhost:8082/api/callbacks}
+    callback-url: ${MTN_CALLBACK_URL:https://ungraphical-angele-seventhly.ngrok-free.dev/api/callbacks}
     currency: XAF
     timeout-seconds: 30
     fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:1}
@@ -37,7 +66,7 @@ orange:
     client-id: ${ORANGE_CLIENT_ID:}
     client-secret: ${ORANGE_CLIENT_SECRET:}
     merchant-code: ${ORANGE_MERCHANT_CODE:}
-    callback-url: ${ORANGE_CALLBACK_URL:http://localhost:8082/api/callbacks}
+    callback-url: ${ORANGE_CALLBACK_URL:https://ungraphical-angele-seventhly.ngrok-free.dev/api/callbacks}
     return-url: ${ORANGE_RETURN_URL:http://localhost:3000/self-service/transactions}
     cancel-url: ${ORANGE_CANCEL_URL:http://localhost:3000/self-service/transactions}
     currency: XAF
@@ -53,13 +82,15 @@ cinetpay:
   api-key: ${CINETPAY_API_KEY:}
   site-id: ${CINETPAY_SITE_ID:}
   api-password: ${CINETPAY_API_PASSWORD:}
+  transfer-password: ${CINETPAY_TRANSFER_PASSWORD:} 
+  secret-key: ${CINETPAY_SECRET_KEY:}
   currency: XAF
   timeout-seconds: 30
 
 # Base URLs for dynamic callback/return URL construction
 payment:
   gateway:
-    base-url: ${PAYMENT_GATEWAY_BASE_URL:http://localhost:8082}
+    base-url: ${PAYMENT_GATEWAY_BASE_URL:https://ungraphical-angele-seventhly.ngrok-free.dev}
 
 self-service:
   app:
@@ -67,10 +98,10 @@ self-service:
 
 # Fineract Configuration
 fineract:
-  url: ${FINERACT_URL:http://localhost:8443/fineract-provider}
+  url: ${FINERACT_URL:https://localhost}
   tenant: ${FINERACT_TENANT:default}
   # Authentication type: oauth (default) or basic
-  auth-type: ${FINERACT_AUTH_TYPE:oauth}
+  auth-type: ${FINERACT_AUTH_TYPE:basic}
   # OAuth settings (used when auth-type=oauth)
   token-url: ${FINERACT_TOKEN_URL:http://keycloak:8080/realms/fineract/protocol/openid-connect/token}
   client-id: ${FINERACT_CLIENT_ID:fineract-service}
@@ -79,7 +110,7 @@ fineract:
   username: ${FINERACT_USERNAME:mifos}
   password: ${FINERACT_PASSWORD:password}
   timeout-seconds: 30
-  default-savings-product-id: ${FINERACT_SAVINGS_PRODUCT_ID:1}
+  default-savings-product-id: ${FINERACT_SAVINGS_PRODUCT_ID:9}
 
 # Actuator Configuration
 management:
@@ -163,3 +194,4 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+

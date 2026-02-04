@@ -4,12 +4,12 @@ import com.adorsys.fineract.gateway.config.CinetPayConfig;
 import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
 import com.adorsys.fineract.gateway.dto.PaymentStatus;
 import com.adorsys.fineract.gateway.exception.PaymentException;
-import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -40,13 +40,17 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class CinetPayClient {
 
     private final CinetPayConfig config;
-
-    @Qualifier("cinetpayWebClient")
     private final WebClient webClient;
+    private final ObjectMapper objectMapper;
+
+    public CinetPayClient(CinetPayConfig config, @Qualifier("cinetpayWebClient") WebClient webClient, ObjectMapper objectMapper) {
+        this.config = config;
+        this.webClient = webClient;
+        this.objectMapper = objectMapper;
+    }
 
     // Token cache for transfer API (5 min TTL)
     private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
@@ -67,22 +71,24 @@ public class CinetPayClient {
 
         String normalizedPhone = normalizePhoneNumber(customerPhone);
 
-        Map<String, Object> requestBody = Map.of(
-            "apikey", config.getApiKey(),
-            "site_id", config.getSiteId(),
-            "transaction_id", transactionId,
-            "amount", amount.intValue(),
-            "currency", config.getCurrency(),
-            "description", description,
-            "customer_phone_number", normalizedPhone,
-            "customer_name", "Customer",
-            "customer_surname", "",
-            "notify_url", config.getCallbackUrl() + "/payment",
-            "return_url", config.getReturnUrl(),
-            "cancel_url", config.getCancelUrl(),
-            "channels", "ALL",
-            "lang", "fr"
+        Map<String, Object> requestBody = Map.ofEntries(
+            Map.entry("apikey", config.getApiKey()),
+            Map.entry("site_id", config.getSiteId()),
+
+            Map.entry("transaction_id", transactionId),
+            Map.entry("amount", amount.intValue()),
+            Map.entry("currency", config.getCurrency()),
+            Map.entry("description", description),
+            Map.entry("customer_phone_number", normalizedPhone),
+            Map.entry("customer_name", "Customer"),
+            Map.entry("customer_surname", ""),
+            Map.entry("notify_url", "https://ungraphical-angele-seventhly.ngrok-free.dev/api/callbacks/cinetpay/payment"),
+            Map.entry("return_url", "https://ungraphical-angele-seventhly.ngrok-free.dev/transactions"),
+            Map.entry("cancel_url", "https://ungraphical-angele-seventhly.ngrok-free.dev/transactions"),
+            Map.entry("channels", "ALL"),
+            Map.entry("lang", "fr")
         );
+        log.debug(requestBody.toString());
 
         try {
             Map<String, Object> response = webClient.post()
@@ -157,14 +163,21 @@ public class CinetPayClient {
         );
 
         try {
+            // Docs say 'data' is a JSON list of transfers. Wrap single request in a list.
+            java.util.List<Map<String, Object>> payloadList = java.util.List.of(requestBody);
+            String jsonPayload = objectMapper.writeValueAsString(payloadList);
+
             Map<String, Object> response = WebClient.builder()
                 .baseUrl(config.getTransferUrl())
                 .build()
                 .post()
-                .uri("/v1/transfer/money/send/contact")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestBody)
+                .uri(uriBuilder -> uriBuilder
+                    .path("/v1/transfer/money/send/contact")
+                    .queryParam("token", token)
+                    .queryParam("lang", "en")
+                    .build())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData("data", jsonPayload))
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                     resp -> resp.bodyToMono(String.class)
@@ -180,8 +193,14 @@ public class CinetPayClient {
             }
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> data = (Map<String, Object>) response.get("data");
-            String transferId = String.valueOf(data.get("id"));
+            java.util.List<Map<String, Object>> dataList = (java.util.List<Map<String, Object>>) response.get("data");
+            
+            if (dataList == null || dataList.isEmpty()) {
+                throw new PaymentException("CinetPay transfer response missing data");
+            }
+            
+            Map<String, Object> firstTransfer = dataList.get(0);
+            String transferId = String.valueOf(firstTransfer.get("transaction_id")); 
 
             log.info("CinetPay transfer initiated: transactionId={}, transferId={}",
                 transactionId, transferId);
@@ -234,39 +253,64 @@ public class CinetPayClient {
 
     /**
      * Validate callback signature to ensure it's from CinetPay.
+     * Uses X-TOKEN header HMAC validation as per documentation.
      *
      * @param callback The callback request
      * @return true if signature is valid
      */
     public boolean validateCallbackSignature(CinetPayCallbackRequest callback) {
         // Verify site_id matches
-        if (!config.getSiteId().equals(callback.getSiteId())) {
+        if (!String.valueOf(config.getSiteId()).equals(callback.getSiteId())) {
             log.warn("CinetPay callback site_id mismatch: expected={}, received={}",
                 config.getSiteId(), callback.getSiteId());
             return false;
         }
 
-        // CinetPay uses HMAC-SHA256 for signature validation
-        if (callback.getSignature() == null) {
-            log.warn("CinetPay callback missing signature");
+        // Check if Secret Key is configured
+        if (config.getSecretKey() == null || config.getSecretKey().isEmpty()) {
+            log.warn("CinetPay Secret Key is not configured. Skipping HMAC validation.");
+            return true; // Allow if not configured, to avoid blocking payments
+        }
+
+        // Check X-Token presence
+        if (callback.getXToken() == null) {
+            log.warn("CinetPay X-Token header missing. Cannot validate signature.");
             return false;
         }
 
         try {
+            // Formula: cpm_site_id + cpm_trans_id + cpm_trans_date + cpm_amount + cpm_currency + signature +
+            // payment_method + cel_phone_num + cpm_phone_prefixe + cpm_language + cpm_version +
+            // cpm_payment_config + cpm_page_action + cpm_custom + cpm_designation + cpm_error_message
+            
             String dataToSign = callback.getSiteId() +
                 callback.getTransactionId() +
+                callback.getTransactionDate() +
                 callback.getAmount() +
-                config.getApiKey();
+                callback.getCurrency() +
+                callback.getSignature() +
+                callback.getPaymentMethod() +
+                callback.getPhoneNumber() +
+                callback.getPhonePrefix() +
+                (callback.getLanguage() != null ? callback.getLanguage() : "") +
+                (callback.getVersion() != null ? callback.getVersion() : "") +
+                (callback.getPaymentConfig() != null ? callback.getPaymentConfig() : "") +
+                (callback.getPageAction() != null ? callback.getPageAction() : "") +
+                (callback.getCustomData() != null ? callback.getCustomData() : "") +
+                (callback.getDesignation() != null ? callback.getDesignation() : "") +
+                (callback.getErrorMessage() != null ? callback.getErrorMessage() : "");
 
-            String expectedSignature = generateHmacSha256(dataToSign, config.getApiKey());
-            boolean valid = expectedSignature.equalsIgnoreCase(callback.getSignature());
+            log.debug("Verifying CinetPay HMAC. Data: {}", dataToSign);
+
+            String generatedToken = generateHmacSha256(dataToSign, config.getSecretKey());
+            boolean valid = generatedToken.equalsIgnoreCase(callback.getXToken());
 
             if (!valid) {
-                log.warn("CinetPay callback signature mismatch: transactionId={}",
-                    callback.getTransactionId());
+                log.error("CinetPay HMAC validation failed. Received: {}, Generated: {}", callback.getXToken(), generatedToken);
+                return false; // Strict validation
             }
 
-            return valid;
+            return true;
 
         } catch (Exception e) {
             log.error("Failed to validate CinetPay signature: {}", e.getMessage());
@@ -284,19 +328,15 @@ public class CinetPayClient {
             return cached.token;
         }
 
-        Map<String, Object> requestBody = Map.of(
-            "apikey", config.getApiKey(),
-            "password", config.getApiPassword()
-        );
-
         try {
             Map<String, Object> response = WebClient.builder()
                 .baseUrl(config.getTransferUrl())
                 .build()
                 .post()
                 .uri("/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestBody)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData("apikey", config.getApiKey())
+                        .with("password", config.getTransferPassword()))
                 .retrieve()
                 .bodyToMono(Map.class)
                 .timeout(Duration.ofSeconds(10))

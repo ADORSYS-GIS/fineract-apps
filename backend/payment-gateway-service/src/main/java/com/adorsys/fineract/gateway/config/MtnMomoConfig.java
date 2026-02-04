@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "payment.mtn")
+@ConfigurationProperties(prefix = "mtn.momo")
 public class MtnMomoConfig {
 
     /**

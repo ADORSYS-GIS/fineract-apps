@@ -37,13 +37,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class OrangeMoneyClient {
 
     private final OrangeMoneyConfig config;
-
-    @Qualifier("orangeWebClient")
     private final WebClient webClient;
+
+    public OrangeMoneyClient(OrangeMoneyConfig config, @Qualifier("orangeWebClient") WebClient webClient) {
+        this.config = config;
+        this.webClient = webClient;
+    }
 
     // Simple token cache
     private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();

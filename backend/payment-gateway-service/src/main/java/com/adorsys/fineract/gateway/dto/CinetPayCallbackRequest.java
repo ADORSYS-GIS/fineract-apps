@@ -32,6 +32,11 @@ public class CinetPayCallbackRequest {
     @JsonProperty("cpm_trans_id")
     private String transactionId;
 
+    public String getTransactionId() {
+        if (transactionId != null) return transactionId;
+        return clientTransactionId;
+    }
+
     /**
      * Transaction date
      */
@@ -94,6 +99,37 @@ public class CinetPayCallbackRequest {
     @JsonProperty("cpm_custom")
     private String customData;
 
+    @JsonProperty("cpm_language")
+    private String language;
+
+    @JsonProperty("cpm_version")
+    private String version;
+
+    @JsonProperty("cpm_payment_config")
+    private String paymentConfig;
+
+    @JsonProperty("cpm_page_action")
+    private String pageAction;
+
+    @JsonProperty("cpm_designation")
+    private String designation;
+
+    // --- Transfer Specific Fields ---
+    @JsonProperty("client_transaction_id")
+    private String clientTransactionId;
+
+    @JsonProperty("treatment_status")
+    private String treatmentStatus;
+
+    @JsonProperty("sending_status")
+    private String sendingStatus;
+
+    @JsonProperty("receiver")
+    private String receiver;
+
+    @JsonProperty("operator_transaction_id")
+    private String operatorTransactionId;
+
     /**
      * Callback signature for verification
      */
@@ -101,9 +137,17 @@ public class CinetPayCallbackRequest {
     private String signature;
 
     /**
+     * HMAC token from header (x-token)
+     */
+    private String xToken;
+
+    /**
      * Check if the transaction was successful.
      */
     public boolean isSuccessful() {
+        if (treatmentStatus != null) {
+            return "VAL".equals(treatmentStatus); // Validated
+        }
         return "00".equals(resultCode);
     }
 
@@ -111,6 +155,9 @@ public class CinetPayCallbackRequest {
      * Check if the transaction failed.
      */
     public boolean isFailed() {
+        if (treatmentStatus != null) {
+            return "REJ".equals(treatmentStatus); // Rejected (Assumption based on docs saying 'rejected')
+        }
         return "600".equals(resultCode) || "602".equals(resultCode);
     }
 
@@ -133,8 +180,8 @@ public class CinetPayCallbackRequest {
         }
 
         return switch (paymentMethod.toUpperCase()) {
-            case "MOMO" -> PaymentProvider.MTN_MOMO;      // MTN Mobile Money
-            case "OM" -> PaymentProvider.ORANGE_MONEY;    // Orange Money
+            case "MOMO", "MTNCM" -> PaymentProvider.MTN_MOMO;      // MTN Mobile Money
+            case "OM", "OMCM" -> PaymentProvider.ORANGE_MONEY;    // Orange Money
             // Add more mappings as CinetPay adds providers
             // case "FLOOZ" -> PaymentProvider.MOOV_MONEY;
             // case "VISA", "MASTERCARD" -> PaymentProvider.CARD;
