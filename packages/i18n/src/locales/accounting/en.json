@@ -124,6 +124,29 @@
 		"createYourFirstAccountingClosure": "Create your first accounting closure to lock a period",
 		"createFirstClosure": "Create First Closure",
 		"accountingClosures": "Accounting Closures",
-		"managePeriodEndAccountingClosures": "Manage period-end accounting closures"
+		"managePeriodEndAccountingClosures": "Manage period-end accounting closures",
+		"createClosure": {
+			"backToClosures": "Back to Closures",
+			"title": "Create Accounting Closure",
+			"subtitle": "Lock an accounting period to prevent backdated transactions",
+			"important": "Important",
+			"importantMessage": "Creating an accounting closure will prevent any transactions from being posted on or before the closing date. This action helps maintain period-end integrity. Only create closures for periods you're certain are complete.",
+			"closureDetails": "Closure Details",
+			"closingDateLabel": "Closing Date *",
+			"closingDateHelperText": "Transactions on or before this date will be locked",
+			"officeLabel": "Office *",
+			"loadingOffices": "Loading offices...",
+			"selectOffice": "Select Office",
+			"officeHelperText": "Select the office for this closure",
+			"commentsLabel": "Comments (Optional)",
+			"commentsPlaceholder": "Add any notes about this closure (e.g., 'Q4 2024 Period-End Closure')",
+			"summaryTitle": "Closure Summary",
+			"summaryClosingDate": "Closing Date:",
+			"summaryNotSelected": "Not selected",
+			"summaryMessage": "All transactions on or before this date will be locked and cannot be modified or deleted.",
+			"cancel": "Cancel",
+			"creatingClosure": "Creating Closure...",
+			"createClosure": "Create Closure"
+		}
 	}
 }

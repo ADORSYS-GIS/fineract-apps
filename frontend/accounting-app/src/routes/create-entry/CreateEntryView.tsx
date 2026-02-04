@@ -95,66 +95,66 @@ export function CreateEntryView({
 	return (
 		<div className="p-6 max-w-6xl mx-auto min-h-screen">
 			<h1 className="text-2xl font-bold text-gray-900 mb-6">
-				{t("createManualJournalEntry")}
+				{t("createEntry.title")}
 			</h1>
 
 			<form onSubmit={onSubmit}>
 				<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
 					<h2 className="text-lg font-semibold text-gray-900 mb-4">
-						{t("entryDetails")}
+						{t("createEntry.entryDetails")}
 					</h2>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Select
-							label={`${t("office")} *`}
+							label={t("createEntry.officeLabel")}
 							value={formData.officeId}
 							onChange={(e) => onFormChange("officeId", e.target.value)}
 							options={[
-								{ value: "", label: t("selectOffice") },
+								{ value: "", label: t("createEntry.selectOffice") },
 								...officeOptions,
 							]}
 							required
 						/>
 						<Input
-							label={`${t("transactionDate")} *`}
+							label={t("createEntry.transactionDateLabel")}
 							type="date"
 							value={formData.transactionDate}
 							onChange={(e) => onFormChange("transactionDate", e.target.value)}
 							required
 						/>
 						<Select
-							label={`${t("currency")} *`}
+							label={t("createEntry.currencyLabel")}
 							value={formData.currencyCode}
 							onChange={(e) => onFormChange("currencyCode", e.target.value)}
 							options={[
-								{ value: "", label: t("selectCurrency") },
+								{ value: "", label: t("createEntry.selectCurrency") },
 								...currencyOptions,
 							]}
 							required
 						/>
 						<Select
-							label={`${t("paymentType")} *`}
+							label={t("createEntry.paymentTypeLabel")}
 							value={formData.paymentTypeId}
 							onChange={(e) => onFormChange("paymentTypeId", e.target.value)}
 							options={[
-								{ value: "", label: t("selectPaymentType") },
+								{ value: "", label: t("createEntry.selectPaymentType") },
 								...paymentTypeOptions,
 							]}
 							required
 						/>
 						<Input
-							label={t("referenceNumber")}
+							label={t("createEntry.referenceNumberLabel")}
 							type="text"
 							value={formData.referenceNumber}
 							onChange={(e) => onFormChange("referenceNumber", e.target.value)}
-							placeholder={t("optionalReferenceNumber")}
+							placeholder={t("createEntry.referenceNumberPlaceholder")}
 						/>
 						<div className="md:col-span-2">
 							<Textarea
-								label={t("comments")}
+								label={t("createEntry.commentsLabel")}
 								value={formData.comments}
 								onChange={(e) => onFormChange("comments", e.target.value)}
 								rows={3}
-								placeholder={t("optionalCommentsOrDescription")}
+								placeholder={t("createEntry.commentsPlaceholder")}
 							/>
 						</div>
 					</div>
@@ -163,7 +163,9 @@ export function CreateEntryView({
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 					<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 						<div className="flex items-center justify-between mb-4">
-							<h2 className="text-lg font-semibold">{t("debits")}</h2>
+							<h2 className="text-lg font-semibold">
+								{t("createEntry.debits")}
+							</h2>
 							<Button
 								type="button"
 								onClick={onAddDebit}
@@ -171,7 +173,7 @@ export function CreateEntryView({
 								className="flex items-center gap-1"
 							>
 								<Plus className="h-4 w-4" />
-								{t("addDebit")}
+								{t("createEntry.addDebit")}
 							</Button>
 						</div>
 						<div className="space-y-4">
@@ -185,7 +187,10 @@ export function CreateEntryView({
 											}
 											required
 											options={[
-												{ value: "", label: t("selectGlAccount") },
+												{
+													value: "",
+													label: t("createEntry.selectGLAccount"),
+												},
 												...glAccountOptions,
 											]}
 										/>
@@ -199,7 +204,7 @@ export function CreateEntryView({
 											onChange={(e) =>
 												onDebitChange(index, "amount", e.target.value)
 											}
-											placeholder={t("amount")}
+											placeholder={t("createEntry.amountPlaceholder")}
 											required
 										/>
 									</div>
@@ -216,13 +221,15 @@ export function CreateEntryView({
 							))}
 							{debits.length === 0 && (
 								<p className="text-sm text-gray-500 text-center py-4">
-									{t("noDebitEntries")}
+									{t("createEntry.noDebitEntries")}
 								</p>
 							)}
 						</div>
 						<div className="mt-4 pt-4 border-t">
 							<div className="flex justify-between items-center">
-								<span className="font-medium">{t("totalDebits")}:</span>
+								<span className="font-medium">
+									{t("createEntry.totalDebits")}
+								</span>
 								<span className="text-lg font-bold">
 									{currencyCode} {totalDebits.toLocaleString()}
 								</span>
@@ -232,7 +239,9 @@ export function CreateEntryView({
 
 					<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 						<div className="flex items-center justify-between mb-4">
-							<h2 className="text-lg font-semibold">{t("credits")}</h2>
+							<h2 className="text-lg font-semibold">
+								{t("createEntry.credits")}
+							</h2>
 							<Button
 								type="button"
 								onClick={onAddCredit}
@@ -240,7 +249,7 @@ export function CreateEntryView({
 								className="flex items-center gap-1"
 							>
 								<Plus className="h-4 w-4" />
-								{t("addCredit")}
+								{t("createEntry.addCredit")}
 							</Button>
 						</div>
 						<div className="space-y-4">
@@ -254,7 +263,10 @@ export function CreateEntryView({
 											}
 											required
 											options={[
-												{ value: "", label: t("selectGlAccount") },
+												{
+													value: "",
+													label: t("createEntry.selectGLAccount"),
+												},
 												...glAccountOptions,
 											]}
 										/>
@@ -268,7 +280,7 @@ export function CreateEntryView({
 											onChange={(e) =>
 												onCreditChange(index, "amount", e.target.value)
 											}
-											placeholder={t("amount")}
+											placeholder={t("createEntry.amountPlaceholder")}
 											required
 										/>
 									</div>
@@ -285,13 +297,15 @@ export function CreateEntryView({
 							))}
 							{credits.length === 0 && (
 								<p className="text-sm text-gray-500 text-center py-4">
-									{t("noCreditEntries")}
+									{t("createEntry.noCreditEntries")}
 								</p>
 							)}
 						</div>
 						<div className="mt-4 pt-4 border-t">
 							<div className="flex justify-between items-center">
-								<span className="font-medium">{t("totalCredits")}:</span>
+								<span className="font-medium">
+									{t("createEntry.totalCredits")}
+								</span>
 								<span className="text-lg font-bold">
 									{currencyCode} {totalCredits.toLocaleString()}
 								</span>
@@ -304,10 +318,12 @@ export function CreateEntryView({
 					<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
 						<div className="flex items-center gap-2 text-yellow-800">
 							<AlertCircle className="h-5 w-5" />
-							<p className="font-medium">{t("entryIsNotBalanced")}</p>
+							<p className="font-medium">
+								{t("createEntry.unbalancedWarning")}
+							</p>
 						</div>
 						<p className="text-sm text-yellow-700 mt-1 ml-7">
-							{t("difference")}: {currencyCode}{" "}
+							{t("createEntry.unbalancedDifference")} {currencyCode}{" "}
 							{Math.abs(totalDebits - totalCredits).toLocaleString()}
 						</p>
 					</div>
@@ -317,17 +333,17 @@ export function CreateEntryView({
 					<div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
 						<div className="flex items-center gap-2 text-green-800">
 							<AlertCircle className="h-5 w-5" />
-							<p className="font-medium">{t("entryIsBalanced")}</p>
+							<p className="font-medium">{t("createEntry.balancedMessage")}</p>
 						</div>
 						<p className="text-sm text-green-700 mt-1 ml-7">
-							{t("entryRequiresApproval")}
+							{t("createEntry.approvalMessage")}
 						</p>
 					</div>
 				)}
 
 				<div className="flex justify-end gap-4">
 					<Button type="button" variant="outline">
-						{t("cancel")}
+						{t("createEntry.cancel")}
 					</Button>
 					<Button
 						type="submit"
@@ -341,10 +357,10 @@ export function CreateEntryView({
 						{isSubmitting ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								{t("submitting")}...
+								{t("createEntry.submitting")}...
 							</>
 						) : (
-							t("submitForApproval")
+							t("createEntry.submitForApproval")
 						)}
 					</Button>
 				</div>
