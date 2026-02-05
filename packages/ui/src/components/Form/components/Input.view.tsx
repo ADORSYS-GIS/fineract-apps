@@ -1,4 +1,10 @@
-import { ErrorMessage, Field, useField, useFormikContext } from "formik";
+import {
+	ErrorMessage,
+	Field,
+	FieldInputProps,
+	useField,
+	useFormikContext,
+} from "formik";
 import React, { useId } from "react";
 import { InputProps } from "../Form.types";
 import { inputVariants } from "./Input.variants";
@@ -41,13 +47,34 @@ export const Input: React.FC<InputProps> = ({
 
 		if (type === "select") {
 			return (
-				<Field as="select" {...fieldProps}>
-					<option value="">{` ${label ?? "value"}`}</option>
-					{options?.map((opt) => (
-						<option key={String(opt.value)} value={String(opt.value)}>
-							{opt.label}
-						</option>
-					))}
+				<Field name={name}>
+					{({ field }: { field: FieldInputProps<string | number> }) => (
+						<select
+							{...field}
+							id={id}
+							className={inputClasses}
+							disabled={disabled}
+							{...(rest as unknown as React.SelectHTMLAttributes<HTMLSelectElement>)}
+							onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+								const value = e.target.value;
+								// Convert to number if the option value is a number
+								const numericValue = Number(value);
+								const shouldConvertToNumber =
+									value !== "" && !Number.isNaN(numericValue);
+								setFieldValue(
+									name,
+									shouldConvertToNumber ? numericValue : value,
+								);
+							}}
+						>
+							<option value="">{` ${label ?? "value"}`}</option>
+							{options?.map((opt) => (
+								<option key={String(opt.value)} value={String(opt.value)}>
+									{opt.label}
+								</option>
+							))}
+						</select>
+					)}
 				</Field>
 			);
 		}

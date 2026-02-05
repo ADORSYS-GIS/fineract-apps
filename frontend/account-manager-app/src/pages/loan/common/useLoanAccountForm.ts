@@ -207,7 +207,7 @@ export const useLoanAccountForm = ({
 		},
 	});
 
-	const { values, setValues } = formik;
+	const { values, setValues, setFieldValue } = formik;
 
 	const handleSubmit = () => {
 		formik.handleSubmit();
@@ -383,13 +383,14 @@ export const useLoanAccountForm = ({
 	}, [loanDetails, setValues, isEditMode]);
 
 	useEffect(() => {
-		if (!isEditMode && userData?.staffId) {
-			setValues((currentValues) => ({
-				...currentValues,
-				loanOfficerId: userData.staffId,
-			}));
+		if (
+			!isEditMode &&
+			userData?.staffId &&
+			values.loanOfficerId !== userData.staffId
+		) {
+			setFieldValue("loanOfficerId", userData.staffId);
 		}
-	}, [isEditMode, userData, setValues]);
+	}, [isEditMode, userData, setFieldValue, values.loanOfficerId]);
 
 	useEffect(() => {
 		if (!isEditMode && businessDate) {
