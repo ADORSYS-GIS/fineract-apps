@@ -1,21 +1,18 @@
 # Build stage
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml
-COPY mvnw .
-COPY .mvn .mvn
+# Copy pom.xml and download dependencies (cached if pom.xml unchanged)
 COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Download dependencies (cached if pom.xml unchanged)
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
-
-# Copy source code
+# Copy lombok config and source code
+COPY lombok.config .
 COPY src src
 
 # Build the application
-RUN ./mvnw package -DskipTests -B
+RUN mvn package -DskipTests -B
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
