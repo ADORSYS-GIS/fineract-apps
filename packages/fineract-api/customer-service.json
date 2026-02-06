@@ -1,0 +1,1252 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Customer Registration Service API",
+    "description": "Self-service customer registration orchestrator for Fineract and Keycloak",
+    "contact": {
+      "name": "ADORSYS GIS",
+      "url": "https://github.com/ADORSYS-GIS"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8081",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Accounts",
+      "description": "Customer account queries with ownership verification"
+    },
+    {
+      "name": "KYC Documents",
+      "description": "KYC document upload APIs for customer verification"
+    },
+    {
+      "name": "Registration",
+      "description": "Customer registration and status APIs"
+    },
+    {
+      "name": "Health",
+      "description": "Service health check endpoints"
+    },
+    {
+      "name": "KYC Review",
+      "description": "Staff KYC review operations"
+    }
+  ],
+  "paths": {
+    "/api/registration/register": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "summary": "Register a new customer",
+        "description": "Creates accounts in Fineract and Keycloak for self-service customer",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Validation error or email already exists",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Registration failed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Registration successful",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/registration/kyc/documents": {
+      "post": {
+        "tags": [
+          "KYC Documents"
+        ],
+        "summary": "Upload KYC document",
+        "description": "Upload a document for KYC verification. Requires authentication. Document types: id_front (ID card front), id_back (ID card back), selfie_with_id (selfie holding ID)",
+        "operationId": "uploadDocument",
+        "parameters": [
+          {
+            "name": "X-External-Id",
+            "in": "header",
+            "description": "Customer external ID (for local testing)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentType",
+            "in": "query",
+            "description": "Document type: id_front, id_back, or selfie_with_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "Document image file (JPEG, PNG, WebP, max 10MB)",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycDocumentUploadResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Upload failed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycDocumentUploadResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Document uploaded successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycDocumentUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid document type, file type, or file size",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycDocumentUploadResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - valid JWT token required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycDocumentUploadResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/kyc/staff/submissions/{externalId}/request-info": {
+      "post": {
+        "tags": [
+          "KYC Review"
+        ],
+        "summary": "Request more info",
+        "description": "Request additional information from customer",
+        "operationId": "requestMoreInfo",
+        "parameters": [
+          {
+            "name": "externalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KycRequestInfoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearer-jwt": []
+          }
+        ]
+      }
+    },
+    "/api/kyc/staff/submissions/{externalId}/reject": {
+      "post": {
+        "tags": [
+          "KYC Review"
+        ],
+        "summary": "Reject KYC",
+        "description": "Reject a customer's KYC submission",
+        "operationId": "rejectKyc",
+        "parameters": [
+          {
+            "name": "externalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KycRejectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearer-jwt": []
+          }
+        ]
+      }
+    },
+    "/api/kyc/staff/submissions/{externalId}/approve": {
+      "post": {
+        "tags": [
+          "KYC Review"
+        ],
+        "summary": "Approve KYC",
+        "description": "Approve a customer's KYC submission",
+        "operationId": "approveKyc",
+        "parameters": [
+          {
+            "name": "externalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KycApprovalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearer-jwt": []
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Basic health check",
+        "description": "Returns UP if service is running",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/detailed": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Detailed health check",
+        "description": "Checks connectivity to Keycloak and Fineract",
+        "operationId": "detailedHealth",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/registration/status/{externalId}": {
+      "get": {
+        "tags": [
+          "Registration"
+        ],
+        "summary": "Get registration status",
+        "description": "Check registration completion status for a customer",
+        "operationId": "getStatus",
+        "parameters": [
+          {
+            "name": "externalId",
+            "in": "path",
+            "description": "Customer external ID (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status retrieved",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/registration/limits": {
+      "get": {
+        "tags": [
+          "Registration"
+        ],
+        "summary": "Get transaction limits",
+        "description": "Get transaction limits based on customer's KYC tier",
+        "operationId": "getLimits",
+        "parameters": [
+          {
+            "name": "X-External-Id",
+            "in": "header",
+            "description": "Customer external ID from JWT",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Limits retrieved",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LimitsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LimitsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LimitsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/registration/kyc/status": {
+      "get": {
+        "tags": [
+          "Registration"
+        ],
+        "summary": "Get KYC status",
+        "description": "Get KYC verification status and document information",
+        "operationId": "getKycStatus",
+        "parameters": [
+          {
+            "name": "X-External-Id",
+            "in": "header",
+            "description": "Customer external ID from JWT",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Customer not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycStatusResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "KYC status retrieved",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/kyc/staff/submissions": {
+      "get": {
+        "tags": [
+          "KYC Review"
+        ],
+        "summary": "List submissions",
+        "description": "Get list of KYC submissions",
+        "operationId": "getSubmissions",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycSubmissionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer-jwt": []
+          }
+        ]
+      }
+    },
+    "/api/kyc/staff/submissions/{externalId}": {
+      "get": {
+        "tags": [
+          "KYC Review"
+        ],
+        "summary": "Get submission",
+        "description": "Get a single KYC submission by external ID",
+        "operationId": "getSubmission",
+        "parameters": [
+          {
+            "name": "externalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycSubmissionDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer-jwt": []
+          }
+        ]
+      }
+    },
+    "/api/kyc/staff/stats": {
+      "get": {
+        "tags": [
+          "KYC Review"
+        ],
+        "summary": "Get KYC stats",
+        "description": "Get statistics for KYC reviews",
+        "operationId": "getStats",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycStatsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer-jwt": []
+          }
+        ]
+      }
+    },
+    "/api/accounts/savings": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Get customer's savings accounts",
+        "description": "Returns all savings accounts owned by the authenticated customer",
+        "operationId": "getSavingsAccounts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsAccountResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer-jwt": []
+          }
+        ]
+      }
+    },
+    "/api/accounts/savings/{accountId}": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Get savings account details",
+        "description": "Returns details of a specific savings account after verifying ownership",
+        "operationId": "getSavingsAccount",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer-jwt": []
+          }
+        ]
+      }
+    },
+    "/api/accounts/savings/{accountId}/transactions": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Get account transactions",
+        "description": "Returns transaction history for a savings account after verifying ownership",
+        "operationId": "getTransactions",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer-jwt": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddressDto": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "RegistrationRequest": {
+        "required": [
+          "email",
+          "firstName",
+          "lastName",
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "pattern": "^\\+?[0-9]{9,15}$",
+            "type": "string"
+          },
+          "nationalId": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "address": {
+            "$ref": "#/components/schemas/AddressDto"
+          }
+        }
+      },
+      "RegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "nextSteps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "KycDocumentUploadResponse": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "documentType": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          }
+        }
+      },
+      "KycRequestInfoRequest": {
+        "required": [
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
+      "KycRejectionRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
+      "KycApprovalRequest": {
+        "required": [
+          "newTier"
+        ],
+        "type": "object",
+        "properties": {
+          "newTier": {
+            "maximum": 3,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "RegistrationStatusResponse": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string"
+          },
+          "registrationStatus": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "webAuthnRegistered": {
+            "type": "boolean"
+          },
+          "kycTier": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kycStatus": {
+            "type": "string"
+          }
+        }
+      },
+      "AvailableDto": {
+        "type": "object",
+        "properties": {
+          "depositRemaining": {
+            "type": "number"
+          },
+          "withdrawalRemaining": {
+            "type": "number"
+          }
+        }
+      },
+      "LimitsDto": {
+        "type": "object",
+        "properties": {
+          "dailyDepositLimit": {
+            "type": "number"
+          },
+          "dailyWithdrawalLimit": {
+            "type": "number"
+          },
+          "perTransactionLimit": {
+            "type": "number"
+          },
+          "monthlyTransactionLimit": {
+            "type": "number"
+          }
+        }
+      },
+      "LimitsResponse": {
+        "type": "object",
+        "properties": {
+          "kycTier": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tierName": {
+            "type": "string"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/LimitsDto"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/UsageDto"
+          },
+          "available": {
+            "$ref": "#/components/schemas/AvailableDto"
+          },
+          "allowedPaymentMethods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "restrictedFeatures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "UsageDto": {
+        "type": "object",
+        "properties": {
+          "dailyDepositUsed": {
+            "type": "number"
+          },
+          "dailyWithdrawalUsed": {
+            "type": "number"
+          },
+          "monthlyUsed": {
+            "type": "number"
+          }
+        }
+      },
+      "DocumentStatus": {
+        "type": "object",
+        "properties": {
+          "documentType": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rejectionReason": {
+            "type": "string"
+          }
+        }
+      },
+      "KycStatusResponse": {
+        "type": "object",
+        "properties": {
+          "kycTier": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kycStatus": {
+            "type": "string"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentStatus"
+            }
+          },
+          "requiredDocuments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missingDocuments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "KycSubmissionSummary": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "kycTier": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kycStatus": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "KycSubmissionsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KycSubmissionSummary"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "KycDocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "KycSubmissionDetailResponse": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": "string"
+          },
+          "kycTier": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kycStatus": {
+            "type": "string"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KycDocumentDto"
+            }
+          },
+          "submittedAt": {
+            "type": "string"
+          },
+          "reviewedAt": {
+            "type": "string"
+          },
+          "reviewedBy": {
+            "type": "string"
+          },
+          "rejectionReason": {
+            "type": "string"
+          },
+          "reviewNotes": {
+            "type": "string"
+          }
+        }
+      },
+      "KycStatsResponse": {
+        "type": "object",
+        "properties": {
+          "pendingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approvedToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rejectedToday": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "avgReviewTimeMinutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SavingsAccountResponse": {
+        "type": "object",
+        "properties": {
+          "accounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/Summary"
+          }
+        }
+      },
+      "Summary": {
+        "type": "object",
+        "properties": {
+          "totalBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalAccounts": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TransactionResponse": {
+        "type": "object",
+        "properties": {
+          "transactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          },
+          "totalFilteredRecords": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    }
+  }
+}

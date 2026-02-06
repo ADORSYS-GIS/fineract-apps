@@ -1,0 +1,112 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: customer-registration-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:9000/realms/fineract}
+          jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:9000/realms/fineract/protocol/openid-connect/certs}
+
+# CORS Configuration
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+# Keycloak Configuration
+keycloak:
+  url: ${KEYCLOAK_URL:http://localhost:9000}
+  realm: ${KEYCLOAK_REALM:fineract}
+  admin-realm: ${KEYCLOAK_ADMIN_REALM:master}
+  client-id: ${KEYCLOAK_CLIENT_ID:setup-app-client}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:**********}
+  self-service-group: ${DEFAULT_GROUP_PATH:/self-service-customers}
+  # Grant type for Keycloak admin client: client_credentials (default) or password
+  grant-type: ${KEYCLOAK_GRANT_TYPE:client_credentials}
+  # Admin credentials (used when grant-type=password)
+  admin-username: ${KEYCLOAK_ADMIN_USERNAME:}
+  admin-password: ${KEYCLOAK_ADMIN_PASSWORD:}
+
+# Fineract Configuration
+fineract:
+  url: ${FINERACT_URL:https://localhost:443}
+  tenant: ${FINERACT_TENANT:default}
+  # Authentication type: oauth (default) or basic
+  auth-type: ${FINERACT_AUTH_TYPE_1:oauth}
+  # OAuth settings (used when auth-type=oauth)
+  token-url: ${FINERACT_TOKEN_URL:http://localhost:9000/realms/fineract/protocol/openid-connect/token}
+  client-id: ${FINERACT_CLIENT_ID:setup-app-client}
+  client-secret: ${FINERACT_CLIENT_SECRET:**********}
+  # OAuth grant type: client_credentials (default) or password
+  grant-type: ${FINERACT_OAUTH_GRANT_TYPE:password}
+  # OAuth credentials (used when grant-type=password)
+  oauth-username: ${FINERACT_OAUTH_USERNAME:mifos}
+  oauth-password: ${FINERACT_OAUTH_PASSWORD:password}
+  # Basic auth settings (used when auth-type=basic)
+  username: ${FINERACT_USERNAME:mifos}
+  password: ${FINERACT_PASSWORD:password}
+  # Fineract defaults
+  default-office-id: ${DEFAULT_OFFICE_ID:1}
+  default-savings-product-id: ${DEFAULT_SAVINGS_PRODUCT_ID:1}
+  default-gender-id: ${DEFAULT_GENDER_ID:2}
+  # Whether to verify SSL certificate from Fineract (for development with self-signed certs)
+  verifySsl: ${FINERACT_VERIFY_SSL:false}
+
+# Actuator Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.adorsys.fineract.registration: ${LOGGING_LEVEL_COM_ADORSYS:TRACE}
+    org.keycloak: WARN
+
+# OpenAPI/Swagger
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+---
+# Kubernetes Profile
+spring:
+  config:
+    activate:
+      on-profile: kubernetes
+
+# In Kubernetes, use service discovery
+keycloak:
+  url: http://keycloak-service:9000
+
+fineract:
+  url: https://fineract-service:8443
+  token-url: http://keycloak-service:9000/realms/fineract/protocol/openid-connect/token
+
+# Enable OTLP tracing
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}

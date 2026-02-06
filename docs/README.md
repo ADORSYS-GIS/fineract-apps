@@ -20,23 +20,26 @@ Welcome to the Fineract Frontend Apps documentation!
 ### System Components
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Fineract Frontend Apps                    │
-└─────────────────────────────────────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-┌──────────────┐      ┌──────────────┐     ┌──────────────┐
-│  Admin App   │      │ Account Mgr  │     │Branch Manager│
-│  (User Mgmt) │      │ (Accounting) │     │  (Clients)   │
-└──────────────┘      └──────────────┘     └──────────────┘
-                              │
-                              ▼
-                      ┌──────────────┐
-                      │ Cashier App  │
-                      │  (Teller)    │
-                      └──────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Fineract Frontend Apps                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+    ┌─────────────┬─────────────┬─────┴─────┬─────────────┬─────────────────┐
+    │             │             │           │             │                 │
+    ▼             ▼             ▼           ▼             ▼                 ▼
+┌─────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   ┌──────────────┐
+│  Admin  │ │ Account  │ │  Branch  │ │ Cashier  │ │Reporting │   │ Self-Service │
+│   App   │ │ Manager  │ │ Manager  │ │   App    │ │   App    │   │     App      │
+└─────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘   └──────────────┘
+                                                                         │
+                                                      ┌──────────────────┴──────────────────┐
+                                                      │                                     │
+                                                      ▼                                     ▼
+                                              ┌──────────────┐                     ┌──────────────┐
+                                              │  Customer    │                     │   Payment    │
+                                              │ Registration │                     │   Gateway    │
+                                              │   Service    │                     │   Service    │
+                                              └──────────────┘                     └──────────────┘
 ```
 
 ### Technology Stack
@@ -95,6 +98,7 @@ Code Push → GitHub Actions → Docker Build → GHCR → GitOps → ArgoCD →
    - Account Manager: http://localhost:5002
    - Branch Manager: http://localhost:5003
    - Cashier: http://localhost:5004
+   - Self-Service App: http://localhost:5173
 
 ### For DevOps
 
@@ -107,18 +111,22 @@ Code Push → GitHub Actions → Docker Build → GHCR → GitOps → ArgoCD →
 
 ```
 fineract-apps/
-├── frontend/               # Frontend applications
-│   ├── admin-app/         # User management app
-│   ├── account-manager-app/ # Accounting app
-│   ├── branchmanager-app/ # Branch/client management
-│   └── cashier-app/       # Teller/cashier app
-├── packages/              # Shared packages
-│   ├── ui/               # Shared UI components
-│   └── fineract-api/     # Generated API client
-├── .github/workflows/     # CI/CD workflows
-├── docs/                 # Documentation (you are here)
-├── Dockerfile.*          # Docker build files
-└── package.json          # Workspace root
+├── frontend/                        # Frontend applications
+│   ├── admin-app/                   # User management app
+│   ├── account-manager-app/         # Accounting app
+│   ├── branchmanager-app/           # Branch/client management
+│   ├── cashier-app/                 # Teller/cashier app
+│   ├── reporting-app/               # Reporting dashboard
+│   └── self-service-app/            # Customer self-service portal (PWA)
+├── customer-registration-service/   # Registration & KYC backend (Spring Boot)
+├── payment-gateway-service/         # MTN/Orange Money integration (Spring Boot)
+├── packages/                        # Shared packages
+│   ├── ui/                          # Shared UI components
+│   └── fineract-api/                # Generated API client
+├── .github/workflows/               # CI/CD workflows
+├── docs/                            # Documentation (you are here)
+├── Dockerfile.*                     # Docker build files
+└── package.json                     # Workspace root
 ```
 
 ## Common Tasks

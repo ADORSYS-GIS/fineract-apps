@@ -2,6 +2,7 @@ import {
 	BarChart3,
 	BookOpen,
 	CheckCircle,
+	ClipboardCheck,
 	FileText,
 	History,
 	Home,
@@ -20,6 +21,12 @@ export const menuAccountManager: MenuItem[] = [
 		title: "sidebar.dashboard",
 		link: "/dashboard",
 		icon: Home,
+	},
+	{
+		name: "kyc-reviews",
+		title: "sidebar.kycReviews",
+		link: "/kyc-reviews",
+		icon: ClipboardCheck,
 	},
 	{
 		name: "settings",
