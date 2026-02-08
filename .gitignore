@@ -23,3 +23,6 @@ user-sync-service/.env.local
 **/target/
 *.class
 *.jar
+
+# Spec files
+backend/asset-service/spec.md

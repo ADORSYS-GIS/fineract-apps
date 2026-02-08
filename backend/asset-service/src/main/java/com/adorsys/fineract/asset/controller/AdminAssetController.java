@@ -1,0 +1,84 @@
+package com.adorsys.fineract.asset.controller;
+
+import com.adorsys.fineract.asset.dto.*;
+import com.adorsys.fineract.asset.service.AssetCatalogService;
+import com.adorsys.fineract.asset.service.AssetProvisioningService;
+import com.adorsys.fineract.asset.service.InventoryService;
+import com.adorsys.fineract.asset.service.PricingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * Admin endpoints for asset management.
+ */
+@RestController
+@RequestMapping("/api/admin/assets")
+@RequiredArgsConstructor
+@Tag(name = "Admin - Asset Management", description = "Create, manage, and configure assets")
+public class AdminAssetController {
+
+    private final AssetProvisioningService provisioningService;
+    private final AssetCatalogService catalogService;
+    private final PricingService pricingService;
+    private final InventoryService inventoryService;
+
+    @PostMapping
+    @Operation(summary = "Create asset", description = "Create a new asset with Fineract provisioning")
+    public ResponseEntity<AssetDetailResponse> createAsset(@Valid @RequestBody CreateAssetRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(provisioningService.createAsset(request));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update asset metadata")
+    public ResponseEntity<AssetDetailResponse> updateAsset(@PathVariable String id,
+                                                            @RequestBody UpdateAssetRequest request) {
+        return ResponseEntity.ok(provisioningService.updateAsset(id, request));
+    }
+
+    @PostMapping("/{id}/set-price")
+    @Operation(summary = "Manual price override")
+    public ResponseEntity<Void> setPrice(@PathVariable String id, @Valid @RequestBody SetPriceRequest request) {
+        pricingService.setPrice(id, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/activate")
+    @Operation(summary = "Activate asset", description = "PENDING -> ACTIVE")
+    public ResponseEntity<Void> activateAsset(@PathVariable String id) {
+        provisioningService.activateAsset(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/halt")
+    @Operation(summary = "Halt trading")
+    public ResponseEntity<Void> haltAsset(@PathVariable String id) {
+        provisioningService.haltAsset(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/resume")
+    @Operation(summary = "Resume trading")
+    public ResponseEntity<Void> resumeAsset(@PathVariable String id) {
+        provisioningService.resumeAsset(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping
+    @Operation(summary = "List all assets (all statuses)")
+    public ResponseEntity<List<AssetResponse>> listAllAssets() {
+        return ResponseEntity.ok(catalogService.listAllAssets());
+    }
+
+    @GetMapping("/inventory")
+    @Operation(summary = "Supply stats for all assets")
+    public ResponseEntity<List<InventoryResponse>> getInventory() {
+        return ResponseEntity.ok(inventoryService.getInventory());
+    }
+}

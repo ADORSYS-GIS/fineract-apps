@@ -17,6 +17,9 @@ COPY frontend/cashier-app/ ./frontend/cashier-app/
 RUN corepack enable pnpm && \
     pnpm install --frozen-lockfile
 
+# Build UI package TypeScript declarations (required by project references)
+RUN cd packages/ui && npx tsc --build
+
 # Build the cashier app
 RUN pnpm --filter cashier-app build
 

@@ -1,0 +1,415 @@
+package com.adorsys.fineract.asset.client;
+
+import com.adorsys.fineract.asset.config.FineractConfig;
+import com.adorsys.fineract.asset.exception.AssetException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+/**
+ * Client for Fineract API operations related to asset management.
+ * Handles currency registration, savings product/account creation,
+ * and account transfers for trading.
+ */
+@Slf4j
+@Component
+public class FineractClient {
+
+    private final FineractConfig config;
+    private final FineractTokenProvider tokenProvider;
+    private final WebClient webClient;
+
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH);
+
+    public FineractClient(FineractConfig config,
+                          FineractTokenProvider tokenProvider,
+                          @Qualifier("fineractWebClient") WebClient webClient) {
+        this.config = config;
+        this.tokenProvider = tokenProvider;
+        this.webClient = webClient;
+    }
+
+    /**
+     * Get existing currencies registered in Fineract.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getExistingCurrencies() {
+        try {
+            Map<String, Object> response = webClient.get()
+                    .uri("/fineract-provider/api/v1/currencies")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            return response != null
+                    ? (List<Map<String, Object>>) response.get("selectedCurrencyOptions")
+                    : List.of();
+        } catch (Exception e) {
+            log.error("Failed to get existing currencies: {}", e.getMessage());
+            throw new AssetException("Failed to get currencies from Fineract", e);
+        }
+    }
+
+    /**
+     * Register currencies in Fineract. Appends new currency to existing list.
+     */
+    @SuppressWarnings("unchecked")
+    public void registerCurrencies(List<String> currencyCodes) {
+        try {
+            List<Map<String, Object>> existing = getExistingCurrencies();
+            List<String> allCodes = new ArrayList<>();
+            for (Map<String, Object> currency : existing) {
+                allCodes.add((String) currency.get("code"));
+            }
+            allCodes.addAll(currencyCodes);
+
+            Map<String, Object> body = Map.of("currencies", allCodes);
+
+            webClient.put()
+                    .uri("/fineract-provider/api/v1/currencies")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract currency API error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            log.info("Registered currencies in Fineract: {}", currencyCodes);
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to register currencies: {}", e.getMessage());
+            throw new AssetException("Failed to register currencies in Fineract", e);
+        }
+    }
+
+    /**
+     * Create a savings product for an asset currency.
+     *
+     * @return The created product ID
+     */
+    @SuppressWarnings("unchecked")
+    public Integer createSavingsProduct(String name, String shortName, String currencyCode,
+                                        int decimalPlaces, Long savingsReferenceAccountId,
+                                        Long savingsControlAccountId) {
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("name", name);
+            body.put("shortName", shortName);
+            body.put("currencyCode", currencyCode);
+            body.put("digitsAfterDecimal", decimalPlaces);
+            body.put("inMultiplesOf", 0);
+            body.put("nominalAnnualInterestRate", 0);
+            body.put("interestCompoundingPeriodType", 1); // Daily
+            body.put("interestPostingPeriodType", 4); // Monthly
+            body.put("interestCalculationType", 1); // Daily Balance
+            body.put("interestCalculationDaysInYearType", 365);
+            body.put("accountingRule", 2); // Cash-based
+            body.put("savingsReferenceAccountId", savingsReferenceAccountId);
+            body.put("savingsControlAccountId", savingsControlAccountId);
+            body.put("incomeFromFeeAccountId", savingsReferenceAccountId);
+            body.put("incomeFromPenaltyAccountId", savingsReferenceAccountId);
+            body.put("interestOnSavingsAccountId", savingsControlAccountId);
+            body.put("writeOffAccountId", savingsControlAccountId);
+            body.put("overdraftPortfolioControlId", savingsControlAccountId);
+            body.put("locale", "en");
+
+            Map<String, Object> response = webClient.post()
+                    .uri("/fineract-provider/api/v1/savingsproducts")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract product API error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            Integer productId = ((Number) response.get("resourceId")).intValue();
+            log.info("Created savings product: name={}, productId={}", name, productId);
+            return productId;
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to create savings product: {}", e.getMessage());
+            throw new AssetException("Failed to create savings product in Fineract", e);
+        }
+    }
+
+    /**
+     * Create a savings account for a client with a given product.
+     *
+     * @return The created account ID
+     */
+    @SuppressWarnings("unchecked")
+    public Long createSavingsAccount(Long clientId, Integer productId) {
+        try {
+            Map<String, Object> body = Map.of(
+                    "clientId", clientId,
+                    "productId", productId,
+                    "locale", "en",
+                    "dateFormat", "dd MMMM yyyy",
+                    "submittedOnDate", LocalDate.now().format(DATE_FORMAT)
+            );
+
+            Map<String, Object> response = webClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract account API error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            Long accountId = ((Number) response.get("savingsId")).longValue();
+            log.info("Created savings account: clientId={}, productId={}, accountId={}", clientId, productId, accountId);
+            return accountId;
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to create savings account: {}", e.getMessage());
+            throw new AssetException("Failed to create savings account in Fineract", e);
+        }
+    }
+
+    /**
+     * Approve a savings account.
+     */
+    @SuppressWarnings("unchecked")
+    public void approveSavingsAccount(Long accountId) {
+        try {
+            Map<String, Object> body = Map.of(
+                    "locale", "en",
+                    "dateFormat", "dd MMMM yyyy",
+                    "approvedOnDate", LocalDate.now().format(DATE_FORMAT)
+            );
+
+            webClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{id}?command=approve", accountId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract approve error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            log.info("Approved savings account: {}", accountId);
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to approve savings account: {}", e.getMessage());
+            throw new AssetException("Failed to approve savings account", e);
+        }
+    }
+
+    /**
+     * Activate a savings account.
+     */
+    @SuppressWarnings("unchecked")
+    public void activateSavingsAccount(Long accountId) {
+        try {
+            Map<String, Object> body = Map.of(
+                    "locale", "en",
+                    "dateFormat", "dd MMMM yyyy",
+                    "activatedOnDate", LocalDate.now().format(DATE_FORMAT)
+            );
+
+            webClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{id}?command=activate", accountId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract activate error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            log.info("Activated savings account: {}", accountId);
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to activate savings account: {}", e.getMessage());
+            throw new AssetException("Failed to activate savings account", e);
+        }
+    }
+
+    /**
+     * Deposit into a savings account (used for initial supply minting).
+     *
+     * @return Transaction ID
+     */
+    @SuppressWarnings("unchecked")
+    public Long depositToSavingsAccount(Long accountId, BigDecimal amount, Long paymentTypeId) {
+        try {
+            Map<String, Object> body = Map.of(
+                    "locale", "en",
+                    "dateFormat", "dd MMMM yyyy",
+                    "transactionDate", LocalDate.now().format(DATE_FORMAT),
+                    "transactionAmount", amount,
+                    "paymentTypeId", paymentTypeId
+            );
+
+            Map<String, Object> response = webClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{id}/transactions?command=deposit", accountId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract deposit error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            Long txId = ((Number) response.get("resourceId")).longValue();
+            log.info("Deposited to savings account: accountId={}, amount={}, txId={}", accountId, amount, txId);
+            return txId;
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to deposit: accountId={}, error={}", accountId, e.getMessage());
+            throw new AssetException("Failed to deposit to savings account", e);
+        }
+    }
+
+    /**
+     * Create an account transfer between two savings accounts.
+     * Used for both cash and asset legs of a trade.
+     *
+     * @return Transfer ID
+     */
+    @SuppressWarnings("unchecked")
+    public Long createAccountTransfer(Long fromAccountId, Long toAccountId,
+                                       BigDecimal amount, String description) {
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("fromOfficeId", 1);
+            body.put("fromClientId", 1); // Will be overridden by account
+            body.put("fromAccountType", 2); // Savings
+            body.put("fromAccountId", fromAccountId);
+            body.put("toOfficeId", 1);
+            body.put("toClientId", 1); // Will be overridden by account
+            body.put("toAccountType", 2); // Savings
+            body.put("toAccountId", toAccountId);
+            body.put("transferAmount", amount);
+            body.put("transferDate", LocalDate.now().format(DATE_FORMAT));
+            body.put("transferDescription", description);
+            body.put("locale", "en");
+            body.put("dateFormat", "dd MMMM yyyy");
+
+            Map<String, Object> response = webClient.post()
+                    .uri("/fineract-provider/api/v1/accounttransfers")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract transfer error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            Long transferId = ((Number) response.get("resourceId")).longValue();
+            log.info("Account transfer: from={}, to={}, amount={}, transferId={}",
+                    fromAccountId, toAccountId, amount, transferId);
+            return transferId;
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to create account transfer: from={}, to={}, error={}",
+                    fromAccountId, toAccountId, e.getMessage());
+            throw new AssetException("Failed to create account transfer in Fineract", e);
+        }
+    }
+
+    /**
+     * Get savings account details including balance.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getSavingsAccount(Long accountId) {
+        try {
+            return webClient.get()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{id}", accountId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+        } catch (Exception e) {
+            log.error("Failed to get savings account: {}", e.getMessage());
+            throw new AssetException("Failed to get savings account from Fineract", e);
+        }
+    }
+
+    /**
+     * Get client by external ID (Keycloak UUID).
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getClientByExternalId(String externalId) {
+        try {
+            Map<String, Object> response = webClient.get()
+                    .uri("/fineract-provider/api/v1/clients?externalId={externalId}", externalId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            var pageItems = (List<Map<String, Object>>) response.get("pageItems");
+            if (pageItems == null || pageItems.isEmpty()) {
+                throw new AssetException("Client not found: " + externalId);
+            }
+
+            return pageItems.get(0);
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to get client: externalId={}, error={}", externalId, e.getMessage());
+            throw new AssetException("Failed to get client from Fineract", e);
+        }
+    }
+
+    private String getAuthHeader() {
+        if (config.isOAuthEnabled()) {
+            return "Bearer " + tokenProvider.getAccessToken();
+        }
+        return getBasicAuth();
+    }
+
+    private String getBasicAuth() {
+        String credentials = config.getUsername() + ":" + config.getPassword();
+        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes());
+    }
+}

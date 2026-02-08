@@ -1,0 +1,252 @@
+import { Button, Card } from "@fineract-apps/ui";
+import { Link } from "@tanstack/react-router";
+import {
+	BarChart3,
+	BookOpen,
+	Pause,
+	Play,
+	Power,
+	TrendingDown,
+	TrendingUp,
+} from "lucide-react";
+import { FC, useState } from "react";
+import { StatusBadge } from "@/components/StatusBadge";
+import { useAssetDetails } from "./useAssetDetails";
+
+export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
+	assetId,
+	asset,
+	isLoading,
+	price,
+	onActivate,
+	onHalt,
+	onResume,
+	onSetPrice,
+}) => {
+	const [manualPrice, setManualPrice] = useState("");
+
+	if (isLoading || !asset) {
+		return (
+			<div className="flex items-center justify-center min-h-screen">
+				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+			</div>
+		);
+	}
+
+	const handleSetPrice = () => {
+		const p = Number(manualPrice);
+		if (p > 0) {
+			onSetPrice(p);
+			setManualPrice("");
+		}
+	};
+
+	return (
+		<div className="bg-gray-50 min-h-screen">
+			<main className="p-4 sm:p-6 lg:p-8">
+				{/* Header */}
+				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+					<div>
+						<div className="flex items-center gap-3">
+							<h1 className="text-2xl font-bold text-gray-800">
+								{asset.name}
+							</h1>
+							<StatusBadge status={asset.status} />
+						</div>
+						<p className="text-sm text-gray-500 mt-1">
+							{asset.symbol} | {asset.category} | ID: {asset.id}
+						</p>
+					</div>
+					<div className="flex gap-2 flex-wrap">
+						{asset.status === "PENDING" && (
+							<Button
+								onClick={onActivate}
+								className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+							>
+								<Power className="h-4 w-4" />
+								Activate
+							</Button>
+						)}
+						{asset.status === "ACTIVE" && (
+							<Button
+								onClick={onHalt}
+								variant="outline"
+								className="flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50"
+							>
+								<Pause className="h-4 w-4" />
+								Halt Trading
+							</Button>
+						)}
+						{asset.status === "HALTED" && (
+							<Button
+								onClick={onResume}
+								className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+							>
+								<Play className="h-4 w-4" />
+								Resume Trading
+							</Button>
+						)}
+						<Link to="/order-book/$assetId" params={{ assetId }}>
+							<Button variant="outline" className="flex items-center gap-2">
+								<BookOpen className="h-4 w-4" />
+								Order Book
+							</Button>
+						</Link>
+						<Link to="/pricing/$assetId" params={{ assetId }}>
+							<Button variant="outline" className="flex items-center gap-2">
+								<BarChart3 className="h-4 w-4" />
+								Pricing
+							</Button>
+						</Link>
+					</div>
+				</div>
+
+				{/* Stats Cards */}
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+					<Card className="p-4">
+						<p className="text-sm text-gray-500">Current Price</p>
+						<p className="text-2xl font-bold text-gray-900">
+							{price?.currentPrice?.toLocaleString() ?? asset.currentPrice?.toLocaleString() ?? "—"} XAF
+						</p>
+						<div className="flex items-center mt-1">
+							{(price?.change24hPercent ?? 0) >= 0 ? (
+								<TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+							) : (
+								<TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+							)}
+							<span
+								className={`text-sm ${
+									(price?.change24hPercent ?? 0) >= 0
+										? "text-green-600"
+										: "text-red-600"
+								}`}
+							>
+								{(price?.change24hPercent ?? 0).toFixed(2)}%
+							</span>
+						</div>
+					</Card>
+					<Card className="p-4">
+						<p className="text-sm text-gray-500">Total Supply</p>
+						<p className="text-2xl font-bold text-gray-900">
+							{asset.totalSupply?.toLocaleString()}
+						</p>
+						<p className="text-sm text-gray-400 mt-1">units</p>
+					</Card>
+					<Card className="p-4">
+						<p className="text-sm text-gray-500">Circulating</p>
+						<p className="text-2xl font-bold text-gray-900">
+							{asset.circulatingSupply?.toLocaleString()}
+						</p>
+						<p className="text-sm text-gray-400 mt-1">
+							{asset.totalSupply > 0
+								? `${((asset.circulatingSupply / asset.totalSupply) * 100).toFixed(1)}% of supply`
+								: ""}
+						</p>
+					</Card>
+					<Card className="p-4">
+						<p className="text-sm text-gray-500">Annual Yield</p>
+						<p className="text-2xl font-bold text-gray-900">
+							{asset.annualYield != null ? `${asset.annualYield}%` : "N/A"}
+						</p>
+						<p className="text-sm text-gray-400 mt-1">projected</p>
+					</Card>
+				</div>
+
+				{/* OHLC */}
+				{price && (
+					<Card className="p-4 mb-6">
+						<h2 className="text-lg font-semibold text-gray-800 mb-3">
+							OHLC (Today)
+						</h2>
+						<div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+							<div>
+								<p className="text-sm text-gray-500">Open</p>
+								<p className="font-medium">
+									{price.dayOpen?.toLocaleString() ?? "—"}
+								</p>
+							</div>
+							<div>
+								<p className="text-sm text-gray-500">High</p>
+								<p className="font-medium text-green-600">
+									{price.dayHigh?.toLocaleString() ?? "—"}
+								</p>
+							</div>
+							<div>
+								<p className="text-sm text-gray-500">Low</p>
+								<p className="font-medium text-red-600">
+									{price.dayLow?.toLocaleString() ?? "—"}
+								</p>
+							</div>
+							<div>
+								<p className="text-sm text-gray-500">Close</p>
+								<p className="font-medium">
+									{price.dayClose?.toLocaleString() ?? "—"}
+								</p>
+							</div>
+						</div>
+					</Card>
+				)}
+
+				{/* Manual Price Override */}
+				<Card className="p-4 mb-6">
+					<h2 className="text-lg font-semibold text-gray-800 mb-3">
+						Manual Price Override
+					</h2>
+					<div className="flex gap-3 items-end">
+						<div className="flex-1">
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								New Price (XAF)
+							</label>
+							<input
+								type="number"
+								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								placeholder="Enter new price..."
+								value={manualPrice}
+								onChange={(e) => setManualPrice(e.target.value)}
+								min={0}
+							/>
+						</div>
+						<Button onClick={handleSetPrice} disabled={!manualPrice}>
+							Set Price
+						</Button>
+					</div>
+				</Card>
+
+				{/* Asset Info */}
+				<Card className="p-4">
+					<h2 className="text-lg font-semibold text-gray-800 mb-3">
+						Asset Information
+					</h2>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+						<div>
+							<span className="text-gray-500">Fineract Product ID:</span>{" "}
+							<span className="font-medium">
+								{asset.fineractProductId ?? "Not provisioned"}
+							</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Treasury Client ID:</span>{" "}
+							<span className="font-medium">{asset.treasuryClientId}</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Price Mode:</span>{" "}
+							<span className="font-medium">{asset.priceMode}</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Created:</span>{" "}
+							<span className="font-medium">
+								{new Date(asset.createdAt).toLocaleDateString()}
+							</span>
+						</div>
+						{asset.description && (
+							<div className="md:col-span-2">
+								<span className="text-gray-500">Description:</span>{" "}
+								<span className="font-medium">{asset.description}</span>
+							</div>
+						)}
+					</div>
+				</Card>
+			</main>
+		</div>
+	);
+};

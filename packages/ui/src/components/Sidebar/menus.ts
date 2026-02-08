@@ -6,7 +6,9 @@ import {
 	FileText,
 	History,
 	Home,
+	LineChart,
 	Lock,
+	Package,
 	PlusCircle,
 	Send,
 	Settings,
@@ -108,6 +110,39 @@ export const menuReporting: MenuItem[] = [
 		icon: History,
 	},
 	{ name: "audit", title: "sidebar.audit", link: "/audit", icon: Shield },
+];
+
+export const menuAssetManager: MenuItem[] = [
+	{
+		name: "dashboard",
+		title: "sidebar.dashboard",
+		link: "/dashboard",
+		icon: Home,
+	},
+	{
+		name: "create-asset",
+		title: "sidebar.createAsset",
+		link: "/create-asset",
+		icon: PlusCircle,
+	},
+	{
+		name: "inventory",
+		title: "sidebar.inventory",
+		link: "/inventory",
+		icon: Package,
+	},
+	{
+		name: "market-settings",
+		title: "sidebar.marketSettings",
+		link: "/market-settings",
+		icon: LineChart,
+	},
+	{
+		name: "settings",
+		title: "sidebar.settings",
+		link: "/settings",
+		icon: Settings,
+	},
 ];
 
 export const menuAccounting: MenuItem[] = [
