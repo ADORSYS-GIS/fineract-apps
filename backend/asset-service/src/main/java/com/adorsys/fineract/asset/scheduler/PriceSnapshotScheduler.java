@@ -19,7 +19,11 @@ public class PriceSnapshotScheduler {
 
     @Scheduled(cron = "${asset-service.pricing.snapshot-cron:0 0 * * * *}")
     public void snapshotPrices() {
-        log.info("Running hourly price snapshot");
-        pricingService.snapshotPrices();
+        try {
+            log.info("Running hourly price snapshot");
+            pricingService.snapshotPrices();
+        } catch (Exception e) {
+            log.error("Hourly price snapshot failed: {}", e.getMessage(), e);
+        }
     }
 }

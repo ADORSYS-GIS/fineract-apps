@@ -16,9 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -119,18 +117,14 @@ public class RateLimitConfig {
                     .build();
         }
 
-        /**
-         * Extract a stable client identifier from the request.
-         * For authenticated requests, extracts the JWT 'sub' claim for stable per-user limiting.
-         * Falls back to IP address for unauthenticated requests.
-         */
         private String getClientIdentifier(HttpServletRequest request) {
             String authHeader = request.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String sub = extractJwtSubject(authHeader.substring(7));
-                if (sub != null) {
-                    return "user:" + sub;
-                }
+                // Use a hash of the token to avoid trusting unverified claims.
+                // Spring Security verifies signatures later; this is just for rate-limit keying.
+                String token = authHeader.substring(7);
+                int tokenHash = token.hashCode();
+                return "token:" + tokenHash;
             }
             String xForwardedFor = request.getHeader("X-Forwarded-For");
             if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
@@ -141,31 +135,6 @@ public class RateLimitConfig {
                 return "ip:" + xRealIp;
             }
             return "ip:" + request.getRemoteAddr();
-        }
-
-        /**
-         * Extract the 'sub' claim from a JWT token by base64-decoding the payload.
-         * This is a lightweight extraction (no signature verification) used only for
-         * rate-limit keying — actual auth is handled by Spring Security.
-         */
-        private String extractJwtSubject(String token) {
-            try {
-                String[] parts = token.split("\\.");
-                if (parts.length < 2) return null;
-                String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
-                // Simple extraction without a JSON parser — find "sub":"..."
-                int subIdx = payload.indexOf("\"sub\"");
-                if (subIdx < 0) return null;
-                int colonIdx = payload.indexOf(':', subIdx);
-                int quoteStart = payload.indexOf('"', colonIdx + 1);
-                int quoteEnd = payload.indexOf('"', quoteStart + 1);
-                if (quoteStart >= 0 && quoteEnd > quoteStart) {
-                    return payload.substring(quoteStart + 1, quoteEnd);
-                }
-            } catch (Exception e) {
-                // Fall through to null
-            }
-            return null;
         }
     }
 }

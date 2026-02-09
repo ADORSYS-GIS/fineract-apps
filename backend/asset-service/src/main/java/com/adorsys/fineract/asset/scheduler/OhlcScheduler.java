@@ -34,18 +34,22 @@ public class OhlcScheduler {
 
     @Scheduled(fixedRate = 60000)
     public void checkMarketTransition() {
-        boolean isNowOpen = marketHoursService.isMarketOpen();
+        try {
+            boolean isNowOpen = marketHoursService.isMarketOpen();
 
-        if (!wasOpen && isNowOpen) {
-            // Market just opened
-            log.info("Market opened - resetting daily OHLC");
-            pricingService.resetDailyOhlc();
-        } else if (wasOpen && !isNowOpen) {
-            // Market just closed
-            log.info("Market closed - closing daily OHLC");
-            pricingService.closeDailyOhlc();
+            if (!wasOpen && isNowOpen) {
+                // Market just opened
+                log.info("Market opened - resetting daily OHLC");
+                pricingService.resetDailyOhlc();
+            } else if (wasOpen && !isNowOpen) {
+                // Market just closed
+                log.info("Market closed - closing daily OHLC");
+                pricingService.closeDailyOhlc();
+            }
+
+            wasOpen = isNowOpen;
+        } catch (Exception e) {
+            log.error("OHLC market transition check failed: {}", e.getMessage(), e);
         }
-
-        wasOpen = isNowOpen;
     }
 }

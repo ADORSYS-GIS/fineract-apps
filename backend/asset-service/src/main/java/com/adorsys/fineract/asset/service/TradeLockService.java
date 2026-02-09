@@ -83,9 +83,15 @@ public class TradeLockService {
             log.warn("Redis unavailable, falling back to local lock: userId={}, assetId={}", userId, assetId);
             String localKey = userKey + ":" + treasuryKey;
             ReentrantLock lock = localLocks.computeIfAbsent(localKey, k -> new ReentrantLock());
-            if (!lock.tryLock()) {
+            try {
+                if (!lock.tryLock(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                    assetMetrics.recordTradeLockFailure();
+                    throw new TradeLockException("Another trade is in progress (local lock). Please wait.");
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
                 assetMetrics.recordTradeLockFailure();
-                throw new TradeLockException("Another trade is in progress (local lock). Please wait.");
+                throw new TradeLockException("Trade lock acquisition was interrupted.");
             }
             return LOCAL_LOCK_PREFIX + localKey;
         }
@@ -113,7 +119,13 @@ public class TradeLockService {
                     Arrays.asList(userKey, treasuryKey),
                     lockValue
             );
-            log.debug("Released trade lock: userId={}, assetId={}, released={}", userId, assetId, released);
+            if (released == null || released == 0L) {
+                log.warn("Trade lock already expired or lost (possible Redis failover): userId={}, assetId={}, lockValue={}",
+                        userId, assetId, lockValue);
+                assetMetrics.recordTradeLockFailure();
+            } else {
+                log.debug("Released trade lock: userId={}, assetId={}, released={}", userId, assetId, released);
+            }
         } catch (RedisConnectionFailureException e) {
             log.warn("Redis unavailable during lock release: userId={}, assetId={}", userId, assetId);
         }

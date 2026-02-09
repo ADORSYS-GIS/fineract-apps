@@ -44,6 +44,9 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
     List<Asset> findByStatusIn(List<AssetStatus> statuses);
 
     @Modifying
-    @Query("UPDATE Asset a SET a.circulatingSupply = a.circulatingSupply + :delta WHERE a.id = :assetId")
-    void adjustCirculatingSupply(@Param("assetId") String assetId, @Param("delta") BigDecimal delta);
+    @Query("UPDATE Asset a SET a.circulatingSupply = a.circulatingSupply + :delta " +
+           "WHERE a.id = :assetId " +
+           "AND a.circulatingSupply + :delta >= 0 " +
+           "AND a.circulatingSupply + :delta <= a.totalSupply")
+    int adjustCirculatingSupply(@Param("assetId") String assetId, @Param("delta") BigDecimal delta);
 }

@@ -79,7 +79,7 @@ function RootLayout() {
 										<Moon className="w-5 h-5" />
 									)}
 								</button>
-								<Bell />
+								<Bell aria-label="Notifications" />
 							</div>
 						}
 						userSection={

@@ -156,6 +156,15 @@ public class TradingService {
                 throw new InsufficientInventoryException(request.assetId(), units, lockedAvailableSupply);
             }
 
+            // 12a2. Validate treasury accounts are configured
+            if (lockedAsset.getTreasuryCashAccountId() == null || lockedAsset.getTreasuryAssetAccountId() == null) {
+                order.setStatus(OrderStatus.REJECTED);
+                order.setFailureReason("Asset treasury accounts not configured");
+                orderRepository.save(order);
+                throw new TradingException(
+                        "Asset is not fully configured for trading. Contact admin.", "CONFIG_ERROR");
+            }
+
             // 12b. Re-fetch authoritative price inside the lock to avoid stale pricing
             CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(request.assetId());
             BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
@@ -208,7 +217,13 @@ public class TradingService {
                     userAssetAccountId, units, effectiveCostPerUnit);
 
             // 12f. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
-            assetRepository.adjustCirculatingSupply(request.assetId(), units);
+            int supplyUpdated = assetRepository.adjustCirculatingSupply(request.assetId(), units);
+            if (supplyUpdated == 0) {
+                order.setStatus(OrderStatus.REJECTED);
+                order.setFailureReason("Supply constraint violated");
+                orderRepository.save(order);
+                throw new TradingException("Insufficient available supply for this trade.", "SUPPLY_EXCEEDED");
+            }
 
             // 12g. Update OHLC
             pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
@@ -354,6 +369,15 @@ public class TradingService {
             Asset lockedAsset = assetRepository.findById(request.assetId())
                     .orElseThrow(() -> new AssetException("Asset not found: " + request.assetId()));
 
+            // 12a2. Validate treasury accounts are configured
+            if (lockedAsset.getTreasuryCashAccountId() == null || lockedAsset.getTreasuryAssetAccountId() == null) {
+                order.setStatus(OrderStatus.REJECTED);
+                order.setFailureReason("Asset treasury accounts not configured");
+                orderRepository.save(order);
+                throw new TradingException(
+                        "Asset is not fully configured for trading. Contact admin.", "CONFIG_ERROR");
+            }
+
             // 12b. Re-verify position INSIDE the lock to prevent race condition on concurrent sells
             UserPosition lockedPosition = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId())
                     .orElseThrow(() -> new TradingException("No position found (concurrent sell detected)", "NO_POSITION"));
@@ -408,7 +432,13 @@ public class TradingService {
             tradeLogRepository.save(tradeLog);
 
             // 12g. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
-            assetRepository.adjustCirculatingSupply(request.assetId(), units.negate());
+            int supplyUpdated = assetRepository.adjustCirculatingSupply(request.assetId(), units.negate());
+            if (supplyUpdated == 0) {
+                order.setStatus(OrderStatus.REJECTED);
+                order.setFailureReason("Supply constraint violated during sell");
+                orderRepository.save(order);
+                throw new TradingException("Supply constraint violated during sell.", "SUPPLY_ERROR");
+            }
 
             // 12h. Update OHLC
             pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);

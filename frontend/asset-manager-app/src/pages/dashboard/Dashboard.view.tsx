@@ -72,11 +72,16 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 				</div>
 
 				{/* Category Filter */}
-				<div className="flex gap-2 mb-6 flex-wrap">
+				<div
+					className="flex gap-2 mb-6 flex-wrap"
+					role="group"
+					aria-label="Filter by category"
+				>
 					{CATEGORIES.map((cat) => (
 						<button
 							key={cat.value}
 							onClick={() => onCategoryChange(cat.value)}
+							aria-pressed={categoryFilter === cat.value}
 							className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
 								categoryFilter === cat.value
 									? "bg-blue-600 text-white border-blue-600"
@@ -102,8 +107,15 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 					</Card>
 				) : (
 					<>
-						<div className="bg-white rounded-lg shadow overflow-hidden">
-							<table className="min-w-full divide-y divide-gray-200">
+						<div
+							className="bg-white rounded-lg shadow overflow-hidden"
+							role="region"
+							aria-label="Asset catalog table"
+						>
+							<table
+								className="min-w-full divide-y divide-gray-200"
+								aria-label="Asset catalog"
+							>
 								<thead className="bg-gray-50">
 									<tr>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
