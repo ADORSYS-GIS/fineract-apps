@@ -92,30 +92,20 @@ public class AssetProvisioningService {
             );
             log.info("Created savings product: productId={}", productId);
 
-            // Step 4: Create treasury savings account for the company
-            treasuryAssetAccountId = fineractClient.createSavingsAccount(
-                    request.treasuryClientId(), productId
+            // Step 4: Atomic account lifecycle — create, approve, activate, deposit initial supply
+            // Uses Fineract Batch API (enclosingTransaction=true) so if any step fails, all are rolled back
+            treasuryAssetAccountId = fineractClient.provisionSavingsAccount(
+                    request.treasuryClientId(), productId,
+                    request.totalSupply(), ASSET_ISSUANCE_PAYMENT_TYPE
             );
-            log.info("Created treasury asset account: accountId={}", treasuryAssetAccountId);
-
-            // Step 5: Approve treasury account
-            fineractClient.approveSavingsAccount(treasuryAssetAccountId);
-
-            // Step 6: Activate treasury account
-            fineractClient.activateSavingsAccount(treasuryAssetAccountId);
-
-            // Step 7: Deposit initial supply into treasury
-            fineractClient.depositToSavingsAccount(
-                    treasuryAssetAccountId, request.totalSupply(), ASSET_ISSUANCE_PAYMENT_TYPE
-            );
-            log.info("Deposited initial supply: {} units into treasury account {}", request.totalSupply(), treasuryAssetAccountId);
+            log.info("Provisioned treasury account atomically: accountId={}, supply={}",
+                    treasuryAssetAccountId, request.totalSupply());
 
         } catch (AssetException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Fineract provisioning failed for asset {}: {}. " +
-                       "Manual cleanup may be required. productId={}, treasuryAccountId={}",
-                    assetId, e.getMessage(), productId, treasuryAssetAccountId);
+            log.error("Fineract provisioning failed for asset {}: {}. productId={}",
+                    assetId, e.getMessage(), productId);
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
         }
 

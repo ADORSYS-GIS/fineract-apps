@@ -459,6 +459,142 @@ public class FineractClient {
     }
 
     /**
+     * Atomically provision a savings account: create → approve → activate → optional deposit.
+     * Uses Fineract Batch API with enclosingTransaction=true so if ANY step fails, ALL are rolled back.
+     *
+     * @param clientId      Fineract client ID
+     * @param productId     Savings product ID
+     * @param depositAmount Amount to deposit after activation (null to skip deposit)
+     * @param paymentTypeId Payment type for deposit (required if depositAmount is set)
+     * @return The created savings account ID
+     */
+    @SuppressWarnings("unchecked")
+    public Long provisionSavingsAccount(Long clientId, Integer productId,
+                                         BigDecimal depositAmount, Long paymentTypeId) {
+        try {
+            String today = LocalDate.now().format(DATE_FORMAT);
+            List<Map<String, Object>> batchRequests = new ArrayList<>();
+
+            // Request 1: Create savings account
+            Map<String, Object> createBody = Map.of(
+                    "clientId", clientId,
+                    "productId", productId,
+                    "locale", "en",
+                    "dateFormat", "dd MMMM yyyy",
+                    "submittedOnDate", today
+            );
+            Map<String, Object> createReq = new HashMap<>();
+            createReq.put("requestId", 1L);
+            createReq.put("relativeUrl", "savingsaccounts");
+            createReq.put("method", "POST");
+            createReq.put("body", objectMapper.writeValueAsString(createBody));
+            batchRequests.add(createReq);
+
+            // Request 2: Approve (references savingsId from request 1)
+            Map<String, Object> approveBody = Map.of(
+                    "locale", "en",
+                    "dateFormat", "dd MMMM yyyy",
+                    "approvedOnDate", today
+            );
+            Map<String, Object> approveReq = new HashMap<>();
+            approveReq.put("requestId", 2L);
+            approveReq.put("relativeUrl", "savingsaccounts/$.1.savingsId?command=approve");
+            approveReq.put("method", "POST");
+            approveReq.put("reference", 1L);
+            approveReq.put("body", objectMapper.writeValueAsString(approveBody));
+            batchRequests.add(approveReq);
+
+            // Request 3: Activate (references savingsId from request 1)
+            Map<String, Object> activateBody = Map.of(
+                    "locale", "en",
+                    "dateFormat", "dd MMMM yyyy",
+                    "activatedOnDate", today
+            );
+            Map<String, Object> activateReq = new HashMap<>();
+            activateReq.put("requestId", 3L);
+            activateReq.put("relativeUrl", "savingsaccounts/$.1.savingsId?command=activate");
+            activateReq.put("method", "POST");
+            activateReq.put("reference", 1L);
+            activateReq.put("body", objectMapper.writeValueAsString(activateBody));
+            batchRequests.add(activateReq);
+
+            // Request 4 (optional): Deposit initial supply
+            if (depositAmount != null && depositAmount.compareTo(BigDecimal.ZERO) > 0) {
+                Map<String, Object> depositBody = new HashMap<>();
+                depositBody.put("locale", "en");
+                depositBody.put("dateFormat", "dd MMMM yyyy");
+                depositBody.put("transactionDate", today);
+                depositBody.put("transactionAmount", depositAmount);
+                depositBody.put("paymentTypeId", paymentTypeId);
+
+                Map<String, Object> depositReq = new HashMap<>();
+                depositReq.put("requestId", 4L);
+                depositReq.put("relativeUrl", "savingsaccounts/$.1.savingsId/transactions?command=deposit");
+                depositReq.put("method", "POST");
+                depositReq.put("reference", 1L);
+                depositReq.put("body", objectMapper.writeValueAsString(depositBody));
+                batchRequests.add(depositReq);
+            }
+
+            List<Map<String, Object>> responses = webClient.post()
+                    .uri("/fineract-provider/api/v1/batches?enclosingTransaction=true")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(batchRequests)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract batch provision error: " + b))))
+                    .bodyToMono(List.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            // Check individual responses for failures
+            if (responses != null) {
+                for (Map<String, Object> resp : responses) {
+                    Integer statusCode = (Integer) resp.get("statusCode");
+                    if (statusCode != null && statusCode >= 400) {
+                        String body = (String) resp.get("body");
+                        throw new AssetException("Account provisioning failed at step " + resp.get("requestId") + ": " + body);
+                    }
+                }
+            }
+
+            // Extract savingsId from the create response (request 1)
+            Long savingsId = null;
+            if (responses != null) {
+                for (Map<String, Object> resp : responses) {
+                    if (((Number) resp.get("requestId")).longValue() == 1L) {
+                        String bodyStr = (String) resp.get("body");
+                        Map<String, Object> bodyMap = objectMapper.readValue(bodyStr, Map.class);
+                        savingsId = ((Number) bodyMap.get("savingsId")).longValue();
+                        break;
+                    }
+                }
+            }
+
+            if (savingsId == null) {
+                throw new AssetException("Failed to extract savingsId from batch provision response");
+            }
+
+            int steps = depositAmount != null ? 4 : 3;
+            log.info("Provisioned savings account atomically ({} steps): clientId={}, productId={}, savingsId={}",
+                    steps, clientId, productId, savingsId);
+            return savingsId;
+
+        } catch (AssetException e) {
+            throw e;
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize batch provision body: {}", e.getMessage());
+            throw new AssetException("Failed to serialize batch provision request", e);
+        } catch (Exception e) {
+            log.error("Failed to provision savings account: clientId={}, productId={}, error={}",
+                    clientId, productId, e.getMessage());
+            throw new AssetException("Failed to provision savings account in Fineract", e);
+        }
+    }
+
+    /**
      * Execute multiple account transfers atomically using Fineract Batch API.
      * Uses enclosingTransaction=true so if ANY transfer fails, ALL are rolled back.
      *

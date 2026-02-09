@@ -23,7 +23,7 @@ public class OpenApiConfig {
                 .title("Asset Service API")
                 .description("Tokenized asset marketplace middleware for Apache Fineract. " +
                     "Manages digital assets as custom currencies, provides trading APIs, " +
-                    "order book management, portfolio tracking, and market hours enforcement.")
+                    "portfolio tracking, and market hours enforcement.")
                 .version("1.0.0")
                 .contact(new Contact()
                     .name("Adorsys")

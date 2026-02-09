@@ -75,7 +75,6 @@ http://localhost:8083/actuator/health
 - `user_positions` - WAP tracking per user per asset
 - `orders` - Trade orders with idempotency
 - `trade_log` - Executed trades (feeds recent trades)
-- `market_maker_orders` - Company standing buy/sell orders (order book)
 - `user_favorites` - Watchlist
 
 ## API Documentation

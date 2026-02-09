@@ -380,14 +380,13 @@ public class TradingService {
             return existingAccountId;
         }
 
-        // Create a new savings account for this asset currency
-        log.info("Creating asset account for user {} and asset {} (product {})",
+        // Atomically create, approve, and activate via Fineract Batch API
+        log.info("Provisioning asset account for user {} and asset {} (product {})",
                 userId, assetId, asset.getFineractProductId());
-        Long accountId = fineractClient.createSavingsAccount(userId, asset.getFineractProductId());
-        fineractClient.approveSavingsAccount(accountId);
-        fineractClient.activateSavingsAccount(accountId);
+        Long accountId = fineractClient.provisionSavingsAccount(
+                userId, asset.getFineractProductId(), null, null);
 
-        log.info("Created and activated asset account {} for user {} and asset {}",
+        log.info("Provisioned asset account {} atomically for user {} and asset {}",
                 accountId, userId, assetId);
         return accountId;
     }

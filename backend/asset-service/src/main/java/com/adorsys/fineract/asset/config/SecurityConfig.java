@@ -47,7 +47,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/assets/**").permitAll()
                 .requestMatchers("/api/prices/**").permitAll()
                 .requestMatchers("/api/market/**").permitAll()
-                // Admin and authenticated endpoints require JWT
+                // Admin endpoints require ASSET_MANAGER role
+                .requestMatchers("/api/admin/**").hasRole("ASSET_MANAGER")
+                // All other endpoints require JWT
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
