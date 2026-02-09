@@ -7,12 +7,9 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
 /**
- * Request to sell an asset.
+ * Request to sell an asset. User identity and accounts are resolved from the JWT token.
  */
 public record SellRequest(
-    @NotBlank String externalId,
     @NotBlank String assetId,
-    @NotNull @Positive BigDecimal units,
-    @NotNull Long userCashAccountId,
-    @NotNull Long userAssetAccountId
+    @NotNull @Positive BigDecimal units
 ) {}

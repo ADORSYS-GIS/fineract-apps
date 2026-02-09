@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -28,17 +31,28 @@ public class FineractClient {
     private final FineractConfig config;
     private final FineractTokenProvider tokenProvider;
     private final WebClient webClient;
+    private final ObjectMapper objectMapper;
 
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH);
 
     public FineractClient(FineractConfig config,
                           FineractTokenProvider tokenProvider,
-                          @Qualifier("fineractWebClient") WebClient webClient) {
+                          @Qualifier("fineractWebClient") WebClient webClient,
+                          ObjectMapper objectMapper) {
         this.config = config;
         this.tokenProvider = tokenProvider;
         this.webClient = webClient;
+        this.objectMapper = objectMapper;
     }
+
+    /**
+     * Transfer request for the Fineract Batch API.
+     */
+    public record BatchTransferRequest(
+            Long fromAccountId, Long toAccountId,
+            BigDecimal amount, String description
+    ) {}
 
     /**
      * Get existing currencies registered in Fineract.
@@ -421,6 +435,104 @@ public class FineractClient {
         } catch (Exception e) {
             log.error("Failed to get client: externalId={}, error={}", externalId, e.getMessage());
             throw new AssetException("Failed to get client from Fineract", e);
+        }
+    }
+
+    /**
+     * Find a client's active savings account by currency code.
+     *
+     * @return The savings account ID, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public Long findClientSavingsAccountByCurrency(Long clientId, String currencyCode) {
+        List<Map<String, Object>> accounts = getClientSavingsAccounts(clientId);
+        return accounts.stream()
+                .filter(a -> {
+                    Map<String, Object> currency = (Map<String, Object>) a.get("currency");
+                    Map<String, Object> status = (Map<String, Object>) a.get("status");
+                    return currency != null && currencyCode.equals(currency.get("code"))
+                            && status != null && Boolean.TRUE.equals(status.get("active"));
+                })
+                .map(a -> ((Number) a.get("id")).longValue())
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Execute multiple account transfers atomically using Fineract Batch API.
+     * Uses enclosingTransaction=true so if ANY transfer fails, ALL are rolled back.
+     *
+     * @param transfers List of transfers to execute atomically
+     * @return List of batch response items
+     * @throws AssetException if the batch request fails or any individual transfer fails
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> executeBatchTransfers(List<BatchTransferRequest> transfers) {
+        try {
+            String transferDate = LocalDate.now().format(DATE_FORMAT);
+            List<Map<String, Object>> batchRequests = new ArrayList<>();
+
+            for (int i = 0; i < transfers.size(); i++) {
+                BatchTransferRequest t = transfers.get(i);
+
+                Map<String, Object> transferBody = new HashMap<>();
+                transferBody.put("fromOfficeId", 1);
+                transferBody.put("fromClientId", 1);
+                transferBody.put("fromAccountType", 2); // Savings
+                transferBody.put("fromAccountId", t.fromAccountId());
+                transferBody.put("toOfficeId", 1);
+                transferBody.put("toClientId", 1);
+                transferBody.put("toAccountType", 2); // Savings
+                transferBody.put("toAccountId", t.toAccountId());
+                transferBody.put("transferAmount", t.amount());
+                transferBody.put("transferDate", transferDate);
+                transferBody.put("transferDescription", t.description());
+                transferBody.put("locale", "en");
+                transferBody.put("dateFormat", "dd MMMM yyyy");
+
+                Map<String, Object> batchItem = new HashMap<>();
+                batchItem.put("requestId", (long) (i + 1));
+                batchItem.put("relativeUrl", "accounttransfers");
+                batchItem.put("method", "POST");
+                batchItem.put("body", objectMapper.writeValueAsString(transferBody));
+
+                batchRequests.add(batchItem);
+            }
+
+            List<Map<String, Object>> responses = webClient.post()
+                    .uri("/fineract-provider/api/v1/batches?enclosingTransaction=true")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(batchRequests)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract batch API error: " + b))))
+                    .bodyToMono(List.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            // Check individual responses for failures
+            if (responses != null) {
+                for (Map<String, Object> resp : responses) {
+                    Integer statusCode = (Integer) resp.get("statusCode");
+                    if (statusCode != null && statusCode >= 400) {
+                        String body = (String) resp.get("body");
+                        throw new AssetException("Batch transfer failed (request " + resp.get("requestId") + "): " + body);
+                    }
+                }
+            }
+
+            log.info("Executed batch of {} transfers atomically", transfers.size());
+            return responses != null ? responses : List.of();
+        } catch (AssetException e) {
+            throw e;
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize batch transfer body: {}", e.getMessage());
+            throw new AssetException("Failed to serialize batch transfer request", e);
+        } catch (Exception e) {
+            log.error("Failed to execute batch transfers: {}", e.getMessage());
+            throw new AssetException("Failed to execute batch transfers in Fineract", e);
         }
     }
 

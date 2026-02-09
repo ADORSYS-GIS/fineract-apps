@@ -14,6 +14,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 /**
  * Authenticated endpoints for trading operations.
  */
@@ -26,25 +28,27 @@ public class TradeController {
     private final TradingService tradingService;
 
     @PostMapping("/buy")
-    @Operation(summary = "Buy asset", description = "Buy an asset at a price level from the order book")
+    @Operation(summary = "Buy asset", description = "Buy asset units. User identity and accounts are resolved from JWT.")
     public ResponseEntity<TradeResponse> buy(
             @Valid @RequestBody BuyRequest request,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
         if (idempotencyKey == null) {
-            idempotencyKey = java.util.UUID.randomUUID().toString();
+            idempotencyKey = UUID.randomUUID().toString();
         }
-        return ResponseEntity.ok(tradingService.executeBuy(request, idempotencyKey));
+        return ResponseEntity.ok(tradingService.executeBuy(request, jwt, idempotencyKey));
     }
 
     @PostMapping("/sell")
-    @Operation(summary = "Sell asset", description = "Sell an asset back at a price level from the order book")
+    @Operation(summary = "Sell asset", description = "Sell asset units. User identity and accounts are resolved from JWT.")
     public ResponseEntity<TradeResponse> sell(
             @Valid @RequestBody SellRequest request,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
         if (idempotencyKey == null) {
-            idempotencyKey = java.util.UUID.randomUUID().toString();
+            idempotencyKey = UUID.randomUUID().toString();
         }
-        return ResponseEntity.ok(tradingService.executeSell(request, idempotencyKey));
+        return ResponseEntity.ok(tradingService.executeSell(request, jwt, idempotencyKey));
     }
 
     @GetMapping("/orders")

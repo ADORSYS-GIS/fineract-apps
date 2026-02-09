@@ -1,11 +1,13 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.client.FineractClient.BatchTransferRequest;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.Order;
 import com.adorsys.fineract.asset.entity.TradeLog;
+import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.exception.InsufficientInventoryException;
 import com.adorsys.fineract.asset.exception.TradingException;
@@ -13,25 +15,30 @@ import com.adorsys.fineract.asset.exception.TradingHaltedException;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
+import com.adorsys.fineract.asset.repository.UserPositionRepository;
+import com.adorsys.fineract.asset.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * Core trading engine. Orchestrates buy/sell operations with:
  * - Idempotency checks
  * - Market hours enforcement
- * - Single-price execution (current price ± spread)
- * - Fineract account transfers (cash + asset legs)
- * - Compensating transactions on failure
+ * - Single-price execution (current price +/- spread)
+ * - JWT-based user resolution and auto account discovery
+ * - Fineract Batch API for atomic transfers (cash + fee + asset legs)
  * - Portfolio updates (WAP, P&L)
  * - OHLC updates
  * - Redis distributed locks
@@ -44,6 +51,7 @@ public class TradingService {
     private final OrderRepository orderRepository;
     private final TradeLogRepository tradeLogRepository;
     private final AssetRepository assetRepository;
+    private final UserPositionRepository userPositionRepository;
     private final FineractClient fineractClient;
     private final MarketHoursService marketHoursService;
     private final TradeLockService tradeLockService;
@@ -52,9 +60,10 @@ public class TradingService {
     private final AssetServiceConfig assetServiceConfig;
 
     /**
-     * Execute a BUY order.
+     * Execute a BUY order. User identity and accounts are resolved from the JWT.
+     * Uses Fineract Batch API for atomic transfers.
      */
-    public TradeResponse executeBuy(BuyRequest request, String idempotencyKey) {
+    public TradeResponse executeBuy(BuyRequest request, Jwt jwt, String idempotencyKey) {
         // 1. Idempotency check
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOrder.isPresent()) {
@@ -78,31 +87,41 @@ public class TradingService {
         BigDecimal basePrice = priceData.currentPrice();
         BigDecimal executionPrice = basePrice.add(basePrice.multiply(asset.getSpreadPercent()));
 
-        // 5. Calculate units and fee
-        BigDecimal fee = request.xafAmount().multiply(asset.getTradingFeePercent()).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal netAmount = request.xafAmount().subtract(fee);
-        BigDecimal units = netAmount.divide(executionPrice, asset.getDecimalPlaces(), RoundingMode.DOWN);
+        // 5. Calculate cost
+        BigDecimal units = request.units();
+        BigDecimal actualCost = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = actualCost.multiply(asset.getTradingFeePercent()).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal chargedAmount = actualCost.add(fee);
 
-        // 6. Verify sufficient inventory (total supply - circulating supply)
+        // 6. Verify sufficient inventory
         BigDecimal availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
         if (units.compareTo(availableSupply) > 0) {
             throw new InsufficientInventoryException(request.assetId(), units, availableSupply);
         }
 
-        // 7. Create order
-        String orderId = UUID.randomUUID().toString();
-        // Resolve user's Fineract client ID
-        var clientData = fineractClient.getClientByExternalId(request.externalId());
+        // 7. Resolve user from JWT
+        String externalId = JwtUtils.extractExternalId(jwt);
+        Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
         Long userId = ((Number) clientData.get("id")).longValue();
 
-        BigDecimal actualCost = units.multiply(executionPrice);
-        BigDecimal chargedAmount = actualCost.add(fee);
+        // 8. Resolve user XAF account
+        Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, "XAF");
+        if (userCashAccountId == null) {
+            throw new TradingException(
+                    "No active XAF account found. Please create one in the Account Manager.",
+                    "NO_XAF_ACCOUNT");
+        }
 
+        // 9. Resolve or create user asset account
+        Long userAssetAccountId = resolveOrCreateUserAssetAccount(userId, request.assetId(), asset);
+
+        // 10. Create order
+        String orderId = UUID.randomUUID().toString();
         Order order = Order.builder()
                 .id(orderId)
                 .idempotencyKey(idempotencyKey)
                 .userId(userId)
-                .userExternalId(request.externalId())
+                .userExternalId(externalId)
                 .assetId(request.assetId())
                 .side(TradeSide.BUY)
                 .xafAmount(chargedAmount)
@@ -113,49 +132,43 @@ public class TradingService {
                 .build();
         orderRepository.save(order);
 
-        // 8. Acquire distributed lock
+        // 11. Acquire distributed lock
         String lockValue = tradeLockService.acquireTradeLock(userId, request.assetId());
-
-        Long cashTransferId = null;
-        Long assetTransferId = null;
 
         try {
             order.setStatus(OrderStatus.EXECUTING);
             orderRepository.save(order);
 
-            // 9. Cash leg: user XAF account -> treasury XAF account (asset cost only)
-            cashTransferId = fineractClient.createAccountTransfer(
-                    request.userCashAccountId(), asset.getTreasuryCashAccountId(),
-                    actualCost, "Asset purchase: " + asset.getSymbol());
-
-            // 10. Fee leg: user XAF account -> fee collection account
+            // 12. Execute via Fineract Batch API (atomic)
             Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
+
+            List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
+            // Transfer 1: Cash leg — user XAF → treasury XAF
+            transfers.add(new BatchTransferRequest(
+                    userCashAccountId, asset.getTreasuryCashAccountId(),
+                    actualCost, "Asset purchase: " + asset.getSymbol()));
+            // Transfer 2: Fee leg — user XAF → fee collection
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
-                fineractClient.createAccountTransfer(
-                        request.userCashAccountId(), feeCollectionAccountId,
-                        fee, "Trading fee: BUY " + asset.getSymbol());
+                transfers.add(new BatchTransferRequest(
+                        userCashAccountId, feeCollectionAccountId,
+                        fee, "Trading fee: BUY " + asset.getSymbol()));
             }
+            // Transfer 3: Asset leg — treasury asset → user asset
+            transfers.add(new BatchTransferRequest(
+                    asset.getTreasuryAssetAccountId(), userAssetAccountId,
+                    units, "Asset delivery: " + asset.getSymbol()));
 
-            // 11. Asset leg: treasury asset account -> user asset account
             try {
-                assetTransferId = fineractClient.createAccountTransfer(
-                        asset.getTreasuryAssetAccountId(), request.userAssetAccountId(),
-                        units, "Asset delivery: " + asset.getSymbol());
-            } catch (Exception assetLegError) {
-                // 12. Compensating transaction - reverse cash leg
-                log.error("Asset leg failed, reversing cash leg: {}", assetLegError.getMessage());
-                fineractClient.createAccountTransfer(
-                        asset.getTreasuryCashAccountId(), request.userCashAccountId(),
-                        actualCost, "REVERSAL: Failed asset purchase " + asset.getSymbol());
-
+                fineractClient.executeBatchTransfers(transfers);
+            } catch (Exception batchError) {
+                log.error("Batch transfer failed for BUY order {}: {}", orderId, batchError.getMessage());
                 order.setStatus(OrderStatus.FAILED);
-                order.setFailureReason("Asset transfer failed: " + assetLegError.getMessage());
+                order.setFailureReason("Batch transfer failed: " + batchError.getMessage());
                 orderRepository.save(order);
-
-                throw new TradingException("Trade failed: asset transfer error. Cash refunded.", "TRADE_FAILED");
+                throw new TradingException("Trade failed: " + batchError.getMessage(), "TRADE_FAILED");
             }
 
-            // 12. Record trade log
+            // 13. Record trade log
             TradeLog tradeLog = TradeLog.builder()
                     .id(UUID.randomUUID().toString())
                     .orderId(orderId)
@@ -166,23 +179,21 @@ public class TradingService {
                     .pricePerUnit(executionPrice)
                     .totalAmount(chargedAmount)
                     .fee(fee)
-                    .fineractCashTransferId(cashTransferId)
-                    .fineractAssetTransferId(assetTransferId)
                     .build();
             tradeLogRepository.save(tradeLog);
 
-            // 13. Update portfolio (WAP)
+            // 14. Update portfolio (WAP)
             portfolioService.updatePositionAfterBuy(userId, request.assetId(),
-                    request.userAssetAccountId(), units, executionPrice);
+                    userAssetAccountId, units, executionPrice);
 
-            // 14. Update circulating supply
+            // 15. Update circulating supply
             asset.setCirculatingSupply(asset.getCirculatingSupply().add(units));
             assetRepository.save(asset);
 
-            // 15. Update OHLC
+            // 16. Update OHLC
             pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
 
-            // 16. Mark order as filled
+            // 17. Mark order as filled
             order.setStatus(OrderStatus.FILLED);
             orderRepository.save(order);
 
@@ -193,15 +204,15 @@ public class TradingService {
                     units, executionPrice, chargedAmount, fee, null, Instant.now());
 
         } finally {
-            // 18. Release locks
             tradeLockService.releaseTradeLock(userId, request.assetId(), lockValue);
         }
     }
 
     /**
-     * Execute a SELL order.
+     * Execute a SELL order. User identity and accounts are resolved from the JWT.
+     * Uses Fineract Batch API for atomic transfers.
      */
-    public TradeResponse executeSell(SellRequest request, String idempotencyKey) {
+    public TradeResponse executeSell(SellRequest request, Jwt jwt, String idempotencyKey) {
         // 1. Idempotency check
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOrder.isPresent()) {
@@ -226,113 +237,159 @@ public class TradingService {
         BigDecimal executionPrice = basePrice.subtract(basePrice.multiply(asset.getSpreadPercent()));
 
         // 5. Calculate XAF amount and fee
-        BigDecimal grossAmount = request.units().multiply(executionPrice);
+        BigDecimal units = request.units();
+        BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(asset.getTradingFeePercent()).setScale(0, RoundingMode.HALF_UP);
         BigDecimal netAmount = grossAmount.subtract(fee);
 
-        // 6. Create order
-        String orderId = UUID.randomUUID().toString();
-        var clientData = fineractClient.getClientByExternalId(request.externalId());
+        // 6. Resolve user from JWT
+        String externalId = JwtUtils.extractExternalId(jwt);
+        Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
         Long userId = ((Number) clientData.get("id")).longValue();
 
+        // 7. Resolve user XAF account
+        Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, "XAF");
+        if (userCashAccountId == null) {
+            throw new TradingException(
+                    "No active XAF account found. Please create one in the Account Manager.",
+                    "NO_XAF_ACCOUNT");
+        }
+
+        // 8. Resolve user asset account from existing position
+        UserPosition position = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId())
+                .orElseThrow(() -> new TradingException(
+                        "No position found for this asset. You must own units before selling.",
+                        "NO_POSITION"));
+        Long userAssetAccountId = position.getFineractSavingsAccountId();
+
+        // 9. Validate sufficient units
+        if (units.compareTo(position.getTotalUnits()) > 0) {
+            throw new TradingException(
+                    "Insufficient units. You hold " + position.getTotalUnits() + " but tried to sell " + units,
+                    "INSUFFICIENT_UNITS");
+        }
+
+        // 10. Create order
+        String orderId = UUID.randomUUID().toString();
         Order order = Order.builder()
                 .id(orderId)
                 .idempotencyKey(idempotencyKey)
                 .userId(userId)
-                .userExternalId(request.externalId())
+                .userExternalId(externalId)
                 .assetId(request.assetId())
                 .side(TradeSide.SELL)
                 .xafAmount(netAmount)
-                .units(request.units())
+                .units(units)
                 .executionPrice(executionPrice)
                 .fee(fee)
                 .status(OrderStatus.PENDING)
                 .build();
         orderRepository.save(order);
 
-        // 7. Acquire distributed lock
+        // 11. Acquire distributed lock
         String lockValue = tradeLockService.acquireTradeLock(userId, request.assetId());
-
-        Long assetTransferId = null;
-        Long cashTransferId = null;
 
         try {
             order.setStatus(OrderStatus.EXECUTING);
             orderRepository.save(order);
 
-            // 8. Asset leg: user asset account -> treasury asset account
-            assetTransferId = fineractClient.createAccountTransfer(
-                    request.userAssetAccountId(), asset.getTreasuryAssetAccountId(),
-                    request.units(), "Asset sell: " + asset.getSymbol());
-
-            // 9. Cash leg: treasury XAF account -> user XAF account (net proceeds)
-            try {
-                cashTransferId = fineractClient.createAccountTransfer(
-                        asset.getTreasuryCashAccountId(), request.userCashAccountId(),
-                        netAmount, "Asset sale proceeds: " + asset.getSymbol());
-            } catch (Exception cashLegError) {
-                // Compensating transaction - reverse asset leg
-                log.error("Cash leg failed, reversing asset leg: {}", cashLegError.getMessage());
-                fineractClient.createAccountTransfer(
-                        asset.getTreasuryAssetAccountId(), request.userAssetAccountId(),
-                        request.units(), "REVERSAL: Failed asset sale " + asset.getSymbol());
-
-                order.setStatus(OrderStatus.FAILED);
-                order.setFailureReason("Cash transfer failed: " + cashLegError.getMessage());
-                orderRepository.save(order);
-
-                throw new TradingException("Trade failed: cash transfer error. Assets returned.", "TRADE_FAILED");
-            }
-
-            // 10. Fee leg: treasury XAF account -> fee collection account
+            // 12. Execute via Fineract Batch API (atomic)
             Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
+
+            List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
+            // Transfer 1: Asset leg — user asset → treasury asset
+            transfers.add(new BatchTransferRequest(
+                    userAssetAccountId, asset.getTreasuryAssetAccountId(),
+                    units, "Asset sell: " + asset.getSymbol()));
+            // Transfer 2: Cash leg — treasury XAF → user XAF (net proceeds)
+            transfers.add(new BatchTransferRequest(
+                    asset.getTreasuryCashAccountId(), userCashAccountId,
+                    netAmount, "Asset sale proceeds: " + asset.getSymbol()));
+            // Transfer 3: Fee leg — treasury XAF → fee collection
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
-                fineractClient.createAccountTransfer(
+                transfers.add(new BatchTransferRequest(
                         asset.getTreasuryCashAccountId(), feeCollectionAccountId,
-                        fee, "Trading fee: SELL " + asset.getSymbol());
+                        fee, "Trading fee: SELL " + asset.getSymbol()));
             }
 
-            // 11. Calculate realized P&L and update portfolio
-            BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    userId, request.assetId(), request.units(), executionPrice);
+            try {
+                fineractClient.executeBatchTransfers(transfers);
+            } catch (Exception batchError) {
+                log.error("Batch transfer failed for SELL order {}: {}", orderId, batchError.getMessage());
+                order.setStatus(OrderStatus.FAILED);
+                order.setFailureReason("Batch transfer failed: " + batchError.getMessage());
+                orderRepository.save(order);
+                throw new TradingException("Trade failed: " + batchError.getMessage(), "TRADE_FAILED");
+            }
 
-            // 12. Record trade log
+            // 13. Calculate realized P&L and update portfolio
+            BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
+                    userId, request.assetId(), units, executionPrice);
+
+            // 14. Record trade log
             TradeLog tradeLog = TradeLog.builder()
                     .id(UUID.randomUUID().toString())
                     .orderId(orderId)
                     .userId(userId)
                     .assetId(request.assetId())
                     .side(TradeSide.SELL)
-                    .units(request.units())
+                    .units(units)
                     .pricePerUnit(executionPrice)
                     .totalAmount(netAmount)
                     .fee(fee)
                     .realizedPnl(realizedPnl)
-                    .fineractCashTransferId(cashTransferId)
-                    .fineractAssetTransferId(assetTransferId)
                     .build();
             tradeLogRepository.save(tradeLog);
 
-            // 13. Update circulating supply
-            asset.setCirculatingSupply(asset.getCirculatingSupply().subtract(request.units()));
+            // 15. Update circulating supply
+            asset.setCirculatingSupply(asset.getCirculatingSupply().subtract(units));
             assetRepository.save(asset);
 
-            // 14. Update OHLC
+            // 16. Update OHLC
             pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
 
-            // 15. Mark order as filled
+            // 17. Mark order as filled
             order.setStatus(OrderStatus.FILLED);
             orderRepository.save(order);
 
             log.info("SELL executed: orderId={}, userId={}, asset={}, units={}, price={}, pnl={}",
-                    orderId, userId, asset.getSymbol(), request.units(), executionPrice, realizedPnl);
+                    orderId, userId, asset.getSymbol(), units, executionPrice, realizedPnl);
 
             return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.SELL,
-                    request.units(), executionPrice, netAmount, fee, realizedPnl, Instant.now());
+                    units, executionPrice, netAmount, fee, realizedPnl, Instant.now());
 
         } finally {
             tradeLockService.releaseTradeLock(userId, request.assetId(), lockValue);
         }
+    }
+
+    /**
+     * Resolve or create the user's Fineract savings account for the given asset.
+     * Checks UserPosition first; if no account exists, creates one in Fineract (approve + activate).
+     */
+    private Long resolveOrCreateUserAssetAccount(Long userId, String assetId, Asset asset) {
+        // Check if user already has a position with a Fineract account
+        var existingPosition = userPositionRepository.findByUserIdAndAssetId(userId, assetId);
+        if (existingPosition.isPresent()) {
+            return existingPosition.get().getFineractSavingsAccountId();
+        }
+
+        // Check if user already has an active savings account for this asset currency
+        Long existingAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, asset.getCurrencyCode());
+        if (existingAccountId != null) {
+            return existingAccountId;
+        }
+
+        // Create a new savings account for this asset currency
+        log.info("Creating asset account for user {} and asset {} (product {})",
+                userId, assetId, asset.getFineractProductId());
+        Long accountId = fineractClient.createSavingsAccount(userId, asset.getFineractProductId());
+        fineractClient.approveSavingsAccount(accountId);
+        fineractClient.activateSavingsAccount(accountId);
+
+        log.info("Created and activated asset account {} for user {} and asset {}",
+                accountId, userId, assetId);
+        return accountId;
     }
 
     /**

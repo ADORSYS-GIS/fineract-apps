@@ -4,9 +4,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Single point on a price history chart.
+ * Single data point on a price history chart.
  */
 public record PricePointDto(
+    /** Price of the asset at this point in time, in XAF. */
     BigDecimal price,
+    /** Timestamp when this price was captured. */
     Instant timestamp
 ) {}

@@ -14,4 +14,12 @@ public final class JwtUtils {
         }
         return (long) jwt.getSubject().hashCode();
     }
+
+    /**
+     * Extract the Keycloak subject (externalId) from the JWT.
+     * This is the UUID used as externalId in Fineract client records.
+     */
+    public static String extractExternalId(Jwt jwt) {
+        return jwt.getSubject();
+    }
 }

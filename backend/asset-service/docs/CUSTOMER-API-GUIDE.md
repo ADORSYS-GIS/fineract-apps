@@ -113,16 +113,18 @@ Headers:
   X-Idempotency-Key: {uuid}  (optional, auto-generated if omitted)
 Body:
 {
-  "externalId": "{keycloak-user-uuid}",
   "assetId": "{asset-uuid}",
-  "xafAmount": 50000,
-  "userCashAccountId": 123,
-  "userAssetAccountId": 456
+  "units": 10
 }
 ```
 
+The backend automatically:
+- Extracts user identity from the JWT token
+- Resolves the user's XAF savings account (throws error if missing)
+- Resolves or creates the user's asset savings account on first buy
+- Calculates total cost: `units × executionPrice + fee`
 - Execution price = asset's current price + spread (buy side)
-- `userAssetAccountId`: can be `null` if user doesn't have an account for this asset currency yet (the backend creates one).
+- All transfers are executed atomically via Fineract Batch API
 
 Response:
 ```json
@@ -130,17 +132,18 @@ Response:
   "orderId": "uuid",
   "status": "FILLED",
   "units": 10,
-  "pricePerUnit": 5000,
-  "totalAmount": 50250,
+  "pricePerUnit": 5050,
+  "totalAmount": 50750,
   "fee": 250
 }
 ```
 
-- `totalAmount` = cost (units × price) + fee = 50,000 + 250 = 50,250 XAF (actual amount charged)
+- `totalAmount` = cost (units × price) + fee = 50,500 + 250 = 50,750 XAF (actual amount charged)
 
 Error responses:
 - `409` - `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_INVENTORY`
 - `429` - `TRADE_LOCKED` (another trade in progress, retry after a few seconds)
+- `400` - `NO_XAF_ACCOUNT` (user has no active XAF savings account)
 - `400` - `TRADING_ERROR` (insufficient balance, validation errors)
 
 ---
@@ -156,13 +159,19 @@ Headers:
   X-Idempotency-Key: {uuid}
 Body:
 {
-  "externalId": "{keycloak-user-uuid}",
   "assetId": "{asset-uuid}",
-  "units": 5,
-  "userCashAccountId": 123,
-  "userAssetAccountId": 456
+  "units": 5
 }
 ```
+
+The backend automatically:
+- Extracts user identity from the JWT token
+- Resolves the user's XAF savings account (throws error if missing)
+- Resolves the user's asset account from their existing position (throws error if no position)
+- Validates the user holds enough units to sell
+- Calculates net proceeds: `units × executionPrice - fee`
+- Execution price = asset's current price - spread (sell side)
+- All transfers are executed atomically via Fineract Batch API
 
 Response:
 ```json
@@ -170,14 +179,19 @@ Response:
   "orderId": "uuid",
   "status": "FILLED",
   "units": 5,
-  "pricePerUnit": 4900,
-  "totalAmount": 24378,
+  "pricePerUnit": 4950,
+  "totalAmount": 24628,
   "fee": 122,
   "realizedPnl": -500
 }
 ```
 
-- `totalAmount` = gross (units × price) - fee = 24,500 - 122 = **24,378 XAF** (net amount credited to user)
+- `totalAmount` = gross (units × price) - fee = 24,750 - 122 = **24,628 XAF** (net amount credited to user)
+
+Error responses:
+- `400` - `NO_POSITION` (user has no holdings for this asset)
+- `400` - `INSUFFICIENT_UNITS` (trying to sell more than held)
+- `400` - `NO_XAF_ACCOUNT` (user has no active XAF savings account)
 
 ---
 

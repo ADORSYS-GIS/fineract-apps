@@ -1,8 +1,13 @@
 package com.adorsys.fineract.asset.dto;
 
+/** Lifecycle status of an asset. */
 public enum AssetStatus {
+    /** Asset created but not yet available for trading. */
     PENDING,
+    /** Asset is live and available for trading. */
     ACTIVE,
+    /** Trading temporarily suspended by admin. */
     HALTED,
+    /** Asset permanently removed from trading. */
     DELISTED
 }
