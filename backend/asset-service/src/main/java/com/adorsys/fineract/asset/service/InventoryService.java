@@ -6,6 +6,8 @@ import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,16 +28,16 @@ public class InventoryService {
     private final AssetPriceRepository assetPriceRepository;
 
     /**
-     * Get inventory stats for all assets.
+     * Get inventory stats for all assets, paginated.
      */
     @Transactional(readOnly = true)
-    public List<InventoryResponse> getInventory() {
-        List<Asset> assets = assetRepository.findAll();
-        List<String> assetIds = assets.stream().map(Asset::getId).toList();
+    public Page<InventoryResponse> getInventory(Pageable pageable) {
+        Page<Asset> assets = assetRepository.findAll(pageable);
+        List<String> assetIds = assets.getContent().stream().map(Asset::getId).toList();
         Map<String, AssetPrice> priceMap = assetPriceRepository.findAllByAssetIdIn(assetIds)
                 .stream().collect(Collectors.toMap(AssetPrice::getAssetId, Function.identity()));
 
-        return assets.stream().map(a -> {
+        return assets.map(a -> {
             AssetPrice price = priceMap.get(a.getId());
             BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
             BigDecimal available = a.getTotalSupply().subtract(a.getCirculatingSupply());
@@ -46,6 +48,6 @@ public class InventoryService {
                     a.getTotalSupply(), a.getCirculatingSupply(), available,
                     currentPrice, tvl
             );
-        }).toList();
+        });
     }
 }

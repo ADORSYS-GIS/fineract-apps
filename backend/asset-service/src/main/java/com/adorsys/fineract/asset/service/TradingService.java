@@ -65,7 +65,7 @@ public class TradingService {
      * Execute a BUY order. User identity and accounts are resolved from the JWT.
      * Uses Fineract Batch API for atomic transfers.
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public TradeResponse executeBuy(BuyRequest request, Jwt jwt, String idempotencyKey) {
         // 1. Idempotency check
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
@@ -187,19 +187,42 @@ public class TradingService {
                         "Fee collection account is not configured. Contact admin.", "CONFIG_ERROR");
             }
 
-            // 12d. Execute via Fineract Batch API (atomic)
+            // 12d. Record trade log BEFORE external call to ensure local state is consistent
+            TradeLog tradeLog = TradeLog.builder()
+                    .id(UUID.randomUUID().toString())
+                    .orderId(orderId)
+                    .userId(userId)
+                    .assetId(request.assetId())
+                    .side(TradeSide.BUY)
+                    .units(units)
+                    .pricePerUnit(executionPrice)
+                    .totalAmount(chargedAmount)
+                    .fee(fee)
+                    .build();
+            tradeLogRepository.save(tradeLog);
+
+            // 12e. Update portfolio (WAP) — include fee in cost basis for accurate P&L
+            BigDecimal effectiveCostPerUnit = chargedAmount.divide(units, 4, RoundingMode.HALF_UP);
+            portfolioService.updatePositionAfterBuy(userId, request.assetId(),
+                    userAssetAccountId, units, effectiveCostPerUnit);
+
+            // 12f. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
+            assetRepository.adjustCirculatingSupply(request.assetId(), units);
+
+            // 12g. Update OHLC
+            pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
+
+            // 12h. Execute Fineract Batch API LAST — all local DB writes are done, so if this
+            // fails, @Transactional rolls back everything cleanly with no orphaned Fineract transfers.
             List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
-            // Transfer 1: Cash leg — user XAF → treasury XAF
             transfers.add(new BatchTransferRequest(
                     userCashAccountId, lockedAsset.getTreasuryCashAccountId(),
                     actualCost, "Asset purchase: " + lockedAsset.getSymbol()));
-            // Transfer 2: Fee leg — user XAF → fee collection
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 transfers.add(new BatchTransferRequest(
                         userCashAccountId, feeCollectionAccountId,
                         fee, "Trading fee: BUY " + lockedAsset.getSymbol()));
             }
-            // Transfer 3: Asset leg — treasury asset → user asset
             transfers.add(new BatchTransferRequest(
                     lockedAsset.getTreasuryAssetAccountId(), userAssetAccountId,
                     units, "Asset delivery: " + lockedAsset.getSymbol()));
@@ -214,32 +237,7 @@ public class TradingService {
                 throw new TradingException("Trade failed: " + batchError.getMessage(), "TRADE_FAILED");
             }
 
-            // 13. Record trade log
-            TradeLog tradeLog = TradeLog.builder()
-                    .id(UUID.randomUUID().toString())
-                    .orderId(orderId)
-                    .userId(userId)
-                    .assetId(request.assetId())
-                    .side(TradeSide.BUY)
-                    .units(units)
-                    .pricePerUnit(executionPrice)
-                    .totalAmount(chargedAmount)
-                    .fee(fee)
-                    .build();
-            tradeLogRepository.save(tradeLog);
-
-            // 14. Update portfolio (WAP) — include fee in cost basis for accurate P&L
-            BigDecimal effectiveCostPerUnit = chargedAmount.divide(units, 4, RoundingMode.HALF_UP);
-            portfolioService.updatePositionAfterBuy(userId, request.assetId(),
-                    userAssetAccountId, units, effectiveCostPerUnit);
-
-            // 15. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
-            assetRepository.adjustCirculatingSupply(request.assetId(), units);
-
-            // 16. Update OHLC
-            pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
-
-            // 17. Mark order as filled
+            // 13. Mark order as filled
             order.setStatus(OrderStatus.FILLED);
             orderRepository.save(order);
 
@@ -266,7 +264,7 @@ public class TradingService {
      * Execute a SELL order. User identity and accounts are resolved from the JWT.
      * Uses Fineract Batch API for atomic transfers.
      */
-    @Transactional
+    @Transactional(timeout = 30)
     public TradeResponse executeSell(SellRequest request, Jwt jwt, String idempotencyKey) {
         // 1. Idempotency check
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
@@ -387,17 +385,41 @@ public class TradingService {
                         "Fee collection account is not configured. Contact admin.", "CONFIG_ERROR");
             }
 
-            // 12e. Execute via Fineract Batch API (atomic)
+            // 12e. Calculate realized P&L and update local DB BEFORE external call
+            BigDecimal netProceedsPerUnit = netAmount.divide(units, 4, RoundingMode.HALF_UP);
+            BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
+                    userId, request.assetId(), units, netProceedsPerUnit);
+
+            // 12f. Record trade log
+            TradeLog tradeLog = TradeLog.builder()
+                    .id(UUID.randomUUID().toString())
+                    .orderId(orderId)
+                    .userId(userId)
+                    .assetId(request.assetId())
+                    .side(TradeSide.SELL)
+                    .units(units)
+                    .pricePerUnit(executionPrice)
+                    .totalAmount(netAmount)
+                    .fee(fee)
+                    .realizedPnl(realizedPnl)
+                    .build();
+            tradeLogRepository.save(tradeLog);
+
+            // 12g. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
+            assetRepository.adjustCirculatingSupply(request.assetId(), units.negate());
+
+            // 12h. Update OHLC
+            pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
+
+            // 12i. Execute Fineract Batch API LAST — all local DB writes are done, so if this
+            // fails, @Transactional rolls back everything cleanly with no orphaned Fineract transfers.
             List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
-            // Transfer 1: Asset leg — user asset → treasury asset
             transfers.add(new BatchTransferRequest(
                     userAssetAccountId, lockedAsset.getTreasuryAssetAccountId(),
                     units, "Asset sell: " + lockedAsset.getSymbol()));
-            // Transfer 2: Cash leg — treasury XAF → user XAF (net proceeds)
             transfers.add(new BatchTransferRequest(
                     lockedAsset.getTreasuryCashAccountId(), userCashAccountId,
                     netAmount, "Asset sale proceeds: " + lockedAsset.getSymbol()));
-            // Transfer 3: Fee leg — treasury XAF → fee collection
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 transfers.add(new BatchTransferRequest(
                         lockedAsset.getTreasuryCashAccountId(), feeCollectionAccountId,
@@ -414,33 +436,7 @@ public class TradingService {
                 throw new TradingException("Trade failed: " + batchError.getMessage(), "TRADE_FAILED");
             }
 
-            // 13. Calculate realized P&L — use net proceeds per unit (after fee) for accurate P&L
-            BigDecimal netProceedsPerUnit = netAmount.divide(units, 4, RoundingMode.HALF_UP);
-            BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    userId, request.assetId(), units, netProceedsPerUnit);
-
-            // 14. Record trade log
-            TradeLog tradeLog = TradeLog.builder()
-                    .id(UUID.randomUUID().toString())
-                    .orderId(orderId)
-                    .userId(userId)
-                    .assetId(request.assetId())
-                    .side(TradeSide.SELL)
-                    .units(units)
-                    .pricePerUnit(executionPrice)
-                    .totalAmount(netAmount)
-                    .fee(fee)
-                    .realizedPnl(realizedPnl)
-                    .build();
-            tradeLogRepository.save(tradeLog);
-
-            // 15. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
-            assetRepository.adjustCirculatingSupply(request.assetId(), units.negate());
-
-            // 16. Update OHLC
-            pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
-
-            // 17. Mark order as filled
+            // 13. Mark order as filled
             order.setStatus(OrderStatus.FILLED);
             orderRepository.save(order);
 

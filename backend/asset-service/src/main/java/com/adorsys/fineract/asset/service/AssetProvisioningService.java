@@ -10,6 +10,7 @@ import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,7 @@ public class AssetProvisioningService {
      */
     @SuppressWarnings("unchecked")
     @Transactional
+    @PreAuthorize("hasRole('ASSET_MANAGER')")
     public AssetDetailResponse createAsset(CreateAssetRequest request) {
         // Validate uniqueness
         if (assetRepository.findBySymbol(request.symbol()).isPresent()) {
@@ -151,13 +153,14 @@ public class AssetProvisioningService {
 
         log.info("Asset created successfully: id={}, symbol={}", assetId, request.symbol());
 
-        return assetCatalogService.getAssetDetail(assetId);
+        return assetCatalogService.getAssetDetailAdmin(assetId);
     }
 
     /**
      * Update asset metadata.
      */
     @Transactional
+    @PreAuthorize("hasRole('ASSET_MANAGER')")
     public AssetDetailResponse updateAsset(String assetId, UpdateAssetRequest request) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -172,13 +175,14 @@ public class AssetProvisioningService {
         assetRepository.save(asset);
         log.info("Updated asset: id={}", assetId);
 
-        return assetCatalogService.getAssetDetail(assetId);
+        return assetCatalogService.getAssetDetailAdmin(assetId);
     }
 
     /**
      * Activate an asset (PENDING -> ACTIVE).
      */
     @Transactional
+    @PreAuthorize("hasRole('ASSET_MANAGER')")
     public void activateAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -196,6 +200,7 @@ public class AssetProvisioningService {
      * Halt trading for an asset.
      */
     @Transactional
+    @PreAuthorize("hasRole('ASSET_MANAGER')")
     public void haltAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -213,6 +218,7 @@ public class AssetProvisioningService {
      * Mint additional supply for an asset (deposit more tokens into treasury).
      */
     @Transactional
+    @PreAuthorize("hasRole('ASSET_MANAGER')")
     public void mintSupply(String assetId, MintSupplyRequest request) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -235,6 +241,7 @@ public class AssetProvisioningService {
      * Resume trading for a halted asset.
      */
     @Transactional
+    @PreAuthorize("hasRole('ASSET_MANAGER')")
     public void resumeAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));

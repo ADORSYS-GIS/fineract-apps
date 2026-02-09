@@ -14,8 +14,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 /**
  * Authenticated endpoints for trading operations.
  */
@@ -32,10 +30,7 @@ public class TradeController {
     public ResponseEntity<TradeResponse> buy(
             @Valid @RequestBody BuyRequest request,
             @AuthenticationPrincipal Jwt jwt,
-            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
-        if (idempotencyKey == null) {
-            idempotencyKey = UUID.randomUUID().toString();
-        }
+            @RequestHeader("X-Idempotency-Key") String idempotencyKey) {
         return ResponseEntity.ok(tradingService.executeBuy(request, jwt, idempotencyKey));
     }
 
@@ -44,10 +39,7 @@ public class TradeController {
     public ResponseEntity<TradeResponse> sell(
             @Valid @RequestBody SellRequest request,
             @AuthenticationPrincipal Jwt jwt,
-            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
-        if (idempotencyKey == null) {
-            idempotencyKey = UUID.randomUUID().toString();
-        }
+            @RequestHeader("X-Idempotency-Key") String idempotencyKey) {
         return ResponseEntity.ok(tradingService.executeSell(request, jwt, idempotencyKey));
     }
 

@@ -10,6 +10,7 @@ import com.adorsys.fineract.asset.repository.PriceHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -122,6 +123,7 @@ public class PricingService {
      * Manually set an asset's price (admin).
      */
     @Transactional
+    @PreAuthorize("hasRole('ASSET_MANAGER')")
     public void setPrice(String assetId, SetPriceRequest request) {
         var asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));

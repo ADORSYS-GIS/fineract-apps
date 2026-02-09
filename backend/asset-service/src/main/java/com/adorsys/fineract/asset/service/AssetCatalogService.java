@@ -136,16 +136,16 @@ public class AssetCatalogService {
     }
 
     /**
-     * List all assets for admin (all statuses).
+     * List all assets for admin (all statuses), paginated.
      */
     @Transactional(readOnly = true)
-    public List<AssetResponse> listAllAssets() {
-        List<Asset> assets = assetRepository.findAll();
-        List<String> assetIds = assets.stream().map(Asset::getId).toList();
+    public Page<AssetResponse> listAllAssets(Pageable pageable) {
+        Page<Asset> assets = assetRepository.findAll(pageable);
+        List<String> assetIds = assets.getContent().stream().map(Asset::getId).toList();
         Map<String, AssetPrice> priceMap = assetPriceRepository.findAllByAssetIdIn(assetIds)
                 .stream().collect(Collectors.toMap(AssetPrice::getAssetId, Function.identity()));
 
-        return assets.stream().map(a -> toAssetResponse(a, priceMap.get(a.getId()))).toList();
+        return assets.map(a -> toAssetResponse(a, priceMap.get(a.getId())));
     }
 
     private AssetResponse toAssetResponse(Asset a, AssetPrice price) {

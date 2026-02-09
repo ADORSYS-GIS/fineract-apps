@@ -9,11 +9,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * Admin endpoints for asset management.
@@ -80,13 +80,13 @@ public class AdminAssetController {
 
     @GetMapping
     @Operation(summary = "List all assets (all statuses)")
-    public ResponseEntity<List<AssetResponse>> listAllAssets() {
-        return ResponseEntity.ok(catalogService.listAllAssets());
+    public ResponseEntity<Page<AssetResponse>> listAllAssets(Pageable pageable) {
+        return ResponseEntity.ok(catalogService.listAllAssets(pageable));
     }
 
     @GetMapping("/inventory")
     @Operation(summary = "Supply stats for all assets")
-    public ResponseEntity<List<InventoryResponse>> getInventory() {
-        return ResponseEntity.ok(inventoryService.getInventory());
+    public ResponseEntity<Page<InventoryResponse>> getInventory(Pageable pageable) {
+        return ResponseEntity.ok(inventoryService.getInventory(pageable));
     }
 }

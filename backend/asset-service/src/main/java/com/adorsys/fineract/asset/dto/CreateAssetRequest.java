@@ -28,9 +28,9 @@ public record CreateAssetRequest(
     /** Number of decimal places for fractional units (0 = whole units only, max 8). */
     @NotNull @Min(0) @Max(8) Integer decimalPlaces,
     /** Optional trading fee as a percentage (e.g. 0.005 = 0.5%). Null means no fee. */
-    BigDecimal tradingFeePercent,
+    @PositiveOrZero @DecimalMax("0.50") BigDecimal tradingFeePercent,
     /** Optional bid-ask spread as a percentage (e.g. 0.01 = 1%). Null means no spread. */
-    BigDecimal spreadPercent,
+    @PositiveOrZero @DecimalMax("0.50") BigDecimal spreadPercent,
     /** Optional planned launch date. If set, asset starts in PENDING status until this date. */
     LocalDate expectedLaunchDate,
     /** Fineract client ID of the treasury that will hold this asset's reserves. */

@@ -33,14 +33,19 @@ public class StaleOrderCleanupScheduler {
         for (Order order : stalePending) {
             order.setStatus(OrderStatus.FAILED);
             order.setFailureReason("Order timed out after " + minutes + " minutes");
-            orderRepository.save(order);
         }
 
         List<Order> stuckExecuting = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.EXECUTING, cutoff);
         for (Order order : stuckExecuting) {
             order.setStatus(OrderStatus.FAILED);
             order.setFailureReason("Order stuck in EXECUTING state for over " + minutes + " minutes");
-            orderRepository.save(order);
+        }
+
+        if (!stalePending.isEmpty()) {
+            orderRepository.saveAll(stalePending);
+        }
+        if (!stuckExecuting.isEmpty()) {
+            orderRepository.saveAll(stuckExecuting);
         }
 
         int total = stalePending.size() + stuckExecuting.size();

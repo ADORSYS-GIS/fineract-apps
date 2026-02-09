@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -36,6 +37,19 @@ public class TradeLockService {
     private static final String LOCAL_LOCK_PREFIX = "LOCAL:";
 
     private final ConcurrentHashMap<String, ReentrantLock> localLocks = new ConcurrentHashMap<>();
+
+    /**
+     * Evict unlocked entries from the local fallback lock map to prevent unbounded growth.
+     */
+    @Scheduled(fixedRate = 600000)
+    public void evictStaleLocalLocks() {
+        int before = localLocks.size();
+        localLocks.entrySet().removeIf(entry -> !entry.getValue().isLocked());
+        int removed = before - localLocks.size();
+        if (removed > 0) {
+            log.debug("Evicted {} stale local locks, {} remaining", removed, localLocks.size());
+        }
+    }
 
     /**
      * Acquire dual lock for a trade operation.

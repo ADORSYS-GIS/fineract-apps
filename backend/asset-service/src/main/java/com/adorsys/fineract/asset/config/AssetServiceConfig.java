@@ -5,6 +5,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.ZoneId;
+
 /**
  * Asset service-specific configuration properties.
  */
@@ -61,6 +63,13 @@ public class AssetServiceConfig {
             throw new IllegalStateException(
                     "asset-service.accounting.fee-collection-account-id must be set to a valid Fineract savings account ID. "
                     + "Current value: " + accounting.getFeeCollectionAccountId());
+        }
+        try {
+            ZoneId.of(marketHours.getTimezone());
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "asset-service.market-hours.timezone is invalid: '" + marketHours.getTimezone()
+                    + "'. Must be a valid IANA timezone (e.g. 'Africa/Lagos').", e);
         }
     }
 }
