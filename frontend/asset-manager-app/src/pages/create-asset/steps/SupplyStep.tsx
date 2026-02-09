@@ -32,6 +32,7 @@ export const SupplyStep: FC<Props> = ({
 					</label>
 					<input
 						type="number"
+						aria-label="Total supply"
 						className={inputClass("supply")}
 						placeholder="e.g. 100000"
 						value={formData.totalSupply || ""}
@@ -54,6 +55,7 @@ export const SupplyStep: FC<Props> = ({
 						Decimal Places
 					</label>
 					<select
+						aria-label="Decimal places"
 						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						value={formData.decimalPlaces}
 						onChange={(e) =>
@@ -76,6 +78,7 @@ export const SupplyStep: FC<Props> = ({
 					</label>
 					<input
 						type="date"
+						aria-label="Expected launch date"
 						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						value={formData.expectedLaunchDate}
 						onChange={(e) =>

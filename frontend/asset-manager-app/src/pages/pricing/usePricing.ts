@@ -11,7 +11,7 @@ export const usePricing = () => {
 
 	const { data: asset } = useQuery({
 		queryKey: ["asset", assetId],
-		queryFn: () => assetApi.getAsset(assetId),
+		queryFn: () => assetApi.getAssetAdmin(assetId),
 		select: (res) => res.data,
 	});
 

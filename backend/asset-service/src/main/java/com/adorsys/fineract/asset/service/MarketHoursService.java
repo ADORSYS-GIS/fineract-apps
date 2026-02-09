@@ -87,7 +87,7 @@ public class MarketHoursService {
             secondsUntilOpen = Duration.between(now, nextOpen).getSeconds();
         }
 
-        return new MarketStatusResponse(isOpen, schedule, secondsUntilClose, secondsUntilOpen);
+        return new MarketStatusResponse(isOpen, schedule, secondsUntilClose, secondsUntilOpen, zone.getId());
     }
 
     private boolean isWeekend(ZonedDateTime dateTime) {

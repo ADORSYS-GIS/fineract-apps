@@ -71,6 +71,7 @@ public class TradingService {
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOrder.isPresent()) {
             Order o = existingOrder.get();
+            log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
             return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
                     o.getExecutionPrice(), o.getXafAmount(), o.getFee(), null, o.getCreatedAt());
         }
@@ -270,6 +271,7 @@ public class TradingService {
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOrder.isPresent()) {
             Order o = existingOrder.get();
+            log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
             return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
                     o.getExecutionPrice(), o.getXafAmount(), o.getFee(), null, o.getCreatedAt());
         }

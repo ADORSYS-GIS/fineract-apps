@@ -11,6 +11,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +35,12 @@ public class AdminAssetController {
     @Operation(summary = "Create asset", description = "Create a new asset with Fineract provisioning")
     public ResponseEntity<AssetDetailResponse> createAsset(@Valid @RequestBody CreateAssetRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(provisioningService.createAsset(request));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get asset detail (admin)", description = "Full asset detail including Fineract IDs")
+    public ResponseEntity<AssetDetailResponse> getAsset(@PathVariable String id) {
+        return ResponseEntity.ok(catalogService.getAssetDetailAdmin(id));
     }
 
     @PutMapping("/{id}")
@@ -80,13 +88,21 @@ public class AdminAssetController {
 
     @GetMapping
     @Operation(summary = "List all assets (all statuses)")
-    public ResponseEntity<Page<AssetResponse>> listAllAssets(Pageable pageable) {
+    public ResponseEntity<Page<AssetResponse>> listAllAssets(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        if (pageable.getPageSize() > 100) {
+            throw new IllegalArgumentException("Max page size is 100");
+        }
         return ResponseEntity.ok(catalogService.listAllAssets(pageable));
     }
 
     @GetMapping("/inventory")
     @Operation(summary = "Supply stats for all assets")
-    public ResponseEntity<Page<InventoryResponse>> getInventory(Pageable pageable) {
+    public ResponseEntity<Page<InventoryResponse>> getInventory(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        if (pageable.getPageSize() > 100) {
+            throw new IllegalArgumentException("Max page size is 100");
+        }
         return ResponseEntity.ok(inventoryService.getInventory(pageable));
     }
 }

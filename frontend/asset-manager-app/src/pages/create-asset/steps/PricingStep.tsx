@@ -34,6 +34,7 @@ export const PricingStep: FC<Props> = ({
 					</label>
 					<input
 						type="number"
+						aria-label="Initial price"
 						className={inputClass("price")}
 						placeholder="e.g. 5000"
 						value={formData.initialPrice || ""}
@@ -57,6 +58,7 @@ export const PricingStep: FC<Props> = ({
 					</label>
 					<input
 						type="number"
+						aria-label="Trading fee"
 						className={inputClass("trading fee")}
 						placeholder="0.50"
 						value={formData.tradingFeePercent}
@@ -84,6 +86,7 @@ export const PricingStep: FC<Props> = ({
 					</label>
 					<input
 						type="number"
+						aria-label="Spread"
 						className={inputClass("spread")}
 						placeholder="1.00"
 						value={formData.spreadPercent}

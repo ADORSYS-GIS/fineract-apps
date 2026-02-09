@@ -5,6 +5,10 @@ const assetClient = axios.create({
 	timeout: 30000,
 });
 
+if (!import.meta.env.VITE_ASSET_SERVICE_URL && import.meta.env.PROD) {
+	console.warn("VITE_ASSET_SERVICE_URL not set, using localhost fallback");
+}
+
 // Interceptor adds auth token from sessionStorage
 assetClient.interceptors.request.use((config) => {
 	try {
@@ -73,23 +77,50 @@ export function extractErrorMessage(error: unknown): string {
 
 // --- Types ---
 
+/** Asset summary for list views (matches backend AssetResponse). */
 export interface AssetResponse {
 	id: string;
-	symbol: string;
 	name: string;
+	symbol: string;
+	imageUrl?: string;
+	category: string;
+	status: string;
+	currentPrice: number;
+	change24hPercent: number;
+	availableSupply: number;
+	totalSupply: number;
+}
+
+/** Full asset detail with Fineract IDs (matches backend AssetDetailResponse). */
+export interface AssetDetailResponse {
+	id: string;
+	name: string;
+	symbol: string;
+	currencyCode: string;
 	description?: string;
 	imageUrl?: string;
 	category: string;
 	status: string;
 	priceMode: string;
 	currentPrice: number;
-	change24hPercent: number;
+	change24hPercent?: number;
+	dayOpen?: number;
+	dayHigh?: number;
+	dayLow?: number;
+	dayClose?: number;
 	totalSupply: number;
 	circulatingSupply: number;
 	availableSupply: number;
-	fineractProductId?: number;
+	tradingFeePercent?: number;
+	spreadPercent?: number;
+	decimalPlaces: number;
+	expectedLaunchDate?: string;
 	treasuryClientId: number;
+	treasuryAssetAccountId?: number;
+	treasuryCashAccountId?: number;
+	fineractProductId?: number;
 	createdAt: string;
+	updatedAt?: string;
 }
 
 export interface CreateAssetRequest {
@@ -121,14 +152,17 @@ export interface SetPriceRequest {
 	price: number;
 }
 
+/** Inventory stats (matches backend InventoryResponse). */
 export interface InventoryItem {
 	assetId: string;
-	symbol: string;
 	name: string;
+	symbol: string;
+	status: string;
 	totalSupply: number;
 	circulatingSupply: number;
 	availableSupply: number;
-	treasuryBalance: number;
+	currentPrice: number;
+	totalValueLocked: number;
 }
 
 export interface MarketStatusResponse {
@@ -136,6 +170,7 @@ export interface MarketStatusResponse {
 	schedule: string;
 	secondsUntilClose?: number;
 	secondsUntilOpen?: number;
+	timezone?: string;
 }
 
 export interface PriceHistoryPoint {
@@ -162,10 +197,17 @@ export const assetApi = {
 		assetClient.get("/api/assets/discover", { params }),
 
 	// Assets - Admin
+	listAllAssets: (params?: { page?: number; size?: number }) =>
+		assetClient.get<{ content: AssetResponse[]; totalPages: number }>(
+			"/api/admin/assets",
+			{ params },
+		),
+	getAssetAdmin: (id: string) =>
+		assetClient.get<AssetDetailResponse>(`/api/admin/assets/${id}`),
 	createAsset: (data: CreateAssetRequest) =>
-		assetClient.post<AssetResponse>("/api/admin/assets", data),
+		assetClient.post<AssetDetailResponse>("/api/admin/assets", data),
 	updateAsset: (id: string, data: UpdateAssetRequest) =>
-		assetClient.put<AssetResponse>(`/api/admin/assets/${id}`, data),
+		assetClient.put<AssetDetailResponse>(`/api/admin/assets/${id}`, data),
 	activateAsset: (id: string) =>
 		assetClient.post(`/api/admin/assets/${id}/activate`),
 	haltAsset: (id: string) => assetClient.post(`/api/admin/assets/${id}/halt`),
@@ -173,8 +215,11 @@ export const assetApi = {
 		assetClient.post(`/api/admin/assets/${id}/resume`),
 	setPrice: (id: string, data: SetPriceRequest) =>
 		assetClient.post(`/api/admin/assets/${id}/set-price`, data),
-	getInventory: () =>
-		assetClient.get<InventoryItem[]>("/api/admin/assets/inventory"),
+	getInventory: (params?: { page?: number; size?: number }) =>
+		assetClient.get<{ content: InventoryItem[]; totalPages: number }>(
+			"/api/admin/assets/inventory",
+			{ params },
+		),
 
 	// Prices
 	getPrice: (assetId: string) => assetClient.get(`/api/prices/${assetId}`),

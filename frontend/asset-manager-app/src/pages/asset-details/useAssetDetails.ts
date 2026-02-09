@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 import {
-	type AssetResponse,
+	type AssetDetailResponse,
 	assetApi,
 	extractErrorMessage,
 	type UpdateAssetRequest,
@@ -19,8 +19,8 @@ export const useAssetDetails = () => {
 		refetch,
 	} = useQuery({
 		queryKey: ["asset", assetId],
-		queryFn: () => assetApi.getAsset(assetId),
-		select: (res) => res.data as AssetResponse,
+		queryFn: () => assetApi.getAssetAdmin(assetId),
+		select: (res) => res.data as AssetDetailResponse,
 	});
 
 	const { data: price } = useQuery({
@@ -28,6 +28,7 @@ export const useAssetDetails = () => {
 		queryFn: () => assetApi.getPrice(assetId),
 		select: (res) => res.data,
 		refetchInterval: 30000,
+		staleTime: 30_000,
 	});
 
 	const invalidateAll = () => {

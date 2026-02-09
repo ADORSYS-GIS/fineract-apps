@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -28,11 +29,17 @@ import java.util.concurrent.ConcurrentHashMap;
 @Configuration
 public class RateLimitConfig {
 
-    private static final int TRADE_LIMIT = 10;
-    private static final Duration TRADE_DURATION = Duration.ofMinutes(1);
+    @Value("${asset-service.rate-limit.trade-limit:10}")
+    private int tradeLimit;
 
-    private static final int GENERAL_LIMIT = 100;
-    private static final Duration GENERAL_DURATION = Duration.ofMinutes(1);
+    @Value("${asset-service.rate-limit.trade-duration-minutes:1}")
+    private int tradeDurationMinutes;
+
+    @Value("${asset-service.rate-limit.general-limit:100}")
+    private int generalLimit;
+
+    @Value("${asset-service.rate-limit.general-duration-minutes:1}")
+    private int generalDurationMinutes;
 
     private static final int MAX_BUCKETS = 10_000;
 
@@ -102,13 +109,13 @@ public class RateLimitConfig {
 
         private Bucket createTradeBucket(String key) {
             return Bucket.builder()
-                    .addLimit(Bandwidth.classic(TRADE_LIMIT, Refill.greedy(TRADE_LIMIT, TRADE_DURATION)))
+                    .addLimit(Bandwidth.classic(tradeLimit, Refill.greedy(tradeLimit, Duration.ofMinutes(tradeDurationMinutes))))
                     .build();
         }
 
         private Bucket createGeneralBucket(String key) {
             return Bucket.builder()
-                    .addLimit(Bandwidth.classic(GENERAL_LIMIT, Refill.greedy(GENERAL_LIMIT, GENERAL_DURATION)))
+                    .addLimit(Bandwidth.classic(generalLimit, Refill.greedy(generalLimit, Duration.ofMinutes(generalDurationMinutes))))
                     .build();
         }
 

@@ -72,7 +72,7 @@ export const useCreateAsset = () => {
 			}),
 		select: (res) =>
 			(res.pageItems ?? []).filter(
-				(c: { legalForm?: { id?: number } }) => c.legalForm?.id === 2, // ENTITY (company)
+				(c) => (c as { legalForm?: { id?: number } }).legalForm?.id === 2, // ENTITY (company)
 			),
 	});
 

@@ -2,6 +2,15 @@ import { Button, Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { FC, useState } from "react";
+import {
+	CartesianGrid,
+	Line,
+	LineChart,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
 import { usePricing } from "./usePricing";
 
 const PERIODS = ["1D", "1W", "1M", "3M", "1Y", "ALL"];
@@ -134,6 +143,7 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 							</label>
 							<input
 								type="number"
+								aria-label="New price"
 								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								placeholder="Enter new price..."
 								value={manualPrice}
@@ -185,31 +195,75 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 							No price history available
 						</p>
 					) : (
-						<div className="overflow-x-auto">
-							<table className="min-w-full text-sm">
-								<thead>
-									<tr className="text-left text-xs text-gray-500 uppercase border-b">
-										<th className="pb-2">Timestamp</th>
-										<th className="pb-2">Price (XAF)</th>
-									</tr>
-								</thead>
-								<tbody>
-									{priceHistory.map((point) => (
-										<tr
-											key={point.capturedAt}
-											className="border-b border-gray-100"
-										>
-											<td className="py-2 text-gray-600">
-												{new Date(point.capturedAt).toLocaleString()}
-											</td>
-											<td className="py-2 font-mono">
-												{point.price.toLocaleString()}
-											</td>
+						<>
+							<div className="h-64 mb-6">
+								<ResponsiveContainer width="100%" height="100%">
+									<LineChart
+										data={priceHistory.map((p) => ({
+											time: new Date(p.capturedAt).toLocaleDateString(
+												undefined,
+												{
+													month: "short",
+													day: "numeric",
+												},
+											),
+											price: p.price,
+										}))}
+									>
+										<CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+										<XAxis
+											dataKey="time"
+											tick={{ fontSize: 12 }}
+											stroke="#9ca3af"
+										/>
+										<YAxis
+											tick={{ fontSize: 12 }}
+											stroke="#9ca3af"
+											tickFormatter={(v: number) => v.toLocaleString()}
+										/>
+										<Tooltip
+											formatter={(value: number) => [
+												`${value.toLocaleString()} XAF`,
+												"Price",
+											]}
+										/>
+										<Line
+											type="monotone"
+											dataKey="price"
+											stroke="#2563eb"
+											strokeWidth={2}
+											dot={false}
+											activeDot={{ r: 4 }}
+										/>
+									</LineChart>
+								</ResponsiveContainer>
+							</div>
+							<div className="overflow-x-auto">
+								<table className="min-w-full text-sm">
+									<thead>
+										<tr className="text-left text-xs text-gray-500 uppercase border-b">
+											<th className="pb-2">Timestamp</th>
+											<th className="pb-2">Price (XAF)</th>
 										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
+									</thead>
+									<tbody>
+										{priceHistory.map((point) => (
+											<tr
+												key={point.capturedAt}
+												className="border-b border-gray-100"
+											>
+												<td className="py-2 text-gray-600">
+													{new Date(point.capturedAt).toLocaleString()}
+												</td>
+												<td className="py-2 font-mono">
+													{point.price.toLocaleString()}
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+						</>
 					)}
 				</Card>
 			</main>

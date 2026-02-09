@@ -4,6 +4,7 @@ import { PlusCircle } from "lucide-react";
 import { FC } from "react";
 import { ErrorFallback } from "@/components/ErrorFallback";
 import { StatusBadge } from "@/components/StatusBadge";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { useDashboard } from "./useDashboard";
 
 const CATEGORIES = [
@@ -28,6 +29,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	categoryFilter,
 	onCategoryChange,
 	marketStatus,
+	refetch,
 }) => {
 	return (
 		<div className="bg-gray-50 min-h-screen">
@@ -88,14 +90,9 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 
 				{/* Assets Table */}
 				{isAssetsError ? (
-					<ErrorFallback
-						message="Failed to load assets."
-						onRetry={() => window.location.reload()}
-					/>
+					<ErrorFallback message="Failed to load assets." onRetry={refetch} />
 				) : isFetchingAssets ? (
-					<div className="flex items-center justify-center py-12">
-						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-					</div>
+					<TableSkeleton rows={5} cols={6} />
 				) : assets.length === 0 ? (
 					<Card className="p-12 text-center">
 						<p className="text-gray-500">No assets found.</p>

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { type AssetResponse, assetApi } from "@/services/assetApi";
 
 export const useDashboard = () => {
@@ -8,19 +8,20 @@ export const useDashboard = () => {
 	const [categoryFilter, setCategoryFilter] = useState<string>("");
 	const pageSize = 10;
 
+	// Debounce search to avoid triggering filter on every keystroke
+	const debouncedSearch = useDeferredValue(searchValue);
+
 	const {
 		data: assetsData,
 		isLoading: isFetchingAssets,
 		isError: isAssetsError,
 		refetch,
 	} = useQuery({
-		queryKey: ["assets", currentPage, categoryFilter, searchValue],
+		queryKey: ["assets", currentPage],
 		queryFn: () =>
-			assetApi.listAssets({
+			assetApi.listAllAssets({
 				page: currentPage - 1,
 				size: pageSize,
-				category: categoryFilter || undefined,
-				search: searchValue || undefined,
 			}),
 		select: (res) => res.data,
 	});
@@ -46,8 +47,25 @@ export const useDashboard = () => {
 		setCurrentPage(1);
 	};
 
-	const assets: AssetResponse[] = assetsData?.content ?? [];
+	const allAssets: AssetResponse[] = assetsData?.content ?? [];
 	const totalPages = assetsData?.totalPages ?? 1;
+
+	// Client-side filtering (admin endpoint doesn't support search/category params)
+	const assets = useMemo(() => {
+		let filtered = allAssets;
+		if (categoryFilter) {
+			filtered = filtered.filter((a) => a.category === categoryFilter);
+		}
+		if (debouncedSearch) {
+			const q = debouncedSearch.toLowerCase();
+			filtered = filtered.filter(
+				(a) =>
+					a.name.toLowerCase().includes(q) ||
+					a.symbol.toLowerCase().includes(q),
+			);
+		}
+		return filtered;
+	}, [allAssets, categoryFilter, debouncedSearch]);
 
 	return {
 		searchValue,

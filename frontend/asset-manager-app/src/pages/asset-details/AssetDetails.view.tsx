@@ -221,11 +221,13 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 							</label>
 							<input
 								type="number"
+								aria-label="New price"
 								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								placeholder="Enter new price..."
 								value={manualPrice}
 								onChange={(e) => setManualPrice(e.target.value)}
-								min={0}
+								min={0.0001}
+								step="any"
 							/>
 						</div>
 						<Button
@@ -246,16 +248,38 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						<div>
 							<span className="text-gray-500">Fineract Product ID:</span>{" "}
 							<span className="font-medium">
-								{asset.fineractProductId ?? "Not provisioned"}
+								{asset.fineractProductId ?? "—"}
 							</span>
 						</div>
 						<div>
 							<span className="text-gray-500">Treasury Client ID:</span>{" "}
-							<span className="font-medium">{asset.treasuryClientId}</span>
+							<span className="font-medium">
+								{asset.treasuryClientId ?? "—"}
+							</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Treasury Asset Account:</span>{" "}
+							<span className="font-medium">
+								{asset.treasuryAssetAccountId ?? "—"}
+							</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Treasury Cash Account:</span>{" "}
+							<span className="font-medium">
+								{asset.treasuryCashAccountId ?? "—"}
+							</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Currency Code:</span>{" "}
+							<span className="font-medium">{asset.currencyCode}</span>
 						</div>
 						<div>
 							<span className="text-gray-500">Price Mode:</span>{" "}
 							<span className="font-medium">{asset.priceMode}</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Decimal Places:</span>{" "}
+							<span className="font-medium">{asset.decimalPlaces}</span>
 						</div>
 						<div>
 							<span className="text-gray-500">Created:</span>{" "}

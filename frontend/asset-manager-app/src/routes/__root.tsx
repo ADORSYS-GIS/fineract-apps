@@ -8,16 +8,18 @@ import {
 import {
 	createRootRouteWithContext,
 	Outlet,
+	useLocation,
 	useNavigate,
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { Bell, UserCircle } from "lucide-react";
+import { Bell, Moon, Sun, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { AuthGuard } from "@/components/AuthGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
+import { useDarkMode } from "@/hooks/useDarkMode";
 import { configureApi } from "@/services/api";
 
 export const Route = createRootRouteWithContext()({
@@ -27,10 +29,12 @@ export const Route = createRootRouteWithContext()({
 function RootLayout() {
 	configureApi();
 	const { onLogout, userData } = useAuth();
+	const { isDark, toggle: toggleDarkMode } = useDarkMode();
 	const navigate = useNavigate();
 	const { location } = useRouterState();
 
 	const { t } = useTranslation();
+	const currentLocation = useLocation();
 
 	// Don't render the layout on the login page
 	if (location.pathname === "/login") {
@@ -62,7 +66,22 @@ function RootLayout() {
 							</h1>
 						}
 						links={null}
-						notifications={<Bell />}
+						notifications={
+							<div className="flex items-center gap-2">
+								<button
+									onClick={toggleDarkMode}
+									className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+									aria-label="Toggle dark mode"
+								>
+									{isDark ? (
+										<Sun className="w-5 h-5" />
+									) : (
+										<Moon className="w-5 h-5" />
+									)}
+								</button>
+								<Bell />
+							</div>
+						}
 						userSection={
 							<div className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full">
 								<UserCircle className="w-5 h-5 text-gray-600" />
@@ -78,7 +97,7 @@ function RootLayout() {
 					/>
 				}
 			>
-				<ErrorBoundary>
+				<ErrorBoundary key={currentLocation.pathname}>
 					<AuthGuard>
 						<Outlet />
 					</AuthGuard>

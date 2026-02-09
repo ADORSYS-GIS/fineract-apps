@@ -42,6 +42,7 @@ export const AssetDetailsStep: FC<Props> = ({
 					</label>
 					<input
 						type="text"
+						aria-label="Asset name"
 						className={inputClass("name")}
 						placeholder="e.g. Douala Tower Token"
 						value={formData.name}
@@ -58,6 +59,7 @@ export const AssetDetailsStep: FC<Props> = ({
 					</label>
 					<input
 						type="text"
+						aria-label="Symbol"
 						className={`${inputClass("symbol")} uppercase`}
 						placeholder="e.g. DTT"
 						value={formData.symbol}
@@ -77,6 +79,7 @@ export const AssetDetailsStep: FC<Props> = ({
 					</label>
 					<input
 						type="text"
+						aria-label="Currency code"
 						className={`${inputClass("currency")} uppercase`}
 						placeholder="e.g. DTT (must be unique in Fineract)"
 						value={formData.currencyCode}
@@ -101,6 +104,7 @@ export const AssetDetailsStep: FC<Props> = ({
 						Category *
 					</label>
 					<select
+						aria-label="Category"
 						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						value={formData.category}
 						onChange={(e) => updateFormData({ category: e.target.value })}
@@ -119,6 +123,7 @@ export const AssetDetailsStep: FC<Props> = ({
 					Description
 				</label>
 				<textarea
+					aria-label="Description"
 					className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					rows={3}
 					placeholder="Describe the asset and its underlying real-world value..."
@@ -134,6 +139,7 @@ export const AssetDetailsStep: FC<Props> = ({
 				</label>
 				<input
 					type="url"
+					aria-label="Image URL"
 					className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					placeholder="https://example.com/asset-image.jpg"
 					value={formData.imageUrl}

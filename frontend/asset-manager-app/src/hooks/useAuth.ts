@@ -42,6 +42,8 @@ export const useAuth = () => {
 		}
 	}, [fineractUser, keycloakUser]);
 	const onLogout = () => {
+		if (!window.confirm("Are you sure you want to sign out?")) return;
+
 		const base = import.meta.env.BASE_URL || "/asset-manager/";
 		const appBase = base.endsWith("/") ? base : `${base}/`;
 		const redirectTo = `${window.location.origin}${appBase}`;

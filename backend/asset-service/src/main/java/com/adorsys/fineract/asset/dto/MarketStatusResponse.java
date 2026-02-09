@@ -12,5 +12,7 @@ public record MarketStatusResponse(
     /** Seconds remaining until market closes. Zero if market is already closed. */
     long secondsUntilClose,
     /** Seconds remaining until market opens. Zero if market is already open. */
-    long secondsUntilOpen
+    long secondsUntilOpen,
+    /** Timezone ID, e.g. "Africa/Lagos". */
+    String timezone
 ) {}

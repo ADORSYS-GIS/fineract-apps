@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.client;
 
 import com.adorsys.fineract.asset.config.FineractConfig;
 import com.adorsys.fineract.asset.exception.AssetException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
@@ -487,6 +488,7 @@ public class FineractClient {
      * @param paymentTypeId Payment type for deposit (required if depositAmount is set)
      * @return The created savings account ID
      */
+    @CircuitBreaker(name = "fineract")
     @SuppressWarnings("unchecked")
     public Long provisionSavingsAccount(Long clientId, Integer productId,
                                          BigDecimal depositAmount, Long paymentTypeId) {
@@ -621,6 +623,7 @@ public class FineractClient {
      * @return List of batch response items
      * @throws AssetException if the batch request fails or any individual transfer fails
      */
+    @CircuitBreaker(name = "fineract")
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> executeBatchTransfers(List<BatchTransferRequest> transfers) {
         try {

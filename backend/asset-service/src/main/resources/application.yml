@@ -88,10 +88,32 @@ asset-service:
     ttl-seconds: 10
   accounting:
     fee-collection-account-id: ${FEE_COLLECTION_ACCOUNT_ID:}
+  rate-limit:
+    trade-limit: ${RATE_LIMIT_TRADE:10}
+    trade-duration-minutes: ${RATE_LIMIT_TRADE_DURATION:1}
+    general-limit: ${RATE_LIMIT_GENERAL:100}
+    general-duration-minutes: ${RATE_LIMIT_GENERAL_DURATION:1}
   gl-accounts:
     digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:47}
     customer-digital-asset-holdings: ${GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS:65}
     asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:22}
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      fineract:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        recordExceptions:
+          - com.adorsys.fineract.asset.exception.AssetException
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+  timelimiter:
+    instances:
+      fineract:
+        timeoutDuration: 30s
 
 # Actuator Configuration
 management:
