@@ -70,6 +70,14 @@ public class AdminAssetController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/{id}/mint")
+    @Operation(summary = "Mint additional supply", description = "Increase total supply by depositing more tokens into treasury")
+    public ResponseEntity<Void> mintSupply(@PathVariable String id,
+                                            @Valid @RequestBody MintSupplyRequest request) {
+        provisioningService.mintSupply(id, request);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping
     @Operation(summary = "List all assets (all statuses)")
     public ResponseEntity<List<AssetResponse>> listAllAssets() {

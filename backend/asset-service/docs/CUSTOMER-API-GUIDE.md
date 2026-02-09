@@ -60,20 +60,6 @@ Query parameters:
 - `category` (string, optional): REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO
 - `search` (string, optional): search by name or symbol
 
-### 1.3 Bulk Prices
-
-```
-GET /api/prices/all
-```
-
-Response:
-```json
-{
-  "asset-id-1": { "currentPrice": 5000, "change24hPercent": 2.50 },
-  "asset-id-2": { "currentPrice": 12000, "change24hPercent": -0.75 }
-}
-```
-
 ---
 
 ## Flow 2: View Asset Detail

@@ -107,7 +107,24 @@ Transitions back to ACTIVE.
 
 ---
 
-## 6. Monitor Inventory
+## 6. Mint Additional Supply
+
+```
+POST /api/admin/assets/{id}/mint
+Body:
+{
+  "additionalSupply": 5000
+}
+```
+
+Deposits additional token units into the treasury account in Fineract, increasing the total supply. This makes more units available for customers to buy.
+
+- Only increases are allowed (minting). Burning (decreasing supply) is not supported.
+- The asset can be in any status (PENDING, ACTIVE, HALTED).
+
+---
+
+## 7. Monitor Inventory
 
 ```
 GET /api/admin/assets/inventory
@@ -136,7 +153,7 @@ Key metrics:
 
 ---
 
-## 7. Update Asset Metadata
+## 8. Update Asset Metadata
 
 ```
 PUT /api/admin/assets/{id}

@@ -10,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 /**
  * Public endpoints for asset pricing data.
  */
@@ -43,9 +41,4 @@ public class PriceController {
         return ResponseEntity.ok(pricingService.getPriceHistory(assetId, period));
     }
 
-    @GetMapping("/all")
-    @Operation(summary = "Bulk current prices for marketplace table")
-    public ResponseEntity<Map<String, CurrentPriceResponse>> getAllPrices() {
-        return ResponseEntity.ok(pricingService.getAllPrices());
-    }
 }

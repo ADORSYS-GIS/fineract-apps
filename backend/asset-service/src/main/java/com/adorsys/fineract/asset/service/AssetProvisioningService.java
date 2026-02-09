@@ -73,7 +73,8 @@ public class AssetProvisioningService {
                     .map(a -> ((Number) a.get("id")).longValue())
                     .findFirst()
                     .orElseThrow(() -> new AssetException(
-                            "No active XAF savings account found for treasury client " + request.treasuryClientId()));
+                            "No active XAF savings account found for company (client ID: " + request.treasuryClientId()
+                            + "). Please create and approve a XAF savings account for this company in the Account Manager before creating an asset."));
             log.info("Auto-derived treasury cash account: {}", treasuryCashAccountId);
 
             // Step 2: Register custom currency in Fineract
@@ -216,6 +217,28 @@ public class AssetProvisioningService {
         asset.setStatus(AssetStatus.HALTED);
         assetRepository.save(asset);
         log.info("Halted trading for asset: id={}", assetId);
+    }
+
+    /**
+     * Mint additional supply for an asset (deposit more tokens into treasury).
+     */
+    @Transactional
+    public void mintSupply(String assetId, MintSupplyRequest request) {
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
+
+        // Deposit additional units into treasury via Fineract
+        fineractClient.depositToSavingsAccount(
+                asset.getTreasuryAssetAccountId(),
+                request.additionalSupply(),
+                ASSET_ISSUANCE_PAYMENT_TYPE);
+
+        // Update total supply
+        asset.setTotalSupply(asset.getTotalSupply().add(request.additionalSupply()));
+        assetRepository.save(asset);
+
+        log.info("Minted {} additional units for asset {}, new total supply: {}",
+                request.additionalSupply(), assetId, asset.getTotalSupply());
     }
 
     /**

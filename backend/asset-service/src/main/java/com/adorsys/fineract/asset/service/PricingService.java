@@ -19,8 +19,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Service for price management, OHLC tracking, and price history.
@@ -61,18 +59,6 @@ public class PricingService {
         redisTemplate.opsForValue().set(PRICE_CACHE_PREFIX + assetId, cacheValue, CACHE_TTL);
 
         return new CurrentPriceResponse(assetId, price.getCurrentPrice(), price.getChange24hPercent());
-    }
-
-    /**
-     * Get bulk prices for all active assets.
-     */
-    @Transactional(readOnly = true)
-    public Map<String, CurrentPriceResponse> getAllPrices() {
-        return assetPriceRepository.findAll().stream()
-                .collect(Collectors.toMap(
-                        AssetPrice::getAssetId,
-                        p -> new CurrentPriceResponse(p.getAssetId(), p.getCurrentPrice(), p.getChange24hPercent())
-                ));
     }
 
     /**
@@ -146,6 +132,14 @@ public class PricingService {
         }
 
         assetPriceRepository.save(price);
+
+        // Record price change in history for charts
+        PriceHistory history = PriceHistory.builder()
+                .assetId(assetId)
+                .price(request.price())
+                .capturedAt(Instant.now())
+                .build();
+        priceHistoryRepository.save(history);
 
         // Update price mode on asset if specified
         if (request.priceMode() != null) {
