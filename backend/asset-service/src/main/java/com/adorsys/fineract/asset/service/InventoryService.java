@@ -7,7 +7,9 @@ import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +34,9 @@ public class InventoryService {
      */
     @Transactional(readOnly = true)
     public Page<InventoryResponse> getInventory(Pageable pageable) {
-        Page<Asset> assets = assetRepository.findAll(pageable);
+        Sort stable = pageable.getSort().and(Sort.by("id"));
+        Pageable stablePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), stable);
+        Page<Asset> assets = assetRepository.findAll(stablePageable);
         List<String> assetIds = assets.getContent().stream().map(Asset::getId).toList();
         Map<String, AssetPrice> priceMap = assetPriceRepository.findAllByAssetIdIn(assetIds)
                 .stream().collect(Collectors.toMap(AssetPrice::getAssetId, Function.identity()));

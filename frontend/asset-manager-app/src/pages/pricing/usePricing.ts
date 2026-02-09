@@ -34,6 +34,8 @@ export const usePricing = () => {
 		onSuccess: () => {
 			toast.success("Price updated");
 			queryClient.invalidateQueries({ queryKey: ["price", assetId] });
+			queryClient.invalidateQueries({ queryKey: ["asset", assetId] });
+			queryClient.invalidateQueries({ queryKey: ["assets"] });
 		},
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});

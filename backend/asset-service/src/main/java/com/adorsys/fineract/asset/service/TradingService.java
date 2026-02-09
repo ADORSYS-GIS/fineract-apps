@@ -21,7 +21,9 @@ import com.adorsys.fineract.asset.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -524,11 +526,13 @@ public class TradingService {
      */
     @Transactional(readOnly = true)
     public Page<OrderResponse> getUserOrders(Long userId, String assetId, Pageable pageable) {
+        Sort stable = pageable.getSort().and(Sort.by("id"));
+        Pageable stablePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), stable);
         Page<Order> orders;
         if (assetId != null) {
-            orders = orderRepository.findByUserIdAndAssetId(userId, assetId, pageable);
+            orders = orderRepository.findByUserIdAndAssetId(userId, assetId, stablePageable);
         } else {
-            orders = orderRepository.findByUserId(userId, pageable);
+            orders = orderRepository.findByUserId(userId, stablePageable);
         }
 
         return orders.map(o -> {

@@ -9,7 +9,9 @@ import com.adorsys.fineract.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,16 +39,17 @@ public class AssetCatalogService {
      */
     @Transactional(readOnly = true)
     public Page<AssetResponse> listAssets(AssetCategory category, String search, Pageable pageable) {
+        Pageable stable = withIdTiebreaker(pageable);
         Page<Asset> assets;
 
         if (search != null && !search.isBlank() && category != null) {
-            assets = assetRepository.searchByStatusCategoryAndNameOrSymbol(AssetStatus.ACTIVE, category, search, pageable);
+            assets = assetRepository.searchByStatusCategoryAndNameOrSymbol(AssetStatus.ACTIVE, category, search, stable);
         } else if (search != null && !search.isBlank()) {
-            assets = assetRepository.searchByStatusAndNameOrSymbol(AssetStatus.ACTIVE, search, pageable);
+            assets = assetRepository.searchByStatusAndNameOrSymbol(AssetStatus.ACTIVE, search, stable);
         } else if (category != null) {
-            assets = assetRepository.findByStatusAndCategory(AssetStatus.ACTIVE, category, pageable);
+            assets = assetRepository.findByStatusAndCategory(AssetStatus.ACTIVE, category, stable);
         } else {
-            assets = assetRepository.findByStatus(AssetStatus.ACTIVE, pageable);
+            assets = assetRepository.findByStatus(AssetStatus.ACTIVE, stable);
         }
 
         List<String> assetIds = assets.getContent().stream().map(Asset::getId).toList();
@@ -121,7 +124,7 @@ public class AssetCatalogService {
      */
     @Transactional(readOnly = true)
     public Page<DiscoverAssetResponse> discoverAssets(Pageable pageable) {
-        Page<Asset> assets = assetRepository.findByStatus(AssetStatus.PENDING, pageable);
+        Page<Asset> assets = assetRepository.findByStatus(AssetStatus.PENDING, withIdTiebreaker(pageable));
 
         return assets.map(a -> {
             long daysUntilLaunch = 0;
@@ -140,12 +143,20 @@ public class AssetCatalogService {
      */
     @Transactional(readOnly = true)
     public Page<AssetResponse> listAllAssets(Pageable pageable) {
-        Page<Asset> assets = assetRepository.findAll(pageable);
+        Page<Asset> assets = assetRepository.findAll(withIdTiebreaker(pageable));
         List<String> assetIds = assets.getContent().stream().map(Asset::getId).toList();
         Map<String, AssetPrice> priceMap = assetPriceRepository.findAllByAssetIdIn(assetIds)
                 .stream().collect(Collectors.toMap(AssetPrice::getAssetId, Function.identity()));
 
         return assets.map(a -> toAssetResponse(a, priceMap.get(a.getId())));
+    }
+
+    /**
+     * Ensures pagination stability by adding ID as a tiebreaker sort.
+     */
+    private Pageable withIdTiebreaker(Pageable pageable) {
+        Sort sort = pageable.getSort().and(Sort.by("id"));
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 
     private AssetResponse toAssetResponse(Asset a, AssetPrice price) {
