@@ -123,22 +123,30 @@ public class TradingService {
             order.setStatus(OrderStatus.EXECUTING);
             orderRepository.save(order);
 
-            // 9. Cash leg: user XAF account -> treasury XAF account
+            // 9. Cash leg: user XAF account -> treasury XAF account (asset cost only)
             cashTransferId = fineractClient.createAccountTransfer(
                     request.userCashAccountId(), asset.getTreasuryCashAccountId(),
-                    chargedAmount, "Asset purchase: " + asset.getSymbol());
+                    actualCost, "Asset purchase: " + asset.getSymbol());
 
-            // 10. Asset leg: treasury asset account -> user asset account
+            // 10. Fee leg: user XAF account -> fee collection account
+            Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
+            if (fee.compareTo(BigDecimal.ZERO) > 0) {
+                fineractClient.createAccountTransfer(
+                        request.userCashAccountId(), feeCollectionAccountId,
+                        fee, "Trading fee: BUY " + asset.getSymbol());
+            }
+
+            // 11. Asset leg: treasury asset account -> user asset account
             try {
                 assetTransferId = fineractClient.createAccountTransfer(
                         asset.getTreasuryAssetAccountId(), request.userAssetAccountId(),
                         units, "Asset delivery: " + asset.getSymbol());
             } catch (Exception assetLegError) {
-                // 11. Compensating transaction - reverse cash leg
+                // 12. Compensating transaction - reverse cash leg
                 log.error("Asset leg failed, reversing cash leg: {}", assetLegError.getMessage());
                 fineractClient.createAccountTransfer(
                         asset.getTreasuryCashAccountId(), request.userCashAccountId(),
-                        chargedAmount, "REVERSAL: Failed asset purchase " + asset.getSymbol());
+                        actualCost, "REVERSAL: Failed asset purchase " + asset.getSymbol());
 
                 order.setStatus(OrderStatus.FAILED);
                 order.setFailureReason("Asset transfer failed: " + assetLegError.getMessage());
@@ -177,9 +185,6 @@ public class TradingService {
             // 16. Mark order as filled
             order.setStatus(OrderStatus.FILLED);
             orderRepository.save(order);
-
-            // 17. Book fee to GL 87 (Asset Trading Fee Income)
-            bookFeeJournalEntry(fee, TradeSide.BUY, asset.getSymbol());
 
             log.info("BUY executed: orderId={}, userId={}, asset={}, units={}, price={}, charged={}",
                     orderId, userId, asset.getSymbol(), units, executionPrice, chargedAmount);
@@ -260,7 +265,7 @@ public class TradingService {
                     request.userAssetAccountId(), asset.getTreasuryAssetAccountId(),
                     request.units(), "Asset sell: " + asset.getSymbol());
 
-            // 9. Cash leg: treasury XAF account -> user XAF account
+            // 9. Cash leg: treasury XAF account -> user XAF account (net proceeds)
             try {
                 cashTransferId = fineractClient.createAccountTransfer(
                         asset.getTreasuryCashAccountId(), request.userCashAccountId(),
@@ -279,11 +284,19 @@ public class TradingService {
                 throw new TradingException("Trade failed: cash transfer error. Assets returned.", "TRADE_FAILED");
             }
 
-            // 10. Calculate realized P&L and update portfolio
+            // 10. Fee leg: treasury XAF account -> fee collection account
+            Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
+            if (fee.compareTo(BigDecimal.ZERO) > 0) {
+                fineractClient.createAccountTransfer(
+                        asset.getTreasuryCashAccountId(), feeCollectionAccountId,
+                        fee, "Trading fee: SELL " + asset.getSymbol());
+            }
+
+            // 11. Calculate realized P&L and update portfolio
             BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
                     userId, request.assetId(), request.units(), executionPrice);
 
-            // 11. Record trade log
+            // 12. Record trade log
             TradeLog tradeLog = TradeLog.builder()
                     .id(UUID.randomUUID().toString())
                     .orderId(orderId)
@@ -300,7 +313,7 @@ public class TradingService {
                     .build();
             tradeLogRepository.save(tradeLog);
 
-            // 12. Update circulating supply
+            // 13. Update circulating supply
             asset.setCirculatingSupply(asset.getCirculatingSupply().subtract(request.units()));
             assetRepository.save(asset);
 
@@ -311,9 +324,6 @@ public class TradingService {
             order.setStatus(OrderStatus.FILLED);
             orderRepository.save(order);
 
-            // 16. Book fee to GL 87 (Asset Trading Fee Income)
-            bookFeeJournalEntry(fee, TradeSide.SELL, asset.getSymbol());
-
             log.info("SELL executed: orderId={}, userId={}, asset={}, units={}, price={}, pnl={}",
                     orderId, userId, asset.getSymbol(), request.units(), executionPrice, realizedPnl);
 
@@ -322,26 +332,6 @@ public class TradingService {
 
         } finally {
             tradeLockService.releaseTradeLock(userId, request.assetId(), lockValue);
-        }
-    }
-
-    /**
-     * Book trading fee to GL 87 (Asset Trading Fee Income) via Fineract journal entry.
-     */
-    private void bookFeeJournalEntry(BigDecimal fee, TradeSide side, String symbol) {
-        if (fee.compareTo(BigDecimal.ZERO) > 0) {
-            try {
-                var accounting = assetServiceConfig.getAccounting();
-                fineractClient.createJournalEntry(
-                        1L,
-                        accounting.getCashGlAccountId(),
-                        accounting.getFeeIncomeGlAccountId(),
-                        fee,
-                        "Trading fee: " + side + " " + symbol);
-            } catch (Exception e) {
-                // Log but don't fail the trade — the fee is already collected in the transfer
-                log.error("Failed to book fee journal entry: {}", e.getMessage());
-            }
         }
     }
 

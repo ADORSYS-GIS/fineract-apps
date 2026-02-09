@@ -43,7 +43,6 @@ public class AssetServiceConfig {
 
     @Data
     public static class Accounting {
-        private Long feeIncomeGlAccountId = 87L;
-        private Long cashGlAccountId = 1L;
+        private Long feeCollectionAccountId;
     }
 }

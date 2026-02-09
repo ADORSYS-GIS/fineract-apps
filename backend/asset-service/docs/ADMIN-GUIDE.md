@@ -2,7 +2,19 @@
 
 This guide covers all admin operations for managing the asset marketplace.
 
-## 1. Create a New Asset
+## 1. Set Up the Fee Collection Account
+
+Before any trading can occur, the admin must create a **platform-wide XAF savings account** that collects all trading fees.
+
+1. Create a new XAF savings account in Fineract (under a platform/admin client)
+2. Approve and activate the account
+3. Set the account ID in the environment variable `FEE_COLLECTION_ACCOUNT_ID`
+
+This account is shared across all assets. All trading fees (BUY and SELL) are transferred to this account.
+
+---
+
+## 2. Create a New Asset
 
 Creating an asset is a multi-step process that provisions resources in Fineract.
 
@@ -47,7 +59,7 @@ The asset starts in **PENDING** status and must be explicitly activated.
 
 ---
 
-## 2. Activate an Asset
+## 3. Activate an Asset
 
 ```
 POST /api/admin/assets/{id}/activate
@@ -57,7 +69,7 @@ Transitions the asset from PENDING to ACTIVE. Trading becomes possible immediate
 
 ---
 
-## 3. Manage Pricing
+## 4. Manage Pricing
 
 ### Manual Price Override
 
@@ -75,7 +87,7 @@ Updates the current price immediately. Useful for initial pricing or corrections
 
 ---
 
-## 4. Halt / Resume Trading
+## 5. Halt / Resume Trading
 
 ### Halt Trading
 
@@ -95,7 +107,7 @@ Transitions back to ACTIVE.
 
 ---
 
-## 5. Monitor Inventory
+## 6. Monitor Inventory
 
 ```
 GET /api/admin/assets/inventory
@@ -124,7 +136,7 @@ Key metrics:
 
 ---
 
-## 6. Update Asset Metadata
+## 7. Update Asset Metadata
 
 ```
 PUT /api/admin/assets/{id}

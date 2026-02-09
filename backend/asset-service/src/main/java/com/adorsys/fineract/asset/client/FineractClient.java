@@ -424,53 +424,6 @@ public class FineractClient {
         }
     }
 
-    /**
-     * Create a manual journal entry in Fineract.
-     * Used to book trading fees to the fee income GL account.
-     */
-    @SuppressWarnings("unchecked")
-    public void createJournalEntry(Long officeId, Long debitGlAccountId,
-                                    Long creditGlAccountId, BigDecimal amount,
-                                    String comments) {
-        try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("officeId", officeId);
-            body.put("transactionDate", LocalDate.now().format(DATE_FORMAT));
-            body.put("comments", comments);
-            body.put("locale", "en");
-            body.put("dateFormat", "dd MMMM yyyy");
-            body.put("debits", List.of(Map.of(
-                    "glAccountId", debitGlAccountId,
-                    "amount", amount
-            )));
-            body.put("credits", List.of(Map.of(
-                    "glAccountId", creditGlAccountId,
-                    "amount", amount
-            )));
-
-            webClient.post()
-                    .uri("/fineract-provider/api/v1/journalentries")
-                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(body)
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                            resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract journal entry error: " + b))))
-                    .bodyToMono(Map.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                    .block();
-
-            log.info("Created journal entry: DR GL {} / CR GL {} amount={} ({})",
-                    debitGlAccountId, creditGlAccountId, amount, comments);
-        } catch (AssetException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to create journal entry: {}", e.getMessage());
-            throw new AssetException("Failed to create journal entry in Fineract", e);
-        }
-    }
-
     private String getAuthHeader() {
         if (config.isOAuthEnabled()) {
             return "Bearer " + tokenProvider.getAccessToken();
