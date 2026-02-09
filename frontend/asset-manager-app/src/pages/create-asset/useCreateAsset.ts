@@ -9,7 +9,6 @@ export interface AssetFormData {
 	// Step 1: Select Company
 	treasuryClientId: number | null;
 	treasuryClientName: string;
-	treasuryCashAccountId: number | null;
 	// Step 2: Asset Details
 	name: string;
 	symbol: string;
@@ -19,7 +18,6 @@ export interface AssetFormData {
 	imageUrl: string;
 	// Step 3: Pricing
 	initialPrice: number;
-	annualYield: number;
 	tradingFeePercent: number;
 	spreadPercent: number;
 	// Step 4: Supply
@@ -31,7 +29,6 @@ export interface AssetFormData {
 const initialFormData: AssetFormData = {
 	treasuryClientId: null,
 	treasuryClientName: "",
-	treasuryCashAccountId: null,
 	name: "",
 	symbol: "",
 	currencyCode: "",
@@ -39,7 +36,6 @@ const initialFormData: AssetFormData = {
 	description: "",
 	imageUrl: "",
 	initialPrice: 0,
-	annualYield: 0,
 	tradingFeePercent: 0.5,
 	spreadPercent: 1.0,
 	totalSupply: 0,
@@ -75,18 +71,6 @@ export const useCreateAsset = () => {
 			),
 	});
 
-	// Fetch savings accounts for selected client
-	const { data: clientAccounts, isLoading: isLoadingAccounts } = useQuery({
-		queryKey: ["client-accounts", formData.treasuryClientId],
-		queryFn: () =>
-			fineractApi.savingsAccounts.getV1Savingsaccounts({
-				// @ts-expect-error - query param supported but not typed
-				clientId: formData.treasuryClientId,
-			}),
-		enabled: !!formData.treasuryClientId,
-		select: (res) => (res as { pageItems?: unknown[] }).pageItems ?? [],
-	});
-
 	const createMutation = useMutation({
 		mutationFn: (data: CreateAssetRequest) => assetApi.createAsset(data),
 		onSuccess: () => {
@@ -115,8 +99,8 @@ export const useCreateAsset = () => {
 	};
 
 	const handleSubmit = () => {
-		if (!formData.treasuryClientId || !formData.treasuryCashAccountId) {
-			toast.error("Please select a company and cash account");
+		if (!formData.treasuryClientId) {
+			toast.error("Please select a company");
 			return;
 		}
 
@@ -128,13 +112,11 @@ export const useCreateAsset = () => {
 			imageUrl: formData.imageUrl || undefined,
 			category: formData.category,
 			initialPrice: formData.initialPrice,
-			annualYield: formData.annualYield || undefined,
 			tradingFeePercent: formData.tradingFeePercent,
 			spreadPercent: formData.spreadPercent,
 			totalSupply: formData.totalSupply,
 			decimalPlaces: formData.decimalPlaces,
 			treasuryClientId: formData.treasuryClientId,
-			treasuryCashAccountId: formData.treasuryCashAccountId,
 			expectedLaunchDate: formData.expectedLaunchDate || undefined,
 		};
 
@@ -152,7 +134,5 @@ export const useCreateAsset = () => {
 		isSubmitting: createMutation.isPending,
 		clients: clients ?? [],
 		isLoadingClients,
-		clientAccounts: clientAccounts ?? [],
-		isLoadingAccounts,
 	};
 };

@@ -14,7 +14,6 @@ public record AssetResponse(
     AssetStatus status,
     BigDecimal currentPrice,
     BigDecimal change24hPercent,
-    BigDecimal annualYield,
     BigDecimal availableSupply,
     BigDecimal totalSupply
 ) {}

@@ -16,6 +16,7 @@ public class AssetServiceConfig {
     private Pricing pricing = new Pricing();
     private Orders orders = new Orders();
     private TradeLock tradeLock = new TradeLock();
+    private Accounting accounting = new Accounting();
 
     @Data
     public static class MarketHours {
@@ -38,5 +39,11 @@ public class AssetServiceConfig {
     @Data
     public static class TradeLock {
         private int ttlSeconds = 10;
+    }
+
+    @Data
+    public static class Accounting {
+        private Long feeIncomeGlAccountId = 87L;
+        private Long cashGlAccountId = 1L;
     }
 }

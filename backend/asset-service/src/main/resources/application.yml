@@ -80,6 +80,9 @@ asset-service:
     stale-cleanup-minutes: 30
   trade-lock:
     ttl-seconds: 10
+  accounting:
+    fee-income-gl-account-id: ${FEE_INCOME_GL_ACCOUNT_ID:87}
+    cash-gl-account-id: ${CASH_GL_ACCOUNT_ID:1}
 
 # Actuator Configuration
 management:

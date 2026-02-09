@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -41,6 +42,7 @@ public class AssetProvisioningService {
     /**
      * Create a new asset with full Fineract provisioning.
      */
+    @SuppressWarnings("unchecked")
     @Transactional
     public AssetDetailResponse createAsset(CreateAssetRequest request) {
         // Validate uniqueness
@@ -56,13 +58,29 @@ public class AssetProvisioningService {
 
         Integer productId = null;
         Long treasuryAssetAccountId = null;
+        Long treasuryCashAccountId = null;
 
         try {
-            // Step 1: Register custom currency in Fineract
+            // Step 1: Auto-derive treasury XAF cash account
+            List<Map<String, Object>> accounts = fineractClient.getClientSavingsAccounts(request.treasuryClientId());
+            treasuryCashAccountId = accounts.stream()
+                    .filter(a -> {
+                        Map<String, Object> currency = (Map<String, Object>) a.get("currency");
+                        Map<String, Object> status = (Map<String, Object>) a.get("status");
+                        return currency != null && "XAF".equals(currency.get("code"))
+                                && status != null && Boolean.TRUE.equals(status.get("active"));
+                    })
+                    .map(a -> ((Number) a.get("id")).longValue())
+                    .findFirst()
+                    .orElseThrow(() -> new AssetException(
+                            "No active XAF savings account found for treasury client " + request.treasuryClientId()));
+            log.info("Auto-derived treasury cash account: {}", treasuryCashAccountId);
+
+            // Step 2: Register custom currency in Fineract
             fineractClient.registerCurrencies(List.of(request.currencyCode()));
             log.info("Registered currency: {}", request.currencyCode());
 
-            // Step 2: Create savings product
+            // Step 3: Create savings product
             productId = fineractClient.createSavingsProduct(
                     request.name() + " Token",
                     request.symbol(),
@@ -73,24 +91,26 @@ public class AssetProvisioningService {
             );
             log.info("Created savings product: productId={}", productId);
 
-            // Step 3: Create treasury savings account for the company
+            // Step 4: Create treasury savings account for the company
             treasuryAssetAccountId = fineractClient.createSavingsAccount(
                     request.treasuryClientId(), productId
             );
             log.info("Created treasury asset account: accountId={}", treasuryAssetAccountId);
 
-            // Step 4: Approve treasury account
+            // Step 5: Approve treasury account
             fineractClient.approveSavingsAccount(treasuryAssetAccountId);
 
-            // Step 5: Activate treasury account
+            // Step 6: Activate treasury account
             fineractClient.activateSavingsAccount(treasuryAssetAccountId);
 
-            // Step 6: Deposit initial supply into treasury
+            // Step 7: Deposit initial supply into treasury
             fineractClient.depositToSavingsAccount(
                     treasuryAssetAccountId, request.totalSupply(), ASSET_ISSUANCE_PAYMENT_TYPE
             );
             log.info("Deposited initial supply: {} units into treasury account {}", request.totalSupply(), treasuryAssetAccountId);
 
+        } catch (AssetException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Fineract provisioning failed for asset {}: {}. " +
                        "Manual cleanup may be required. productId={}, treasuryAccountId={}",
@@ -98,7 +118,7 @@ public class AssetProvisioningService {
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
         }
 
-        // Step 7: Persist asset entity
+        // Step 8: Persist asset entity
         Asset asset = Asset.builder()
                 .id(assetId)
                 .fineractProductId(productId)
@@ -114,13 +134,12 @@ public class AssetProvisioningService {
                 .decimalPlaces(request.decimalPlaces())
                 .totalSupply(request.totalSupply())
                 .circulatingSupply(BigDecimal.ZERO)
-                .annualYield(request.annualYield())
                 .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
                 .spreadPercent(request.spreadPercent() != null ? request.spreadPercent() : new BigDecimal("0.0100"))
                 .expectedLaunchDate(request.expectedLaunchDate())
                 .treasuryClientId(request.treasuryClientId())
                 .treasuryAssetAccountId(treasuryAssetAccountId)
-                .treasuryCashAccountId(request.treasuryCashAccountId())
+                .treasuryCashAccountId(treasuryCashAccountId)
                 .build();
 
         assetRepository.save(asset);
@@ -156,7 +175,6 @@ public class AssetProvisioningService {
         if (request.description() != null) asset.setDescription(request.description());
         if (request.imageUrl() != null) asset.setImageUrl(request.imageUrl());
         if (request.category() != null) asset.setCategory(request.category());
-        if (request.annualYield() != null) asset.setAnnualYield(request.annualYield());
         if (request.tradingFeePercent() != null) asset.setTradingFeePercent(request.tradingFeePercent());
         if (request.spreadPercent() != null) asset.setSpreadPercent(request.spreadPercent());
 

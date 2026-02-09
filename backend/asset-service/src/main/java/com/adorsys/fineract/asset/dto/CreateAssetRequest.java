@@ -18,10 +18,8 @@ public record CreateAssetRequest(
     @NotNull @Positive BigDecimal initialPrice,
     @NotNull @Positive BigDecimal totalSupply,
     @NotNull @Min(0) @Max(8) Integer decimalPlaces,
-    BigDecimal annualYield,
     BigDecimal tradingFeePercent,
     BigDecimal spreadPercent,
     LocalDate expectedLaunchDate,
-    @NotNull Long treasuryClientId,
-    @NotNull Long treasuryCashAccountId
+    @NotNull Long treasuryClientId
 ) {}

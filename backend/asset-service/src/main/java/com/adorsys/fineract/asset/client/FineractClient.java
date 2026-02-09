@@ -355,6 +355,29 @@ public class FineractClient {
     }
 
     /**
+     * Get all savings accounts for a client.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getClientSavingsAccounts(Long clientId) {
+        try {
+            Map<String, Object> response = webClient.get()
+                    .uri("/fineract-provider/api/v1/savingsaccounts?clientId={clientId}", clientId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            return response != null
+                    ? (List<Map<String, Object>>) response.get("pageItems")
+                    : List.of();
+        } catch (Exception e) {
+            log.error("Failed to get client savings accounts: clientId={}, error={}", clientId, e.getMessage());
+            throw new AssetException("Failed to get client savings accounts from Fineract", e);
+        }
+    }
+
+    /**
      * Get savings account details including balance.
      */
     @SuppressWarnings("unchecked")
@@ -398,6 +421,53 @@ public class FineractClient {
         } catch (Exception e) {
             log.error("Failed to get client: externalId={}, error={}", externalId, e.getMessage());
             throw new AssetException("Failed to get client from Fineract", e);
+        }
+    }
+
+    /**
+     * Create a manual journal entry in Fineract.
+     * Used to book trading fees to the fee income GL account.
+     */
+    @SuppressWarnings("unchecked")
+    public void createJournalEntry(Long officeId, Long debitGlAccountId,
+                                    Long creditGlAccountId, BigDecimal amount,
+                                    String comments) {
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("officeId", officeId);
+            body.put("transactionDate", LocalDate.now().format(DATE_FORMAT));
+            body.put("comments", comments);
+            body.put("locale", "en");
+            body.put("dateFormat", "dd MMMM yyyy");
+            body.put("debits", List.of(Map.of(
+                    "glAccountId", debitGlAccountId,
+                    "amount", amount
+            )));
+            body.put("credits", List.of(Map.of(
+                    "glAccountId", creditGlAccountId,
+                    "amount", amount
+            )));
+
+            webClient.post()
+                    .uri("/fineract-provider/api/v1/journalentries")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract journal entry error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            log.info("Created journal entry: DR GL {} / CR GL {} amount={} ({})",
+                    debitGlAccountId, creditGlAccountId, amount, comments);
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to create journal entry: {}", e.getMessage());
+            throw new AssetException("Failed to create journal entry in Fineract", e);
         }
     }
 

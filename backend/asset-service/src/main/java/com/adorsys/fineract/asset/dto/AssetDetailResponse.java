@@ -23,7 +23,6 @@ public record AssetDetailResponse(
     BigDecimal dayHigh,
     BigDecimal dayLow,
     BigDecimal dayClose,
-    BigDecimal annualYield,
     BigDecimal totalSupply,
     BigDecimal circulatingSupply,
     BigDecimal availableSupply,

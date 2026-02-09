@@ -137,13 +137,6 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								: ""}
 						</p>
 					</Card>
-					<Card className="p-4">
-						<p className="text-sm text-gray-500">Annual Yield</p>
-						<p className="text-2xl font-bold text-gray-900">
-							{asset.annualYield != null ? `${asset.annualYield}%` : "N/A"}
-						</p>
-						<p className="text-sm text-gray-400 mt-1">projected</p>
-					</Card>
 				</div>
 
 				{/* OHLC */}

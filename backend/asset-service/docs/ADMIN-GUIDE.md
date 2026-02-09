@@ -8,7 +8,7 @@ Creating an asset is a multi-step process that provisions resources in Fineract.
 
 ### Prerequisites
 - A **company client** must exist in Fineract (legalForm = ENTITY)
-- The company must have an **active XAF savings account** (used as the treasury cash account)
+- The company must have an **active XAF savings account** (auto-detected during provisioning)
 
 ### API Call
 
@@ -23,20 +23,19 @@ Body:
   "description": "Tokenized commercial real estate in Douala",
   "category": "REAL_ESTATE",
   "initialPrice": 5000,
-  "annualYield": 8.5,
   "tradingFeePercent": 0.50,
   "spreadPercent": 1.00,
   "totalSupply": 100000,
   "decimalPlaces": 0,
   "treasuryClientId": 42,
-  "treasuryCashAccountId": 123,
   "expectedLaunchDate": "2026-03-15"
 }
 ```
 
 ### What Happens on Create
 
-1. Registers `DTT` as a custom currency in Fineract (`PUT /currencies`)
+1. Auto-detects the company's active XAF savings account for trade settlements
+2. Registers `DTT` as a custom currency in Fineract (`PUT /currencies`)
 2. Creates a savings product for DTT with cash-based accounting (GL 47 → GL 65)
 3. Creates a treasury savings account for the company client
 4. Approves and activates the treasury account
@@ -135,7 +134,6 @@ Body:
   "description": "New description",
   "imageUrl": "https://new-image.jpg",
   "category": "REAL_ESTATE",
-  "annualYield": 9.0,
   "tradingFeePercent": 0.75,
   "spreadPercent": 1.50
 }

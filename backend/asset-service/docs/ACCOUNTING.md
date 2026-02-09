@@ -1,4 +1,57 @@
-# Accounting Guide - GL Account Mappings
+# Accounting Guide - Asset Service
+
+## Glossary
+
+| Term | Definition |
+|------|------------|
+| **Issuer** | The company (Fineract Client with `legalForm = ENTITY`) that tokenizes a real-world asset and offers it for trading. Acts as the counterparty for all buy/sell trades. |
+| **Treasury** | The issuer's reserve accounts. In corporate finance, "treasury stock" refers to a company's own shares held in reserve, not in public circulation. Here, the treasury holds both unsold token inventory and the XAF cash used for trade settlements. |
+| **Treasury XAF Account** | The issuer's existing XAF savings account in Fineract. Receives cash when customers buy tokens, pays out cash when customers sell. Must exist before asset creation. Maps to `treasuryCashAccountId` in the code. |
+| **Treasury Asset Account** | A savings account in the asset's custom currency, created automatically during asset provisioning. Holds the full token supply initially; units move to customers on buy, return on sell. Maps to `treasuryAssetAccountId` in the code. |
+| **DTT** | "Douala Tower Token" — a fictional asset symbol used as an example throughout this doc. In practice, each asset gets its own symbol (e.g., `YMT` for "Yaounde Mall Token"). The symbol is registered as a custom currency in Fineract. |
+| **Spread** | The percentage markup/markdown applied to the base price. Buyers pay `price + spread`, sellers receive `price - spread`. This is the issuer's margin on each trade, separate from the trading fee. |
+
+## Account Structure
+
+Each asset involves **four savings accounts** — two on the issuer side, two on the customer side:
+
+```
+Per Asset (e.g., DTT - Douala Tower Token):
+
+┌─────────────────────────────────────────────────────┐
+│ ISSUER (Company Client in Fineract)                 │
+│                                                     │
+│  ┌────────────────────────┐  ┌────────────────────┐ │
+│  │ Treasury XAF Account   │  │ Treasury DTT       │ │
+│  │ (pre-existing)         │  │ Account            │ │
+│  │                        │  │ (auto-created)     │ │
+│  │ Receives cash on BUY   │  │ Holds 100K DTT     │ │
+│  │ Pays cash on SELL      │  │ initially          │ │
+│  └───────────┬────────────┘  └──────────┬─────────┘ │
+└──────────────┼──────────────────────────┼───────────┘
+               │ XAF                      │ DTT tokens
+               ▼                          ▼
+┌─────────────────────────────────────────────────────┐
+│ CUSTOMER (Individual Client in Fineract)            │
+│                                                     │
+│  ┌────────────────────────┐  ┌────────────────────┐ │
+│  │ User XAF Account       │  │ User DTT Account   │ │
+│  │ (pre-existing)         │  │ (auto-created on   │ │
+│  │                        │  │  first buy)        │ │
+│  │ Pays cash on BUY       │  │ Receives tokens    │ │
+│  │ Receives cash on SELL  │  │ on BUY             │ │
+│  └────────────────────────┘  └────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+```
+
+## Settlement Flow
+
+Each trade has **two legs** executed atomically with compensating transactions on failure:
+
+- **BUY**: (1) Cash leg — Customer XAF &rarr; Issuer XAF, then (2) Asset leg — Issuer DTT &rarr; Customer DTT. If the asset leg fails, the cash leg is automatically reversed.
+- **SELL**: (1) Asset leg — Customer DTT &rarr; Issuer DTT, then (2) Cash leg — Issuer XAF &rarr; Customer XAF. If the cash leg fails, the asset leg is automatically reversed.
+
+---
 
 ## GL Accounts
 
@@ -32,32 +85,44 @@ When the admin creates an asset and deposits 100,000 units into treasury:
 
 ### 2. Customer Buy Trade
 
-User buys 10 DTT at 5,000 XAF each (total 50,000 XAF, fee 250 XAF):
+User wants to invest 50,000 XAF in DTT at 5,000 XAF/unit with 0.5% fee:
 
-**Cash leg** (XAF transfer: user -> treasury):
+- Fee = 50,000 × 0.5% = **250 XAF**
+- Net purchasing power = 50,000 - 250 = 49,750 XAF
+- Units purchased = 49,750 / 5,000 = **9 DTT** (rounded down)
+- Actual cost = 9 × 5,000 = **45,000 XAF**
+- Total charged = 45,000 + 250 = **45,250 XAF**
+- Rounding surplus = 50,000 - 45,250 = 4,750 XAF (stays in user's account)
+
+**Cash leg** (XAF transfer: user -> treasury, cost + fee):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| User XAF Savings | | 50,000 XAF |
-| Treasury XAF Savings | 50,000 XAF | |
+| User XAF Savings | | 45,250 XAF |
+| Treasury XAF Savings | 45,250 XAF | |
 
 **Asset leg** (DTT transfer: treasury -> user):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| GL 65 - Customer Digital Asset Holdings | 10 DTT | |
-| GL 47 - Digital Asset Inventory | | 10 DTT |
+| GL 65 - Customer Digital Asset Holdings | 9 DTT | |
+| GL 47 - Digital Asset Inventory | | 9 DTT |
 
-**Fee** (charged on the XAF amount):
+**Fee journal entry** (reclassifies fee from cash to fee income):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| User XAF Savings | | 250 XAF |
+| Cash GL (XAF savings product reference) | 250 XAF | |
 | GL 87 - Asset Trading Fee Income | | 250 XAF |
 
 ### 3. Customer Sell Trade
 
-User sells 5 DTT at 4,900 XAF each (total 24,500 XAF, fee 122 XAF):
+User sells 5 DTT at 4,900 XAF/unit with 0.5% fee:
+
+- Gross amount = 5 × 4,900 = **24,500 XAF**
+- Fee = 24,500 × 0.5% = **122 XAF**
+- Net payout = 24,500 - 122 = **24,378 XAF**
+- Fee (122 XAF) is retained in treasury
 
 **Asset leg** (DTT transfer: user -> treasury):
 
@@ -66,12 +131,19 @@ User sells 5 DTT at 4,900 XAF each (total 24,500 XAF, fee 122 XAF):
 | GL 47 - Digital Asset Inventory | 5 DTT | |
 | GL 65 - Customer Digital Asset Holdings | | 5 DTT |
 
-**Cash leg** (XAF transfer: treasury -> user):
+**Cash leg** (XAF transfer: treasury -> user, net of fee):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| Treasury XAF Savings | | 24,500 XAF |
-| User XAF Savings | 24,500 XAF | |
+| Treasury XAF Savings | | 24,378 XAF |
+| User XAF Savings | 24,378 XAF | |
+
+**Fee journal entry** (reclassifies fee from cash to fee income):
+
+| Account | Debit | Credit |
+|---------|-------|--------|
+| Cash GL (XAF savings product reference) | 122 XAF | |
+| GL 87 - Asset Trading Fee Income | | 122 XAF |
 
 ## Payment Types
 

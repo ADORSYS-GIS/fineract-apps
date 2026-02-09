@@ -38,8 +38,6 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="font-medium">{formData.treasuryClientName}</div>
 					<div className="text-gray-600">Client ID:</div>
 					<div className="font-medium">{formData.treasuryClientId}</div>
-					<div className="text-gray-600">Cash Account ID:</div>
-					<div className="font-medium">{formData.treasuryCashAccountId}</div>
 				</div>
 			</Card>
 
@@ -77,10 +75,6 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="text-gray-600">Initial Price:</div>
 					<div className="font-medium">
 						{formData.initialPrice.toLocaleString()} XAF
-					</div>
-					<div className="text-gray-600">Annual Yield:</div>
-					<div className="font-medium">
-						{formData.annualYield ? `${formData.annualYield}%` : "N/A"}
 					</div>
 					<div className="text-gray-600">Trading Fee:</div>
 					<div className="font-medium">{formData.tradingFeePercent}%</div>

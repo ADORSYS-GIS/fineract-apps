@@ -78,7 +78,7 @@ public class AssetCatalogService {
                 price != null ? price.getDayHigh() : null,
                 price != null ? price.getDayLow() : null,
                 price != null ? price.getDayClose() : null,
-                asset.getAnnualYield(), asset.getTotalSupply(), asset.getCirculatingSupply(),
+                asset.getTotalSupply(), asset.getCirculatingSupply(),
                 available, asset.getTradingFeePercent(), asset.getSpreadPercent(),
                 asset.getDecimalPlaces(), asset.getExpectedLaunchDate(),
                 asset.getTreasuryClientId(), asset.getTreasuryAssetAccountId(),
@@ -127,7 +127,7 @@ public class AssetCatalogService {
         return new AssetResponse(
                 a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
                 a.getCategory(), a.getStatus(), currentPrice, change,
-                a.getAnnualYield(), available, a.getTotalSupply()
+                available, a.getTotalSupply()
         );
     }
 }

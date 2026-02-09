@@ -31,7 +31,6 @@ export interface AssetResponse {
 	priceMode: string;
 	currentPrice: number;
 	change24hPercent: number;
-	annualYield?: number;
 	totalSupply: number;
 	circulatingSupply: number;
 	availableSupply: number;
@@ -48,13 +47,11 @@ export interface CreateAssetRequest {
 	imageUrl?: string;
 	category: string;
 	initialPrice: number;
-	annualYield?: number;
 	tradingFeePercent?: number;
 	spreadPercent?: number;
 	totalSupply: number;
 	decimalPlaces: number;
 	treasuryClientId: number;
-	treasuryCashAccountId: number;
 	expectedLaunchDate?: string;
 }
 
@@ -63,7 +60,6 @@ export interface UpdateAssetRequest {
 	description?: string;
 	imageUrl?: string;
 	category?: string;
-	annualYield?: number;
 	tradingFeePercent?: number;
 	spreadPercent?: number;
 }

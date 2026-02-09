@@ -13,14 +13,6 @@ interface Props {
 		officeName?: string;
 	}>;
 	isLoadingClients: boolean;
-	clientAccounts: Array<{
-		id?: number;
-		accountNo?: string;
-		productName?: string;
-		currency?: { code?: string };
-		status?: { active?: boolean };
-	}>;
-	isLoadingAccounts: boolean;
 }
 
 export const SelectCompanyStep: FC<Props> = ({
@@ -28,13 +20,7 @@ export const SelectCompanyStep: FC<Props> = ({
 	updateFormData,
 	clients,
 	isLoadingClients,
-	clientAccounts,
-	isLoadingAccounts,
 }) => {
-	const xafAccounts = clientAccounts.filter(
-		(a) => a.currency?.code === "XAF" && a.status?.active,
-	);
-
 	return (
 		<div className="space-y-6">
 			<div>
@@ -43,7 +29,8 @@ export const SelectCompanyStep: FC<Props> = ({
 				</h2>
 				<p className="text-sm text-gray-500">
 					Choose the company that will act as the treasury (market maker) for
-					this asset.
+					this asset. The company's XAF cash account will be used automatically
+					for trade settlements.
 				</p>
 			</div>
 
@@ -64,7 +51,6 @@ export const SelectCompanyStep: FC<Props> = ({
 							updateFormData({
 								treasuryClientId: clientId || null,
 								treasuryClientName: client?.displayName ?? "",
-								treasuryCashAccountId: null,
 							});
 						}}
 					>
@@ -93,39 +79,6 @@ export const SelectCompanyStep: FC<Props> = ({
 						</div>
 					</div>
 				</Card>
-			)}
-
-			{/* XAF Cash Account Selection */}
-			{formData.treasuryClientId && (
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-2">
-						XAF Cash Account (for trading settlements)
-					</label>
-					{isLoadingAccounts ? (
-						<div className="animate-pulse h-10 bg-gray-200 rounded" />
-					) : xafAccounts.length === 0 ? (
-						<p className="text-sm text-red-600">
-							No active XAF savings accounts found for this company.
-						</p>
-					) : (
-						<select
-							className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-							value={formData.treasuryCashAccountId ?? ""}
-							onChange={(e) =>
-								updateFormData({
-									treasuryCashAccountId: Number(e.target.value) || null,
-								})
-							}
-						>
-							<option value="">Select an account...</option>
-							{xafAccounts.map((acc) => (
-								<option key={acc.id} value={acc.id}>
-									{acc.accountNo} - {acc.productName}
-								</option>
-							))}
-						</select>
-					)}
-				</div>
 			)}
 		</div>
 	);

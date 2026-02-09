@@ -115,9 +115,6 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 											24h Change
 										</th>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-											Annual Yield
-										</th>
-										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 											Available
 										</th>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -156,11 +153,6 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 													{(asset.change24hPercent ?? 0) >= 0 ? "+" : ""}
 													{(asset.change24hPercent ?? 0).toFixed(2)}%
 												</span>
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-												{asset.annualYield != null
-													? `${asset.annualYield}%`
-													: "—"}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
 												{asset.availableSupply?.toLocaleString() ?? "—"}

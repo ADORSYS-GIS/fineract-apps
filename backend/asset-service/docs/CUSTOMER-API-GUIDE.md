@@ -43,7 +43,6 @@ Response:
       "symbol": "DTT",
       "currentPrice": 5000,
       "change24hPercent": 2.50,
-      "annualYield": 8.5,
       "totalSupply": 100000,
       "circulatingSupply": 15000,
       "availableSupply": 85000,
@@ -85,7 +84,7 @@ Response:
 GET /api/assets/{assetId}
 ```
 
-Response includes full detail: name, symbol, description, imageUrl, category, status, currentPrice, OHLC, annualYield, totalSupply, circulatingSupply, etc.
+Response includes full detail: name, symbol, description, imageUrl, category, status, currentPrice, OHLC, totalSupply, circulatingSupply, etc.
 
 ### 2.2 Price History (for charts)
 
@@ -144,12 +143,15 @@ Response:
 {
   "orderId": "uuid",
   "status": "FILLED",
-  "units": 10,
+  "units": 9,
   "pricePerUnit": 5000,
-  "totalAmount": 50000,
+  "totalAmount": 45250,
   "fee": 250
 }
 ```
+
+- `totalAmount` = cost (units × price) + fee = 45,000 + 250 = 45,250 XAF (actual amount charged)
+- Rounding surplus (4,750 XAF) stays in the user's account
 
 Error responses:
 - `409` - `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_INVENTORY`

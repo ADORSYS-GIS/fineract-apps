@@ -10,7 +10,6 @@ public record UpdateAssetRequest(
     String description,
     String imageUrl,
     AssetCategory category,
-    BigDecimal annualYield,
     BigDecimal tradingFeePercent,
     BigDecimal spreadPercent
 ) {}

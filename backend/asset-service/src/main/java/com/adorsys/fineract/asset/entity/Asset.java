@@ -66,9 +66,6 @@ public class Asset {
     @Column(name = "circulating_supply", nullable = false, precision = 20, scale = 8)
     private BigDecimal circulatingSupply;
 
-    @Column(name = "annual_yield", precision = 5, scale = 2)
-    private BigDecimal annualYield;
-
     @Column(name = "trading_fee_percent", precision = 5, scale = 4)
     private BigDecimal tradingFeePercent;
 
@@ -84,7 +81,7 @@ public class Asset {
     @Column(name = "treasury_asset_account_id")
     private Long treasuryAssetAccountId;
 
-    @Column(name = "treasury_cash_account_id", nullable = false)
+    @Column(name = "treasury_cash_account_id")
     private Long treasuryCashAccountId;
 
     @Column(name = "created_at", nullable = false, updatable = false)

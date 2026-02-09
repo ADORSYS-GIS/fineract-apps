@@ -22,8 +22,6 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 		isSubmitting,
 		clients,
 		isLoadingClients,
-		clientAccounts,
-		isLoadingAccounts,
 	} = props;
 
 	const renderStep = () => {
@@ -35,8 +33,6 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 						updateFormData={updateFormData}
 						clients={clients}
 						isLoadingClients={isLoadingClients}
-						clientAccounts={clientAccounts}
-						isLoadingAccounts={isLoadingAccounts}
 					/>
 				);
 			case 1:
