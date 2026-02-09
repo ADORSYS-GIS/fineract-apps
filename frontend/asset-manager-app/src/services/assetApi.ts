@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type AxiosError } from "axios";
 
 const assetClient = axios.create({
 	baseURL: import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083",
@@ -6,17 +6,36 @@ const assetClient = axios.create({
 
 // Interceptor adds auth token from sessionStorage
 assetClient.interceptors.request.use((config) => {
-	const raw = sessionStorage.getItem("auth");
-	if (raw) {
-		const auth = JSON.parse(raw);
-		if (auth.base64EncodedAuthenticationKey) {
-			config.headers.Authorization = `Basic ${auth.base64EncodedAuthenticationKey}`;
-		} else if (auth.token) {
-			config.headers.Authorization = `Bearer ${auth.token}`;
+	try {
+		const raw = sessionStorage.getItem("auth");
+		if (raw) {
+			const auth = JSON.parse(raw);
+			if (auth.base64EncodedAuthenticationKey) {
+				config.headers.Authorization = `Basic ${auth.base64EncodedAuthenticationKey}`;
+			} else if (auth.token) {
+				config.headers.Authorization = `Bearer ${auth.token}`;
+			}
 		}
+	} catch {
+		// Malformed auth in sessionStorage — proceed without auth
 	}
 	return config;
 });
+
+/** Extract a human-readable error message from any error (axios or otherwise). */
+export function extractErrorMessage(error: unknown): string {
+	if (axios.isAxiosError(error)) {
+		const axiosErr = error as AxiosError<{ message?: string; error?: string }>;
+		const data = axiosErr.response?.data;
+		if (data?.message) return data.message;
+		if (data?.error) return data.error;
+		if (axiosErr.response?.status === 403) return "Access denied";
+		if (axiosErr.response?.status === 401) return "Not authenticated";
+		return axiosErr.message || "Request failed";
+	}
+	if (error instanceof Error) return error.message;
+	return "An unexpected error occurred";
+}
 
 // --- Types ---
 

@@ -5,6 +5,7 @@ export const useMarketSettings = () => {
 	const {
 		data: marketStatus,
 		isLoading,
+		isError,
 		refetch,
 	} = useQuery({
 		queryKey: ["market-status"],
@@ -16,6 +17,7 @@ export const useMarketSettings = () => {
 	return {
 		marketStatus,
 		isLoading,
+		isError,
 		refetch,
 	};
 };

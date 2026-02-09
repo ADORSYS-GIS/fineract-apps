@@ -2,6 +2,7 @@ import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { PlusCircle } from "lucide-react";
 import { FC } from "react";
+import { ErrorFallback } from "@/components/ErrorFallback";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useDashboard } from "./useDashboard";
 
@@ -20,6 +21,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	onSearch,
 	assets,
 	isFetchingAssets,
+	isAssetsError,
 	currentPage,
 	totalPages,
 	onPageChange,
@@ -85,7 +87,12 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 				</div>
 
 				{/* Assets Table */}
-				{isFetchingAssets ? (
+				{isAssetsError ? (
+					<ErrorFallback
+						message="Failed to load assets."
+						onRetry={() => window.location.reload()}
+					/>
+				) : isFetchingAssets ? (
 					<div className="flex items-center justify-center py-12">
 						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
 					</div>

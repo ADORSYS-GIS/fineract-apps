@@ -22,6 +22,7 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 		isSubmitting,
 		clients,
 		isLoadingClients,
+		validationErrors,
 	} = props;
 
 	const renderStep = () => {
@@ -116,6 +117,17 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 				<div className="bg-white rounded-lg shadow p-6 mb-6">
 					{renderStep()}
 				</div>
+
+				{/* Validation Errors */}
+				{validationErrors.length > 0 && (
+					<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+						<ul className="text-sm text-red-700 space-y-1">
+							{validationErrors.map((err) => (
+								<li key={err}>{err}</li>
+							))}
+						</ul>
+					</div>
+				)}
 
 				{/* Navigation */}
 				<div className="flex justify-between">

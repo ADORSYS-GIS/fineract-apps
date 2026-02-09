@@ -11,6 +11,7 @@ export const useDashboard = () => {
 	const {
 		data: assetsData,
 		isLoading: isFetchingAssets,
+		isError: isAssetsError,
 		refetch,
 	} = useQuery({
 		queryKey: ["assets", currentPage, categoryFilter, searchValue],
@@ -54,6 +55,7 @@ export const useDashboard = () => {
 		onSearch: handleSearch,
 		assets,
 		isFetchingAssets,
+		isAssetsError,
 		currentPage,
 		totalPages,
 		onPageChange: handlePageChange,

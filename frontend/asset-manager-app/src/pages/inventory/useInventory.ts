@@ -5,6 +5,7 @@ export const useInventory = () => {
 	const {
 		data: inventory,
 		isLoading,
+		isError,
 		refetch,
 	} = useQuery({
 		queryKey: ["inventory"],
@@ -15,6 +16,7 @@ export const useInventory = () => {
 	return {
 		inventory: inventory ?? [],
 		isLoading,
+		isError,
 		refetch,
 	};
 };

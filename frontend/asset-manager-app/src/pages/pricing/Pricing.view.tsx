@@ -22,7 +22,7 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 
 	const handleSetPrice = () => {
 		const p = Number(manualPrice);
-		if (p > 0) {
+		if (Number.isFinite(p) && p > 0) {
 			onSetPrice(p);
 			setManualPrice("");
 		}

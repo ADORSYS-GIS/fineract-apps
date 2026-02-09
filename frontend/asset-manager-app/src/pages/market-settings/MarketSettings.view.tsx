@@ -1,6 +1,7 @@
 import { Card } from "@fineract-apps/ui";
 import { Clock, Power } from "lucide-react";
 import { FC } from "react";
+import { ErrorFallback } from "@/components/ErrorFallback";
 import { useMarketSettings } from "./useMarketSettings";
 
 function formatCountdown(seconds: number): string {
@@ -13,7 +14,18 @@ function formatCountdown(seconds: number): string {
 export const MarketSettingsView: FC<ReturnType<typeof useMarketSettings>> = ({
 	marketStatus,
 	isLoading,
+	isError,
+	refetch,
 }) => {
+	if (isError) {
+		return (
+			<ErrorFallback
+				message="Failed to load market status."
+				onRetry={refetch}
+			/>
+		);
+	}
+
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center min-h-screen">

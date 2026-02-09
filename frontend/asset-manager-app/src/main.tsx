@@ -9,7 +9,15 @@ import "./index.css";
 import "@/services/api";
 import { routeTree } from "./routeTree.gen.ts";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			staleTime: 30_000,
+			retry: 2,
+			refetchOnWindowFocus: false,
+		},
+	},
+});
 // Create a new router instance from the generated route tree
 const router = createRouter({
 	routeTree,

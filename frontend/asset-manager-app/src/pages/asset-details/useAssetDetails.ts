@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import {
 	type AssetResponse,
 	assetApi,
+	extractErrorMessage,
 	type UpdateAssetRequest,
 } from "@/services/assetApi";
 
@@ -14,6 +15,7 @@ export const useAssetDetails = () => {
 	const {
 		data: asset,
 		isLoading,
+		isError,
 		refetch,
 	} = useQuery({
 		queryKey: ["asset", assetId],
@@ -35,7 +37,7 @@ export const useAssetDetails = () => {
 			toast.success("Asset updated");
 			refetch();
 		},
-		onError: (err: Error) => toast.error(err.message),
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
 	const activateMutation = useMutation({
@@ -44,7 +46,7 @@ export const useAssetDetails = () => {
 			toast.success("Asset activated");
 			refetch();
 		},
-		onError: (err: Error) => toast.error(err.message),
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
 	const haltMutation = useMutation({
@@ -53,7 +55,7 @@ export const useAssetDetails = () => {
 			toast.success("Trading halted");
 			refetch();
 		},
-		onError: (err: Error) => toast.error(err.message),
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
 	const resumeMutation = useMutation({
@@ -62,7 +64,7 @@ export const useAssetDetails = () => {
 			toast.success("Trading resumed");
 			refetch();
 		},
-		onError: (err: Error) => toast.error(err.message),
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
 	const setPriceMutation = useMutation({
@@ -73,13 +75,15 @@ export const useAssetDetails = () => {
 			queryClient.invalidateQueries({ queryKey: ["price", assetId] });
 			refetch();
 		},
-		onError: (err: Error) => toast.error(err.message),
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
 	return {
 		assetId,
 		asset,
 		isLoading,
+		isError,
+		refetch,
 		price,
 		onUpdate: (data: UpdateAssetRequest) => updateMutation.mutate(data),
 		onActivate: () => activateMutation.mutate(),

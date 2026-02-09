@@ -1,12 +1,21 @@
 import { Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { FC } from "react";
+import { ErrorFallback } from "@/components/ErrorFallback";
 import { useInventory } from "./useInventory";
 
 export const InventoryView: FC<ReturnType<typeof useInventory>> = ({
 	inventory,
 	isLoading,
+	isError,
+	refetch,
 }) => {
+	if (isError) {
+		return (
+			<ErrorFallback message="Failed to load inventory." onRetry={refetch} />
+		);
+	}
+
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center min-h-screen">

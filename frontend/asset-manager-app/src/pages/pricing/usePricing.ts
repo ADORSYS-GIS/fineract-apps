@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { assetApi } from "@/services/assetApi";
+import { assetApi, extractErrorMessage } from "@/services/assetApi";
 
 export const usePricing = () => {
 	const { assetId } = useParams({ from: "/pricing/$assetId" });
@@ -35,7 +35,7 @@ export const usePricing = () => {
 			toast.success("Price updated");
 			queryClient.invalidateQueries({ queryKey: ["price", assetId] });
 		},
-		onError: (err: Error) => toast.error(err.message),
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
 	return {

@@ -3,7 +3,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { fineractApi } from "@/services/api";
-import { assetApi, type CreateAssetRequest } from "@/services/assetApi";
+import {
+	assetApi,
+	type CreateAssetRequest,
+	extractErrorMessage,
+} from "@/services/assetApi";
 
 export interface AssetFormData {
 	// Step 1: Select Company
@@ -77,16 +81,57 @@ export const useCreateAsset = () => {
 			toast.success("Asset created successfully!");
 			navigate({ to: "/dashboard" });
 		},
-		onError: (error: Error) => {
-			toast.error(`Failed to create asset: ${error.message}`);
+		onError: (error: unknown) => {
+			toast.error(`Failed to create asset: ${extractErrorMessage(error)}`);
 		},
 	});
 
+	const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+	const validateStep = (step: number): string[] => {
+		const errors: string[] = [];
+		switch (step) {
+			case 0:
+				if (!formData.treasuryClientId) errors.push("Select a company");
+				break;
+			case 1:
+				if (!formData.name.trim()) errors.push("Name is required");
+				if (!formData.symbol.trim()) errors.push("Symbol is required");
+				else if (!/^[A-Z0-9]{2,10}$/.test(formData.symbol))
+					errors.push("Symbol must be 2-10 uppercase letters/digits");
+				if (!formData.currencyCode.trim())
+					errors.push("Currency code is required");
+				else if (!/^[A-Z]{3}$/.test(formData.currencyCode))
+					errors.push("Currency code must be 3 uppercase letters");
+				break;
+			case 2:
+				if (formData.initialPrice <= 0)
+					errors.push("Initial price must be greater than 0");
+				if (formData.tradingFeePercent < 0 || formData.tradingFeePercent > 50)
+					errors.push("Trading fee must be 0-50%");
+				if (formData.spreadPercent < 0 || formData.spreadPercent > 50)
+					errors.push("Spread must be 0-50%");
+				break;
+			case 3:
+				if (formData.totalSupply <= 0)
+					errors.push("Total supply must be greater than 0");
+				break;
+		}
+		return errors;
+	};
+
 	const updateFormData = (updates: Partial<AssetFormData>) => {
 		setFormData((prev) => ({ ...prev, ...updates }));
+		setValidationErrors([]);
 	};
 
 	const nextStep = () => {
+		const errors = validateStep(currentStep);
+		if (errors.length > 0) {
+			setValidationErrors(errors);
+			return;
+		}
+		setValidationErrors([]);
 		if (currentStep < steps.length - 1) {
 			setCurrentStep((prev) => prev + 1);
 		}
@@ -134,5 +179,6 @@ export const useCreateAsset = () => {
 		isSubmitting: createMutation.isPending,
 		clients: clients ?? [],
 		isLoadingClients,
+		validationErrors,
 	};
 };

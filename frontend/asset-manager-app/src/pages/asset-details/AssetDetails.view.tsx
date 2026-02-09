@@ -9,6 +9,7 @@ import {
 	TrendingUp,
 } from "lucide-react";
 import { FC, useState } from "react";
+import { ErrorFallback } from "@/components/ErrorFallback";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAssetDetails } from "./useAssetDetails";
 
@@ -16,6 +17,8 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	assetId,
 	asset,
 	isLoading,
+	isError,
+	refetch,
 	price,
 	onActivate,
 	onHalt,
@@ -23,6 +26,15 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	onSetPrice,
 }) => {
 	const [manualPrice, setManualPrice] = useState("");
+
+	if (isError) {
+		return (
+			<ErrorFallback
+				message="Failed to load asset details."
+				onRetry={refetch}
+			/>
+		);
+	}
 
 	if (isLoading || !asset) {
 		return (
@@ -34,7 +46,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 
 	const handleSetPrice = () => {
 		const p = Number(manualPrice);
-		if (p > 0) {
+		if (Number.isFinite(p) && p > 0) {
 			onSetPrice(p);
 			setManualPrice("");
 		}
