@@ -74,7 +74,6 @@ public class CinetPayClient {
         Map<String, Object> requestBody = Map.ofEntries(
             Map.entry("apikey", config.getApiKey()),
             Map.entry("site_id", config.getSiteId()),
-
             Map.entry("transaction_id", transactionId),
             Map.entry("amount", amount.intValue()),
             Map.entry("currency", config.getCurrency()),
@@ -82,9 +81,9 @@ public class CinetPayClient {
             Map.entry("customer_phone_number", normalizedPhone),
             Map.entry("customer_name", "Customer"),
             Map.entry("customer_surname", ""),
-            Map.entry("notify_url", "https://ungraphical-angele-seventhly.ngrok-free.dev/api/callbacks/cinetpay/payment"),
-            Map.entry("return_url", "https://ungraphical-angele-seventhly.ngrok-free.dev/transactions"),
-            Map.entry("cancel_url", "https://ungraphical-angele-seventhly.ngrok-free.dev/transactions"),
+            Map.entry("notify_url", config.getCallbackUrl() + "/payment"),
+            Map.entry("return_url", config.getReturnUrl()),
+            Map.entry("cancel_url", config.getCancelUrl()),
             Map.entry("channels", "ALL"),
             Map.entry("lang", "fr")
         );
