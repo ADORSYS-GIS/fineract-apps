@@ -38,7 +38,7 @@ public class AdminAssetController {
     @PutMapping("/{id}")
     @Operation(summary = "Update asset metadata")
     public ResponseEntity<AssetDetailResponse> updateAsset(@PathVariable String id,
-                                                            @RequestBody UpdateAssetRequest request) {
+                                                            @Valid @RequestBody UpdateAssetRequest request) {
         return ResponseEntity.ok(provisioningService.updateAsset(id, request));
     }
 

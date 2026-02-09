@@ -148,7 +148,7 @@ public class PortfolioService {
         BigDecimal newTotalUnits = pos.getTotalUnits().add(units);
 
         BigDecimal newAvgPrice = newTotalUnits.compareTo(BigDecimal.ZERO) > 0
-                ? newTotalCost.divide(newTotalUnits, 0, RoundingMode.HALF_UP)
+                ? newTotalCost.divide(newTotalUnits, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         pos.setTotalUnits(newTotalUnits);
@@ -180,8 +180,12 @@ public class PortfolioService {
         BigDecimal costReduction = costPerUnit.multiply(units);
         BigDecimal newTotalCost = pos.getTotalCostBasis().subtract(costReduction);
 
-        pos.setTotalUnits(newTotalUnits.max(BigDecimal.ZERO));
-        pos.setTotalCostBasis(newTotalCost.max(BigDecimal.ZERO));
+        if (newTotalUnits.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalStateException(
+                    "Sell would result in negative units (" + newTotalUnits + ") for userId=" + userId + ", assetId=" + assetId);
+        }
+        pos.setTotalUnits(newTotalUnits);
+        pos.setTotalCostBasis(newTotalCost.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newTotalCost);
         pos.setRealizedPnl(pos.getRealizedPnl().add(realizedPnl));
         pos.setLastTradeAt(Instant.now());
         // Average price stays the same on sell

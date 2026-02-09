@@ -3,7 +3,13 @@ package com.adorsys.fineract.asset.dto;
 import java.math.BigDecimal;
 
 /**
- * Current price snapshot with 24-hour change for a single asset.
+ * Lightweight, Redis-cached price snapshot for a single asset.
+ * Returns the same price as {@link AssetDetailResponse#currentPrice} but via a faster path
+ * (Redis cache with 1-minute TTL → database fallback). Used internally by the trading engine
+ * for BUY/SELL execution price lookups, and exposed at GET /api/prices/{assetId}.
+ *
+ * @see AssetDetailResponse for the full asset detail (28 fields, always reads from database)
+ * @see AssetResponse for the marketplace listing (10 fields, always reads from database)
  */
 public record CurrentPriceResponse(
     /** Internal asset identifier. */

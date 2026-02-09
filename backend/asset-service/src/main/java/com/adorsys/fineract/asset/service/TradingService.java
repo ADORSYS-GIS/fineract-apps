@@ -85,12 +85,14 @@ public class TradingService {
         // 4. Get execution price (current price + spread for buy side)
         CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
         BigDecimal basePrice = priceData.currentPrice();
-        BigDecimal executionPrice = basePrice.add(basePrice.multiply(asset.getSpreadPercent()));
+        BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
+        BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
+        BigDecimal executionPrice = basePrice.add(basePrice.multiply(spread));
 
         // 5. Calculate cost
         BigDecimal units = request.units();
         BigDecimal actualCost = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = actualCost.multiply(asset.getTradingFeePercent()).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = actualCost.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
         BigDecimal chargedAmount = actualCost.add(fee);
 
         // 6. Verify sufficient inventory
@@ -186,9 +188,8 @@ public class TradingService {
             portfolioService.updatePositionAfterBuy(userId, request.assetId(),
                     userAssetAccountId, units, executionPrice);
 
-            // 15. Update circulating supply
-            asset.setCirculatingSupply(asset.getCirculatingSupply().add(units));
-            assetRepository.save(asset);
+            // 15. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
+            assetRepository.adjustCirculatingSupply(request.assetId(), units);
 
             // 16. Update OHLC
             pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
@@ -203,6 +204,11 @@ public class TradingService {
             return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.BUY,
                     units, executionPrice, chargedAmount, fee, null, Instant.now());
 
+        } catch (TradingException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error during BUY order {}: {}", orderId, e.getMessage(), e);
+            throw new TradingException("Trade failed unexpectedly: " + e.getMessage(), "TRADE_FAILED");
         } finally {
             tradeLockService.releaseTradeLock(userId, request.assetId(), lockValue);
         }
@@ -234,12 +240,14 @@ public class TradingService {
         // 4. Get execution price (current price - spread for sell side)
         CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
         BigDecimal basePrice = priceData.currentPrice();
-        BigDecimal executionPrice = basePrice.subtract(basePrice.multiply(asset.getSpreadPercent()));
+        BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
+        BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
+        BigDecimal executionPrice = basePrice.subtract(basePrice.multiply(spread));
 
         // 5. Calculate XAF amount and fee
         BigDecimal units = request.units();
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = grossAmount.multiply(asset.getTradingFeePercent()).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
         BigDecimal netAmount = grossAmount.subtract(fee);
 
         // 6. Resolve user from JWT
@@ -341,9 +349,8 @@ public class TradingService {
                     .build();
             tradeLogRepository.save(tradeLog);
 
-            // 15. Update circulating supply
-            asset.setCirculatingSupply(asset.getCirculatingSupply().subtract(units));
-            assetRepository.save(asset);
+            // 15. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
+            assetRepository.adjustCirculatingSupply(request.assetId(), units.negate());
 
             // 16. Update OHLC
             pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
@@ -358,6 +365,11 @@ public class TradingService {
             return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.SELL,
                     units, executionPrice, netAmount, fee, realizedPnl, Instant.now());
 
+        } catch (TradingException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error during SELL order {}: {}", orderId, e.getMessage(), e);
+            throw new TradingException("Trade failed unexpectedly: " + e.getMessage(), "TRADE_FAILED");
         } finally {
             tradeLockService.releaseTradeLock(userId, request.assetId(), lockValue);
         }
@@ -415,12 +427,15 @@ public class TradingService {
     }
 
     /**
-     * Get a single order by ID.
+     * Get a single order by ID. Verifies the order belongs to the requesting user.
      */
     @Transactional(readOnly = true)
-    public OrderResponse getOrder(String orderId) {
+    public OrderResponse getOrder(String orderId, Long userId) {
         Order o = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AssetException("Order not found: " + orderId));
+        if (!o.getUserId().equals(userId)) {
+            throw new AssetException("Order not found: " + orderId);
+        }
         Asset asset = assetRepository.findById(o.getAssetId()).orElse(null);
         return new OrderResponse(
                 o.getId(), o.getAssetId(),

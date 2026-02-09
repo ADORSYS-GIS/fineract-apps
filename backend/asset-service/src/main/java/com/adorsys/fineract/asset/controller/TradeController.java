@@ -63,7 +63,10 @@ public class TradeController {
 
     @GetMapping("/orders/{id}")
     @Operation(summary = "Single order status")
-    public ResponseEntity<OrderResponse> getOrder(@PathVariable String id) {
-        return ResponseEntity.ok(tradingService.getOrder(id));
+    public ResponseEntity<OrderResponse> getOrder(
+            @PathVariable String id,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long userId = JwtUtils.extractUserId(jwt);
+        return ResponseEntity.ok(tradingService.getOrder(id, userId));
     }
 }

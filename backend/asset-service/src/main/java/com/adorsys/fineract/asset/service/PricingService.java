@@ -38,16 +38,24 @@ public class PricingService {
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
 
     /**
-     * Get current price for an asset (with Redis cache).
+     * Get current price for an asset. Checks Redis cache first (1-minute TTL),
+     * falls back to the asset_prices table. The returned price is the same value
+     * shown in AssetResponse and AssetDetailResponse — this method just provides
+     * a faster, cached path for the trading engine (BUY/SELL execution).
      */
     @Transactional(readOnly = true)
     public CurrentPriceResponse getCurrentPrice(String assetId) {
         // Try Redis cache first
         String cached = redisTemplate.opsForValue().get(PRICE_CACHE_PREFIX + assetId);
         if (cached != null) {
-            String[] parts = cached.split(":");
-            return new CurrentPriceResponse(assetId, new BigDecimal(parts[0]),
-                    parts.length > 1 ? new BigDecimal(parts[1]) : null);
+            try {
+                String[] parts = cached.split(":");
+                return new CurrentPriceResponse(assetId, new BigDecimal(parts[0]),
+                        parts.length > 1 ? new BigDecimal(parts[1]) : null);
+            } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+                log.warn("Malformed price cache for asset {}, falling back to DB: {}", assetId, cached);
+                redisTemplate.delete(PRICE_CACHE_PREFIX + assetId);
+            }
         }
 
         AssetPrice price = assetPriceRepository.findById(assetId)

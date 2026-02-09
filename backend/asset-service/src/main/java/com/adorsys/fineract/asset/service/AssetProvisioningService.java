@@ -31,6 +31,7 @@ public class AssetProvisioningService {
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
     private final FineractClient fineractClient;
+    private final AssetCatalogService assetCatalogService;
 
     // GL account IDs - these map to the GitOps-provisioned GL accounts
     private static final Long GL_DIGITAL_ASSET_INVENTORY = 47L;
@@ -104,8 +105,12 @@ public class AssetProvisioningService {
         } catch (AssetException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Fineract provisioning failed for asset {}: {}. productId={}",
-                    assetId, e.getMessage(), productId);
+            // NOTE: If currency was registered but account creation failed, the currency remains in Fineract.
+            // A retry with the same currency code will fail because the currency already exists.
+            // Manual cleanup via Fineract admin API may be needed.
+            log.error("Fineract provisioning failed for asset {}: {}. productId={}, currencyCode={}. "
+                    + "Manual cleanup of orphaned Fineract resources may be required.",
+                    assetId, e.getMessage(), productId, request.currencyCode());
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
         }
 
@@ -151,7 +156,7 @@ public class AssetProvisioningService {
 
         log.info("Asset created successfully: id={}, symbol={}", assetId, request.symbol());
 
-        return new AssetCatalogService(assetRepository, assetPriceRepository).getAssetDetail(assetId);
+        return assetCatalogService.getAssetDetail(assetId);
     }
 
     /**
@@ -172,7 +177,7 @@ public class AssetProvisioningService {
         assetRepository.save(asset);
         log.info("Updated asset: id={}", assetId);
 
-        return new AssetCatalogService(assetRepository, assetPriceRepository).getAssetDetail(assetId);
+        return assetCatalogService.getAssetDetail(assetId);
     }
 
     /**

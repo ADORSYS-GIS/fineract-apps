@@ -50,7 +50,7 @@ public class UserPosition {
     private BigDecimal totalUnits;
 
     /** Weighted average purchase price per unit, in XAF. Recalculated on each BUY using the formula: (oldCost + newCost) / (oldUnits + newUnits). */
-    @Column(name = "avg_purchase_price", nullable = false, precision = 20, scale = 0)
+    @Column(name = "avg_purchase_price", nullable = false, precision = 20, scale = 4)
     private BigDecimal avgPurchasePrice;
 
     /** Total amount spent acquiring the current position, in XAF. Equal to avgPurchasePrice × totalUnits. */

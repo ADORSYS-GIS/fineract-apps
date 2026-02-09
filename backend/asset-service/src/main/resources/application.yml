@@ -81,7 +81,7 @@ asset-service:
   trade-lock:
     ttl-seconds: 10
   accounting:
-    fee-collection-account-id: ${FEE_COLLECTION_ACCOUNT_ID:0}
+    fee-collection-account-id: ${FEE_COLLECTION_ACCOUNT_ID:}
 
 # Actuator Configuration
 management:

@@ -12,7 +12,9 @@ public final class JwtUtils {
         if (clientId instanceof Number) {
             return ((Number) clientId).longValue();
         }
-        return (long) jwt.getSubject().hashCode();
+        throw new IllegalStateException(
+                "JWT is missing the 'fineract_client_id' claim. "
+                + "Ensure the Keycloak mapper is configured for subject: " + jwt.getSubject());
     }
 
     /**

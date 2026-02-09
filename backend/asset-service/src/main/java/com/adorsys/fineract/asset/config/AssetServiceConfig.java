@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.config;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -44,5 +45,14 @@ public class AssetServiceConfig {
     @Data
     public static class Accounting {
         private Long feeCollectionAccountId;
+    }
+
+    @PostConstruct
+    public void validate() {
+        if (accounting.getFeeCollectionAccountId() == null || accounting.getFeeCollectionAccountId() <= 0) {
+            throw new IllegalStateException(
+                    "asset-service.accounting.fee-collection-account-id must be set to a valid Fineract savings account ID. "
+                    + "Current value: " + accounting.getFeeCollectionAccountId());
+        }
     }
 }
