@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.service.TradingService;
+import com.adorsys.fineract.asset.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -52,7 +53,7 @@ public class TradeController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String assetId,
             Pageable pageable) {
-        Long userId = extractUserId(jwt);
+        Long userId = JwtUtils.extractUserId(jwt);
         return ResponseEntity.ok(tradingService.getUserOrders(userId, assetId, pageable));
     }
 
@@ -60,13 +61,5 @@ public class TradeController {
     @Operation(summary = "Single order status")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable String id) {
         return ResponseEntity.ok(tradingService.getOrder(id));
-    }
-
-    private Long extractUserId(Jwt jwt) {
-        Object clientId = jwt.getClaim("fineract_client_id");
-        if (clientId instanceof Number) {
-            return ((Number) clientId).longValue();
-        }
-        return (long) jwt.getSubject().hashCode();
     }
 }

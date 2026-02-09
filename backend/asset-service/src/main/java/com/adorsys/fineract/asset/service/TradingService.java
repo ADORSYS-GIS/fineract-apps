@@ -3,10 +3,10 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
-import com.adorsys.fineract.asset.entity.MarketMakerOrder;
 import com.adorsys.fineract.asset.entity.Order;
 import com.adorsys.fineract.asset.entity.TradeLog;
 import com.adorsys.fineract.asset.exception.AssetException;
+import com.adorsys.fineract.asset.exception.InsufficientInventoryException;
 import com.adorsys.fineract.asset.exception.TradingException;
 import com.adorsys.fineract.asset.exception.TradingHaltedException;
 import com.adorsys.fineract.asset.repository.AssetRepository;
@@ -28,7 +28,7 @@ import java.util.UUID;
  * Core trading engine. Orchestrates buy/sell operations with:
  * - Idempotency checks
  * - Market hours enforcement
- * - Order book matching
+ * - Single-price execution (current price ± spread)
  * - Fineract account transfers (cash + asset legs)
  * - Compensating transactions on failure
  * - Portfolio updates (WAP, P&L)
@@ -45,7 +45,6 @@ public class TradingService {
     private final AssetRepository assetRepository;
     private final FineractClient fineractClient;
     private final MarketHoursService marketHoursService;
-    private final OrderBookService orderBookService;
     private final TradeLockService tradeLockService;
     private final PortfolioService portfolioService;
     private final PricingService pricingService;
@@ -72,19 +71,20 @@ public class TradingService {
             throw new TradingHaltedException(request.assetId());
         }
 
-        // 4. Match against order book
-        MarketMakerOrder mmOrder = orderBookService.findBestMatch(
-                request.assetId(), TradeSide.BUY, request.orderBookEntryId());
-        BigDecimal executionPrice = mmOrder.getPrice();
+        // 4. Get execution price (current price + spread for buy side)
+        CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
+        BigDecimal basePrice = priceData.currentPrice();
+        BigDecimal executionPrice = basePrice.add(basePrice.multiply(asset.getSpreadPercent()));
 
         // 5. Calculate units and fee
         BigDecimal fee = request.xafAmount().multiply(asset.getTradingFeePercent()).setScale(0, RoundingMode.HALF_UP);
         BigDecimal netAmount = request.xafAmount().subtract(fee);
         BigDecimal units = netAmount.divide(executionPrice, asset.getDecimalPlaces(), RoundingMode.DOWN);
 
-        // 6. Verify sufficient quantity in order book
-        if (units.compareTo(mmOrder.getRemainingQuantity()) > 0) {
-            throw new TradingException("Insufficient quantity available at this price level", "INSUFFICIENT_INVENTORY");
+        // 6. Verify sufficient inventory (total supply - circulating supply)
+        BigDecimal availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
+        if (units.compareTo(availableSupply) > 0) {
+            throw new InsufficientInventoryException(request.assetId(), units, availableSupply);
         }
 
         // 7. Create order
@@ -158,10 +158,7 @@ public class TradingService {
                     .build();
             tradeLogRepository.save(tradeLog);
 
-            // 13. Update market maker order quantity
-            orderBookService.deductQuantity(mmOrder.getId(), units);
-
-            // 14. Update portfolio (WAP)
+            // 13. Update portfolio (WAP)
             portfolioService.updatePositionAfterBuy(userId, request.assetId(),
                     request.userAssetAccountId(), units, executionPrice);
 
@@ -210,10 +207,10 @@ public class TradingService {
             throw new TradingHaltedException(request.assetId());
         }
 
-        // 4. Match against order book (buy side)
-        MarketMakerOrder mmOrder = orderBookService.findBestMatch(
-                request.assetId(), TradeSide.SELL, request.orderBookEntryId());
-        BigDecimal executionPrice = mmOrder.getPrice();
+        // 4. Get execution price (current price - spread for sell side)
+        CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
+        BigDecimal basePrice = priceData.currentPrice();
+        BigDecimal executionPrice = basePrice.subtract(basePrice.multiply(asset.getSpreadPercent()));
 
         // 5. Calculate XAF amount and fee
         BigDecimal grossAmount = request.units().multiply(executionPrice);
@@ -295,10 +292,7 @@ public class TradingService {
                     .build();
             tradeLogRepository.save(tradeLog);
 
-            // 12. Restore market maker order quantity
-            orderBookService.restoreQuantity(mmOrder.getId(), request.units());
-
-            // 13. Update circulating supply
+            // 12. Update circulating supply
             asset.setCirculatingSupply(asset.getCirculatingSupply().subtract(request.units()));
             assetRepository.save(asset);
 

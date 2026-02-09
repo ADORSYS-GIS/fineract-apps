@@ -2,7 +2,6 @@ import { Button, Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import {
 	BarChart3,
-	BookOpen,
 	Pause,
 	Play,
 	Power,
@@ -48,9 +47,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
 					<div>
 						<div className="flex items-center gap-3">
-							<h1 className="text-2xl font-bold text-gray-800">
-								{asset.name}
-							</h1>
+							<h1 className="text-2xl font-bold text-gray-800">{asset.name}</h1>
 							<StatusBadge status={asset.status} />
 						</div>
 						<p className="text-sm text-gray-500 mt-1">
@@ -86,12 +83,6 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								Resume Trading
 							</Button>
 						)}
-						<Link to="/order-book/$assetId" params={{ assetId }}>
-							<Button variant="outline" className="flex items-center gap-2">
-								<BookOpen className="h-4 w-4" />
-								Order Book
-							</Button>
-						</Link>
 						<Link to="/pricing/$assetId" params={{ assetId }}>
 							<Button variant="outline" className="flex items-center gap-2">
 								<BarChart3 className="h-4 w-4" />
@@ -106,7 +97,10 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 					<Card className="p-4">
 						<p className="text-sm text-gray-500">Current Price</p>
 						<p className="text-2xl font-bold text-gray-900">
-							{price?.currentPrice?.toLocaleString() ?? asset.currentPrice?.toLocaleString() ?? "—"} XAF
+							{price?.currentPrice?.toLocaleString() ??
+								asset.currentPrice?.toLocaleString() ??
+								"—"}{" "}
+							XAF
 						</p>
 						<div className="flex items-center mt-1">
 							{(price?.change24hPercent ?? 0) >= 0 ? (

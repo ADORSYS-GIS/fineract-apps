@@ -13,7 +13,6 @@ public record BuyRequest(
     @NotBlank String externalId,
     @NotBlank String assetId,
     @NotNull @Positive BigDecimal xafAmount,
-    String orderBookEntryId,
     @NotNull Long userCashAccountId,
     Long userAssetAccountId
 ) {}

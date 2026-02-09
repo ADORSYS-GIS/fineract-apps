@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.FavoriteResponse;
 import com.adorsys.fineract.asset.service.FavoriteService;
+import com.adorsys.fineract.asset.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -27,14 +28,14 @@ public class FavoriteController {
     @GetMapping
     @Operation(summary = "Get user's watchlist")
     public ResponseEntity<List<FavoriteResponse>> getFavorites(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = extractUserId(jwt);
+        Long userId = JwtUtils.extractUserId(jwt);
         return ResponseEntity.ok(favoriteService.getFavorites(userId));
     }
 
     @PostMapping("/{assetId}")
     @Operation(summary = "Add to watchlist")
     public ResponseEntity<Void> addFavorite(@PathVariable String assetId, @AuthenticationPrincipal Jwt jwt) {
-        Long userId = extractUserId(jwt);
+        Long userId = JwtUtils.extractUserId(jwt);
         favoriteService.addFavorite(userId, assetId);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -42,18 +43,8 @@ public class FavoriteController {
     @DeleteMapping("/{assetId}")
     @Operation(summary = "Remove from watchlist")
     public ResponseEntity<Void> removeFavorite(@PathVariable String assetId, @AuthenticationPrincipal Jwt jwt) {
-        Long userId = extractUserId(jwt);
+        Long userId = JwtUtils.extractUserId(jwt);
         favoriteService.removeFavorite(userId, assetId);
         return ResponseEntity.noContent().build();
-    }
-
-    private Long extractUserId(Jwt jwt) {
-        // Extract Fineract client ID from JWT claims
-        Object clientId = jwt.getClaim("fineract_client_id");
-        if (clientId instanceof Number) {
-            return ((Number) clientId).longValue();
-        }
-        // Fallback: use subject hash as user ID
-        return (long) jwt.getSubject().hashCode();
     }
 }

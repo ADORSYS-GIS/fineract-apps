@@ -169,24 +169,14 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 												<StatusBadge status={asset.status} />
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm">
-												<div className="flex gap-2">
-													<Link
-														to="/asset-details/$assetId"
-														params={{ assetId: asset.id }}
-													>
-														<Button variant="outline" className="text-xs">
-															Manage
-														</Button>
-													</Link>
-													<Link
-														to="/order-book/$assetId"
-														params={{ assetId: asset.id }}
-													>
-														<Button variant="outline" className="text-xs">
-															Orders
-														</Button>
-													</Link>
-												</div>
+												<Link
+													to="/asset-details/$assetId"
+													params={{ assetId: asset.id }}
+												>
+													<Button variant="outline" className="text-xs">
+														Manage
+													</Button>
+												</Link>
 											</td>
 										</tr>
 									))}

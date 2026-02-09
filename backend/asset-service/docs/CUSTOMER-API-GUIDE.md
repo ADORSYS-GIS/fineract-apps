@@ -87,36 +87,7 @@ GET /api/assets/{assetId}
 
 Response includes full detail: name, symbol, description, imageUrl, category, status, currentPrice, OHLC, annualYield, totalSupply, circulatingSupply, etc.
 
-### 2.2 Get Order Book
-
-```
-GET /api/orderbook/{assetId}
-```
-
-Response:
-```json
-{
-  "buyOrders": [
-    { "id": "order-uuid", "price": 4900, "quantity": 500, "value": 2450000, "side": "BUY" }
-  ],
-  "sellOrders": [
-    { "id": "order-uuid", "price": 5000, "quantity": 1000, "value": 5000000, "side": "SELL" }
-  ],
-  "recentTrades": [
-    { "price": 5000, "units": 10, "side": "BUY", "executedAt": "2026-02-07T14:30:00Z" }
-  ]
-}
-```
-
-### 2.3 Recent Trades
-
-```
-GET /api/orderbook/{assetId}/recent-trades
-```
-
-Returns the 20 most recent executed trades.
-
-### 2.4 Price History (for charts)
+### 2.2 Price History (for charts)
 
 ```
 GET /api/prices/{assetId}/history?period=1Y
@@ -148,15 +119,7 @@ GET /api/market/status
 
 Assert `isOpen == true`.
 
-### 3.2 View order book sell orders
-
-```
-GET /api/orderbook/{assetId}
-```
-
-Show the `sellOrders` array to the user. Each entry has a price level and available quantity.
-
-### 3.3 Execute buy
+### 3.2 Execute buy
 
 ```
 POST /api/trades/buy
@@ -168,13 +131,12 @@ Body:
   "externalId": "{keycloak-user-uuid}",
   "assetId": "{asset-uuid}",
   "xafAmount": 50000,
-  "orderBookEntryId": "{market-maker-order-id}",
   "userCashAccountId": 123,
   "userAssetAccountId": 456
 }
 ```
 
-- `orderBookEntryId`: optional. If provided, executes at that specific price level. If omitted, auto-matches best available price.
+- Execution price = asset's current price + spread (buy side)
 - `userAssetAccountId`: can be `null` if user doesn't have an account for this asset currency yet (the backend creates one).
 
 Response:
@@ -198,15 +160,7 @@ Error responses:
 
 ## Flow 4: Sell Asset
 
-### 4.1 View order book buy orders
-
-```
-GET /api/orderbook/{assetId}
-```
-
-Show the `buyOrders` array (company bids).
-
-### 4.2 Execute sell
+### 4.1 Execute sell
 
 ```
 POST /api/trades/sell
@@ -218,7 +172,6 @@ Body:
   "externalId": "{keycloak-user-uuid}",
   "assetId": "{asset-uuid}",
   "units": 5,
-  "orderBookEntryId": "{market-maker-order-id}",
   "userCashAccountId": 123,
   "userAssetAccountId": 456
 }

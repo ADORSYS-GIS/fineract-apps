@@ -103,7 +103,8 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="font-medium">{formData.decimalPlaces}</div>
 					<div className="text-gray-600">Total Market Cap:</div>
 					<div className="font-medium">
-						{(formData.totalSupply * formData.initialPrice).toLocaleString()} XAF
+						{(formData.totalSupply * formData.initialPrice).toLocaleString()}{" "}
+						XAF
 					</div>
 					{formData.expectedLaunchDate && (
 						<>

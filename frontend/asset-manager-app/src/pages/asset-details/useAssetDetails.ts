@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 import {
-	assetApi,
 	type AssetResponse,
+	assetApi,
 	type UpdateAssetRequest,
 } from "@/services/assetApi";
 
@@ -19,12 +19,6 @@ export const useAssetDetails = () => {
 		queryKey: ["asset", assetId],
 		queryFn: () => assetApi.getAsset(assetId),
 		select: (res) => res.data as AssetResponse,
-	});
-
-	const { data: orderBook } = useQuery({
-		queryKey: ["orderbook", assetId],
-		queryFn: () => assetApi.getOrderBook(assetId),
-		select: (res) => res.data,
 	});
 
 	const { data: price } = useQuery({
@@ -86,7 +80,6 @@ export const useAssetDetails = () => {
 		assetId,
 		asset,
 		isLoading,
-		orderBook,
 		price,
 		onUpdate: (data: UpdateAssetRequest) => updateMutation.mutate(data),
 		onActivate: () => activateMutation.mutate(),

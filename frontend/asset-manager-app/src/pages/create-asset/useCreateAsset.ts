@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import toast from "react-hot-toast";
 import { fineractApi } from "@/services/api";
 import { assetApi, type CreateAssetRequest } from "@/services/assetApi";
@@ -71,8 +71,7 @@ export const useCreateAsset = () => {
 			}),
 		select: (res) =>
 			(res.pageItems ?? []).filter(
-				(c: { legalForm?: { id?: number } }) =>
-					c.legalForm?.id === 2, // ENTITY (company)
+				(c: { legalForm?: { id?: number } }) => c.legalForm?.id === 2, // ENTITY (company)
 			),
 	});
 

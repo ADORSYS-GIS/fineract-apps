@@ -10,9 +10,10 @@ function formatCountdown(seconds: number): string {
 	return `${h}h ${m}m ${s}s`;
 }
 
-export const MarketSettingsView: FC<
-	ReturnType<typeof useMarketSettings>
-> = ({ marketStatus, isLoading }) => {
+export const MarketSettingsView: FC<ReturnType<typeof useMarketSettings>> = ({
+	marketStatus,
+	isLoading,
+}) => {
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center min-h-screen">
@@ -34,16 +35,12 @@ export const MarketSettingsView: FC<
 						<div className="flex items-center gap-4">
 							<div
 								className={`p-3 rounded-full ${
-									marketStatus?.isOpen
-										? "bg-green-100"
-										: "bg-red-100"
+									marketStatus?.isOpen ? "bg-green-100" : "bg-red-100"
 								}`}
 							>
 								<Power
 									className={`h-6 w-6 ${
-										marketStatus?.isOpen
-											? "text-green-600"
-											: "text-red-600"
+										marketStatus?.isOpen ? "text-green-600" : "text-red-600"
 									}`}
 								/>
 							</div>
@@ -51,9 +48,7 @@ export const MarketSettingsView: FC<
 								<p className="text-sm text-gray-500">Market Status</p>
 								<p
 									className={`text-2xl font-bold ${
-										marketStatus?.isOpen
-											? "text-green-600"
-											: "text-red-600"
+										marketStatus?.isOpen ? "text-green-600" : "text-red-600"
 									}`}
 								>
 									{marketStatus?.isOpen ? "Open" : "Closed"}
@@ -75,12 +70,8 @@ export const MarketSettingsView: FC<
 								</p>
 								<p className="text-2xl font-bold text-gray-900">
 									{marketStatus?.isOpen
-										? formatCountdown(
-												marketStatus?.secondsUntilClose ?? 0,
-											)
-										: formatCountdown(
-												marketStatus?.secondsUntilOpen ?? 0,
-											)}
+										? formatCountdown(marketStatus?.secondsUntilClose ?? 0)
+										: formatCountdown(marketStatus?.secondsUntilOpen ?? 0)}
 								</p>
 							</div>
 						</div>
@@ -121,17 +112,16 @@ export const MarketSettingsView: FC<
 					</h2>
 					<div className="space-y-2 text-sm text-gray-600">
 						<p>
-							Trading is only allowed during market hours. Orders placed
-							outside these hours will be rejected with a MARKET_CLOSED
-							error.
+							Trading is only allowed during market hours. Orders placed outside
+							these hours will be rejected with a MARKET_CLOSED error.
 						</p>
 						<p>
 							Individual assets can be halted independently using the
 							Halt/Resume controls on the asset detail page.
 						</p>
 						<p>
-							Market hours are configured in the backend application.yml
-							and require a service restart to change.
+							Market hours are configured in the backend application.yml and
+							require a service restart to change.
 						</p>
 					</div>
 				</Card>

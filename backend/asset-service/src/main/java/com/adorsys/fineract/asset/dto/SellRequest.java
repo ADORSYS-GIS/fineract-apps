@@ -13,7 +13,6 @@ public record SellRequest(
     @NotBlank String externalId,
     @NotBlank String assetId,
     @NotNull @Positive BigDecimal units,
-    String orderBookEntryId,
     @NotNull Long userCashAccountId,
     @NotNull Long userAssetAccountId
 ) {}

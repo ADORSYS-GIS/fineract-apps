@@ -4,6 +4,7 @@ import com.adorsys.fineract.asset.dto.HoldingResponse;
 import com.adorsys.fineract.asset.dto.PortfolioSummaryResponse;
 import com.adorsys.fineract.asset.dto.PositionResponse;
 import com.adorsys.fineract.asset.service.PortfolioService;
+import com.adorsys.fineract.asset.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -29,14 +30,14 @@ public class PortfolioController {
     @GetMapping
     @Operation(summary = "Get full portfolio", description = "All positions with P&L summary and holdings")
     public ResponseEntity<PortfolioSummaryResponse> getPortfolio(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = extractUserId(jwt);
+        Long userId = JwtUtils.extractUserId(jwt);
         return ResponseEntity.ok(portfolioService.getPortfolio(userId));
     }
 
     @GetMapping("/holdings")
     @Operation(summary = "Get holdings", description = "Simplified view: Name, Supply (units), Total Value (XAF), Status (% change)")
     public ResponseEntity<List<HoldingResponse>> getHoldings(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = extractUserId(jwt);
+        Long userId = JwtUtils.extractUserId(jwt);
         return ResponseEntity.ok(portfolioService.getHoldings(userId));
     }
 
@@ -44,15 +45,7 @@ public class PortfolioController {
     @Operation(summary = "Single position detail")
     public ResponseEntity<PositionResponse> getPosition(@PathVariable String assetId,
                                                          @AuthenticationPrincipal Jwt jwt) {
-        Long userId = extractUserId(jwt);
+        Long userId = JwtUtils.extractUserId(jwt);
         return ResponseEntity.ok(portfolioService.getPosition(userId, assetId));
-    }
-
-    private Long extractUserId(Jwt jwt) {
-        Object clientId = jwt.getClaim("fineract_client_id");
-        if (clientId instanceof Number) {
-            return ((Number) clientId).longValue();
-        }
-        return (long) jwt.getSubject().hashCode();
     }
 }

@@ -46,7 +46,6 @@ public class SecurityConfig {
                 // Public catalog and market endpoints
                 .requestMatchers("/api/assets/**").permitAll()
                 .requestMatchers("/api/prices/**").permitAll()
-                .requestMatchers("/api/orderbook/**").permitAll()
                 .requestMatchers("/api/market/**").permitAll()
                 // Admin and authenticated endpoints require JWT
                 .anyRequest().authenticated()

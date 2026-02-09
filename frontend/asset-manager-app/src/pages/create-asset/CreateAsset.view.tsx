@@ -1,11 +1,11 @@
 import { Button } from "@fineract-apps/ui";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { FC } from "react";
-import { SelectCompanyStep } from "./steps/SelectCompanyStep";
 import { AssetDetailsStep } from "./steps/AssetDetailsStep";
 import { PricingStep } from "./steps/PricingStep";
-import { SupplyStep } from "./steps/SupplyStep";
 import { ReviewStep } from "./steps/ReviewStep";
+import { SelectCompanyStep } from "./steps/SelectCompanyStep";
+import { SupplyStep } from "./steps/SupplyStep";
 import { useCreateAsset } from "./useCreateAsset";
 
 export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
@@ -152,10 +152,7 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 							)}
 						</Button>
 					) : (
-						<Button
-							onClick={nextStep}
-							className="flex items-center gap-2"
-						>
+						<Button onClick={nextStep} className="flex items-center gap-2">
 							Next
 							<ArrowRight className="h-4 w-4" />
 						</Button>

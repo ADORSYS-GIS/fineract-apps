@@ -72,44 +72,6 @@ export interface SetPriceRequest {
 	price: number;
 }
 
-export interface MarketMakerOrderRequest {
-	side: "BUY" | "SELL";
-	price: number;
-	quantity: number;
-}
-
-export interface MarketMakerOrder {
-	id: string;
-	assetId: string;
-	side: "BUY" | "SELL";
-	price: number;
-	quantity: number;
-	remainingQuantity: number;
-	isActive: boolean;
-	createdAt: string;
-}
-
-export interface OrderBookEntry {
-	id: string;
-	price: number;
-	quantity: number;
-	value: number;
-	side: "BUY" | "SELL";
-}
-
-export interface OrderBookResponse {
-	buyOrders: OrderBookEntry[];
-	sellOrders: OrderBookEntry[];
-	recentTrades: RecentTrade[];
-}
-
-export interface RecentTrade {
-	price: number;
-	units: number;
-	side: "BUY" | "SELL";
-	executedAt: string;
-}
-
 export interface InventoryItem {
 	assetId: string;
 	symbol: string;
@@ -141,7 +103,11 @@ export const assetApi = {
 		size?: number;
 		category?: string;
 		search?: string;
-	}) => assetClient.get<{ content: AssetResponse[]; totalPages: number }>("/api/assets", { params }),
+	}) =>
+		assetClient.get<{ content: AssetResponse[]; totalPages: number }>(
+			"/api/assets",
+			{ params },
+		),
 	getAsset: (id: string) => assetClient.get<AssetResponse>(`/api/assets/${id}`),
 	discoverAssets: (params?: { page?: number; size?: number }) =>
 		assetClient.get("/api/assets/discover", { params }),
@@ -153,8 +119,7 @@ export const assetApi = {
 		assetClient.put<AssetResponse>(`/api/admin/assets/${id}`, data),
 	activateAsset: (id: string) =>
 		assetClient.post(`/api/admin/assets/${id}/activate`),
-	haltAsset: (id: string) =>
-		assetClient.post(`/api/admin/assets/${id}/halt`),
+	haltAsset: (id: string) => assetClient.post(`/api/admin/assets/${id}/halt`),
 	resumeAsset: (id: string) =>
 		assetClient.post(`/api/admin/assets/${id}/resume`),
 	setPrice: (id: string, data: SetPriceRequest) =>
@@ -162,29 +127,15 @@ export const assetApi = {
 	getInventory: () =>
 		assetClient.get<InventoryItem[]>("/api/admin/assets/inventory"),
 
-	// Order Book - Public
-	getOrderBook: (assetId: string) =>
-		assetClient.get<OrderBookResponse>(`/api/orderbook/${assetId}`),
-	getRecentTrades: (assetId: string) =>
-		assetClient.get<RecentTrade[]>(`/api/orderbook/${assetId}/recent-trades`),
-
-	// Order Book - Admin
-	getMMOrders: (assetId: string) =>
-		assetClient.get<MarketMakerOrder[]>(`/api/admin/orderbook/${assetId}/orders`),
-	createMMOrder: (assetId: string, data: MarketMakerOrderRequest) =>
-		assetClient.post<MarketMakerOrder>(`/api/admin/orderbook/${assetId}/orders`, data),
-	updateMMOrder: (assetId: string, orderId: string, data: MarketMakerOrderRequest) =>
-		assetClient.put<MarketMakerOrder>(`/api/admin/orderbook/${assetId}/orders/${orderId}`, data),
-	deleteMMOrder: (assetId: string, orderId: string) =>
-		assetClient.delete(`/api/admin/orderbook/${assetId}/orders/${orderId}`),
-
 	// Prices
-	getPrice: (assetId: string) =>
-		assetClient.get(`/api/prices/${assetId}`),
+	getPrice: (assetId: string) => assetClient.get(`/api/prices/${assetId}`),
 	getPriceHistory: (assetId: string, period: string) =>
-		assetClient.get<{ points: PriceHistoryPoint[] }>(`/api/prices/${assetId}/history`, {
-			params: { period },
-		}),
+		assetClient.get<{ points: PriceHistoryPoint[] }>(
+			`/api/prices/${assetId}/history`,
+			{
+				params: { period },
+			},
+		),
 
 	// Market
 	getMarketStatus: () =>

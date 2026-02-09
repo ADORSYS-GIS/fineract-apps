@@ -54,77 +54,11 @@ The asset starts in **PENDING** status and must be explicitly activated.
 POST /api/admin/assets/{id}/activate
 ```
 
-Transitions the asset from PENDING to ACTIVE. Trading becomes possible once the order book is set up.
+Transitions the asset from PENDING to ACTIVE. Trading becomes possible immediately — users buy at current price + spread, sell at current price - spread.
 
 ---
 
-## 3. Set Up the Order Book
-
-Before users can trade, the admin must place **market maker orders** (standing buy/sell orders at various price levels).
-
-### Place a Sell Order (Ask)
-
-```
-POST /api/admin/orderbook/{assetId}/orders
-Body:
-{
-  "side": "SELL",
-  "price": 5000,
-  "quantity": 10000
-}
-```
-
-This makes 10,000 units available for purchase at 5,000 XAF each.
-
-### Place a Buy Order (Bid)
-
-```
-POST /api/admin/orderbook/{assetId}/orders
-Body:
-{
-  "side": "BUY",
-  "price": 4900,
-  "quantity": 5000
-}
-```
-
-This creates a standing offer to buy back units at 4,900 XAF.
-
-### Typical Setup
-
-Create multiple price levels to form a proper order book:
-
-| Side | Price | Quantity | Purpose |
-|------|-------|----------|---------|
-| SELL | 5000 | 10000 | Primary ask |
-| SELL | 5100 | 5000 | Higher price tier |
-| SELL | 5200 | 2000 | Premium tier |
-| BUY | 4900 | 5000 | Primary bid |
-| BUY | 4800 | 3000 | Lower bid |
-| BUY | 4500 | 2000 | Floor bid |
-
-### Update an Order
-
-```
-PUT /api/admin/orderbook/{assetId}/orders/{orderId}
-Body: { "side": "SELL", "price": 5050, "quantity": 8000 }
-```
-
-### Delete an Order
-
-```
-DELETE /api/admin/orderbook/{assetId}/orders/{orderId}
-```
-
-### List All Orders
-
-```
-GET /api/admin/orderbook/{assetId}/orders
-```
-
----
-
-## 4. Manage Pricing
+## 3. Manage Pricing
 
 ### Manual Price Override
 
@@ -142,7 +76,7 @@ Updates the current price immediately. Useful for initial pricing or corrections
 
 ---
 
-## 5. Halt / Resume Trading
+## 4. Halt / Resume Trading
 
 ### Halt Trading
 
@@ -162,7 +96,7 @@ Transitions back to ACTIVE.
 
 ---
 
-## 6. Monitor Inventory
+## 5. Monitor Inventory
 
 ```
 GET /api/admin/assets/inventory
@@ -191,7 +125,7 @@ Key metrics:
 
 ---
 
-## 7. Update Asset Metadata
+## 6. Update Asset Metadata
 
 ```
 PUT /api/admin/assets/{id}

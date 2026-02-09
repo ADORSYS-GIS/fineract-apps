@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { assetApi, type AssetResponse } from "@/services/assetApi";
+import { type AssetResponse, assetApi } from "@/services/assetApi";
 
 export const useDashboard = () => {
 	const [searchValue, setSearchValue] = useState("");
