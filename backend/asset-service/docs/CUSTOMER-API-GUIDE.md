@@ -185,11 +185,13 @@ Response:
   "status": "FILLED",
   "units": 5,
   "pricePerUnit": 4900,
-  "totalAmount": 24500,
+  "totalAmount": 24378,
   "fee": 122,
   "realizedPnl": -500
 }
 ```
+
+- `totalAmount` = gross (units × price) - fee = 24,500 - 122 = **24,378 XAF** (net amount credited to user)
 
 ---
 
