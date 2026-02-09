@@ -85,28 +85,25 @@ When the admin creates an asset and deposits 100,000 units into treasury:
 
 ### 2. Customer Buy Trade
 
-User wants to invest 50,000 XAF in DTT at 5,000 XAF/unit with 0.5% fee:
+User buys 10 DTT at 5,000 XAF/unit with 0.5% fee:
 
+- Cost = 10 × 5,000 = **50,000 XAF**
 - Fee = 50,000 × 0.5% = **250 XAF**
-- Net purchasing power = 50,000 - 250 = 49,750 XAF
-- Units purchased = 49,750 / 5,000 = **9 DTT** (rounded down)
-- Actual cost = 9 × 5,000 = **45,000 XAF**
-- Total charged = 45,000 + 250 = **45,250 XAF**
-- Rounding surplus = 50,000 - 45,250 = 4,750 XAF (stays in user's account)
+- Total charged = 50,000 + 250 = **50,250 XAF**
 
 **Cash leg** (XAF transfer: user -> treasury, cost + fee):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| User XAF Savings | | 45,250 XAF |
-| Treasury XAF Savings | 45,250 XAF | |
+| User XAF Savings | | 50,250 XAF |
+| Treasury XAF Savings | 50,250 XAF | |
 
 **Asset leg** (DTT transfer: treasury -> user):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| GL 65 - Customer Digital Asset Holdings | 9 DTT | |
-| GL 47 - Digital Asset Inventory | | 9 DTT |
+| GL 65 - Customer Digital Asset Holdings | 10 DTT | |
+| GL 47 - Digital Asset Inventory | | 10 DTT |
 
 **Fee journal entry** (reclassifies fee from cash to fee income):
 

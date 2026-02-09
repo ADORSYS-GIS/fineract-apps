@@ -143,15 +143,14 @@ Response:
 {
   "orderId": "uuid",
   "status": "FILLED",
-  "units": 9,
+  "units": 10,
   "pricePerUnit": 5000,
-  "totalAmount": 45250,
+  "totalAmount": 50250,
   "fee": 250
 }
 ```
 
-- `totalAmount` = cost (units × price) + fee = 45,000 + 250 = 45,250 XAF (actual amount charged)
-- Rounding surplus (4,750 XAF) stays in the user's account
+- `totalAmount` = cost (units × price) + fee = 50,000 + 250 = 50,250 XAF (actual amount charged)
 
 Error responses:
 - `409` - `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_INVENTORY`
