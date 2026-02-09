@@ -22,7 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Service for portfolio tracking, WAP calculation, P&L, and the Holdings API.
+ * Service for portfolio tracking, WAP calculation, and P&L.
  */
 @Slf4j
 @Service
@@ -42,7 +42,7 @@ public class PortfolioService {
 
         if (positions.isEmpty()) {
             return new PortfolioSummaryResponse(BigDecimal.ZERO, BigDecimal.ZERO,
-                    BigDecimal.ZERO, BigDecimal.ZERO, List.of(), List.of());
+                    BigDecimal.ZERO, BigDecimal.ZERO, List.of());
         }
 
         List<String> assetIds = positions.stream().map(UserPosition::getAssetId).toList();
@@ -54,7 +54,6 @@ public class PortfolioService {
         BigDecimal totalValue = BigDecimal.ZERO;
         BigDecimal totalCostBasis = BigDecimal.ZERO;
         List<PositionResponse> positionResponses = new ArrayList<>();
-        List<HoldingResponse> holdingResponses = new ArrayList<>();
 
         for (UserPosition pos : positions) {
             Asset asset = assetMap.get(pos.getAssetId());
@@ -78,16 +77,6 @@ public class PortfolioService {
                     marketValue, pos.getTotalCostBasis(),
                     unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl()
             ));
-
-            // Holdings view: Name, Supply (units), Total Value (XAF), Status (% change)
-            holdingResponses.add(new HoldingResponse(
-                    pos.getAssetId(),
-                    asset != null ? asset.getName() : null,
-                    asset != null ? asset.getSymbol() : null,
-                    pos.getTotalUnits(),
-                    marketValue,
-                    unrealizedPnlPercent
-            ));
         }
 
         BigDecimal totalUnrealizedPnl = totalValue.subtract(totalCostBasis);
@@ -98,17 +87,8 @@ public class PortfolioService {
 
         return new PortfolioSummaryResponse(
                 totalValue, totalCostBasis, totalUnrealizedPnl, totalUnrealizedPnlPercent,
-                positionResponses, holdingResponses
+                positionResponses
         );
-    }
-
-    /**
-     * Get holdings only (matching the customer Holdings table view).
-     * Returns: Name, Supply (units), Total Value (XAF), Status (% change).
-     */
-    @Transactional(readOnly = true)
-    public List<HoldingResponse> getHoldings(Long userId) {
-        return getPortfolio(userId).holdings();
     }
 
     /**

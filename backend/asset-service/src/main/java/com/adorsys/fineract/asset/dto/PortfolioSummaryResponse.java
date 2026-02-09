@@ -16,7 +16,5 @@ public record PortfolioSummaryResponse(
     /** Aggregate unrealized P&L as a percentage of totalCostBasis (e.g. 25.0 = +25%). Zero if totalCostBasis is zero. */
     BigDecimal unrealizedPnlPercent,
     /** Per-asset position breakdown with individual P&L. */
-    List<PositionResponse> positions,
-    /** Simplified holdings view for the customer dashboard. */
-    List<HoldingResponse> holdings
+    List<PositionResponse> positions
 ) {}

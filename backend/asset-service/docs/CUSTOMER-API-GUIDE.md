@@ -225,30 +225,11 @@ Response:
       "unrealizedPnlPercent": 10.0,
       "realizedPnl": 0
     }
-  ],
-  "holdings": [
-    {
-      "assetId": "uuid",
-      "name": "Douala Tower Token",
-      "symbol": "DTT",
-      "supply": 10,
-      "totalValue": 55000,
-      "changePercent": 10.0
-    }
   ]
 }
 ```
 
-### 5.2 Holdings Only (for Holdings table)
-
-```
-GET /api/portfolio/holdings
-Headers: Authorization: Bearer {jwt}
-```
-
-Returns just the `holdings` array with columns: Name, Supply (units), Total Value (XAF), Status (% change).
-
-### 5.3 Single Position
+### 5.2 Single Position
 
 ```
 GET /api/portfolio/positions/{assetId}
