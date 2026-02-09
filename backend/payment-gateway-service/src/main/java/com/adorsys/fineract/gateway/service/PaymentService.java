@@ -15,6 +15,9 @@ import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,13 +57,14 @@ public class PaymentService {
         log.info("Initiating deposit: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
+        // Validate idempotency key format
+        validateIdempotencyKey(idempotencyKey);
+
         // Idempotency check: Return existing transaction if already processed
-        if (idempotencyKey != null) {
-            Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
-            if (existing.isPresent()) {
-                log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
-                return mapToResponse(existing.get());
-            }
+        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        if (existing.isPresent()) {
+            log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
+            return mapToResponse(existing.get());
         }
 
         Timer.Sample timerSample = paymentMetrics.startTimer();
@@ -70,7 +74,7 @@ public class PaymentService {
             throw new PaymentException("Account does not belong to the customer");
         }
 
-        String transactionId = idempotencyKey != null ? idempotencyKey : UUID.randomUUID().toString();
+        String transactionId = idempotencyKey;
         String currency = "XAF";
 
         PaymentResponse response = switch (request.getProvider()) {
@@ -110,13 +114,14 @@ public class PaymentService {
         log.info("Initiating withdrawal: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
+        // Validate idempotency key format
+        validateIdempotencyKey(idempotencyKey);
+
         // Idempotency check
-        if (idempotencyKey != null) {
-            Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
-            if (existing.isPresent()) {
-                log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
-                return mapToResponse(existing.get());
-            }
+        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        if (existing.isPresent()) {
+            log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
+            return mapToResponse(existing.get());
         }
 
         Timer.Sample timerSample = paymentMetrics.startTimer();
@@ -146,7 +151,7 @@ public class PaymentService {
             throw new PaymentException("Insufficient funds");
         }
 
-        String transactionId = idempotencyKey != null ? idempotencyKey : UUID.randomUUID().toString();
+        String transactionId = idempotencyKey;
         String currency = "XAF";
 
         // For withdrawals, we first create the Fineract transaction, then send money
@@ -213,6 +218,8 @@ public class PaymentService {
     /**
      * Handle MTN callback for collections (deposits).
      */
+    @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleMtnCollectionCallback(MtnCallbackRequest callback) {
         log.info("Processing MTN collection callback: ref={}, status={}",
@@ -263,6 +270,8 @@ public class PaymentService {
     /**
      * Handle MTN callback for disbursements (withdrawals).
      */
+    @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleMtnDisbursementCallback(MtnCallbackRequest callback) {
         log.info("Processing MTN disbursement callback: ref={}, status={}",
@@ -290,18 +299,21 @@ public class PaymentService {
             log.info("Withdrawal completed: txnId={}", txn.getTransactionId());
 
         } else if (callback.isFailed()) {
-            // TODO: Reverse the Fineract withdrawal
+            log.warn("MTN withdrawal failed: txnId={}, reason={}. Reversing Fineract transaction...",
+                txn.getTransactionId(), callback.getReason());
+            reverseWithdrawal(txn);
             txn.setStatus(PaymentStatus.FAILED);
             transactionRepository.save(txn);
 
             paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.FAILED);
-            log.warn("Withdrawal failed: txnId={}, reason={}", txn.getTransactionId(), callback.getReason());
         }
     }
 
     /**
      * Handle Orange Money callback.
      */
+    @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleOrangeCallback(OrangeCallbackRequest callback) {
         log.info("Processing Orange callback: orderId={}, status={}",
@@ -347,7 +359,9 @@ public class PaymentService {
                 paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.SUCCESSFUL);
                 paymentMetrics.recordPaymentAmountTotal(PaymentProvider.ORANGE_MONEY, PaymentResponse.TransactionType.WITHDRAWAL, txn.getAmount());
             } else {
-                // TODO: Reverse the Fineract withdrawal
+                log.warn("Orange withdrawal failed: txnId={}. Reversing Fineract transaction...",
+                    txn.getTransactionId());
+                reverseWithdrawal(txn);
                 txn.setStatus(PaymentStatus.FAILED);
                 transactionRepository.save(txn);
                 paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.FAILED);
@@ -358,6 +372,8 @@ public class PaymentService {
     /**
      * Handle CinetPay callback with dynamic GL mapping.
      */
+    @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleCinetPayCallback(CinetPayCallbackRequest callback) {
         log.info("Processing CinetPay callback: transactionId={}, status={}, paymentMethod={}",
@@ -445,22 +461,7 @@ public class PaymentService {
         } else if (callback.isFailed() || callback.isCancelled()) {
             log.warn("CinetPay withdrawal failed: txnId={}, reason={}. Reversing Fineract transaction...",
                 txn.getTransactionId(), callback.getErrorMessage());
-            
-            try {
-                // Compensating transaction: Credit the money back
-                Long paymentTypeId = getPaymentTypeId(txn.getProvider());
-                fineractClient.createDeposit(
-                    txn.getAccountId(),
-                    txn.getAmount(),
-                    paymentTypeId,
-                    "REVERSAL-" + txn.getTransactionId()
-                );
-                log.info("Fineract withdrawal reversed successfully for transactionId={}", txn.getTransactionId());
-            } catch (Exception revEx) {
-                log.error("CRITICAL: Failed to reverse Fineract withdrawal. Manual intervention required! transactionId={}",
-                    txn.getTransactionId(), revEx);
-            }
-
+            reverseWithdrawal(txn);
             txn.setStatus(PaymentStatus.FAILED);
             transactionRepository.save(txn);
 
@@ -624,6 +625,32 @@ public class PaymentService {
             .build();
     }
 
+    /**
+     * Reverse a Fineract withdrawal via compensating deposit.
+     * Called when a provider callback reports a failed withdrawal.
+     */
+    private void reverseWithdrawal(PaymentTransaction txn) {
+        if (txn.getFineractTransactionId() == null) {
+            log.warn("No Fineract transaction ID to reverse for txnId={}", txn.getTransactionId());
+            return;
+        }
+        try {
+            Long paymentTypeId = getPaymentTypeId(txn.getProvider());
+            fineractClient.createDeposit(
+                txn.getAccountId(),
+                txn.getAmount(),
+                paymentTypeId,
+                "REVERSAL-" + txn.getTransactionId()
+            );
+            log.info("Fineract withdrawal reversed successfully for transactionId={}", txn.getTransactionId());
+        } catch (Exception revEx) {
+            log.error("CRITICAL: Failed to reverse Fineract withdrawal. Manual intervention required! " +
+                "transactionId={}, fineractTxnId={}, amount={}, accountId={}",
+                txn.getTransactionId(), txn.getFineractTransactionId(),
+                txn.getAmount(), txn.getAccountId(), revEx);
+        }
+    }
+
     private Long getPaymentTypeId(PaymentProvider provider) {
         return switch (provider) {
             case MTN_MOMO -> mtnConfig.getFineractPaymentTypeId();
@@ -633,6 +660,14 @@ public class PaymentService {
             case CINETPAY -> mtnConfig.getFineractPaymentTypeId();
             default -> throw new PaymentException("Unknown payment type for provider: " + provider);
         };
+    }
+
+    private void validateIdempotencyKey(String idempotencyKey) {
+        try {
+            UUID.fromString(idempotencyKey);
+        } catch (IllegalArgumentException e) {
+            throw new PaymentException("X-Idempotency-Key must be a valid UUID");
+        }
     }
 
     private PaymentResponse mapToResponse(PaymentTransaction txn) {

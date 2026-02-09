@@ -7,6 +7,13 @@ spring:
   application:
     name: payment-gateway-service
 
+  # Redis (for distributed token caching)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
   # Database configuration
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/payment_gateway}
@@ -52,7 +59,7 @@ mtn:
     api-user-id: ${MTN_API_USER_ID:}
     api-key: ${MTN_API_KEY:}
     target-environment: ${MTN_TARGET_ENV:sandbox}
-    callback-url: ${MTN_CALLBACK_URL:https://ungraphical-angele-seventhly.ngrok-free.dev/api/callbacks}
+    callback-url: ${MTN_CALLBACK_URL:http://localhost:8082/api/callbacks}
     currency: XAF
     timeout-seconds: 30
     fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:1}
@@ -66,7 +73,7 @@ orange:
     client-id: ${ORANGE_CLIENT_ID:}
     client-secret: ${ORANGE_CLIENT_SECRET:}
     merchant-code: ${ORANGE_MERCHANT_CODE:}
-    callback-url: ${ORANGE_CALLBACK_URL:https://ungraphical-angele-seventhly.ngrok-free.dev/api/callbacks}
+    callback-url: ${ORANGE_CALLBACK_URL:http://localhost:8082/api/callbacks}
     return-url: ${ORANGE_RETURN_URL:http://localhost:3000/self-service/transactions}
     cancel-url: ${ORANGE_CANCEL_URL:http://localhost:3000/self-service/transactions}
     currency: XAF
@@ -90,7 +97,7 @@ cinetpay:
 # Base URLs for dynamic callback/return URL construction
 payment:
   gateway:
-    base-url: ${PAYMENT_GATEWAY_BASE_URL:https://ungraphical-angele-seventhly.ngrok-free.dev}
+    base-url: ${PAYMENT_GATEWAY_BASE_URL:http://localhost:8082}
 
 self-service:
   app:
@@ -111,6 +118,12 @@ fineract:
   password: ${FINERACT_PASSWORD:password}
   timeout-seconds: 30
   default-savings-product-id: ${FINERACT_SAVINGS_PRODUCT_ID:9}
+
+# Step-up authentication for withdrawals (disabled until frontend supports it)
+app:
+  stepup:
+    enabled: ${APP_STEPUP_ENABLED:false}
+    secret: ${APP_STEPUP_SECRET:}
 
 # Actuator Configuration
 management:
@@ -134,7 +147,7 @@ logging:
     com.adorsys.fineract.gateway: DEBUG
     org.springframework.security: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
 
 # OpenAPI Configuration
 springdoc:

@@ -13,12 +13,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import com.adorsys.fineract.gateway.service.TokenCacheService;
+
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Client for MTN Mobile Money API.
@@ -42,14 +43,13 @@ public class MtnMomoClient {
 
     private final MtnMomoConfig config;
     private final WebClient webClient;
+    private final TokenCacheService tokenCacheService;
 
-    public MtnMomoClient(MtnMomoConfig config, @Qualifier("mtnWebClient") WebClient webClient) {
+    public MtnMomoClient(MtnMomoConfig config, @Qualifier("mtnWebClient") WebClient webClient, TokenCacheService tokenCacheService) {
         this.config = config;
         this.webClient = webClient;
+        this.tokenCacheService = tokenCacheService;
     }
-
-    // Simple token cache (in production, use Redis or similar)
-    private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
 
     /**
      * Initiate a collection (deposit) request.
@@ -201,41 +201,39 @@ public class MtnMomoClient {
     }
 
     private String getAccessToken(String product) {
-        String cacheKey = product;
-        TokenInfo cached = tokenCache.get(cacheKey);
+        String cacheKey = "mtn:" + product;
 
-        if (cached != null && !cached.isExpired()) {
-            return cached.token;
-        }
+        return tokenCacheService.getToken(cacheKey).orElseGet(() -> {
+            String subscriptionKey = "collection".equals(product)
+                ? config.getCollectionSubscriptionKey()
+                : config.getDisbursementSubscriptionKey();
 
-        String subscriptionKey = "collection".equals(product)
-            ? config.getCollectionSubscriptionKey()
-            : config.getDisbursementSubscriptionKey();
+            String credentials = Base64.getEncoder().encodeToString(
+                (config.getApiUserId() + ":" + config.getApiKey()).getBytes()
+            );
 
-        String credentials = Base64.getEncoder().encodeToString(
-            (config.getApiUserId() + ":" + config.getApiKey()).getBytes()
-        );
+            try {
+                Map<String, Object> response = webClient.post()
+                    .uri("/{product}/token/", product)
+                    .header(HttpHeaders.AUTHORIZATION, "Basic " + credentials)
+                    .header("Ocp-Apim-Subscription-Key", subscriptionKey)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(10))
+                    .block();
 
-        try {
-            Map<String, Object> response = webClient.post()
-                .uri("/{product}/token/", product)
-                .header(HttpHeaders.AUTHORIZATION, "Basic " + credentials)
-                .header("Ocp-Apim-Subscription-Key", subscriptionKey)
-                .retrieve()
-                .bodyToMono(Map.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
+                String token = (String) response.get("access_token");
+                Integer expiresIn = (Integer) response.get("expires_in");
 
-            String token = (String) response.get("access_token");
-            Integer expiresIn = (Integer) response.get("expires_in");
+                long ttlSeconds = expiresIn - 60; // 60s buffer before expiry
+                tokenCacheService.putToken(cacheKey, token, ttlSeconds);
+                return token;
 
-            tokenCache.put(cacheKey, new TokenInfo(token, System.currentTimeMillis() + (expiresIn * 1000L) - 60000));
-            return token;
-
-        } catch (Exception e) {
-            log.error("Failed to get MTN access token: {}", e.getMessage());
-            throw new PaymentException("Failed to authenticate with MTN API", e);
-        }
+            } catch (Exception e) {
+                log.error("Failed to get MTN access token: {}", e.getMessage());
+                throw new PaymentException("Failed to authenticate with MTN API", e);
+            }
+        });
     }
 
     private String normalizePhoneNumber(String phoneNumber) {
@@ -266,9 +264,4 @@ public class MtnMomoClient {
         };
     }
 
-    private record TokenInfo(String token, long expiresAt) {
-        boolean isExpired() {
-            return System.currentTimeMillis() >= expiresAt;
-        }
-    }
 }

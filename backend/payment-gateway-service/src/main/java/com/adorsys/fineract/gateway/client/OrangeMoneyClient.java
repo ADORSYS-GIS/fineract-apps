@@ -12,11 +12,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import com.adorsys.fineract.gateway.service.TokenCacheService;
+
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Client for Orange Money API.
@@ -41,14 +42,13 @@ public class OrangeMoneyClient {
 
     private final OrangeMoneyConfig config;
     private final WebClient webClient;
+    private final TokenCacheService tokenCacheService;
 
-    public OrangeMoneyClient(OrangeMoneyConfig config, @Qualifier("orangeWebClient") WebClient webClient) {
+    public OrangeMoneyClient(OrangeMoneyConfig config, @Qualifier("orangeWebClient") WebClient webClient, TokenCacheService tokenCacheService) {
         this.config = config;
         this.webClient = webClient;
+        this.tokenCacheService = tokenCacheService;
     }
-
-    // Simple token cache
-    private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
 
     /**
      * Initialize a web payment (deposit).
@@ -194,40 +194,39 @@ public class OrangeMoneyClient {
     }
 
     private String getAccessToken() {
-        TokenInfo cached = tokenCache.get("default");
+        String cacheKey = "orange:default";
 
-        if (cached != null && !cached.isExpired()) {
-            return cached.token;
-        }
+        return tokenCacheService.getToken(cacheKey).orElseGet(() -> {
+            String credentials = Base64.getEncoder().encodeToString(
+                (config.getClientId() + ":" + config.getClientSecret()).getBytes()
+            );
 
-        String credentials = Base64.getEncoder().encodeToString(
-            (config.getClientId() + ":" + config.getClientSecret()).getBytes()
-        );
+            try {
+                WebClient tokenClient = WebClient.builder()
+                    .baseUrl(config.getTokenUrl())
+                    .build();
 
-        try {
-            WebClient tokenClient = WebClient.builder()
-                .baseUrl(config.getTokenUrl())
-                .build();
+                Map<String, Object> response = tokenClient.post()
+                    .header(HttpHeaders.AUTHORIZATION, "Basic " + credentials)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .bodyValue("grant_type=client_credentials")
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(10))
+                    .block();
 
-            Map<String, Object> response = tokenClient.post()
-                .header(HttpHeaders.AUTHORIZATION, "Basic " + credentials)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .bodyValue("grant_type=client_credentials")
-                .retrieve()
-                .bodyToMono(Map.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
+                String token = (String) response.get("access_token");
+                Integer expiresIn = (Integer) response.get("expires_in");
 
-            String token = (String) response.get("access_token");
-            Integer expiresIn = (Integer) response.get("expires_in");
+                long ttlSeconds = expiresIn - 60; // 60s buffer before expiry
+                tokenCacheService.putToken(cacheKey, token, ttlSeconds);
+                return token;
 
-            tokenCache.put("default", new TokenInfo(token, System.currentTimeMillis() + (expiresIn * 1000L) - 60000));
-            return token;
-
-        } catch (Exception e) {
-            log.error("Failed to get Orange access token: {}", e.getMessage());
-            throw new PaymentException("Failed to authenticate with Orange API", e);
-        }
+            } catch (Exception e) {
+                log.error("Failed to get Orange access token: {}", e.getMessage());
+                throw new PaymentException("Failed to authenticate with Orange API", e);
+            }
+        });
     }
 
     private String normalizePhoneNumber(String phoneNumber) {
@@ -258,10 +257,4 @@ public class OrangeMoneyClient {
     }
 
     public record PaymentInitResponse(String paymentUrl, String payToken, String notifToken) {}
-
-    private record TokenInfo(String token, long expiresAt) {
-        boolean isExpired() {
-            return System.currentTimeMillis() >= expiresAt;
-        }
-    }
 }

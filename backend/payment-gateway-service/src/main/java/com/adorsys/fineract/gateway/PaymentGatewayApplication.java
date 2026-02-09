@@ -3,6 +3,7 @@ package com.adorsys.fineract.gateway;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.retry.annotation.EnableRetry;
 
 /**
  * Payment Gateway Service Application
@@ -12,6 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
  */
 @SpringBootApplication
 @ConfigurationPropertiesScan
+@EnableRetry
 public class PaymentGatewayApplication {
 
     public static void main(String[] args) {
