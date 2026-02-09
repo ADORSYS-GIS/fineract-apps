@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.exception.TradeLockException;
+import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.RedisConnectionFailureException;
@@ -28,6 +29,7 @@ public class TradeLockService {
     private final DefaultRedisScript<Long> acquireTradeLockScript;
     private final DefaultRedisScript<Long> releaseTradeLockScript;
     private final AssetServiceConfig config;
+    private final AssetMetrics assetMetrics;
 
     private static final String USER_LOCK_PREFIX = "lock:trade:user:";
     private static final String TREASURY_LOCK_PREFIX = "lock:trade:treasury:";
@@ -57,6 +59,7 @@ public class TradeLockService {
 
             if (result == null || result != 1L) {
                 log.warn("Failed to acquire trade lock: userId={}, assetId={}", userId, assetId);
+                assetMetrics.recordTradeLockFailure();
                 throw new TradeLockException("Another trade is in progress. Please wait and try again.");
             }
 
@@ -67,6 +70,7 @@ public class TradeLockService {
             String localKey = userKey + ":" + treasuryKey;
             ReentrantLock lock = localLocks.computeIfAbsent(localKey, k -> new ReentrantLock());
             if (!lock.tryLock()) {
+                assetMetrics.recordTradeLockFailure();
                 throw new TradeLockException("Another trade is in progress (local lock). Please wait.");
             }
             return LOCAL_LOCK_PREFIX + localKey;

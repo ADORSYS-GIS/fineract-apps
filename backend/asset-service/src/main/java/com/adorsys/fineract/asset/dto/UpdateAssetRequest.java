@@ -12,7 +12,7 @@ public record UpdateAssetRequest(
     /** New display name. Null to keep current. */
     @Size(max = 200) String name,
     /** New description. Null to keep current. */
-    @Size(max = 2000) String description,
+    @Size(max = 1000) String description,
     /** New image URL. Null to keep current. */
     @Size(max = 500) String imageUrl,
     /** New category. Null to keep current. */

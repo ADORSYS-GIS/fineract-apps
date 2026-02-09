@@ -12,6 +12,7 @@ import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.exception.InsufficientInventoryException;
 import com.adorsys.fineract.asset.exception.TradingException;
 import com.adorsys.fineract.asset.exception.TradingHaltedException;
+import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
@@ -58,11 +59,13 @@ public class TradingService {
     private final PortfolioService portfolioService;
     private final PricingService pricingService;
     private final AssetServiceConfig assetServiceConfig;
+    private final AssetMetrics assetMetrics;
 
     /**
      * Execute a BUY order. User identity and accounts are resolved from the JWT.
      * Uses Fineract Batch API for atomic transfers.
      */
+    @Transactional
     public TradeResponse executeBuy(BuyRequest request, Jwt jwt, String idempotencyKey) {
         // 1. Idempotency check
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
@@ -243,12 +246,15 @@ public class TradingService {
             log.info("BUY executed: orderId={}, userId={}, asset={}, units={}, price={}, charged={}",
                     orderId, userId, lockedAsset.getSymbol(), units, executionPrice, chargedAmount);
 
+            assetMetrics.recordBuy();
             return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.BUY,
                     units, executionPrice, chargedAmount, fee, null, Instant.now());
 
         } catch (TradingException e) {
+            assetMetrics.recordTradeFailure();
             throw e;
         } catch (Exception e) {
+            assetMetrics.recordTradeFailure();
             log.error("Unexpected error during BUY order {}: {}", orderId, e.getMessage(), e);
             throw new TradingException("Trade failed unexpectedly: " + e.getMessage(), "TRADE_FAILED");
         } finally {
@@ -260,6 +266,7 @@ public class TradingService {
      * Execute a SELL order. User identity and accounts are resolved from the JWT.
      * Uses Fineract Batch API for atomic transfers.
      */
+    @Transactional
     public TradeResponse executeSell(SellRequest request, Jwt jwt, String idempotencyKey) {
         // 1. Idempotency check
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
@@ -343,7 +350,11 @@ public class TradingService {
             order.setStatus(OrderStatus.EXECUTING);
             orderRepository.save(order);
 
-            // 12a. Re-verify position INSIDE the lock to prevent race condition on concurrent sells
+            // 12a. Re-fetch asset INSIDE the lock to prevent stale treasury account IDs
+            Asset lockedAsset = assetRepository.findById(request.assetId())
+                    .orElseThrow(() -> new AssetException("Asset not found: " + request.assetId()));
+
+            // 12b. Re-verify position INSIDE the lock to prevent race condition on concurrent sells
             UserPosition lockedPosition = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId())
                     .orElseThrow(() -> new TradingException("No position found (concurrent sell detected)", "NO_POSITION"));
             if (units.compareTo(lockedPosition.getTotalUnits()) > 0) {
@@ -355,7 +366,7 @@ public class TradingService {
                         "INSUFFICIENT_UNITS");
             }
 
-            // 12b. Re-fetch authoritative price inside the lock to avoid stale pricing
+            // 12c. Re-fetch authoritative price inside the lock to avoid stale pricing
             CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(request.assetId());
             BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
             executionPrice = lockedBasePrice.subtract(lockedBasePrice.multiply(spread));
@@ -369,28 +380,28 @@ public class TradingService {
             order.setFee(fee);
             orderRepository.save(order);
 
-            // 12c. Validate fee collection account
+            // 12d. Validate fee collection account
             Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
             if (feeCollectionAccountId == null || feeCollectionAccountId <= 0) {
                 throw new TradingException(
                         "Fee collection account is not configured. Contact admin.", "CONFIG_ERROR");
             }
 
-            // 12d. Execute via Fineract Batch API (atomic)
+            // 12e. Execute via Fineract Batch API (atomic)
             List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
             // Transfer 1: Asset leg — user asset → treasury asset
             transfers.add(new BatchTransferRequest(
-                    userAssetAccountId, asset.getTreasuryAssetAccountId(),
-                    units, "Asset sell: " + asset.getSymbol()));
+                    userAssetAccountId, lockedAsset.getTreasuryAssetAccountId(),
+                    units, "Asset sell: " + lockedAsset.getSymbol()));
             // Transfer 2: Cash leg — treasury XAF → user XAF (net proceeds)
             transfers.add(new BatchTransferRequest(
-                    asset.getTreasuryCashAccountId(), userCashAccountId,
-                    netAmount, "Asset sale proceeds: " + asset.getSymbol()));
+                    lockedAsset.getTreasuryCashAccountId(), userCashAccountId,
+                    netAmount, "Asset sale proceeds: " + lockedAsset.getSymbol()));
             // Transfer 3: Fee leg — treasury XAF → fee collection
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 transfers.add(new BatchTransferRequest(
-                        asset.getTreasuryCashAccountId(), feeCollectionAccountId,
-                        fee, "Trading fee: SELL " + asset.getSymbol()));
+                        lockedAsset.getTreasuryCashAccountId(), feeCollectionAccountId,
+                        fee, "Trading fee: SELL " + lockedAsset.getSymbol()));
             }
 
             try {
@@ -434,14 +445,17 @@ public class TradingService {
             orderRepository.save(order);
 
             log.info("SELL executed: orderId={}, userId={}, asset={}, units={}, price={}, pnl={}",
-                    orderId, userId, asset.getSymbol(), units, executionPrice, realizedPnl);
+                    orderId, userId, lockedAsset.getSymbol(), units, executionPrice, realizedPnl);
 
+            assetMetrics.recordSell();
             return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.SELL,
                     units, executionPrice, netAmount, fee, realizedPnl, Instant.now());
 
         } catch (TradingException e) {
+            assetMetrics.recordTradeFailure();
             throw e;
         } catch (Exception e) {
+            assetMetrics.recordTradeFailure();
             log.error("Unexpected error during SELL order {}: {}", orderId, e.getMessage(), e);
             throw new TradingException("Trade failed unexpectedly: " + e.getMessage(), "TRADE_FAILED");
         } finally {

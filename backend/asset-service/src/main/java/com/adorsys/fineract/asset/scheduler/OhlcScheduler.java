@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.service.MarketHoursService;
 import com.adorsys.fineract.asset.service.PricingService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,6 +21,16 @@ public class OhlcScheduler {
     private final MarketHoursService marketHoursService;
 
     private boolean wasOpen = false;
+
+    /**
+     * Initialize wasOpen from actual market state on startup to prevent
+     * a false open-transition (and OHLC wipe) if the pod restarts mid-day.
+     */
+    @PostConstruct
+    void initMarketState() {
+        wasOpen = marketHoursService.isMarketOpen();
+        log.info("OHLC scheduler initialized: market is currently {}", wasOpen ? "OPEN" : "CLOSED");
+    }
 
     @Scheduled(fixedRate = 60000)
     public void checkMarketTransition() {

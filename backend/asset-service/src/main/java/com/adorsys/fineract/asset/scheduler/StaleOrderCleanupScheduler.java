@@ -29,16 +29,23 @@ public class StaleOrderCleanupScheduler {
         int minutes = config.getOrders().getStaleCleanupMinutes();
         Instant cutoff = Instant.now().minus(minutes, ChronoUnit.MINUTES);
 
-        List<Order> staleOrders = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.PENDING, cutoff);
-
-        for (Order order : staleOrders) {
+        List<Order> stalePending = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.PENDING, cutoff);
+        for (Order order : stalePending) {
             order.setStatus(OrderStatus.FAILED);
             order.setFailureReason("Order timed out after " + minutes + " minutes");
             orderRepository.save(order);
         }
 
-        if (!staleOrders.isEmpty()) {
-            log.info("Cleaned up {} stale PENDING orders", staleOrders.size());
+        List<Order> stuckExecuting = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.EXECUTING, cutoff);
+        for (Order order : stuckExecuting) {
+            order.setStatus(OrderStatus.FAILED);
+            order.setFailureReason("Order stuck in EXECUTING state for over " + minutes + " minutes");
+            orderRepository.save(order);
+        }
+
+        int total = stalePending.size() + stuckExecuting.size();
+        if (total > 0) {
+            log.info("Cleaned up stale orders: {} PENDING, {} EXECUTING", stalePending.size(), stuckExecuting.size());
         }
     }
 }

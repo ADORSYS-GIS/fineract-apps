@@ -57,10 +57,39 @@ public class AssetCatalogService {
     }
 
     /**
-     * Get full asset detail by ID.
+     * Get public asset detail by ID (omits internal Fineract IDs).
      */
     @Transactional(readOnly = true)
-    public AssetDetailResponse getAssetDetail(String assetId) {
+    public AssetPublicDetailResponse getAssetDetail(String assetId) {
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
+
+        AssetPrice price = assetPriceRepository.findById(assetId).orElse(null);
+
+        BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
+        BigDecimal available = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
+
+        return new AssetPublicDetailResponse(
+                asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
+                asset.getDescription(), asset.getImageUrl(), asset.getCategory(), asset.getStatus(),
+                asset.getPriceMode(), currentPrice,
+                price != null ? price.getChange24hPercent() : null,
+                price != null ? price.getDayOpen() : null,
+                price != null ? price.getDayHigh() : null,
+                price != null ? price.getDayLow() : null,
+                price != null ? price.getDayClose() : null,
+                asset.getTotalSupply(), asset.getCirculatingSupply(),
+                available, asset.getTradingFeePercent(), asset.getSpreadPercent(),
+                asset.getDecimalPlaces(), asset.getExpectedLaunchDate(),
+                asset.getCreatedAt(), asset.getUpdatedAt()
+        );
+    }
+
+    /**
+     * Get full asset detail by ID including Fineract IDs (admin only).
+     */
+    @Transactional(readOnly = true)
+    public AssetDetailResponse getAssetDetailAdmin(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
 

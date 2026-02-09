@@ -10,6 +10,7 @@ import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.exception.InsufficientInventoryException;
 import com.adorsys.fineract.asset.exception.MarketClosedException;
 import com.adorsys.fineract.asset.exception.TradingException;
+import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
@@ -48,6 +49,7 @@ class TradingServiceTest {
     @Mock private PortfolioService portfolioService;
     @Mock private PricingService pricingService;
     @Mock private AssetServiceConfig assetServiceConfig;
+    @Mock private AssetMetrics assetMetrics;
 
     @InjectMocks
     private TradingService tradingService;

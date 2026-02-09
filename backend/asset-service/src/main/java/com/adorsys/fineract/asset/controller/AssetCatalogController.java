@@ -1,7 +1,7 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.AssetCategory;
-import com.adorsys.fineract.asset.dto.AssetDetailResponse;
+import com.adorsys.fineract.asset.dto.AssetPublicDetailResponse;
 import com.adorsys.fineract.asset.dto.AssetResponse;
 import com.adorsys.fineract.asset.dto.DiscoverAssetResponse;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
@@ -35,7 +35,7 @@ public class AssetCatalogController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get asset detail", description = "Full asset detail with OHLC, price, supply stats")
-    public ResponseEntity<AssetDetailResponse> getAssetDetail(@PathVariable String id) {
+    public ResponseEntity<AssetPublicDetailResponse> getAssetDetail(@PathVariable String id) {
         return ResponseEntity.ok(assetCatalogService.getAssetDetail(id));
     }
 

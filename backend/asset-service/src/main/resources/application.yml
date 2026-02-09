@@ -56,6 +56,11 @@ spring:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/fineract}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/fineract/protocol/openid-connect/certs}
 
+# Application Configuration
+app:
+  fineract:
+    ssl-verify: ${FINERACT_SSL_VERIFY:false}  # Only disable in dev; defaults to true in WebClientConfig
+
 # Fineract Configuration
 fineract:
   url: ${FINERACT_URL:https://localhost}
