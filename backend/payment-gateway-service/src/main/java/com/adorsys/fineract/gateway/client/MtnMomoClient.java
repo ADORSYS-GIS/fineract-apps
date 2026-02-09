@@ -3,11 +3,9 @@ package com.adorsys.fineract.gateway.client;
 import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.dto.PaymentStatus;
 import com.adorsys.fineract.gateway.exception.PaymentException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -221,6 +219,7 @@ public class MtnMomoClient {
                 .uri("/{product}/token/", product)
                 .header(HttpHeaders.AUTHORIZATION, "Basic " + credentials)
                 .header("Ocp-Apim-Subscription-Key", subscriptionKey)
+                .bodyValue("") // Send empty body to satisfy Content-Length requirement
                 .retrieve()
                 .bodyToMono(Map.class)
                 .timeout(Duration.ofSeconds(10))
