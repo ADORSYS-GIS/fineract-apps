@@ -141,24 +141,65 @@ public class TradingService {
             order.setStatus(OrderStatus.EXECUTING);
             orderRepository.save(order);
 
-            // 12. Execute via Fineract Batch API (atomic)
-            Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
+            // 12a. Re-verify inventory INSIDE the lock to prevent race condition
+            Asset lockedAsset = assetRepository.findById(request.assetId())
+                    .orElseThrow(() -> new AssetException("Asset not found: " + request.assetId()));
+            BigDecimal lockedAvailableSupply = lockedAsset.getTotalSupply().subtract(lockedAsset.getCirculatingSupply());
+            if (units.compareTo(lockedAvailableSupply) > 0) {
+                order.setStatus(OrderStatus.REJECTED);
+                order.setFailureReason("Insufficient inventory");
+                orderRepository.save(order);
+                throw new InsufficientInventoryException(request.assetId(), units, lockedAvailableSupply);
+            }
 
+            // 12b. Re-fetch authoritative price inside the lock to avoid stale pricing
+            CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(request.assetId());
+            BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
+            executionPrice = lockedBasePrice.add(lockedBasePrice.multiply(spread));
+            actualCost = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
+            fee = actualCost.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+            chargedAmount = actualCost.add(fee);
+
+            // Update order with authoritative locked values
+            order.setExecutionPrice(executionPrice);
+            order.setXafAmount(chargedAmount);
+            order.setFee(fee);
+            orderRepository.save(order);
+
+            // 12b2. Verify user has sufficient XAF balance for the purchase
+            BigDecimal availableBalance = fineractClient.getAccountBalance(userCashAccountId);
+            if (availableBalance.compareTo(chargedAmount) < 0) {
+                order.setStatus(OrderStatus.REJECTED);
+                order.setFailureReason("Insufficient XAF balance");
+                orderRepository.save(order);
+                throw new TradingException(
+                        "Insufficient XAF balance. Required: " + chargedAmount + " XAF, Available: " + availableBalance + " XAF",
+                        "INSUFFICIENT_FUNDS");
+            }
+
+            // 12c. Validate fee collection account
+            Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
+            if (feeCollectionAccountId == null || feeCollectionAccountId <= 0) {
+                throw new TradingException(
+                        "Fee collection account is not configured. Contact admin.", "CONFIG_ERROR");
+            }
+
+            // 12d. Execute via Fineract Batch API (atomic)
             List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
             // Transfer 1: Cash leg — user XAF → treasury XAF
             transfers.add(new BatchTransferRequest(
-                    userCashAccountId, asset.getTreasuryCashAccountId(),
-                    actualCost, "Asset purchase: " + asset.getSymbol()));
+                    userCashAccountId, lockedAsset.getTreasuryCashAccountId(),
+                    actualCost, "Asset purchase: " + lockedAsset.getSymbol()));
             // Transfer 2: Fee leg — user XAF → fee collection
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 transfers.add(new BatchTransferRequest(
                         userCashAccountId, feeCollectionAccountId,
-                        fee, "Trading fee: BUY " + asset.getSymbol()));
+                        fee, "Trading fee: BUY " + lockedAsset.getSymbol()));
             }
             // Transfer 3: Asset leg — treasury asset → user asset
             transfers.add(new BatchTransferRequest(
-                    asset.getTreasuryAssetAccountId(), userAssetAccountId,
-                    units, "Asset delivery: " + asset.getSymbol()));
+                    lockedAsset.getTreasuryAssetAccountId(), userAssetAccountId,
+                    units, "Asset delivery: " + lockedAsset.getSymbol()));
 
             try {
                 fineractClient.executeBatchTransfers(transfers);
@@ -184,9 +225,10 @@ public class TradingService {
                     .build();
             tradeLogRepository.save(tradeLog);
 
-            // 14. Update portfolio (WAP)
+            // 14. Update portfolio (WAP) — include fee in cost basis for accurate P&L
+            BigDecimal effectiveCostPerUnit = chargedAmount.divide(units, 4, RoundingMode.HALF_UP);
             portfolioService.updatePositionAfterBuy(userId, request.assetId(),
-                    userAssetAccountId, units, executionPrice);
+                    userAssetAccountId, units, effectiveCostPerUnit);
 
             // 15. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
             assetRepository.adjustCirculatingSupply(request.assetId(), units);
@@ -199,7 +241,7 @@ public class TradingService {
             orderRepository.save(order);
 
             log.info("BUY executed: orderId={}, userId={}, asset={}, units={}, price={}, charged={}",
-                    orderId, userId, asset.getSymbol(), units, executionPrice, chargedAmount);
+                    orderId, userId, lockedAsset.getSymbol(), units, executionPrice, chargedAmount);
 
             return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.BUY,
                     units, executionPrice, chargedAmount, fee, null, Instant.now());
@@ -301,9 +343,40 @@ public class TradingService {
             order.setStatus(OrderStatus.EXECUTING);
             orderRepository.save(order);
 
-            // 12. Execute via Fineract Batch API (atomic)
-            Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
+            // 12a. Re-verify position INSIDE the lock to prevent race condition on concurrent sells
+            UserPosition lockedPosition = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId())
+                    .orElseThrow(() -> new TradingException("No position found (concurrent sell detected)", "NO_POSITION"));
+            if (units.compareTo(lockedPosition.getTotalUnits()) > 0) {
+                order.setStatus(OrderStatus.REJECTED);
+                order.setFailureReason("Insufficient units after lock");
+                orderRepository.save(order);
+                throw new TradingException(
+                        "Insufficient units. You hold " + lockedPosition.getTotalUnits() + " but tried to sell " + units,
+                        "INSUFFICIENT_UNITS");
+            }
 
+            // 12b. Re-fetch authoritative price inside the lock to avoid stale pricing
+            CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(request.assetId());
+            BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
+            executionPrice = lockedBasePrice.subtract(lockedBasePrice.multiply(spread));
+            grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
+            fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+            netAmount = grossAmount.subtract(fee);
+
+            // Update order with authoritative locked values
+            order.setExecutionPrice(executionPrice);
+            order.setXafAmount(netAmount);
+            order.setFee(fee);
+            orderRepository.save(order);
+
+            // 12c. Validate fee collection account
+            Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
+            if (feeCollectionAccountId == null || feeCollectionAccountId <= 0) {
+                throw new TradingException(
+                        "Fee collection account is not configured. Contact admin.", "CONFIG_ERROR");
+            }
+
+            // 12d. Execute via Fineract Batch API (atomic)
             List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
             // Transfer 1: Asset leg — user asset → treasury asset
             transfers.add(new BatchTransferRequest(
@@ -330,9 +403,10 @@ public class TradingService {
                 throw new TradingException("Trade failed: " + batchError.getMessage(), "TRADE_FAILED");
             }
 
-            // 13. Calculate realized P&L and update portfolio
+            // 13. Calculate realized P&L — use net proceeds per unit (after fee) for accurate P&L
+            BigDecimal netProceedsPerUnit = netAmount.divide(units, 4, RoundingMode.HALF_UP);
             BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    userId, request.assetId(), units, executionPrice);
+                    userId, request.assetId(), units, netProceedsPerUnit);
 
             // 14. Record trade log
             TradeLog tradeLog = TradeLog.builder()
@@ -416,10 +490,10 @@ public class TradingService {
         }
 
         return orders.map(o -> {
-            Asset asset = assetRepository.findById(o.getAssetId()).orElse(null);
+            Asset orderAsset = o.getAsset();
             return new OrderResponse(
                     o.getId(), o.getAssetId(),
-                    asset != null ? asset.getSymbol() : null,
+                    orderAsset != null ? orderAsset.getSymbol() : null,
                     o.getSide(), o.getUnits(), o.getExecutionPrice(),
                     o.getXafAmount(), o.getFee(), o.getStatus(), o.getCreatedAt()
             );
@@ -436,10 +510,10 @@ public class TradingService {
         if (!o.getUserId().equals(userId)) {
             throw new AssetException("Order not found: " + orderId);
         }
-        Asset asset = assetRepository.findById(o.getAssetId()).orElse(null);
+        Asset orderAsset = o.getAsset();
         return new OrderResponse(
                 o.getId(), o.getAssetId(),
-                asset != null ? asset.getSymbol() : null,
+                orderAsset != null ? orderAsset.getSymbol() : null,
                 o.getSide(), o.getUnits(), o.getExecutionPrice(),
                 o.getXafAmount(), o.getFee(), o.getStatus(), o.getCreatedAt()
         );

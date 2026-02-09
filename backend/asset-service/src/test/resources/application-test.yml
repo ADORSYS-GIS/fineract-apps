@@ -1,0 +1,43 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://localhost/realms/test
+          jwk-set-uri: https://localhost/realms/test/protocol/openid-connect/certs
+
+fineract:
+  url: https://localhost
+  tenant: default
+  auth-type: basic
+  username: mifos
+  password: password
+  timeout-seconds: 5
+
+asset-service:
+  market-hours:
+    open: "00:00"
+    close: "23:59"
+    timezone: "UTC"
+    weekend-trading-enabled: true
+  accounting:
+    fee-collection-account-id: 999
+  gl-accounts:
+    digital-asset-inventory: 47
+    customer-digital-asset-holdings: 65
+    asset-issuance-payment-type: 22

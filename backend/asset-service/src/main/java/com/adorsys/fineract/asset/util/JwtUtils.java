@@ -22,6 +22,11 @@ public final class JwtUtils {
      * This is the UUID used as externalId in Fineract client records.
      */
     public static String extractExternalId(Jwt jwt) {
-        return jwt.getSubject();
+        String subject = jwt.getSubject();
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT is missing the 'sub' claim. Cannot resolve user identity.");
+        }
+        return subject;
     }
 }

@@ -2,6 +2,7 @@ import axios, { type AxiosError } from "axios";
 
 const assetClient = axios.create({
 	baseURL: import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083",
+	timeout: 30000,
 });
 
 // Interceptor adds auth token from sessionStorage
@@ -21,6 +22,39 @@ assetClient.interceptors.request.use((config) => {
 	}
 	return config;
 });
+
+// Response interceptor for 401 auto-redirect and retry
+assetClient.interceptors.response.use(
+	(response) => response,
+	async (error: AxiosError) => {
+		if (error.response?.status === 401) {
+			sessionStorage.removeItem("auth");
+			const base = import.meta.env.BASE_URL || "/asset-manager/";
+			if (import.meta.env.VITE_AUTH_MODE === "oauth") {
+				window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(window.location.origin + base)}`;
+			} else {
+				window.location.href = base;
+			}
+			return Promise.reject(error);
+		}
+
+		// Retry on network errors or 5xx (up to 2 retries)
+		const config = error.config as AxiosError["config"] & {
+			__retryCount?: number;
+		};
+		if (config && (!config.__retryCount || config.__retryCount < 2)) {
+			const shouldRetry = !error.response || error.response.status >= 500;
+			if (shouldRetry) {
+				config.__retryCount = (config.__retryCount || 0) + 1;
+				const delay = config.__retryCount * 1000;
+				await new Promise((r) => setTimeout(r, delay));
+				return assetClient(config);
+			}
+		}
+
+		return Promise.reject(error);
+	},
+);
 
 /** Extract a human-readable error message from any error (axios or otherwise). */
 export function extractErrorMessage(error: unknown): string {

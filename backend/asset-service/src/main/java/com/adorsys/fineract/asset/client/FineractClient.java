@@ -392,6 +392,25 @@ public class FineractClient {
     }
 
     /**
+     * Get the available balance of a savings account.
+     * Uses Fineract's summary.availableBalance which accounts for holds/pending transactions.
+     *
+     * @return The available balance, or ZERO if the account has no balance information
+     */
+    @SuppressWarnings("unchecked")
+    public BigDecimal getAccountBalance(Long accountId) {
+        Map<String, Object> account = getSavingsAccount(accountId);
+        Map<String, Object> summary = (Map<String, Object>) account.get("summary");
+        if (summary != null && summary.get("availableBalance") != null) {
+            return new BigDecimal(summary.get("availableBalance").toString());
+        }
+        if (account.get("accountBalance") != null) {
+            return new BigDecimal(account.get("accountBalance").toString());
+        }
+        return BigDecimal.ZERO;
+    }
+
+    /**
      * Get savings account details including balance.
      */
     @SuppressWarnings("unchecked")

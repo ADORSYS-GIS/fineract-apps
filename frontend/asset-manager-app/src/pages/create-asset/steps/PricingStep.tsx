@@ -4,9 +4,18 @@ import type { AssetFormData } from "../useCreateAsset";
 interface Props {
 	formData: AssetFormData;
 	updateFormData: (updates: Partial<AssetFormData>) => void;
+	validationErrors: string[];
 }
 
-export const PricingStep: FC<Props> = ({ formData, updateFormData }) => {
+export const PricingStep: FC<Props> = ({
+	formData,
+	updateFormData,
+	validationErrors,
+}) => {
+	const fieldError = (keyword: string) =>
+		validationErrors.find((e) => e.toLowerCase().includes(keyword));
+	const inputClass = (keyword: string) =>
+		`w-full border rounded-lg px-3 py-2 focus:ring-2 ${fieldError(keyword) ? "border-red-400 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`;
 	return (
 		<div className="space-y-6">
 			<div>
@@ -25,7 +34,7 @@ export const PricingStep: FC<Props> = ({ formData, updateFormData }) => {
 					</label>
 					<input
 						type="number"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						className={inputClass("price")}
 						placeholder="e.g. 5000"
 						value={formData.initialPrice || ""}
 						onChange={(e) =>
@@ -33,9 +42,13 @@ export const PricingStep: FC<Props> = ({ formData, updateFormData }) => {
 						}
 						min={0}
 					/>
-					<p className="text-xs text-gray-400 mt-1">
-						Price per unit in XAF (Central African CFA Franc)
-					</p>
+					{fieldError("price") ? (
+						<p className="text-xs text-red-600 mt-1">{fieldError("price")}</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Price per unit in XAF (Central African CFA Franc)
+						</p>
+					)}
 				</div>
 
 				<div>
@@ -44,7 +57,7 @@ export const PricingStep: FC<Props> = ({ formData, updateFormData }) => {
 					</label>
 					<input
 						type="number"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						className={inputClass("trading fee")}
 						placeholder="0.50"
 						value={formData.tradingFeePercent}
 						onChange={(e) =>
@@ -54,9 +67,15 @@ export const PricingStep: FC<Props> = ({ formData, updateFormData }) => {
 						max={10}
 						step={0.01}
 					/>
-					<p className="text-xs text-gray-400 mt-1">
-						Fee charged on each trade (default: 0.50%)
-					</p>
+					{fieldError("trading fee") ? (
+						<p className="text-xs text-red-600 mt-1">
+							{fieldError("trading fee")}
+						</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Fee charged on each trade (default: 0.50%)
+						</p>
+					)}
 				</div>
 
 				<div>
@@ -65,7 +84,7 @@ export const PricingStep: FC<Props> = ({ formData, updateFormData }) => {
 					</label>
 					<input
 						type="number"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						className={inputClass("spread")}
 						placeholder="1.00"
 						value={formData.spreadPercent}
 						onChange={(e) =>
@@ -75,9 +94,13 @@ export const PricingStep: FC<Props> = ({ formData, updateFormData }) => {
 						max={20}
 						step={0.01}
 					/>
-					<p className="text-xs text-gray-400 mt-1">
-						Bid-ask spread percentage (default: 1.00%)
-					</p>
+					{fieldError("spread") ? (
+						<p className="text-xs text-red-600 mt-1">{fieldError("spread")}</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Bid-ask spread percentage (default: 1.00%)
+						</p>
+					)}
 				</div>
 			</div>
 		</div>

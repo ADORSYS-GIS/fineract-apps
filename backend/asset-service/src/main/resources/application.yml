@@ -13,11 +13,12 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:asset_service}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     hikari:
-      minimum-idle: 2
-      maximum-pool-size: 10
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:5}
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:20}
       idle-timeout: 30000
       max-lifetime: 600000
-      connection-timeout: 20000
+      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:10000}
+      leak-detection-threshold: ${SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD:60000}
 
   # JPA configuration
   jpa:
@@ -82,6 +83,10 @@ asset-service:
     ttl-seconds: 10
   accounting:
     fee-collection-account-id: ${FEE_COLLECTION_ACCOUNT_ID:}
+  gl-accounts:
+    digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:47}
+    customer-digital-asset-holdings: ${GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS:65}
+    asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:22}
 
 # Actuator Configuration
 management:

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -49,6 +49,7 @@ const initialFormData: AssetFormData = {
 
 export const useCreateAsset = () => {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const [currentStep, setCurrentStep] = useState(0);
 	const [formData, setFormData] = useState<AssetFormData>(initialFormData);
 
@@ -79,6 +80,7 @@ export const useCreateAsset = () => {
 		mutationFn: (data: CreateAssetRequest) => assetApi.createAsset(data),
 		onSuccess: () => {
 			toast.success("Asset created successfully!");
+			queryClient.invalidateQueries({ queryKey: ["assets"] });
 			navigate({ to: "/dashboard" });
 		},
 		onError: (error: unknown) => {

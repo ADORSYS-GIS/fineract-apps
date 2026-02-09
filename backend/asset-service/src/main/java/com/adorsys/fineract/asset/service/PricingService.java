@@ -46,25 +46,33 @@ public class PricingService {
     @Transactional(readOnly = true)
     public CurrentPriceResponse getCurrentPrice(String assetId) {
         // Try Redis cache first
-        String cached = redisTemplate.opsForValue().get(PRICE_CACHE_PREFIX + assetId);
-        if (cached != null) {
-            try {
-                String[] parts = cached.split(":");
-                return new CurrentPriceResponse(assetId, new BigDecimal(parts[0]),
-                        parts.length > 1 ? new BigDecimal(parts[1]) : null);
-            } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-                log.warn("Malformed price cache for asset {}, falling back to DB: {}", assetId, cached);
-                redisTemplate.delete(PRICE_CACHE_PREFIX + assetId);
+        try {
+            String cached = redisTemplate.opsForValue().get(PRICE_CACHE_PREFIX + assetId);
+            if (cached != null) {
+                try {
+                    String[] parts = cached.split(":");
+                    return new CurrentPriceResponse(assetId, new BigDecimal(parts[0]),
+                            parts.length > 1 ? new BigDecimal(parts[1]) : null);
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+                    log.warn("Malformed price cache for asset {}, falling back to DB: {}", assetId, cached);
+                    redisTemplate.delete(PRICE_CACHE_PREFIX + assetId);
+                }
             }
+        } catch (Exception e) {
+            log.warn("Redis error fetching price cache for asset {}: {}", assetId, e.getMessage());
         }
 
         AssetPrice price = assetPriceRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Price not found for asset: " + assetId));
 
-        // Cache in Redis
-        String cacheValue = price.getCurrentPrice().toPlainString() + ":" +
-                (price.getChange24hPercent() != null ? price.getChange24hPercent().toPlainString() : "0");
-        redisTemplate.opsForValue().set(PRICE_CACHE_PREFIX + assetId, cacheValue, CACHE_TTL);
+        // Cache in Redis (best-effort)
+        try {
+            String cacheValue = price.getCurrentPrice().toPlainString() + ":" +
+                    (price.getChange24hPercent() != null ? price.getChange24hPercent().toPlainString() : "0");
+            redisTemplate.opsForValue().set(PRICE_CACHE_PREFIX + assetId, cacheValue, CACHE_TTL);
+        } catch (Exception e) {
+            log.warn("Redis error caching price for asset {}: {}", assetId, e.getMessage());
+        }
 
         return new CurrentPriceResponse(assetId, price.getCurrentPrice(), price.getChange24hPercent());
     }
@@ -191,8 +199,12 @@ public class PricingService {
 
         assetPriceRepository.save(price);
 
-        // Invalidate cache
-        redisTemplate.delete(PRICE_CACHE_PREFIX + assetId);
+        // Invalidate cache (best-effort)
+        try {
+            redisTemplate.delete(PRICE_CACHE_PREFIX + assetId);
+        } catch (Exception e) {
+            log.warn("Redis error invalidating price cache for asset {}: {}", assetId, e.getMessage());
+        }
     }
 
     /**

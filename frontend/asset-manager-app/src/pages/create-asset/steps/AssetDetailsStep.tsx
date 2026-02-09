@@ -12,9 +12,18 @@ const CATEGORIES = [
 interface Props {
 	formData: AssetFormData;
 	updateFormData: (updates: Partial<AssetFormData>) => void;
+	validationErrors: string[];
 }
 
-export const AssetDetailsStep: FC<Props> = ({ formData, updateFormData }) => {
+export const AssetDetailsStep: FC<Props> = ({
+	formData,
+	updateFormData,
+	validationErrors,
+}) => {
+	const fieldError = (keyword: string) =>
+		validationErrors.find((e) => e.toLowerCase().includes(keyword));
+	const inputClass = (keyword: string) =>
+		`w-full border rounded-lg px-3 py-2 focus:ring-2 ${fieldError(keyword) ? "border-red-400 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`;
 	return (
 		<div className="space-y-6">
 			<div>
@@ -33,11 +42,14 @@ export const AssetDetailsStep: FC<Props> = ({ formData, updateFormData }) => {
 					</label>
 					<input
 						type="text"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						className={inputClass("name")}
 						placeholder="e.g. Douala Tower Token"
 						value={formData.name}
 						onChange={(e) => updateFormData({ name: e.target.value })}
 					/>
+					{fieldError("name") && (
+						<p className="text-xs text-red-600 mt-1">{fieldError("name")}</p>
+					)}
 				</div>
 
 				<div>
@@ -46,7 +58,7 @@ export const AssetDetailsStep: FC<Props> = ({ formData, updateFormData }) => {
 					</label>
 					<input
 						type="text"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+						className={`${inputClass("symbol")} uppercase`}
 						placeholder="e.g. DTT"
 						value={formData.symbol}
 						onChange={(e) =>
@@ -54,6 +66,9 @@ export const AssetDetailsStep: FC<Props> = ({ formData, updateFormData }) => {
 						}
 						maxLength={10}
 					/>
+					{fieldError("symbol") && (
+						<p className="text-xs text-red-600 mt-1">{fieldError("symbol")}</p>
+					)}
 				</div>
 
 				<div>
@@ -62,7 +77,7 @@ export const AssetDetailsStep: FC<Props> = ({ formData, updateFormData }) => {
 					</label>
 					<input
 						type="text"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+						className={`${inputClass("currency")} uppercase`}
 						placeholder="e.g. DTT (must be unique in Fineract)"
 						value={formData.currencyCode}
 						onChange={(e) =>
@@ -70,9 +85,15 @@ export const AssetDetailsStep: FC<Props> = ({ formData, updateFormData }) => {
 						}
 						maxLength={10}
 					/>
-					<p className="text-xs text-gray-400 mt-1">
-						This will be registered as a custom currency in Fineract
-					</p>
+					{fieldError("currency") ? (
+						<p className="text-xs text-red-600 mt-1">
+							{fieldError("currency")}
+						</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							This will be registered as a custom currency in Fineract
+						</p>
+					)}
 				</div>
 
 				<div>

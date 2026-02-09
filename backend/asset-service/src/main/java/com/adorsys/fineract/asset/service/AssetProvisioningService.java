@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
@@ -32,13 +33,7 @@ public class AssetProvisioningService {
     private final AssetPriceRepository assetPriceRepository;
     private final FineractClient fineractClient;
     private final AssetCatalogService assetCatalogService;
-
-    // GL account IDs - these map to the GitOps-provisioned GL accounts
-    private static final Long GL_DIGITAL_ASSET_INVENTORY = 47L;
-    private static final Long GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS = 65L;
-
-    // Payment type for asset issuance (position 22 in GitOps)
-    private static final Long ASSET_ISSUANCE_PAYMENT_TYPE = 22L;
+    private final AssetServiceConfig assetServiceConfig;
 
     /**
      * Create a new asset with full Fineract provisioning.
@@ -88,8 +83,8 @@ public class AssetProvisioningService {
                     request.symbol(),
                     request.currencyCode(),
                     request.decimalPlaces(),
-                    GL_DIGITAL_ASSET_INVENTORY,
-                    GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS
+                    assetServiceConfig.getGlAccounts().getDigitalAssetInventory(),
+                    assetServiceConfig.getGlAccounts().getCustomerDigitalAssetHoldings()
             );
             log.info("Created savings product: productId={}", productId);
 
@@ -97,7 +92,7 @@ public class AssetProvisioningService {
             // Uses Fineract Batch API (enclosingTransaction=true) so if any step fails, all are rolled back
             treasuryAssetAccountId = fineractClient.provisionSavingsAccount(
                     request.treasuryClientId(), productId,
-                    request.totalSupply(), ASSET_ISSUANCE_PAYMENT_TYPE
+                    request.totalSupply(), assetServiceConfig.getGlAccounts().getAssetIssuancePaymentType()
             );
             log.info("Provisioned treasury account atomically: accountId={}, supply={}",
                     treasuryAssetAccountId, request.totalSupply());
@@ -226,7 +221,7 @@ public class AssetProvisioningService {
         fineractClient.depositToSavingsAccount(
                 asset.getTreasuryAssetAccountId(),
                 request.additionalSupply(),
-                ASSET_ISSUANCE_PAYMENT_TYPE);
+                assetServiceConfig.getGlAccounts().getAssetIssuancePaymentType());
 
         // Update total supply
         asset.setTotalSupply(asset.getTotalSupply().add(request.additionalSupply()));

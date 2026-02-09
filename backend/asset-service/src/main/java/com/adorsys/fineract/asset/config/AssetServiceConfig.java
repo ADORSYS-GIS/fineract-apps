@@ -18,6 +18,7 @@ public class AssetServiceConfig {
     private Orders orders = new Orders();
     private TradeLock tradeLock = new TradeLock();
     private Accounting accounting = new Accounting();
+    private GlAccounts glAccounts = new GlAccounts();
 
     @Data
     public static class MarketHours {
@@ -45,6 +46,13 @@ public class AssetServiceConfig {
     @Data
     public static class Accounting {
         private Long feeCollectionAccountId;
+    }
+
+    @Data
+    public static class GlAccounts {
+        private Long digitalAssetInventory = 47L;
+        private Long customerDigitalAssetHoldings = 65L;
+        private Long assetIssuancePaymentType = 22L;
     }
 
     @PostConstruct

@@ -4,9 +4,18 @@ import type { AssetFormData } from "../useCreateAsset";
 interface Props {
 	formData: AssetFormData;
 	updateFormData: (updates: Partial<AssetFormData>) => void;
+	validationErrors: string[];
 }
 
-export const SupplyStep: FC<Props> = ({ formData, updateFormData }) => {
+export const SupplyStep: FC<Props> = ({
+	formData,
+	updateFormData,
+	validationErrors,
+}) => {
+	const fieldError = (keyword: string) =>
+		validationErrors.find((e) => e.toLowerCase().includes(keyword));
+	const inputClass = (keyword: string) =>
+		`w-full border rounded-lg px-3 py-2 focus:ring-2 ${fieldError(keyword) ? "border-red-400 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`;
 	return (
 		<div className="space-y-6">
 			<div>
@@ -23,7 +32,7 @@ export const SupplyStep: FC<Props> = ({ formData, updateFormData }) => {
 					</label>
 					<input
 						type="number"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						className={inputClass("supply")}
 						placeholder="e.g. 100000"
 						value={formData.totalSupply || ""}
 						onChange={(e) =>
@@ -31,9 +40,13 @@ export const SupplyStep: FC<Props> = ({ formData, updateFormData }) => {
 						}
 						min={1}
 					/>
-					<p className="text-xs text-gray-400 mt-1">
-						Total number of units to mint into the treasury
-					</p>
+					{fieldError("supply") ? (
+						<p className="text-xs text-red-600 mt-1">{fieldError("supply")}</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Total number of units to mint into the treasury
+						</p>
+					)}
 				</div>
 
 				<div>

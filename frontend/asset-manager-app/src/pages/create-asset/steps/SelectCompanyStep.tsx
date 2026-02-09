@@ -13,6 +13,7 @@ interface Props {
 		officeName?: string;
 	}>;
 	isLoadingClients: boolean;
+	validationErrors: string[];
 }
 
 export const SelectCompanyStep: FC<Props> = ({
@@ -20,7 +21,11 @@ export const SelectCompanyStep: FC<Props> = ({
 	updateFormData,
 	clients,
 	isLoadingClients,
+	validationErrors,
 }) => {
+	const hasError = validationErrors.some((e) =>
+		e.toLowerCase().includes("company"),
+	);
 	return (
 		<div className="space-y-6">
 			<div>
@@ -43,7 +48,7 @@ export const SelectCompanyStep: FC<Props> = ({
 					<div className="animate-pulse h-10 bg-gray-200 rounded" />
 				) : (
 					<select
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						className={`w-full border rounded-lg px-3 py-2 focus:ring-2 ${hasError ? "border-red-400 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`}
 						value={formData.treasuryClientId ?? ""}
 						onChange={(e) => {
 							const clientId = Number(e.target.value);

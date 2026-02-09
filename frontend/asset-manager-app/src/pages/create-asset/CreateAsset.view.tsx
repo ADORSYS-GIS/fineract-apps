@@ -34,6 +34,7 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 						updateFormData={updateFormData}
 						clients={clients}
 						isLoadingClients={isLoadingClients}
+						validationErrors={validationErrors}
 					/>
 				);
 			case 1:
@@ -41,15 +42,24 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 					<AssetDetailsStep
 						formData={formData}
 						updateFormData={updateFormData}
+						validationErrors={validationErrors}
 					/>
 				);
 			case 2:
 				return (
-					<PricingStep formData={formData} updateFormData={updateFormData} />
+					<PricingStep
+						formData={formData}
+						updateFormData={updateFormData}
+						validationErrors={validationErrors}
+					/>
 				);
 			case 3:
 				return (
-					<SupplyStep formData={formData} updateFormData={updateFormData} />
+					<SupplyStep
+						formData={formData}
+						updateFormData={updateFormData}
+						validationErrors={validationErrors}
+					/>
 				);
 			case 4:
 				return <ReviewStep formData={formData} />;

@@ -30,12 +30,17 @@ export const useAssetDetails = () => {
 		refetchInterval: 30000,
 	});
 
+	const invalidateAll = () => {
+		queryClient.invalidateQueries({ queryKey: ["asset", assetId] });
+		queryClient.invalidateQueries({ queryKey: ["assets"] });
+	};
+
 	const updateMutation = useMutation({
 		mutationFn: (data: UpdateAssetRequest) =>
 			assetApi.updateAsset(assetId, data),
 		onSuccess: () => {
 			toast.success("Asset updated");
-			refetch();
+			invalidateAll();
 		},
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
@@ -44,7 +49,7 @@ export const useAssetDetails = () => {
 		mutationFn: () => assetApi.activateAsset(assetId),
 		onSuccess: () => {
 			toast.success("Asset activated");
-			refetch();
+			invalidateAll();
 		},
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
@@ -53,7 +58,7 @@ export const useAssetDetails = () => {
 		mutationFn: () => assetApi.haltAsset(assetId),
 		onSuccess: () => {
 			toast.success("Trading halted");
-			refetch();
+			invalidateAll();
 		},
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
@@ -62,7 +67,7 @@ export const useAssetDetails = () => {
 		mutationFn: () => assetApi.resumeAsset(assetId),
 		onSuccess: () => {
 			toast.success("Trading resumed");
-			refetch();
+			invalidateAll();
 		},
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
@@ -73,7 +78,7 @@ export const useAssetDetails = () => {
 		onSuccess: () => {
 			toast.success("Price updated");
 			queryClient.invalidateQueries({ queryKey: ["price", assetId] });
-			refetch();
+			invalidateAll();
 		},
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
@@ -91,5 +96,9 @@ export const useAssetDetails = () => {
 		onResume: () => resumeMutation.mutate(),
 		onSetPrice: (newPrice: number) => setPriceMutation.mutate(newPrice),
 		isUpdating: updateMutation.isPending,
+		isActivating: activateMutation.isPending,
+		isHalting: haltMutation.isPending,
+		isResuming: resumeMutation.isPending,
+		isSettingPrice: setPriceMutation.isPending,
 	};
 };

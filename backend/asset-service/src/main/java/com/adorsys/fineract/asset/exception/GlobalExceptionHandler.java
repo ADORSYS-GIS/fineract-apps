@@ -20,17 +20,34 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(AssetNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAssetNotFound(AssetNotFoundException ex) {
+        log.warn("Asset not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("NOT_FOUND", ex.getMessage(), "NOT_FOUND", Instant.now()));
+    }
+
     @ExceptionHandler(AssetException.class)
     public ResponseEntity<ErrorResponse> handleAssetException(AssetException ex) {
-        log.error("Asset error: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("already exists")) {
+            status = HttpStatus.CONFLICT;
+        }
+        log.error("Asset error [{}]: {}", status, ex.getMessage());
+        return ResponseEntity.status(status)
                 .body(new ErrorResponse("ASSET_ERROR", ex.getMessage(), ex.getErrorCode(), Instant.now()));
     }
 
     @ExceptionHandler(TradingException.class)
     public ResponseEntity<ErrorResponse> handleTradingException(TradingException ex) {
-        log.error("Trading error: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        HttpStatus status = switch (ex.getErrorCode()) {
+            case "NO_XAF_ACCOUNT", "NO_POSITION", "INSUFFICIENT_UNITS", "INSUFFICIENT_FUNDS" -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case "TRADE_FAILED" -> HttpStatus.BAD_GATEWAY;
+            case "CONFIG_ERROR" -> HttpStatus.INTERNAL_SERVER_ERROR;
+            default -> HttpStatus.BAD_REQUEST;
+        };
+        log.error("Trading error [{}]: {}", status, ex.getMessage());
+        return ResponseEntity.status(status)
                 .body(new ErrorResponse(ex.getErrorCode(), ex.getMessage(), ex.getErrorCode(), Instant.now()));
     }
 

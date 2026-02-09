@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.client;
 
 import com.adorsys.fineract.asset.config.FineractConfig;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -23,10 +24,20 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FineractTokenProvider {
 
     private final FineractConfig config;
+    private WebClient tokenClient;
 
     private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
     private static final String CACHE_KEY = "fineract";
     private static final long EXPIRATION_BUFFER_MS = 60_000;
+
+    @PostConstruct
+    void init() {
+        if (config.isOAuthEnabled()) {
+            this.tokenClient = WebClient.builder()
+                    .baseUrl(config.getTokenUrl())
+                    .build();
+        }
+    }
 
     /**
      * Get a valid access token for Fineract API.
@@ -56,10 +67,6 @@ public class FineractTokenProvider {
         try {
             String credentials = config.getClientId() + ":" + config.getClientSecret();
             String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
-
-            WebClient tokenClient = WebClient.builder()
-                    .baseUrl(config.getTokenUrl())
-                    .build();
 
             Map<String, Object> response = tokenClient.post()
                     .header(HttpHeaders.AUTHORIZATION, "Basic " + encodedCredentials)

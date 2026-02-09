@@ -9,6 +9,7 @@ import {
 	TrendingUp,
 } from "lucide-react";
 import { FC, useState } from "react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ErrorFallback } from "@/components/ErrorFallback";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAssetDetails } from "./useAssetDetails";
@@ -24,8 +25,15 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	onHalt,
 	onResume,
 	onSetPrice,
+	isActivating,
+	isHalting,
+	isResuming,
+	isSettingPrice,
 }) => {
 	const [manualPrice, setManualPrice] = useState("");
+	const [confirmAction, setConfirmAction] = useState<
+		"activate" | "halt" | "resume" | null
+	>(null);
 
 	if (isError) {
 		return (
@@ -69,30 +77,45 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 					<div className="flex gap-2 flex-wrap">
 						{asset.status === "PENDING" && (
 							<Button
-								onClick={onActivate}
+								onClick={() => setConfirmAction("activate")}
+								disabled={isActivating}
 								className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
 							>
-								<Power className="h-4 w-4" />
-								Activate
+								{isActivating ? (
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+								) : (
+									<Power className="h-4 w-4" />
+								)}
+								{isActivating ? "Activating..." : "Activate"}
 							</Button>
 						)}
 						{asset.status === "ACTIVE" && (
 							<Button
-								onClick={onHalt}
+								onClick={() => setConfirmAction("halt")}
+								disabled={isHalting}
 								variant="outline"
 								className="flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50"
 							>
-								<Pause className="h-4 w-4" />
-								Halt Trading
+								{isHalting ? (
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600" />
+								) : (
+									<Pause className="h-4 w-4" />
+								)}
+								{isHalting ? "Halting..." : "Halt Trading"}
 							</Button>
 						)}
 						{asset.status === "HALTED" && (
 							<Button
-								onClick={onResume}
+								onClick={() => setConfirmAction("resume")}
+								disabled={isResuming}
 								className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
 							>
-								<Play className="h-4 w-4" />
-								Resume Trading
+								{isResuming ? (
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+								) : (
+									<Play className="h-4 w-4" />
+								)}
+								{isResuming ? "Resuming..." : "Resume Trading"}
 							</Button>
 						)}
 						<Link to="/pricing/$assetId" params={{ assetId }}>
@@ -205,8 +228,11 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								min={0}
 							/>
 						</div>
-						<Button onClick={handleSetPrice} disabled={!manualPrice}>
-							Set Price
+						<Button
+							onClick={handleSetPrice}
+							disabled={!manualPrice || isSettingPrice}
+						>
+							{isSettingPrice ? "Setting..." : "Set Price"}
 						</Button>
 					</div>
 				</Card>
@@ -246,6 +272,47 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 					</div>
 				</Card>
 			</main>
+
+			{/* Confirmation Dialogs */}
+			<ConfirmDialog
+				isOpen={confirmAction === "activate"}
+				title="Activate Asset"
+				message={`Are you sure you want to activate "${asset.name}"? This will open it for trading.`}
+				confirmLabel="Activate"
+				confirmClassName="bg-green-600 hover:bg-green-700"
+				onConfirm={() => {
+					onActivate();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isActivating}
+			/>
+			<ConfirmDialog
+				isOpen={confirmAction === "halt"}
+				title="Halt Trading"
+				message={`Are you sure you want to halt trading for "${asset.name}"? No buys or sells will be possible until resumed.`}
+				confirmLabel="Halt Trading"
+				confirmClassName="bg-red-600 hover:bg-red-700"
+				onConfirm={() => {
+					onHalt();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isHalting}
+			/>
+			<ConfirmDialog
+				isOpen={confirmAction === "resume"}
+				title="Resume Trading"
+				message={`Are you sure you want to resume trading for "${asset.name}"?`}
+				confirmLabel="Resume"
+				confirmClassName="bg-green-600 hover:bg-green-700"
+				onConfirm={() => {
+					onResume();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isResuming}
+			/>
 		</div>
 	);
 };

@@ -15,6 +15,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Bell, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { AuthGuard } from "@/components/AuthGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
 import { configureApi } from "@/services/api";
@@ -78,7 +79,9 @@ function RootLayout() {
 				}
 			>
 				<ErrorBoundary>
-					<Outlet />
+					<AuthGuard>
+						<Outlet />
+					</AuthGuard>
 				</ErrorBoundary>
 				<TanStackRouterDevtools />
 			</AppLayout>
