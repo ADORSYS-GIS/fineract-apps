@@ -19,7 +19,7 @@ export const useCreateClient = () => {
 		useCreateClientMutation();
 
 	const onSubmit = (values: z.infer<typeof createClientValidationSchema>) => {
-		const officeId = offices?.[1]?.id;
+		const officeId = offices?.[0]?.id;
 		if (!officeId) {
 			toast.error("No office found to assign the client to.");
 			return;
