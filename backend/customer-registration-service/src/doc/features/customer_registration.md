@@ -96,7 +96,7 @@ A new client is created in Fineract by mapping fields from the `RegistrationRequ
 | `locale` | Hardcoded | Always set to `en`. |
 | `dateFormat` | Hardcoded | Always set to `dd MMMM yyyy`. |
 | `dateOfBirth` | `RegistrationRequest.dateOfBirth` | Sent only if provided in the request. The date is formatted to match `dateFormat`. |
-| `genderId` | Configuration | Mapped from `RegistrationRequest.gender` based on configuration. Sent only if provided. |
+| `genderId` | Configuration | Uses a default value from `fineractConfig.getDefaultGenderId()` if `gender` is provided in the request. No mapping is performed. |
 
 ### Address Data Handling
 
@@ -114,6 +114,10 @@ The service performs validation on the incoming `RegistrationRequest` payload. T
 | `phone` | `@NotBlank`, `@Pattern(regexp = "^\\+?[0-9]{9,15}$")` | "Phone number is required", "Invalid phone number format" |
 
 Other fields, including all fields within the nested `address` object, do not have explicit validation annotations applied in the DTO.
+
+### Email Existence Check
+
+In addition to the DTO-level validation, the `KeycloakService` performs a critical check to ensure that the email address is not already registered in Keycloak. If a user with the same email already exists, the registration process is halted, and an `EMAIL_ALREADY_EXISTS` error is returned.
 
 ## Keycloak Integration (`KeycloakService`)
 
@@ -137,6 +141,18 @@ The user representation in Keycloak is built from the `RegistrationRequest` and 
 | `attributes.kyc_status`| Hardcoded | Initial status is set to `"pending"`. |
 | `attributes.phone` | `RegistrationRequest.phone` | Direct mapping. |
 
+### Keycloak User Attributes
+
+During the registration process, the following custom attributes are set for the user in Keycloak:
+
+| Attribute | Source | Initial Value | Description |
+| :--- | :--- | :--- | :--- |
+| `fineract_external_id`| `RegistrationService` | Generated UUID | The primary link to the Fineract client. This is a stable, unique identifier. |
+| `fineract_client_id` | `FineractService` | Fineract's client ID | A performance optimization for direct lookups. This is Fineract's internal primary key for the client. |
+| `kyc_tier` | Hardcoded | `"1"` | The initial KYC tier for the user. |
+| `kyc_status` | Hardcoded | `"pending"` | The initial KYC status for the user. |
+| `phone` | `RegistrationRequest` | User's phone number | The phone number provided during registration. |
+
 ### Required Actions
 
 The user is assigned the following required actions:
@@ -146,7 +162,7 @@ The user is assigned the following required actions:
 
 ### Group Assignment
 
-The user is automatically added to the `self-service-customers` group.
+The user is automatically added to a group defined in the configuration (`keycloakConfig.getSelfServiceGroup()`), which is typically `self-service-customers`.
 
 ## ID Linking Strategy
 
@@ -205,11 +221,50 @@ The following endpoints are public and do not require authentication, allowing n
 - `/api/accounts/**`: Requires an authenticated user with the `self-service-customer` role.
 - All other endpoints require authentication by default.
 
+### Additional Endpoints
+
+The service exposes the following additional endpoints:
+
+- **`GET /api/registration/status/{externalId}`**: Checks the registration completion status for a customer, including email verification and WebAuthn registration.
+- **`GET /api/registration/kyc/status`**: Retrieves the KYC status and document information for a customer. Requires authentication.
+- **`GET /api/registration/limits`**: Gets the transaction limits for a customer based on their KYC tier. Requires authentication.
+
 ### Role-Based Access Control (RBAC)
 - **Roles vs. Groups:** In this service, authorization is based on **roles**. A user is granted the `self-service-customer` role, which gives them access to protected resources like viewing their accounts.
 - **Group Assignment:** Upon registration, users are added to the `self-service-customers` **group**. In a typical Keycloak setup, this group is configured to automatically assign the `self-service-customer` role to its members. The service itself does not assign roles directly; it relies on the group-role mapping configured in Keycloak.
 - **JWT Token:** When a user logs in, Keycloak includes their assigned roles (e.g., `self-service-customer`) in the `realm_access.roles` claim of the JWT.
 - **Role Extraction:** The `SecurityConfig` is configured to extract these roles from the JWT and make them available to the Spring Security context. This allows for method-level security and endpoint protection using annotations like `@PreAuthorize` or `http.authorizeHttpRequests`.
+
+## KYC Flow
+
+The service includes a comprehensive KYC (Know Your Customer) flow, which is not fully detailed in this document. The key components are:
+
+- **`KycDocumentController` and `KycDocumentService`**: Handle the upload and management of KYC documents.
+- **`KycReviewController` and `KycReviewService`**: Provide endpoints for staff to review and approve/reject KYC submissions.
+
+The KYC status is stored as attributes (`kyc_tier` and `kyc_status`) in the Keycloak user's profile and is used to determine transaction limits.
+
+*A separate, more detailed document on the KYC flow is recommended.*
+
+## Metrics and Monitoring
+
+The `RegistrationService` is instrumented with Micrometer to collect metrics on the registration process. The `RegistrationMetrics` component tracks the following:
+
+- Total registration requests.
+- Successful registrations.
+- Failed registrations, with a breakdown by error code.
+- The duration of the registration process.
+
+These metrics are exposed through the `/actuator/prometheus` endpoint and can be used for monitoring and alerting.
+
+## Configuration
+
+The service uses two primary configuration classes:
+
+- **`FineractConfig`**: Contains configuration properties for connecting to the Fineract API, including the default office ID and gender ID.
+- **`KeycloakConfig`**: Holds configuration for the Keycloak integration, such as the realm name and the self-service customer group.
+
+These configurations allow for flexibility in deploying and managing the service in different environments.
 
 ## Registration Flow Diagram
 
