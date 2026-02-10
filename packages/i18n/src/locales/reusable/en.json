@@ -16,7 +16,10 @@
 			"approvalQueue": "Approval Queue",
 			"closures": "Closures",
 			"kycReviews": "KYC Reviews",
-			"logout": "Logout"
+			"logout": "Logout",
+			"createAsset": "Create Asset",
+			"inventory": "Inventory",
+			"marketSettings": "Market Settings"
 		},
 		"navbar": {
 			"onlineBank": "OnlineBank"

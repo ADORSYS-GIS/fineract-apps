@@ -65,7 +65,9 @@ export const useAuth = () => {
 	const user = {
 		...userData,
 		displayName:
-			authMode === "oauth" ? keycloakUser?.user : fineractUser?.username,
+			authMode === "oauth"
+				? keycloakUser?.user || "Admin"
+				: fineractUser?.username || "Admin",
 	};
 	return { onLogout, userData: user, isUserDataLoading: isLoading };
 };

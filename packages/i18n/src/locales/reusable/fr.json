@@ -16,7 +16,10 @@
 			"approvalQueue": "File d'attente d'approbation",
 			"closures": "Clôtures",
 			"kycReviews": "Revue KYC",
-			"logout": "Déconnexion"
+			"logout": "Déconnexion",
+			"createAsset": "Créer un actif",
+			"inventory": "Inventaire",
+			"marketSettings": "Paramètres du marché"
 		},
 		"navbar": {
 			"onlineBank": "Banque en ligne"
