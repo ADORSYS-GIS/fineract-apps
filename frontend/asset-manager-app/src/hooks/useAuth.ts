@@ -42,21 +42,12 @@ export const useAuth = () => {
 		}
 	}, [fineractUser, keycloakUser]);
 	const onLogout = () => {
-		if (!window.confirm("Are you sure you want to sign out?")) return;
-
-		const base = import.meta.env.BASE_URL || "/asset-manager/";
-		const appBase = base.endsWith("/") ? base : `${base}/`;
-		const redirectTo = `${window.location.origin}${appBase}`;
-
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
-			window.location.href = appBase;
+			window.location.href = "/home/";
 		} else {
-			// OAuth mode: Use OAuth2 Proxy global logout
 			localStorage.clear();
 			sessionStorage.clear();
-			window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(
-				redirectTo,
-			)}`;
+			window.location.href = "/oauth2/sign_out?rd=/logout";
 		}
 	};
 	const isLoading =
