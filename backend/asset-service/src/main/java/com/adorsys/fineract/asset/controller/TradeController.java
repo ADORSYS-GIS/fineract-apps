@@ -28,6 +28,14 @@ public class TradeController {
 
     private final TradingService tradingService;
 
+    @PostMapping("/preview")
+    @Operation(summary = "Preview trade", description = "Get a price quote and feasibility check without executing.")
+    public ResponseEntity<TradePreviewResponse> preview(
+            @Valid @RequestBody TradePreviewRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(tradingService.previewTrade(request, jwt));
+    }
+
     @PostMapping("/buy")
     @Operation(summary = "Buy asset", description = "Buy asset units. User identity and accounts are resolved from JWT.")
     public ResponseEntity<TradeResponse> buy(

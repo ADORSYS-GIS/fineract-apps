@@ -222,8 +222,8 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 											tickFormatter={(v: number) => v.toLocaleString()}
 										/>
 										<Tooltip
-											formatter={(value: number) => [
-												`${value.toLocaleString()} XAF`,
+											formatter={(value: number | undefined) => [
+												`${(value ?? 0).toLocaleString()} XAF`,
 												"Price",
 											]}
 										/>

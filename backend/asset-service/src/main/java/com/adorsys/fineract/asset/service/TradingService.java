@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -491,6 +492,108 @@ public class TradingService {
         } finally {
             tradeLockService.releaseTradeLock(userId, request.assetId(), lockValue);
         }
+    }
+
+    /**
+     * Preview a trade without executing it. Returns a price quote and feasibility check.
+     * No locks, no DB writes, no Fineract mutations — purely read-only.
+     */
+    public TradePreviewResponse previewTrade(TradePreviewRequest request, Jwt jwt) {
+        List<String> blockers = new ArrayList<>();
+
+        // 1. Market hours (soft check)
+        if (!marketHoursService.isMarketOpen()) {
+            blockers.add("MARKET_CLOSED");
+        }
+
+        // 2. Load asset
+        Asset asset = assetRepository.findById(request.assetId()).orElse(null);
+        if (asset == null) {
+            return immediateReject("ASSET_NOT_FOUND", request);
+        }
+        if (asset.getStatus() != AssetStatus.ACTIVE) {
+            blockers.add("TRADING_HALTED");
+        }
+
+        // 3. Price calculation (same logic as executeBuy/executeSell)
+        CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
+        BigDecimal basePrice = priceData.currentPrice();
+        BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
+        BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
+
+        BigDecimal executionPrice;
+        if (request.side() == TradeSide.BUY) {
+            executionPrice = basePrice.add(basePrice.multiply(spread));
+        } else {
+            executionPrice = basePrice.subtract(basePrice.multiply(spread));
+        }
+
+        BigDecimal units = request.units();
+        BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal netAmount = request.side() == TradeSide.BUY
+                ? grossAmount.add(fee)
+                : grossAmount.subtract(fee);
+
+        // 4. Resolve user and check balances (soft-fail)
+        BigDecimal availableBalance = null;
+        BigDecimal availableUnits = null;
+        BigDecimal availableSupply = null;
+
+        try {
+            String externalId = JwtUtils.extractExternalId(jwt);
+            Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
+            Long userId = ((Number) clientData.get("id")).longValue();
+
+            Long cashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, "XAF");
+            if (cashAccountId == null) {
+                blockers.add("NO_XAF_ACCOUNT");
+            } else {
+                availableBalance = fineractClient.getAccountBalance(cashAccountId);
+                if (request.side() == TradeSide.BUY && availableBalance.compareTo(netAmount) < 0) {
+                    blockers.add("INSUFFICIENT_FUNDS");
+                }
+            }
+
+            if (request.side() == TradeSide.SELL) {
+                var position = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId());
+                if (position.isEmpty()) {
+                    blockers.add("NO_POSITION");
+                } else {
+                    availableUnits = position.get().getTotalUnits();
+                    if (units.compareTo(availableUnits) > 0) {
+                        blockers.add("INSUFFICIENT_UNITS");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to resolve user for trade preview: {}", e.getMessage());
+            blockers.add("USER_RESOLUTION_FAILED");
+        }
+
+        // BUY: check inventory
+        if (request.side() == TradeSide.BUY) {
+            availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
+            if (units.compareTo(availableSupply) > 0) {
+                blockers.add("INSUFFICIENT_INVENTORY");
+            }
+        }
+
+        return new TradePreviewResponse(
+                blockers.isEmpty(), blockers,
+                asset.getId(), asset.getSymbol(), request.side(), units,
+                basePrice, executionPrice, spread, grossAmount, fee, feePercent, netAmount,
+                availableBalance, availableUnits, availableSupply
+        );
+    }
+
+    private TradePreviewResponse immediateReject(String blocker, TradePreviewRequest request) {
+        return new TradePreviewResponse(
+                false, List.of(blocker),
+                request.assetId(), null, request.side(), request.units(),
+                null, null, null, null, null, null, null,
+                null, null, null
+        );
     }
 
     /**

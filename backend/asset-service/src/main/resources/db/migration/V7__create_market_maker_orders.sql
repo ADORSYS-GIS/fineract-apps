@@ -1,3 +1,0 @@
--- V7: Market maker orders table removed in favor of single-price model.
--- Assets now use a single admin-set price with spread for buy/sell execution.
--- This migration intentionally left empty.
