@@ -36,6 +36,9 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String[] allowedOrigins;
 
+    @Value("${app.security.permit-all-admin:false}")
+    private boolean permitAllAdmin;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -44,18 +47,23 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/swagger-ui.html").permitAll()
-                // Public catalog and market endpoints
-                .requestMatchers("/api/assets/**").permitAll()
-                .requestMatchers("/api/prices/**").permitAll()
-                .requestMatchers("/api/market/**").permitAll()
-                // Admin endpoints require ASSET_MANAGER role
-                .requestMatchers("/api/admin/**").hasRole("ASSET_MANAGER")
+            .authorizeHttpRequests(authz -> {
+                authz
+                    .requestMatchers("/actuator/**").permitAll()
+                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/swagger-ui.html").permitAll()
+                    // Public catalog and market endpoints
+                    .requestMatchers("/api/assets/**").permitAll()
+                    .requestMatchers("/api/prices/**").permitAll()
+                    .requestMatchers("/api/market/**").permitAll();
+                // Admin endpoints: permitAll in dev mode, require ASSET_MANAGER role otherwise
+                if (permitAllAdmin) {
+                    authz.requestMatchers("/api/admin/**").permitAll();
+                } else {
+                    authz.requestMatchers("/api/admin/**").hasRole("ASSET_MANAGER");
+                }
                 // All other endpoints require JWT
-                .anyRequest().authenticated()
-            )
+                authz.anyRequest().authenticated();
+            })
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .decoder(jwtDecoder())

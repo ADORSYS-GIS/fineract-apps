@@ -215,6 +215,8 @@ export const assetApi = {
 		assetClient.post(`/api/admin/assets/${id}/resume`),
 	setPrice: (id: string, data: SetPriceRequest) =>
 		assetClient.post(`/api/admin/assets/${id}/set-price`, data),
+	mintSupply: (id: string, data: { additionalSupply: number }) =>
+		assetClient.post(`/api/admin/assets/${id}/mint`, data),
 	getInventory: (params?: { page?: number; size?: number }) =>
 		assetClient.get<{ content: InventoryItem[]; totalPages: number }>(
 			"/api/admin/assets/inventory",

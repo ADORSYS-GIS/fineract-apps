@@ -3,14 +3,18 @@ import { Link } from "@tanstack/react-router";
 import {
 	BarChart3,
 	Pause,
+	Pencil,
 	Play,
+	Plus,
 	Power,
 	TrendingDown,
 	TrendingUp,
 } from "lucide-react";
 import { FC, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import { MintSupplyDialog } from "@/components/MintSupplyDialog";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAssetDetails } from "./useAssetDetails";
 
@@ -21,19 +25,25 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	isError,
 	refetch,
 	price,
+	onUpdate,
 	onActivate,
 	onHalt,
 	onResume,
+	onMint,
 	onSetPrice,
+	isUpdating,
 	isActivating,
 	isHalting,
 	isResuming,
+	isMinting,
 	isSettingPrice,
 }) => {
 	const [manualPrice, setManualPrice] = useState("");
 	const [confirmAction, setConfirmAction] = useState<
 		"activate" | "halt" | "resume" | null
 	>(null);
+	const [editOpen, setEditOpen] = useState(false);
+	const [mintOpen, setMintOpen] = useState(false);
 
 	if (isError) {
 		return (
@@ -116,6 +126,24 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 									<Play className="h-4 w-4" />
 								)}
 								{isResuming ? "Resuming..." : "Resume Trading"}
+							</Button>
+						)}
+						<Button
+							variant="outline"
+							className="flex items-center gap-2"
+							onClick={() => setEditOpen(true)}
+						>
+							<Pencil className="h-4 w-4" />
+							Edit
+						</Button>
+						{asset.status !== "PENDING" && (
+							<Button
+								variant="outline"
+								className="flex items-center gap-2 text-green-600 border-green-300 hover:bg-green-50"
+								onClick={() => setMintOpen(true)}
+							>
+								<Plus className="h-4 w-4" />
+								Mint Supply
 							</Button>
 						)}
 						<Link to="/pricing/$assetId" params={{ assetId }}>
@@ -336,6 +364,27 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				}}
 				onCancel={() => setConfirmAction(null)}
 				isLoading={isResuming}
+			/>
+			<EditAssetDialog
+				isOpen={editOpen}
+				asset={asset}
+				onSubmit={(data) => {
+					onUpdate(data);
+					setEditOpen(false);
+				}}
+				onCancel={() => setEditOpen(false)}
+				isLoading={isUpdating}
+			/>
+			<MintSupplyDialog
+				isOpen={mintOpen}
+				currentSupply={asset.totalSupply}
+				assetSymbol={asset.symbol}
+				onSubmit={(data) => {
+					onMint(data);
+					setMintOpen(false);
+				}}
+				onCancel={() => setMintOpen(false)}
+				isLoading={isMinting}
 			/>
 		</div>
 	);

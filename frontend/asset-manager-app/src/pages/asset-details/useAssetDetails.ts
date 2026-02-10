@@ -73,6 +73,16 @@ export const useAssetDetails = () => {
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
+	const mintMutation = useMutation({
+		mutationFn: (data: { additionalSupply: number }) =>
+			assetApi.mintSupply(assetId, data),
+		onSuccess: () => {
+			toast.success("Supply minted successfully");
+			invalidateAll();
+		},
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
+	});
+
 	const setPriceMutation = useMutation({
 		mutationFn: (newPrice: number) =>
 			assetApi.setPrice(assetId, { price: newPrice }),
@@ -95,8 +105,10 @@ export const useAssetDetails = () => {
 		onActivate: () => activateMutation.mutate(),
 		onHalt: () => haltMutation.mutate(),
 		onResume: () => resumeMutation.mutate(),
+		onMint: (data: { additionalSupply: number }) => mintMutation.mutate(data),
 		onSetPrice: (newPrice: number) => setPriceMutation.mutate(newPrice),
 		isUpdating: updateMutation.isPending,
+		isMinting: mintMutation.isPending,
 		isActivating: activateMutation.isPending,
 		isHalting: haltMutation.isPending,
 		isResuming: resumeMutation.isPending,
