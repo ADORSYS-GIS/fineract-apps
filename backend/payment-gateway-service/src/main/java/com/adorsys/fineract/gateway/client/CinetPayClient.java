@@ -76,7 +76,7 @@ public class CinetPayClient {
             Map.entry("apikey", config.getApiKey()),
             Map.entry("site_id", config.getSiteId()),
             Map.entry("transaction_id", transactionId),
-            Map.entry("amount", amount.intValue()),
+            Map.entry("amount", amount.longValue()),
             Map.entry("currency", config.getCurrency()),
             Map.entry("description", description),
             Map.entry("customer_phone_number", normalizedPhone),
@@ -155,7 +155,7 @@ public class CinetPayClient {
 
         Map<String, Object> requestBody = Map.of(
             "transaction_id", transactionId,
-            "amount", amount.intValue(),
+            "amount", amount.longValue(),
             "currency", config.getCurrency(),
             "prefix", prefix,
             "phone", number,
@@ -303,7 +303,9 @@ public class CinetPayClient {
             log.debug("Verifying CinetPay HMAC. Data: {}", dataToSign);
 
             String generatedToken = generateHmacSha256(dataToSign, config.getSecretKey());
-            boolean valid = generatedToken.equalsIgnoreCase(callback.getXToken());
+            boolean valid = java.security.MessageDigest.isEqual(
+                generatedToken.toLowerCase().getBytes(StandardCharsets.UTF_8),
+                callback.getXToken().toLowerCase().getBytes(StandardCharsets.UTF_8));
 
             if (!valid) {
                 log.error("CinetPay HMAC validation failed. Received: {}, Generated: {}", callback.getXToken(), generatedToken);
@@ -366,21 +368,7 @@ public class CinetPayClient {
      * Normalize phone number to Cameroon format (237XXXXXXXXX).
      */
     public String normalizePhoneNumber(String phoneNumber) {
-        if (phoneNumber == null) {
-            return null;
-        }
-
-        String normalized = phoneNumber.replaceAll("[\\s\\-+]", "");
-
-        if (!normalized.startsWith("237")) {
-            if (normalized.startsWith("0")) {
-                normalized = "237" + normalized.substring(1);
-            } else {
-                normalized = "237" + normalized;
-            }
-        }
-
-        return normalized;
+        return com.adorsys.fineract.gateway.util.PhoneNumberUtils.normalizePhoneNumber(phoneNumber);
     }
 
     private PaymentStatus mapCinetPayStatus(String code) {

@@ -1,5 +1,6 @@
 package com.adorsys.fineract.gateway.controller;
 
+import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
 import com.adorsys.fineract.gateway.dto.MtnCallbackRequest;
 import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class CallbackController {
 
     private final PaymentService paymentService;
+    private final MtnMomoConfig mtnConfig;
 
     /**
      * Handle MTN MoMo collection callback (deposit completed).
@@ -33,10 +35,16 @@ public class CallbackController {
     @Operation(summary = "MTN collection callback", description = "Receive MTN MoMo collection (deposit) status update")
     public ResponseEntity<Void> handleMtnCollectionCallback(
             @RequestBody MtnCallbackRequest callback,
-            @RequestHeader(value = "X-Callback-Url", required = false) String callbackUrl) {
+            @RequestHeader(value = "X-Callback-Url", required = false) String callbackUrl,
+            @RequestHeader(value = "Ocp-Apim-Subscription-Key", required = false) String subscriptionKey) {
 
         log.info("Received MTN collection callback: ref={}, status={}, externalId={}",
             callback.getReferenceId(), callback.getStatus(), callback.getExternalId());
+
+        if (!isValidMtnCallback(subscriptionKey)) {
+            log.warn("Invalid MTN collection callback: subscription key mismatch");
+            return ResponseEntity.ok().build();
+        }
 
         try {
             paymentService.handleMtnCollectionCallback(callback);
@@ -55,10 +63,16 @@ public class CallbackController {
     @Operation(summary = "MTN disbursement callback", description = "Receive MTN MoMo disbursement (withdrawal) status update")
     public ResponseEntity<Void> handleMtnDisbursementCallback(
             @RequestBody MtnCallbackRequest callback,
-            @RequestHeader(value = "X-Callback-Url", required = false) String callbackUrl) {
+            @RequestHeader(value = "X-Callback-Url", required = false) String callbackUrl,
+            @RequestHeader(value = "Ocp-Apim-Subscription-Key", required = false) String subscriptionKey) {
 
         log.info("Received MTN disbursement callback: ref={}, status={}, externalId={}",
             callback.getReferenceId(), callback.getStatus(), callback.getExternalId());
+
+        if (!isValidMtnCallback(subscriptionKey)) {
+            log.warn("Invalid MTN disbursement callback: subscription key mismatch");
+            return ResponseEntity.ok().build();
+        }
 
         try {
             paymentService.handleMtnDisbursementCallback(callback);
@@ -236,6 +250,27 @@ public class CallbackController {
             .designation(formData.getFirst("cpm_designation"))
             .signature(formData.getFirst("signature"))
             .build();
+    }
+
+    /**
+     * Validate MTN callback subscription key.
+     * Fail-open when key is not configured (dev mode).
+     */
+    private boolean isValidMtnCallback(String subscriptionKey) {
+        String collectionKey = mtnConfig.getCollectionSubscriptionKey();
+        String disbursementKey = mtnConfig.getDisbursementSubscriptionKey();
+
+        // Fail-open if subscription keys are not configured (dev/sandbox mode)
+        if ((collectionKey == null || collectionKey.isEmpty()) &&
+            (disbursementKey == null || disbursementKey.isEmpty())) {
+            return true;
+        }
+
+        if (subscriptionKey == null || subscriptionKey.isEmpty()) {
+            return false;
+        }
+
+        return subscriptionKey.equals(collectionKey) || subscriptionKey.equals(disbursementKey);
     }
 
     private CinetPayCallbackRequest mapToCinetPayTransferRequest(MultiValueMap<String, String> formData) {

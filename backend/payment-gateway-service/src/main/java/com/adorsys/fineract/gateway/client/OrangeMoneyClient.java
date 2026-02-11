@@ -68,7 +68,7 @@ public class OrangeMoneyClient {
             "merchant_key", config.getMerchantCode(),
             "currency", config.getCurrency(),
             "order_id", orderId,
-            "amount", amount.intValue(),
+            "amount", amount.longValue(),
             "return_url", config.getReturnUrl(),
             "cancel_url", config.getCancelUrl(),
             "notif_url", config.getCallbackUrl() + "/orange/payment",
@@ -128,7 +128,7 @@ public class OrangeMoneyClient {
             "merchant_key", config.getMerchantCode(),
             "currency", config.getCurrency(),
             "order_id", orderId,
-            "amount", amount.intValue(),
+            "amount", amount.longValue(),
             "subscriber_msisdn", normalizePhoneNumber(phoneNumber),
             "notif_url", config.getCallbackUrl() + "/orange/cashout"
         );
@@ -230,17 +230,7 @@ public class OrangeMoneyClient {
     }
 
     private String normalizePhoneNumber(String phoneNumber) {
-        String normalized = phoneNumber.replaceAll("[\\s\\-+]", "");
-
-        if (!normalized.startsWith("237")) {
-            if (normalized.startsWith("0")) {
-                normalized = "237" + normalized.substring(1);
-            } else {
-                normalized = "237" + normalized;
-            }
-        }
-
-        return normalized;
+        return com.adorsys.fineract.gateway.util.PhoneNumberUtils.normalizePhoneNumber(phoneNumber);
     }
 
     private PaymentStatus mapOrangeStatus(String orangeStatus) {

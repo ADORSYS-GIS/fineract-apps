@@ -15,7 +15,8 @@ import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class PaymentService {
     private final CinetPayConfig cinetPayConfig;
     private final PaymentMetrics paymentMetrics;
     private final PaymentTransactionRepository transactionRepository;
+    private final ReversalService reversalService;
 
     /**
      * Initiate a deposit operation.
@@ -75,7 +77,7 @@ public class PaymentService {
         }
 
         String transactionId = idempotencyKey;
-        String currency = "XAF";
+        String currency = getProviderCurrency(request.getProvider());
 
         PaymentResponse response = switch (request.getProvider()) {
             case MTN_MOMO -> initiateMtnDeposit(transactionId, request);
@@ -152,7 +154,7 @@ public class PaymentService {
         }
 
         String transactionId = idempotencyKey;
-        String currency = "XAF";
+        String currency = getProviderCurrency(request.getProvider());
 
         // For withdrawals, we first create the Fineract transaction, then send money
         Long paymentTypeId = getPaymentTypeId(request.getProvider());
@@ -218,15 +220,22 @@ public class PaymentService {
     /**
      * Handle MTN callback for collections (deposits).
      */
-    @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleMtnCollectionCallback(MtnCallbackRequest callback) {
         log.info("Processing MTN collection callback: ref={}, status={}",
             callback.getReferenceId(), callback.getStatus());
 
+        if (callback.getExternalId() == null || callback.getStatus() == null) {
+            log.warn("MTN collection callback missing required fields: externalId={}, status={}",
+                callback.getExternalId(), callback.getStatus());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "missing_fields");
+            return;
+        }
+
         PaymentTransaction txn = transactionRepository
-            .findByProviderReference(callback.getExternalId())
+            .findByProviderReferenceForUpdate(callback.getExternalId())
             .orElse(null);
 
         if (txn == null) {
@@ -270,15 +279,22 @@ public class PaymentService {
     /**
      * Handle MTN callback for disbursements (withdrawals).
      */
-    @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleMtnDisbursementCallback(MtnCallbackRequest callback) {
         log.info("Processing MTN disbursement callback: ref={}, status={}",
             callback.getReferenceId(), callback.getStatus());
 
+        if (callback.getExternalId() == null || callback.getStatus() == null) {
+            log.warn("MTN disbursement callback missing required fields: externalId={}, status={}",
+                callback.getExternalId(), callback.getStatus());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "missing_fields");
+            return;
+        }
+
         PaymentTransaction txn = transactionRepository
-            .findByProviderReference(callback.getExternalId())
+            .findByProviderReferenceForUpdate(callback.getExternalId())
             .orElse(null);
 
         if (txn == null) {
@@ -301,7 +317,7 @@ public class PaymentService {
         } else if (callback.isFailed()) {
             log.warn("MTN withdrawal failed: txnId={}, reason={}. Reversing Fineract transaction...",
                 txn.getTransactionId(), callback.getReason());
-            reverseWithdrawal(txn);
+            reversalService.reverseWithdrawal(txn);
             txn.setStatus(PaymentStatus.FAILED);
             transactionRepository.save(txn);
 
@@ -312,14 +328,21 @@ public class PaymentService {
     /**
      * Handle Orange Money callback.
      */
-    @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleOrangeCallback(OrangeCallbackRequest callback) {
         log.info("Processing Orange callback: orderId={}, status={}",
             callback.getOrderId(), callback.getStatus());
 
-        PaymentTransaction txn = transactionRepository.findById(callback.getOrderId())
+        if (callback.getOrderId() == null || callback.getStatus() == null) {
+            log.warn("Orange callback missing required fields: orderId={}, status={}",
+                callback.getOrderId(), callback.getStatus());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.ORANGE_MONEY, "missing_fields");
+            return;
+        }
+
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(callback.getOrderId())
             .orElse(null);
 
         if (txn == null) {
@@ -361,7 +384,7 @@ public class PaymentService {
             } else {
                 log.warn("Orange withdrawal failed: txnId={}. Reversing Fineract transaction...",
                     txn.getTransactionId());
-                reverseWithdrawal(txn);
+                reversalService.reverseWithdrawal(txn);
                 txn.setStatus(PaymentStatus.FAILED);
                 transactionRepository.save(txn);
                 paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.FAILED);
@@ -372,21 +395,28 @@ public class PaymentService {
     /**
      * Handle CinetPay callback with dynamic GL mapping.
      */
-    @Retryable(retryFor = ObjectOptimisticLockingFailureException.class,
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleCinetPayCallback(CinetPayCallbackRequest callback) {
         log.info("Processing CinetPay callback: transactionId={}, status={}, paymentMethod={}",
             callback.getTransactionId(), callback.getResultCode(), callback.getPaymentMethod());
 
+        if (callback.getTransactionId() == null) {
+            log.warn("CinetPay callback missing transactionId");
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.CINETPAY, "missing_fields");
+            return;
+        }
+
         // Validate callback signature
         if (!cinetPayClient.validateCallbackSignature(callback)) {
             log.warn("CinetPay callback signature validation failed: transactionId={}",
                 callback.getTransactionId());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.CINETPAY, "invalid_signature");
             return;
         }
 
-        PaymentTransaction txn = transactionRepository.findById(callback.getTransactionId())
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(callback.getTransactionId())
             .orElse(null);
 
         if (txn == null) {
@@ -418,11 +448,13 @@ public class PaymentService {
                 paymentTypeId = orangeConfig.getFineractPaymentTypeId();
                 log.info("CinetPay deposit via Orange Money: transactionId={}, paymentTypeId={}", txn.getTransactionId(), paymentTypeId);
             } else {
-                // Unknown payment method - log warning and use default (MTN)
-                log.warn("Unknown CinetPay payment method: {}, defaulting to MTN",
+                // Unknown payment method - cannot safely map GL account, mark FAILED
+                log.error("Unknown CinetPay payment method: '{}'. Marking txn FAILED for safety.",
                     callback.getPaymentMethod());
-                paymentTypeId = mtnConfig.getFineractPaymentTypeId();
-                log.info("Defaulting to MTN payment type: {}", paymentTypeId);
+                txn.setStatus(PaymentStatus.FAILED);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.FAILED);
+                return;
             }
 
             Long fineractTxnId = fineractClient.createDeposit(
@@ -461,7 +493,7 @@ public class PaymentService {
         } else if (callback.isFailed() || callback.isCancelled()) {
             log.warn("CinetPay withdrawal failed: txnId={}, reason={}. Reversing Fineract transaction...",
                 txn.getTransactionId(), callback.getErrorMessage());
-            reverseWithdrawal(txn);
+            reversalService.reverseWithdrawal(txn);
             txn.setStatus(PaymentStatus.FAILED);
             transactionRepository.save(txn);
 
@@ -506,7 +538,7 @@ public class PaymentService {
             .provider(PaymentProvider.MTN_MOMO)
             .type(PaymentResponse.TransactionType.DEPOSIT)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(mtnConfig.getCurrency())
             .status(PaymentStatus.PENDING)
             .message("Please approve the payment on your phone")
             .createdAt(Instant.now())
@@ -526,7 +558,7 @@ public class PaymentService {
             .provider(PaymentProvider.ORANGE_MONEY)
             .type(PaymentResponse.TransactionType.DEPOSIT)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(orangeConfig.getCurrency())
             .status(PaymentStatus.PENDING)
             .message("Complete payment using the link below")
             .paymentUrl(initResponse.paymentUrl())
@@ -548,7 +580,7 @@ public class PaymentService {
             .provider(PaymentProvider.MTN_MOMO)
             .type(PaymentResponse.TransactionType.WITHDRAWAL)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(mtnConfig.getCurrency())
             .status(PaymentStatus.PROCESSING)
             .message("Withdrawal is being processed")
             .createdAt(Instant.now())
@@ -568,7 +600,7 @@ public class PaymentService {
             .provider(PaymentProvider.ORANGE_MONEY)
             .type(PaymentResponse.TransactionType.WITHDRAWAL)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(orangeConfig.getCurrency())
             .status(PaymentStatus.PROCESSING)
             .message("Withdrawal is being processed")
             .createdAt(Instant.now())
@@ -589,7 +621,7 @@ public class PaymentService {
             .provider(PaymentProvider.CINETPAY)
             .type(PaymentResponse.TransactionType.DEPOSIT)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(cinetPayConfig.getCurrency())
             .status(PaymentStatus.PENDING)
             .message("Complete payment using the link below")
             .paymentUrl(initResponse.paymentUrl())
@@ -598,7 +630,7 @@ public class PaymentService {
     }
 
     private PaymentResponse initiateCinetPayWithdrawal(String transactionId, WithdrawalRequest request) {
-        String normalizedPhone = cinetPayClient.normalizePhoneNumber(request.getPhoneNumber());
+        String normalizedPhone = com.adorsys.fineract.gateway.util.PhoneNumberUtils.normalizePhoneNumber(request.getPhoneNumber());
         String prefix = "237";
         String phone = normalizedPhone;
         if (normalizedPhone.startsWith("237")) {
@@ -618,37 +650,20 @@ public class PaymentService {
             .provider(PaymentProvider.CINETPAY)
             .type(PaymentResponse.TransactionType.WITHDRAWAL)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(cinetPayConfig.getCurrency())
             .status(PaymentStatus.PROCESSING)
             .message("Withdrawal is being processed")
             .createdAt(Instant.now())
             .build();
     }
 
-    /**
-     * Reverse a Fineract withdrawal via compensating deposit.
-     * Called when a provider callback reports a failed withdrawal.
-     */
-    private void reverseWithdrawal(PaymentTransaction txn) {
-        if (txn.getFineractTransactionId() == null) {
-            log.warn("No Fineract transaction ID to reverse for txnId={}", txn.getTransactionId());
-            return;
-        }
-        try {
-            Long paymentTypeId = getPaymentTypeId(txn.getProvider());
-            fineractClient.createDeposit(
-                txn.getAccountId(),
-                txn.getAmount(),
-                paymentTypeId,
-                "REVERSAL-" + txn.getTransactionId()
-            );
-            log.info("Fineract withdrawal reversed successfully for transactionId={}", txn.getTransactionId());
-        } catch (Exception revEx) {
-            log.error("CRITICAL: Failed to reverse Fineract withdrawal. Manual intervention required! " +
-                "transactionId={}, fineractTxnId={}, amount={}, accountId={}",
-                txn.getTransactionId(), txn.getFineractTransactionId(),
-                txn.getAmount(), txn.getAccountId(), revEx);
-        }
+    private String getProviderCurrency(PaymentProvider provider) {
+        return switch (provider) {
+            case MTN_MOMO -> mtnConfig.getCurrency();
+            case ORANGE_MONEY -> orangeConfig.getCurrency();
+            case CINETPAY -> cinetPayConfig.getCurrency();
+            default -> "XAF";
+        };
     }
 
     private Long getPaymentTypeId(PaymentProvider provider) {

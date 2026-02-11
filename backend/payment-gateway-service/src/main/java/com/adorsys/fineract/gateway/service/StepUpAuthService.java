@@ -64,7 +64,9 @@ public class StepUpAuthService {
             // Verify HMAC
             String data = userExternalId + ":" + timestamp;
             String expectedSignature = computeHmac(data);
-            return expectedSignature.equals(signature);
+            return java.security.MessageDigest.isEqual(
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
+                signature.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.warn("Step-up token verification failed: {}", e.getMessage());
             return false;

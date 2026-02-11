@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Payment Gateway Service Application
@@ -14,6 +15,7 @@ import org.springframework.retry.annotation.EnableRetry;
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableRetry
+@EnableScheduling
 public class PaymentGatewayApplication {
 
     public static void main(String[] args) {

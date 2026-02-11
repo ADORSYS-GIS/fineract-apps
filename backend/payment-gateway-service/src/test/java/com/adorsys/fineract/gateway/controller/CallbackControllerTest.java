@@ -1,5 +1,6 @@
 package com.adorsys.fineract.gateway.controller;
 
+import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
 import com.adorsys.fineract.gateway.dto.MtnCallbackRequest;
 import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
@@ -34,6 +35,9 @@ class CallbackControllerTest {
 
     @MockBean
     private PaymentService paymentService;
+
+    @MockBean
+    private MtnMomoConfig mtnConfig;
 
     @MockBean
     private JwtDecoder jwtDecoder;

@@ -44,6 +44,7 @@ class PaymentServiceTest {
     @Mock private CinetPayConfig cinetPayConfig;
     @Mock private PaymentMetrics paymentMetrics;
     @Mock private PaymentTransactionRepository transactionRepository;
+    @Mock private ReversalService reversalService;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -75,6 +76,9 @@ class PaymentServiceTest {
                 .build();
 
         lenient().when(paymentMetrics.startTimer()).thenReturn(mock(Timer.Sample.class));
+        lenient().when(mtnConfig.getCurrency()).thenReturn("XAF");
+        lenient().when(orangeConfig.getCurrency()).thenReturn("XAF");
+        lenient().when(cinetPayConfig.getCurrency()).thenReturn("XAF");
     }
 
     // =========================================================================
@@ -305,7 +309,7 @@ class PaymentServiceTest {
                     .financialTransactionId("fin-txn-123")
                     .build();
 
-            when(transactionRepository.findByProviderReference("mtn-ref-1"))
+            when(transactionRepository.findByProviderReferenceForUpdate("mtn-ref-1"))
                     .thenReturn(Optional.of(txn));
             when(mtnConfig.getFineractPaymentTypeId()).thenReturn(1L);
             when(fineractClient.createDeposit(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(10000)),
@@ -333,7 +337,7 @@ class PaymentServiceTest {
                     .reason("User cancelled")
                     .build();
 
-            when(transactionRepository.findByProviderReference("mtn-ref-2"))
+            when(transactionRepository.findByProviderReferenceForUpdate("mtn-ref-2"))
                     .thenReturn(Optional.of(txn));
 
             paymentService.handleMtnCollectionCallback(callback);
@@ -351,7 +355,7 @@ class PaymentServiceTest {
                     .status("SUCCESSFUL")
                     .build();
 
-            when(transactionRepository.findByProviderReference("unknown-ref"))
+            when(transactionRepository.findByProviderReferenceForUpdate("unknown-ref"))
                     .thenReturn(Optional.empty());
 
             paymentService.handleMtnCollectionCallback(callback);
@@ -373,7 +377,7 @@ class PaymentServiceTest {
                     .status("SUCCESSFUL")
                     .build();
 
-            when(transactionRepository.findByProviderReference("mtn-ref-3"))
+            when(transactionRepository.findByProviderReferenceForUpdate("mtn-ref-3"))
                     .thenReturn(Optional.of(txn));
 
             paymentService.handleMtnCollectionCallback(callback);
@@ -404,7 +408,7 @@ class PaymentServiceTest {
                     .status("SUCCESSFUL")
                     .build();
 
-            when(transactionRepository.findByProviderReference("mtn-ref-w1"))
+            when(transactionRepository.findByProviderReferenceForUpdate("mtn-ref-w1"))
                     .thenReturn(Optional.of(txn));
 
             paymentService.handleMtnDisbursementCallback(callback);
@@ -428,15 +432,13 @@ class PaymentServiceTest {
                     .reason("Provider error")
                     .build();
 
-            when(transactionRepository.findByProviderReference("mtn-ref-w2"))
+            when(transactionRepository.findByProviderReferenceForUpdate("mtn-ref-w2"))
                     .thenReturn(Optional.of(txn));
-            when(mtnConfig.getFineractPaymentTypeId()).thenReturn(1L);
 
             paymentService.handleMtnDisbursementCallback(callback);
 
             assertThat(txn.getStatus()).isEqualTo(PaymentStatus.FAILED);
-            verify(fineractClient).createDeposit(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(5000)),
-                    eq(1L), eq("REVERSAL-txn-w2"));
+            verify(reversalService).reverseWithdrawal(txn);
             verify(transactionRepository).save(txn);
         }
     }
@@ -463,7 +465,7 @@ class PaymentServiceTest {
                     .transactionId("orange-txn-123")
                     .build();
 
-            when(transactionRepository.findById("txn-o1")).thenReturn(Optional.of(txn));
+            when(transactionRepository.findByIdForUpdate("txn-o1")).thenReturn(Optional.of(txn));
             when(orangeConfig.getFineractPaymentTypeId()).thenReturn(2L);
             when(fineractClient.createDeposit(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(10000)),
                     eq(2L), eq("orange-txn-123"))).thenReturn(888L);
@@ -489,14 +491,12 @@ class PaymentServiceTest {
                     .status("FAILED")
                     .build();
 
-            when(transactionRepository.findById("txn-o2")).thenReturn(Optional.of(txn));
-            when(orangeConfig.getFineractPaymentTypeId()).thenReturn(2L);
+            when(transactionRepository.findByIdForUpdate("txn-o2")).thenReturn(Optional.of(txn));
 
             paymentService.handleOrangeCallback(callback);
 
             assertThat(txn.getStatus()).isEqualTo(PaymentStatus.FAILED);
-            verify(fineractClient).createDeposit(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(5000)),
-                    eq(2L), eq("REVERSAL-txn-o2"));
+            verify(reversalService).reverseWithdrawal(txn);
         }
     }
 
@@ -524,7 +524,7 @@ class PaymentServiceTest {
                     .build();
 
             when(cinetPayClient.validateCallbackSignature(callback)).thenReturn(true);
-            when(transactionRepository.findById("txn-cp1")).thenReturn(Optional.of(txn));
+            when(transactionRepository.findByIdForUpdate("txn-cp1")).thenReturn(Optional.of(txn));
             when(mtnConfig.getFineractPaymentTypeId()).thenReturn(1L);
             when(fineractClient.createDeposit(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(10000)),
                     eq(1L), eq("cp-pay-123"))).thenReturn(555L);
@@ -551,7 +551,7 @@ class PaymentServiceTest {
                     .build();
 
             when(cinetPayClient.validateCallbackSignature(callback)).thenReturn(true);
-            when(transactionRepository.findById("txn-cp2")).thenReturn(Optional.of(txn));
+            when(transactionRepository.findByIdForUpdate("txn-cp2")).thenReturn(Optional.of(txn));
             when(orangeConfig.getFineractPaymentTypeId()).thenReturn(2L);
             when(fineractClient.createDeposit(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(10000)),
                     eq(2L), eq("cp-pay-456"))).thenReturn(666L);

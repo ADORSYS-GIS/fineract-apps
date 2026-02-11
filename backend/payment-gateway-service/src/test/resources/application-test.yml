@@ -76,3 +76,5 @@ app:
   stepup:
     enabled: false
     secret: test-secret-for-hmac-validation
+  cleanup:
+    enabled: false

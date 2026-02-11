@@ -2,9 +2,12 @@ package com.adorsys.fineract.gateway.repository;
 
 import com.adorsys.fineract.gateway.dto.PaymentStatus;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -18,6 +21,22 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
      * Find transaction by provider's reference ID (used in callbacks)
      */
     Optional<PaymentTransaction> findByProviderReference(String providerReference);
+
+    /**
+     * Find transaction by provider reference with pessimistic write lock (SELECT FOR UPDATE).
+     * Prevents concurrent callback processing of the same transaction.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM PaymentTransaction t WHERE t.providerReference = :ref")
+    Optional<PaymentTransaction> findByProviderReferenceForUpdate(@Param("ref") String ref);
+
+    /**
+     * Find transaction by ID with pessimistic write lock (SELECT FOR UPDATE).
+     * Used by Orange/CinetPay callback handlers to prevent race conditions.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM PaymentTransaction t WHERE t.transactionId = :id")
+    Optional<PaymentTransaction> findByIdForUpdate(@Param("id") String id);
 
     /**
      * Find transactions for a customer within a date range (for daily limits)

@@ -2,6 +2,9 @@ server:
   port: 8082
   servlet:
     context-path: /
+  tomcat:
+    max-http-form-post-size: 1MB
+    max-swallow-size: 2MB
 
 spring:
   application:
@@ -124,6 +127,10 @@ app:
   stepup:
     enabled: ${APP_STEPUP_ENABLED:false}
     secret: ${APP_STEPUP_SECRET:}
+  cleanup:
+    enabled: ${APP_CLEANUP_ENABLED:true}
+    stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
+    interval-ms: ${APP_CLEANUP_INTERVAL_MS:300000}
 
 # Actuator Configuration
 management:

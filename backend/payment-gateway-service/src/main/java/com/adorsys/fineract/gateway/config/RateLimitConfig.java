@@ -42,9 +42,13 @@ public class RateLimitConfig {
     private static final int STATUS_LIMIT = 50;
     private static final Duration STATUS_DURATION = Duration.ofMinutes(1);
 
-    // No rate limit for callbacks (they come from payment providers)
+    // Rate limit: 100 callback requests per minute per IP (from payment providers)
+    private static final int CALLBACK_LIMIT = 100;
+    private static final Duration CALLBACK_DURATION = Duration.ofMinutes(1);
+
     private final Map<String, Bucket> paymentBuckets = new ConcurrentHashMap<>();
     private final Map<String, Bucket> statusBuckets = new ConcurrentHashMap<>();
+    private final Map<String, Bucket> callbackBuckets = new ConcurrentHashMap<>();
 
     @Bean
     public RateLimitFilter rateLimitFilter() {
@@ -60,9 +64,16 @@ public class RateLimitConfig {
 
             String path = request.getRequestURI();
 
-            // Skip rate limiting for callbacks (provider webhooks)
+            // Rate limit callbacks separately (provider webhooks)
             if (path.contains("/callbacks")) {
-                filterChain.doFilter(request, response);
+                String callbackIp = getIpAddress(request);
+                Bucket callbackBucket = callbackBuckets.computeIfAbsent(callbackIp, this::createCallbackBucket);
+                if (callbackBucket.tryConsume(1)) {
+                    filterChain.doFilter(request, response);
+                } else {
+                    log.warn("Callback rate limit exceeded for IP: {} on path: {}", callbackIp, path);
+                    response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+                }
                 return;
             }
 
@@ -107,12 +118,36 @@ public class RateLimitConfig {
                     .build();
         }
 
+        private Bucket createCallbackBucket(String key) {
+            return Bucket.builder()
+                    .addLimit(Bandwidth.classic(CALLBACK_LIMIT,
+                            Refill.greedy(CALLBACK_LIMIT, CALLBACK_DURATION)))
+                    .build();
+        }
+
+        private String getIpAddress(HttpServletRequest request) {
+            String xForwardedFor = request.getHeader("X-Forwarded-For");
+            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                return xForwardedFor.split(",")[0].trim();
+            }
+            String xRealIp = request.getHeader("X-Real-IP");
+            if (xRealIp != null && !xRealIp.isEmpty()) {
+                return xRealIp;
+            }
+            return request.getRemoteAddr();
+        }
+
         private String getClientIdentifier(HttpServletRequest request) {
-            // Prefer user identifier from JWT if available
+            // Prefer user identifier from JWT subject claim
             String authHeader = request.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                // Use a hash of the token as identifier (in production, extract user ID)
-                return "user:" + authHeader.hashCode();
+                String subject = extractJwtSubject(authHeader.substring(7));
+                if (subject != null) {
+                    return "user:" + subject;
+                }
+                // Fallback: use first 16 chars of token as collision-resistant identifier
+                String token = authHeader.substring(7);
+                return "user:" + token.substring(0, Math.min(token.length(), 16));
             }
 
             // Fall back to IP address
@@ -125,6 +160,32 @@ public class RateLimitConfig {
                 return "ip:" + xRealIp;
             }
             return "ip:" + request.getRemoteAddr();
+        }
+
+        /**
+         * Extract the "sub" claim from a JWT without full validation
+         * (Spring Security handles validation separately).
+         */
+        private String extractJwtSubject(String token) {
+            try {
+                String[] parts = token.split("\\.");
+                if (parts.length < 2) return null;
+                String payload = new String(java.util.Base64.getUrlDecoder().decode(parts[1]),
+                    java.nio.charset.StandardCharsets.UTF_8);
+                // Simple extraction without pulling in a JSON library dependency
+                int subIdx = payload.indexOf("\"sub\"");
+                if (subIdx < 0) return null;
+                int colonIdx = payload.indexOf(':', subIdx);
+                int quoteStart = payload.indexOf('"', colonIdx + 1);
+                int quoteEnd = payload.indexOf('"', quoteStart + 1);
+                if (quoteStart >= 0 && quoteEnd > quoteStart) {
+                    return payload.substring(quoteStart + 1, quoteEnd);
+                }
+                return null;
+            } catch (Exception e) {
+                log.debug("Could not extract JWT subject: {}", e.getMessage());
+                return null;
+            }
         }
     }
 }

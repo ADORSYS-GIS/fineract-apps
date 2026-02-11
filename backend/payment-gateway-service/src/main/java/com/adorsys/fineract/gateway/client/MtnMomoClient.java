@@ -237,19 +237,7 @@ public class MtnMomoClient {
     }
 
     private String normalizePhoneNumber(String phoneNumber) {
-        // Remove spaces, dashes, and plus signs
-        String normalized = phoneNumber.replaceAll("[\\s\\-+]", "");
-
-        // Ensure it starts with country code 237 (Cameroon)
-        if (!normalized.startsWith("237")) {
-            if (normalized.startsWith("0")) {
-                normalized = "237" + normalized.substring(1);
-            } else {
-                normalized = "237" + normalized;
-            }
-        }
-
-        return normalized;
+        return com.adorsys.fineract.gateway.util.PhoneNumberUtils.normalizePhoneNumber(phoneNumber);
     }
 
     private PaymentStatus mapMtnStatus(String mtnStatus) {

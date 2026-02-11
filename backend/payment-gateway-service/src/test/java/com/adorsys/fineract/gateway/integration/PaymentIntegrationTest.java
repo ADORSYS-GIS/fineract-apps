@@ -133,6 +133,7 @@ class PaymentIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/callbacks/mtn/collection")
+                        .header("Ocp-Apim-Subscription-Key", "test-collection-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(callback)))
                 .andExpect(status().isOk());
@@ -242,6 +243,7 @@ class PaymentIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/callbacks/mtn/disbursement")
+                        .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(callback)))
                 .andExpect(status().isOk());
@@ -294,6 +296,7 @@ class PaymentIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/callbacks/mtn/disbursement")
+                        .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(callback)))
                 .andExpect(status().isOk());
