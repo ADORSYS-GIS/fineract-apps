@@ -1,9 +1,13 @@
 package com.adorsys.fineract.asset.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
- * Asset summary for the marketplace listing page.
+ * Asset summary for the marketplace listing page. Includes bond-specific fields
+ * when the asset category is BONDS so that users can see yield, issuer, and expiry at a glance.
  */
 public record AssetResponse(
     /** Internal asset identifier. */
@@ -14,9 +18,9 @@ public record AssetResponse(
     String symbol,
     /** URL to the asset's logo or image. */
     String imageUrl,
-    /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, or CRYPTO. */
+    /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, or BONDS. */
     AssetCategory category,
-    /** Lifecycle status: PENDING, ACTIVE, HALTED, or DELISTED. */
+    /** Lifecycle status: PENDING, ACTIVE, HALTED, DELISTED, or MATURED. */
     AssetStatus status,
     /** Latest price per unit, in XAF. */
     BigDecimal currentPrice,
@@ -25,5 +29,26 @@ public record AssetResponse(
     /** Units available for purchase: totalSupply - circulatingSupply. */
     BigDecimal availableSupply,
     /** Maximum total units that can ever exist. */
-    BigDecimal totalSupply
+    BigDecimal totalSupply,
+
+    // ── Bond summary fields (null for non-bond assets) ──
+
+    /** Bond issuer name. Null for non-bond assets. */
+    @Schema(description = "Bond issuer name. Null for non-bond assets.")
+    String issuer,
+    /** ISIN code. Null for non-bond assets. */
+    @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.")
+    String isinCode,
+    /** Bond maturity date. Null for non-bond assets. */
+    @Schema(description = "Bond maturity date. Null for non-bond assets.")
+    LocalDate maturityDate,
+    /** Annual coupon rate as a percentage. Null for non-bond assets. */
+    @Schema(description = "Annual coupon interest rate as percentage.")
+    BigDecimal interestRate,
+    /** Days remaining until maturity. Null for non-bond assets. */
+    @Schema(description = "Days remaining until maturity date. Computed at query time.")
+    Long residualDays,
+    /** Whether the offer validity period has expired. Null if no validityDate set. */
+    @Schema(description = "True if validityDate has passed and new BUY orders are blocked.")
+    Boolean offerExpired
 ) {}

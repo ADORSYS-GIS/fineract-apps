@@ -1,6 +1,8 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
+import com.adorsys.fineract.asset.entity.InterestPayment;
+import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
 import com.adorsys.fineract.asset.service.AssetProvisioningService;
 import com.adorsys.fineract.asset.service.InventoryService;
@@ -30,6 +32,7 @@ public class AdminAssetController {
     private final AssetCatalogService catalogService;
     private final PricingService pricingService;
     private final InventoryService inventoryService;
+    private final InterestPaymentRepository interestPaymentRepository;
 
     @PostMapping
     @Operation(summary = "Create asset", description = "Create a new asset with Fineract provisioning")
@@ -104,5 +107,28 @@ public class AdminAssetController {
             throw new IllegalArgumentException("Max page size is 100");
         }
         return ResponseEntity.ok(inventoryService.getInventory(pageable));
+    }
+
+    @GetMapping("/{id}/coupons")
+    @Operation(summary = "Coupon payment history", description = "Paginated list of coupon payments for a bond asset")
+    public ResponseEntity<Page<CouponPaymentResponse>> getCouponHistory(
+            @PathVariable String id,
+            @PageableDefault(size = 20) Pageable pageable) {
+        if (pageable.getPageSize() > 100) {
+            throw new IllegalArgumentException("Max page size is 100");
+        }
+        Page<CouponPaymentResponse> result = interestPaymentRepository
+                .findByAssetIdOrderByPaidAtDesc(id, pageable)
+                .map(this::toCouponPaymentResponse);
+        return ResponseEntity.ok(result);
+    }
+
+    private CouponPaymentResponse toCouponPaymentResponse(InterestPayment ip) {
+        return new CouponPaymentResponse(
+                ip.getId(), ip.getUserId(), ip.getUnits(), ip.getFaceValue(),
+                ip.getAnnualRate(), ip.getPeriodMonths(), ip.getXafAmount(),
+                ip.getFineractTransferId(), ip.getStatus(), ip.getFailureReason(),
+                ip.getPaidAt(), ip.getCouponDate()
+        );
     }
 }

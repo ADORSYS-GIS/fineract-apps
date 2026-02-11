@@ -13,6 +13,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 	AGRICULTURE: "Agriculture",
 	STOCKS: "Stocks",
 	CRYPTO: "Crypto",
+	BONDS: "Bonds",
+};
+
+const FREQUENCY_LABELS: Record<number, string> = {
+	1: "Monthly",
+	3: "Quarterly",
+	6: "Semi-Annual",
+	12: "Annual",
 };
 
 export const ReviewStep: FC<Props> = ({ formData }) => {
@@ -65,6 +73,42 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					)}
 				</div>
 			</Card>
+
+			{/* Bond Details */}
+			{formData.category === "BONDS" && (
+				<Card className="p-4">
+					<h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
+						Bond Details
+					</h3>
+					<div className="grid grid-cols-2 gap-2 text-sm">
+						<div className="text-gray-600">Issuer:</div>
+						<div className="font-medium">{formData.issuer}</div>
+						{formData.isinCode && (
+							<>
+								<div className="text-gray-600">ISIN Code:</div>
+								<div className="font-medium font-mono">{formData.isinCode}</div>
+							</>
+						)}
+						<div className="text-gray-600">Interest Rate:</div>
+						<div className="font-medium">{formData.interestRate}%</div>
+						<div className="text-gray-600">Maturity Date:</div>
+						<div className="font-medium">{formData.maturityDate}</div>
+						<div className="text-gray-600">Coupon Frequency:</div>
+						<div className="font-medium">
+							{FREQUENCY_LABELS[formData.couponFrequencyMonths] ??
+								`${formData.couponFrequencyMonths} months`}
+						</div>
+						<div className="text-gray-600">First Coupon Date:</div>
+						<div className="font-medium">{formData.nextCouponDate}</div>
+						{formData.validityDate && (
+							<>
+								<div className="text-gray-600">Validity Date:</div>
+								<div className="font-medium">{formData.validityDate}</div>
+							</>
+						)}
+					</div>
+				</Card>
+			)}
 
 			{/* Pricing */}
 			<Card className="p-4">

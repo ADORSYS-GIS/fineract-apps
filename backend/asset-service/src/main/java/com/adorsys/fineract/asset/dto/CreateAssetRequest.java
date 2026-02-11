@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -19,7 +20,7 @@ public record CreateAssetRequest(
     @Size(max = 1000) String description,
     /** Optional URL to the asset's logo or image. Max 500 characters. */
     @Size(max = 500) String imageUrl,
-    /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, or CRYPTO. */
+    /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, or BONDS. */
     @NotNull AssetCategory category,
     /** Starting price per unit, in XAF. Must be positive. Used as the initial manual price. */
     @NotNull @Positive BigDecimal initialPrice,
@@ -34,5 +35,29 @@ public record CreateAssetRequest(
     /** Optional planned launch date. If set, asset starts in PENDING status until this date. */
     LocalDate expectedLaunchDate,
     /** Fineract client ID of the treasury that will hold this asset's reserves. */
-    @NotNull Long treasuryClientId
+    @NotNull Long treasuryClientId,
+
+    // ── Bond / fixed-income fields (required when category = BONDS) ──
+
+    /** Bond issuer name (e.g. "Etat du Sénégal"). Required for BONDS. */
+    @Schema(description = "Bond issuer name. Required when category is BONDS.")
+    @Size(max = 255) String issuer,
+    /** ISIN code (ISO 6166). Optional, max 12 characters. */
+    @Schema(description = "International Securities Identification Number (ISO 6166).")
+    @Size(max = 12) String isinCode,
+    /** Bond maturity date. Required for BONDS, must be in the future. */
+    @Schema(description = "Bond maturity date. Required when category is BONDS.")
+    LocalDate maturityDate,
+    /** Annual coupon rate as a percentage (e.g. 5.80 = 5.80%). Required for BONDS. */
+    @Schema(description = "Annual coupon interest rate as percentage. Required when category is BONDS.")
+    @PositiveOrZero BigDecimal interestRate,
+    /** Coupon payment frequency: 1=Monthly, 3=Quarterly, 6=Semi-Annual, 12=Annual. Required for BONDS. */
+    @Schema(description = "Coupon frequency in months: 1, 3, 6, or 12. Required when category is BONDS.")
+    Integer couponFrequencyMonths,
+    /** First coupon payment date. Required for BONDS, must be on or before maturityDate. */
+    @Schema(description = "First coupon payment date. Required when category is BONDS.")
+    LocalDate nextCouponDate,
+    /** Offer validity deadline. BUY orders rejected after this date; SELL always allowed. */
+    @Schema(description = "Offer validity deadline. BUY orders rejected after this date.")
+    LocalDate validityDate
 ) {}

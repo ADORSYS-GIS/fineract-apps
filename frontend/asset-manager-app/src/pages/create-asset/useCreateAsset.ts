@@ -20,6 +20,14 @@ export interface AssetFormData {
 	category: string;
 	description: string;
 	imageUrl: string;
+	// Step 2b: Bond Details (when category = BONDS)
+	issuer: string;
+	isinCode: string;
+	maturityDate: string;
+	interestRate: number;
+	couponFrequencyMonths: number;
+	nextCouponDate: string;
+	validityDate: string;
 	// Step 3: Pricing
 	initialPrice: number;
 	tradingFeePercent: number;
@@ -39,6 +47,13 @@ const initialFormData: AssetFormData = {
 	category: "REAL_ESTATE",
 	description: "",
 	imageUrl: "",
+	issuer: "",
+	isinCode: "",
+	maturityDate: "",
+	interestRate: 0,
+	couponFrequencyMonths: 12,
+	nextCouponDate: "",
+	validityDate: "",
 	initialPrice: 0,
 	tradingFeePercent: 0.5,
 	spreadPercent: 1.0,
@@ -53,13 +68,23 @@ export const useCreateAsset = () => {
 	const [currentStep, setCurrentStep] = useState(0);
 	const [formData, setFormData] = useState<AssetFormData>(initialFormData);
 
-	const steps = [
-		"Select Company",
-		"Asset Details",
-		"Pricing & Fees",
-		"Supply",
-		"Review & Create",
-	];
+	const isBond = formData.category === "BONDS";
+	const steps = isBond
+		? [
+				"Select Company",
+				"Asset Details",
+				"Bond Details",
+				"Pricing & Fees",
+				"Supply",
+				"Review & Create",
+			]
+		: [
+				"Select Company",
+				"Asset Details",
+				"Pricing & Fees",
+				"Supply",
+				"Review & Create",
+			];
 
 	// Fetch entity clients (companies) from Fineract
 	const { data: clients, isLoading: isLoadingClients } = useQuery({
@@ -92,11 +117,13 @@ export const useCreateAsset = () => {
 
 	const validateStep = (step: number): string[] => {
 		const errors: string[] = [];
-		switch (step) {
-			case 0:
+		// Map logical step to validation based on whether bond step is present
+		const stepName = steps[step];
+		switch (stepName) {
+			case "Select Company":
 				if (!formData.treasuryClientId) errors.push("Select a company");
 				break;
-			case 1:
+			case "Asset Details":
 				if (!formData.name.trim()) errors.push("Name is required");
 				if (!formData.symbol.trim()) errors.push("Symbol is required");
 				else if (!/^[A-Z0-9]{2,10}$/.test(formData.symbol))
@@ -106,7 +133,17 @@ export const useCreateAsset = () => {
 				else if (!/^[A-Z]{3}$/.test(formData.currencyCode))
 					errors.push("Currency code must be 3 uppercase letters");
 				break;
-			case 2:
+			case "Bond Details":
+				if (!formData.issuer.trim()) errors.push("Issuer is required");
+				if (!formData.maturityDate) errors.push("Maturity date is required");
+				if (formData.interestRate <= 0)
+					errors.push("Interest rate must be greater than 0");
+				if (![1, 3, 6, 12].includes(formData.couponFrequencyMonths))
+					errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
+				if (!formData.nextCouponDate)
+					errors.push("First coupon date is required");
+				break;
+			case "Pricing & Fees":
 				if (formData.initialPrice <= 0)
 					errors.push("Initial price must be greater than 0");
 				if (formData.tradingFeePercent < 0 || formData.tradingFeePercent > 50)
@@ -114,7 +151,7 @@ export const useCreateAsset = () => {
 				if (formData.spreadPercent < 0 || formData.spreadPercent > 50)
 					errors.push("Spread must be 0-50%");
 				break;
-			case 3:
+			case "Supply":
 				if (formData.totalSupply <= 0)
 					errors.push("Total supply must be greater than 0");
 				break;
@@ -165,6 +202,16 @@ export const useCreateAsset = () => {
 			decimalPlaces: formData.decimalPlaces,
 			treasuryClientId: formData.treasuryClientId,
 			expectedLaunchDate: formData.expectedLaunchDate || undefined,
+			// Bond fields (only included when category is BONDS)
+			...(formData.category === "BONDS" && {
+				issuer: formData.issuer,
+				isinCode: formData.isinCode || undefined,
+				maturityDate: formData.maturityDate,
+				interestRate: formData.interestRate,
+				couponFrequencyMonths: formData.couponFrequencyMonths,
+				nextCouponDate: formData.nextCouponDate,
+				validityDate: formData.validityDate || undefined,
+			}),
 		};
 
 		createMutation.mutate(request);
@@ -174,6 +221,7 @@ export const useCreateAsset = () => {
 		currentStep,
 		steps,
 		formData,
+		isBond,
 		updateFormData,
 		nextStep,
 		prevStep,

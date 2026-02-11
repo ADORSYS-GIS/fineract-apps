@@ -53,9 +53,9 @@ public class Asset {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    /** Classification category: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, or CRYPTO. */
+    /** Classification category: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, or BONDS. */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     private AssetCategory category;
 
     /** Lifecycle status: PENDING → ACTIVE → HALTED or DELISTED. Defaults to PENDING on creation. */
@@ -95,6 +95,38 @@ public class Asset {
     /** Planned launch date for PENDING assets. Null for already-active assets. */
     @Column(name = "expected_launch_date")
     private LocalDate expectedLaunchDate;
+
+    // ── Bond / fixed-income fields (null for non-bond assets) ──────────────
+
+    /** Bond issuer name (e.g. "Etat du Sénégal"). Null for non-bond assets. */
+    @Column(length = 255)
+    private String issuer;
+
+    /** International Securities Identification Number (ISO 6166). Null for non-bond assets. */
+    @Column(name = "isin_code", length = 12)
+    private String isinCode;
+
+    /** Bond maturity date. When reached, the MaturityScheduler transitions status to MATURED. */
+    @Column(name = "maturity_date")
+    private LocalDate maturityDate;
+
+    /** Annual coupon rate as a percentage (e.g. 5.80 = 5.80%). Null for non-bond assets. */
+    @Column(name = "interest_rate", precision = 8, scale = 4)
+    private BigDecimal interestRate;
+
+    /** Coupon payment frequency in months: 1=Monthly, 3=Quarterly, 6=Semi-Annual, 12=Annual. */
+    @Column(name = "coupon_frequency_months")
+    private Integer couponFrequencyMonths;
+
+    /** Next scheduled coupon payment date. Auto-advanced by InterestPaymentScheduler after each payment. */
+    @Column(name = "next_coupon_date")
+    private LocalDate nextCouponDate;
+
+    /** Offer validity deadline. BUY orders are rejected after this date; SELL is always allowed. */
+    @Column(name = "validity_date")
+    private LocalDate validityDate;
+
+    // ── End bond fields ────────────────────────────────────────────────────
 
     /** Fineract client ID of the treasury that holds this asset's reserves. */
     @Column(name = "treasury_client_id", nullable = false)

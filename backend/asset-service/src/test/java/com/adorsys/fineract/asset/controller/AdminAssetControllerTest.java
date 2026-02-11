@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
+import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
 import com.adorsys.fineract.asset.service.AssetProvisioningService;
 import com.adorsys.fineract.asset.service.InventoryService;
@@ -36,6 +37,7 @@ class AdminAssetControllerTest {
     @MockBean private AssetCatalogService catalogService;
     @MockBean private PricingService pricingService;
     @MockBean private InventoryService inventoryService;
+    @MockBean private InterestPaymentRepository interestPaymentRepository;
 
     // -------------------------------------------------------------------------
     // GET /api/admin/assets
@@ -48,7 +50,8 @@ class AdminAssetControllerTest {
                 "a1", "Test Asset", "TST", null,
                 AssetCategory.STOCKS, AssetStatus.ACTIVE,
                 new BigDecimal("500"), new BigDecimal("2.5"),
-                new BigDecimal("900"), new BigDecimal("1000")
+                new BigDecimal("900"), new BigDecimal("1000"),
+                null, null, null, null, null, null
         );
         when(catalogService.listAllAssets(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(asset)));
@@ -91,7 +94,8 @@ class AdminAssetControllerTest {
                 AssetCategory.STOCKS,
                 new BigDecimal("500"), new BigDecimal("1000"),
                 0, new BigDecimal("0.005"), new BigDecimal("0.01"),
-                null, 1L
+                null, 1L,
+                null, null, null, null, null, null, null
         );
 
         AssetDetailResponse response = new AssetDetailResponse(
@@ -103,7 +107,8 @@ class AdminAssetControllerTest {
                 new BigDecimal("0.005"), new BigDecimal("0.01"),
                 0, null,
                 1L, 200L, 300L, 10,
-                Instant.now(), null
+                Instant.now(), null,
+                null, null, null, null, null, null, null, null, null
         );
 
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);

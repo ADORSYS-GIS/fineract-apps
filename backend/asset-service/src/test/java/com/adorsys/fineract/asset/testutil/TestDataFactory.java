@@ -5,6 +5,7 @@ import com.adorsys.fineract.asset.entity.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -118,7 +119,46 @@ public final class TestDataFactory {
                 new BigDecimal("0.005"),
                 new BigDecimal("0.01"),
                 null,
-                TREASURY_CLIENT_ID
+                TREASURY_CLIENT_ID,
+                null, null, null, null, null, null, null
         );
+    }
+
+    public static CreateAssetRequest createBondAssetRequest() {
+        return new CreateAssetRequest(
+                "Senegal Bond 2030",
+                "SN8",
+                "SN8",
+                "Government bond",
+                null,
+                AssetCategory.BONDS,
+                new BigDecimal("10000"),
+                new BigDecimal("500"),
+                0,
+                new BigDecimal("0.005"),
+                new BigDecimal("0.01"),
+                null,
+                TREASURY_CLIENT_ID,
+                "Etat du Sénégal",
+                "SN0000038741",
+                LocalDate.now().plusYears(5),
+                new BigDecimal("5.80"),
+                6,
+                LocalDate.now().plusMonths(6),
+                LocalDate.now().plusYears(1)
+        );
+    }
+
+    public static Asset activeBondAsset() {
+        Asset bond = activeAsset();
+        bond.setCategory(AssetCategory.BONDS);
+        bond.setIssuer("Etat du Sénégal");
+        bond.setIsinCode("SN0000038741");
+        bond.setMaturityDate(LocalDate.now().plusYears(5));
+        bond.setInterestRate(new BigDecimal("5.80"));
+        bond.setCouponFrequencyMonths(6);
+        bond.setNextCouponDate(LocalDate.now().plusMonths(6));
+        bond.setValidityDate(LocalDate.now().plusYears(1));
+        return bond;
     }
 }

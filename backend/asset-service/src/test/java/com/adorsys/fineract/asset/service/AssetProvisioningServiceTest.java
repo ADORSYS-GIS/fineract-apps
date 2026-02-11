@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -175,7 +176,7 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
 
         UpdateAssetRequest request = new UpdateAssetRequest(
-                "New Name", null, null, null, null, null);
+                "New Name", null, null, null, null, null, null, null, null);
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -192,7 +193,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -283,5 +284,51 @@ class AssetProvisioningServiceTest {
 
         AssetException ex = assertThrows(AssetException.class, () -> service.resumeAsset(ASSET_ID));
         assertTrue(ex.getMessage().contains("must be HALTED"));
+    }
+
+    // -------------------------------------------------------------------------
+    // Bond validation tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void createBondAsset_missingIssuer_throws() {
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
+                new BigDecimal("10000"), new BigDecimal("100"), 0,
+                null, null, null, TREASURY_CLIENT_ID,
+                null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
+                LocalDate.now().plusMonths(6), null
+        );
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("Issuer is required"));
+    }
+
+    @Test
+    void createBondAsset_invalidCouponFrequency_throws() {
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
+                new BigDecimal("10000"), new BigDecimal("100"), 0,
+                null, null, null, TREASURY_CLIENT_ID,
+                "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
+                LocalDate.now().plusMonths(5), null
+        );
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("Coupon frequency must be"));
+    }
+
+    @Test
+    void createBondAsset_pastMaturityDate_throws() {
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
+                new BigDecimal("10000"), new BigDecimal("100"), 0,
+                null, null, null, TREASURY_CLIENT_ID,
+                "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
+                LocalDate.now().plusMonths(6), null
+        );
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("Maturity date must be in the future"));
     }
 }

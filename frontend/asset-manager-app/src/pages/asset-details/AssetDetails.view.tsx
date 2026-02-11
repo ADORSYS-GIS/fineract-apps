@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { FC, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { CouponHistoryTable } from "@/components/CouponHistoryTable";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { ErrorFallback } from "@/components/ErrorFallback";
 import { MintSupplyDialog } from "@/components/MintSupplyDialog";
@@ -236,6 +237,75 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						</div>
 					</Card>
 				)}
+
+				{/* Bond Information */}
+				{asset.category === "BONDS" && (
+					<Card className="p-4 mb-6">
+						<h2 className="text-lg font-semibold text-gray-800 mb-3">
+							Bond Information
+						</h2>
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+							<div>
+								<p className="text-gray-500">Issuer</p>
+								<p className="font-medium">{asset.issuer ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">ISIN</p>
+								<p className="font-medium font-mono">{asset.isinCode ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Maturity Date</p>
+								<p className="font-medium">{asset.maturityDate ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Yield</p>
+								<p className="font-medium">
+									{asset.interestRate != null ? `${asset.interestRate}%` : "—"}
+								</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Coupon Frequency</p>
+								<p className="font-medium">
+									{asset.couponFrequencyMonths === 1
+										? "Monthly"
+										: asset.couponFrequencyMonths === 3
+											? "Quarterly"
+											: asset.couponFrequencyMonths === 6
+												? "Semi-Annual"
+												: asset.couponFrequencyMonths === 12
+													? "Annual"
+													: "—"}
+								</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Next Coupon</p>
+								<p className="font-medium">{asset.nextCouponDate ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Residual Days</p>
+								<p className="font-medium">
+									{asset.residualDays != null
+										? `${asset.residualDays} days`
+										: "—"}
+								</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Validity</p>
+								<p className="font-medium">
+									{asset.validityDate ?? "No deadline"}
+									{asset.offerExpired && (
+										<span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+											Expired
+										</span>
+									)}
+								</p>
+							</div>
+						</div>
+					</Card>
+				)}
+
+				{/* Coupon Payment History */}
+				{asset.category === "BONDS" && <CouponHistoryTable assetId={assetId} />}
 
 				{/* Manual Price Override */}
 				<Card className="p-4 mb-6">

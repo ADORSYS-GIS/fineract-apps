@@ -11,5 +11,7 @@ public enum AssetCategory {
     /** Equity shares and stock indices. */
     STOCKS,
     /** Cryptocurrency and digital assets. */
-    CRYPTO
+    CRYPTO,
+    /** Fixed-income bonds and debt instruments. */
+    BONDS
 }

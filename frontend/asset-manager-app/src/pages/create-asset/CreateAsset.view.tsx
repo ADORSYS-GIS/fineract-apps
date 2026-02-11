@@ -2,6 +2,7 @@ import { Button } from "@fineract-apps/ui";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { FC } from "react";
 import { AssetDetailsStep } from "./steps/AssetDetailsStep";
+import { BondDetailsStep } from "./steps/BondDetailsStep";
 import { PricingStep } from "./steps/PricingStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { SelectCompanyStep } from "./steps/SelectCompanyStep";
@@ -26,8 +27,9 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 	} = props;
 
 	const renderStep = () => {
-		switch (currentStep) {
-			case 0:
+		const stepName = steps[currentStep];
+		switch (stepName) {
+			case "Select Company":
 				return (
 					<SelectCompanyStep
 						formData={formData}
@@ -37,7 +39,7 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 						validationErrors={validationErrors}
 					/>
 				);
-			case 1:
+			case "Asset Details":
 				return (
 					<AssetDetailsStep
 						formData={formData}
@@ -45,7 +47,15 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 						validationErrors={validationErrors}
 					/>
 				);
-			case 2:
+			case "Bond Details":
+				return (
+					<BondDetailsStep
+						formData={formData}
+						updateFormData={updateFormData}
+						validationErrors={validationErrors}
+					/>
+				);
+			case "Pricing & Fees":
 				return (
 					<PricingStep
 						formData={formData}
@@ -53,7 +63,7 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 						validationErrors={validationErrors}
 					/>
 				);
-			case 3:
+			case "Supply":
 				return (
 					<SupplyStep
 						formData={formData}
@@ -61,7 +71,7 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 						validationErrors={validationErrors}
 					/>
 				);
-			case 4:
+			case "Review & Create":
 				return <ReviewStep formData={formData} />;
 			default:
 				return null;

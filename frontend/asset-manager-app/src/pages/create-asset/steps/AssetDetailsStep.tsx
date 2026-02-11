@@ -7,6 +7,7 @@ const CATEGORIES = [
 	{ value: "AGRICULTURE", label: "Agriculture" },
 	{ value: "STOCKS", label: "Stocks" },
 	{ value: "CRYPTO", label: "Crypto" },
+	{ value: "BONDS", label: "Bonds" },
 ];
 
 interface Props {

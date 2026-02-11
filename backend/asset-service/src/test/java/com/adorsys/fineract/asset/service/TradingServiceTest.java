@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -752,6 +753,32 @@ class TradingServiceTest {
 
         // Verify no lock was acquired (check happens before lock)
         verifyNoInteractions(tradeLockService);
+        verify(fineractClient, never()).executeBatchTransfers(anyList());
+    }
+
+    // -------------------------------------------------------------------------
+    // Validity date enforcement
+    // -------------------------------------------------------------------------
+
+    @Test
+    void executeBuy_validityExpired_throwsOfferExpired() {
+        // Arrange: asset with an expired validity date
+        activeAsset.setValidityDate(LocalDate.now().minusDays(1));
+
+        BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        doNothing().when(marketHoursService).assertMarketOpen();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+
+        // Act & Assert — validity check fires before price lookup or user resolution
+        TradingException ex = assertThrows(TradingException.class,
+                () -> tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY));
+        assertTrue(ex.getMessage().contains("expired"));
+        assertEquals("OFFER_EXPIRED", ex.getErrorCode());
+
+        verifyNoInteractions(tradeLockService);
+        verify(pricingService, never()).getCurrentPrice(anyString());
         verify(fineractClient, never()).executeBatchTransfers(anyList());
     }
 }

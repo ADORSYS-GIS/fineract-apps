@@ -16,8 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -49,6 +51,11 @@ public class AssetProvisioningService {
         }
         if (assetRepository.findByCurrencyCode(request.currencyCode()).isPresent()) {
             throw new AssetException("Currency code already exists: " + request.currencyCode());
+        }
+
+        // Validate bond-specific fields when category is BONDS
+        if (request.category() == AssetCategory.BONDS) {
+            validateBondFields(request);
         }
 
         String assetId = UUID.randomUUID().toString();
@@ -135,6 +142,13 @@ public class AssetProvisioningService {
                 .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
                 .spreadPercent(request.spreadPercent() != null ? request.spreadPercent() : new BigDecimal("0.0100"))
                 .expectedLaunchDate(request.expectedLaunchDate())
+                .issuer(request.issuer())
+                .isinCode(request.isinCode())
+                .maturityDate(request.maturityDate())
+                .interestRate(request.interestRate())
+                .couponFrequencyMonths(request.couponFrequencyMonths())
+                .nextCouponDate(request.nextCouponDate())
+                .validityDate(request.validityDate())
                 .treasuryClientId(request.treasuryClientId())
                 .treasuryAssetAccountId(treasuryAssetAccountId)
                 .treasuryCashAccountId(treasuryCashAccountId)
@@ -176,6 +190,9 @@ public class AssetProvisioningService {
         if (request.category() != null) asset.setCategory(request.category());
         if (request.tradingFeePercent() != null) asset.setTradingFeePercent(request.tradingFeePercent());
         if (request.spreadPercent() != null) asset.setSpreadPercent(request.spreadPercent());
+        if (request.interestRate() != null) asset.setInterestRate(request.interestRate());
+        if (request.maturityDate() != null) asset.setMaturityDate(request.maturityDate());
+        if (request.validityDate() != null) asset.setValidityDate(request.validityDate());
 
         assetRepository.save(asset);
         log.info("Updated asset: id={}", assetId);
@@ -258,5 +275,38 @@ public class AssetProvisioningService {
         asset.setStatus(AssetStatus.ACTIVE);
         assetRepository.save(asset);
         log.info("Resumed trading for asset: id={}", assetId);
+    }
+
+    /**
+     * Validates that all required bond fields are present and consistent.
+     *
+     * @param request the create asset request with category BONDS
+     * @throws AssetException if any bond-specific validation fails
+     */
+    private void validateBondFields(CreateAssetRequest request) {
+        if (request.issuer() == null || request.issuer().isBlank()) {
+            throw new AssetException("Issuer is required for BONDS category");
+        }
+        if (request.maturityDate() == null) {
+            throw new AssetException("Maturity date is required for BONDS category");
+        }
+        if (!request.maturityDate().isAfter(LocalDate.now())) {
+            throw new AssetException("Maturity date must be in the future");
+        }
+        if (request.interestRate() == null) {
+            throw new AssetException("Interest rate is required for BONDS category");
+        }
+        if (request.couponFrequencyMonths() == null) {
+            throw new AssetException("Coupon frequency is required for BONDS category");
+        }
+        if (!Set.of(1, 3, 6, 12).contains(request.couponFrequencyMonths())) {
+            throw new AssetException("Coupon frequency must be 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual)");
+        }
+        if (request.nextCouponDate() == null) {
+            throw new AssetException("First coupon date is required for BONDS category");
+        }
+        if (request.nextCouponDate().isAfter(request.maturityDate())) {
+            throw new AssetException("First coupon date must be on or before the maturity date");
+        }
     }
 }

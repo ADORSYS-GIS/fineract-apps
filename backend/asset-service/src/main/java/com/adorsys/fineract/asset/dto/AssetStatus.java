@@ -9,5 +9,7 @@ public enum AssetStatus {
     /** Trading temporarily suspended by admin. */
     HALTED,
     /** Asset permanently removed from trading. */
-    DELISTED
+    DELISTED,
+    /** Bond reached maturity date; no further trading allowed. */
+    MATURED
 }

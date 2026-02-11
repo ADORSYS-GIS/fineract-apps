@@ -1,9 +1,11 @@
 package com.adorsys.fineract.asset.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * Admin request to update an asset's metadata. Only non-null fields are applied (partial update).
@@ -20,5 +22,17 @@ public record UpdateAssetRequest(
     /** New trading fee percentage (e.g. 0.005 = 0.5%). Null to keep current. */
     @PositiveOrZero BigDecimal tradingFeePercent,
     /** New spread percentage (e.g. 0.01 = 1%). Null to keep current. */
-    @PositiveOrZero BigDecimal spreadPercent
+    @PositiveOrZero BigDecimal spreadPercent,
+
+    // ── Bond-specific updatable fields ──
+
+    /** New annual coupon rate as percentage. Null to keep current. */
+    @Schema(description = "New annual coupon interest rate as percentage.")
+    @PositiveOrZero BigDecimal interestRate,
+    /** New maturity date. Null to keep current. */
+    @Schema(description = "New bond maturity date.")
+    LocalDate maturityDate,
+    /** New offer validity deadline. Null to keep current. */
+    @Schema(description = "New offer validity deadline.")
+    LocalDate validityDate
 ) {}

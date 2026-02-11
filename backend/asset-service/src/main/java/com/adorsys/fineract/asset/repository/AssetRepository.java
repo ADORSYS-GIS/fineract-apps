@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,4 +50,14 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
            "AND a.circulatingSupply + :delta >= 0 " +
            "AND a.circulatingSupply + :delta <= a.totalSupply")
     int adjustCirculatingSupply(@Param("assetId") String assetId, @Param("delta") BigDecimal delta);
+
+    /**
+     * Find ACTIVE bonds whose maturity date has passed (for MaturityScheduler).
+     */
+    List<Asset> findByStatusAndMaturityDateLessThanEqual(AssetStatus status, LocalDate date);
+
+    /**
+     * Find ACTIVE bonds whose next coupon date is due (for InterestPaymentScheduler).
+     */
+    List<Asset> findByStatusAndNextCouponDateLessThanEqual(AssetStatus status, LocalDate date);
 }

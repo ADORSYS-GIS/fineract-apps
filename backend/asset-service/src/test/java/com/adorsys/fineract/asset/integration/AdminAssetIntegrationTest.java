@@ -139,7 +139,7 @@ class AdminAssetIntegrationTest {
     @Order(8)
     void updateAsset_partialUpdate_returns200() throws Exception {
         UpdateAssetRequest update = new UpdateAssetRequest(
-                "Updated Test Asset", null, null, null, null, null);
+                "Updated Test Asset", null, null, null, null, null, null, null, null);
 
         mockMvc.perform(put("/api/admin/assets/asset-001")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER")))

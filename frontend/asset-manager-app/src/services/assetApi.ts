@@ -89,6 +89,13 @@ export interface AssetResponse {
 	change24hPercent: number;
 	availableSupply: number;
 	totalSupply: number;
+	// Bond fields (null for non-bond assets)
+	issuer?: string;
+	isinCode?: string;
+	maturityDate?: string;
+	interestRate?: number;
+	residualDays?: number;
+	offerExpired?: boolean;
 }
 
 /** Full asset detail with Fineract IDs (matches backend AssetDetailResponse). */
@@ -121,6 +128,16 @@ export interface AssetDetailResponse {
 	fineractProductId?: number;
 	createdAt: string;
 	updatedAt?: string;
+	// Bond fields (null for non-bond assets)
+	issuer?: string;
+	isinCode?: string;
+	maturityDate?: string;
+	interestRate?: number;
+	couponFrequencyMonths?: number;
+	nextCouponDate?: string;
+	validityDate?: string;
+	residualDays?: number;
+	offerExpired?: boolean;
 }
 
 export interface CreateAssetRequest {
@@ -137,6 +154,14 @@ export interface CreateAssetRequest {
 	decimalPlaces: number;
 	treasuryClientId: number;
 	expectedLaunchDate?: string;
+	// Bond fields (required when category is BONDS)
+	issuer?: string;
+	isinCode?: string;
+	maturityDate?: string;
+	interestRate?: number;
+	couponFrequencyMonths?: number;
+	nextCouponDate?: string;
+	validityDate?: string;
 }
 
 export interface UpdateAssetRequest {
@@ -146,6 +171,26 @@ export interface UpdateAssetRequest {
 	category?: string;
 	tradingFeePercent?: number;
 	spreadPercent?: number;
+	// Bond-specific updatable fields
+	interestRate?: number;
+	maturityDate?: string;
+	validityDate?: string;
+}
+
+/** Coupon payment audit record (matches backend CouponPaymentResponse). */
+export interface CouponPaymentResponse {
+	id: number;
+	userId: number;
+	units: number;
+	faceValue: number;
+	annualRate: number;
+	periodMonths: number;
+	xafAmount: number;
+	fineractTransferId?: number;
+	status: string;
+	failureReason?: string;
+	paidAt: string;
+	couponDate: string;
 }
 
 export interface SetPriceRequest {
@@ -222,6 +267,15 @@ export const assetApi = {
 			"/api/admin/assets/inventory",
 			{ params },
 		),
+	getCouponHistory: (
+		assetId: string,
+		params?: { page?: number; size?: number },
+	) =>
+		assetClient.get<{
+			content: CouponPaymentResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>(`/api/admin/assets/${assetId}/coupons`, { params }),
 
 	// Prices
 	getPrice: (assetId: string) => assetClient.get(`/api/prices/${assetId}`),

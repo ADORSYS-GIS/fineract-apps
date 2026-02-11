@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -91,6 +92,12 @@ public class TradingService {
                 .orElseThrow(() -> new AssetException("Asset not found: " + request.assetId()));
         if (asset.getStatus() != AssetStatus.ACTIVE) {
             throw new TradingHaltedException(request.assetId());
+        }
+
+        // 3b. Validity date check — block BUY if offer has expired (holders can still SELL)
+        if (asset.getValidityDate() != null && !asset.getValidityDate().isAfter(LocalDate.now())) {
+            assetMetrics.incrementBondValidityExpiredRejections();
+            throw new TradingException("Offer validity has expired for this asset", "OFFER_EXPIRED");
         }
 
         // 4. Get execution price (current price + spread for buy side, if spread enabled)
@@ -553,6 +560,13 @@ public class TradingService {
         }
         if (asset.getStatus() != AssetStatus.ACTIVE) {
             blockers.add("TRADING_HALTED");
+        }
+
+        // 2b. Validity date check — BUY only
+        if (request.side() == TradeSide.BUY
+                && asset.getValidityDate() != null
+                && !asset.getValidityDate().isAfter(LocalDate.now())) {
+            blockers.add("OFFER_EXPIRED");
         }
 
         // 3. Price calculation (same logic as executeBuy/executeSell)

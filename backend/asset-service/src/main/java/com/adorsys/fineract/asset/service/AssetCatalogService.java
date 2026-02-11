@@ -84,7 +84,12 @@ public class AssetCatalogService {
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
                 available, asset.getTradingFeePercent(), asset.getSpreadPercent(),
                 asset.getDecimalPlaces(), asset.getExpectedLaunchDate(),
-                asset.getCreatedAt(), asset.getUpdatedAt()
+                asset.getCreatedAt(), asset.getUpdatedAt(),
+                asset.getIssuer(), asset.getIsinCode(), asset.getMaturityDate(),
+                asset.getInterestRate(), asset.getCouponFrequencyMonths(),
+                asset.getNextCouponDate(), asset.getValidityDate(),
+                computeResidualDays(asset.getMaturityDate()),
+                isOfferExpired(asset.getValidityDate())
         );
     }
 
@@ -115,7 +120,12 @@ public class AssetCatalogService {
                 asset.getDecimalPlaces(), asset.getExpectedLaunchDate(),
                 asset.getTreasuryClientId(), asset.getTreasuryAssetAccountId(),
                 asset.getTreasuryCashAccountId(), asset.getFineractProductId(),
-                asset.getCreatedAt(), asset.getUpdatedAt()
+                asset.getCreatedAt(), asset.getUpdatedAt(),
+                asset.getIssuer(), asset.getIsinCode(), asset.getMaturityDate(),
+                asset.getInterestRate(), asset.getCouponFrequencyMonths(),
+                asset.getNextCouponDate(), asset.getValidityDate(),
+                computeResidualDays(asset.getMaturityDate()),
+                isOfferExpired(asset.getValidityDate())
         );
     }
 
@@ -167,7 +177,34 @@ public class AssetCatalogService {
         return new AssetResponse(
                 a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
                 a.getCategory(), a.getStatus(), currentPrice, change,
-                available, a.getTotalSupply()
+                available, a.getTotalSupply(),
+                a.getIssuer(), a.getIsinCode(), a.getMaturityDate(),
+                a.getInterestRate(),
+                computeResidualDays(a.getMaturityDate()),
+                isOfferExpired(a.getValidityDate())
         );
+    }
+
+    /**
+     * Computes the number of days remaining until the given maturity date.
+     *
+     * @param maturityDate the bond's maturity date, or null for non-bond assets
+     * @return days until maturity, or null if no maturity date is set
+     */
+    private Long computeResidualDays(LocalDate maturityDate) {
+        if (maturityDate == null) return null;
+        long days = ChronoUnit.DAYS.between(LocalDate.now(), maturityDate);
+        return Math.max(0, days);
+    }
+
+    /**
+     * Checks whether the offer validity period has expired.
+     *
+     * @param validityDate the offer deadline, or null if no deadline is set
+     * @return true if expired, false if still valid, null if no validityDate
+     */
+    private Boolean isOfferExpired(LocalDate validityDate) {
+        if (validityDate == null) return null;
+        return !validityDate.isAfter(LocalDate.now());
     }
 }
