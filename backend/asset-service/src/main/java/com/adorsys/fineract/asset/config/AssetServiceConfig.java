@@ -5,6 +5,7 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.math.BigDecimal;
 import java.time.ZoneId;
 
 /**
@@ -33,6 +34,8 @@ public class AssetServiceConfig {
     @Data
     public static class Pricing {
         private String snapshotCron = "0 0 * * * *";
+        /** Max price change percent before a warning is logged. Null to disable. */
+        private BigDecimal maxChangePercent = new BigDecimal("50");
     }
 
     @Data

@@ -232,6 +232,7 @@ class TradingServiceTest {
                 .id("existing-order-id")
                 .idempotencyKey(IDEMPOTENCY_KEY)
                 .userId(USER_ID)
+                .userExternalId(EXTERNAL_ID)
                 .assetId(ASSET_ID)
                 .side(TradeSide.BUY)
                 .units(new BigDecimal("5"))
@@ -245,6 +246,7 @@ class TradingServiceTest {
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
                 .thenReturn(Optional.of(existingOrder));
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
 
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("5"));
 
@@ -258,6 +260,80 @@ class TradingServiceTest {
         assertEquals(TradeSide.BUY, response.side());
         assertEquals(new BigDecimal("5"), response.units());
         assertEquals(new BigDecimal("101"), response.pricePerUnit());
+
+        // Verify no further processing happened
+        verifyNoInteractions(marketHoursService);
+        verifyNoInteractions(pricingService);
+        verifyNoInteractions(fineractClient);
+        verifyNoInteractions(tradeLockService);
+    }
+
+    @Test
+    void executeBuy_idempotencyKeyBelongsToDifferentUser_throws409() {
+        // Arrange - order belongs to a different user
+        Order existingOrder = Order.builder()
+                .id("existing-order-id")
+                .idempotencyKey(IDEMPOTENCY_KEY)
+                .userId(999L)
+                .userExternalId("different-user-ext-id")
+                .assetId(ASSET_ID)
+                .side(TradeSide.BUY)
+                .units(new BigDecimal("5"))
+                .executionPrice(new BigDecimal("101"))
+                .xafAmount(new BigDecimal("510"))
+                .fee(new BigDecimal("3"))
+                .spreadAmount(new BigDecimal("5"))
+                .status(OrderStatus.FILLED)
+                .createdAt(Instant.now())
+                .build();
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
+                .thenReturn(Optional.of(existingOrder));
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+
+        BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("5"));
+
+        // Act & Assert
+        TradingException ex = assertThrows(TradingException.class,
+                () -> tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY));
+        assertEquals("IDEMPOTENCY_KEY_CONFLICT", ex.getErrorCode());
+
+        // Verify no further processing happened
+        verifyNoInteractions(marketHoursService);
+        verifyNoInteractions(pricingService);
+        verifyNoInteractions(fineractClient);
+        verifyNoInteractions(tradeLockService);
+    }
+
+    @Test
+    void executeSell_idempotencyKeyBelongsToDifferentUser_throws409() {
+        // Arrange - order belongs to a different user
+        Order existingOrder = Order.builder()
+                .id("existing-order-id")
+                .idempotencyKey(IDEMPOTENCY_KEY)
+                .userId(999L)
+                .userExternalId("different-user-ext-id")
+                .assetId(ASSET_ID)
+                .side(TradeSide.SELL)
+                .units(new BigDecimal("5"))
+                .executionPrice(new BigDecimal("99"))
+                .xafAmount(new BigDecimal("490"))
+                .fee(new BigDecimal("3"))
+                .spreadAmount(new BigDecimal("5"))
+                .status(OrderStatus.FILLED)
+                .createdAt(Instant.now())
+                .build();
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
+                .thenReturn(Optional.of(existingOrder));
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+
+        SellRequest request = new SellRequest(ASSET_ID, new BigDecimal("5"));
+
+        // Act & Assert
+        TradingException ex = assertThrows(TradingException.class,
+                () -> tradingService.executeSell(request, jwt, IDEMPOTENCY_KEY));
+        assertEquals("IDEMPOTENCY_KEY_CONFLICT", ex.getErrorCode());
 
         // Verify no further processing happened
         verifyNoInteractions(marketHoursService);

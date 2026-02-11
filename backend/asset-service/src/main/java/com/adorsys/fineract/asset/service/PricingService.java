@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.entity.PriceHistory;
@@ -34,6 +35,7 @@ public class PricingService {
     private final PriceHistoryRepository priceHistoryRepository;
     private final AssetRepository assetRepository;
     private final RedisTemplate<String, String> redisTemplate;
+    private final AssetServiceConfig config;
 
     private static final String PRICE_CACHE_PREFIX = "asset:price:";
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
@@ -139,6 +141,13 @@ public class PricingService {
                     .divide(oldPrice, 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
             price.setChange24hPercent(change);
+
+            BigDecimal maxChangePercent = config.getPricing().getMaxChangePercent();
+            if (maxChangePercent != null && change.abs().compareTo(maxChangePercent) > 0) {
+                log.warn("Large price change detected for asset {}: {}% (threshold: {}%). "
+                        + "Old price: {}, New price: {}",
+                        assetId, change, maxChangePercent, oldPrice, request.price());
+            }
         }
 
         // Update OHLC

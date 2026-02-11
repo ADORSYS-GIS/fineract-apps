@@ -73,9 +73,9 @@ public class Order {
     @Column(name = "spread_amount", precision = 20, scale = 0)
     private BigDecimal spreadAmount;
 
-    /** Current order status: PENDING, EXECUTING, FILLED, FAILED, or REJECTED. Defaults to PENDING. */
+    /** Current order status. Defaults to PENDING. */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 25)
     private OrderStatus status;
 
     /** Human-readable reason if the order FAILED or was REJECTED. Null for successful orders. */

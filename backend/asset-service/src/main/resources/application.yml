@@ -82,6 +82,7 @@ asset-service:
     weekend-trading-enabled: false
   pricing:
     snapshot-cron: "0 0 * * * *"
+    max-change-percent: 50
   orders:
     stale-cleanup-minutes: 30
   trade-lock:

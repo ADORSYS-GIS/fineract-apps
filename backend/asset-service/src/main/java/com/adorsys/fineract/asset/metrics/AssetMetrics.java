@@ -15,6 +15,7 @@ public class AssetMetrics {
     private final Counter sellCounter;
     private final Counter tradeFailureCounter;
     private final Counter tradeLockFailureCounter;
+    private final Counter reconciliationCounter;
     private final Timer buyTimer;
     private final Timer sellTimer;
 
@@ -35,6 +36,10 @@ public class AssetMetrics {
                 .description("Number of trade lock acquisition failures")
                 .register(registry);
 
+        reconciliationCounter = Counter.builder("asset.orders.reconciliation_needed")
+                .description("Orders requiring manual reconciliation")
+                .register(registry);
+
         buyTimer = Timer.builder("asset.trades.buy.duration")
                 .description("Duration of buy trade execution")
                 .register(registry);
@@ -48,6 +53,7 @@ public class AssetMetrics {
     public void recordSell() { sellCounter.increment(); }
     public void recordTradeFailure() { tradeFailureCounter.increment(); }
     public void recordTradeLockFailure() { tradeLockFailureCounter.increment(); }
+    public void recordReconciliationNeeded() { reconciliationCounter.increment(); }
     public Timer getBuyTimer() { return buyTimer; }
     public Timer getSellTimer() { return sellTimer; }
 }

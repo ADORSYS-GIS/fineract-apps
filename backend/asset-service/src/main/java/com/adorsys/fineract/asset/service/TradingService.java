@@ -70,10 +70,14 @@ public class TradingService {
      */
     @Transactional(timeout = 30)
     public TradeResponse executeBuy(BuyRequest request, Jwt jwt, String idempotencyKey) {
-        // 1. Idempotency check
+        // 1. Idempotency check — verify ownership to prevent privilege escalation
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOrder.isPresent()) {
             Order o = existingOrder.get();
+            String requestingExternalId = JwtUtils.extractExternalId(jwt);
+            if (!o.getUserExternalId().equals(requestingExternalId)) {
+                throw new TradingException("Idempotency key already used", "IDEMPOTENCY_KEY_CONFLICT");
+            }
             log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
             return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
                     o.getExecutionPrice(), o.getXafAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
@@ -299,10 +303,14 @@ public class TradingService {
      */
     @Transactional(timeout = 30)
     public TradeResponse executeSell(SellRequest request, Jwt jwt, String idempotencyKey) {
-        // 1. Idempotency check
+        // 1. Idempotency check — verify ownership to prevent privilege escalation
         var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOrder.isPresent()) {
             Order o = existingOrder.get();
+            String requestingExternalId = JwtUtils.extractExternalId(jwt);
+            if (!o.getUserExternalId().equals(requestingExternalId)) {
+                throw new TradingException("Idempotency key already used", "IDEMPOTENCY_KEY_CONFLICT");
+            }
             log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
             return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
                     o.getExecutionPrice(), o.getXafAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());

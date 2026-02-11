@@ -61,7 +61,7 @@ public class AssetProvisioningService {
         try {
             // Step 1: Auto-derive treasury XAF cash account
             List<Map<String, Object>> accounts = fineractClient.getClientSavingsAccounts(request.treasuryClientId());
-            treasuryCashAccountId = accounts.stream()
+            List<Long> matchingXafAccounts = accounts.stream()
                     .filter(a -> {
                         Map<String, Object> currency = (Map<String, Object>) a.get("currency");
                         Map<String, Object> status = (Map<String, Object>) a.get("status");
@@ -69,7 +69,12 @@ public class AssetProvisioningService {
                                 && status != null && Boolean.TRUE.equals(status.get("active"));
                     })
                     .map(a -> ((Number) a.get("id")).longValue())
-                    .findFirst()
+                    .toList();
+            if (matchingXafAccounts.size() > 1) {
+                log.warn("Multiple active XAF savings accounts found for treasury client {}: {}. Using first: {}",
+                        request.treasuryClientId(), matchingXafAccounts, matchingXafAccounts.get(0));
+            }
+            treasuryCashAccountId = matchingXafAccounts.stream().findFirst()
                     .orElseThrow(() -> new AssetException(
                             "No active XAF savings account found for company (client ID: " + request.treasuryClientId()
                             + "). Please create and approve a XAF savings account for this company in the Account Manager before creating an asset."));
