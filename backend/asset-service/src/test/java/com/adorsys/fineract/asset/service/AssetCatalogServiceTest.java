@@ -125,7 +125,7 @@ class AssetCatalogServiceTest {
         Asset asset2 = buildAsset("a2", "BBB", AssetStatus.PENDING);
         Page<Asset> assetPage = new PageImpl<>(List.of(asset1, asset2), pageable, 2);
 
-        when(assetRepository.findAll(pageable)).thenReturn(assetPage);
+        when(assetRepository.findAll(any(Pageable.class))).thenReturn(assetPage);
         when(assetPriceRepository.findAllByAssetIdIn(List.of("a1", "a2")))
                 .thenReturn(List.of(buildAssetPrice("a1", new BigDecimal("100"))));
 
@@ -147,7 +147,7 @@ class AssetCatalogServiceTest {
         assertEquals("a2", second.id());
         assertEquals(0, BigDecimal.ZERO.compareTo(second.currentPrice()));
 
-        verify(assetRepository).findAll(pageable);
+        verify(assetRepository).findAll(any(Pageable.class));
     }
 
     // -------------------------------------------------------------------------
@@ -161,7 +161,7 @@ class AssetCatalogServiceTest {
         Asset activeAsset = buildAsset("a1", "ACT", AssetStatus.ACTIVE);
         Page<Asset> assetPage = new PageImpl<>(List.of(activeAsset), pageable, 1);
 
-        when(assetRepository.findByStatus(AssetStatus.ACTIVE, pageable)).thenReturn(assetPage);
+        when(assetRepository.findByStatus(eq(AssetStatus.ACTIVE), any(Pageable.class))).thenReturn(assetPage);
         when(assetPriceRepository.findAllByAssetIdIn(List.of("a1")))
                 .thenReturn(Collections.emptyList());
 
@@ -175,7 +175,7 @@ class AssetCatalogServiceTest {
         assertEquals(AssetStatus.ACTIVE, result.getContent().get(0).status());
 
         // Verify the correct repository method was called (status = ACTIVE)
-        verify(assetRepository).findByStatus(AssetStatus.ACTIVE, pageable);
+        verify(assetRepository).findByStatus(eq(AssetStatus.ACTIVE), any(Pageable.class));
         verify(assetRepository, never()).findAll(any(Pageable.class));
     }
 }

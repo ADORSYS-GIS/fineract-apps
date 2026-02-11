@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 /**
  * Enforces market trading hours: 8:00 AM - 8:00 PM WAT (Africa/Lagos).
@@ -21,7 +22,7 @@ public class MarketHoursService {
 
     private final AssetServiceConfig config;
 
-    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("h:mm a");
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
 
     /**
      * Assert the market is currently open. Throws MarketClosedException if not.

@@ -21,6 +21,8 @@ public record TradeResponse(
     BigDecimal totalAmount,
     /** Trading fee charged, in XAF. */
     BigDecimal fee,
+    /** Spread amount for this trade, in XAF. Zero if spread is disabled. */
+    BigDecimal spreadAmount,
     /** Realized P&L from this trade, in XAF. Only present for SELL trades: (sellPrice - avgPurchasePrice) × units. Null for BUY trades. */
     BigDecimal realizedPnl,
     /** Timestamp when the trade was executed. */

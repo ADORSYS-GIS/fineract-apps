@@ -59,6 +59,10 @@ public class TradeLog {
     @Column(nullable = false, precision = 20, scale = 0)
     private BigDecimal fee;
 
+    /** Spread amount for this trade, in XAF. Zero if spread is disabled. */
+    @Column(name = "spread_amount", nullable = false, precision = 20, scale = 0)
+    private BigDecimal spreadAmount;
+
     /** Realized profit/loss from this trade, in XAF. Only set for SELL trades: (sellPrice - avgPurchasePrice) × units. Null for BUY trades. */
     @Column(name = "realized_pnl", precision = 20, scale = 0)
     private BigDecimal realizedPnl;
@@ -79,5 +83,6 @@ public class TradeLog {
     protected void onCreate() {
         if (executedAt == null) executedAt = Instant.now();
         if (fee == null) fee = BigDecimal.ZERO;
+        if (spreadAmount == null) spreadAmount = BigDecimal.ZERO;
     }
 }

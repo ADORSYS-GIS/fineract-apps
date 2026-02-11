@@ -69,6 +69,10 @@ public class Order {
     @Column(precision = 20, scale = 0)
     private BigDecimal fee;
 
+    /** Spread amount for this order, in XAF. Zero if spread is disabled. */
+    @Column(name = "spread_amount", precision = 20, scale = 0)
+    private BigDecimal spreadAmount;
+
     /** Current order status: PENDING, EXECUTING, FILLED, FAILED, or REJECTED. Defaults to PENDING. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -94,6 +98,7 @@ public class Order {
     protected void onCreate() {
         if (createdAt == null) createdAt = Instant.now();
         if (status == null) status = OrderStatus.PENDING;
+        if (spreadAmount == null) spreadAmount = BigDecimal.ZERO;
     }
 
     @PreUpdate

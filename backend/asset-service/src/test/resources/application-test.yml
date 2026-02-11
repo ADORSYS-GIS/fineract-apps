@@ -37,6 +37,7 @@ asset-service:
     weekend-trading-enabled: true
   accounting:
     fee-collection-account-id: 999
+    spread-collection-account-id: 888
   gl-accounts:
     digital-asset-inventory: 47
     customer-digital-asset-holdings: 65

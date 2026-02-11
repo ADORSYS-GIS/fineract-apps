@@ -61,7 +61,7 @@ class TradeControllerTest {
                 "order-001", "asset-001", "TST",
                 TradeSide.BUY, new BigDecimal("10"),
                 new BigDecimal("101"), new BigDecimal("1015"),
-                new BigDecimal("5"), OrderStatus.FILLED,
+                new BigDecimal("5"), new BigDecimal("10"), OrderStatus.FILLED,
                 Instant.now()
         );
         when(tradingService.getUserOrders(any(), any(), any(Pageable.class)))

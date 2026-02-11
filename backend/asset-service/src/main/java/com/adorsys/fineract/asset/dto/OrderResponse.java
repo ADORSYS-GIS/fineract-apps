@@ -23,6 +23,8 @@ public record OrderResponse(
     BigDecimal totalAmount,
     /** Trading fee charged, in XAF. */
     BigDecimal fee,
+    /** Spread amount for this order, in XAF. Zero if spread is disabled. */
+    BigDecimal spreadAmount,
     /** Final order status: PENDING, EXECUTING, FILLED, FAILED, or REJECTED. */
     OrderStatus status,
     /** Timestamp when the order was created. */

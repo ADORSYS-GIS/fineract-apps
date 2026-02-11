@@ -67,6 +67,7 @@ class TradingServiceTest {
     private static final Long TREASURY_CASH_ACCOUNT = 300L;
     private static final Long TREASURY_ASSET_ACCOUNT = 400L;
     private static final Long FEE_COLLECTION_ACCOUNT = 999L;
+    private static final Long SPREAD_COLLECTION_ACCOUNT = 888L;
     private static final String IDEMPOTENCY_KEY = "idem-key-1";
 
     private Asset activeAsset;
@@ -87,6 +88,12 @@ class TradingServiceTest {
                 .treasuryAssetAccountId(TREASURY_ASSET_ACCOUNT)
                 .fineractProductId(10)
                 .build();
+
+        // Default accounting config (spread enabled)
+        AssetServiceConfig.Accounting accounting = new AssetServiceConfig.Accounting();
+        accounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
+        accounting.setSpreadCollectionAccountId(SPREAD_COLLECTION_ACCOUNT);
+        lenient().when(assetServiceConfig.getAccounting()).thenReturn(accounting);
     }
 
     // -------------------------------------------------------------------------
@@ -106,6 +113,9 @@ class TradingServiceTest {
         BigDecimal actualCost = new BigDecimal("10").multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         // fee = 1010 * 0.005 = 5 (rounded)
         BigDecimal fee = actualCost.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        // spreadAmount = 10 * 100 * 0.01 = 10
+        BigDecimal spreadAmount = new BigDecimal("10").multiply(basePrice.multiply(spread))
+                .setScale(0, RoundingMode.HALF_UP);
         // chargedAmount = 1010 + 5 = 1015
         BigDecimal chargedAmount = actualCost.add(fee);
         // effectiveCostPerUnit = 1015 / 10 = 101.5000
@@ -126,7 +136,6 @@ class TradingServiceTest {
 
         // JWT resolution
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
-        when(jwt.getClaim("fineract_client_id")).thenReturn(USER_ID);
         when(fineractClient.getClientByExternalId(EXTERNAL_ID))
                 .thenReturn(Map.of("id", USER_ID));
         when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF"))
@@ -155,13 +164,11 @@ class TradingServiceTest {
         when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT))
                 .thenReturn(new BigDecimal("50000"));
 
-        // Fee collection account config
-        AssetServiceConfig.Accounting accounting = new AssetServiceConfig.Accounting();
-        accounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
-        when(assetServiceConfig.getAccounting()).thenReturn(accounting);
-
         // Batch transfers succeed
         when(fineractClient.executeBatchTransfers(anyList())).thenReturn(List.of());
+
+        // Circulating supply adjustment succeeds
+        when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("10"))).thenReturn(1);
 
         // Act
         TradeResponse response = tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY);
@@ -174,13 +181,14 @@ class TradingServiceTest {
         assertEquals(executionPrice, response.pricePerUnit());
         assertEquals(chargedAmount, response.totalAmount());
         assertEquals(fee, response.fee());
+        assertEquals(spreadAmount, response.spreadAmount());
         assertNull(response.realizedPnl());
 
         // Verify batch transfers were called with correct legs
         verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
         List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        // Should have 3 legs: cash, fee, asset
-        assertEquals(3, transfers.size());
+        // Should have 4 legs: cash, fee, spread, asset
+        assertEquals(4, transfers.size());
 
         // Cash leg: user XAF -> treasury XAF
         assertEquals(USER_CASH_ACCOUNT, transfers.get(0).fromAccountId());
@@ -192,10 +200,15 @@ class TradingServiceTest {
         assertEquals(FEE_COLLECTION_ACCOUNT, transfers.get(1).toAccountId());
         assertEquals(fee, transfers.get(1).amount());
 
+        // Spread leg: treasury XAF -> spread collection (internal)
+        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(2).fromAccountId());
+        assertEquals(SPREAD_COLLECTION_ACCOUNT, transfers.get(2).toAccountId());
+        assertEquals(spreadAmount, transfers.get(2).amount());
+
         // Asset leg: treasury asset -> user asset
-        assertEquals(TREASURY_ASSET_ACCOUNT, transfers.get(2).fromAccountId());
-        assertEquals(USER_ASSET_ACCOUNT, transfers.get(2).toAccountId());
-        assertEquals(new BigDecimal("10"), transfers.get(2).amount());
+        assertEquals(TREASURY_ASSET_ACCOUNT, transfers.get(3).fromAccountId());
+        assertEquals(USER_ASSET_ACCOUNT, transfers.get(3).toAccountId());
+        assertEquals(new BigDecimal("10"), transfers.get(3).amount());
 
         // Verify portfolio updated with effective cost per unit (including fee)
         verify(portfolioService).updatePositionAfterBuy(
@@ -225,6 +238,7 @@ class TradingServiceTest {
                 .executionPrice(new BigDecimal("101"))
                 .xafAmount(new BigDecimal("510"))
                 .fee(new BigDecimal("3"))
+                .spreadAmount(new BigDecimal("5"))
                 .status(OrderStatus.FILLED)
                 .createdAt(Instant.now())
                 .build();
@@ -407,12 +421,13 @@ class TradingServiceTest {
         BigDecimal grossAmount = new BigDecimal("5").multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         // fee = 495 * 0.005 = 2 (rounded)
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        // spreadAmount = 5 * 100 * 0.01 = 5
+        BigDecimal spreadAmount = new BigDecimal("5").multiply(basePrice.multiply(spread))
+                .setScale(0, RoundingMode.HALF_UP);
         // netAmount = 495 - 2 = 493
         BigDecimal netAmount = grossAmount.subtract(fee);
         // netProceedsPerUnit = 493 / 5 = 98.6000
         BigDecimal netProceedsPerUnit = netAmount.divide(new BigDecimal("5"), 4, RoundingMode.HALF_UP);
-
-        BigDecimal expectedPnl = new BigDecimal("-7.0000"); // (98.6 - 100) * 5 = -7 (approx)
 
         // Idempotency
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
@@ -449,11 +464,6 @@ class TradingServiceTest {
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
 
-        // Fee collection account config
-        AssetServiceConfig.Accounting accounting = new AssetServiceConfig.Accounting();
-        accounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
-        when(assetServiceConfig.getAccounting()).thenReturn(accounting);
-
         // Batch transfers
         when(fineractClient.executeBatchTransfers(anyList())).thenReturn(List.of());
 
@@ -462,6 +472,9 @@ class TradingServiceTest {
         when(portfolioService.updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID),
                 eq(new BigDecimal("5")), eq(netProceedsPerUnit)))
                 .thenReturn(realizedPnl);
+
+        // Circulating supply adjustment succeeds
+        when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("5").negate())).thenReturn(1);
 
         // Act
         TradeResponse response = tradingService.executeSell(request, jwt, IDEMPOTENCY_KEY);
@@ -474,27 +487,33 @@ class TradingServiceTest {
         assertEquals(executionPrice, response.pricePerUnit());
         assertEquals(netAmount, response.totalAmount());
         assertEquals(fee, response.fee());
+        assertEquals(spreadAmount, response.spreadAmount());
         assertEquals(realizedPnl, response.realizedPnl());
 
         // Verify batch transfers
         verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
         List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        assertEquals(3, transfers.size());
+        assertEquals(4, transfers.size());
 
-        // Asset leg: user asset -> treasury asset
+        // Leg 1: Asset return: user asset -> treasury asset
         assertEquals(USER_ASSET_ACCOUNT, transfers.get(0).fromAccountId());
         assertEquals(TREASURY_ASSET_ACCOUNT, transfers.get(0).toAccountId());
         assertEquals(new BigDecimal("5"), transfers.get(0).amount());
 
-        // Cash leg: treasury XAF -> user XAF (net proceeds)
+        // Leg 2: Cash credit: treasury XAF -> user XAF (gross proceeds)
         assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(1).fromAccountId());
         assertEquals(USER_CASH_ACCOUNT, transfers.get(1).toAccountId());
-        assertEquals(netAmount, transfers.get(1).amount());
+        assertEquals(grossAmount, transfers.get(1).amount());
 
-        // Fee leg: treasury XAF -> fee collection
-        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(2).fromAccountId());
+        // Leg 3: Fee debit: user XAF -> fee collection (visible on user statement)
+        assertEquals(USER_CASH_ACCOUNT, transfers.get(2).fromAccountId());
         assertEquals(FEE_COLLECTION_ACCOUNT, transfers.get(2).toAccountId());
         assertEquals(fee, transfers.get(2).amount());
+
+        // Leg 4: Spread sweep: treasury XAF -> spread collection (internal)
+        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(3).fromAccountId());
+        assertEquals(SPREAD_COLLECTION_ACCOUNT, transfers.get(3).toAccountId());
+        assertEquals(spreadAmount, transfers.get(3).amount());
 
         // Verify circulating supply decreased
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, new BigDecimal("5").negate());
@@ -504,6 +523,117 @@ class TradingServiceTest {
 
         // Verify lock released
         verify(tradeLockService).releaseTradeLock(USER_ID, ASSET_ID, "lock-val");
+    }
+
+    // -------------------------------------------------------------------------
+    // Spread-disabled tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void executeBuy_spreadDisabled_noSpreadLeg() {
+        // Arrange: spread collection account not configured → spread disabled
+        AssetServiceConfig.Accounting noSpreadAccounting = new AssetServiceConfig.Accounting();
+        noSpreadAccounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
+        noSpreadAccounting.setSpreadCollectionAccountId(null);
+        when(assetServiceConfig.getAccounting()).thenReturn(noSpreadAccounting);
+
+        BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
+        BigDecimal basePrice = new BigDecimal("100");
+        // When spread disabled: executionPrice = basePrice (no spread markup)
+        // actualCost = 10 * 100 = 1000
+        // fee = 1000 * 0.005 = 5
+        // chargedAmount = 1000 + 5 = 1005
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        doNothing().when(marketHoursService).assertMarketOpen();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(pricingService.getCurrentPrice(ASSET_ID))
+                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null));
+
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+        when(userPositionRepository.findByUserIdAndAssetId(USER_ID, ASSET_ID))
+                .thenReturn(Optional.of(UserPosition.builder()
+                        .userId(USER_ID).assetId(ASSET_ID)
+                        .fineractSavingsAccountId(USER_ASSET_ACCOUNT)
+                        .totalUnits(BigDecimal.ZERO).avgPurchasePrice(BigDecimal.ZERO)
+                        .totalCostBasis(BigDecimal.ZERO).realizedPnl(BigDecimal.ZERO)
+                        .lastTradeAt(Instant.now()).build()));
+
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
+        when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT)).thenReturn(new BigDecimal("50000"));
+        when(fineractClient.executeBatchTransfers(anyList())).thenReturn(List.of());
+        when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("10"))).thenReturn(1);
+
+        // Act
+        TradeResponse response = tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY);
+
+        // Assert: execution price = base price (no spread)
+        assertEquals(basePrice, response.pricePerUnit());
+        assertEquals(BigDecimal.ZERO, response.spreadAmount());
+
+        // Assert: only 3 legs (no spread leg)
+        verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
+        List<BatchTransferRequest> transfers = transfersCaptor.getValue();
+        assertEquals(3, transfers.size()); // cash, fee, asset — no spread
+    }
+
+    @Test
+    void executeSell_spreadDisabled_noSpreadLeg() {
+        // Arrange: spread disabled
+        AssetServiceConfig.Accounting noSpreadAccounting = new AssetServiceConfig.Accounting();
+        noSpreadAccounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
+        noSpreadAccounting.setSpreadCollectionAccountId(null);
+        when(assetServiceConfig.getAccounting()).thenReturn(noSpreadAccounting);
+
+        SellRequest request = new SellRequest(ASSET_ID, new BigDecimal("5"));
+        BigDecimal basePrice = new BigDecimal("100");
+        // When spread disabled: executionPrice = basePrice (no spread deduction)
+        // grossAmount = 5 * 100 = 500
+        // fee = 500 * 0.005 = 3 (rounded)
+        // netAmount = 500 - 3 = 497
+        BigDecimal grossAmount = new BigDecimal("500");
+        BigDecimal fee = new BigDecimal("3");
+        BigDecimal netAmount = new BigDecimal("497");
+        BigDecimal netProceedsPerUnit = netAmount.divide(new BigDecimal("5"), 4, RoundingMode.HALF_UP);
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        doNothing().when(marketHoursService).assertMarketOpen();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(pricingService.getCurrentPrice(ASSET_ID))
+                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null));
+
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+        when(userPositionRepository.findByUserIdAndAssetId(USER_ID, ASSET_ID))
+                .thenReturn(Optional.of(UserPosition.builder()
+                        .userId(USER_ID).assetId(ASSET_ID)
+                        .fineractSavingsAccountId(USER_ASSET_ACCOUNT)
+                        .totalUnits(new BigDecimal("20")).avgPurchasePrice(new BigDecimal("100"))
+                        .totalCostBasis(new BigDecimal("2000")).realizedPnl(BigDecimal.ZERO)
+                        .lastTradeAt(Instant.now()).build()));
+
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
+        when(fineractClient.executeBatchTransfers(anyList())).thenReturn(List.of());
+        when(portfolioService.updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID),
+                eq(new BigDecimal("5")), eq(netProceedsPerUnit))).thenReturn(BigDecimal.ZERO);
+        when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("5").negate())).thenReturn(1);
+
+        // Act
+        TradeResponse response = tradingService.executeSell(request, jwt, IDEMPOTENCY_KEY);
+
+        // Assert: execution price = base price (no spread)
+        assertEquals(basePrice, response.pricePerUnit());
+        assertEquals(BigDecimal.ZERO, response.spreadAmount());
+
+        // Assert: only 3 legs (asset, cash, fee — no spread)
+        verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
+        List<BatchTransferRequest> transfers = transfersCaptor.getValue();
+        assertEquals(3, transfers.size());
     }
 
     @Test

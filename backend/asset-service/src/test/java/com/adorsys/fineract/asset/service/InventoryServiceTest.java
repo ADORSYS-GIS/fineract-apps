@@ -74,7 +74,7 @@ class InventoryServiceTest {
         AssetPrice price2 = AssetPrice.builder()
                 .assetId("a2").currentPrice(new BigDecimal("5000")).updatedAt(Instant.now()).build();
 
-        when(assetRepository.findAll(pageable)).thenReturn(assetPage);
+        when(assetRepository.findAll(any(Pageable.class))).thenReturn(assetPage);
         when(assetPriceRepository.findAllByAssetIdIn(List.of("a1", "a2")))
                 .thenReturn(List.of(price1, price2));
 
@@ -101,7 +101,7 @@ class InventoryServiceTest {
         assertEquals(0, new BigDecimal("400").compareTo(inv2.availableSupply()));
         assertEquals(0, new BigDecimal("500000").compareTo(inv2.totalValueLocked()));
 
-        verify(assetRepository).findAll(pageable);
+        verify(assetRepository).findAll(any(Pageable.class));
         verify(assetPriceRepository).findAllByAssetIdIn(List.of("a1", "a2"));
     }
 
@@ -111,7 +111,7 @@ class InventoryServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Asset> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
 
-        when(assetRepository.findAll(pageable)).thenReturn(emptyPage);
+        when(assetRepository.findAll(any(Pageable.class))).thenReturn(emptyPage);
         when(assetPriceRepository.findAllByAssetIdIn(Collections.emptyList()))
                 .thenReturn(Collections.emptyList());
 
@@ -123,6 +123,6 @@ class InventoryServiceTest {
         assertEquals(0, result.getTotalElements());
         assertTrue(result.getContent().isEmpty());
 
-        verify(assetRepository).findAll(pageable);
+        verify(assetRepository).findAll(any(Pageable.class));
     }
 }

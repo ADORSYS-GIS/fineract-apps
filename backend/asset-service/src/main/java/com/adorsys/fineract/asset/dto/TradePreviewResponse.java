@@ -26,6 +26,8 @@ public record TradePreviewResponse(
     /** grossAmount x feePercent */
     BigDecimal fee,
     BigDecimal feePercent,
+    /** Spread amount in XAF. Zero if spread is disabled. */
+    BigDecimal spreadAmount,
     /** BUY: grossAmount + fee (total charged). SELL: grossAmount - fee (net proceeds). */
     BigDecimal netAmount,
     /** User's available XAF balance, null if could not resolve. */

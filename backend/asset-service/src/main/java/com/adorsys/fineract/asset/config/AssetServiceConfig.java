@@ -48,6 +48,8 @@ public class AssetServiceConfig {
     @Data
     public static class Accounting {
         private Long feeCollectionAccountId;
+        /** Optional. If set, spread is enabled and swept to this account. If null, spread is disabled. */
+        private Long spreadCollectionAccountId;
     }
 
     @Data

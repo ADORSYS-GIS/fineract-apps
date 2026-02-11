@@ -76,7 +76,7 @@ public class TradingService {
             Order o = existingOrder.get();
             log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
             return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
-                    o.getExecutionPrice(), o.getXafAmount(), o.getFee(), null, o.getCreatedAt());
+                    o.getExecutionPrice(), o.getXafAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
         }
 
         // 2. Market hours check
@@ -89,17 +89,20 @@ public class TradingService {
             throw new TradingHaltedException(request.assetId());
         }
 
-        // 4. Get execution price (current price + spread for buy side)
+        // 4. Get execution price (current price + spread for buy side, if spread enabled)
         CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
         BigDecimal basePrice = priceData.currentPrice();
         BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
+        BigDecimal effectiveSpread = isSpreadEnabled() ? spread : BigDecimal.ZERO;
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
-        BigDecimal executionPrice = basePrice.add(basePrice.multiply(spread));
+        BigDecimal executionPrice = basePrice.add(basePrice.multiply(effectiveSpread));
 
         // 5. Calculate cost
         BigDecimal units = request.units();
         BigDecimal actualCost = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = actualCost.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal spreadAmount = units.multiply(basePrice.multiply(effectiveSpread))
+                .setScale(0, RoundingMode.HALF_UP);
         BigDecimal chargedAmount = actualCost.add(fee);
 
         // 6. Verify sufficient inventory
@@ -137,6 +140,7 @@ public class TradingService {
                 .units(units)
                 .executionPrice(executionPrice)
                 .fee(fee)
+                .spreadAmount(spreadAmount)
                 .status(OrderStatus.PENDING)
                 .build();
         orderRepository.save(order);
@@ -171,15 +175,18 @@ public class TradingService {
             // 12b. Re-fetch authoritative price inside the lock to avoid stale pricing
             CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(request.assetId());
             BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
-            executionPrice = lockedBasePrice.add(lockedBasePrice.multiply(spread));
+            executionPrice = lockedBasePrice.add(lockedBasePrice.multiply(effectiveSpread));
             actualCost = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
             fee = actualCost.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+            spreadAmount = units.multiply(lockedBasePrice.multiply(effectiveSpread))
+                    .setScale(0, RoundingMode.HALF_UP);
             chargedAmount = actualCost.add(fee);
 
             // Update order with authoritative locked values
             order.setExecutionPrice(executionPrice);
             order.setXafAmount(chargedAmount);
             order.setFee(fee);
+            order.setSpreadAmount(spreadAmount);
             orderRepository.save(order);
 
             // 12b2. Verify user has sufficient XAF balance for the purchase
@@ -211,6 +218,7 @@ public class TradingService {
                     .pricePerUnit(executionPrice)
                     .totalAmount(chargedAmount)
                     .fee(fee)
+                    .spreadAmount(spreadAmount)
                     .build();
             tradeLogRepository.save(tradeLog);
 
@@ -242,6 +250,12 @@ public class TradingService {
                         userCashAccountId, feeCollectionAccountId,
                         fee, "Trading fee: BUY " + lockedAsset.getSymbol()));
             }
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
+                transfers.add(new BatchTransferRequest(
+                        lockedAsset.getTreasuryCashAccountId(),
+                        assetServiceConfig.getAccounting().getSpreadCollectionAccountId(),
+                        spreadAmount, "Spread: BUY " + lockedAsset.getSymbol()));
+            }
             transfers.add(new BatchTransferRequest(
                     lockedAsset.getTreasuryAssetAccountId(), userAssetAccountId,
                     units, "Asset delivery: " + lockedAsset.getSymbol()));
@@ -265,7 +279,7 @@ public class TradingService {
 
             assetMetrics.recordBuy();
             return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.BUY,
-                    units, executionPrice, chargedAmount, fee, null, Instant.now());
+                    units, executionPrice, chargedAmount, fee, spreadAmount, null, Instant.now());
 
         } catch (TradingException e) {
             assetMetrics.recordTradeFailure();
@@ -291,7 +305,7 @@ public class TradingService {
             Order o = existingOrder.get();
             log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
             return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
-                    o.getExecutionPrice(), o.getXafAmount(), o.getFee(), null, o.getCreatedAt());
+                    o.getExecutionPrice(), o.getXafAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
         }
 
         // 2. Market hours check
@@ -304,17 +318,20 @@ public class TradingService {
             throw new TradingHaltedException(request.assetId());
         }
 
-        // 4. Get execution price (current price - spread for sell side)
+        // 4. Get execution price (current price - spread for sell side, if spread enabled)
         CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
         BigDecimal basePrice = priceData.currentPrice();
         BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
+        BigDecimal effectiveSpread = isSpreadEnabled() ? spread : BigDecimal.ZERO;
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
-        BigDecimal executionPrice = basePrice.subtract(basePrice.multiply(spread));
+        BigDecimal executionPrice = basePrice.subtract(basePrice.multiply(effectiveSpread));
 
         // 5. Calculate XAF amount and fee
         BigDecimal units = request.units();
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal spreadAmount = units.multiply(basePrice.multiply(effectiveSpread))
+                .setScale(0, RoundingMode.HALF_UP);
         BigDecimal netAmount = grossAmount.subtract(fee);
 
         // 6. Resolve user from JWT
@@ -357,6 +374,7 @@ public class TradingService {
                 .units(units)
                 .executionPrice(executionPrice)
                 .fee(fee)
+                .spreadAmount(spreadAmount)
                 .status(OrderStatus.PENDING)
                 .build();
         orderRepository.save(order);
@@ -396,15 +414,18 @@ public class TradingService {
             // 12c. Re-fetch authoritative price inside the lock to avoid stale pricing
             CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(request.assetId());
             BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
-            executionPrice = lockedBasePrice.subtract(lockedBasePrice.multiply(spread));
+            executionPrice = lockedBasePrice.subtract(lockedBasePrice.multiply(effectiveSpread));
             grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
             fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+            spreadAmount = units.multiply(lockedBasePrice.multiply(effectiveSpread))
+                    .setScale(0, RoundingMode.HALF_UP);
             netAmount = grossAmount.subtract(fee);
 
             // Update order with authoritative locked values
             order.setExecutionPrice(executionPrice);
             order.setXafAmount(netAmount);
             order.setFee(fee);
+            order.setSpreadAmount(spreadAmount);
             orderRepository.save(order);
 
             // 12d. Validate fee collection account
@@ -430,6 +451,7 @@ public class TradingService {
                     .pricePerUnit(executionPrice)
                     .totalAmount(netAmount)
                     .fee(fee)
+                    .spreadAmount(spreadAmount)
                     .realizedPnl(realizedPnl)
                     .build();
             tradeLogRepository.save(tradeLog);
@@ -449,16 +471,26 @@ public class TradingService {
             // 12i. Execute Fineract Batch API LAST — all local DB writes are done, so if this
             // fails, @Transactional rolls back everything cleanly with no orphaned Fineract transfers.
             List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
+            // Leg 1: Return asset units to treasury
             transfers.add(new BatchTransferRequest(
                     userAssetAccountId, lockedAsset.getTreasuryAssetAccountId(),
                     units, "Asset sell: " + lockedAsset.getSymbol()));
+            // Leg 2: Pay user gross proceeds (fee deducted separately for transparency)
             transfers.add(new BatchTransferRequest(
                     lockedAsset.getTreasuryCashAccountId(), userCashAccountId,
-                    netAmount, "Asset sale proceeds: " + lockedAsset.getSymbol()));
+                    grossAmount, "Asset sale proceeds: " + lockedAsset.getSymbol()));
+            // Leg 3: Debit fee from user (visible on user's statement)
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 transfers.add(new BatchTransferRequest(
-                        lockedAsset.getTreasuryCashAccountId(), feeCollectionAccountId,
+                        userCashAccountId, feeCollectionAccountId,
                         fee, "Trading fee: SELL " + lockedAsset.getSymbol()));
+            }
+            // Leg 4: Sweep spread from treasury to spread collection account (internal)
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
+                transfers.add(new BatchTransferRequest(
+                        lockedAsset.getTreasuryCashAccountId(),
+                        assetServiceConfig.getAccounting().getSpreadCollectionAccountId(),
+                        spreadAmount, "Spread: SELL " + lockedAsset.getSymbol()));
             }
 
             try {
@@ -480,7 +512,7 @@ public class TradingService {
 
             assetMetrics.recordSell();
             return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.SELL,
-                    units, executionPrice, netAmount, fee, realizedPnl, Instant.now());
+                    units, executionPrice, netAmount, fee, spreadAmount, realizedPnl, Instant.now());
 
         } catch (TradingException e) {
             assetMetrics.recordTradeFailure();
@@ -519,18 +551,21 @@ public class TradingService {
         CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
         BigDecimal basePrice = priceData.currentPrice();
         BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
+        BigDecimal effectiveSpread = isSpreadEnabled() ? spread : BigDecimal.ZERO;
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
 
         BigDecimal executionPrice;
         if (request.side() == TradeSide.BUY) {
-            executionPrice = basePrice.add(basePrice.multiply(spread));
+            executionPrice = basePrice.add(basePrice.multiply(effectiveSpread));
         } else {
-            executionPrice = basePrice.subtract(basePrice.multiply(spread));
+            executionPrice = basePrice.subtract(basePrice.multiply(effectiveSpread));
         }
 
         BigDecimal units = request.units();
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal spreadAmount = units.multiply(basePrice.multiply(effectiveSpread))
+                .setScale(0, RoundingMode.HALF_UP);
         BigDecimal netAmount = request.side() == TradeSide.BUY
                 ? grossAmount.add(fee)
                 : grossAmount.subtract(fee);
@@ -582,7 +617,7 @@ public class TradingService {
         return new TradePreviewResponse(
                 blockers.isEmpty(), blockers,
                 asset.getId(), asset.getSymbol(), request.side(), units,
-                basePrice, executionPrice, spread, grossAmount, fee, feePercent, netAmount,
+                basePrice, executionPrice, spread, grossAmount, fee, feePercent, spreadAmount, netAmount,
                 availableBalance, availableUnits, availableSupply
         );
     }
@@ -591,7 +626,7 @@ public class TradingService {
         return new TradePreviewResponse(
                 false, List.of(blocker),
                 request.assetId(), null, request.side(), request.units(),
-                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 null, null, null
         );
     }
@@ -644,7 +679,7 @@ public class TradingService {
                     o.getId(), o.getAssetId(),
                     orderAsset != null ? orderAsset.getSymbol() : null,
                     o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                    o.getXafAmount(), o.getFee(), o.getStatus(), o.getCreatedAt()
+                    o.getXafAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt()
             );
         });
     }
@@ -664,7 +699,15 @@ public class TradingService {
                 o.getId(), o.getAssetId(),
                 orderAsset != null ? orderAsset.getSymbol() : null,
                 o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                o.getXafAmount(), o.getFee(), o.getStatus(), o.getCreatedAt()
+                o.getXafAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt()
         );
+    }
+
+    /**
+     * Check if spread is enabled (spread collection account configured).
+     */
+    private boolean isSpreadEnabled() {
+        Long id = assetServiceConfig.getAccounting().getSpreadCollectionAccountId();
+        return id != null && id > 0;
     }
 }
