@@ -44,16 +44,16 @@ fineract:
   grant-type: ${FINERACT_OAUTH_GRANT_TYPE:password}
   # OAuth credentials (used when grant-type=password)
   oauth-username: ${FINERACT_OAUTH_USERNAME:mifos}
-  oauth-password: ${FINERACT_OAUTH_PASSWORD:password}
+  oauth-password: ${FINERACT_OAUTH_PASSWORD:}
   # Basic auth settings (used when auth-type=basic)
   username: ${FINERACT_USERNAME:mifos}
-  password: ${FINERACT_PASSWORD:password}
+  password: ${FINERACT_PASSWORD:}
   # Fineract defaults
   default-office-id: ${DEFAULT_OFFICE_ID:1}
   default-savings-product-id: ${DEFAULT_SAVINGS_PRODUCT_ID:1}
   default-gender-id: ${DEFAULT_GENDER_ID:2}
   # Whether to verify SSL certificate from Fineract (for development with self-signed certs)
-  verifySsl: ${FINERACT_VERIFY_SSL:false}
+  verifySsl: ${FINERACT_VERIFY_SSL:true}
 
 # Actuator Endpoints
 management:

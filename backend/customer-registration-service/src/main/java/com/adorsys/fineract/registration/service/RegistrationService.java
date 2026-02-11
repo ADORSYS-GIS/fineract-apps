@@ -9,10 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -49,6 +47,11 @@ public class RegistrationService {
             // Step 1: Create Fineract client
             fineractClientId = fineractService.createClient(request, externalId);
             log.info("Created Fineract client: {}", fineractClientId);
+
+            // Step 1b: Store address if provided
+            if (request.getAddress() != null) {
+                fineractService.createClientAddress(fineractClientId, request.getAddress());
+            }
 
             // Step 2: Create Keycloak user
             keycloakUserId = keycloakService.createUser(request, externalId);
@@ -165,15 +168,45 @@ public class RegistrationService {
         String kycStatus = getAttributeAsString(attributes, "kyc_status", "pending");
 
         // Define required documents
-        List<String> requiredDocuments = List.of("ID_FRONT", "ID_BACK", "PROOF_OF_ADDRESS", "SELFIE_WITH_ID");
+        List<String> requiredDocuments = List.of("id_front", "id_back", "selfie_with_id");
 
-        // TODO: Get actual document status from Fineract document API
-        List<KycStatusResponse.DocumentStatus> documents = List.of();
-        List<String> missingDocuments = requiredDocuments;
+        // Get actual document status from Fineract
+        List<Map<String, Object>> clientDocuments = List.of();
+        Map<String, Object> client = fineractService.getClientByExternalId(externalId);
+        if (client != null && client.containsKey("id")) {
+            Long clientId = ((Number) client.get("id")).longValue();
+            clientDocuments = fineractService.getClientDocuments(clientId);
+        }
+
+        List<KycStatusResponse.DocumentStatus> documents = clientDocuments.stream()
+                .map(doc -> KycStatusResponse.DocumentStatus.builder()
+                        .documentType(String.valueOf(doc.getOrDefault("name", "")))
+                        .status("uploaded")
+                        .build())
+                .toList();
+
+        // Determine missing documents by checking name prefixes
+        Set<String> uploadedTypes = new java.util.HashSet<>();
+        for (Map<String, Object> doc : clientDocuments) {
+            String name = String.valueOf(doc.getOrDefault("name", ""));
+            if (name.startsWith("KYC_ID_FRONT_")) uploadedTypes.add("id_front");
+            if (name.startsWith("KYC_ID_BACK_")) uploadedTypes.add("id_back");
+            if (name.startsWith("KYC_SELFIE_")) uploadedTypes.add("selfie_with_id");
+        }
+        List<String> missingDocuments = requiredDocuments.stream()
+                .filter(d -> !uploadedTypes.contains(d))
+                .toList();
+
+        // Include info request message when status is more_info_required
+        String infoRequestMessage = null;
+        if ("more_info_required".equals(kycStatus)) {
+            infoRequestMessage = getAttributeAsString(attributes, "kyc_info_request", null);
+        }
 
         return KycStatusResponse.builder()
                 .kycTier(kycTier)
                 .kycStatus(kycStatus)
+                .infoRequestMessage(infoRequestMessage)
                 .documents(documents)
                 .requiredDocuments(requiredDocuments)
                 .missingDocuments(missingDocuments)
@@ -204,16 +237,27 @@ public class RegistrationService {
 
     /**
      * Rollback any created resources on failure.
+     * Logs at ERROR level if rollback itself fails so orphaned resources can be identified.
      */
     private void rollback(Long fineractClientId, String keycloakUserId) {
         log.info("Rolling back registration...");
 
         if (keycloakUserId != null) {
-            keycloakService.deleteUser(keycloakUserId);
+            try {
+                keycloakService.deleteUser(keycloakUserId);
+            } catch (Exception e) {
+                log.error("ROLLBACK FAILURE: Failed to delete Keycloak user {}. Orphaned resource requires manual cleanup.", keycloakUserId, e);
+                registrationMetrics.incrementRollbackFailure("keycloak");
+            }
         }
 
         if (fineractClientId != null) {
-            fineractService.deleteClient(fineractClientId);
+            try {
+                fineractService.deleteClient(fineractClientId);
+            } catch (Exception e) {
+                log.error("ROLLBACK FAILURE: Failed to delete Fineract client {}. Orphaned resource requires manual cleanup.", fineractClientId, e);
+                registrationMetrics.incrementRollbackFailure("fineract");
+            }
         }
 
         log.info("Rollback completed");

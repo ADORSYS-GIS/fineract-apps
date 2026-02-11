@@ -1,16 +1,17 @@
 package com.adorsys.fineract.registration.service;
 
 import com.adorsys.fineract.registration.exception.RegistrationException;
-import lombok.RequiredArgsConstructor;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Security service for verifying account ownership.
@@ -22,14 +23,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AccountSecurityService {
 
     private final FineractService fineractService;
 
-    // Simple in-memory cache for account ownership (consider Redis for production)
-    // Key: clientId, Value: Set of owned account IDs
-    private final ConcurrentHashMap<Long, Set<Long>> accountOwnershipCache = new ConcurrentHashMap<>();
+    // TTL-based cache for account ownership (5 min expiry, max 10K entries)
+    private final Cache<Long, Set<Long>> accountOwnershipCache = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofMinutes(5))
+            .maximumSize(10_000)
+            .build();
+
+    public AccountSecurityService(FineractService fineractService) {
+        this.fineractService = fineractService;
+    }
 
     /**
      * Get the Fineract client ID from the JWT token.
@@ -83,7 +89,7 @@ public class AccountSecurityService {
         Long customerClientId = getCustomerClientId(jwt);
 
         // Check cache first
-        Set<Long> ownedAccounts = accountOwnershipCache.get(customerClientId);
+        Set<Long> ownedAccounts = accountOwnershipCache.getIfPresent(customerClientId);
         if (ownedAccounts != null && ownedAccounts.contains(accountId)) {
             log.debug("Account {} ownership verified from cache for client {}", accountId, customerClientId);
             return;
@@ -102,7 +108,7 @@ public class AccountSecurityService {
         }
 
         // Update cache
-        accountOwnershipCache.computeIfAbsent(customerClientId, k -> new HashSet<>()).add(accountId);
+        accountOwnershipCache.asMap().computeIfAbsent(customerClientId, k -> new HashSet<>()).add(accountId);
         log.debug("Account {} ownership verified and cached for client {}", accountId, customerClientId);
     }
 
@@ -136,7 +142,7 @@ public class AccountSecurityService {
      * @param clientId The Fineract client ID
      */
     public void invalidateCache(Long clientId) {
-        accountOwnershipCache.remove(clientId);
+        accountOwnershipCache.invalidate(clientId);
         log.info("Invalidated account cache for client {}", clientId);
     }
 }

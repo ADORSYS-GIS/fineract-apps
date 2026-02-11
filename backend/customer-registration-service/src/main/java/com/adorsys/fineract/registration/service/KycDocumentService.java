@@ -2,16 +2,20 @@ package com.adorsys.fineract.registration.service;
 
 import com.adorsys.fineract.registration.dto.KycDocumentUploadResponse;
 import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import org.keycloak.representations.idm.UserRepresentation;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -20,6 +24,7 @@ public class KycDocumentService {
 
     private final FineractService fineractService;
     private final KeycloakService keycloakService;
+    private final RegistrationMetrics registrationMetrics;
 
     private static final Set<String> VALID_DOCUMENT_TYPES = Set.of("id_front", "id_back", "selfie_with_id");
     private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
@@ -72,6 +77,7 @@ public class KycDocumentService {
             );
 
             log.info("Successfully uploaded document {} for client {}", documentId, clientId);
+            registrationMetrics.incrementKycSubmission(documentType);
 
             // Check if all KYC documents are uploaded and update status
             checkAndUpdateKycStatus(externalId, clientId);
@@ -111,15 +117,20 @@ public class KycDocumentService {
         }
 
         if (hasIdFront && hasIdBack && hasSelfie) {
-            log.info("All KYC documents uploaded for external ID: {}. Updating status to under_review", externalId);
+            log.info("All KYC documents uploaded for external ID: {}. Checking if status transition to under_review is needed", externalId);
             try {
-                // Find the Keycloak user by external ID and update KYC status
                 keycloakService.getUserByExternalId(externalId).ifPresent(user -> {
-                    keycloakService.updateKycStatus(user.getId(), 1, "under_review");
+                    // Only transition to under_review if currently pending — avoid overwriting approved/rejected status
+                    String currentStatus = getKycStatus(user);
+                    if ("pending".equals(currentStatus)) {
+                        keycloakService.updateKycStatus(user.getId(), 1, "under_review");
+                        log.info("Updated KYC status to under_review for external ID: {}", externalId);
+                    } else {
+                        log.info("Skipping status update — current status is '{}' for external ID: {}", currentStatus, externalId);
+                    }
                 });
             } catch (Exception e) {
                 log.warn("Failed to update KYC status in Keycloak: {}", e.getMessage());
-                // Don't fail the upload if Keycloak update fails
             }
         }
     }
@@ -146,7 +157,13 @@ public class KycDocumentService {
             case "selfie_with_id" -> "KYC_SELFIE_";
             default -> "KYC_DOC_";
         };
-        return prefix + System.currentTimeMillis();
+        return prefix + UUID.randomUUID();
+    }
+
+    private String getKycStatus(UserRepresentation user) {
+        if (user.getAttributes() == null) return "pending";
+        List<String> values = user.getAttributes().get("kyc_status");
+        return (values != null && !values.isEmpty()) ? values.get(0) : "pending";
     }
 
     private String buildDocumentDescription(String documentType) {
