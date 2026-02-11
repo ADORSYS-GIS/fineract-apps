@@ -1,188 +1,194 @@
-// package com.adorsys.fineract.gateway.controller;
+package com.adorsys.fineract.gateway.controller;
 
-// import com.adorsys.fineract.gateway.dto.MtnCallbackRequest;
-// import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
-// import com.adorsys.fineract.gateway.service.PaymentService;
-// import com.fasterxml.jackson.databind.ObjectMapper;
-// import org.junit.jupiter.api.DisplayName;
-// import org.junit.jupiter.api.Nested;
-// import org.junit.jupiter.api.Test;
-// import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-// import org.springframework.boot.test.mock.mockito.MockBean;
-// import org.springframework.http.MediaType;
-// import org.springframework.test.web.servlet.MockMvc;
+import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
+import com.adorsys.fineract.gateway.dto.MtnCallbackRequest;
+import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
+import com.adorsys.fineract.gateway.service.PaymentService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
 
-// import static org.mockito.ArgumentMatchers.*;
-// import static org.mockito.Mockito.*;
-// import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-// import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// @WebMvcTest(CallbackController.class)
-// class CallbackControllerTest {
+@WebMvcTest(CallbackController.class)
+@AutoConfigureMockMvc(addFilters = false)
+@ActiveProfiles("test")
+class CallbackControllerTest {
 
-//     @Autowired
-//     private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-//     @Autowired
-//     private ObjectMapper objectMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-//     @MockBean
-//     private PaymentService paymentService;
+    @MockBean
+    private PaymentService paymentService;
 
-//     @Nested
-//     @DisplayName("POST /api/callbacks/mtn/collection")
-//     class MtnCollectionCallback {
+    @MockBean
+    private JwtDecoder jwtDecoder;
 
-//         @Test
-//         @DisplayName("should process successful MTN collection callback")
-//         void shouldProcessSuccessfulCallback() throws Exception {
-//             // Given
-//             MtnCallbackRequest callback = MtnCallbackRequest.builder()
-//                     .referenceId("ref-123")
-//                     .externalId("ext-ref-123")
-//                     .status("SUCCESSFUL")
-//                     .financialTransactionId("fin-txn-123")
-//                     .build();
+    // =========================================================================
+    // MTN Callbacks
+    // =========================================================================
 
-//             // When/Then
-//             mockMvc.perform(post("/api/callbacks/mtn/collection")
-//                             .contentType(MediaType.APPLICATION_JSON)
-//                             .content(objectMapper.writeValueAsString(callback)))
-//                     .andExpect(status().isOk());
+    @Test
+    @DisplayName("should process MTN collection callback successfully")
+    void mtnCollection_success_returns200() throws Exception {
+        MtnCallbackRequest callback = MtnCallbackRequest.builder()
+                .referenceId("ref-123")
+                .externalId("ext-ref-123")
+                .status("SUCCESSFUL")
+                .financialTransactionId("fin-txn-123")
+                .build();
 
-//             verify(paymentService).handleMtnCollectionCallback(any(MtnCallbackRequest.class));
-//         }
+        mockMvc.perform(post("/api/callbacks/mtn/collection")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(callback)))
+                .andExpect(status().isOk());
 
-//         @Test
-//         @DisplayName("should process failed MTN collection callback")
-//         void shouldProcessFailedCallback() throws Exception {
-//             // Given
-//             MtnCallbackRequest callback = MtnCallbackRequest.builder()
-//                     .referenceId("ref-456")
-//                     .externalId("ext-ref-456")
-//                     .status("FAILED")
-//                     .reason("User rejected")
-//                     .build();
+        verify(paymentService).handleMtnCollectionCallback(any(MtnCallbackRequest.class));
+    }
 
-//             // When/Then
-//             mockMvc.perform(post("/api/callbacks/mtn/collection")
-//                             .contentType(MediaType.APPLICATION_JSON)
-//                             .content(objectMapper.writeValueAsString(callback)))
-//                     .andExpect(status().isOk());
+    @Test
+    @DisplayName("should return 200 even when processing error occurs")
+    void mtnCollection_processingError_stillReturns200() throws Exception {
+        MtnCallbackRequest callback = MtnCallbackRequest.builder()
+                .referenceId("ref-789")
+                .status("SUCCESSFUL")
+                .build();
 
-//             verify(paymentService).handleMtnCollectionCallback(any(MtnCallbackRequest.class));
-//         }
+        doThrow(new RuntimeException("Processing error"))
+                .when(paymentService).handleMtnCollectionCallback(any());
 
-//         @Test
-//         @DisplayName("should return 200 even on processing error")
-//         void shouldReturn200OnProcessingError() throws Exception {
-//             // Given - service throws exception
-//             MtnCallbackRequest callback = MtnCallbackRequest.builder()
-//                     .referenceId("ref-789")
-//                     .status("SUCCESSFUL")
-//                     .build();
+        mockMvc.perform(post("/api/callbacks/mtn/collection")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(callback)))
+                .andExpect(status().isOk());
+    }
 
-//             doThrow(new RuntimeException("Processing error"))
-//                     .when(paymentService).handleMtnCollectionCallback(any());
+    @Test
+    @DisplayName("should process MTN disbursement callback")
+    void mtnDisbursement_success_returns200() throws Exception {
+        MtnCallbackRequest callback = MtnCallbackRequest.builder()
+                .referenceId("ref-123")
+                .externalId("ext-ref-123")
+                .status("SUCCESSFUL")
+                .financialTransactionId("fin-txn-123")
+                .build();
 
-//             // When/Then - still return 200 to prevent retries
-//             mockMvc.perform(post("/api/callbacks/mtn/collection")
-//                             .contentType(MediaType.APPLICATION_JSON)
-//                             .content(objectMapper.writeValueAsString(callback)))
-//                     .andExpect(status().isOk());
-//         }
-//     }
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(callback)))
+                .andExpect(status().isOk());
 
-//     @Nested
-//     @DisplayName("POST /api/callbacks/mtn/disbursement")
-//     class MtnDisbursementCallback {
+        verify(paymentService).handleMtnDisbursementCallback(any(MtnCallbackRequest.class));
+    }
 
-//         @Test
-//         @DisplayName("should process MTN disbursement callback")
-//         void shouldProcessDisbursementCallback() throws Exception {
-//             // Given
-//             MtnCallbackRequest callback = MtnCallbackRequest.builder()
-//                     .referenceId("ref-123")
-//                     .externalId("ext-ref-123")
-//                     .status("SUCCESSFUL")
-//                     .financialTransactionId("fin-txn-123")
-//                     .build();
+    // =========================================================================
+    // Orange Callbacks
+    // =========================================================================
 
-//             // When/Then
-//             mockMvc.perform(post("/api/callbacks/mtn/disbursement")
-//                             .contentType(MediaType.APPLICATION_JSON)
-//                             .content(objectMapper.writeValueAsString(callback)))
-//                     .andExpect(status().isOk());
+    @Test
+    @DisplayName("should process Orange payment callback")
+    void orangePayment_success_returns200() throws Exception {
+        OrangeCallbackRequest callback = OrangeCallbackRequest.builder()
+                .orderId("order-123")
+                .status("SUCCESS")
+                .transactionId("txn-123")
+                .payToken("pay-token-123")
+                .build();
 
-//             verify(paymentService).handleMtnDisbursementCallback(any(MtnCallbackRequest.class));
-//         }
-//     }
+        mockMvc.perform(post("/api/callbacks/orange/payment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(callback)))
+                .andExpect(status().isOk());
 
-//     @Nested
-//     @DisplayName("POST /api/callbacks/orange/payment")
-//     class OrangePaymentCallback {
+        verify(paymentService).handleOrangeCallback(any(OrangeCallbackRequest.class));
+    }
 
-//         @Test
-//         @DisplayName("should process Orange payment callback")
-//         void shouldProcessPaymentCallback() throws Exception {
-//             // Given
-//             OrangeCallbackRequest callback = OrangeCallbackRequest.builder()
-//                     .orderId("order-123")
-//                     .status("SUCCESS")
-//                     .transactionId("txn-123")
-//                     .payToken("pay-token-123")
-//                     .build();
+    @Test
+    @DisplayName("should process Orange cashout callback")
+    void orangeCashout_success_returns200() throws Exception {
+        OrangeCallbackRequest callback = OrangeCallbackRequest.builder()
+                .orderId("order-789")
+                .status("SUCCESS")
+                .transactionId("txn-789")
+                .build();
 
-//             // When/Then
-//             mockMvc.perform(post("/api/callbacks/orange/payment")
-//                             .contentType(MediaType.APPLICATION_JSON)
-//                             .content(objectMapper.writeValueAsString(callback)))
-//                     .andExpect(status().isOk());
+        mockMvc.perform(post("/api/callbacks/orange/cashout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(callback)))
+                .andExpect(status().isOk());
 
-//             verify(paymentService).handleOrangeCallback(any(OrangeCallbackRequest.class));
-//         }
+        verify(paymentService).handleOrangeCallback(any(OrangeCallbackRequest.class));
+    }
 
-//         @Test
-//         @DisplayName("should handle failed Orange callback")
-//         void shouldHandleFailedCallback() throws Exception {
-//             // Given
-//             OrangeCallbackRequest callback = OrangeCallbackRequest.builder()
-//                     .orderId("order-456")
-//                     .status("FAILED")
-//                     .build();
+    // =========================================================================
+    // CinetPay Callbacks
+    // =========================================================================
 
-//             // When/Then
-//             mockMvc.perform(post("/api/callbacks/orange/payment")
-//                             .contentType(MediaType.APPLICATION_JSON)
-//                             .content(objectMapper.writeValueAsString(callback)))
-//                     .andExpect(status().isOk());
+    @Test
+    @DisplayName("should process CinetPay payment callback (JSON)")
+    void cinetPayPayment_json_returns200() throws Exception {
+        CinetPayCallbackRequest callback = CinetPayCallbackRequest.builder()
+                .siteId("test-site")
+                .transactionId("cp-txn-123")
+                .resultCode("00")
+                .paymentMethod("MOMO")
+                .amount("10000")
+                .currency("XAF")
+                .build();
 
-//             verify(paymentService).handleOrangeCallback(any(OrangeCallbackRequest.class));
-//         }
-//     }
+        mockMvc.perform(post("/api/callbacks/cinetpay/payment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(callback)))
+                .andExpect(status().isOk());
 
-//     @Nested
-//     @DisplayName("POST /api/callbacks/orange/cashout")
-//     class OrangeCashoutCallback {
+        verify(paymentService).handleCinetPayCallback(any(CinetPayCallbackRequest.class));
+    }
 
-//         @Test
-//         @DisplayName("should process Orange cashout callback")
-//         void shouldProcessCashoutCallback() throws Exception {
-//             // Given
-//             OrangeCallbackRequest callback = OrangeCallbackRequest.builder()
-//                     .orderId("order-789")
-//                     .status("SUCCESS")
-//                     .transactionId("txn-789")
-//                     .build();
+    @Test
+    @DisplayName("should process CinetPay payment callback (form-urlencoded)")
+    void cinetPayPayment_form_returns200() throws Exception {
+        mockMvc.perform(post("/api/callbacks/cinetpay/payment")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("cpm_site_id", "test-site")
+                        .param("cpm_trans_id", "cp-txn-456")
+                        .param("cpm_result", "00")
+                        .param("cpm_payment_method", "OM")
+                        .param("cpm_amount", "10000")
+                        .param("cpm_currency", "XAF"))
+                .andExpect(status().isOk());
 
-//             // When/Then
-//             mockMvc.perform(post("/api/callbacks/orange/cashout")
-//                             .contentType(MediaType.APPLICATION_JSON)
-//                             .content(objectMapper.writeValueAsString(callback)))
-//                     .andExpect(status().isOk());
+        verify(paymentService).handleCinetPayCallback(any(CinetPayCallbackRequest.class));
+    }
 
-//             verify(paymentService).handleOrangeCallback(any(OrangeCallbackRequest.class));
-//         }
-//     }
-// }
+    @Test
+    @DisplayName("should process CinetPay transfer callback (JSON)")
+    void cinetPayTransfer_json_returns200() throws Exception {
+        CinetPayCallbackRequest callback = CinetPayCallbackRequest.builder()
+                .clientTransactionId("cp-transfer-123")
+                .treatmentStatus("VAL")
+                .amount("5000")
+                .receiver("237612345678")
+                .build();
+
+        mockMvc.perform(post("/api/callbacks/cinetpay/transfer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(callback)))
+                .andExpect(status().isOk());
+
+        verify(paymentService).handleCinetPayCallback(any(CinetPayCallbackRequest.class));
+    }
+}

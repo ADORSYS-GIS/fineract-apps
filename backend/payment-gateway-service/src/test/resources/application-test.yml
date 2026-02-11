@@ -5,6 +5,23 @@ spring:
         jwt:
           issuer-uri: https://test-issuer.example.com
           jwk-set-uri: https://test-issuer.example.com/.well-known/jwks.json
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 0
 
 mtn:
   momo:
@@ -35,6 +52,16 @@ orange:
     fineract-payment-type-id: 2
     gl-account-code: 654321
 
+cinetpay:
+  api-key: test-api-key
+  site-id: 12345
+  secret-key: test-secret-key
+  base-url: http://localhost:9997
+  transfer-url: http://localhost:9997
+  currency: XAF
+  timeout-seconds: 5
+  callback-url: http://localhost:8082/api/callbacks/cinetpay
+
 fineract:
   url: http://localhost:8443/fineract-provider
   tenant: default
@@ -42,3 +69,10 @@ fineract:
   password: test-password
   timeout-seconds: 5
   default-savings-product-id: 1
+
+app:
+  rate-limit:
+    enabled: false
+  stepup:
+    enabled: false
+    secret: test-secret-for-hmac-validation

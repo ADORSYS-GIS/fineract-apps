@@ -10,6 +10,7 @@
 			"!packages/fineract-api/**",
 			"!**/routeTree.gen.ts",
 			"!**/coverage/**",
+			"!**/target/**",
 			"!.claude/**"
 		]
 	},
