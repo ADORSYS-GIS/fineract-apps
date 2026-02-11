@@ -37,6 +37,15 @@
 				"label": "Date d'Activation",
 				"placeholder": "Sélectionnez la date d'activation"
 			},
+			"clientType": {
+				"label": "Type de Client",
+				"person": "Personne",
+				"entity": "Entité"
+			},
+			"fullname": {
+				"label": "Nom de l'Entité",
+				"placeholder": "Entrez le nom de l'entité ou de l'entreprise"
+			},
 			"title": "Créer un Nouveau Client",
 			"description": "Remplissez les détails ci-dessous pour créer un nouvel enregistrement client."
 		},

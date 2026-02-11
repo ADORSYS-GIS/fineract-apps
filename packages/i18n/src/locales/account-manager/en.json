@@ -37,6 +37,15 @@
 				"label": "Activation Date",
 				"placeholder": "Select activation date"
 			},
+			"clientType": {
+				"label": "Client Type",
+				"person": "Person",
+				"entity": "Entity"
+			},
+			"fullname": {
+				"label": "Entity Name",
+				"placeholder": "Enter entity or company name"
+			},
 			"title": "Create New Client",
 			"description": "Fill in the details below to create a new client record."
 		},
