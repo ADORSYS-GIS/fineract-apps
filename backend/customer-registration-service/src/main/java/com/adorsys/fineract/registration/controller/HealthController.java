@@ -1,12 +1,10 @@
 package com.adorsys.fineract.registration.controller;
 
 import com.adorsys.fineract.registration.config.FineractConfig;
-import com.adorsys.fineract.registration.config.KeycloakConfig;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.keycloak.admin.client.Keycloak;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,8 +19,6 @@ import java.util.Map;
 @Tag(name = "Health", description = "Service health check endpoints")
 public class HealthController {
 
-    private final Keycloak keycloak;
-    private final KeycloakConfig keycloakConfig;
     private final RestClient fineractRestClient;
     private final FineractConfig fineractConfig;
 
@@ -36,19 +32,10 @@ public class HealthController {
     }
 
     @GetMapping("/health/detailed")
-    @Operation(summary = "Detailed health check", description = "Checks connectivity to Keycloak and Fineract")
+    @Operation(summary = "Detailed health check", description = "Checks connectivity to Fineract")
     public ResponseEntity<Map<String, Object>> detailedHealth() {
         Map<String, Object> response = new HashMap<>();
         Map<String, Object> components = new HashMap<>();
-
-        // Check Keycloak
-        try {
-            keycloak.realm(keycloakConfig.getRealm()).toRepresentation();
-            components.put("keycloak", Map.of("status", "UP"));
-        } catch (Exception e) {
-            log.error("Keycloak health check failed: {}", e.getMessage());
-            components.put("keycloak", Map.of("status", "DOWN", "error", e.getMessage()));
-        }
 
         // Check Fineract
         try {

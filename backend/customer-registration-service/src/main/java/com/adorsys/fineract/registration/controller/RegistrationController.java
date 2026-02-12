@@ -27,7 +27,7 @@ public class RegistrationController {
 
     @PostMapping("/register")
     @Operation(summary = "Register a new customer",
-            description = "Creates accounts in Fineract and Keycloak for self-service customer")
+            description = "Creates a client in Fineract for self-service customer")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Registration successful",
                     content = @Content(schema = @Schema(implementation = RegistrationResponse.class))),
@@ -41,55 +41,5 @@ public class RegistrationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping("/status/{externalId}")
-    @Operation(summary = "Get registration status",
-            description = "Check registration completion status for a customer")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Status retrieved",
-                    content = @Content(schema = @Schema(implementation = RegistrationStatusResponse.class))),
-            @ApiResponse(responseCode = "404", description = "Customer not found")
-    })
-    public ResponseEntity<RegistrationStatusResponse> getStatus(
-            @Parameter(description = "Customer external ID (UUID)")
-            @PathVariable String externalId) {
-        log.info("Received status request for externalId: {}", externalId);
-        RegistrationStatusResponse response = registrationService.getStatus(externalId);
-        return ResponseEntity.ok(response);
-    }
 
-    @GetMapping("/kyc/status")
-    @Operation(summary = "Get KYC status",
-            description = "Get KYC verification status and document information")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "KYC status retrieved",
-                    content = @Content(schema = @Schema(implementation = KycStatusResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @ApiResponse(responseCode = "404", description = "Customer not found")
-    })
-    public ResponseEntity<KycStatusResponse> getKycStatus(
-            @Parameter(description = "Customer external ID from JWT")
-            @RequestHeader(value = "X-External-Id", required = false) String externalId) {
-        // In production, externalId should come from JWT token
-        log.info("Received KYC status request for externalId: {}", externalId);
-        KycStatusResponse response = registrationService.getKycStatus(externalId);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/limits")
-    @Operation(summary = "Get transaction limits",
-            description = "Get transaction limits based on customer's KYC tier")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Limits retrieved",
-                    content = @Content(schema = @Schema(implementation = LimitsResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @ApiResponse(responseCode = "404", description = "Customer not found")
-    })
-    public ResponseEntity<LimitsResponse> getLimits(
-            @Parameter(description = "Customer external ID from JWT")
-            @RequestHeader(value = "X-External-Id", required = false) String externalId) {
-        // In production, externalId should come from JWT token
-        log.info("Received limits request for externalId: {}", externalId);
-        LimitsResponse response = registrationService.getLimits(externalId);
-        return ResponseEntity.ok(response);
-    }
 }

@@ -62,21 +62,6 @@ public class FineractService {
         }
     }
 
-    /**
-     * Delete a client (for rollback).
-     */
-    public void deleteClient(Long clientId) {
-        log.info("Deleting Fineract client: {}", clientId);
-        try {
-            fineractRestClient.delete()
-                    .uri("/fineract-provider/api/v1/clients/{clientId}", clientId)
-                    .retrieve()
-                    .toBodilessEntity();
-            log.info("Deleted Fineract client: {}", clientId);
-        } catch (Exception e) {
-            log.error("Failed to delete Fineract client {}: {}", clientId, e.getMessage());
-        }
-    }
 
     /**
      * Get client by external ID.
@@ -317,9 +302,6 @@ public class FineractService {
             payload.put("dateOfBirth", request.getDateOfBirth().format(DATE_FORMATTER));
         }
 
-        if (request.getGender() != null) {
-            payload.put("genderId", fineractConfig.getDefaultGenderId());
-        }
 
         return payload;
     }
