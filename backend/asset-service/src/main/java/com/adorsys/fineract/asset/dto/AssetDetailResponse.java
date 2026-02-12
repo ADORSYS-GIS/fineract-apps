@@ -21,8 +21,10 @@ public record AssetDetailResponse(
     /** ISO-style currency code for this asset in Fineract, e.g. "BRV". */
     String currencyCode,
     /** Long-form description of the asset. */
+    @Schema(nullable = true)
     String description,
     /** URL to the asset's logo or image. */
+    @Schema(nullable = true)
     String imageUrl,
     /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, or BONDS. */
     AssetCategory category,
@@ -55,6 +57,7 @@ public record AssetDetailResponse(
     /** Number of decimal places for fractional units (0-8). */
     Integer decimalPlaces,
     /** Planned launch date for PENDING assets. Null for active assets. */
+    @Schema(nullable = true)
     LocalDate expectedLaunchDate,
     /** Fineract client ID of the treasury holding this asset's reserves. */
     Long treasuryClientId,
@@ -67,35 +70,36 @@ public record AssetDetailResponse(
     /** Timestamp when the asset was created. */
     Instant createdAt,
     /** Timestamp of the last update. Null if never updated. */
+    @Schema(nullable = true)
     Instant updatedAt,
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──
 
     /** Bond issuer name. Null for non-bond assets. */
-    @Schema(description = "Bond issuer name (e.g. 'Etat du Sénégal'). Null for non-bond assets.")
+    @Schema(description = "Bond issuer name (e.g. 'Etat du Sénégal'). Null for non-bond assets.", nullable = true)
     String issuer,
     /** International Securities Identification Number. Null for non-bond assets. */
-    @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.")
+    @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.", nullable = true)
     String isinCode,
     /** Bond maturity date. Null for non-bond assets. */
-    @Schema(description = "Bond maturity date. Null for non-bond assets.")
+    @Schema(description = "Bond maturity date. Null for non-bond assets.", nullable = true)
     LocalDate maturityDate,
     /** Annual coupon rate as a percentage. Null for non-bond assets. */
-    @Schema(description = "Annual coupon interest rate as percentage (e.g. 5.80).")
+    @Schema(description = "Annual coupon interest rate as percentage (e.g. 5.80).", nullable = true)
     BigDecimal interestRate,
     /** Coupon payment frequency in months. Null for non-bond assets. */
-    @Schema(description = "Coupon frequency in months: 1, 3, 6, or 12.")
+    @Schema(description = "Coupon frequency in months: 1, 3, 6, or 12.", nullable = true)
     Integer couponFrequencyMonths,
     /** Next scheduled coupon payment date. Null for non-bond assets. */
-    @Schema(description = "Next scheduled coupon payment date.")
+    @Schema(description = "Next scheduled coupon payment date.", nullable = true)
     LocalDate nextCouponDate,
     /** Offer validity deadline. Null if no deadline set. */
-    @Schema(description = "Offer validity deadline. BUY orders rejected after this date.")
+    @Schema(description = "Offer validity deadline. BUY orders rejected after this date.", nullable = true)
     LocalDate validityDate,
     /** Days remaining until maturity. Null for non-bond assets. Computed, not stored. */
-    @Schema(description = "Days remaining until maturity date. Computed at query time.")
+    @Schema(description = "Days remaining until maturity date. Computed at query time.", nullable = true)
     Long residualDays,
     /** Whether the offer validity period has expired. Null if no validityDate set. */
-    @Schema(description = "True if validityDate has passed and new BUY orders are blocked.")
+    @Schema(description = "True if validityDate has passed and new BUY orders are blocked.", nullable = true)
     Boolean offerExpired
 ) {}

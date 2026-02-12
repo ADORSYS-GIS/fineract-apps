@@ -36,6 +36,7 @@ public class AdminAssetController {
 
     @PostMapping
     @Operation(summary = "Create asset", description = "Create a new asset with Fineract provisioning")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Asset created")
     public ResponseEntity<AssetDetailResponse> createAsset(@Valid @RequestBody CreateAssetRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(provisioningService.createAsset(request));
     }

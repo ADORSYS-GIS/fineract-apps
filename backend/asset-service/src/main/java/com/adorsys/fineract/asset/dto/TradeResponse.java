@@ -24,6 +24,7 @@ public record TradeResponse(
     /** Spread amount for this trade, in XAF. Zero if spread is disabled. */
     BigDecimal spreadAmount,
     /** Realized P&L from this trade, in XAF. Only present for SELL trades: (sellPrice - avgPurchasePrice) × units. Null for BUY trades. */
+    @io.swagger.v3.oas.annotations.media.Schema(nullable = true)
     BigDecimal realizedPnl,
     /** Timestamp when the trade was executed. */
     Instant executedAt
