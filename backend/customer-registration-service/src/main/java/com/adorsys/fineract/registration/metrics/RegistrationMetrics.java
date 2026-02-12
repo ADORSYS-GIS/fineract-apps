@@ -1,0 +1,127 @@
+package com.adorsys.fineract.registration.metrics;
+
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Custom business metrics for the customer registration service.
+ * These metrics provide observability into registration and KYC operations.
+ */
+@Slf4j
+@Component
+public class RegistrationMetrics {
+
+    private final Counter registrationRequestsTotal;
+    private final Counter registrationSuccessTotal;
+    private final Counter registrationFailureTotal;
+    private final Counter kycSubmissionsTotal;
+    private final Timer registrationDuration;
+    private final Timer kycReviewDuration;
+    private final MeterRegistry meterRegistry;
+
+    public RegistrationMetrics(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+
+        // Registration counters
+        this.registrationRequestsTotal = Counter.builder("registration_requests_total")
+                .description("Total number of registration requests received")
+                .register(meterRegistry);
+
+        this.registrationSuccessTotal = Counter.builder("registration_success_total")
+                .description("Total number of successful registrations")
+                .register(meterRegistry);
+
+        this.registrationFailureTotal = Counter.builder("registration_failure_total")
+                .description("Total number of failed registrations")
+                .register(meterRegistry);
+
+        // KYC counters (base counter, document type is added as tag)
+        this.kycSubmissionsTotal = Counter.builder("kyc_submissions_total")
+                .description("Total number of KYC document submissions")
+                .register(meterRegistry);
+
+        // Timers
+        this.registrationDuration = Timer.builder("registration_duration_seconds")
+                .description("Time taken to complete a registration")
+                .register(meterRegistry);
+
+        this.kycReviewDuration = Timer.builder("kyc_review_duration_seconds")
+                .description("Time taken to review KYC submissions")
+                .register(meterRegistry);
+
+        log.info("Registration metrics initialized");
+    }
+
+    /**
+     * Increment registration request counter.
+     */
+    public void incrementRegistrationRequests() {
+        registrationRequestsTotal.increment();
+    }
+
+    /**
+     * Increment successful registration counter.
+     */
+    public void incrementRegistrationSuccess() {
+        registrationSuccessTotal.increment();
+    }
+
+    /**
+     * Increment failed registration counter with reason tag.
+     */
+    public void incrementRegistrationFailure(String reason) {
+        Counter.builder("registration_failure_total")
+                .tag("reason", reason)
+                .description("Total number of failed registrations")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
+     * Increment KYC submission counter with document type tag.
+     */
+    public void incrementKycSubmission(String documentType) {
+        Counter.builder("kyc_submissions_total")
+                .tag("document_type", documentType)
+                .description("Total number of KYC document submissions")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
+     * Record registration duration.
+     */
+    public void recordRegistrationDuration(long durationMs) {
+        registrationDuration.record(durationMs, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Record KYC review duration with status tag.
+     */
+    public void recordKycReviewDuration(long durationMs, String status) {
+        Timer.builder("kyc_review_duration_seconds")
+                .tag("status", status)
+                .description("Time taken to review KYC submissions")
+                .register(meterRegistry)
+                .record(durationMs, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Create a timer sample to measure duration.
+     */
+    public Timer.Sample startTimer() {
+        return Timer.start(meterRegistry);
+    }
+
+    /**
+     * Stop timer and record to registration duration.
+     */
+    public void stopRegistrationTimer(Timer.Sample sample) {
+        sample.stop(registrationDuration);
+    }
+}

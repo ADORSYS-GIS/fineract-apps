@@ -1,0 +1,34 @@
+#!/bin/sh
+# Maven Wrapper script
+
+set -e
+
+# Resolve links
+PRG="$0"
+while [ -h "$PRG" ]; do
+    ls=$(ls -ld "$PRG")
+    link=$(expr "$ls" : '.*-> \(.*\)$')
+    if expr "$link" : '/.*' > /dev/null; then
+        PRG="$link"
+    else
+        PRG=$(dirname "$PRG")/"$link"
+    fi
+done
+
+SCRIPT_DIR=$(dirname "$PRG")
+MAVEN_PROJECTBASEDIR="${MAVEN_BASEDIR:-$(cd "$SCRIPT_DIR" && pwd)}"
+
+MAVEN_OPTS="${MAVEN_OPTS:-"-Xmx64m"}"
+
+# Find Maven
+if [ -n "$MAVEN_HOME" ]; then
+    MAVEN_CMD="$MAVEN_HOME/bin/mvn"
+elif command -v mvn > /dev/null 2>&1; then
+    MAVEN_CMD=mvn
+else
+    echo "Error: MAVEN_HOME is not set and mvn is not in PATH" >&2
+    exit 1
+fi
+
+cd "$MAVEN_PROJECTBASEDIR"
+exec "$MAVEN_CMD" "$@"

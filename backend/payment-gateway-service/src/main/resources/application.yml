@@ -1,0 +1,197 @@
+server:
+  port: 8082
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: payment-gateway-service
+
+  # Database configuration
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/payment_gateway}
+    username: ${SPRING_DATASOURCE_USERNAME:payment_gateway}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 20000
+
+  # JPA configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Flyway handles schema, Hibernate only validates
+    open-in-view: false   # Prevent lazy loading issues
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  # Flyway migrations
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/fineract}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/fineract/protocol/openid-connect/certs}
+
+# MTN MoMo Configuration
+mtn:
+  momo:
+    base-url: ${MTN_BASE_URL:https://sandbox.momodeveloper.mtn.com}
+    collection-subscription-key: ${MTN_COLLECTION_KEY:}
+    disbursement-subscription-key: ${MTN_DISBURSEMENT_KEY:}
+    api-user-id: ${MTN_API_USER_ID:}
+    api-key: ${MTN_API_KEY:}
+    target-environment: ${MTN_TARGET_ENV:sandbox}
+    callback-url: ${MTN_CALLBACK_URL:https://ungraphical-angele-seventhly.ngrok-free.dev/api/callbacks}
+    currency: XAF
+    timeout-seconds: 30
+    fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:1}
+    gl-account-code: ${MTN_GL_ACCOUNT_CODE:}
+
+# Orange Money Configuration
+orange:
+  money:
+    base-url: ${ORANGE_BASE_URL:https://api.orange.com/orange-money-webpay/dev/v1}
+    token-url: ${ORANGE_TOKEN_URL:https://api.orange.com/oauth/v3/token}
+    client-id: ${ORANGE_CLIENT_ID:}
+    client-secret: ${ORANGE_CLIENT_SECRET:}
+    merchant-code: ${ORANGE_MERCHANT_CODE:}
+    callback-url: ${ORANGE_CALLBACK_URL:https://ungraphical-angele-seventhly.ngrok-free.dev/api/callbacks}
+    return-url: ${ORANGE_RETURN_URL:http://localhost:3000/self-service/transactions}
+    cancel-url: ${ORANGE_CANCEL_URL:http://localhost:3000/self-service/transactions}
+    currency: XAF
+    timeout-seconds: 30
+    fineract-payment-type-id: ${ORANGE_FINERACT_PAYMENT_TYPE_ID:2}
+    gl-account-code: ${ORANGE_GL_ACCOUNT_CODE:}
+
+# CinetPay Configuration (Gateway - routes to MTN/Orange)
+# GL account mapping is dynamic based on cpm_payment_method from callback
+cinetpay:
+  base-url: ${CINETPAY_BASE_URL:https://api-checkout.cinetpay.com}
+  transfer-url: ${CINETPAY_TRANSFER_URL:https://client.cinetpay.com}
+  api-key: ${CINETPAY_API_KEY:}
+  site-id: ${CINETPAY_SITE_ID:}
+  api-password: ${CINETPAY_API_PASSWORD:}
+  transfer-password: ${CINETPAY_TRANSFER_PASSWORD:} 
+  secret-key: ${CINETPAY_SECRET_KEY:}
+  currency: XAF
+  timeout-seconds: 30
+
+# Base URLs for dynamic callback/return URL construction
+payment:
+  gateway:
+    base-url: ${PAYMENT_GATEWAY_BASE_URL:https://ungraphical-angele-seventhly.ngrok-free.dev}
+
+self-service:
+  app:
+    base-url: ${SELF_SERVICE_APP_BASE_URL:http://localhost:3000/self-service}
+
+# Fineract Configuration
+fineract:
+  url: ${FINERACT_URL:https://localhost}
+  tenant: ${FINERACT_TENANT:default}
+  # Authentication type: oauth (default) or basic
+  auth-type: ${FINERACT_AUTH_TYPE:basic}
+  # OAuth settings (used when auth-type=oauth)
+  token-url: ${FINERACT_TOKEN_URL:http://keycloak:8080/realms/fineract/protocol/openid-connect/token}
+  client-id: ${FINERACT_CLIENT_ID:fineract-service}
+  client-secret: ${FINERACT_CLIENT_SECRET:}
+  # Basic auth settings (used when auth-type=basic)
+  username: ${FINERACT_USERNAME:mifos}
+  password: ${FINERACT_PASSWORD:password}
+  timeout-seconds: 30
+  default-savings-product-id: ${FINERACT_SAVINGS_PRODUCT_ID:9}
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.adorsys.fineract.gateway: DEBUG
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+---
+# Kubernetes Profile
+spring:
+  config:
+    activate:
+      on-profile: kubernetes
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract
+          jwk-set-uri: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/certs
+
+fineract:
+  url: http://fineract.fineract.svc.cluster.local:8443/fineract-provider
+  token-url: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/token
+
+mtn:
+  momo:
+    callback-url: https://payments.webank.cm/api/callbacks
+
+orange:
+  money:
+    callback-url: https://payments.webank.cm/api/callbacks
+    return-url: https://self-service.webank.cm/transactions
+    cancel-url: https://self-service.webank.cm/transactions
+
+# CinetPay uses dynamic URL construction from base URLs
+payment:
+  gateway:
+    base-url: https://payments.webank.cm
+
+self-service:
+  app:
+    base-url: https://self-service.webank.cm
+
+logging:
+  level:
+    root: INFO
+    com.adorsys.fineract.gateway: INFO
+
+# Enable OTLP tracing
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+
