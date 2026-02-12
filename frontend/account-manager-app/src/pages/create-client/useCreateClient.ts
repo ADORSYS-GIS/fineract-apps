@@ -18,15 +18,8 @@ export const useCreateClient = () => {
 	const { mutate: createClient, isPending: isCreatingClient } =
 		useCreateClientMutation();
 
-	const onSubmit = (values: CreateClientForm) => {
-		const result = createClientValidationSchema.safeParse(values);
-		if (!result.success) {
-			const firstError = result.error.errors[0]?.message;
-			toast.error(firstError ?? "Validation failed");
-			return;
-		}
-
-		const officeId = offices?.[1]?.id;
+	const onSubmit = (values: z.infer<typeof createClientValidationSchema>) => {
+		const officeId = offices?.[0]?.id;
 		if (!officeId) {
 			toast.error("No office found to assign the client to.");
 			return;

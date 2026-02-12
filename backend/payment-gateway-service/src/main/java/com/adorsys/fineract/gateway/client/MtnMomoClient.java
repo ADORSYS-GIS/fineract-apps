@@ -3,11 +3,9 @@ package com.adorsys.fineract.gateway.client;
 import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.dto.PaymentStatus;
 import com.adorsys.fineract.gateway.exception.PaymentException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -201,39 +199,42 @@ public class MtnMomoClient {
     }
 
     private String getAccessToken(String product) {
-        String cacheKey = "mtn:" + product;
+        String cacheKey = product;
+        TokenInfo cached = tokenCache.get(cacheKey);
 
-        return tokenCacheService.getToken(cacheKey).orElseGet(() -> {
-            String subscriptionKey = "collection".equals(product)
-                ? config.getCollectionSubscriptionKey()
-                : config.getDisbursementSubscriptionKey();
+        if (cached != null && !cached.isExpired()) {
+            return cached.token;
+        }
 
-            String credentials = Base64.getEncoder().encodeToString(
-                (config.getApiUserId() + ":" + config.getApiKey()).getBytes()
-            );
+        String subscriptionKey = "collection".equals(product)
+            ? config.getCollectionSubscriptionKey()
+            : config.getDisbursementSubscriptionKey();
 
-            try {
-                Map<String, Object> response = webClient.post()
-                    .uri("/{product}/token/", product)
-                    .header(HttpHeaders.AUTHORIZATION, "Basic " + credentials)
-                    .header("Ocp-Apim-Subscription-Key", subscriptionKey)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .timeout(Duration.ofSeconds(10))
-                    .block();
+        String credentials = Base64.getEncoder().encodeToString(
+            (config.getApiUserId() + ":" + config.getApiKey()).getBytes()
+        );
 
-                String token = (String) response.get("access_token");
-                Integer expiresIn = (Integer) response.get("expires_in");
+        try {
+            Map<String, Object> response = webClient.post()
+                .uri("/{product}/token/", product)
+                .header(HttpHeaders.AUTHORIZATION, "Basic " + credentials)
+                .header("Ocp-Apim-Subscription-Key", subscriptionKey)
+                .bodyValue("") // Send empty body to satisfy Content-Length requirement
+                .retrieve()
+                .bodyToMono(Map.class)
+                .timeout(Duration.ofSeconds(10))
+                .block();
 
-                long ttlSeconds = expiresIn - 60; // 60s buffer before expiry
-                tokenCacheService.putToken(cacheKey, token, ttlSeconds);
-                return token;
+            String token = (String) response.get("access_token");
+            Integer expiresIn = (Integer) response.get("expires_in");
 
-            } catch (Exception e) {
-                log.error("Failed to get MTN access token: {}", e.getMessage());
-                throw new PaymentException("Failed to authenticate with MTN API", e);
-            }
-        });
+            tokenCache.put(cacheKey, new TokenInfo(token, System.currentTimeMillis() + (expiresIn * 1000L) - 60000));
+            return token;
+
+        } catch (Exception e) {
+            log.error("Failed to get MTN access token: {}", e.getMessage());
+            throw new PaymentException("Failed to authenticate with MTN API", e);
+        }
     }
 
     private String normalizePhoneNumber(String phoneNumber) {

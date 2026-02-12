@@ -10,7 +10,7 @@ import { initTracing } from "./lib/tracing";
 import { routeTree } from "./routeTree.gen";
 import { configureApi } from "./services/api";
 
-import "@fineract-apps/ui/src/styles.css";
+import "@fineract-apps/ui/styles.css";
 import "./index.css";
 
 // Initialize OpenTelemetry tracing

@@ -11,6 +11,7 @@ export const DetailsStepView = ({
 	loanTemplate,
 	isLoading,
 	loanDetails,
+	isLoadingLoanDetails,
 }: CreateLoanAccountProps) => {
 	const { t } = useTranslation();
 
@@ -28,6 +29,7 @@ export const DetailsStepView = ({
 					label={t("loanProduct", "Loan Product")}
 					type="select"
 					placeholder="Select a loan product"
+					disabled={isLoadingLoanDetails}
 					options={
 						loanTemplate?.productOptions
 							?.map((option: LoanProductData) => ({

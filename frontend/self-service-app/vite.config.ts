@@ -92,7 +92,7 @@ export default mergeConfig(
 					],
 				},
 				devOptions: {
-					enabled: true,
+					enabled: false,
 					type: "module",
 				},
 			}),
