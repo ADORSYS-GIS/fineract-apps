@@ -1,8 +1,8 @@
-package com.adorsys.fineract.registration.controller;
+package com.adorsys.fineract.registration.controller.account;
 
-import com.adorsys.fineract.registration.dto.SavingsAccountResponse;
-import com.adorsys.fineract.registration.dto.TransactionResponse;
-import com.adorsys.fineract.registration.service.AccountSecurityService;
+import com.adorsys.fineract.registration.dto.account.SavingsAccountResponse;
+import com.adorsys.fineract.registration.dto.account.TransactionResponse;
+import com.adorsys.fineract.registration.service.account.AccountSecurityService;
 import com.adorsys.fineract.registration.service.FineractService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -62,6 +62,7 @@ public class AccountController {
                description = "Returns details of a specific savings account after verifying ownership")
     public ResponseEntity<Map<String, Object>> getSavingsAccount(
             @PathVariable Long accountId,
+            @RequestHeader("Authorization") String authorizationHeader,
             @AuthenticationPrincipal Jwt jwt) {
 
         log.info("Getting savings account: {}", accountId);

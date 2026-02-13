@@ -1,9 +1,11 @@
-package com.adorsys.fineract.registration.controller;
+package com.adorsys.fineract.registration.controller.registration;
 
-import com.adorsys.fineract.registration.dto.*;
-import com.adorsys.fineract.registration.service.RegistrationService;
+import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
+import com.adorsys.fineract.registration.dto.registration.RegistrationResponse;
+import com.adorsys.fineract.registration.service.registration.RegistrationService;
+import com.adorsys.fineract.registration.service.TokenValidationService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
+import org.springframework.security.access.prepost.PreAuthorize;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class RegistrationController {
 
     private final RegistrationService registrationService;
+    private final TokenValidationService tokenValidationService;
 
     @PostMapping("/register")
     @Operation(summary = "Register a new customer",
@@ -34,10 +37,12 @@ public class RegistrationController {
             @ApiResponse(responseCode = "400", description = "Validation error or email already exists"),
             @ApiResponse(responseCode = "500", description = "Registration failed")
     })
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RegistrationResponse> register(
+            @RequestHeader("Authorization") String authorizationHeader,
             @Valid @RequestBody RegistrationRequest request) {
         log.info("Received registration request for email: {}", request.getEmail());
-        RegistrationResponse response = registrationService.register(request);
+        RegistrationResponse response = registrationService.register(request, authorizationHeader);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

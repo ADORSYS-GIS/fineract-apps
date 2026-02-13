@@ -1,4 +1,4 @@
-package com.adorsys.fineract.registration.dto;
+package com.adorsys.fineract.registration.dto.account;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

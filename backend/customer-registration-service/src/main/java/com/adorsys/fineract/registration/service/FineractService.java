@@ -1,7 +1,7 @@
 package com.adorsys.fineract.registration.service;
 
 import com.adorsys.fineract.registration.config.FineractConfig;
-import com.adorsys.fineract.registration.dto.RegistrationRequest;
+import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -195,5 +195,13 @@ public class FineractService {
 
 
         return payload;
+    }
+
+    public void updateClient(Long clientId, com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest request) {
+        // TODO: This is a stub. Implement the actual call to Fineract's PUT /clients/{clientId} endpoint.
+        log.warn("STUB: FineractService.updateClient is not yet implemented.");
+        // In a real implementation, you would build the request body and make the API call.
+        // For now, we'll just throw an exception to indicate it's not implemented.
+        throw new UnsupportedOperationException("updateClient is not yet implemented");
     }
 }

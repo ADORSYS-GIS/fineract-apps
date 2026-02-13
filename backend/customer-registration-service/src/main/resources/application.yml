@@ -73,6 +73,12 @@ spring:
   config:
     activate:
       on-profile: kubernetes
+  security:
+    oauth2:
+          resourceserver:
+            jwt:
+              issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/fineract}
+              jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://localhost:8080/realms/fineract/protocol/openid-connect/certs}
 
 # In Kubernetes, use service discovery
 
@@ -88,3 +94,5 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+
+# Security properties
