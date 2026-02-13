@@ -72,6 +72,8 @@ public class AssetServiceConfig {
         private Long digitalAssetInventory = 47L;
         private Long customerDigitalAssetHoldings = 65L;
         private Long assetIssuancePaymentType = 22L;
+        private Long transfersInSuspense = 73L;
+        private Long incomeFromInterest = 1L;
     }
 
     @PostConstruct

@@ -35,7 +35,7 @@ assetClient.interceptors.response.use(
 			sessionStorage.removeItem("auth");
 			const base = import.meta.env.BASE_URL || "/asset-manager/";
 			if (import.meta.env.VITE_AUTH_MODE === "oauth") {
-				window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(window.location.origin + base)}`;
+				window.location.href = `/oauth2/authorization/keycloak?rd=${encodeURIComponent(window.location.href)}`;
 			} else {
 				window.location.href = base;
 			}

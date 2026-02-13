@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+// @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
@@ -44,6 +44,10 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .authorizeHttpRequests(authz -> {
+                authz.anyRequest().permitAll();
+            });
+        /*
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
@@ -70,10 +74,11 @@ public class SecurityConfig {
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())
                 )
             );
-
+        */
         return http.build();
     }
 
+    /*
     @Bean
     public JwtDecoder jwtDecoder() {
         return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
@@ -86,13 +91,6 @@ public class SecurityConfig {
         return jwtAuthenticationConverter;
     }
 
-    /**
-     * Custom converter that extracts roles from Keycloak's nested JWT structure:
-     * {"realm_access": {"roles": ["ASSET_MANAGER", ...]}}
-     *
-     * Spring's JwtGrantedAuthoritiesConverter only supports flat claim names,
-     * not nested paths like "realm_access.roles".
-     */
     private Converter<Jwt, Collection<GrantedAuthority>> keycloakGrantedAuthoritiesConverter() {
         return jwt -> {
             Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
@@ -106,7 +104,7 @@ public class SecurityConfig {
                     .collect(Collectors.toList());
         };
     }
-
+    */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

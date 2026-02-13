@@ -84,14 +84,7 @@ public class FineractClient {
     @SuppressWarnings("unchecked")
     public void registerCurrencies(List<String> currencyCodes) {
         try {
-            List<Map<String, Object>> existing = getExistingCurrencies();
-            List<String> allCodes = new ArrayList<>();
-            for (Map<String, Object> currency : existing) {
-                allCodes.add((String) currency.get("code"));
-            }
-            allCodes.addAll(currencyCodes);
-
-            Map<String, Object> body = Map.of("currencies", allCodes);
+            Map<String, Object> body = Map.of("currencies", currencyCodes);
 
             webClient.put()
                     .uri("/fineract-provider/api/v1/currencies")
@@ -122,8 +115,9 @@ public class FineractClient {
      */
     @SuppressWarnings("unchecked")
     public Integer createSavingsProduct(String name, String shortName, String currencyCode,
-                                        int decimalPlaces, Long savingsReferenceAccountId,
-                                        Long savingsControlAccountId) {
+                                         int decimalPlaces, Long savingsReferenceAccountId,
+                                         Long savingsControlAccountId, Long transfersInSuspenseAccountId,
+                                         Long incomeFromInterestId) {
         try {
             Map<String, Object> body = new HashMap<>();
             body.put("name", name);
@@ -139,6 +133,8 @@ public class FineractClient {
             body.put("accountingRule", 2); // Cash-based
             body.put("savingsReferenceAccountId", savingsReferenceAccountId);
             body.put("savingsControlAccountId", savingsControlAccountId);
+            body.put("transfersInSuspenseAccountId", transfersInSuspenseAccountId);
+            body.put("incomeFromInterestId", incomeFromInterestId);
             body.put("incomeFromFeeAccountId", savingsReferenceAccountId);
             body.put("incomeFromPenaltyAccountId", savingsReferenceAccountId);
             body.put("interestOnSavingsAccountId", savingsControlAccountId);

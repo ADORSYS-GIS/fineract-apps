@@ -51,6 +51,7 @@ class AssetProvisioningServiceTest {
         glAccounts.setDigitalAssetInventory(47L);
         glAccounts.setCustomerDigitalAssetHoldings(65L);
         glAccounts.setAssetIssuancePaymentType(22L);
+        glAccounts.setIncomeFromInterest(1L);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
     }
 
@@ -77,7 +78,7 @@ class AssetProvisioningServiceTest {
 
         // Fineract: register currency, create product, provision account
         when(assetServiceConfig.getGlAccounts()).thenReturn(glAccounts);
-        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), eq(47L), eq(65L)))
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), eq(47L), eq(65L), eq(73L), eq(1L)))
                 .thenReturn(10);
         when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
                 .thenReturn(400L);
@@ -159,7 +160,7 @@ class AssetProvisioningServiceTest {
         when(fineractClient.getClientSavingsAccounts(TREASURY_CLIENT_ID))
                 .thenReturn(List.of(xafAccount));
         when(assetServiceConfig.getGlAccounts()).thenReturn(glAccounts);
-        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong()))
+        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenThrow(new RuntimeException("Connection timeout"));
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));

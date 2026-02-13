@@ -99,7 +99,9 @@ public class AssetProvisioningService {
                     request.currencyCode(),
                     request.decimalPlaces(),
                     assetServiceConfig.getGlAccounts().getDigitalAssetInventory(),
-                    assetServiceConfig.getGlAccounts().getCustomerDigitalAssetHoldings()
+                    assetServiceConfig.getGlAccounts().getCustomerDigitalAssetHoldings(),
+                    assetServiceConfig.getGlAccounts().getTransfersInSuspense(),
+                    assetServiceConfig.getGlAccounts().getIncomeFromInterest()
             );
             log.info("Created savings product: productId={}", productId);
 

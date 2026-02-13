@@ -9,7 +9,7 @@ spring:
 
   # Database configuration
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/asset_service}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/asset_service}
     username: ${SPRING_DATASOURCE_USERNAME:asset_service}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     hikari:
@@ -89,8 +89,8 @@ asset-service:
   trade-lock:
     ttl-seconds: 10
   accounting:
-    fee-collection-account-id: ${FEE_COLLECTION_ACCOUNT_ID:}
-    spread-collection-account-id: ${SPREAD_COLLECTION_ACCOUNT_ID:}
+    fee-collection-account-id: ${FEE_COLLECTION_ACCOUNT_ID:1}
+    spread-collection-account-id: ${SPREAD_COLLECTION_ACCOUNT_ID:1}
   rate-limit:
     trade-limit: ${RATE_LIMIT_TRADE:10}
     trade-duration-minutes: ${RATE_LIMIT_TRADE_DURATION:1}
@@ -100,6 +100,8 @@ asset-service:
     digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:47}
     customer-digital-asset-holdings: ${GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS:65}
     asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:22}
+    transfers-in-suspense: ${GL_TRANSFERS_IN_SUSPENSE:73}
+    income-from-interest: ${GL_INCOME_FROM_INTEREST:1}
   archival:
     retention-months: ${ARCHIVAL_RETENTION_MONTHS:12}
     batch-size: ${ARCHIVAL_BATCH_SIZE:1000}
