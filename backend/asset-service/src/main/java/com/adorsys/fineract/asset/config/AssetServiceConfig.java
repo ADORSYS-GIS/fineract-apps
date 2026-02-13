@@ -25,6 +25,15 @@ public class AssetServiceConfig {
     private TradeLock tradeLock = new TradeLock();
     private Accounting accounting = new Accounting();
     private GlAccounts glAccounts = new GlAccounts();
+    private Archival archival = new Archival();
+
+    @Data
+    public static class Archival {
+        /** Number of months to retain records in hot tables before archiving. */
+        private int retentionMonths = 12;
+        /** Number of rows to process per batch during archival. */
+        private int batchSize = 1000;
+    }
 
     @Data
     public static class MarketHours {
