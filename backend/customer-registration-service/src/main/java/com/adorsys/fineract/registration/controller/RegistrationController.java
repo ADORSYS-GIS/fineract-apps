@@ -1,6 +1,7 @@
 package com.adorsys.fineract.registration.controller;
 
 import com.adorsys.fineract.registration.dto.*;
+import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.service.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -67,9 +70,8 @@ public class RegistrationController {
             @ApiResponse(responseCode = "404", description = "Customer not found")
     })
     public ResponseEntity<KycStatusResponse> getKycStatus(
-            @Parameter(description = "Customer external ID from JWT")
-            @RequestHeader(value = "X-External-Id", required = false) String externalId) {
-        // In production, externalId should come from JWT token
+            @AuthenticationPrincipal Jwt jwt) {
+        String externalId = extractExternalId(jwt);
         log.info("Received KYC status request for externalId: {}", externalId);
         KycStatusResponse response = registrationService.getKycStatus(externalId);
         return ResponseEntity.ok(response);
@@ -85,11 +87,27 @@ public class RegistrationController {
             @ApiResponse(responseCode = "404", description = "Customer not found")
     })
     public ResponseEntity<LimitsResponse> getLimits(
-            @Parameter(description = "Customer external ID from JWT")
-            @RequestHeader(value = "X-External-Id", required = false) String externalId) {
-        // In production, externalId should come from JWT token
+            @AuthenticationPrincipal Jwt jwt) {
+        String externalId = extractExternalId(jwt);
         log.info("Received limits request for externalId: {}", externalId);
         LimitsResponse response = registrationService.getLimits(externalId);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Extract the Fineract external ID from the JWT token.
+     */
+    private String extractExternalId(Jwt jwt) {
+        if (jwt == null) {
+            throw new RegistrationException("Authentication required");
+        }
+        String externalId = jwt.getClaimAsString("fineract_external_id");
+        if (externalId == null || externalId.isBlank()) {
+            externalId = jwt.getSubject();
+        }
+        if (externalId == null || externalId.isBlank()) {
+            throw new RegistrationException("External ID not found in token");
+        }
+        return externalId;
     }
 }

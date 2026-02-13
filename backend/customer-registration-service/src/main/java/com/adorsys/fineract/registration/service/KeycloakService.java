@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -25,6 +26,9 @@ public class KeycloakService {
 
     private final Keycloak keycloak;
     private final KeycloakConfig keycloakConfig;
+
+    // Per-user lock striping to prevent concurrent attribute updates to the same user
+    private final ConcurrentHashMap<String, Object> userLocks = new ConcurrentHashMap<>();
 
     /**
      * Create a new Keycloak user for self-service customer.
@@ -39,11 +43,9 @@ public class KeycloakService {
         RealmResource realmResource = keycloak.realm(keycloakConfig.getRealm());
         UsersResource usersResource = realmResource.users();
 
-        // Check if user already exists
-        List<UserRepresentation> existingUsers = usersResource.searchByEmail(request.getEmail(), true);
-        if (!existingUsers.isEmpty()) {
-            throw new RegistrationException("EMAIL_ALREADY_EXISTS", "Email is already registered", "email");
-        }
+        // Note: We do NOT pre-check email uniqueness here to avoid a race condition
+        // (check-then-act gap). Instead, we rely on Keycloak's 409 Conflict response
+        // as the authoritative uniqueness guard.
 
         // Build user representation
         UserRepresentation user = new UserRepresentation();
@@ -120,20 +122,27 @@ public class KeycloakService {
     public void updateKycStatus(String userId, int tier, String status) {
         log.info("Updating KYC status for user {}: tier={}, status={}", userId, tier, status);
 
-        UserResource userResource = keycloak.realm(keycloakConfig.getRealm())
-                .users()
-                .get(userId);
+        Object lock = userLocks.computeIfAbsent(userId, k -> new Object());
+        synchronized (lock) {
+            try {
+                UserResource userResource = keycloak.realm(keycloakConfig.getRealm())
+                        .users()
+                        .get(userId);
 
-        UserRepresentation user = userResource.toRepresentation();
+                UserRepresentation user = userResource.toRepresentation();
 
-        Map<String, List<String>> attributes = user.getAttributes();
-        attributes.put("kyc_tier", List.of(String.valueOf(tier)));
-        attributes.put("kyc_status", List.of(status));
+                Map<String, List<String>> attributes = user.getAttributes();
+                attributes.put("kyc_tier", List.of(String.valueOf(tier)));
+                attributes.put("kyc_status", List.of(status));
 
-        user.setAttributes(attributes);
-        userResource.update(user);
+                user.setAttributes(attributes);
+                userResource.update(user);
 
-        log.info("Updated KYC status for user {}", userId);
+                log.info("Updated KYC status for user {}", userId);
+            } finally {
+                userLocks.remove(userId);
+            }
+        }
     }
 
     /**
@@ -200,22 +209,29 @@ public class KeycloakService {
     public void updateUserAttributes(String userId, Map<String, List<String>> newAttributes) {
         log.info("Updating attributes for user {}: {}", userId, newAttributes.keySet());
 
-        UserResource userResource = keycloak.realm(keycloakConfig.getRealm())
-                .users()
-                .get(userId);
+        Object lock = userLocks.computeIfAbsent(userId, k -> new Object());
+        synchronized (lock) {
+            try {
+                UserResource userResource = keycloak.realm(keycloakConfig.getRealm())
+                        .users()
+                        .get(userId);
 
-        UserRepresentation user = userResource.toRepresentation();
+                UserRepresentation user = userResource.toRepresentation();
 
-        Map<String, List<String>> attributes = user.getAttributes();
-        if (attributes == null) {
-            attributes = new java.util.HashMap<>();
+                Map<String, List<String>> attributes = user.getAttributes();
+                if (attributes == null) {
+                    attributes = new java.util.HashMap<>();
+                }
+                attributes.putAll(newAttributes);
+
+                user.setAttributes(attributes);
+                userResource.update(user);
+
+                log.info("Updated attributes for user {}", userId);
+            } finally {
+                userLocks.remove(userId);
+            }
         }
-        attributes.putAll(newAttributes);
-
-        user.setAttributes(attributes);
-        userResource.update(user);
-
-        log.info("Updated attributes for user {}", userId);
     }
 
     private void assignToGroup(String userId) {

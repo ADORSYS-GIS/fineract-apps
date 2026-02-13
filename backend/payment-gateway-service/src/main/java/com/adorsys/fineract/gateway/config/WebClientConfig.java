@@ -7,10 +7,14 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import javax.net.ssl.SSLException;
+import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
@@ -39,7 +43,20 @@ public class WebClientConfig {
             );
 
         return WebClient.builder()
+            .filter(correlationIdFilter())
             .clientConnector(new ReactorClientHttpConnector(httpClient));
+    }
+
+    private ExchangeFilterFunction correlationIdFilter() {
+        return ExchangeFilterFunction.ofRequestProcessor(request -> {
+            String correlationId = MDC.get("correlationId");
+            if (correlationId != null) {
+                return Mono.just(ClientRequest.from(request)
+                    .header("X-Correlation-ID", correlationId)
+                    .build());
+            }
+            return Mono.just(request);
+        });
     }
 
     @Bean("mtnWebClient")

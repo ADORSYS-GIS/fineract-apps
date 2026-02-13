@@ -36,7 +36,7 @@ jobs:
         id: set-apps
         run: |
           if [ "${{ github.event.inputs.apps }}" == "all" ] || [ "${{ github.event.inputs.apps }}" == "" ]; then
-            echo 'apps=["admin","account-manager","branch-manager","cashier","reporting","accounting"]' >> $GITHUB_OUTPUT
+            echo 'apps=["admin","account-manager","branch-manager","cashier","reporting","accounting","asset-manager","self-service"]' >> $GITHUB_OUTPUT
           else
             APPS=$(echo "${{ github.event.inputs.apps }}" | jq -R 'split(",") | map(. | gsub(" "; ""))')
             echo "apps=$APPS" >> $GITHUB_OUTPUT
@@ -156,7 +156,7 @@ jobs:
             -f event_type='update-frontend-images' \
             -f client_payload[tag]="$TAG" \
             -f client_payload[branch]="$BRANCH" \
-            -f client_payload[apps]='["admin","account-manager","branch-manager","cashier","reporting","accounting"]'
+            -f client_payload[apps]='["admin","account-manager","branch-manager","cashier","reporting","accounting","asset-manager","self-service"]'
 
           echo "### GitOps Update Triggered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

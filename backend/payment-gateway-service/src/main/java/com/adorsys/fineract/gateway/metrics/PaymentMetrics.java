@@ -116,6 +116,51 @@ public class PaymentMetrics {
     }
 
     /**
+     * Increment callback rejected counter (missing fields, invalid signature, etc.).
+     */
+    public void incrementCallbackRejected(PaymentProvider provider, String reason) {
+        Counter.builder("payment_callbacks_rejected_total")
+                .description("Total number of payment callbacks rejected")
+                .tag("provider", provider.name().toLowerCase())
+                .tag("reason", reason)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
+     * Increment successful reversal counter.
+     */
+    public void incrementReversalSuccess() {
+        Counter.builder("payment_reversals_total")
+                .description("Total number of withdrawal reversals")
+                .tag("outcome", "success")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
+     * Increment failed reversal counter.
+     */
+    public void incrementReversalFailure() {
+        Counter.builder("payment_reversals_total")
+                .description("Total number of withdrawal reversals")
+                .tag("outcome", "failure")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
+     * Increment expired transaction counter.
+     */
+    public void incrementTransactionExpired(PaymentProvider provider) {
+        Counter.builder("payment_transactions_expired_total")
+                .description("Total number of transactions expired by cleanup scheduler")
+                .tag("provider", provider.name().toLowerCase())
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
      * Create a timer sample to measure duration.
      */
     public Timer.Sample startTimer() {

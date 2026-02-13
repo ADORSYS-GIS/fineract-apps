@@ -38,7 +38,7 @@ export const SelectAccountTypeView: FC<
 					</button>
 					<div className="hidden md:block">
 						<h2 className="text-xl font-bold text-center mb-6">
-							{t("clientDetails.openAccount")}
+							{t("accountManagerClientDetails.openAccount")}
 						</h2>
 					</div>
 					<div className="md:hidden flex justify-center mb-4">
@@ -46,7 +46,7 @@ export const SelectAccountTypeView: FC<
 					</div>
 					<div className="md:hidden">
 						<h2 className="text-xl font-bold text-center mb-6">
-							{t("clientDetails.openAccount")}
+							{t("accountManagerClientDetails.openAccount")}
 						</h2>
 					</div>
 
