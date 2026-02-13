@@ -28,7 +28,7 @@ class MarketHoursServiceTest {
         marketHours = new AssetServiceConfig.MarketHours();
         marketHours.setOpen("08:00");
         marketHours.setClose("20:00");
-        marketHours.setTimezone("Africa/Lagos");
+        marketHours.setTimezone("Africa/Douala");
         marketHours.setWeekendTradingEnabled(false);
     }
 
@@ -125,7 +125,7 @@ class MarketHoursServiceTest {
         assertTrue(status.schedule().contains("AM"));
         assertTrue(status.schedule().contains("PM"));
 
-        assertEquals("Africa/Lagos", status.timezone());
+        assertEquals("Africa/Douala", status.timezone());
 
         // Either secondsUntilClose > 0 (open) or secondsUntilOpen > 0 (closed)
         if (status.isOpen()) {

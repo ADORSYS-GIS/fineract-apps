@@ -13,12 +13,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Authenticated endpoints for portfolio positions and P&L.
+ * Authenticated endpoints for portfolio positions and Profit&Loss.
  */
 @RestController
 @RequestMapping("/api/portfolio")
 @RequiredArgsConstructor
-@Tag(name = "Portfolio", description = "User positions and P&L")
+@Tag(name = "Portfolio", description = "User positions and Profit&Loss")
 public class PortfolioController {
 
     private final PortfolioService portfolioService;

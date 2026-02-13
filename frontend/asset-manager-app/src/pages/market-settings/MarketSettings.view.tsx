@@ -105,7 +105,7 @@ export const MarketSettingsView: FC<ReturnType<typeof useMarketSettings>> = ({
 						<div className="flex justify-between items-center py-2 border-b border-gray-100">
 							<span className="text-gray-600">Timezone</span>
 							<span className="font-medium">
-								{marketStatus?.timezone ?? "Africa/Lagos"} (WAT)
+								{marketStatus?.timezone ?? "Africa/Douala"} (WAT)
 							</span>
 						</div>
 						<div className="flex justify-between items-center py-2 border-b border-gray-100">

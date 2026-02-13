@@ -17,7 +17,7 @@ import java.util.List;
  * Daily scheduler that transitions ACTIVE bonds to MATURED status
  * when their maturity date has passed.
  * <p>
- * Runs at 00:05 WAT (Africa/Lagos) every day. Idempotent — a bond that is
+ * Runs at 00:05 WAT (Africa/Douala) every day. Idempotent — a bond that is
  * already MATURED will not be selected by the query.
  */
 @Slf4j
@@ -28,7 +28,7 @@ public class MaturityScheduler {
     private final AssetRepository assetRepository;
     private final AssetMetrics assetMetrics;
 
-    @Scheduled(cron = "0 5 0 * * *", zone = "Africa/Lagos")
+    @Scheduled(cron = "0 5 0 * * *", zone = "Africa/Douala")
     @Transactional
     public void matureBonds() {
         LocalDate today = LocalDate.now();

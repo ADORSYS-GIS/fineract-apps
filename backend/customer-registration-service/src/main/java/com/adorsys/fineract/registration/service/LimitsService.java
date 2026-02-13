@@ -20,7 +20,7 @@ public class LimitsService {
     private final FineractService fineractService;
     private final RegistrationMetrics registrationMetrics;
 
-    private static final ZoneId WAT_ZONE = ZoneId.of("Africa/Lagos");
+    private static final ZoneId WAT_ZONE = ZoneId.of("Africa/Douala");
 
     // Tier 1: Unverified customers
     private static final BigDecimal TIER1_DAILY_DEPOSIT = new BigDecimal("50000");

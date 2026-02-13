@@ -2,7 +2,7 @@ package com.adorsys.fineract.asset.dto;
 
 /**
  * Current market status with trading schedule and countdown timers.
- * Market hours: 8AM-8PM WAT (Africa/Lagos).
+ * Market hours: 8AM-8PM WAT (Africa/Douala).
  */
 public record MarketStatusResponse(
     /** Whether the market is currently open for trading. */
@@ -13,6 +13,6 @@ public record MarketStatusResponse(
     long secondsUntilClose,
     /** Seconds remaining until market opens. Zero if market is already open. */
     long secondsUntilOpen,
-    /** Timezone ID, e.g. "Africa/Lagos". */
+    /** Timezone ID, e.g. "Africa/Douala". */
     String timezone
 ) {}

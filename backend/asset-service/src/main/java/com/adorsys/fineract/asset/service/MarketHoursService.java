@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * Enforces market trading hours: 8:00 AM - 8:00 PM WAT (Africa/Lagos).
+ * Enforces market trading hours: 8:00 AM - 8:00 PM WAT (Africa/Douala).
  * Provides market status with countdown timers.
  */
 @Slf4j
