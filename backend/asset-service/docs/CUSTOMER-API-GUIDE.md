@@ -92,11 +92,78 @@ Response:
 
 ---
 
-## Flow 3: Buy Asset
+## Flow 3: Trade Preview
 
-**Prerequisites**: User must have a XAF savings account in Fineract with sufficient balance.
+Before executing a trade, the app can preview fees, net amount, and feasibility. For bond assets, the preview also includes a benefit projection showing expected coupon income and yield.
 
-### 3.1 Check market is open
+```
+POST /api/trades/preview
+Headers: Authorization: Bearer {jwt}
+Body:
+{
+  "assetId": "{asset-uuid}",
+  "side": "BUY",
+  "units": 10
+}
+```
+
+Response:
+```json
+{
+  "feasible": true,
+  "blockers": [],
+  "assetId": "uuid",
+  "assetSymbol": "DTT",
+  "side": "BUY",
+  "units": 10,
+  "basePrice": 5000,
+  "executionPrice": 5050,
+  "spreadPercent": 1.00,
+  "grossAmount": 50500,
+  "fee": 252,
+  "feePercent": 0.50,
+  "spreadAmount": 500,
+  "netAmount": 50752,
+  "availableBalance": 100000,
+  "availableUnits": null,
+  "availableSupply": 85000,
+  "bondBenefit": null
+}
+```
+
+- `feasible` — whether the trade can execute right now
+- `blockers` — reasons if not feasible: `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_FUNDS`, `INSUFFICIENT_INVENTORY`, `NO_POSITION`, `OFFER_EXPIRED`
+- `netAmount` — BUY: total charged (gross + fee). SELL: net proceeds (gross - fee)
+- `bondBenefit` — null for non-bond assets. For bonds (BUY side), includes:
+
+```json
+{
+  "bondBenefit": {
+    "faceValue": 10000,
+    "interestRate": 5.80,
+    "couponFrequencyMonths": 6,
+    "maturityDate": "2028-06-30",
+    "nextCouponDate": "2026-06-30",
+    "couponPerPeriod": 29000,
+    "remainingCouponPayments": 5,
+    "totalCouponIncome": 145000,
+    "principalAtMaturity": 100000,
+    "investmentCost": 100252,
+    "totalProjectedReturn": 245000,
+    "netProjectedProfit": 144748,
+    "annualizedYieldPercent": 6.12,
+    "daysToMaturity": 850
+  }
+}
+```
+
+---
+
+## Flow 4: Buy Asset
+
+**Prerequisites**: User must have a savings account in the settlement currency (XAF) with sufficient balance.
+
+### 4.1 Check market is open
 
 ```
 GET /api/market/status
@@ -104,7 +171,7 @@ GET /api/market/status
 
 Assert `isOpen == true`.
 
-### 3.2 Execute buy
+### 4.2 Execute buy
 
 ```
 POST /api/trades/buy
@@ -142,15 +209,16 @@ Response:
 
 Error responses:
 - `409` - `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_INVENTORY`
+- `409` - `OFFER_EXPIRED` (bond's validity date has passed; SELL is still allowed)
 - `429` - `TRADE_LOCKED` (another trade in progress, retry after a few seconds)
-- `400` - `NO_XAF_ACCOUNT` (user has no active XAF savings account)
+- `400` - `NO_XAF_ACCOUNT` (user has no active settlement currency savings account)
 - `400` - `TRADING_ERROR` (insufficient balance, validation errors)
 
 ---
 
-## Flow 4: Sell Asset
+## Flow 5: Sell Asset
 
-### 4.1 Execute sell
+### 5.1 Execute sell
 
 ```
 POST /api/trades/sell
@@ -191,13 +259,13 @@ Response:
 Error responses:
 - `400` - `NO_POSITION` (user has no holdings for this asset)
 - `400` - `INSUFFICIENT_UNITS` (trying to sell more than held)
-- `400` - `NO_XAF_ACCOUNT` (user has no active XAF savings account)
+- `400` - `NO_XAF_ACCOUNT` (user has no active settlement currency savings account)
 
 ---
 
-## Flow 5: View Portfolio
+## Flow 6: View Portfolio
 
-### 5.1 Full Portfolio
+### 6.1 Full Portfolio
 
 ```
 GET /api/portfolio
@@ -223,13 +291,16 @@ Response:
       "costBasis": 50000,
       "unrealizedPnl": 5000,
       "unrealizedPnlPercent": 10.0,
-      "realizedPnl": 0
+      "realizedPnl": 0,
+      "bondBenefit": null
     }
   ]
 }
 ```
 
-### 5.2 Single Position
+For bond positions, the `bondBenefit` field contains projected coupon income and principal return (same structure as the trade preview, but without `investmentCost`, `netProjectedProfit`, or `annualizedYieldPercent` since the user already holds the position).
+
+### 6.2 Single Position
 
 ```
 GET /api/portfolio/positions/{assetId}
@@ -238,7 +309,7 @@ Headers: Authorization: Bearer {jwt}
 
 ---
 
-## Flow 6: Trade History
+## Flow 7: Trade History
 
 ```
 GET /api/trades/orders?page=0&size=20&assetId={optional}
@@ -264,9 +335,11 @@ Response:
 }
 ```
 
+> **Note:** Orders older than the configured retention period (default 12 months) are automatically archived and will no longer appear in this endpoint. Archived orders can be queried via the admin API or direct SQL.
+
 ---
 
-## Flow 7: Favorites / Watchlist
+## Flow 8: Favorites / Watchlist
 
 ```
 POST /api/favorites/{assetId}          → 201 Created
@@ -277,7 +350,7 @@ Headers: Authorization: Bearer {jwt}
 
 ---
 
-## Flow 8: Discover Upcoming Assets
+## Flow 9: Discover Upcoming Assets
 
 ```
 GET /api/assets/discover?page=0&size=20
