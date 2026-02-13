@@ -1,0 +1,42 @@
+name: Build Backend
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/build-backend.yml"
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/build-backend.yml"
+
+jobs:
+  build:
+    name: Build Backend Services
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Build asset-service
+        run: mvn -B package --file backend/asset-service/pom.xml
+
+      - name: Build customer-registration-service
+        run: mvn -B package --file backend/customer-registration-service/pom.xml
+
+      - name: Build payment-gateway-service
+        run: mvn -B package --file backend/payment-gateway-service/pom.xml

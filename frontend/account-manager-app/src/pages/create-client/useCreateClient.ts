@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
+import { z } from "zod";
 import { useCreateClientMutation } from "@/hooks/useCreateClientMutation";
 import { fineractApi } from "@/services/api";
 import {
-	type CreateClientForm,
 	createClientValidationSchema,
 	initialValues,
 } from "./CreateClient.types";
