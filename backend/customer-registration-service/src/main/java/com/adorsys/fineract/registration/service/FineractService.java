@@ -5,13 +5,7 @@ import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
 import java.time.format.DateTimeFormatter;
