@@ -70,7 +70,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 			return (
 				<div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center shadow-md">
 					<span className="text-sm text-gray-500">
-						{t("clientDetails.loading")}
+						{t("accountManagerClientDetails.loading")}
 					</span>
 				</div>
 			);
@@ -87,7 +87,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 		return (
 			<div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center shadow-md">
 				<span className="text-sm text-gray-500">
-					{t("clientDetails.noImage")}
+					{t("accountManagerClientDetails.noImage")}
 				</span>
 			</div>
 		);
@@ -107,7 +107,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 						</Button>
 					</Link>
 					<h1 className="text-xl font-semibold">
-						{t("clientDetails.clientProfile")}
+						{t("accountManagerClientDetails.clientProfile")}
 					</h1>
 					<Button
 						variant="ghost"
@@ -139,32 +139,32 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 										onClick={() => fileInputRef.current?.click()}
 									>
 										<Upload className="h-4 w-4" />
-										<span>{t("clientDetails.upload")}</span>
+										<span>{t("accountManagerClientDetails.upload")}</span>
 									</button>
 									<button
 										className="flex items-center space-x-1 text-sm"
 										onClick={() => setIsCaptureModalOpen(true)}
 									>
 										<Camera className="h-4 w-4" />
-										<span>{t("clientDetails.capture")}</span>
+										<span>{t("accountManagerClientDetails.capture")}</span>
 									</button>
 									<button
 										className="flex items-center space-x-1 text-sm text-red-500"
 										onClick={() => deleteImage(String(client?.id))}
 									>
 										<Trash2 className="h-4 w-4" />
-										<span>{t("clientDetails.delete")}</span>
+										<span>{t("accountManagerClientDetails.delete")}</span>
 									</button>
 								</div>
 								<h2 className="text-2xl font-bold">{client?.displayName}</h2>
 								<p className="text-sm text-gray-500 mt-1">
-									{t("clientDetails.clientId")} {client?.accountNo}
+									{t("accountManagerClientDetails.clientId")} {client?.accountNo}
 								</p>
 								<p className="text-sm text-gray-500 mt-1">
-									{t("clientDetails.phone")} {client?.mobileNo}
+									{t("accountManagerClientDetails.phone")} {client?.mobileNo}
 								</p>
 								<p className="text-sm text-gray-500">
-									{t("clientDetails.joined")}{" "}
+									{t("accountManagerClientDetails.joined")}{" "}
 									{parseFineractDate(
 										client?.timeline?.submittedOnDate,
 									)?.toLocaleDateString("en-US", {
@@ -178,7 +178,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 									params={{ clientId: String(client?.id) }}
 								>
 									<Button className="w-full">
-										{t("clientDetails.openAccount")}
+										{t("accountManagerClientDetails.openAccount")}
 									</Button>
 								</Link>
 							</div>
@@ -188,7 +188,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 						<div className="bg-white p-6 rounded-lg shadow-md">
 							<div className="flex justify-between items-center mb-4">
 								<h3 className="text-lg font-semibold">
-									{t("clientDetails.accounts")}
+									{t("accountManagerClientDetails.accounts")}
 								</h3>
 								{accounts?.savingsAccounts &&
 								accounts.savingsAccounts.length > 0 ? (
@@ -197,7 +197,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 										params={{ clientId: String(client?.id) }}
 									>
 										<Button variant="outline">
-											{t("clientDetails.addAnotherAccount")}
+											{t("accountManagerClientDetails.addAnotherAccount")}
 										</Button>
 									</Link>
 								) : null}
@@ -228,7 +228,7 @@ export const ClientDetailsView: FC<ReturnType<typeof useClientDetails>> = ({
 								</>
 							) : (
 								<p className="text-gray-500">
-									{t("clientDetails.noAccountOpenedYet")}
+									{t("accountManagerClientDetails.noAccountOpenedYet")}
 								</p>
 							)}
 						</div>
