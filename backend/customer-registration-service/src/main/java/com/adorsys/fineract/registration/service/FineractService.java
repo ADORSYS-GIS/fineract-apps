@@ -1,45 +1,43 @@
 package com.adorsys.fineract.registration.service;
 
-import com.adorsys.fineract.registration.config.FineractConfig;
-import com.adorsys.fineract.registration.dto.RegistrationRequest;
+import com.adorsys.fineract.registration.config.FineractProperties;
+import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
-
 import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class FineractService {
 
     private final RestClient fineractRestClient;
-    private final FineractConfig fineractConfig;
+    private final FineractProperties fineractProperties;
+    private final DateTimeFormatter dateTimeFormatter;
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+    public FineractService(RestClient fineractRestClient, FineractProperties fineractProperties) {
+        this.fineractRestClient = fineractRestClient;
+        this.fineractProperties = fineractProperties;
+        this.dateTimeFormatter = DateTimeFormatter.ofPattern(fineractProperties.getDefaultDateFormat());
+    }
 
     /**
      * Create a new client in Fineract.
      *
      * @param request    Registration request data
-     * @param externalId UUID to link with Keycloak
      * @return Fineract client ID
      */
-    public Long createClient(RegistrationRequest request, String externalId) {
+    public Long createClient(RegistrationRequest request) {
         log.info("Creating Fineract client for email: {}", request.getEmail());
 
-        Map<String, Object> clientPayload = buildClientPayload(request, externalId);
+        Map<String, Object> clientPayload = buildClientPayload(request);
+        log.debug("Fineract client creation request payload: {}", clientPayload);
 
         try {
             @SuppressWarnings("unchecked")
@@ -48,7 +46,7 @@ public class FineractService {
                     .body(clientPayload)
                     .retrieve()
                     .body(Map.class);
-
+            log.debug("Fineract client creation successful response: {}", response);
             if (response != null && response.containsKey("clientId")) {
                 Long clientId = ((Number) response.get("clientId")).longValue();
                 log.info("Created Fineract client with ID: {}", clientId);
@@ -56,27 +54,15 @@ public class FineractService {
             }
 
             throw new RegistrationException("Failed to create Fineract client: invalid response");
+        } catch (HttpClientErrorException e) {
+            log.error("Fineract API error: {}", e.getResponseBodyAsString(), e);
+            throw new RegistrationException("Failed to create Fineract client: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             log.error("Failed to create Fineract client: {}", e.getMessage(), e);
             throw new RegistrationException("Failed to create client account", e);
         }
     }
 
-    /**
-     * Delete a client (for rollback).
-     */
-    public void deleteClient(Long clientId) {
-        log.info("Deleting Fineract client: {}", clientId);
-        try {
-            fineractRestClient.delete()
-                    .uri("/fineract-provider/api/v1/clients/{clientId}", clientId)
-                    .retrieve()
-                    .toBodilessEntity();
-            log.info("Deleted Fineract client: {}", clientId);
-        } catch (Exception e) {
-            log.error("Failed to delete Fineract client {}: {}", clientId, e.getMessage());
-        }
-    }
 
     /**
      * Get client by external ID.
@@ -189,138 +175,37 @@ public class FineractService {
         return null;
     }
 
-    /**
-     * Upload document for KYC.
-     *
-     * @param clientId    Fineract client ID
-     * @param name        Document name
-     * @param description Document description
-     * @param content     File content as byte array
-     * @param contentType MIME type of the file
-     * @param fileName    Original file name
-     * @return Fineract document ID
-     */
-    @SuppressWarnings("unchecked")
-    public Long uploadDocument(Long clientId, String name, String description, byte[] content, String contentType, String fileName) {
-        log.info("Uploading document for client {}: {} ({})", clientId, name, contentType);
-
-        try {
-            // Create a ByteArrayResource that provides a filename
-            ByteArrayResource fileResource = new ByteArrayResource(content) {
-                @Override
-                public String getFilename() {
-                    return fileName;
-                }
-            };
-
-            // Build multipart body
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("name", name);
-            body.add("description", description);
-
-            // Add file with proper headers
-            HttpHeaders fileHeaders = new HttpHeaders();
-            fileHeaders.setContentType(MediaType.parseMediaType(contentType));
-            HttpEntity<ByteArrayResource> filePart = new HttpEntity<>(fileResource, fileHeaders);
-            body.add("file", filePart);
-
-            Map<String, Object> response = fineractRestClient.post()
-                    .uri("/fineract-provider/api/v1/clients/{clientId}/documents", clientId)
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(body)
-                    .retrieve()
-                    .body(Map.class);
-
-            if (response != null && response.containsKey("resourceId")) {
-                Long documentId = ((Number) response.get("resourceId")).longValue();
-                log.info("Uploaded document with ID: {} for client: {}", documentId, clientId);
-                return documentId;
-            }
-
-            throw new RegistrationException("Failed to upload document: invalid response");
-        } catch (Exception e) {
-            log.error("Failed to upload document for client {}: {}", clientId, e.getMessage(), e);
-            throw new RegistrationException("Failed to upload document: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Get documents for a client by external ID.
-     */
-    @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> getClientDocumentsByExternalId(String externalId) {
-        log.info("Getting documents for client with external ID: {}", externalId);
-
-        Map<String, Object> client = getClientByExternalId(externalId);
-        if (client == null) {
-            log.warn("Client not found for external ID: {}", externalId);
-            return List.of();
-        }
-
-        Long clientId = ((Number) client.get("id")).longValue();
-        return getClientDocuments(clientId);
-    }
-
-    /**
-     * Get documents for a client by client ID.
-     */
-    @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> getClientDocuments(Long clientId) {
-        log.info("Getting documents for client: {}", clientId);
-
-        try {
-            List<Map<String, Object>> response = fineractRestClient.get()
-                    .uri("/fineract-provider/api/v1/clients/{clientId}/documents", clientId)
-                    .retrieve()
-                    .body(List.class);
-
-            return response != null ? response : List.of();
-        } catch (Exception e) {
-            log.error("Failed to get documents for client {}: {}", clientId, e.getMessage());
-            return List.of();
-        }
-    }
-
-    /**
-     * Get a specific document's metadata.
-     */
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> getDocument(Long clientId, Long documentId) {
-        log.info("Getting document {} for client {}", documentId, clientId);
-
-        try {
-            return fineractRestClient.get()
-                    .uri("/fineract-provider/api/v1/clients/{clientId}/documents/{documentId}", clientId, documentId)
-                    .retrieve()
-                    .body(Map.class);
-        } catch (Exception e) {
-            log.error("Failed to get document {} for client {}: {}", documentId, clientId, e.getMessage());
-            return null;
-        }
-    }
 
 
-    private Map<String, Object> buildClientPayload(RegistrationRequest request, String externalId) {
+    private Map<String, Object> buildClientPayload(RegistrationRequest request) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("officeId", fineractConfig.getDefaultOfficeId());
+        String currentDate = LocalDate.now().format(dateTimeFormatter);
+
+        payload.put("officeId", fineractProperties.getDefaultOfficeId());
         payload.put("firstname", request.getFirstName());
         payload.put("lastname", request.getLastName());
-        payload.put("externalId", externalId);
+        payload.put("externalId", request.getExternalId());
         payload.put("mobileNo", request.getPhone());
         payload.put("emailAddress", request.getEmail());
-        payload.put("active", false); // Pending KYC activation
-        payload.put("legalFormId", 1); // Person
-        payload.put("locale", "en");
-        payload.put("dateFormat", "dd MMMM yyyy");
+        payload.put("active", true);
+        payload.put("activationDate", currentDate);
+        payload.put("submittedOnDate", currentDate);
+        payload.put("legalFormId", fineractProperties.getDefaultLegalFormId());
+        payload.put("locale", fineractProperties.getDefaultLocale());
+        payload.put("dateFormat", fineractProperties.getDefaultDateFormat());
 
         if (request.getDateOfBirth() != null) {
-            payload.put("dateOfBirth", request.getDateOfBirth().format(DATE_FORMATTER));
-        }
-
-        if (request.getGender() != null) {
-            payload.put("genderId", fineractConfig.getDefaultGenderId());
+            payload.put("dateOfBirth", request.getDateOfBirth().format(dateTimeFormatter));
         }
 
         return payload;
+    }
+
+    public void updateClient(Long clientId, com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest request) {
+        // TODO: This is a stub. Implement the actual call to Fineract's PUT /clients/{clientId} endpoint.
+        log.warn("STUB: FineractService.updateClient is not yet implemented.");
+        // In a real implementation, you would build the request body and make the API call.
+        // For now, we'll just throw an exception to indicate it's not implemented.
+        throw new UnsupportedOperationException("updateClient is not yet implemented");
     }
 }
