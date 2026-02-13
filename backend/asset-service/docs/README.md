@@ -65,17 +65,25 @@ http://localhost:8083/actuator/health
 | `FINERACT_PASSWORD` | `password` | Fineract password (basic auth) |
 | `KEYCLOAK_ISSUER_URI` | — | Keycloak realm issuer URI |
 | `KEYCLOAK_JWK_SET_URI` | — | Keycloak JWKS endpoint |
+| `SETTLEMENT_CURRENCY` | `XAF` | ISO 4217 settlement currency code |
+| `FEE_COLLECTION_ACCOUNT_ID` | — | Platform-wide fee collection savings account ID |
+| `SPREAD_COLLECTION_ACCOUNT_ID` | — | Spread collection savings account ID (optional) |
+| `ARCHIVAL_RETENTION_MONTHS` | `12` | Months to retain records before archival |
+| `ARCHIVAL_BATCH_SIZE` | `1000` | Rows per archival batch |
 
 ## Database
 
-8 Flyway migrations create the following tables:
-- `assets` - Asset catalog (symbol, currency code, category, status, supply)
-- `asset_prices` - Current price + OHLC data
-- `price_history` - Time-series for charts
-- `user_positions` - WAP tracking per user per asset
-- `orders` - Trade orders with idempotency
-- `trade_log` - Executed trades (feeds recent trades)
-- `user_favorites` - Watchlist
+Flyway migrations create the following tables:
+- `assets` — Asset catalog (symbol, currency code, category, status, supply, bond fields)
+- `asset_prices` — Current price + OHLC data
+- `price_history` — Time-series for charts
+- `user_positions` — WAP tracking per user per asset
+- `orders` — Trade orders with idempotency
+- `trade_log` — Executed trades (immutable audit log)
+- `user_favorites` — Watchlist
+- `interest_payments` — Bond coupon payment audit log
+- `orders_archive` — Archived old orders (moved by ArchivalScheduler)
+- `trade_log_archive` — Archived old trade logs (moved by ArchivalScheduler)
 
 ## API Documentation
 
@@ -83,6 +91,17 @@ http://localhost:8083/actuator/health
 - [Admin Guide](ADMIN-GUIDE.md) - Asset management operations
 - [Accounting Guide](ACCOUNTING.md) - GL account mappings and journal entries
 
+## Scheduled Jobs
+
+| Job | Schedule | Purpose |
+|-----|----------|---------|
+| MaturityScheduler | 00:05 WAT daily | Transitions ACTIVE bonds to MATURED when maturity date passes |
+| InterestPaymentScheduler | 00:15 WAT daily | Pays bond coupons to all holders of eligible bonds |
+| StaleOrderCleanupScheduler | Every 5 min | Fails stale PENDING orders, flags stuck EXECUTING as NEEDS_RECONCILIATION |
+| PriceSnapshotScheduler | Hourly (configurable) | Captures price snapshots for chart history |
+| OhlcScheduler | Every 60s | Resets/closes daily OHLC candles at market open/close |
+| ArchivalScheduler | 03:00 WAT 1st of month | Archives trade_log + orders older than retention period (default 12 months) |
+
 ## Market Hours
 
-Trading is only allowed **8:00 AM - 8:00 PM WAT** (Africa/Lagos), Monday-Friday. Configured in `application.yml` under `asset-service.market-hours`.
+Trading is only allowed **8:00 AM - 8:00 PM WAT** (Africa/Douala), Monday-Friday. Configured in `application.yml` under `asset-service.market-hours`.

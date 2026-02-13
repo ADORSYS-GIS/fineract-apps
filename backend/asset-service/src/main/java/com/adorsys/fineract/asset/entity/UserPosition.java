@@ -49,15 +49,15 @@ public class UserPosition {
     @Column(name = "total_units", nullable = false, precision = 20, scale = 8)
     private BigDecimal totalUnits;
 
-    /** Weighted average purchase price per unit, in XAF. Recalculated on each BUY using the formula: (oldCost + newCost) / (oldUnits + newUnits). */
+    /** Weighted average purchase price per unit, in settlement currency. Recalculated on each BUY using the formula: (oldCost + newCost) / (oldUnits + newUnits). */
     @Column(name = "avg_purchase_price", nullable = false, precision = 20, scale = 4)
     private BigDecimal avgPurchasePrice;
 
-    /** Total amount spent acquiring the current position, in XAF. Equal to avgPurchasePrice × totalUnits. */
+    /** Total amount spent acquiring the current position, in settlement currency. Equal to avgPurchasePrice × totalUnits. */
     @Column(name = "total_cost_basis", nullable = false, precision = 20, scale = 0)
     private BigDecimal totalCostBasis;
 
-    /** Cumulative realized profit/loss from all completed SELL trades for this position, in XAF. Starts at 0. Updated on each SELL as: realizedPnl += (sellPrice - avgPurchasePrice) × unitsSold. */
+    /** Cumulative realized profit/loss from all completed SELL trades for this position, in settlement currency. Starts at 0. Updated on each SELL as: realizedPnl += (sellPrice - avgPurchasePrice) × unitsSold. */
     @Column(name = "realized_pnl", nullable = false, precision = 20, scale = 0)
     private BigDecimal realizedPnl;
 

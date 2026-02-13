@@ -26,14 +26,16 @@ public record TradePreviewResponse(
     /** grossAmount x feePercent */
     BigDecimal fee,
     BigDecimal feePercent,
-    /** Spread amount in XAF. Zero if spread is disabled. */
+    /** Spread amount in settlement currency. Zero if spread is disabled. */
     BigDecimal spreadAmount,
     /** BUY: grossAmount + fee (total charged). SELL: grossAmount - fee (net proceeds). */
     BigDecimal netAmount,
-    /** User's available XAF balance, null if could not resolve. */
+    /** User's available cash balance, null if could not resolve. */
     BigDecimal availableBalance,
     /** User's held units for this asset (SELL only), null for BUY. */
     BigDecimal availableUnits,
     /** Remaining asset inventory (BUY only), null for SELL. */
-    BigDecimal availableSupply
+    BigDecimal availableSupply,
+    /** Bond benefit projections (coupon income, total return, yield). Null for non-bond assets. */
+    BondBenefitProjection bondBenefit
 ) {}

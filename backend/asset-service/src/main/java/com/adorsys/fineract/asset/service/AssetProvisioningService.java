@@ -66,25 +66,26 @@ public class AssetProvisioningService {
         Long treasuryCashAccountId = null;
 
         try {
-            // Step 1: Auto-derive treasury XAF cash account
+            // Step 1: Auto-derive treasury cash account (settlement currency)
+            String settlementCurrency = assetServiceConfig.getSettlementCurrency();
             List<Map<String, Object>> accounts = fineractClient.getClientSavingsAccounts(request.treasuryClientId());
-            List<Long> matchingXafAccounts = accounts.stream()
+            List<Long> matchingCashAccounts = accounts.stream()
                     .filter(a -> {
                         Map<String, Object> currency = (Map<String, Object>) a.get("currency");
                         Map<String, Object> status = (Map<String, Object>) a.get("status");
-                        return currency != null && "XAF".equals(currency.get("code"))
+                        return currency != null && settlementCurrency.equals(currency.get("code"))
                                 && status != null && Boolean.TRUE.equals(status.get("active"));
                     })
                     .map(a -> ((Number) a.get("id")).longValue())
                     .toList();
-            if (matchingXafAccounts.size() > 1) {
-                log.warn("Multiple active XAF savings accounts found for treasury client {}: {}. Using first: {}",
-                        request.treasuryClientId(), matchingXafAccounts, matchingXafAccounts.get(0));
+            if (matchingCashAccounts.size() > 1) {
+                log.warn("Multiple active {} savings accounts found for treasury client {}: {}. Using first: {}",
+                        settlementCurrency, request.treasuryClientId(), matchingCashAccounts, matchingCashAccounts.get(0));
             }
-            treasuryCashAccountId = matchingXafAccounts.stream().findFirst()
+            treasuryCashAccountId = matchingCashAccounts.stream().findFirst()
                     .orElseThrow(() -> new AssetException(
-                            "No active XAF savings account found for company (client ID: " + request.treasuryClientId()
-                            + "). Please create and approve a XAF savings account for this company in the Account Manager before creating an asset."));
+                            "No active " + settlementCurrency + " savings account found for company (client ID: " + request.treasuryClientId()
+                            + "). Please create and approve a " + settlementCurrency + " savings account for this company in the Account Manager before creating an asset."));
             log.info("Auto-derived treasury cash account: {}", treasuryCashAccountId);
 
             // Step 2: Register custom currency in Fineract

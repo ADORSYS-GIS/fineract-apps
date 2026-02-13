@@ -32,17 +32,17 @@ public record AssetDetailResponse(
     AssetStatus status,
     /** How the price is determined: AUTO or MANUAL. */
     PriceMode priceMode,
-    /** Latest price per unit, in XAF. */
+    /** Latest price per unit, in settlement currency. */
     BigDecimal currentPrice,
     /** 24-hour price change as a percentage (e.g. 2.5 = +2.5%). */
     BigDecimal change24hPercent,
-    /** Opening price for the current trading day, in XAF. */
+    /** Opening price for the current trading day, in settlement currency. */
     BigDecimal dayOpen,
-    /** Highest price reached during the current trading day, in XAF. */
+    /** Highest price reached during the current trading day, in settlement currency. */
     BigDecimal dayHigh,
-    /** Lowest price reached during the current trading day, in XAF. */
+    /** Lowest price reached during the current trading day, in settlement currency. */
     BigDecimal dayLow,
-    /** Closing price for the current trading day, in XAF. */
+    /** Closing price for the current trading day, in settlement currency. */
     BigDecimal dayClose,
     /** Maximum total units that can ever exist. */
     BigDecimal totalSupply,
@@ -63,7 +63,7 @@ public record AssetDetailResponse(
     Long treasuryClientId,
     /** Fineract savings account ID for the treasury's asset units. */
     Long treasuryAssetAccountId,
-    /** Fineract savings account ID for the treasury's XAF cash. */
+    /** Fineract savings account ID for the treasury's cash. */
     Long treasuryCashAccountId,
     /** Corresponding Fineract savings product ID. */
     Integer fineractProductId,

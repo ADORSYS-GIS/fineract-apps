@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TradingException.class)
     public ResponseEntity<ErrorResponse> handleTradingException(TradingException ex) {
         HttpStatus status = switch (ex.getErrorCode()) {
-            case "NO_XAF_ACCOUNT", "NO_POSITION", "INSUFFICIENT_UNITS", "INSUFFICIENT_FUNDS" -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case "NO_CASH_ACCOUNT", "NO_POSITION", "INSUFFICIENT_UNITS", "INSUFFICIENT_FUNDS" -> HttpStatus.UNPROCESSABLE_ENTITY;
             case "IDEMPOTENCY_KEY_CONFLICT" -> HttpStatus.CONFLICT;
             case "TRADE_FAILED" -> HttpStatus.BAD_GATEWAY;
             case "CONFIG_ERROR" -> HttpStatus.INTERNAL_SERVER_ERROR;

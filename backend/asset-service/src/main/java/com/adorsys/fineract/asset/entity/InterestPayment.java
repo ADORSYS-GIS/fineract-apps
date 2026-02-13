@@ -13,9 +13,9 @@ import java.time.LocalDate;
 /**
  * Audit record for a coupon (interest) payment made to a bond holder.
  * <p>
- * Each row represents one XAF transfer from the treasury cash account to a user's XAF account.
+ * Each row represents one cash transfer from the treasury cash account to a user's settlement currency account.
  * The payment amount is calculated as:
- * {@code xafAmount = units * faceValue * (annualRate / 100) * (periodMonths / 12)}
+ * {@code cashAmount = units * faceValue * (annualRate / 100) * (periodMonths / 12)}
  */
 @Data
 @Entity
@@ -41,7 +41,7 @@ public class InterestPayment {
     @Column(nullable = false, precision = 20, scale = 8)
     private BigDecimal units;
 
-    /** Face value per unit (asset's manual price at payment time), in XAF. */
+    /** Face value per unit (asset's manual price at payment time), in settlement currency. */
     @Column(name = "face_value", nullable = false, precision = 20, scale = 0)
     private BigDecimal faceValue;
 
@@ -53,9 +53,9 @@ public class InterestPayment {
     @Column(name = "period_months", nullable = false)
     private Integer periodMonths;
 
-    /** Computed XAF amount transferred to the user. */
-    @Column(name = "xaf_amount", nullable = false, precision = 20, scale = 0)
-    private BigDecimal xafAmount;
+    /** Computed settlement currency amount transferred to the user. */
+    @Column(name = "cash_amount", nullable = false, precision = 20, scale = 0)
+    private BigDecimal cashAmount;
 
     /** Fineract account transfer ID, if the transfer succeeded. Null on failure. */
     @Column(name = "fineract_transfer_id")

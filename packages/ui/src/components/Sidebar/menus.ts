@@ -138,6 +138,12 @@ export const menuAssetManager: MenuItem[] = [
 		icon: LineChart,
 	},
 	{
+		name: "order-resolution",
+		title: "sidebar.orderResolution",
+		link: "/order-resolution",
+		icon: ClipboardCheck,
+	},
+	{
 		name: "settings",
 		title: "sidebar.settings",
 		link: "/settings",

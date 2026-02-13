@@ -19,7 +19,8 @@
 			"logout": "Déconnexion",
 			"createAsset": "Créer un actif",
 			"inventory": "Inventaire",
-			"marketSettings": "Paramètres du marché"
+			"marketSettings": "Paramètres du marché",
+			"orderResolution": "Résolution d'ordres"
 		},
 		"navbar": {
 			"onlineBank": "Banque en ligne"

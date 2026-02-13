@@ -75,10 +75,11 @@ fineract:
 
 # Asset Service Configuration
 asset-service:
+  settlement-currency: ${SETTLEMENT_CURRENCY:XAF}
   market-hours:
     open: "08:00"
     close: "20:00"
-    timezone: "Africa/Lagos"
+    timezone: "Africa/Douala"
     weekend-trading-enabled: false
   pricing:
     snapshot-cron: "0 0 * * * *"
@@ -99,6 +100,9 @@ asset-service:
     digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:47}
     customer-digital-asset-holdings: ${GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS:65}
     asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:22}
+  archival:
+    retention-months: ${ARCHIVAL_RETENTION_MONTHS:12}
+    batch-size: ${ARCHIVAL_BATCH_SIZE:1000}
 
 # Resilience4j Circuit Breaker
 resilience4j:

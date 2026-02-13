@@ -127,7 +127,7 @@ public class AdminAssetController {
     private CouponPaymentResponse toCouponPaymentResponse(InterestPayment ip) {
         return new CouponPaymentResponse(
                 ip.getId(), ip.getUserId(), ip.getUnits(), ip.getFaceValue(),
-                ip.getAnnualRate(), ip.getPeriodMonths(), ip.getXafAmount(),
+                ip.getAnnualRate(), ip.getPeriodMonths(), ip.getCashAmount(),
                 ip.getFineractTransferId(), ip.getStatus(), ip.getFailureReason(),
                 ip.getPaidAt(), ip.getCouponDate()
         );

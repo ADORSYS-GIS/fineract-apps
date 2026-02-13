@@ -18,14 +18,14 @@ public record CouponPaymentResponse(
     Long userId,
     /** Number of bond units held by the user at payment time. */
     BigDecimal units,
-    /** Face value per unit (asset price) at payment time, in XAF. */
+    /** Face value per unit (asset price) at payment time, in settlement currency. */
     BigDecimal faceValue,
     /** Annual coupon rate used for calculation (e.g. 5.80). */
     BigDecimal annualRate,
     /** Coupon period in months (e.g. 6 for semi-annual). */
     Integer periodMonths,
-    /** XAF amount transferred to the user. */
-    BigDecimal xafAmount,
+    /** Settlement currency amount transferred to the user. */
+    BigDecimal cashAmount,
     /** Fineract account transfer ID. Null if the transfer failed. */
     Long fineractTransferId,
     /** Payment status: SUCCESS or FAILED. */

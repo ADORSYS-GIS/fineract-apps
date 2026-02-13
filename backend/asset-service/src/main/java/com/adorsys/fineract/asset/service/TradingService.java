@@ -64,6 +64,7 @@ public class TradingService {
     private final PricingService pricingService;
     private final AssetServiceConfig assetServiceConfig;
     private final AssetMetrics assetMetrics;
+    private final BondBenefitService bondBenefitService;
 
     /**
      * Execute a BUY order. User identity and accounts are resolved from the JWT.
@@ -81,7 +82,7 @@ public class TradingService {
             }
             log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
             return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
-                    o.getExecutionPrice(), o.getXafAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
+                    o.getExecutionPrice(), o.getCashAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
         }
 
         // 2. Market hours check
@@ -127,12 +128,13 @@ public class TradingService {
         Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
         Long userId = ((Number) clientData.get("id")).longValue();
 
-        // 8. Resolve user XAF account
-        Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, "XAF");
+        // 8. Resolve user cash account
+        String currency = assetServiceConfig.getSettlementCurrency();
+        Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, currency);
         if (userCashAccountId == null) {
             throw new TradingException(
-                    "No active XAF account found. Please create one in the Account Manager.",
-                    "NO_XAF_ACCOUNT");
+                    "No active " + currency + " account found. Please create one in the Account Manager.",
+                    "NO_CASH_ACCOUNT");
         }
 
         // 9. Resolve or create user asset account
@@ -147,7 +149,7 @@ public class TradingService {
                 .userExternalId(externalId)
                 .assetId(request.assetId())
                 .side(TradeSide.BUY)
-                .xafAmount(chargedAmount)
+                .cashAmount(chargedAmount)
                 .units(units)
                 .executionPrice(executionPrice)
                 .fee(fee)
@@ -195,19 +197,19 @@ public class TradingService {
 
             // Update order with authoritative locked values
             order.setExecutionPrice(executionPrice);
-            order.setXafAmount(chargedAmount);
+            order.setCashAmount(chargedAmount);
             order.setFee(fee);
             order.setSpreadAmount(spreadAmount);
             orderRepository.save(order);
 
-            // 12b2. Verify user has sufficient XAF balance for the purchase
+            // 12b2. Verify user has sufficient balance for the purchase
             BigDecimal availableBalance = fineractClient.getAccountBalance(userCashAccountId);
             if (availableBalance.compareTo(chargedAmount) < 0) {
                 order.setStatus(OrderStatus.REJECTED);
-                order.setFailureReason("Insufficient XAF balance");
+                order.setFailureReason("Insufficient " + currency + " balance");
                 orderRepository.save(order);
                 throw new TradingException(
-                        "Insufficient XAF balance. Required: " + chargedAmount + " XAF, Available: " + availableBalance + " XAF",
+                        "Insufficient " + currency + " balance. Required: " + chargedAmount + " " + currency + ", Available: " + availableBalance + " " + currency,
                         "INSUFFICIENT_FUNDS");
             }
 
@@ -320,7 +322,7 @@ public class TradingService {
             }
             log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
             return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
-                    o.getExecutionPrice(), o.getXafAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
+                    o.getExecutionPrice(), o.getCashAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
         }
 
         // 2. Market hours check
@@ -341,7 +343,7 @@ public class TradingService {
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
         BigDecimal executionPrice = basePrice.subtract(basePrice.multiply(effectiveSpread));
 
-        // 5. Calculate XAF amount and fee
+        // 5. Calculate cash amount and fee
         BigDecimal units = request.units();
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
@@ -354,12 +356,13 @@ public class TradingService {
         Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
         Long userId = ((Number) clientData.get("id")).longValue();
 
-        // 7. Resolve user XAF account
-        Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, "XAF");
+        // 7. Resolve user cash account
+        String currency = assetServiceConfig.getSettlementCurrency();
+        Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, currency);
         if (userCashAccountId == null) {
             throw new TradingException(
-                    "No active XAF account found. Please create one in the Account Manager.",
-                    "NO_XAF_ACCOUNT");
+                    "No active " + currency + " account found. Please create one in the Account Manager.",
+                    "NO_CASH_ACCOUNT");
         }
 
         // 8. Resolve user asset account from existing position
@@ -385,7 +388,7 @@ public class TradingService {
                 .userExternalId(externalId)
                 .assetId(request.assetId())
                 .side(TradeSide.SELL)
-                .xafAmount(netAmount)
+                .cashAmount(netAmount)
                 .units(units)
                 .executionPrice(executionPrice)
                 .fee(fee)
@@ -438,7 +441,7 @@ public class TradingService {
 
             // Update order with authoritative locked values
             order.setExecutionPrice(executionPrice);
-            order.setXafAmount(netAmount);
+            order.setCashAmount(netAmount);
             order.setFee(fee);
             order.setSpreadAmount(spreadAmount);
             orderRepository.save(order);
@@ -602,9 +605,9 @@ public class TradingService {
             Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
             Long userId = ((Number) clientData.get("id")).longValue();
 
-            Long cashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, "XAF");
+            Long cashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, assetServiceConfig.getSettlementCurrency());
             if (cashAccountId == null) {
-                blockers.add("NO_XAF_ACCOUNT");
+                blockers.add("NO_CASH_ACCOUNT");
             } else {
                 availableBalance = fineractClient.getAccountBalance(cashAccountId);
                 if (request.side() == TradeSide.BUY && availableBalance.compareTo(netAmount) < 0) {
@@ -636,11 +639,17 @@ public class TradingService {
             }
         }
 
+        // 5. Bond benefit projections (BUY only, null for non-bonds)
+        BondBenefitProjection bondBenefit = null;
+        if (request.side() == TradeSide.BUY) {
+            bondBenefit = bondBenefitService.calculateForPurchase(asset, units, netAmount);
+        }
+
         return new TradePreviewResponse(
                 blockers.isEmpty(), blockers,
                 asset.getId(), asset.getSymbol(), request.side(), units,
                 basePrice, executionPrice, spread, grossAmount, fee, feePercent, spreadAmount, netAmount,
-                availableBalance, availableUnits, availableSupply
+                availableBalance, availableUnits, availableSupply, bondBenefit
         );
     }
 
@@ -649,7 +658,7 @@ public class TradingService {
                 false, List.of(blocker),
                 request.assetId(), null, request.side(), request.units(),
                 null, null, null, null, null, null, null, null,
-                null, null, null
+                null, null, null, null
         );
     }
 
@@ -701,7 +710,7 @@ public class TradingService {
                     o.getId(), o.getAssetId(),
                     orderAsset != null ? orderAsset.getSymbol() : null,
                     o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                    o.getXafAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt()
+                    o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt()
             );
         });
     }
@@ -721,7 +730,7 @@ public class TradingService {
                 o.getId(), o.getAssetId(),
                 orderAsset != null ? orderAsset.getSymbol() : null,
                 o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                o.getXafAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt()
+                o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt()
         );
     }
 

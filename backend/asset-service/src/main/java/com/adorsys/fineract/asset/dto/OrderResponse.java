@@ -17,13 +17,13 @@ public record OrderResponse(
     TradeSide side,
     /** Number of asset units traded. */
     BigDecimal units,
-    /** Execution price per unit, in XAF. */
+    /** Execution price per unit, in settlement currency. */
     BigDecimal pricePerUnit,
-    /** Total XAF amount of the order. */
+    /** Total settlement currency amount of the order. */
     BigDecimal totalAmount,
-    /** Trading fee charged, in XAF. */
+    /** Trading fee charged, in settlement currency. */
     BigDecimal fee,
-    /** Spread amount for this order, in XAF. Zero if spread is disabled. */
+    /** Spread amount for this order, in settlement currency. Zero if spread is disabled. */
     BigDecimal spreadAmount,
     /** Final order status: PENDING, EXECUTING, FILLED, FAILED, or REJECTED. */
     OrderStatus status,

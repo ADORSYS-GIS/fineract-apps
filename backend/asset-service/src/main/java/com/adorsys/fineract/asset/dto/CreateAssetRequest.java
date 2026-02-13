@@ -22,7 +22,7 @@ public record CreateAssetRequest(
     @Size(max = 500) String imageUrl,
     /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, or BONDS. */
     @NotNull AssetCategory category,
-    /** Starting price per unit, in XAF. Must be positive. Used as the initial manual price. */
+    /** Starting price per unit, in settlement currency. Must be positive. Used as the initial manual price. */
     @NotNull @Positive BigDecimal initialPrice,
     /** Maximum total units that can ever exist. Must be positive. */
     @NotNull @Positive BigDecimal totalSupply,

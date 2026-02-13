@@ -95,6 +95,7 @@ class TradingServiceTest {
         accounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
         accounting.setSpreadCollectionAccountId(SPREAD_COLLECTION_ACCOUNT);
         lenient().when(assetServiceConfig.getAccounting()).thenReturn(accounting);
+        lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
     }
 
     // -------------------------------------------------------------------------
@@ -238,7 +239,7 @@ class TradingServiceTest {
                 .side(TradeSide.BUY)
                 .units(new BigDecimal("5"))
                 .executionPrice(new BigDecimal("101"))
-                .xafAmount(new BigDecimal("510"))
+                .cashAmount(new BigDecimal("510"))
                 .fee(new BigDecimal("3"))
                 .spreadAmount(new BigDecimal("5"))
                 .status(OrderStatus.FILLED)
@@ -281,7 +282,7 @@ class TradingServiceTest {
                 .side(TradeSide.BUY)
                 .units(new BigDecimal("5"))
                 .executionPrice(new BigDecimal("101"))
-                .xafAmount(new BigDecimal("510"))
+                .cashAmount(new BigDecimal("510"))
                 .fee(new BigDecimal("3"))
                 .spreadAmount(new BigDecimal("5"))
                 .status(OrderStatus.FILLED)
@@ -318,7 +319,7 @@ class TradingServiceTest {
                 .side(TradeSide.SELL)
                 .units(new BigDecimal("5"))
                 .executionPrice(new BigDecimal("99"))
-                .xafAmount(new BigDecimal("490"))
+                .cashAmount(new BigDecimal("490"))
                 .fee(new BigDecimal("3"))
                 .spreadAmount(new BigDecimal("5"))
                 .status(OrderStatus.FILLED)
@@ -468,7 +469,7 @@ class TradingServiceTest {
         // Act & Assert
         TradingException ex = assertThrows(TradingException.class,
                 () -> tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY));
-        assertTrue(ex.getMessage().contains("Insufficient XAF balance"));
+        assertTrue(ex.getMessage().contains("Insufficient XAF balance"), "Expected error message to contain currency code");
         assertEquals("INSUFFICIENT_FUNDS", ex.getErrorCode());
 
         // Verify the lock was acquired (balance check is inside lock)

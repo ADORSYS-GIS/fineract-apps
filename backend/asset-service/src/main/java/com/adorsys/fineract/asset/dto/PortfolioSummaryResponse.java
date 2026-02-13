@@ -7,11 +7,11 @@ import java.util.List;
  * Full portfolio summary aggregated across all of a user's positions.
  */
 public record PortfolioSummaryResponse(
-    /** Total current market value of all positions combined, in XAF. */
+    /** Total current market value of all positions combined, in settlement currency. */
     BigDecimal totalValue,
-    /** Total amount spent to acquire all positions, in XAF. */
+    /** Total amount spent to acquire all positions, in settlement currency. */
     BigDecimal totalCostBasis,
-    /** Aggregate unrealized P&L: totalValue - totalCostBasis, in XAF. Positive = paper profit. */
+    /** Aggregate unrealized P&L: totalValue - totalCostBasis, in settlement currency. Positive = paper profit. */
     BigDecimal unrealizedPnl,
     /** Aggregate unrealized P&L as a percentage of totalCostBasis (e.g. 25.0 = +25%). Zero if totalCostBasis is zero. */
     BigDecimal unrealizedPnlPercent,

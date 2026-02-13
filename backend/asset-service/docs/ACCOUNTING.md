@@ -140,6 +140,24 @@ Three Fineract account transfers:
 | GL 47 - Digital Asset Inventory | 5 DTT | |
 | GL 65 - Customer Digital Asset Holdings | | 5 DTT |
 
+### 4. Coupon Payment (Bond Interest)
+
+When the InterestPaymentScheduler runs and a bond's coupon date is due, each holder receives a payment:
+
+- Formula: `units x faceValue x (annualRate / 100) x (periodMonths / 12)`
+- Example: User holds 100 units of a bond at 10,000 XAF face value, 5.80% annual rate, semi-annual (6 months):
+  - Coupon = 100 x 10,000 x (5.80 / 100) x (6 / 12) = **29,000 XAF**
+
+Single Fineract account transfer:
+
+| Transfer | From | To | Amount |
+|----------|------|----|--------|
+| Coupon payment | Treasury XAF | User XAF | 29,000 XAF |
+
+No fee is charged on coupon payments. This is a savings-to-savings XAF transfer with no GL impact on the asset side (only XAF accounts are affected).
+
+Each payment is recorded in the `interest_payments` table with status SUCCESS or FAILED. Failed payments (e.g. treasury insufficient funds) do not block other holders.
+
 ## Payment Types
 
 | Name | Position | Description |
@@ -154,6 +172,10 @@ Three Fineract account transfers:
 |------|-----------|------|--------|
 | Asset Trading Fee | Savings | Percentage of Amount | 0.50% |
 
+## Settlement Currency
+
+All monetary amounts in the system (trade costs, fees, coupon payments) use the configured settlement currency. This defaults to **XAF** (West African CFA franc) but is configurable via the `SETTLEMENT_CURRENCY` environment variable. All references to "XAF" in this document apply to whatever settlement currency is configured.
+
 ## Reconciliation
 
 To verify asset accounting is correct:
@@ -161,4 +183,4 @@ To verify asset accounting is correct:
 1. **GL 47 balance** should equal the sum of all treasury savings account balances across all asset currencies
 2. **GL 65 balance** should equal the sum of all customer savings account balances across all asset currencies
 3. **GL 47 + GL 65** should equal the total supply of all assets (units minted via GL 73)
-4. **Fee collection account balance** should match the sum of all `fee` values in the `trade_log` table
+4. **Fee collection account balance** should match the sum of all `fee` values in both `trade_log` and `trade_log_archive` tables (archived trades are moved monthly but fees were already collected)

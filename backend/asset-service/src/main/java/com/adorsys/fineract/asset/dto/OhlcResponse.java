@@ -8,12 +8,12 @@ import java.math.BigDecimal;
 public record OhlcResponse(
     /** Internal asset identifier. */
     String assetId,
-    /** Opening price for the current trading day, in XAF. */
+    /** Opening price for the current trading day, in settlement currency. */
     BigDecimal open,
-    /** Highest price reached during the current trading day, in XAF. */
+    /** Highest price reached during the current trading day, in settlement currency. */
     BigDecimal high,
-    /** Lowest price reached during the current trading day, in XAF. */
+    /** Lowest price reached during the current trading day, in settlement currency. */
     BigDecimal low,
-    /** Closing price for the current trading day, in XAF. */
+    /** Closing price for the current trading day, in settlement currency. */
     BigDecimal close
 ) {}
