@@ -90,6 +90,8 @@ CREATE TABLE orders (
     spread_amount DECIMAL(20,0) DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     failure_reason VARCHAR(500),
+    resolved_by VARCHAR(100),
+    resolved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ,
     version BIGINT DEFAULT 0
@@ -101,6 +103,8 @@ CREATE INDEX idx_orders_user_created ON orders(user_id, created_at DESC);
 CREATE INDEX idx_orders_user_asset ON orders(user_id, asset_id, created_at DESC);
 CREATE INDEX idx_orders_stale_cleanup ON orders(status, created_at)
     WHERE status IN ('PENDING', 'EXECUTING');
+CREATE INDEX idx_orders_status ON orders(status)
+    WHERE status IN ('NEEDS_RECONCILIATION', 'FAILED');
 
 -- Executed trade log
 CREATE TABLE trade_log (

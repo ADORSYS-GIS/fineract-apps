@@ -28,6 +28,9 @@ public class AssetMetrics {
     private final DistributionSummary couponCashTotal;
     private final Counter validityExpiredRejectionsCounter;
 
+    // Order resolution metrics
+    private final Counter ordersResolvedCounter;
+
     // Archival metrics
     private final Counter tradesArchivedCounter;
     private final Counter ordersArchivedCounter;
@@ -84,6 +87,11 @@ public class AssetMetrics {
                 .description("BUY orders rejected due to expired offer validity")
                 .register(registry);
 
+        // Order resolution metrics
+        ordersResolvedCounter = Counter.builder("asset.orders.resolved")
+                .description("Number of orders manually resolved by admins")
+                .register(registry);
+
         // Archival metrics
         tradesArchivedCounter = Counter.builder("asset.archival.trades_archived")
                 .description("Total trade_log rows archived")
@@ -117,6 +125,9 @@ public class AssetMetrics {
     public void recordCouponFailed() { couponFailedCounter.increment(); }
     /** Record a BUY order rejected because offer validity has expired. */
     public void incrementBondValidityExpiredRejections() { validityExpiredRejectionsCounter.increment(); }
+
+    /** Record an order manually resolved by an admin. */
+    public void recordOrderResolved() { ordersResolvedCounter.increment(); }
 
     /** Record trade_log rows archived. */
     public void recordTradesArchived(int count) { tradesArchivedCounter.increment(count); }

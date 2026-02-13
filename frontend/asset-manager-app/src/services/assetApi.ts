@@ -223,6 +223,38 @@ export interface PriceHistoryPoint {
 	capturedAt: string;
 }
 
+/** Admin order view (matches backend AdminOrderResponse). */
+export interface AdminOrder {
+	orderId: string;
+	assetId: string;
+	symbol: string;
+	side: "BUY" | "SELL";
+	units?: number;
+	pricePerUnit?: number;
+	totalAmount: number;
+	fee?: number;
+	spreadAmount?: number;
+	status: string;
+	failureReason?: string;
+	userExternalId: string;
+	userId: number;
+	resolvedBy?: string;
+	resolvedAt?: string;
+	createdAt: string;
+	updatedAt?: string;
+}
+
+/** Order status summary counts (matches backend OrderSummaryResponse). */
+export interface OrderSummary {
+	needsReconciliation: number;
+	failed: number;
+	manuallyClosed: number;
+}
+
+export interface ResolveOrderRequest {
+	resolution: string;
+}
+
 // --- API ---
 
 export const assetApi = {
@@ -276,6 +308,18 @@ export const assetApi = {
 			totalPages: number;
 			totalElements: number;
 		}>(`/api/admin/assets/${assetId}/coupons`, { params }),
+
+	// Orders - Admin
+	getAdminOrders: (params?: { page?: number; size?: number }) =>
+		assetClient.get<{
+			content: AdminOrder[];
+			totalPages: number;
+			totalElements: number;
+		}>("/api/admin/orders", { params }),
+	getOrderSummary: () =>
+		assetClient.get<OrderSummary>("/api/admin/orders/summary"),
+	resolveOrder: (id: string, data: ResolveOrderRequest) =>
+		assetClient.post<AdminOrder>(`/api/admin/orders/${id}/resolve`, data),
 
 	// Prices
 	getPrice: (assetId: string) => assetClient.get(`/api/prices/${assetId}`),

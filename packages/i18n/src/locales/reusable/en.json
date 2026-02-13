@@ -19,7 +19,8 @@
 			"logout": "Logout",
 			"createAsset": "Create Asset",
 			"inventory": "Inventory",
-			"marketSettings": "Market Settings"
+			"marketSettings": "Market Settings",
+			"orderResolution": "Order Resolution"
 		},
 		"navbar": {
 			"onlineBank": "OnlineBank"

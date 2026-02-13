@@ -13,5 +13,7 @@ public enum OrderStatus {
     /** Order rejected before execution (e.g. market closed, asset halted). */
     REJECTED,
     /** Order stuck in EXECUTING; may need manual verification against Fineract. */
-    NEEDS_RECONCILIATION
+    NEEDS_RECONCILIATION,
+    /** Order manually resolved by an admin after investigation. */
+    MANUALLY_CLOSED
 }

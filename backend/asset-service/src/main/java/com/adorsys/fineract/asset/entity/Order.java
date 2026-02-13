@@ -82,6 +82,14 @@ public class Order {
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
 
+    /** Username/ID of the admin who resolved this order. Null until manually resolved. */
+    @Column(name = "resolved_by", length = 100)
+    private String resolvedBy;
+
+    /** Timestamp when the order was manually resolved. Null until resolved. */
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
+
     /** Timestamp when the order was created. Set automatically, never updated. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

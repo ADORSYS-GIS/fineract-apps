@@ -24,4 +24,9 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     Page<Order> findByUserIdAndAssetId(Long userId, String assetId, Pageable pageable);
 
     List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, Instant before);
+
+    @EntityGraph(attributePaths = "asset")
+    Page<Order> findByStatusIn(List<OrderStatus> statuses, Pageable pageable);
+
+    long countByStatus(OrderStatus status);
 }
