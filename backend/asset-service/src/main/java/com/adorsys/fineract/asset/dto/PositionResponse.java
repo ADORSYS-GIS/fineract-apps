@@ -27,5 +27,7 @@ public record PositionResponse(
     /** Unrealized P&L as a percentage of costBasis (e.g. 10.0 = +10%). Zero if costBasis is zero. */
     BigDecimal unrealizedPnlPercent,
     /** Cumulative realized P&L from all completed SELL trades for this position, in settlement currency. Persisted in UserPosition. */
-    BigDecimal realizedPnl
+    BigDecimal realizedPnl,
+    /** Bond benefit projections (coupon income, principal return). Null for non-bond assets. */
+    BondBenefitProjection bondBenefit
 ) {}

@@ -32,6 +32,7 @@ public class PortfolioService {
     private final UserPositionRepository userPositionRepository;
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
+    private final BondBenefitService bondBenefitService;
 
     /**
      * Get full portfolio summary for a user including positions and holdings.
@@ -69,13 +70,18 @@ public class PortfolioService {
             totalValue = totalValue.add(marketValue);
             totalCostBasis = totalCostBasis.add(pos.getTotalCostBasis());
 
+            BondBenefitProjection bondBenefit = asset != null
+                    ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
+                    : null;
+
             positionResponses.add(new PositionResponse(
                     pos.getAssetId(),
                     asset != null ? asset.getSymbol() : null,
                     asset != null ? asset.getName() : null,
                     pos.getTotalUnits(), pos.getAvgPurchasePrice(), currentPrice,
                     marketValue, pos.getTotalCostBasis(),
-                    unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl()
+                    unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
+                    bondBenefit
             ));
         }
 
@@ -103,7 +109,7 @@ public class PortfolioService {
             return new PositionResponse(assetId, null, null,
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                     BigDecimal.ZERO, BigDecimal.ZERO,
-                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null);
         }
 
         Asset asset = assetRepository.findById(assetId).orElse(null);
@@ -116,13 +122,18 @@ public class PortfolioService {
                         .multiply(new BigDecimal("100"))
                 : BigDecimal.ZERO;
 
+        BondBenefitProjection bondBenefit = asset != null
+                ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
+                : null;
+
         return new PositionResponse(
                 assetId,
                 asset != null ? asset.getSymbol() : null,
                 asset != null ? asset.getName() : null,
                 pos.getTotalUnits(), pos.getAvgPurchasePrice(), currentPrice,
                 marketValue, pos.getTotalCostBasis(),
-                unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl()
+                unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
+                bondBenefit
         );
     }
 

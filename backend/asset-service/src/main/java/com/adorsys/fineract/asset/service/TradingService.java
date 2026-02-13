@@ -64,6 +64,7 @@ public class TradingService {
     private final PricingService pricingService;
     private final AssetServiceConfig assetServiceConfig;
     private final AssetMetrics assetMetrics;
+    private final BondBenefitService bondBenefitService;
 
     /**
      * Execute a BUY order. User identity and accounts are resolved from the JWT.
@@ -638,11 +639,17 @@ public class TradingService {
             }
         }
 
+        // 5. Bond benefit projections (BUY only, null for non-bonds)
+        BondBenefitProjection bondBenefit = null;
+        if (request.side() == TradeSide.BUY) {
+            bondBenefit = bondBenefitService.calculateForPurchase(asset, units, netAmount);
+        }
+
         return new TradePreviewResponse(
                 blockers.isEmpty(), blockers,
                 asset.getId(), asset.getSymbol(), request.side(), units,
                 basePrice, executionPrice, spread, grossAmount, fee, feePercent, spreadAmount, netAmount,
-                availableBalance, availableUnits, availableSupply
+                availableBalance, availableUnits, availableSupply, bondBenefit
         );
     }
 
@@ -651,7 +658,7 @@ public class TradingService {
                 false, List.of(blocker),
                 request.assetId(), null, request.side(), request.units(),
                 null, null, null, null, null, null, null, null,
-                null, null, null
+                null, null, null, null
         );
     }
 

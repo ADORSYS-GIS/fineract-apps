@@ -35,5 +35,7 @@ public record TradePreviewResponse(
     /** User's held units for this asset (SELL only), null for BUY. */
     BigDecimal availableUnits,
     /** Remaining asset inventory (BUY only), null for SELL. */
-    BigDecimal availableSupply
+    BigDecimal availableSupply,
+    /** Bond benefit projections (coupon income, total return, yield). Null for non-bond assets. */
+    BondBenefitProjection bondBenefit
 ) {}
