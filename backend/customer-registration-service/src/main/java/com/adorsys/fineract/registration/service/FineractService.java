@@ -5,6 +5,7 @@ import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDate;
@@ -30,14 +31,13 @@ public class FineractService {
      * Create a new client in Fineract.
      *
      * @param request    Registration request data
-     * @param externalId UUID to link with Keycloak
      * @return Fineract client ID
      */
-    public Long createClient(RegistrationRequest request, String externalId) {
+    public Long createClient(RegistrationRequest request) {
         log.info("Creating Fineract client for email: {}", request.getEmail());
 
-        Map<String, Object> clientPayload = buildClientPayload(request, externalId);
-        log.info("Sending payload to Fineract: {}", clientPayload);
+        Map<String, Object> clientPayload = buildClientPayload(request);
+        log.debug("Fineract client creation request payload: {}", clientPayload);
 
         try {
             @SuppressWarnings("unchecked")
@@ -46,7 +46,7 @@ public class FineractService {
                     .body(clientPayload)
                     .retrieve()
                     .body(Map.class);
-
+            log.debug("Fineract client creation successful response: {}", response);
             if (response != null && response.containsKey("clientId")) {
                 Long clientId = ((Number) response.get("clientId")).longValue();
                 log.info("Created Fineract client with ID: {}", clientId);
@@ -54,6 +54,9 @@ public class FineractService {
             }
 
             throw new RegistrationException("Failed to create Fineract client: invalid response");
+        } catch (HttpClientErrorException e) {
+            log.error("Fineract API error: {}", e.getResponseBodyAsString(), e);
+            throw new RegistrationException("Failed to create Fineract client: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             log.error("Failed to create Fineract client: {}", e.getMessage(), e);
             throw new RegistrationException("Failed to create client account", e);
@@ -174,14 +177,14 @@ public class FineractService {
 
 
 
-    private Map<String, Object> buildClientPayload(RegistrationRequest request, String externalId) {
+    private Map<String, Object> buildClientPayload(RegistrationRequest request) {
         Map<String, Object> payload = new HashMap<>();
         String currentDate = LocalDate.now().format(dateTimeFormatter);
 
         payload.put("officeId", fineractProperties.getDefaultOfficeId());
         payload.put("firstname", request.getFirstName());
         payload.put("lastname", request.getLastName());
-        payload.put("externalId", externalId);
+        payload.put("externalId", request.getExternalId());
         payload.put("mobileNo", request.getPhone());
         payload.put("emailAddress", request.getEmail());
         payload.put("active", true);

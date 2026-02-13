@@ -38,7 +38,7 @@ public class RegistrationRequest {
 
     private AddressDto address;
 
-    @jakarta.validation.constraints.NotBlank(message = "External ID is compulsory")
+    @NotBlank(message = "External ID is compulsory")
     private String externalId;
 
     @Data

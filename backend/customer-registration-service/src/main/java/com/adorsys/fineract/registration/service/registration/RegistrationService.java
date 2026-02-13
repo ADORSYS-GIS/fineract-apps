@@ -26,7 +26,7 @@ public class RegistrationService {
         String externalId = request.getExternalId();
         log.info("Using externalId: {}", externalId);
 
-        Long fineractClientId = fineractService.createClient(request, externalId);
+        Long fineractClientId = fineractService.createClient(request);
         log.info("Successfully created client in Fineract with ID: {}", fineractClientId);
 
         RegistrationResponse response = new RegistrationResponse();
