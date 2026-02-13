@@ -91,7 +91,9 @@ The service systematically adds the following fields to every Fineract "Create C
 | Fineract Payload Field | Value | Notes |
 |---|---|---|
 | `officeId` | `1` (default) | Configurable via `fineract.default-office-id` in `application.yml`. |
-| `active` | `false` | All new clients are created in an inactive state, pending KYC activation. |
+| `active` | `true` | All new clients are created in an active state. |
+| `activationDate` | Current Date | The date the client is activated, formatted as "dd MMMM yyyy". |
+| `submittedOnDate` | Current Date | The date the client registration is submitted, formatted as "dd MMMM yyyy". |
 | `legalFormId` | `1` | This value is hardcoded to represent the "Person" legal form in Fineract. |
 | `locale` | `"en"` | Hardcoded to English. |
 | `dateFormat`| `"dd MMMM yyyy"` | The date format required by the Fineract API. |
@@ -127,12 +129,32 @@ This is an example for a validation error. Other `4xx` or `5xx` errors follow a 
 
 ## 8. Local Testing via cURL
 
-To test the endpoint locally, use a command similar to the following, replacing `<your_jwt_token>` with a valid token that includes the `KYC_MANAGER` role.
+To test the endpoint locally, first obtain a JWT with the `KYC_MANAGER` role, then use `curl` to send the registration request.
+
+### Step 1: Obtain an Access Token
+
+Use the following command to request a token from Keycloak. Replace the `client_secret`, `username`, and `password` with your credentials.
+
+```bash
+export TOKEN=$(curl -s --location --request POST "http://localhost:9000/realms/fineract/protocol/openid-connect/token" \
+--header "Content-Type: application/x-www-form-urlencoded" \
+--data-urlencode "client_id=setup-app-client" \
+--data-urlencode "client_secret=**********" \
+--data-urlencode "username=mifos" \
+--data-urlencode "password=password" \
+--data-urlencode "grant_type=password" | jq -r '.access_token')
+```
+
+This command extracts the access token from the JSON response and stores it in the `TOKEN` environment variable.
+
+### Step 2: Send the Registration Request
+
+Now, use the `TOKEN` variable in your `curl` command to authenticate the request:
 
 ```bash
 curl --location --request POST 'http://localhost:8080/api/registration/register' \
 --header 'Content-Type: application/json' \
---header 'Authorization: Bearer <your_jwt_token>' \
+--header "Authorization: Bearer $TOKEN" \
 --data-raw '{
     "firstName": "Jane",
     "lastName": "Doe",
@@ -145,4 +167,4 @@ curl --location --request POST 'http://localhost:8080/api/registration/register'
 
 ## 9. Post-Registration State
 
-Upon successful registration, the immediate result is the creation of a **Client** record in Fineract with its `active` status set to `false`. No other actions, such as savings account creation or KYC processing, are automatically triggered by this service.
+Upon successful registration, the immediate result is the creation of a **Client** record in Fineract with its `active` status set to `true`. No other actions, such as savings account creation  are automatically triggered by this service.

@@ -42,7 +42,7 @@ fineract:
   verifySsl: ${FINERACT_VERIFY_SSL:false}
   default-legal-form-id: ${DEFAULT_LEGAL_FORM_ID:1}
   default-locale: ${DEFAULT_LOCALE:en}
-  default-date-format: ${DEFAULT_DATE_FORMAT:"dd MMMM yyyy"}
+  default-date-format: ${DEFAULT_DATE_FORMAT:dd MMMM yyyy}
 
 # Actuator Endpoints
 management:

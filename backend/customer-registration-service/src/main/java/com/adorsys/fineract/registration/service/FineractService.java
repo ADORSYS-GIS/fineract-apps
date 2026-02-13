@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ public class FineractService {
         log.info("Creating Fineract client for email: {}", request.getEmail());
 
         Map<String, Object> clientPayload = buildClientPayload(request, externalId);
+        log.info("Sending payload to Fineract: {}", clientPayload);
 
         try {
             @SuppressWarnings("unchecked")
@@ -174,13 +176,17 @@ public class FineractService {
 
     private Map<String, Object> buildClientPayload(RegistrationRequest request, String externalId) {
         Map<String, Object> payload = new HashMap<>();
+        String currentDate = LocalDate.now().format(dateTimeFormatter);
+
         payload.put("officeId", fineractProperties.getDefaultOfficeId());
         payload.put("firstname", request.getFirstName());
         payload.put("lastname", request.getLastName());
         payload.put("externalId", externalId);
         payload.put("mobileNo", request.getPhone());
         payload.put("emailAddress", request.getEmail());
-        payload.put("active", false); // Pending KYC activation
+        payload.put("active", true);
+        payload.put("activationDate", currentDate);
+        payload.put("submittedOnDate", currentDate);
         payload.put("legalFormId", fineractProperties.getDefaultLegalFormId());
         payload.put("locale", fineractProperties.getDefaultLocale());
         payload.put("dateFormat", fineractProperties.getDefaultDateFormat());
@@ -188,7 +194,6 @@ public class FineractService {
         if (request.getDateOfBirth() != null) {
             payload.put("dateOfBirth", request.getDateOfBirth().format(dateTimeFormatter));
         }
-
 
         return payload;
     }
