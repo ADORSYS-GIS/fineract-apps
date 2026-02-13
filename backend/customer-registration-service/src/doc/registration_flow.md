@@ -152,7 +152,7 @@ This command extracts the access token from the JSON response and stores it in t
 Now, use the `TOKEN` variable in your `curl` command to authenticate the request:
 
 ```bash
-curl --location --request POST 'http://localhost:8080/api/registration/register' \
+curl --location --request POST 'http://localhost:8081/api/registration/register' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
@@ -163,6 +163,18 @@ curl --location --request POST 'http://localhost:8080/api/registration/register'
     "externalId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
     "dateOfBirth": "1990-01-15"
 }'
+```
+
+### Successful Response
+
+A successful registration will return a `200 OK` status with a JSON body similar to the following, indicating the new Fineract Client ID.
+
+```json
+{
+  "success": true,
+  "status": "success",
+  "fineractClientId": 13
+}
 ```
 
 ## 9. Post-Registration State
