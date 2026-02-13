@@ -3,13 +3,13 @@ package com.adorsys.fineract.registration.controller.registration;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.dto.registration.RegistrationResponse;
 import com.adorsys.fineract.registration.service.registration.RegistrationService;
-import com.adorsys.fineract.registration.service.TokenValidationService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.security.access.prepost.PreAuthorize;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +23,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/registration")
 @RequiredArgsConstructor
 @Tag(name = "Registration", description = "Customer registration and status APIs")
+@SecurityRequirement(name = "bearer-jwt")
 public class RegistrationController {
 
     private final RegistrationService registrationService;
-    private final TokenValidationService tokenValidationService;
 
     @PostMapping("/register")
     @Operation(summary = "Register a new customer",
@@ -39,10 +39,9 @@ public class RegistrationController {
     })
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RegistrationResponse> register(
-            @RequestHeader("Authorization") String authorizationHeader,
             @Valid @RequestBody RegistrationRequest request) {
         log.info("Received registration request for email: {}", request.getEmail());
-        RegistrationResponse response = registrationService.register(request, authorizationHeader);
+        RegistrationResponse response = registrationService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

@@ -1,6 +1,5 @@
 package com.adorsys.fineract.registration.controller;
 
-import com.adorsys.fineract.registration.config.FineractConfig;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,6 @@ import java.util.Map;
 public class HealthController {
 
     private final RestClient fineractRestClient;
-    private final FineractConfig fineractConfig;
 
     @GetMapping("/health")
     @Operation(summary = "Basic health check", description = "Returns UP if service is running")

@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: customer-registration-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://localhost:8088/realms/fineract/protocol/openid-connect/certs}
 
 # CORS Configuration
 app:
@@ -73,12 +78,6 @@ spring:
   config:
     activate:
       on-profile: kubernetes
-  security:
-    oauth2:
-          resourceserver:
-            jwt:
-              issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/fineract}
-              jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://localhost:8080/realms/fineract/protocol/openid-connect/certs}
 
 # In Kubernetes, use service discovery
 

@@ -61,9 +61,8 @@ public class AccountController {
     @Operation(summary = "Get savings account details",
                description = "Returns details of a specific savings account after verifying ownership")
     public ResponseEntity<Map<String, Object>> getSavingsAccount(
-            @PathVariable Long accountId,
-            @RequestHeader("Authorization") String authorizationHeader,
-            @AuthenticationPrincipal Jwt jwt) {
+                @PathVariable Long accountId,
+                @AuthenticationPrincipal Jwt jwt) {
 
         log.info("Getting savings account: {}", accountId);
 
