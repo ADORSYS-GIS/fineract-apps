@@ -8,7 +8,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://localhost:8088/realms/fineract/protocol/openid-connect/certs}
+          jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://localhost:8080/realms/fineract/protocol/openid-connect/certs}
 
 # CORS Configuration
 app:
@@ -40,6 +40,9 @@ fineract:
   default-gender-id: ${DEFAULT_GENDER_ID:2}
   # Whether to verify SSL certificate from Fineract (for development with self-signed certs)
   verifySsl: ${FINERACT_VERIFY_SSL:false}
+  default-legal-form-id: ${DEFAULT_LEGAL_FORM_ID:1}
+  default-locale: ${DEFAULT_LOCALE:en}
+  default-date-format: ${DEFAULT_DATE_FORMAT:"dd MMMM yyyy"}
 
 # Actuator Endpoints
 management:

@@ -1,13 +1,11 @@
 package com.adorsys.fineract.registration.service;
 
-import com.adorsys.fineract.registration.config.FineractConfig;
+import com.adorsys.fineract.registration.config.FineractProperties;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -15,13 +13,17 @@ import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class FineractService {
 
     private final RestClient fineractRestClient;
-    private final FineractConfig fineractConfig;
+    private final FineractProperties fineractProperties;
+    private final DateTimeFormatter dateTimeFormatter;
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+    public FineractService(RestClient fineractRestClient, FineractProperties fineractProperties) {
+        this.fineractRestClient = fineractRestClient;
+        this.fineractProperties = fineractProperties;
+        this.dateTimeFormatter = DateTimeFormatter.ofPattern(fineractProperties.getDefaultDateFormat());
+    }
 
     /**
      * Create a new client in Fineract.
@@ -172,19 +174,19 @@ public class FineractService {
 
     private Map<String, Object> buildClientPayload(RegistrationRequest request, String externalId) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("officeId", fineractConfig.getDefaultOfficeId());
+        payload.put("officeId", fineractProperties.getDefaultOfficeId());
         payload.put("firstname", request.getFirstName());
         payload.put("lastname", request.getLastName());
         payload.put("externalId", externalId);
         payload.put("mobileNo", request.getPhone());
         payload.put("emailAddress", request.getEmail());
         payload.put("active", false); // Pending KYC activation
-        payload.put("legalFormId", 1); // Person
-        payload.put("locale", "en");
-        payload.put("dateFormat", "dd MMMM yyyy");
+        payload.put("legalFormId", fineractProperties.getDefaultLegalFormId());
+        payload.put("locale", fineractProperties.getDefaultLocale());
+        payload.put("dateFormat", fineractProperties.getDefaultDateFormat());
 
         if (request.getDateOfBirth() != null) {
-            payload.put("dateOfBirth", request.getDateOfBirth().format(DATE_FORMATTER));
+            payload.put("dateOfBirth", request.getDateOfBirth().format(dateTimeFormatter));
         }
 
 

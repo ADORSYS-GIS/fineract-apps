@@ -1,6 +1,6 @@
 package com.adorsys.fineract.registration.client;
 
-import com.adorsys.fineract.registration.config.FineractConfig;
+import com.adorsys.fineract.registration.config.FineractProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class FineractTokenProvider {
 
-    private final FineractConfig config;
+    private final FineractProperties config;
 
     private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
 
@@ -39,7 +39,7 @@ public class FineractTokenProvider {
      * @throws IllegalStateException if OAuth is not configured properly
      */
     public String getAccessToken() {
-        if (!config.isOAuthEnabled()) {
+        if (!"oauth".equalsIgnoreCase(config.getAuthType())) {
             throw new IllegalStateException("OAuth is not enabled. Set fineract.auth-type=oauth to use OAuth authentication.");
         }
 
