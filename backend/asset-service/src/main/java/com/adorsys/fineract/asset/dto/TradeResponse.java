@@ -15,15 +15,15 @@ public record TradeResponse(
     TradeSide side,
     /** Number of asset units traded. */
     BigDecimal units,
-    /** Execution price per unit, in XAF. */
+    /** Execution price per unit, in settlement currency. */
     BigDecimal pricePerUnit,
-    /** Total XAF amount. For BUY: amount spent. For SELL: net proceeds after fees. */
+    /** Total settlement currency amount. For BUY: amount spent. For SELL: net proceeds after fees. */
     BigDecimal totalAmount,
-    /** Trading fee charged, in XAF. */
+    /** Trading fee charged, in settlement currency. */
     BigDecimal fee,
-    /** Spread amount for this trade, in XAF. Zero if spread is disabled. */
+    /** Spread amount for this trade, in settlement currency. Zero if spread is disabled. */
     BigDecimal spreadAmount,
-    /** Realized P&L from this trade, in XAF. Only present for SELL trades: (sellPrice - avgPurchasePrice) × units. Null for BUY trades. */
+    /** Realized P&L from this trade, in settlement currency. Only present for SELL trades: (sellPrice - avgPurchasePrice) × units. Null for BUY trades. */
     @io.swagger.v3.oas.annotations.media.Schema(nullable = true)
     BigDecimal realizedPnl,
     /** Timestamp when the trade was executed. */

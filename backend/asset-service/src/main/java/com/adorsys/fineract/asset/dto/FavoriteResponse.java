@@ -12,7 +12,7 @@ public record FavoriteResponse(
     String symbol,
     /** Human-readable asset name. */
     String name,
-    /** Latest price per unit, in XAF. */
+    /** Latest price per unit, in settlement currency. */
     BigDecimal currentPrice,
     /** 24-hour price change as a percentage (e.g. 2.5 = +2.5%). */
     BigDecimal change24hPercent

@@ -45,7 +45,7 @@ public class StaleOrderCleanupScheduler {
                         + "assetId={}, userId={}, side={}, amount={}. "
                         + "Verify Fineract batch transfer status before resolving.",
                         order.getId(), minutes, order.getAssetId(),
-                        order.getUserId(), order.getSide(), order.getXafAmount());
+                        order.getUserId(), order.getSide(), order.getCashAmount());
                 order.setStatus(OrderStatus.NEEDS_RECONCILIATION);
                 order.setFailureReason("Order stuck in EXECUTING for over " + minutes + " minutes. "
                         + "Requires manual verification against Fineract batch transfer logs.");

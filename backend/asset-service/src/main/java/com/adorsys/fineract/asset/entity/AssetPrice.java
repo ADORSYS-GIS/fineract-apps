@@ -31,11 +31,11 @@ public class AssetPrice {
     @JoinColumn(name = "asset_id", insertable = false, updatable = false)
     private Asset asset;
 
-    /** Latest known price of the asset, in XAF (whole units, no decimals). */
+    /** Latest known price of the asset, in settlement currency (whole units, no decimals). */
     @Column(name = "current_price", nullable = false, precision = 20, scale = 0)
     private BigDecimal currentPrice;
 
-    /** Closing price from the previous trading day, in XAF. Null if no previous close exists. */
+    /** Closing price from the previous trading day, in settlement currency. Null if no previous close exists. */
     @Column(name = "previous_close", precision = 20, scale = 0)
     private BigDecimal previousClose;
 
@@ -43,19 +43,19 @@ public class AssetPrice {
     @Column(name = "change_24h_percent", precision = 10, scale = 4)
     private BigDecimal change24hPercent;
 
-    /** Opening price for the current trading day, in XAF. */
+    /** Opening price for the current trading day, in settlement currency. */
     @Column(name = "day_open", precision = 20, scale = 0)
     private BigDecimal dayOpen;
 
-    /** Highest price reached during the current trading day, in XAF. */
+    /** Highest price reached during the current trading day, in settlement currency. */
     @Column(name = "day_high", precision = 20, scale = 0)
     private BigDecimal dayHigh;
 
-    /** Lowest price reached during the current trading day, in XAF. */
+    /** Lowest price reached during the current trading day, in settlement currency. */
     @Column(name = "day_low", precision = 20, scale = 0)
     private BigDecimal dayLow;
 
-    /** Closing price for the current trading day, in XAF. Set at market close. */
+    /** Closing price for the current trading day, in settlement currency. Set at market close. */
     @Column(name = "day_close", precision = 20, scale = 0)
     private BigDecimal dayClose;
 

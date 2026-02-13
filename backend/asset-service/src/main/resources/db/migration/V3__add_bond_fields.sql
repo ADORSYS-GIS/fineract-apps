@@ -23,7 +23,7 @@ CREATE TABLE interest_payments (
     face_value           DECIMAL(20,0)  NOT NULL,
     annual_rate          DECIMAL(8,4)   NOT NULL,
     period_months        INTEGER        NOT NULL,
-    xaf_amount           DECIMAL(20,0)  NOT NULL,
+    cash_amount          DECIMAL(20,0)  NOT NULL,
     fineract_transfer_id BIGINT,
     status               VARCHAR(20)    NOT NULL DEFAULT 'SUCCESS',
     failure_reason       VARCHAR(500),

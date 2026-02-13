@@ -51,6 +51,7 @@ class AssetProvisioningServiceTest {
         glAccounts.setDigitalAssetInventory(47L);
         glAccounts.setCustomerDigitalAssetHoldings(65L);
         glAccounts.setAssetIssuancePaymentType(22L);
+        lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
     }
 
     // -------------------------------------------------------------------------

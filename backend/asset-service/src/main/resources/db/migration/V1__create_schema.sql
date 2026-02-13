@@ -83,7 +83,7 @@ CREATE TABLE orders (
     user_external_id VARCHAR(36) NOT NULL,
     asset_id VARCHAR(36) NOT NULL REFERENCES assets(id),
     side VARCHAR(4) NOT NULL,
-    xaf_amount DECIMAL(20,0) NOT NULL,
+    cash_amount DECIMAL(20,0) NOT NULL,
     units DECIMAL(20,8),
     execution_price DECIMAL(20,0),
     fee DECIMAL(20,0),

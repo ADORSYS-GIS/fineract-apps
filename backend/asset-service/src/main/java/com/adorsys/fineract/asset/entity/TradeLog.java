@@ -47,27 +47,27 @@ public class TradeLog {
     @Column(nullable = false, precision = 20, scale = 8)
     private BigDecimal units;
 
-    /** Execution price per unit, in XAF. */
+    /** Execution price per unit, in settlement currency. */
     @Column(name = "price_per_unit", nullable = false, precision = 20, scale = 0)
     private BigDecimal pricePerUnit;
 
-    /** Total XAF amount of this trade. For BUY: amount spent (before fees). For SELL: net proceeds (after fees). */
+    /** Total settlement currency amount of this trade. For BUY: amount spent (before fees). For SELL: net proceeds (after fees). */
     @Column(name = "total_amount", nullable = false, precision = 20, scale = 0)
     private BigDecimal totalAmount;
 
-    /** Trading fee charged for this trade, in XAF. Defaults to 0. */
+    /** Trading fee charged for this trade, in settlement currency. Defaults to 0. */
     @Column(nullable = false, precision = 20, scale = 0)
     private BigDecimal fee;
 
-    /** Spread amount for this trade, in XAF. Zero if spread is disabled. */
+    /** Spread amount for this trade, in settlement currency. Zero if spread is disabled. */
     @Column(name = "spread_amount", nullable = false, precision = 20, scale = 0)
     private BigDecimal spreadAmount;
 
-    /** Realized profit/loss from this trade, in XAF. Only set for SELL trades: (sellPrice - avgPurchasePrice) × units. Null for BUY trades. */
+    /** Realized profit/loss from this trade, in settlement currency. Only set for SELL trades: (sellPrice - avgPurchasePrice) × units. Null for BUY trades. */
     @Column(name = "realized_pnl", precision = 20, scale = 0)
     private BigDecimal realizedPnl;
 
-    /** Fineract journal entry ID for the XAF cash transfer leg of this trade. */
+    /** Fineract journal entry ID for the cash transfer leg of this trade. */
     @Column(name = "fineract_cash_transfer_id")
     private Long fineractCashTransferId;
 

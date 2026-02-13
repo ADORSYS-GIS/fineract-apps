@@ -53,23 +53,23 @@ public class Order {
     @Column(nullable = false, length = 4)
     private TradeSide side;
 
-    /** Total XAF amount for this order. For BUY: amount spent. For SELL: net proceeds after fees. */
-    @Column(name = "xaf_amount", nullable = false, precision = 20, scale = 0)
-    private BigDecimal xafAmount;
+    /** Total settlement currency amount for this order. For BUY: amount spent. For SELL: net proceeds after fees. */
+    @Column(name = "cash_amount", nullable = false, precision = 20, scale = 0)
+    private BigDecimal cashAmount;
 
     /** Number of asset units traded. Set after execution; null while PENDING. */
     @Column(precision = 20, scale = 8)
     private BigDecimal units;
 
-    /** Price per unit at which the order was executed, in XAF. Set after execution; null while PENDING. */
+    /** Price per unit at which the order was executed, in settlement currency. Set after execution; null while PENDING. */
     @Column(name = "execution_price", precision = 20, scale = 0)
     private BigDecimal executionPrice;
 
-    /** Trading fee charged for this order, in XAF. Set after execution; null while PENDING. */
+    /** Trading fee charged for this order, in settlement currency. Set after execution; null while PENDING. */
     @Column(precision = 20, scale = 0)
     private BigDecimal fee;
 
-    /** Spread amount for this order, in XAF. Zero if spread is disabled. */
+    /** Spread amount for this order, in settlement currency. Zero if spread is disabled. */
     @Column(name = "spread_amount", precision = 20, scale = 0)
     private BigDecimal spreadAmount;
 

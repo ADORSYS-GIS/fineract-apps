@@ -75,10 +75,11 @@ fineract:
 
 # Asset Service Configuration
 asset-service:
+  settlement-currency: ${SETTLEMENT_CURRENCY:XAF}
   market-hours:
     open: "08:00"
     close: "20:00"
-    timezone: "Africa/Lagos"
+    timezone: "Africa/Douala"
     weekend-trading-enabled: false
   pricing:
     snapshot-cron: "0 0 * * * *"

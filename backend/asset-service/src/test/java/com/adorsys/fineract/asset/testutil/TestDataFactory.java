@@ -97,7 +97,7 @@ public final class TestDataFactory {
                 .side(side)
                 .units(new BigDecimal("10"))
                 .executionPrice(new BigDecimal("101"))
-                .xafAmount(new BigDecimal("1010"))
+                .cashAmount(new BigDecimal("1010"))
                 .fee(new BigDecimal("5"))
                 .spreadAmount(new BigDecimal("10"))
                 .status(OrderStatus.FILLED)

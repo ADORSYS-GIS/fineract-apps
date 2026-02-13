@@ -16,6 +16,9 @@ import java.time.ZoneId;
 @ConfigurationProperties(prefix = "asset-service")
 public class AssetServiceConfig {
 
+    /** ISO 4217 currency code for the settlement/cash currency. */
+    private String settlementCurrency = "XAF";
+
     private MarketHours marketHours = new MarketHours();
     private Pricing pricing = new Pricing();
     private Orders orders = new Orders();
@@ -27,7 +30,7 @@ public class AssetServiceConfig {
     public static class MarketHours {
         private String open = "08:00";
         private String close = "20:00";
-        private String timezone = "Africa/Lagos";
+        private String timezone = "Africa/Douala";
         private boolean weekendTradingEnabled = false;
     }
 
@@ -69,12 +72,17 @@ public class AssetServiceConfig {
                     "asset-service.accounting.fee-collection-account-id must be set to a valid Fineract savings account ID. "
                     + "Current value: " + accounting.getFeeCollectionAccountId());
         }
+        if (settlementCurrency == null || !settlementCurrency.matches("[A-Z]{3}")) {
+            throw new IllegalStateException(
+                    "asset-service.settlement-currency must be a 3-letter ISO 4217 currency code. "
+                    + "Current value: '" + settlementCurrency + "'");
+        }
         try {
             ZoneId.of(marketHours.getTimezone());
         } catch (Exception e) {
             throw new IllegalStateException(
                     "asset-service.market-hours.timezone is invalid: '" + marketHours.getTimezone()
-                    + "'. Must be a valid IANA timezone (e.g. 'Africa/Lagos').", e);
+                    + "'. Must be a valid IANA timezone (e.g. 'Africa/Douala').", e);
         }
     }
 }

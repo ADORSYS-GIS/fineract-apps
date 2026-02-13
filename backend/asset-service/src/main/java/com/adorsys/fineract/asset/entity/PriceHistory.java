@@ -30,7 +30,7 @@ public class PriceHistory {
     @Column(name = "asset_id", nullable = false)
     private String assetId;
 
-    /** Snapshot price of the asset at capturedAt, in XAF (whole units). */
+    /** Snapshot price of the asset at capturedAt, in settlement currency (whole units). */
     @Column(nullable = false, precision = 20, scale = 0)
     private BigDecimal price;
 

@@ -7,7 +7,7 @@ import java.time.Instant;
  * Recent executed trade for the public trade feed (anonymous, no user info).
  */
 public record RecentTradeDto(
-    /** Execution price per unit, in XAF. */
+    /** Execution price per unit, in settlement currency. */
     BigDecimal price,
     /** Number of asset units traded. */
     BigDecimal quantity,

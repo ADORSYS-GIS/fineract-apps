@@ -68,7 +68,7 @@ public class Asset {
     @Column(name = "price_mode", nullable = false, length = 10)
     private PriceMode priceMode;
 
-    /** Admin-set price used when priceMode is MANUAL, in XAF. Null when priceMode is AUTO. */
+    /** Admin-set price used when priceMode is MANUAL, in settlement currency. Null when priceMode is AUTO. */
     @Column(name = "manual_price", precision = 20, scale = 8)
     private BigDecimal manualPrice;
 
@@ -84,7 +84,7 @@ public class Asset {
     @Column(name = "circulating_supply", nullable = false, precision = 20, scale = 8)
     private BigDecimal circulatingSupply;
 
-    /** Trading fee as a percentage (e.g. 0.005 = 0.5%). Applied to each trade's XAF amount. */
+    /** Trading fee as a percentage (e.g. 0.005 = 0.5%). Applied to each trade's cash amount. */
     @Column(name = "trading_fee_percent", precision = 5, scale = 4)
     private BigDecimal tradingFeePercent;
 
@@ -136,7 +136,7 @@ public class Asset {
     @Column(name = "treasury_asset_account_id")
     private Long treasuryAssetAccountId;
 
-    /** Fineract savings account ID where the treasury holds XAF cash for this asset. */
+    /** Fineract savings account ID where the treasury holds settlement currency cash for this asset. */
     @Column(name = "treasury_cash_account_id")
     private Long treasuryCashAccountId;
 
