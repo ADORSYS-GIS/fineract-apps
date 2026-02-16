@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       services:
-        description: 'Services to build (comma-separated: asset-service,customer-self-service,payment-gateway-service,user-sync-service or "all")'
+        description: 'Services to build (comma-separated: asset-service,customer-registration-service,payment-gateway-service or "all")'
         required: false
         default: 'all'
 
@@ -35,7 +35,7 @@ jobs:
         id: set-services
         run: |
           if [ "${{ github.event.inputs.services }}" == "all" ] || [ "${{ github.event.inputs.services }}" == "" ]; then
-            echo 'services=["asset-service","customer-self-service","payment-gateway-service"]' >> $GITHUB_OUTPUT
+            echo 'services=["asset-service","customer-registration-service","payment-gateway-service"]' >> $GITHUB_OUTPUT
           else
             SERVICES=$(echo "${{ github.event.inputs.services }}" | jq -R 'split(",") | map(. | gsub(" "; ""))')
             echo "services=$SERVICES" >> $GITHUB_OUTPUT
@@ -98,11 +98,7 @@ jobs:
         id: context
         run: |
           SERVICE="${{ matrix.service }}"
-          if [ "$SERVICE" == "customer-self-service" ]; then
-            DIR="backend/customer-registration-service"
-          else
-            DIR="backend/$SERVICE"
-          fi
+          DIR="backend/$SERVICE"
           echo "dir=$DIR" >> $GITHUB_OUTPUT
           echo "Building context: $DIR"
 
@@ -168,7 +164,7 @@ jobs:
             -f event_type='update-backend-images' \
             -f client_payload[tag]="$TAG" \
             -f client_payload[branch]="$BRANCH" \
-            -f client_payload[services]='["asset-service","customer-self-service","payment-gateway-service" ]'
+            -f client_payload[services]='["asset-service","customer-registration-service","payment-gateway-service" ]'
 
           echo "### GitOps Update Triggered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
