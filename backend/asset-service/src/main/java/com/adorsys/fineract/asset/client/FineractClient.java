@@ -243,6 +243,36 @@ public class FineractClient {
     }
 
     /**
+     * Find a savings product by its short name.
+     *
+     * @param shortName The product short name (e.g. "VSAV")
+     * @return The product ID, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public Integer findSavingsProductByShortName(String shortName) {
+        try {
+            List<Map<String, Object>> products = webClient.get()
+                    .uri("/fineract-provider/api/v1/savingsproducts")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            if (products == null) return null;
+
+            return products.stream()
+                    .filter(p -> shortName.equals(p.get("shortName")))
+                    .map(p -> ((Number) p.get("id")).intValue())
+                    .findFirst()
+                    .orElse(null);
+        } catch (Exception e) {
+            log.error("Failed to find savings product by shortName '{}': {}", shortName, e.getMessage());
+            throw new AssetException("Failed to look up savings product: " + shortName, e);
+        }
+    }
+
+    /**
      * Create a savings account for a client with a given product.
      *
      * @return The created account ID

@@ -65,26 +65,9 @@ public class CouponForecastService {
             log.warn("Could not fetch treasury balance for bond {}: {}", bond.getSymbol(), e.getMessage());
         }
 
-        // Allocate treasury balance proportionally among sibling bonds sharing the same treasury account
-        List<Asset> siblingBonds = assetRepository
-                .findByTreasuryCashAccountIdAndInterestRateIsNotNull(bond.getTreasuryCashAccountId());
-        BigDecimal allocatedBalance = treasuryBalance;
-        if (siblingBonds.size() > 1 && totalObligation.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal totalSiblingObligation = BigDecimal.ZERO;
-            for (Asset sibling : siblingBonds) {
-                BigDecimal sibObligation = calculateTotalObligation(sibling);
-                totalSiblingObligation = totalSiblingObligation.add(sibObligation);
-            }
-            if (totalSiblingObligation.compareTo(BigDecimal.ZERO) > 0) {
-                allocatedBalance = treasuryBalance
-                        .multiply(totalObligation)
-                        .divide(totalSiblingObligation, 0, RoundingMode.HALF_UP);
-            }
-        }
-
-        BigDecimal shortfall = totalObligation.subtract(allocatedBalance);
+        BigDecimal shortfall = totalObligation.subtract(treasuryBalance);
         int couponsCovered = couponPerPeriod.compareTo(BigDecimal.ZERO) > 0
-                ? allocatedBalance.divide(couponPerPeriod, 0, RoundingMode.DOWN).intValue()
+                ? treasuryBalance.divide(couponPerPeriod, 0, RoundingMode.DOWN).intValue()
                 : 0;
 
         return new CouponForecastResponse(
@@ -102,31 +85,9 @@ public class CouponForecastService {
                 principalAtMaturity,
                 totalObligation,
                 treasuryBalance,
-                allocatedBalance,
-                siblingBonds.size(),
                 shortfall,
                 couponsCovered
         );
-    }
-
-    private BigDecimal calculateTotalObligation(Asset sibling) {
-        BigDecimal sibUnits = userPositionRepository.findHoldersByAssetId(sibling.getId(), BigDecimal.ZERO)
-                .stream().map(UserPosition::getTotalUnits).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal sibFace = sibling.getManualPrice() != null ? sibling.getManualPrice() : BigDecimal.ZERO;
-        BigDecimal sibRate = sibling.getInterestRate();
-        int sibPeriodMonths = sibling.getCouponFrequencyMonths();
-
-        BigDecimal sibCouponPerPeriod = sibUnits.multiply(sibFace).multiply(sibRate)
-                .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(sibPeriodMonths))
-                .divide(BigDecimal.valueOf(12), 0, RoundingMode.HALF_UP);
-
-        int sibRemainingPeriods = countRemainingPeriods(
-                sibling.getNextCouponDate(), sibling.getMaturityDate(), sibPeriodMonths);
-
-        BigDecimal sibCouponObligation = sibCouponPerPeriod.multiply(BigDecimal.valueOf(sibRemainingPeriods));
-        BigDecimal sibPrincipal = sibUnits.multiply(sibFace).setScale(0, RoundingMode.HALF_UP);
-        return sibCouponObligation.add(sibPrincipal);
     }
 
     private int countRemainingPeriods(LocalDate nextCouponDate, LocalDate maturityDate, int periodMonths) {

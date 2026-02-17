@@ -20,12 +20,8 @@ public record CouponForecastResponse(
     BigDecimal totalRemainingCouponObligation,
     BigDecimal principalAtMaturity,
     BigDecimal totalObligation,
-    @Schema(description = "Total balance of the shared treasury cash account (may be shared with sibling bonds)")
+    @Schema(description = "Balance of this asset's dedicated treasury cash account")
     BigDecimal treasuryBalance,
-    @Schema(description = "Portion of treasury balance allocated to this bond, proportional to its share of total obligations")
-    BigDecimal allocatedTreasuryBalance,
-    @Schema(description = "Number of sibling bonds sharing the same treasury cash account")
-    Integer siblingBondCount,
     BigDecimal shortfall,
     Integer couponsCoveredByBalance
 ) {}

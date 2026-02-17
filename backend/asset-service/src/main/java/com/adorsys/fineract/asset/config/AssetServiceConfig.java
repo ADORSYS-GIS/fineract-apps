@@ -19,6 +19,9 @@ public class AssetServiceConfig {
     /** ISO 4217 currency code for the settlement/cash currency. */
     private String settlementCurrency = "XAF";
 
+    /** Short name of the Fineract savings product used for settlement currency (XAF) treasury accounts. */
+    private String settlementCurrencyProductShortName = "VSAV";
+
     private MarketHours marketHours = new MarketHours();
     private Pricing pricing = new Pricing();
     private Orders orders = new Orders();
