@@ -33,7 +33,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate  # Flyway handles schema, Hibernate only validates
-    open-in-view: false   # Prevent lazy loading issues
+    open-in-view: false   
     properties:
       hibernate:
         jdbc:
