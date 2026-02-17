@@ -1,6 +1,7 @@
 package com.adorsys.fineract.registration.client;
 
 import com.adorsys.fineract.registration.config.FineractProperties;
+import com.adorsys.fineract.registration.exception.FineractAuthenticationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -85,12 +86,12 @@ public class FineractTokenProvider {
             log.info("Received response from Keycloak: {}", response);
 
             if (response == null) {
-                throw new RuntimeException("Empty response from token endpoint");
+                throw new FineractAuthenticationException("Empty response from token endpoint");
             }
 
             String accessToken = (String) response.get("access_token");
             if (accessToken == null) {
-                throw new RuntimeException("No access_token in response: " + response);
+                throw new FineractAuthenticationException("No access_token in response: " + response);
             }
 
             // Get expiration time (default to 5 minutes if not provided)
@@ -111,7 +112,7 @@ public class FineractTokenProvider {
 
         } catch (Exception e) {
             log.error("Failed to obtain Fineract OAuth token: {}", e.getMessage());
-            throw new RuntimeException("Failed to obtain Fineract OAuth token", e);
+            throw new FineractAuthenticationException("Failed to obtain Fineract OAuth token", e);
         }
     }
 

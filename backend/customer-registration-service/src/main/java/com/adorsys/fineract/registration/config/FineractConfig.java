@@ -1,6 +1,7 @@
 package com.adorsys.fineract.registration.config;
 
 import com.adorsys.fineract.registration.client.FineractTokenProvider;
+import com.adorsys.fineract.registration.exception.FineractConfigurationException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -107,7 +108,7 @@ public class FineractConfig {
                     .build();
             return new HttpComponentsClientHttpRequestFactory(httpClient);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create unsafe SSL context", e);
+            throw new FineractConfigurationException("Failed to create unsafe SSL context", e);
         }
     }
 
@@ -140,7 +141,7 @@ public class FineractConfig {
             try {
                 return response.getStatusCode();
             } catch (java.io.IOException e) {
-                throw new RuntimeException(e);
+                throw new FineractConfigurationException("Failed to get status code", e);
             }
         }
 
@@ -149,7 +150,7 @@ public class FineractConfig {
             try {
                 return response.getRawStatusCode();
             } catch (java.io.IOException e) {
-                throw new RuntimeException(e);
+                throw new FineractConfigurationException("Failed to get raw status code", e);
             }
         }
 
@@ -158,7 +159,7 @@ public class FineractConfig {
             try {
                 return response.getStatusText();
             } catch (java.io.IOException e) {
-                throw new RuntimeException(e);
+                throw new FineractConfigurationException("Failed to get status text", e);
             }
         }
     }
