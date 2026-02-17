@@ -32,15 +32,12 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	onHalt,
 	onResume,
 	onMint,
-	onSetPrice,
 	isUpdating,
 	isActivating,
 	isHalting,
 	isResuming,
 	isMinting,
-	isSettingPrice,
 }) => {
-	const [manualPrice, setManualPrice] = useState("");
 	const [confirmAction, setConfirmAction] = useState<
 		"activate" | "halt" | "resume" | null
 	>(null);
@@ -63,14 +60,6 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 			</div>
 		);
 	}
-
-	const handleSetPrice = () => {
-		const p = Number(manualPrice);
-		if (Number.isFinite(p) && p > 0) {
-			onSetPrice(p);
-			setManualPrice("");
-		}
-	};
 
 	return (
 		<div className="bg-gray-50 min-h-screen">
@@ -204,41 +193,6 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 					</Card>
 				</div>
 
-				{/* OHLC */}
-				{price && (
-					<Card className="p-4 mb-6">
-						<h2 className="text-lg font-semibold text-gray-800 mb-3">
-							OHLC (Today)
-						</h2>
-						<div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-							<div>
-								<p className="text-sm text-gray-500">Open</p>
-								<p className="font-medium">
-									{price.dayOpen?.toLocaleString() ?? "—"}
-								</p>
-							</div>
-							<div>
-								<p className="text-sm text-gray-500">High</p>
-								<p className="font-medium text-green-600">
-									{price.dayHigh?.toLocaleString() ?? "—"}
-								</p>
-							</div>
-							<div>
-								<p className="text-sm text-gray-500">Low</p>
-								<p className="font-medium text-red-600">
-									{price.dayLow?.toLocaleString() ?? "—"}
-								</p>
-							</div>
-							<div>
-								<p className="text-sm text-gray-500">Close</p>
-								<p className="font-medium">
-									{price.dayClose?.toLocaleString() ?? "—"}
-								</p>
-							</div>
-						</div>
-					</Card>
-				)}
-
 				{/* Bond Information */}
 				{asset.category === "BONDS" && (
 					<Card className="p-4 mb-6">
@@ -310,36 +264,6 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 
 				{/* Coupon Obligation Forecast */}
 				{asset.category === "BONDS" && <CouponForecastCard assetId={assetId} />}
-
-				{/* Manual Price Override */}
-				<Card className="p-4 mb-6">
-					<h2 className="text-lg font-semibold text-gray-800 mb-3">
-						Manual Price Override
-					</h2>
-					<div className="flex gap-3 items-end">
-						<div className="flex-1">
-							<label className="block text-sm font-medium text-gray-700 mb-1">
-								New Price (XAF)
-							</label>
-							<input
-								type="number"
-								aria-label="New price"
-								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								placeholder="Enter new price..."
-								value={manualPrice}
-								onChange={(e) => setManualPrice(e.target.value)}
-								min={0.0001}
-								step="any"
-							/>
-						</div>
-						<Button
-							onClick={handleSetPrice}
-							disabled={!manualPrice || isSettingPrice}
-						>
-							{isSettingPrice ? "Setting..." : "Set Price"}
-						</Button>
-					</div>
-				</Card>
 
 				{/* Asset Info */}
 				<Card className="p-4">
