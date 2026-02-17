@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import  com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
+import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -185,6 +186,27 @@ public class FineractService {
         return null;
     }
 
+    /**
+     * Get all addresses for a client.
+     *
+     * @param clientId Fineract client ID
+     * @return List of addresses
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getClientAddresses(Long clientId) {
+        log.info("Getting addresses for client: {}", clientId);
+
+        try {
+            return fineractRestClient.get()
+                    .uri("/fineract-provider/api/v1/clients/{clientId}/addresses", clientId)
+                    .retrieve()
+                    .body(List.class);
+        } catch (Exception e) {
+            log.error("Failed to get addresses for client {}: {}", clientId, e.getMessage());
+            return List.of();
+        }
+    }
+
 
 
     private Map<String, Object> buildClientPayload(RegistrationRequest request) {
@@ -304,24 +326,25 @@ public class FineractService {
         return codeValueCache.get(key);
     }
 
-    public void updateClient(Long clientId, ProfileUpdateRequest request) {
+    public ProfileUpdateResponse updateClient(Long clientId, ProfileUpdateRequest request) {
         log.info("Updating Fineract client ID: {}", clientId);
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("firstname", request.getFirstName());
-        payload.put("lastname", request.getLastName());
-        payload.put("emailAddress", request.getEmailAddress());
-        payload.put("mobileNo", request.getMobileNo());
+        putIfPresent(payload, "firstname", request.getFirstName());
+        putIfPresent(payload, "lastname", request.getLastName());
+        putIfPresent(payload, "emailAddress", request.getEmailAddress());
+        putIfPresent(payload, "mobileNo", request.getMobileNo());
         payload.put(LOCALE, fineractProperties.getDefaults().getLocale());
         payload.put(DATE_FORMAT, fineractProperties.getDefaults().getDateFormat());
 
-    try {
-            fineractRestClient.put()
+        try {
+            ProfileUpdateResponse response = fineractRestClient.put()
                     .uri("/fineract-provider/api/v1/clients/{clientId}", clientId)
                     .body(payload)
                     .retrieve()
-                    .toBodilessEntity();
+                    .body(ProfileUpdateResponse.class);
             log.info("Successfully updated Fineract client ID: {}", clientId);
+            return response;
         } catch (HttpClientErrorException e) {
             log.error("Fineract API update error: {}", e.getResponseBodyAsString(), e);
             throw new RegistrationException("Failed to update Fineract client: " + e.getResponseBodyAsString(), e);
