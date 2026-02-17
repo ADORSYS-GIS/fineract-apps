@@ -26,11 +26,25 @@ public class RegistrationService {
         String externalId = request.getExternalId();
         log.info("Using externalId: {}", externalId);
 
-        Long fineractClientId = fineractService.createClient(request);
-        log.info("Successfully created client in Fineract with ID: {}", fineractClientId);
+        Long fineractClientId;
+        try {
+            fineractClientId = fineractService.createClient(request);
+            log.info("Successfully created client in Fineract with ID: {}", fineractClientId);
+        } catch (Exception e) {
+            log.error("Client creation failed for externalId {}: {}", externalId, e.getMessage());
+            registrationMetrics.incrementRegistrationFailure("CLIENT_CREATION_FAILED");
+            throw e;
+        }
 
-        Long savingsAccountId = fineractService.createSavingsAccount(fineractClientId);
-        log.info("Successfully created savings account in Fineract with ID: {}", savingsAccountId);
+        Long savingsAccountId;
+        try {
+            savingsAccountId = fineractService.createSavingsAccount(fineractClientId);
+            log.info("Successfully created savings account in Fineract with ID: {}", savingsAccountId);
+        } catch (Exception e) {
+            log.error("Savings account creation failed for externalId {}: {}", externalId, e.getMessage());
+            registrationMetrics.incrementRegistrationFailure("SAVINGS_ACCOUNT_CREATION_FAILED");
+            throw e;
+        }
 
         RegistrationResponse response = new RegistrationResponse();
         response.setSuccess(true);
