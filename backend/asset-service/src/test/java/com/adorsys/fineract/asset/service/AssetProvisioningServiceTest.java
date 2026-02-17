@@ -353,6 +353,46 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
+    void createAsset_pastValidityDate_throws() {
+        // Non-bond asset with past validity date
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Token", "TKN", "TKN", null, null, AssetCategory.STOCKS,
+                new BigDecimal("10000"), new BigDecimal("100"), 0,
+                null, null, null, TREASURY_CLIENT_ID,
+                null, null, null, null, null, null, LocalDate.now().minusDays(1)
+        );
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("Validity date must be in the future"));
+    }
+
+    @Test
+    void createBondAsset_validityAfterMaturity_throws() {
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
+                new BigDecimal("10000"), new BigDecimal("100"), 0,
+                null, null, null, TREASURY_CLIENT_ID,
+                "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
+                LocalDate.now().plusMonths(6), LocalDate.now().plusYears(2)
+        );
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("Validity date must be on or before the maturity date"));
+    }
+
+    @Test
+    void updateAsset_pastValidityDate_throws() {
+        Asset existing = activeAsset();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
+
+        UpdateAssetRequest request = new UpdateAssetRequest(
+                null, null, null, null, null, null, null, null, LocalDate.now().minusDays(1));
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
+        assertTrue(ex.getMessage().contains("Validity date must be in the future"));
+    }
+
+    @Test
     void createBondAsset_pastMaturityDate_throws() {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,

@@ -58,6 +58,8 @@ public class AssetProvisioningService {
         // Validate bond-specific fields when category is BONDS
         if (request.category() == AssetCategory.BONDS) {
             validateBondFields(request);
+        } else if (request.validityDate() != null && !request.validityDate().isAfter(LocalDate.now())) {
+            throw new AssetException("Validity date must be in the future");
         }
 
         String assetId = UUID.randomUUID().toString();
@@ -188,6 +190,17 @@ public class AssetProvisioningService {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
 
+        // Validate validity date if provided
+        if (request.validityDate() != null) {
+            if (!request.validityDate().isAfter(LocalDate.now())) {
+                throw new AssetException("Validity date must be in the future");
+            }
+            LocalDate effectiveMaturity = request.maturityDate() != null ? request.maturityDate() : asset.getMaturityDate();
+            if (effectiveMaturity != null && request.validityDate().isAfter(effectiveMaturity)) {
+                throw new AssetException("Validity date must be on or before the maturity date");
+            }
+        }
+
         if (request.name() != null) asset.setName(request.name());
         if (request.description() != null) asset.setDescription(request.description());
         if (request.imageUrl() != null) asset.setImageUrl(request.imageUrl());
@@ -311,6 +324,14 @@ public class AssetProvisioningService {
         }
         if (request.nextCouponDate().isAfter(request.maturityDate())) {
             throw new AssetException("First coupon date must be on or before the maturity date");
+        }
+        if (request.validityDate() != null) {
+            if (!request.validityDate().isAfter(LocalDate.now())) {
+                throw new AssetException("Validity date must be in the future");
+            }
+            if (request.validityDate().isAfter(request.maturityDate())) {
+                throw new AssetException("Validity date must be on or before the maturity date");
+            }
         }
     }
 

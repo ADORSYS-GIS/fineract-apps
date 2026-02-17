@@ -41,8 +41,12 @@ export const AssetDetailsStep: FC<Props> = ({
 						value={formData.name}
 						onChange={(e) => updateFormData({ name: e.target.value })}
 					/>
-					{fieldError("name") && (
+					{fieldError("name") ? (
 						<p className="text-xs text-red-600 mt-1">{fieldError("name")}</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Display name shown to investors in the marketplace
+						</p>
 					)}
 				</div>
 
@@ -86,6 +90,9 @@ export const AssetDetailsStep: FC<Props> = ({
 							</option>
 						))}
 					</select>
+					<p className="text-xs text-gray-400 mt-1">
+						Determines which marketplace section the asset appears in
+					</p>
 				</div>
 			</div>
 
@@ -102,6 +109,9 @@ export const AssetDetailsStep: FC<Props> = ({
 					onChange={(e) => updateFormData({ description: e.target.value })}
 					maxLength={1000}
 				/>
+				<p className="text-xs text-gray-400 mt-1">
+					Brief summary visible on the asset detail page
+				</p>
 			</div>
 
 			<div>
@@ -116,6 +126,9 @@ export const AssetDetailsStep: FC<Props> = ({
 					value={formData.imageUrl}
 					onChange={(e) => updateFormData({ imageUrl: e.target.value })}
 				/>
+				<p className="text-xs text-gray-400 mt-1">
+					Public URL for the asset thumbnail (e.g., company logo)
+				</p>
 			</div>
 		</div>
 	);

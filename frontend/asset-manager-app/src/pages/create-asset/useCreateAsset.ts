@@ -136,6 +136,15 @@ export const useCreateAsset = () => {
 					errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
 				if (!formData.nextCouponDate)
 					errors.push("First coupon date is required");
+				if (formData.validityDate) {
+					if (formData.validityDate <= new Date().toISOString().split("T")[0])
+						errors.push("Validity date must be in the future");
+					else if (
+						formData.maturityDate &&
+						formData.validityDate > formData.maturityDate
+					)
+						errors.push("Validity date must be on or before the maturity date");
+				}
 				break;
 			case "Pricing & Fees":
 				if (formData.initialPrice <= 0)

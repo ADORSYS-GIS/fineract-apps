@@ -50,8 +50,12 @@ export const BondDetailsStep: FC<Props> = ({
 						onChange={(e) => updateFormData({ issuer: e.target.value })}
 						maxLength={255}
 					/>
-					{fieldError("issuer") && (
+					{fieldError("issuer") ? (
 						<p className="text-xs text-red-600 mt-1">{fieldError("issuer")}</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Organization or government that issued the bond
+						</p>
 					)}
 				</div>
 
@@ -95,9 +99,13 @@ export const BondDetailsStep: FC<Props> = ({
 							})
 						}
 					/>
-					{fieldError("interest rate") && (
+					{fieldError("interest rate") ? (
 						<p className="text-xs text-red-600 mt-1">
 							{fieldError("interest rate")}
+						</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Annual coupon rate paid to bondholders
 						</p>
 					)}
 				</div>
@@ -113,9 +121,13 @@ export const BondDetailsStep: FC<Props> = ({
 						value={formData.maturityDate}
 						onChange={(e) => updateFormData({ maturityDate: e.target.value })}
 					/>
-					{fieldError("maturity") && (
+					{fieldError("maturity") ? (
 						<p className="text-xs text-red-600 mt-1">
 							{fieldError("maturity")}
+						</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Date when the bond matures and trading stops automatically
 						</p>
 					)}
 				</div>
@@ -140,9 +152,13 @@ export const BondDetailsStep: FC<Props> = ({
 							</option>
 						))}
 					</select>
-					{fieldError("coupon frequency") && (
+					{fieldError("coupon frequency") ? (
 						<p className="text-xs text-red-600 mt-1">
 							{fieldError("coupon frequency")}
+						</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							How often coupon payments are distributed to holders
 						</p>
 					)}
 				</div>
@@ -158,9 +174,13 @@ export const BondDetailsStep: FC<Props> = ({
 						value={formData.nextCouponDate}
 						onChange={(e) => updateFormData({ nextCouponDate: e.target.value })}
 					/>
-					{fieldError("coupon date") && (
+					{fieldError("coupon date") ? (
 						<p className="text-xs text-red-600 mt-1">
 							{fieldError("coupon date")}
+						</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Date of the first coupon payment (must be on or before maturity)
 						</p>
 					)}
 				</div>

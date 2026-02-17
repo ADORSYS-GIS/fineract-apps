@@ -41,9 +41,12 @@ export const SelectCompanyStep: FC<Props> = ({
 
 			{/* Company Selection */}
 			<div>
-				<label className="block text-sm font-medium text-gray-700 mb-2">
+				<label className="block text-sm font-medium text-gray-700 mb-1">
 					Company
 				</label>
+				<p className="text-xs text-gray-400 mb-2">
+					The Fineract client that will hold the treasury account for this asset
+				</p>
 				{isLoadingClients ? (
 					<div className="animate-pulse h-10 bg-gray-200 rounded" />
 				) : (
