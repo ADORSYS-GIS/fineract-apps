@@ -10,7 +10,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import org.springframework.security.access.AccessDeniedException;
+ 
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,7 +66,22 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(response);
     }
-
+ 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        log.warn("Access denied [correlationId={}]: {}", correlationId, ex.getMessage());
+ 
+        ErrorResponse response = ErrorResponse.builder()
+                .error("FORBIDDEN")
+                .message("You do not have the required permissions to perform this action.")
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .build();
+ 
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+ 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         String correlationId = UUID.randomUUID().toString();
