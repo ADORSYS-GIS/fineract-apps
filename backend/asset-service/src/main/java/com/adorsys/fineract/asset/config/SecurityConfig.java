@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
  */
 @Configuration
 @EnableWebSecurity
-// @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
@@ -44,10 +43,6 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .authorizeHttpRequests(authz -> {
-                authz.anyRequest().permitAll();
-            });
-        /*
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
@@ -74,11 +69,9 @@ public class SecurityConfig {
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())
                 )
             );
-        */
         return http.build();
     }
 
-    /*
     @Bean
     public JwtDecoder jwtDecoder() {
         return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
@@ -104,7 +97,7 @@ public class SecurityConfig {
                     .collect(Collectors.toList());
         };
     }
-    */
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

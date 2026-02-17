@@ -79,12 +79,21 @@ public class FineractClient {
     }
 
     /**
-     * Register currencies in Fineract. Appends new currency to existing list.
+     * Register currencies in Fineract. Appends new currencies to the existing list
+     * so that previously registered currencies (e.g. XAF) are not removed.
      */
     @SuppressWarnings("unchecked")
     public void registerCurrencies(List<String> currencyCodes) {
         try {
-            Map<String, Object> body = Map.of("currencies", currencyCodes);
+            // Get existing currencies to avoid removing them
+            List<Map<String, Object>> existing = getExistingCurrencies();
+            Set<String> allCurrencies = new java.util.LinkedHashSet<>();
+            for (Map<String, Object> c : existing) {
+                allCurrencies.add((String) c.get("code"));
+            }
+            allCurrencies.addAll(currencyCodes);
+
+            Map<String, Object> body = Map.of("currencies", new java.util.ArrayList<>(allCurrencies));
 
             webClient.put()
                     .uri("/fineract-provider/api/v1/currencies")
@@ -434,12 +443,14 @@ public class FineractClient {
 
     /**
      * Get all savings accounts for a client.
+     * Uses the client-specific endpoint which properly filters by client ID.
+     * Note: /savingsaccounts?clientId= does NOT filter in Fineract; use /clients/{id}/accounts instead.
      */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getClientSavingsAccounts(Long clientId) {
         try {
             Map<String, Object> response = webClient.get()
-                    .uri("/fineract-provider/api/v1/savingsaccounts?clientId={clientId}", clientId)
+                    .uri("/fineract-provider/api/v1/clients/{clientId}/accounts?fields=savingsAccounts", clientId)
                     .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                     .retrieve()
                     .bodyToMono(Map.class)
@@ -447,7 +458,7 @@ public class FineractClient {
                     .block();
 
             return response != null
-                    ? (List<Map<String, Object>>) response.get("pageItems")
+                    ? (List<Map<String, Object>>) response.getOrDefault("savingsAccounts", List.of())
                     : List.of();
         } catch (Exception e) {
             log.error("Failed to get client savings accounts: clientId={}, error={}", clientId, e.getMessage());
