@@ -47,7 +47,7 @@ public class AdminAssetStepDefinitions {
         Map<String, Object> xafAccount = Map.of(
                 "id", 300, "currency", Map.of("code", "XAF"), "status", Map.of("active", true));
         when(fineractClient.getClientSavingsAccounts(anyLong())).thenReturn(List.of(xafAccount));
-        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong()))
+        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
         when(fineractClient.provisionSavingsAccount(anyLong(), anyInt(), any(BigDecimal.class), anyLong()))
                 .thenReturn(400L);

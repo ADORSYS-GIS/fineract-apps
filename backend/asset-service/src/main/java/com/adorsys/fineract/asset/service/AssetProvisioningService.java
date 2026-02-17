@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
@@ -37,13 +38,14 @@ public class AssetProvisioningService {
     private final FineractClient fineractClient;
     private final AssetCatalogService assetCatalogService;
     private final AssetServiceConfig assetServiceConfig;
+    private final ResolvedGlAccounts resolvedGlAccounts;
 
     /**
      * Create a new asset with full Fineract provisioning.
      */
     @SuppressWarnings("unchecked")
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public AssetDetailResponse createAsset(CreateAssetRequest request) {
         // Validate uniqueness
         if (assetRepository.findBySymbol(request.symbol()).isPresent()) {
@@ -92,16 +94,17 @@ public class AssetProvisioningService {
             fineractClient.registerCurrencies(List.of(request.currencyCode()));
             log.info("Registered currency: {}", request.currencyCode());
 
-            // Step 3: Create savings product
+            // Step 3: Create savings product (using resolved DB IDs, not GL codes)
             productId = fineractClient.createSavingsProduct(
                     request.name() + " Token",
                     request.symbol(),
                     request.currencyCode(),
                     request.decimalPlaces(),
-                    assetServiceConfig.getGlAccounts().getDigitalAssetInventory(),
-                    assetServiceConfig.getGlAccounts().getCustomerDigitalAssetHoldings(),
-                    assetServiceConfig.getGlAccounts().getTransfersInSuspense(),
-                    assetServiceConfig.getGlAccounts().getIncomeFromInterest()
+                    resolvedGlAccounts.getDigitalAssetInventoryId(),
+                    resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
+                    resolvedGlAccounts.getTransfersInSuspenseId(),
+                    resolvedGlAccounts.getIncomeFromInterestId(),
+                    resolvedGlAccounts.getExpenseAccountId()
             );
             log.info("Created savings product: productId={}", productId);
 
@@ -109,7 +112,7 @@ public class AssetProvisioningService {
             // Uses Fineract Batch API (enclosingTransaction=true) so if any step fails, all are rolled back
             treasuryAssetAccountId = fineractClient.provisionSavingsAccount(
                     request.treasuryClientId(), productId,
-                    request.totalSupply(), assetServiceConfig.getGlAccounts().getAssetIssuancePaymentType()
+                    request.totalSupply(), resolvedGlAccounts.getAssetIssuancePaymentTypeId()
             );
             log.info("Provisioned treasury account atomically: accountId={}, supply={}",
                     treasuryAssetAccountId, request.totalSupply());
@@ -180,7 +183,7 @@ public class AssetProvisioningService {
      * Update asset metadata.
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public AssetDetailResponse updateAsset(String assetId, UpdateAssetRequest request) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -205,7 +208,7 @@ public class AssetProvisioningService {
      * Activate an asset (PENDING -> ACTIVE).
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public void activateAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -223,7 +226,7 @@ public class AssetProvisioningService {
      * Halt trading for an asset.
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public void haltAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -241,7 +244,7 @@ public class AssetProvisioningService {
      * Mint additional supply for an asset (deposit more tokens into treasury).
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public void mintSupply(String assetId, MintSupplyRequest request) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -250,7 +253,7 @@ public class AssetProvisioningService {
         fineractClient.depositToSavingsAccount(
                 asset.getTreasuryAssetAccountId(),
                 request.additionalSupply(),
-                assetServiceConfig.getGlAccounts().getAssetIssuancePaymentType());
+                resolvedGlAccounts.getAssetIssuancePaymentTypeId());
 
         // Update total supply
         asset.setTotalSupply(asset.getTotalSupply().add(request.additionalSupply()));
@@ -264,7 +267,7 @@ public class AssetProvisioningService {
      * Resume trading for a halted asset.
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public void resumeAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));

@@ -39,6 +39,8 @@ asset-service:
     fee-collection-account-id: 999
     spread-collection-account-id: 888
   gl-accounts:
-    digital-asset-inventory: 47
-    customer-digital-asset-holdings: 65
-    asset-issuance-payment-type: 22
+    digital-asset-inventory: "47"
+    customer-digital-asset-holdings: "65"
+    transfers-in-suspense: "48"
+    income-from-interest: "87"
+    asset-issuance-payment-type: "Asset Issuance"

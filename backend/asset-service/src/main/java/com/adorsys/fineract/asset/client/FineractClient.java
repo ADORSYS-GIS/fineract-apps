@@ -133,6 +133,15 @@ public class FineractClient {
                     .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                     .block();
 
+            // Also delete the custom currency from the reference table
+            webClient.delete()
+                    .uri("/fineract-provider/api/v1/currencies/custom/{code}", currencyCode)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .toBodilessEntity()
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
             log.info("Deregistered currency: {}", currencyCode);
         } catch (Exception e) {
             log.error("ROLLBACK FAILURE: Failed to deregister currency {}. "
@@ -147,9 +156,11 @@ public class FineractClient {
      */
     @SuppressWarnings("unchecked")
     public Integer createSavingsProduct(String name, String shortName, String currencyCode,
-                                         int decimalPlaces, Long savingsReferenceAccountId,
-                                         Long savingsControlAccountId, Long transfersInSuspenseAccountId,
-                                         Long incomeFromInterestId) {
+                                        int decimalPlaces, Long savingsReferenceAccountId,
+                                        Long savingsControlAccountId,
+                                        Long transfersInSuspenseAccountId,
+                                        Long incomeFromInterestId,
+                                        Long expenseAccountId) {
         try {
             Map<String, Object> body = new HashMap<>();
             body.put("name", name);
@@ -163,15 +174,19 @@ public class FineractClient {
             body.put("interestCalculationType", 1); // Daily Balance
             body.put("interestCalculationDaysInYearType", 365);
             body.put("accountingRule", 2); // Cash-based
+            // ASSET type accounts
             body.put("savingsReferenceAccountId", savingsReferenceAccountId);
+            body.put("overdraftPortfolioControlId", savingsReferenceAccountId);
+            // LIABILITY type accounts
             body.put("savingsControlAccountId", savingsControlAccountId);
-            body.put("transfersInSuspenseAccountId", transfersInSuspenseAccountId);
+            body.put("transfersInSuspenseAccountId", savingsControlAccountId);
+            // INCOME type accounts
             body.put("incomeFromInterestId", incomeFromInterestId);
-            body.put("incomeFromFeeAccountId", savingsReferenceAccountId);
-            body.put("incomeFromPenaltyAccountId", savingsReferenceAccountId);
-            body.put("interestOnSavingsAccountId", savingsControlAccountId);
-            body.put("writeOffAccountId", savingsControlAccountId);
-            body.put("overdraftPortfolioControlId", savingsControlAccountId);
+            body.put("incomeFromFeeAccountId", incomeFromInterestId);
+            body.put("incomeFromPenaltyAccountId", incomeFromInterestId);
+            // EXPENSE type accounts
+            body.put("interestOnSavingsAccountId", expenseAccountId);
+            body.put("writeOffAccountId", expenseAccountId);
             body.put("locale", "en");
 
             Map<String, Object> response = webClient.post()
@@ -542,9 +557,8 @@ public class FineractClient {
                                          BigDecimal depositAmount, Long paymentTypeId) {
         try {
             String today = LocalDate.now().format(DATE_FORMAT);
-            List<Map<String, Object>> batchRequests = new ArrayList<>();
 
-            // Request 1: Create savings account
+            // Step 1: Create savings account
             Map<String, Object> createBody = Map.of(
                     "clientId", clientId,
                     "productId", productId,
@@ -552,42 +566,30 @@ public class FineractClient {
                     "dateFormat", "dd MMMM yyyy",
                     "submittedOnDate", today
             );
-            Map<String, Object> createReq = new HashMap<>();
-            createReq.put("requestId", 1L);
-            createReq.put("relativeUrl", "savingsaccounts");
-            createReq.put("method", "POST");
-            createReq.put("body", objectMapper.writeValueAsString(createBody));
-            batchRequests.add(createReq);
+            Map<String, Object> createResp = fineractPost(
+                    "/fineract-provider/api/v1/savingsaccounts", createBody);
+            Long savingsId = ((Number) createResp.get("savingsId")).longValue();
+            log.info("Created savings account: savingsId={}", savingsId);
 
-            // Request 2: Approve (references savingsId from request 1)
+            // Step 2: Approve
             Map<String, Object> approveBody = Map.of(
                     "locale", "en",
                     "dateFormat", "dd MMMM yyyy",
                     "approvedOnDate", today
             );
-            Map<String, Object> approveReq = new HashMap<>();
-            approveReq.put("requestId", 2L);
-            approveReq.put("relativeUrl", "savingsaccounts/$.1.savingsId?command=approve");
-            approveReq.put("method", "POST");
-            approveReq.put("reference", 1L);
-            approveReq.put("body", objectMapper.writeValueAsString(approveBody));
-            batchRequests.add(approveReq);
+            fineractPost("/fineract-provider/api/v1/savingsaccounts/" + savingsId + "?command=approve", approveBody);
+            log.info("Approved savings account: savingsId={}", savingsId);
 
-            // Request 3: Activate (references savingsId from request 1)
+            // Step 3: Activate
             Map<String, Object> activateBody = Map.of(
                     "locale", "en",
                     "dateFormat", "dd MMMM yyyy",
                     "activatedOnDate", today
             );
-            Map<String, Object> activateReq = new HashMap<>();
-            activateReq.put("requestId", 3L);
-            activateReq.put("relativeUrl", "savingsaccounts/$.1.savingsId?command=activate");
-            activateReq.put("method", "POST");
-            activateReq.put("reference", 1L);
-            activateReq.put("body", objectMapper.writeValueAsString(activateBody));
-            batchRequests.add(activateReq);
+            fineractPost("/fineract-provider/api/v1/savingsaccounts/" + savingsId + "?command=activate", activateBody);
+            log.info("Activated savings account: savingsId={}", savingsId);
 
-            // Request 4 (optional): Deposit initial supply
+            // Step 4 (optional): Deposit initial supply
             if (depositAmount != null && depositAmount.compareTo(BigDecimal.ZERO) > 0) {
                 Map<String, Object> depositBody = new HashMap<>();
                 depositBody.put("locale", "en");
@@ -595,67 +597,17 @@ public class FineractClient {
                 depositBody.put("transactionDate", today);
                 depositBody.put("transactionAmount", depositAmount);
                 depositBody.put("paymentTypeId", paymentTypeId);
-
-                Map<String, Object> depositReq = new HashMap<>();
-                depositReq.put("requestId", 4L);
-                depositReq.put("relativeUrl", "savingsaccounts/$.1.savingsId/transactions?command=deposit");
-                depositReq.put("method", "POST");
-                depositReq.put("reference", 1L);
-                depositReq.put("body", objectMapper.writeValueAsString(depositBody));
-                batchRequests.add(depositReq);
+                fineractPost("/fineract-provider/api/v1/savingsaccounts/" + savingsId
+                        + "/transactions?command=deposit", depositBody);
+                log.info("Deposited {} into savings account: savingsId={}", depositAmount, savingsId);
             }
 
-            List<Map<String, Object>> responses = webClient.post()
-                    .uri("/fineract-provider/api/v1/batches?enclosingTransaction=true")
-                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(batchRequests)
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                            resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract batch provision error: " + b))))
-                    .bodyToMono(List.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                    .block();
-
-            // Check individual responses for failures
-            if (responses != null) {
-                for (Map<String, Object> resp : responses) {
-                    Integer statusCode = (Integer) resp.get("statusCode");
-                    if (statusCode != null && statusCode >= 400) {
-                        String body = (String) resp.get("body");
-                        throw new AssetException("Account provisioning failed at step " + resp.get("requestId") + ": " + body);
-                    }
-                }
-            }
-
-            // Extract savingsId from the create response (request 1)
-            Long savingsId = null;
-            if (responses != null) {
-                for (Map<String, Object> resp : responses) {
-                    if (((Number) resp.get("requestId")).longValue() == 1L) {
-                        String bodyStr = (String) resp.get("body");
-                        Map<String, Object> bodyMap = objectMapper.readValue(bodyStr, Map.class);
-                        savingsId = ((Number) bodyMap.get("savingsId")).longValue();
-                        break;
-                    }
-                }
-            }
-
-            if (savingsId == null) {
-                throw new AssetException("Failed to extract savingsId from batch provision response");
-            }
-
-            int steps = depositAmount != null ? 4 : 3;
-            log.info("Provisioned savings account atomically ({} steps): clientId={}, productId={}, savingsId={}",
-                    steps, clientId, productId, savingsId);
+            log.info("Provisioned savings account: clientId={}, productId={}, savingsId={}",
+                    clientId, productId, savingsId);
             return savingsId;
 
         } catch (AssetException e) {
             throw e;
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize batch provision body: {}", e.getMessage());
-            throw new AssetException("Failed to serialize batch provision request", e);
         } catch (Exception e) {
             log.error("Failed to provision savings account: clientId={}, productId={}, error={}",
                     clientId, productId, e.getMessage());
@@ -663,83 +615,105 @@ public class FineractClient {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> fineractPost(String uri, Map<String, Object> body) {
+        return webClient.post()
+                .uri(uri)
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                        resp -> resp.bodyToMono(String.class)
+                                .flatMap(b -> Mono.error(new AssetException("Fineract API error: " + b))))
+                .bodyToMono(Map.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+    }
+
     /**
-     * Execute multiple account transfers atomically using Fineract Batch API.
-     * Uses enclosingTransaction=true so if ANY transfer fails, ALL are rolled back.
+     * Execute multiple account transfers sequentially.
+     * Each transfer is executed via the direct /accounttransfers endpoint.
      *
-     * @param transfers List of transfers to execute atomically
-     * @return List of batch response items
-     * @throws AssetException if the batch request fails or any individual transfer fails
+     * @param transfers List of transfers to execute
+     * @return List of transfer IDs
+     * @throws AssetException if any transfer fails
      */
     @CircuitBreaker(name = "fineract")
-    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> executeBatchTransfers(List<BatchTransferRequest> transfers) {
-        try {
-            String transferDate = LocalDate.now().format(DATE_FORMAT);
-            List<Map<String, Object>> batchRequests = new ArrayList<>();
-
-            for (int i = 0; i < transfers.size(); i++) {
-                BatchTransferRequest t = transfers.get(i);
-
-                Map<String, Object> transferBody = new HashMap<>();
-                transferBody.put("fromOfficeId", 1);
-                transferBody.put("fromClientId", 1);
-                transferBody.put("fromAccountType", 2); // Savings
-                transferBody.put("fromAccountId", t.fromAccountId());
-                transferBody.put("toOfficeId", 1);
-                transferBody.put("toClientId", 1);
-                transferBody.put("toAccountType", 2); // Savings
-                transferBody.put("toAccountId", t.toAccountId());
-                transferBody.put("transferAmount", t.amount());
-                transferBody.put("transferDate", transferDate);
-                transferBody.put("transferDescription", t.description());
-                transferBody.put("locale", "en");
-                transferBody.put("dateFormat", "dd MMMM yyyy");
-
-                Map<String, Object> batchItem = new HashMap<>();
-                batchItem.put("requestId", (long) (i + 1));
-                batchItem.put("relativeUrl", "accounttransfers");
-                batchItem.put("method", "POST");
-                batchItem.put("body", objectMapper.writeValueAsString(transferBody));
-
-                batchRequests.add(batchItem);
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (int i = 0; i < transfers.size(); i++) {
+            BatchTransferRequest t = transfers.get(i);
+            try {
+                Long transferId = createAccountTransfer(
+                        t.fromAccountId(), t.toAccountId(), t.amount(), t.description());
+                Map<String, Object> result = new HashMap<>();
+                result.put("requestId", (long) (i + 1));
+                result.put("statusCode", 200);
+                result.put("resourceId", transferId);
+                results.add(result);
+            } catch (Exception e) {
+                log.error("Transfer {} failed: from={}, to={}, amount={}, error={}",
+                        i + 1, t.fromAccountId(), t.toAccountId(), t.amount(), e.getMessage());
+                throw new AssetException("Transfer failed (leg " + (i + 1) + "): " + e.getMessage(), e);
             }
-
-            List<Map<String, Object>> responses = webClient.post()
-                    .uri("/fineract-provider/api/v1/batches?enclosingTransaction=true")
-                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(batchRequests)
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                            resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract batch API error: " + b))))
-                    .bodyToMono(List.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                    .block();
-
-            // Check individual responses for failures
-            if (responses != null) {
-                for (Map<String, Object> resp : responses) {
-                    Integer statusCode = (Integer) resp.get("statusCode");
-                    if (statusCode != null && statusCode >= 400) {
-                        String body = (String) resp.get("body");
-                        throw new AssetException("Batch transfer failed (request " + resp.get("requestId") + "): " + body);
-                    }
-                }
-            }
-
-            log.info("Executed batch of {} transfers atomically", transfers.size());
-            return responses != null ? responses : List.of();
-        } catch (AssetException e) {
-            throw e;
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize batch transfer body: {}", e.getMessage());
-            throw new AssetException("Failed to serialize batch transfer request", e);
-        } catch (Exception e) {
-            log.error("Failed to execute batch transfers: {}", e.getMessage());
-            throw new AssetException("Failed to execute batch transfers in Fineract", e);
         }
+        log.info("Executed {} transfers sequentially", transfers.size());
+        return results;
+    }
+
+    /**
+     * Look up all GL accounts from Fineract and return a map of GL code to database ID.
+     * Used at startup to resolve configured GL codes to their actual database IDs.
+     *
+     * @return Map of GL code (String) to database ID (Long)
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Long> lookupGlAccounts() {
+        List<Map<String, Object>> accounts = webClient.get()
+                .uri("/fineract-provider/api/v1/glaccounts")
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                .retrieve()
+                .bodyToMono(List.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+
+        Map<String, Long> codeToId = new HashMap<>();
+        if (accounts != null) {
+            for (Map<String, Object> acct : accounts) {
+                String code = (String) acct.get("glCode");
+                Long id = ((Number) acct.get("id")).longValue();
+                codeToId.put(code, id);
+            }
+        }
+        return codeToId;
+    }
+
+    /**
+     * Look up all payment types from Fineract and return a map of payment type name to database ID.
+     * Used at startup to resolve configured payment type names to their actual database IDs.
+     *
+     * @return Map of payment type name (String) to database ID (Long)
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Long> lookupPaymentTypes() {
+        List<Map<String, Object>> paymentTypes = webClient.get()
+                .uri("/fineract-provider/api/v1/paymenttypes")
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                .retrieve()
+                .bodyToMono(List.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+
+        Map<String, Long> nameToId = new HashMap<>();
+        if (paymentTypes != null) {
+            for (Map<String, Object> pt : paymentTypes) {
+                String name = (String) pt.get("name");
+                Long id = ((Number) pt.get("id")).longValue();
+                nameToId.put(name, id);
+            }
+        }
+        return nameToId;
     }
 
     private String getAuthHeader() {

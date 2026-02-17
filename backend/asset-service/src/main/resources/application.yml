@@ -99,9 +99,10 @@ asset-service:
   gl-accounts:
     digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:47}
     customer-digital-asset-holdings: ${GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS:65}
-    asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:22}
-    transfers-in-suspense: ${GL_TRANSFERS_IN_SUSPENSE:73}
-    income-from-interest: ${GL_INCOME_FROM_INTEREST:1}
+    transfers-in-suspense: ${GL_TRANSFERS_IN_SUSPENSE:48}
+    income-from-interest: ${GL_INCOME_FROM_INTEREST:87}
+    expense-account: ${GL_EXPENSE_ACCOUNT:91}
+    asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:Asset Issuance}
   archival:
     retention-months: ${ARCHIVAL_RETENTION_MONTHS:12}
     batch-size: ${ARCHIVAL_BATCH_SIZE:1000}

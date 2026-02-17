@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
@@ -36,6 +37,7 @@ class AssetProvisioningServiceTest {
     @Mock private FineractClient fineractClient;
     @Mock private AssetCatalogService assetCatalogService;
     @Mock private AssetServiceConfig assetServiceConfig;
+    @Mock private ResolvedGlAccounts resolvedGlAccounts;
 
     @InjectMocks
     private AssetProvisioningService service;
@@ -43,15 +45,14 @@ class AssetProvisioningServiceTest {
     @Captor private ArgumentCaptor<Asset> assetCaptor;
     @Captor private ArgumentCaptor<AssetPrice> priceCaptor;
 
-    private AssetServiceConfig.GlAccounts glAccounts;
-
     @BeforeEach
     void setUp() {
-        glAccounts = new AssetServiceConfig.GlAccounts();
-        glAccounts.setDigitalAssetInventory(47L);
-        glAccounts.setCustomerDigitalAssetHoldings(65L);
-        glAccounts.setAssetIssuancePaymentType(22L);
-        glAccounts.setIncomeFromInterest(1L);
+        lenient().when(resolvedGlAccounts.getDigitalAssetInventoryId()).thenReturn(47L);
+        lenient().when(resolvedGlAccounts.getCustomerDigitalAssetHoldingsId()).thenReturn(65L);
+        lenient().when(resolvedGlAccounts.getTransfersInSuspenseId()).thenReturn(48L);
+        lenient().when(resolvedGlAccounts.getIncomeFromInterestId()).thenReturn(87L);
+        lenient().when(resolvedGlAccounts.getExpenseAccountId()).thenReturn(91L);
+        lenient().when(resolvedGlAccounts.getAssetIssuancePaymentTypeId()).thenReturn(22L);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
     }
 
@@ -77,8 +78,8 @@ class AssetProvisioningServiceTest {
                 .thenReturn(List.of(xafAccount));
 
         // Fineract: register currency, create product, provision account
-        when(assetServiceConfig.getGlAccounts()).thenReturn(glAccounts);
-        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), eq(47L), eq(65L), eq(73L), eq(1L)))
+
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), eq(47L), eq(65L), eq(48L), eq(87L), eq(91L)))
                 .thenReturn(10);
         when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
                 .thenReturn(400L);
@@ -159,8 +160,8 @@ class AssetProvisioningServiceTest {
         );
         when(fineractClient.getClientSavingsAccounts(TREASURY_CLIENT_ID))
                 .thenReturn(List.of(xafAccount));
-        when(assetServiceConfig.getGlAccounts()).thenReturn(glAccounts);
-        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong()))
+
+        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenThrow(new RuntimeException("Connection timeout"));
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -185,8 +186,8 @@ class AssetProvisioningServiceTest {
         );
         when(fineractClient.getClientSavingsAccounts(TREASURY_CLIENT_ID))
                 .thenReturn(List.of(xafAccount));
-        when(assetServiceConfig.getGlAccounts()).thenReturn(glAccounts);
-        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong()))
+
+        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
         when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
                 .thenThrow(new RuntimeException("Batch API timeout"));
@@ -285,7 +286,7 @@ class AssetProvisioningServiceTest {
     void mintSupply_happyPath_updatesSupplyAndDeposits() {
         Asset active = activeAsset();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(active));
-        when(assetServiceConfig.getGlAccounts()).thenReturn(glAccounts);
+
 
         MintSupplyRequest request = new MintSupplyRequest(new BigDecimal("500"));
         service.mintSupply(ASSET_ID, request);

@@ -69,11 +69,18 @@ public class AssetServiceConfig {
 
     @Data
     public static class GlAccounts {
-        private Long digitalAssetInventory = 47L;
-        private Long customerDigitalAssetHoldings = 65L;
-        private Long assetIssuancePaymentType = 22L;
-        private Long transfersInSuspense = 73L;
-        private Long incomeFromInterest = 1L;
+        /** GL code for digital asset inventory account. Resolved to DB ID at startup. */
+        private String digitalAssetInventory = "47";
+        /** GL code for customer digital asset holdings account. Resolved to DB ID at startup. */
+        private String customerDigitalAssetHoldings = "65";
+        /** GL code for transfers in suspense account. Resolved to DB ID at startup. */
+        private String transfersInSuspense = "48";
+        /** GL code for income from interest account. Resolved to DB ID at startup. */
+        private String incomeFromInterest = "87";
+        /** GL code for expense account (interest on savings / write-off). Resolved to DB ID at startup. */
+        private String expenseAccount = "91";
+        /** Payment type name for asset issuance. Resolved to DB ID at startup. */
+        private String assetIssuancePaymentType = "Asset Issuance";
     }
 
     @PostConstruct
