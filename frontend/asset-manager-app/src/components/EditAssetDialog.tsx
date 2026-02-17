@@ -1,18 +1,10 @@
 import { Button } from "@fineract-apps/ui";
 import { type FC, useEffect, useRef, useState } from "react";
+import { ASSET_CATEGORIES } from "@/constants/categories";
 import type {
 	AssetDetailResponse,
 	UpdateAssetRequest,
 } from "@/services/assetApi";
-
-const CATEGORIES = [
-	"Real Estate",
-	"Commodities",
-	"Agriculture",
-	"Stocks",
-	"Crypto",
-	"Other",
-];
 
 interface EditAssetDialogProps {
 	isOpen: boolean;
@@ -127,9 +119,9 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 							value={category}
 							onChange={(e) => setCategory(e.target.value)}
 						>
-							{CATEGORIES.map((c) => (
-								<option key={c} value={c}>
-									{c}
+							{ASSET_CATEGORIES.map((c) => (
+								<option key={c.value} value={c.value}>
+									{c.label}
 								</option>
 							))}
 						</select>

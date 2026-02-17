@@ -1,20 +1,12 @@
 import { Card } from "@fineract-apps/ui";
 import { CheckCircle } from "lucide-react";
 import { FC } from "react";
+import { ASSET_CATEGORY_LABELS } from "@/constants/categories";
 import type { AssetFormData } from "../useCreateAsset";
 
 interface Props {
 	formData: AssetFormData;
 }
-
-const CATEGORY_LABELS: Record<string, string> = {
-	REAL_ESTATE: "Real Estate",
-	COMMODITIES: "Commodities",
-	AGRICULTURE: "Agriculture",
-	STOCKS: "Stocks",
-	CRYPTO: "Crypto",
-	BONDS: "Bonds",
-};
 
 const FREQUENCY_LABELS: Record<number, string> = {
 	1: "Monthly",
@@ -63,7 +55,7 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="font-medium font-mono">{formData.currencyCode}</div>
 					<div className="text-gray-600">Category:</div>
 					<div className="font-medium">
-						{CATEGORY_LABELS[formData.category] ?? formData.category}
+						{ASSET_CATEGORY_LABELS[formData.category] ?? formData.category}
 					</div>
 					{formData.description && (
 						<>

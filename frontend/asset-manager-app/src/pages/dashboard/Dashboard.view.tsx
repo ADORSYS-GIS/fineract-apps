@@ -5,16 +5,8 @@ import { FC } from "react";
 import { ErrorFallback } from "@/components/ErrorFallback";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { ASSET_CATEGORIES_WITH_ALL } from "@/constants/categories";
 import { useDashboard } from "./useDashboard";
-
-const CATEGORIES = [
-	{ value: "", label: "All" },
-	{ value: "REAL_ESTATE", label: "Real Estate" },
-	{ value: "COMMODITIES", label: "Commodities" },
-	{ value: "AGRICULTURE", label: "Agriculture" },
-	{ value: "STOCKS", label: "Stocks" },
-	{ value: "CRYPTO", label: "Crypto" },
-];
 
 export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	searchValue,
@@ -77,7 +69,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 					role="group"
 					aria-label="Filter by category"
 				>
-					{CATEGORIES.map((cat) => (
+					{ASSET_CATEGORIES_WITH_ALL.map((cat) => (
 						<button
 							key={cat.value}
 							onClick={() => onCategoryChange(cat.value)}

@@ -1,14 +1,6 @@
 import { FC } from "react";
+import { ASSET_CATEGORIES } from "@/constants/categories";
 import type { AssetFormData } from "../useCreateAsset";
-
-const CATEGORIES = [
-	{ value: "REAL_ESTATE", label: "Real Estate" },
-	{ value: "COMMODITIES", label: "Commodities" },
-	{ value: "AGRICULTURE", label: "Agriculture" },
-	{ value: "STOCKS", label: "Stocks" },
-	{ value: "CRYPTO", label: "Crypto" },
-	{ value: "BONDS", label: "Bonds" },
-];
 
 interface Props {
 	formData: AssetFormData;
@@ -110,7 +102,7 @@ export const AssetDetailsStep: FC<Props> = ({
 						value={formData.category}
 						onChange={(e) => updateFormData({ category: e.target.value })}
 					>
-						{CATEGORIES.map((cat) => (
+						{ASSET_CATEGORIES.map((cat) => (
 							<option key={cat.value} value={cat.value}>
 								{cat.label}
 							</option>
