@@ -27,28 +27,23 @@ public class RegistrationRequest {
     private String email;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^\\+?[0-9]{9,15}$", message = "Invalid phone number format")
+    @Pattern(regexp = "^\\+?\\d{9,15}$", message = "Invalid phone number format")
     private String phone;
-
-    private String nationalId;
 
     private LocalDate dateOfBirth;
 
     private String gender;
 
-    private AddressDto address;
-
     @NotBlank(message = "External ID is compulsory")
     private String externalId;
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class AddressDto {
-        private String street;
-        private String city;
-        private String postalCode;
-        private String country;
-    }
+    private String addressType;
+    private String addressLine1;
+    private String addressLine2;
+    private String addressLine3;
+    private String city;
+    private String stateProvince;
+    private String country;
+    private String postalCode;
+
 }

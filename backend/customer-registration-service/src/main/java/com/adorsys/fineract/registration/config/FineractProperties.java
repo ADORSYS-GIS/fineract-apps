@@ -2,6 +2,7 @@ package com.adorsys.fineract.registration.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import java.util.Map;
 
 @Configuration
 @ConfigurationProperties(prefix = "fineract")
@@ -25,6 +26,8 @@ public class FineractProperties {
     private int defaultLegalFormId;
     private String defaultLocale;
     private String defaultDateFormat;
+    private String defaultPostalCode;
+    private Map<String, Integer> codes;
 
     // Getters and Setters
 
@@ -170,5 +173,21 @@ public class FineractProperties {
 
     public void setDefaultDateFormat(String defaultDateFormat) {
         this.defaultDateFormat = defaultDateFormat;
+    }
+
+    public String getDefaultPostalCode() {
+        return defaultPostalCode;
+    }
+
+    public void setDefaultPostalCode(String defaultPostalCode) {
+        this.defaultPostalCode = defaultPostalCode;
+    }
+
+    public Map<String, Integer> getCodes() {
+        return codes;
+    }
+
+    public void setCodes(Map<String, Integer> codes) {
+        this.codes = codes;
     }
 }

@@ -9,4 +9,5 @@ public class RegistrationResponse {
     private boolean success;
     private String status;
     private Long fineractClientId;
+    private Long savingsAccountId;
 }

@@ -29,10 +29,14 @@ public class RegistrationService {
         Long fineractClientId = fineractService.createClient(request);
         log.info("Successfully created client in Fineract with ID: {}", fineractClientId);
 
+        Long savingsAccountId = fineractService.createSavingsAccount(fineractClientId);
+        log.info("Successfully created savings account in Fineract with ID: {}", savingsAccountId);
+
         RegistrationResponse response = new RegistrationResponse();
         response.setSuccess(true);
         response.setStatus("success");
         response.setFineractClientId(fineractClientId);
+        response.setSavingsAccountId(savingsAccountId);
 
         log.info("Registration process completed successfully for externalId: {}", externalId);
         registrationMetrics.incrementRegistrationSuccess();
