@@ -40,7 +40,7 @@ public class FineractTokenProvider {
      * @throws IllegalStateException if OAuth is not configured properly
      */
     public String getAccessToken() {
-        if (!"oauth".equalsIgnoreCase(config.getAuthType())) {
+        if (!"oauth".equalsIgnoreCase(config.getAuth().getType())) {
             throw new IllegalStateException("OAuth is not enabled. Set fineract.auth-type=oauth to use OAuth authentication.");
         }
 
@@ -67,14 +67,14 @@ public class FineractTokenProvider {
             return cached.token;
         }
 
-        log.info("Fetching new Fineract OAuth token from: {}", config.getTokenUrl());
+        log.info("Fetching new Fineract OAuth token from: {}", config.getAuth().getTokenUrl());
 
         try {
             String requestBody = buildTokenRequestBody();
 
             // Create a simple RestClient for token endpoint
             RestClient tokenClient = RestClient.builder()
-                    .baseUrl(config.getTokenUrl())
+                    .baseUrl(config.getAuth().getTokenUrl())
                     .build();
 
             Map<String, Object> response = tokenClient.post()
@@ -117,16 +117,16 @@ public class FineractTokenProvider {
     }
 
     private String buildTokenRequestBody() {
-        String grantType = config.getGrantType();
+        String grantType = config.getAuth().getGrantType();
         log.info("Building Fineract token request with grant type: {}", grantType);
         StringBuilder body = new StringBuilder("grant_type=").append(grantType);
 
-        body.append("&client_id=").append(config.getClientId());
-        body.append("&client_secret=").append(config.getClientSecret());
+        body.append("&client_id=").append(config.getAuth().getClientId());
+        body.append("&client_secret=").append(config.getAuth().getClientSecret());
 
         if ("password".equalsIgnoreCase(grantType)) {
-            body.append("&username=").append(config.getOauthUsername());
-            body.append("&password=").append(config.getOauthPassword());
+            body.append("&username=").append(config.getAuth().getOauthUsername());
+            body.append("&password=").append(config.getAuth().getOauthPassword());
         }
 
         String requestBody = body.toString();
@@ -135,21 +135,22 @@ public class FineractTokenProvider {
     }
 
     private void validateOAuthConfig() {
-        if (config.getTokenUrl() == null || config.getTokenUrl().isBlank()) {
-            throw new IllegalStateException("fineract.token-url is required for OAuth authentication");
+        FineractProperties.Auth auth = config.getAuth();
+        if (auth.getTokenUrl() == null || auth.getTokenUrl().isBlank()) {
+            throw new IllegalStateException("fineract.auth.token-url is required for OAuth authentication");
         }
-        if (config.getClientId() == null || config.getClientId().isBlank()) {
-            throw new IllegalStateException("fineract.client-id is required for OAuth authentication");
+        if (auth.getClientId() == null || auth.getClientId().isBlank()) {
+            throw new IllegalStateException("fineract.auth.client-id is required for OAuth authentication");
         }
-        if (config.getClientSecret() == null || config.getClientSecret().isBlank()) {
-            throw new IllegalStateException("fineract.client-secret is required for OAuth authentication");
+        if (auth.getClientSecret() == null || auth.getClientSecret().isBlank()) {
+            throw new IllegalStateException("fineract.auth.client-secret is required for OAuth authentication");
         }
-        if ("password".equalsIgnoreCase(config.getGrantType())) {
-            if (config.getOauthUsername() == null || config.getOauthUsername().isBlank()) {
-                throw new IllegalStateException("fineract.oauth-username is required for password grant type");
+        if ("password".equalsIgnoreCase(auth.getGrantType())) {
+            if (auth.getOauthUsername() == null || auth.getOauthUsername().isBlank()) {
+                throw new IllegalStateException("fineract.auth.oauth-username is required for password grant type");
             }
-            if (config.getOauthPassword() == null || config.getOauthPassword().isBlank()) {
-                throw new IllegalStateException("fineract.oauth-password is required for password grant type");
+            if (auth.getOauthPassword() == null || auth.getOauthPassword().isBlank()) {
+                throw new IllegalStateException("fineract.auth.oauth-password is required for password grant type");
             }
         }
     }

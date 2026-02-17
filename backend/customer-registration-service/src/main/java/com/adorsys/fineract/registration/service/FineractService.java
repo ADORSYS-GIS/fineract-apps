@@ -34,7 +34,7 @@ public class FineractService {
     public FineractService(RestClient fineractRestClient, FineractProperties fineractProperties) {
         this.fineractRestClient = fineractRestClient;
         this.fineractProperties = fineractProperties;
-        this.dateTimeFormatter = DateTimeFormatter.ofPattern(fineractProperties.getDefaultDateFormat());
+        this.dateTimeFormatter = DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat());
     }
 
     /**
@@ -190,7 +190,7 @@ public class FineractService {
     private Map<String, Object> buildClientPayload(RegistrationRequest request) {
         String currentDate = LocalDate.now().format(dateTimeFormatter);
         Map<String, Object> payload = new HashMap<>();
-        payload.put("officeId", fineractProperties.getDefaultOfficeId());
+        payload.put("officeId", fineractProperties.getDefaults().getOfficeId());
         payload.put("firstname", request.getFirstName());
         payload.put("lastname", request.getLastName());
         payload.put("externalId", request.getExternalId());
@@ -199,9 +199,9 @@ public class FineractService {
         payload.put("active", true);
         payload.put("activationDate", currentDate);
         payload.put("submittedOnDate", currentDate);
-        payload.put("legalFormId", fineractProperties.getDefaultLegalFormId());
-        payload.put(LOCALE, fineractProperties.getDefaultLocale());
-        payload.put(DATE_FORMAT, fineractProperties.getDefaultDateFormat());
+        payload.put("legalFormId", fineractProperties.getDefaults().getLegalFormId());
+        payload.put(LOCALE, fineractProperties.getDefaults().getLocale());
+        payload.put(DATE_FORMAT, fineractProperties.getDefaults().getDateFormat());
 
         if (request.getDateOfBirth() != null) {
             payload.put("dateOfBirth", request.getDateOfBirth().format(dateTimeFormatter));
@@ -247,7 +247,7 @@ public class FineractService {
         putIfPresent(address, "city", request.getCity());
     
         String postalCode = request.getPostalCode();
-        address.put("postalCode", (postalCode == null || postalCode.isBlank()) ? fineractProperties.getDefaultPostalCode() : postalCode);
+        address.put("postalCode", (postalCode == null || postalCode.isBlank()) ? fineractProperties.getDefaults().getPostalCode() : postalCode);
     
         return address;
     }
@@ -312,8 +312,8 @@ public class FineractService {
         payload.put("lastname", request.getLastName());
         payload.put("emailAddress", request.getEmailAddress());
         payload.put("mobileNo", request.getMobileNo());
-        payload.put(LOCALE, fineractProperties.getDefaultLocale());
-        payload.put(DATE_FORMAT, fineractProperties.getDefaultDateFormat());
+        payload.put(LOCALE, fineractProperties.getDefaults().getLocale());
+        payload.put(DATE_FORMAT, fineractProperties.getDefaults().getDateFormat());
 
     try {
             fineractRestClient.put()
@@ -341,9 +341,9 @@ public class FineractService {
 
         Map<String, Object> savingsPayload = Map.of(
                 CLIENT_ID, clientId,
-                "productId", fineractProperties.getDefaultSavingsProductId(),
-                LOCALE, fineractProperties.getDefaultLocale(),
-                DATE_FORMAT, fineractProperties.getDefaultDateFormat(),
+                "productId", fineractProperties.getDefaults().getSavingsProductId(),
+                LOCALE, fineractProperties.getDefaults().getLocale(),
+                DATE_FORMAT, fineractProperties.getDefaults().getDateFormat(),
                 "submittedOnDate", LocalDate.now().format(dateTimeFormatter)
         );
 

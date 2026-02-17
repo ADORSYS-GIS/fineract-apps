@@ -37,15 +37,15 @@ public class FineractConfig {
     }
 
     public boolean isOAuthEnabled() {
-        return "oauth".equalsIgnoreCase(fineractProperties.getAuthType());
+        return "oauth".equalsIgnoreCase(fineractProperties.getAuth().getType());
     }
 
     @Bean
     public RestClient fineractRestClient(FineractTokenProvider tokenProvider) {
         RestClient.Builder builder = RestClient.builder();
 
-        log.info("Fineract authentication type configured: {}", fineractProperties.getAuthType());
-        log.info("Fineract OAuth grant type configured: {}", fineractProperties.getGrantType());
+        log.info("Fineract authentication type configured: {}", fineractProperties.getAuth().getType());
+        log.info("Fineract OAuth grant type configured: {}", fineractProperties.getAuth().getGrantType());
         log.info("Fineract SSL verification is set to: {}", fineractProperties.isVerifySsl());
 
         if (!fineractProperties.isVerifySsl()) {
@@ -61,7 +61,7 @@ public class FineractConfig {
         if (isOAuthEnabled()) {
             builder.requestInterceptor(oauthInterceptor(tokenProvider));
         } else {
-            String credentials = fineractProperties.getUsername() + ":" + fineractProperties.getPassword();
+            String credentials = fineractProperties.getAuth().getUsername() + ":" + fineractProperties.getAuth().getPassword();
             String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
             builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedCredentials);
         }

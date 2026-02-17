@@ -17,11 +17,11 @@ class FineractPropertiesTest {
 
     @Test
     void fineractPropertiesAreLoaded() {
-        assertEquals(1, fineractProperties.getDefaultOfficeId());
-        assertEquals(1, fineractProperties.getDefaultSavingsProductId());
-        assertEquals(1, fineractProperties.getDefaultLegalFormId());
-        assertEquals("en", fineractProperties.getDefaultLocale());
-        assertEquals("dd MMMM yyyy", fineractProperties.getDefaultDateFormat());
+        assertEquals(1, fineractProperties.getDefaults().getOfficeId());
+        assertEquals(1, fineractProperties.getDefaults().getSavingsProductId());
+        assertEquals(1, fineractProperties.getDefaults().getLegalFormId());
+        assertEquals("en", fineractProperties.getDefaults().getLocale());
+        assertEquals("dd MMMM yyyy", fineractProperties.getDefaults().getDateFormat());
 
         Map<String, Integer> codes = fineractProperties.getCodes();
         assertNotNull(codes);

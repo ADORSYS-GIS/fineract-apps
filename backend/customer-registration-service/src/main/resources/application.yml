@@ -20,29 +20,30 @@ app:
 fineract:
   url: ${FINERACT_URL:https://localhost:443}
   tenant: ${FINERACT_TENANT:default}
-  # Authentication type: oauth (default) or basic
-  auth-type: ${FINERACT_AUTH_TYPE_1:oauth}
-  # OAuth settings (used when auth-type=oauth)
-  token-url: ${FINERACT_TOKEN_URL:http://fineract:8080/fineract-provider/oauth/token}
-  client-id: ${FINERACT_CLIENT_ID:setup-app-client}
-  client-secret: ${FINERACT_CLIENT_SECRET:**********}
-  # OAuth grant type: client_credentials (default) or password
-  grant-type: ${FINERACT_OAUTH_GRANT_TYPE:password}
-  # OAuth credentials (used when grant-type=password)
-  oauth-username: ${FINERACT_OAUTH_USERNAME:mifos}
-  oauth-password: ${FINERACT_OAUTH_PASSWORD:password}
-  # Basic auth settings (used when auth-type=basic)
-  username: ${FINERACT_USERNAME:mifos}
-  password: ${FINERACT_PASSWORD:password}
-  # Fineract defaults
-  default-office-id: ${DEFAULT_OFFICE_ID:1}
-  default-savings-product-id: ${DEFAULT_SAVINGS_PRODUCT_ID:1}
-  # Whether to verify SSL certificate from Fineract (for development with self-signed certs)
   verifySsl: ${FINERACT_VERIFY_SSL:false}
-  default-legal-form-id: ${DEFAULT_LEGAL_FORM_ID:1}
-  default-locale: ${DEFAULT_LOCALE:en}
-  default-date-format: ${DEFAULT_DATE_FORMAT:dd MMMM yyyy}
-  default-postal-code: ${DEFAULT_POSTAL_CODE:0000}
+  auth:
+    # Authentication type: oauth (default) or basic
+    type: ${FINERACT_AUTH_TYPE_1:oauth}
+    # OAuth settings (used when auth-type=oauth)
+    token-url: ${FINERACT_TOKEN_URL:http://fineract:8080/fineract-provider/oauth/token}
+    client-id: ${FINERACT_CLIENT_ID:setup-app-client}
+    client-secret: ${FINERACT_CLIENT_SECRET:**********}
+    # OAuth grant type: client_credentials (default) or password
+    grant-type: ${FINERACT_OAUTH_GRANT_TYPE:password}
+    # OAuth credentials (used when grant-type=password)
+    oauth-username: ${FINERACT_OAUTH_USERNAME:mifos}
+    oauth-password: ${FINERACT_OAUTH_PASSWORD:password}
+    # Basic auth settings (used when auth-type=basic)
+    username: ${FINERACT_USERNAME:mifos}
+    password: ${FINERACT_PASSWORD:password}
+  # Fineract defaults
+  defaults:
+    office-id: ${DEFAULT_OFFICE_ID:1}
+    savings-product-id: ${DEFAULT_SAVINGS_PRODUCT_ID:1}
+    legal-form-id: ${DEFAULT_LEGAL_FORM_ID:1}
+    locale: ${DEFAULT_LOCALE:en}
+    date-format: ${DEFAULT_DATE_FORMAT:dd MMMM yyyy}
+    postal-code: ${DEFAULT_POSTAL_CODE:0000}
   codes:
     ADDRESS_TYPE: 29
     COUNTRY: 28
@@ -91,7 +92,8 @@ spring:
 
 fineract:
   url: https://fineract-service:8443
-  token-url: http://fineract-service:8443/fineract-provider/oauth/token
+  auth:
+    token-url: http://fineract-service:8443/fineract-provider/oauth/token
 
 # Enable OTLP tracing
 management:
