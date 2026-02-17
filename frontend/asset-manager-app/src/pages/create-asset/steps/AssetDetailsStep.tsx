@@ -59,35 +59,13 @@ export const AssetDetailsStep: FC<Props> = ({
 						onChange={(e) =>
 							updateFormData({ symbol: e.target.value.toUpperCase() })
 						}
-						maxLength={10}
+						maxLength={3}
 					/>
-					{fieldError("symbol") && (
+					{fieldError("symbol") ? (
 						<p className="text-xs text-red-600 mt-1">{fieldError("symbol")}</p>
-					)}
-				</div>
-
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Currency Code *
-					</label>
-					<input
-						type="text"
-						aria-label="Currency code"
-						className={`${inputClass("currency")} uppercase`}
-						placeholder="e.g. DTT (must be unique in Fineract)"
-						value={formData.currencyCode}
-						onChange={(e) =>
-							updateFormData({ currencyCode: e.target.value.toUpperCase() })
-						}
-						maxLength={10}
-					/>
-					{fieldError("currency") ? (
-						<p className="text-xs text-red-600 mt-1">
-							{fieldError("currency")}
-						</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							This will be registered as a custom currency in Fineract
+							Also used as the currency code in Fineract
 						</p>
 					)}
 				</div>

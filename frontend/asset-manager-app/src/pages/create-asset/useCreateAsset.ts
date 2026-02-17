@@ -16,7 +16,6 @@ export interface AssetFormData {
 	// Step 2: Asset Details
 	name: string;
 	symbol: string;
-	currencyCode: string;
 	category: string;
 	description: string;
 	imageUrl: string;
@@ -43,7 +42,6 @@ const initialFormData: AssetFormData = {
 	treasuryClientName: "",
 	name: "",
 	symbol: "",
-	currencyCode: "",
 	category: "REAL_ESTATE",
 	description: "",
 	imageUrl: "",
@@ -126,12 +124,8 @@ export const useCreateAsset = () => {
 			case "Asset Details":
 				if (!formData.name.trim()) errors.push("Name is required");
 				if (!formData.symbol.trim()) errors.push("Symbol is required");
-				else if (!/^[A-Z0-9]{2,10}$/.test(formData.symbol))
-					errors.push("Symbol must be 2-10 uppercase letters/digits");
-				if (!formData.currencyCode.trim())
-					errors.push("Currency code is required");
-				else if (!/^[A-Z]{3}$/.test(formData.currencyCode))
-					errors.push("Currency code must be 3 uppercase letters");
+				else if (!/^[A-Z]{3}$/.test(formData.symbol))
+					errors.push("Symbol must be exactly 3 uppercase letters");
 				break;
 			case "Bond Details":
 				if (!formData.issuer.trim()) errors.push("Issuer is required");
@@ -191,7 +185,7 @@ export const useCreateAsset = () => {
 		const request: CreateAssetRequest = {
 			name: formData.name,
 			symbol: formData.symbol,
-			currencyCode: formData.currencyCode,
+			currencyCode: formData.symbol,
 			description: formData.description || undefined,
 			imageUrl: formData.imageUrl || undefined,
 			category: formData.category,

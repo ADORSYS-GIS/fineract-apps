@@ -51,8 +51,6 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="font-medium">{formData.name}</div>
 					<div className="text-gray-600">Symbol:</div>
 					<div className="font-medium font-mono">{formData.symbol}</div>
-					<div className="text-gray-600">Currency Code:</div>
-					<div className="font-medium font-mono">{formData.currencyCode}</div>
 					<div className="text-gray-600">Category:</div>
 					<div className="font-medium">
 						{ASSET_CATEGORY_LABELS[formData.category] ?? formData.category}
@@ -153,8 +151,8 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 						<p className="font-medium mb-1">What happens on create:</p>
 						<ol className="list-decimal list-inside space-y-1 text-yellow-700">
 							<li>
-								Register <strong>{formData.currencyCode}</strong> as a custom
-								currency in Fineract
+								Register <strong>{formData.symbol}</strong> as a custom currency
+								in Fineract
 							</li>
 							<li>Create a savings product for this asset</li>
 							<li>Create a treasury savings account for the company</li>
