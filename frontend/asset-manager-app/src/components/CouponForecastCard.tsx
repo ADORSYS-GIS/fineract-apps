@@ -1,17 +1,13 @@
 import { Card } from "@fineract-apps/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FC, useState } from "react";
-import {
-	assetApi,
-	type CouponTriggerResponse,
-} from "@/services/assetApi";
+import { assetApi, type CouponTriggerResponse } from "@/services/assetApi";
 
 interface Props {
 	assetId: string;
 }
 
-const fmt = (n: number) =>
-	new Intl.NumberFormat("fr-FR").format(Math.round(n));
+const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
 
 const Row: FC<{
 	label: string;
@@ -119,9 +115,7 @@ export const CouponForecastCard: FC<Props> = ({ assetId }) => {
 						label="Shortfall"
 						description="Extra money the entity must deposit to cover all obligations"
 						value={
-							hasShortfall
-								? `${fmt(forecast.shortfall)} XAF`
-								: "None (surplus)"
+							hasShortfall ? `${fmt(forecast.shortfall)} XAF` : "None (surplus)"
 						}
 						highlight={hasShortfall}
 					/>

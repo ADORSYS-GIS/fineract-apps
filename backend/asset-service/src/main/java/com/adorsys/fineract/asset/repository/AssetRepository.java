@@ -60,4 +60,9 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
      * Find ACTIVE bonds whose next coupon date is due (for InterestPaymentScheduler).
      */
     List<Asset> findByStatusAndNextCouponDateLessThanEqual(AssetStatus status, LocalDate date);
+
+    /**
+     * Find all bonds sharing the same treasury cash account (for proportional balance allocation in forecasts).
+     */
+    List<Asset> findByTreasuryCashAccountIdAndInterestRateIsNotNull(Long treasuryCashAccountId);
 }
