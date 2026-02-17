@@ -235,7 +235,7 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "phone": "+237694444444",
     "externalId": "external-id-004",
     "addressType": "Other",
-    "stateProvince": "Southwest",
+    "stateProvince": "South-West",
     "country": "Cameroon",
     "addressLine2": "4.1585",
     "addressLine3": "9.2435"
@@ -276,7 +276,7 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "email": "salatiel.livenja@example.cm",
     "phone": "+237696666666",
     "externalId": "external-id-006",
-    "stateProvince": "Northwest",
+    "stateProvince": "North-West",
     "country": "Cameroon"
 }'
 ```
