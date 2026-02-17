@@ -11,13 +11,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import com.adorsys.fineract.gateway.service.TokenCacheService;
-
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Client for MTN Mobile Money API.
@@ -41,13 +40,14 @@ public class MtnMomoClient {
 
     private final MtnMomoConfig config;
     private final WebClient webClient;
-    private final TokenCacheService tokenCacheService;
 
-    public MtnMomoClient(MtnMomoConfig config, @Qualifier("mtnWebClient") WebClient webClient, TokenCacheService tokenCacheService) {
+    public MtnMomoClient(MtnMomoConfig config, @Qualifier("mtnWebClient") WebClient webClient) {
         this.config = config;
         this.webClient = webClient;
-        this.tokenCacheService = tokenCacheService;
     }
+
+    // Simple token cache (in production, use Redis or similar)
+    private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
 
     /**
      * Initiate a collection (deposit) request.
@@ -238,7 +238,19 @@ public class MtnMomoClient {
     }
 
     private String normalizePhoneNumber(String phoneNumber) {
-        return com.adorsys.fineract.gateway.util.PhoneNumberUtils.normalizePhoneNumber(phoneNumber);
+        // Remove spaces, dashes, and plus signs
+        String normalized = phoneNumber.replaceAll("[\\s\\-+]", "");
+
+        // Ensure it starts with country code 237 (Cameroon)
+        if (!normalized.startsWith("237")) {
+            if (normalized.startsWith("0")) {
+                normalized = "237" + normalized.substring(1);
+            } else {
+                normalized = "237" + normalized;
+            }
+        }
+
+        return normalized;
     }
 
     private PaymentStatus mapMtnStatus(String mtnStatus) {
@@ -253,4 +265,9 @@ public class MtnMomoClient {
         };
     }
 
+    private record TokenInfo(String token, long expiresAt) {
+        boolean isExpired() {
+            return System.currentTimeMillis() >= expiresAt;
+        }
+    }
 }
