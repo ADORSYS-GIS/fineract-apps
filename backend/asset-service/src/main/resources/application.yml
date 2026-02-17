@@ -89,7 +89,6 @@ asset-service:
   trade-lock:
     ttl-seconds: 10
   accounting:
-    fee-collection-account-id: ${FEE_COLLECTION_ACCOUNT_ID:1}
     spread-collection-account-id: ${SPREAD_COLLECTION_ACCOUNT_ID:1}
   rate-limit:
     trade-limit: ${RATE_LIMIT_TRADE:10}
@@ -103,6 +102,8 @@ asset-service:
     income-from-interest: ${GL_INCOME_FROM_INTEREST:87}
     expense-account: ${GL_EXPENSE_ACCOUNT:91}
     asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:Asset Issuance}
+    fee-income: ${GL_FEE_INCOME:87}
+    fund-source: ${GL_FUND_SOURCE:42}
   archival:
     retention-months: ${ARCHIVAL_RETENTION_MONTHS:12}
     batch-size: ${ARCHIVAL_BATCH_SIZE:1000}

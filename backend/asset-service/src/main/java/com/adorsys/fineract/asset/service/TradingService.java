@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractClient.BatchTransferRequest;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.Order;
@@ -63,6 +64,7 @@ public class TradingService {
     private final PortfolioService portfolioService;
     private final PricingService pricingService;
     private final AssetServiceConfig assetServiceConfig;
+    private final ResolvedGlAccounts resolvedGlAccounts;
     private final AssetMetrics assetMetrics;
     private final BondBenefitService bondBenefitService;
 
@@ -213,14 +215,7 @@ public class TradingService {
                         "INSUFFICIENT_FUNDS");
             }
 
-            // 12c. Validate fee collection account
-            Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
-            if (feeCollectionAccountId == null || feeCollectionAccountId <= 0) {
-                throw new TradingException(
-                        "Fee collection account is not configured. Contact admin.", "CONFIG_ERROR");
-            }
-
-            // 12d. Record trade log BEFORE external call to ensure local state is consistent
+            // 12c. Record trade log BEFORE external call to ensure local state is consistent
             TradeLog tradeLog = TradeLog.builder()
                     .id(UUID.randomUUID().toString())
                     .orderId(orderId)
@@ -258,11 +253,6 @@ public class TradingService {
             transfers.add(new BatchTransferRequest(
                     userCashAccountId, lockedAsset.getTreasuryCashAccountId(),
                     actualCost, "Asset purchase: " + lockedAsset.getSymbol()));
-            if (fee.compareTo(BigDecimal.ZERO) > 0) {
-                transfers.add(new BatchTransferRequest(
-                        userCashAccountId, feeCollectionAccountId,
-                        fee, "Trading fee: BUY " + lockedAsset.getSymbol()));
-            }
             if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
                 transfers.add(new BatchTransferRequest(
                         lockedAsset.getTreasuryCashAccountId(),
@@ -275,6 +265,16 @@ public class TradingService {
 
             try {
                 fineractClient.executeBatchTransfers(transfers);
+                // Fee leg: withdraw from user savings + post journal entry to GL fee income
+                if (fee.compareTo(BigDecimal.ZERO) > 0) {
+                    fineractClient.withdrawFromSavingsAccount(userCashAccountId, fee,
+                            "Trading fee: BUY " + lockedAsset.getSymbol());
+                    fineractClient.createJournalEntry(
+                            resolvedGlAccounts.getFundSourceId(),
+                            resolvedGlAccounts.getFeeIncomeId(),
+                            fee, currency,
+                            "Trading fee: BUY " + lockedAsset.getSymbol());
+                }
             } catch (Exception batchError) {
                 log.error("Batch transfer failed for BUY order {}: {}", orderId, batchError.getMessage());
                 order.setStatus(OrderStatus.FAILED);
@@ -446,14 +446,7 @@ public class TradingService {
             order.setSpreadAmount(spreadAmount);
             orderRepository.save(order);
 
-            // 12d. Validate fee collection account
-            Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
-            if (feeCollectionAccountId == null || feeCollectionAccountId <= 0) {
-                throw new TradingException(
-                        "Fee collection account is not configured. Contact admin.", "CONFIG_ERROR");
-            }
-
-            // 12e. Calculate realized P&L and update local DB BEFORE external call
+            // 12d. Calculate realized P&L and update local DB BEFORE external call
             BigDecimal netProceedsPerUnit = netAmount.divide(units, 4, RoundingMode.HALF_UP);
             BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
                     userId, request.assetId(), units, netProceedsPerUnit);
@@ -493,17 +486,11 @@ public class TradingService {
             transfers.add(new BatchTransferRequest(
                     userAssetAccountId, lockedAsset.getTreasuryAssetAccountId(),
                     units, "Asset sell: " + lockedAsset.getSymbol()));
-            // Leg 2: Pay user gross proceeds (fee deducted separately for transparency)
+            // Leg 2: Pay user gross proceeds (fee deducted separately via withdrawal + journal entry)
             transfers.add(new BatchTransferRequest(
                     lockedAsset.getTreasuryCashAccountId(), userCashAccountId,
                     grossAmount, "Asset sale proceeds: " + lockedAsset.getSymbol()));
-            // Leg 3: Debit fee from user (visible on user's statement)
-            if (fee.compareTo(BigDecimal.ZERO) > 0) {
-                transfers.add(new BatchTransferRequest(
-                        userCashAccountId, feeCollectionAccountId,
-                        fee, "Trading fee: SELL " + lockedAsset.getSymbol()));
-            }
-            // Leg 4: Sweep spread from treasury to spread collection account (internal)
+            // Leg 3: Sweep spread from treasury to spread collection account (internal)
             if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
                 transfers.add(new BatchTransferRequest(
                         lockedAsset.getTreasuryCashAccountId(),
@@ -513,6 +500,16 @@ public class TradingService {
 
             try {
                 fineractClient.executeBatchTransfers(transfers);
+                // Fee leg: withdraw from user savings + post journal entry to GL fee income
+                if (fee.compareTo(BigDecimal.ZERO) > 0) {
+                    fineractClient.withdrawFromSavingsAccount(userCashAccountId, fee,
+                            "Trading fee: SELL " + lockedAsset.getSymbol());
+                    fineractClient.createJournalEntry(
+                            resolvedGlAccounts.getFundSourceId(),
+                            resolvedGlAccounts.getFeeIncomeId(),
+                            fee, currency,
+                            "Trading fee: SELL " + lockedAsset.getSymbol());
+                }
             } catch (Exception batchError) {
                 log.error("Batch transfer failed for SELL order {}: {}", orderId, batchError.getMessage());
                 order.setStatus(OrderStatus.FAILED);

@@ -62,7 +62,6 @@ public class AssetServiceConfig {
 
     @Data
     public static class Accounting {
-        private Long feeCollectionAccountId;
         /** Optional. If set, spread is enabled and swept to this account. If null, spread is disabled. */
         private Long spreadCollectionAccountId;
     }
@@ -81,15 +80,14 @@ public class AssetServiceConfig {
         private String expenseAccount = "91";
         /** Payment type name for asset issuance. Resolved to DB ID at startup. */
         private String assetIssuancePaymentType = "Asset Issuance";
+        /** GL code for trading fee income account. Resolved to DB ID at startup. */
+        private String feeIncome = "87";
+        /** GL code for fund source / cash reference account. Resolved to DB ID at startup. */
+        private String fundSource = "42";
     }
 
     @PostConstruct
     public void validate() {
-        if (accounting.getFeeCollectionAccountId() == null || accounting.getFeeCollectionAccountId() <= 0) {
-            throw new IllegalStateException(
-                    "asset-service.accounting.fee-collection-account-id must be set to a valid Fineract savings account ID. "
-                    + "Current value: " + accounting.getFeeCollectionAccountId());
-        }
         if (settlementCurrency == null || !settlementCurrency.matches("[A-Z]{3}")) {
             throw new IllegalStateException(
                     "asset-service.settlement-currency must be a 3-letter ISO 4217 currency code. "

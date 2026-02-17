@@ -442,6 +442,94 @@ public class FineractClient {
     }
 
     /**
+     * Withdraw from a savings account. Used for fee deductions where the fee
+     * is then posted to a GL account via journal entry rather than transferred
+     * to another savings account.
+     *
+     * @return Transaction ID
+     */
+    @SuppressWarnings("unchecked")
+    public Long withdrawFromSavingsAccount(Long savingsAccountId, BigDecimal amount, String note) {
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("transactionDate", LocalDate.now().format(DATE_FORMAT));
+            body.put("transactionAmount", amount);
+            body.put("paymentTypeId", 2); // Bank Transfer
+            body.put("note", note);
+            body.put("locale", "en");
+            body.put("dateFormat", "dd MMMM yyyy");
+
+            Map<String, Object> response = webClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/" + savingsAccountId + "/transactions?command=withdrawal")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract withdrawal error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            Long transactionId = ((Number) response.get("resourceId")).longValue();
+            log.info("Savings withdrawal: account={}, amount={}, txnId={}", savingsAccountId, amount, transactionId);
+            return transactionId;
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to withdraw from savings account {}: {}", savingsAccountId, e.getMessage());
+            throw new AssetException("Failed to withdraw from savings account in Fineract", e);
+        }
+    }
+
+    /**
+     * Create a journal entry in Fineract to post directly to GL accounts.
+     * Used for fee income recognition: debit fund source, credit fee income GL account.
+     *
+     * @return Journal entry transaction ID
+     */
+    @SuppressWarnings("unchecked")
+    public Long createJournalEntry(Long debitGlAccountId, Long creditGlAccountId,
+                                    BigDecimal amount, String currencyCode, String comments) {
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("officeId", 1);
+            body.put("transactionDate", LocalDate.now().format(DATE_FORMAT));
+            body.put("referenceNumber", UUID.randomUUID().toString());
+            body.put("comments", comments);
+            body.put("currencyCode", currencyCode);
+            body.put("locale", "en");
+            body.put("dateFormat", "dd MMMM yyyy");
+            body.put("debits", List.of(Map.of("glAccountId", debitGlAccountId, "amount", amount)));
+            body.put("credits", List.of(Map.of("glAccountId", creditGlAccountId, "amount", amount)));
+
+            Map<String, Object> response = webClient.post()
+                    .uri("/fineract-provider/api/v1/journalentries")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract journal entry error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            String transactionId = (String) response.get("transactionId");
+            log.info("Journal entry: debitGL={}, creditGL={}, amount={} {}, txnId={}",
+                    debitGlAccountId, creditGlAccountId, amount, currencyCode, transactionId);
+            return transactionId != null ? transactionId.hashCode() & 0xFFFFFFFFL : 0L;
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to create journal entry: {}", e.getMessage());
+            throw new AssetException("Failed to create journal entry in Fineract", e);
+        }
+    }
+
+    /**
      * Get all savings accounts for a client.
      * Uses the client-specific endpoint which properly filters by client ID.
      * Note: /savingsaccounts?clientId= does NOT filter in Fineract; use /clients/{id}/accounts instead.

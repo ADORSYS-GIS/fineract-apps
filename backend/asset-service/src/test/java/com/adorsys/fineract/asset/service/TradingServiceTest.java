@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractClient.BatchTransferRequest;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.Order;
@@ -50,6 +51,7 @@ class TradingServiceTest {
     @Mock private PortfolioService portfolioService;
     @Mock private PricingService pricingService;
     @Mock private AssetServiceConfig assetServiceConfig;
+    @Mock private ResolvedGlAccounts resolvedGlAccounts;
     @Mock private AssetMetrics assetMetrics;
 
     @InjectMocks
@@ -67,8 +69,9 @@ class TradingServiceTest {
     private static final Long USER_ASSET_ACCOUNT = 200L;
     private static final Long TREASURY_CASH_ACCOUNT = 300L;
     private static final Long TREASURY_ASSET_ACCOUNT = 400L;
-    private static final Long FEE_COLLECTION_ACCOUNT = 999L;
     private static final Long SPREAD_COLLECTION_ACCOUNT = 888L;
+    private static final Long FEE_INCOME_GL_ID = 87L;
+    private static final Long FUND_SOURCE_GL_ID = 42L;
     private static final String IDEMPOTENCY_KEY = "idem-key-1";
 
     private Asset activeAsset;
@@ -92,10 +95,11 @@ class TradingServiceTest {
 
         // Default accounting config (spread enabled)
         AssetServiceConfig.Accounting accounting = new AssetServiceConfig.Accounting();
-        accounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
         accounting.setSpreadCollectionAccountId(SPREAD_COLLECTION_ACCOUNT);
         lenient().when(assetServiceConfig.getAccounting()).thenReturn(accounting);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
+        lenient().when(resolvedGlAccounts.getFeeIncomeId()).thenReturn(FEE_INCOME_GL_ID);
+        lenient().when(resolvedGlAccounts.getFundSourceId()).thenReturn(FUND_SOURCE_GL_ID);
     }
 
     // -------------------------------------------------------------------------
@@ -189,28 +193,29 @@ class TradingServiceTest {
         // Verify batch transfers were called with correct legs
         verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
         List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        // Should have 4 legs: cash, fee, spread, asset
-        assertEquals(4, transfers.size());
+        // Should have 3 legs: cash, spread, asset (fee is separate withdrawal + journal entry)
+        assertEquals(3, transfers.size());
 
         // Cash leg: user XAF -> treasury XAF
         assertEquals(USER_CASH_ACCOUNT, transfers.get(0).fromAccountId());
         assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(0).toAccountId());
         assertEquals(actualCost, transfers.get(0).amount());
 
-        // Fee leg: user XAF -> fee collection
-        assertEquals(USER_CASH_ACCOUNT, transfers.get(1).fromAccountId());
-        assertEquals(FEE_COLLECTION_ACCOUNT, transfers.get(1).toAccountId());
-        assertEquals(fee, transfers.get(1).amount());
-
         // Spread leg: treasury XAF -> spread collection (internal)
-        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(2).fromAccountId());
-        assertEquals(SPREAD_COLLECTION_ACCOUNT, transfers.get(2).toAccountId());
-        assertEquals(spreadAmount, transfers.get(2).amount());
+        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(1).fromAccountId());
+        assertEquals(SPREAD_COLLECTION_ACCOUNT, transfers.get(1).toAccountId());
+        assertEquals(spreadAmount, transfers.get(1).amount());
 
         // Asset leg: treasury asset -> user asset
-        assertEquals(TREASURY_ASSET_ACCOUNT, transfers.get(3).fromAccountId());
-        assertEquals(USER_ASSET_ACCOUNT, transfers.get(3).toAccountId());
-        assertEquals(new BigDecimal("10"), transfers.get(3).amount());
+        assertEquals(TREASURY_ASSET_ACCOUNT, transfers.get(2).fromAccountId());
+        assertEquals(USER_ASSET_ACCOUNT, transfers.get(2).toAccountId());
+        assertEquals(new BigDecimal("10"), transfers.get(2).amount());
+
+        // Fee leg: withdrawal from user savings + journal entry to GL
+        verify(fineractClient).withdrawFromSavingsAccount(USER_CASH_ACCOUNT, fee,
+                "Trading fee: BUY TST");
+        verify(fineractClient).createJournalEntry(FUND_SOURCE_GL_ID, FEE_INCOME_GL_ID,
+                fee, "XAF", "Trading fee: BUY TST");
 
         // Verify portfolio updated with effective cost per unit (including fee)
         verify(portfolioService).updatePositionAfterBuy(
@@ -571,7 +576,8 @@ class TradingServiceTest {
         // Verify batch transfers
         verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
         List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        assertEquals(4, transfers.size());
+        // Should have 3 legs: asset, cash, spread (fee is separate withdrawal + journal entry)
+        assertEquals(3, transfers.size());
 
         // Leg 1: Asset return: user asset -> treasury asset
         assertEquals(USER_ASSET_ACCOUNT, transfers.get(0).fromAccountId());
@@ -583,15 +589,16 @@ class TradingServiceTest {
         assertEquals(USER_CASH_ACCOUNT, transfers.get(1).toAccountId());
         assertEquals(grossAmount, transfers.get(1).amount());
 
-        // Leg 3: Fee debit: user XAF -> fee collection (visible on user statement)
-        assertEquals(USER_CASH_ACCOUNT, transfers.get(2).fromAccountId());
-        assertEquals(FEE_COLLECTION_ACCOUNT, transfers.get(2).toAccountId());
-        assertEquals(fee, transfers.get(2).amount());
+        // Leg 3: Spread sweep: treasury XAF -> spread collection (internal)
+        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(2).fromAccountId());
+        assertEquals(SPREAD_COLLECTION_ACCOUNT, transfers.get(2).toAccountId());
+        assertEquals(spreadAmount, transfers.get(2).amount());
 
-        // Leg 4: Spread sweep: treasury XAF -> spread collection (internal)
-        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(3).fromAccountId());
-        assertEquals(SPREAD_COLLECTION_ACCOUNT, transfers.get(3).toAccountId());
-        assertEquals(spreadAmount, transfers.get(3).amount());
+        // Fee leg: withdrawal from user savings + journal entry to GL
+        verify(fineractClient).withdrawFromSavingsAccount(USER_CASH_ACCOUNT, fee,
+                "Trading fee: SELL TST");
+        verify(fineractClient).createJournalEntry(FUND_SOURCE_GL_ID, FEE_INCOME_GL_ID,
+                fee, "XAF", "Trading fee: SELL TST");
 
         // Verify circulating supply decreased
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, new BigDecimal("5").negate());
@@ -611,7 +618,6 @@ class TradingServiceTest {
     void executeBuy_spreadDisabled_noSpreadLeg() {
         // Arrange: spread collection account not configured → spread disabled
         AssetServiceConfig.Accounting noSpreadAccounting = new AssetServiceConfig.Accounting();
-        noSpreadAccounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
         noSpreadAccounting.setSpreadCollectionAccountId(null);
         when(assetServiceConfig.getAccounting()).thenReturn(noSpreadAccounting);
 
@@ -652,17 +658,16 @@ class TradingServiceTest {
         assertEquals(basePrice, response.pricePerUnit());
         assertEquals(BigDecimal.ZERO, response.spreadAmount());
 
-        // Assert: only 3 legs (no spread leg)
+        // Assert: only 2 batch legs (no spread leg; fee is separate withdrawal + journal entry)
         verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
         List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        assertEquals(3, transfers.size()); // cash, fee, asset — no spread
+        assertEquals(2, transfers.size()); // cash, asset — no spread (fee is separate)
     }
 
     @Test
     void executeSell_spreadDisabled_noSpreadLeg() {
         // Arrange: spread disabled
         AssetServiceConfig.Accounting noSpreadAccounting = new AssetServiceConfig.Accounting();
-        noSpreadAccounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
         noSpreadAccounting.setSpreadCollectionAccountId(null);
         when(assetServiceConfig.getAccounting()).thenReturn(noSpreadAccounting);
 
@@ -708,10 +713,10 @@ class TradingServiceTest {
         assertEquals(basePrice, response.pricePerUnit());
         assertEquals(BigDecimal.ZERO, response.spreadAmount());
 
-        // Assert: only 3 legs (asset, cash, fee — no spread)
+        // Assert: only 2 batch legs (asset, cash — no spread; fee is separate)
         verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
         List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        assertEquals(3, transfers.size());
+        assertEquals(2, transfers.size());
     }
 
     @Test

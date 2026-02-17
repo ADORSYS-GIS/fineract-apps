@@ -29,4 +29,10 @@ public class ResolvedGlAccounts {
 
     /** Database ID of the asset issuance payment type. */
     private Long assetIssuancePaymentTypeId;
+
+    /** Database ID of the trading fee income GL account. */
+    private Long feeIncomeId;
+
+    /** Database ID of the fund source / cash reference GL account. */
+    private Long fundSourceId;
 }

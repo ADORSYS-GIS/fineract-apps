@@ -36,7 +36,6 @@ asset-service:
     timezone: "UTC"
     weekend-trading-enabled: true
   accounting:
-    fee-collection-account-id: 999
     spread-collection-account-id: 888
   gl-accounts:
     digital-asset-inventory: "47"
@@ -44,3 +43,5 @@ asset-service:
     transfers-in-suspense: "48"
     income-from-interest: "87"
     asset-issuance-payment-type: "Asset Issuance"
+    fee-income: "87"
+    fund-source: "42"

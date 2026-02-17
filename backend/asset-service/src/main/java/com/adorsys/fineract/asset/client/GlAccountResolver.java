@@ -81,6 +81,10 @@ public class GlAccountResolver implements ApplicationRunner {
                 resolveGlCode(glCodeToId, glConfig.getIncomeFromInterest(), "incomeFromInterest"));
         resolvedGlAccounts.setExpenseAccountId(
                 resolveGlCode(glCodeToId, glConfig.getExpenseAccount(), "expenseAccount"));
+        resolvedGlAccounts.setFeeIncomeId(
+                resolveGlCode(glCodeToId, glConfig.getFeeIncome(), "feeIncome"));
+        resolvedGlAccounts.setFundSourceId(
+                resolveGlCode(glCodeToId, glConfig.getFundSource(), "fundSource"));
 
         // Resolve payment type by name
         Map<String, Long> paymentTypeNameToId = fineractClient.lookupPaymentTypes();
@@ -94,12 +98,16 @@ public class GlAccountResolver implements ApplicationRunner {
                 + "transfersInSuspense={} (code {}), "
                 + "incomeFromInterest={} (code {}), "
                 + "expenseAccount={} (code {}), "
+                + "feeIncome={} (code {}), "
+                + "fundSource={} (code {}), "
                 + "assetIssuancePaymentType={} (name '{}')",
                 resolvedGlAccounts.getDigitalAssetInventoryId(), glConfig.getDigitalAssetInventory(),
                 resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(), glConfig.getCustomerDigitalAssetHoldings(),
                 resolvedGlAccounts.getTransfersInSuspenseId(), glConfig.getTransfersInSuspense(),
                 resolvedGlAccounts.getIncomeFromInterestId(), glConfig.getIncomeFromInterest(),
                 resolvedGlAccounts.getExpenseAccountId(), glConfig.getExpenseAccount(),
+                resolvedGlAccounts.getFeeIncomeId(), glConfig.getFeeIncome(),
+                resolvedGlAccounts.getFundSourceId(), glConfig.getFundSource(),
                 resolvedGlAccounts.getAssetIssuancePaymentTypeId(), glConfig.getAssetIssuancePaymentType());
     }
 
