@@ -90,12 +90,49 @@ public class InterestPaymentScheduler {
         int periodMonths = bond.getCouponFrequencyMonths();
         LocalDate couponDate = bond.getNextCouponDate();
 
-        log.info("Paying coupon for bond {}: {} holders, rate={}%, period={}m, faceValue={}",
-                bond.getSymbol(), holders.size(), annualRate, periodMonths, faceValue);
-
-        for (UserPosition holder : holders) {
-            payHolder(bond, holder, faceValue, annualRate, periodMonths, couponDate);
+        // Pre-payment balance check
+        BigDecimal totalObligation = BigDecimal.ZERO;
+        for (UserPosition h : holders) {
+            totalObligation = totalObligation.add(h.getTotalUnits()
+                    .multiply(faceValue).multiply(annualRate)
+                    .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(periodMonths))
+                    .divide(BigDecimal.valueOf(12), 0, RoundingMode.HALF_UP));
         }
+        BigDecimal treasuryBalance = BigDecimal.ZERO;
+        try {
+            treasuryBalance = fineractClient.getAccountBalance(bond.getTreasuryCashAccountId());
+        } catch (Exception e) {
+            log.warn("Could not check treasury balance for bond {}: {}", bond.getSymbol(), e.getMessage());
+        }
+        if (treasuryBalance.compareTo(totalObligation) < 0) {
+            log.warn("INSUFFICIENT FUNDS for bond {} coupon: treasury={}, obligation={}, shortfall={}",
+                    bond.getSymbol(), treasuryBalance, totalObligation,
+                    totalObligation.subtract(treasuryBalance));
+        }
+
+        log.info("Paying coupon for bond {}: {} holders, rate={}%, period={}m, faceValue={}, totalObligation={}",
+                bond.getSymbol(), holders.size(), annualRate, periodMonths, faceValue, totalObligation);
+
+        int successCount = 0;
+        int failCount = 0;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        for (UserPosition holder : holders) {
+            boolean success = payHolder(bond, holder, faceValue, annualRate, periodMonths, couponDate);
+            if (success) {
+                successCount++;
+                totalPaid = totalPaid.add(holder.getTotalUnits()
+                        .multiply(faceValue).multiply(annualRate)
+                        .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(periodMonths))
+                        .divide(BigDecimal.valueOf(12), 0, RoundingMode.HALF_UP));
+            } else {
+                failCount++;
+            }
+        }
+
+        log.info("Bond {} coupon complete: {} paid, {} failed, total={} {}",
+                bond.getSymbol(), successCount, failCount, totalPaid, assetServiceConfig.getSettlementCurrency());
 
         advanceCouponDate(bond);
     }
@@ -103,8 +140,9 @@ public class InterestPaymentScheduler {
     /**
      * Pay a single holder their coupon amount in settlement currency.
      * Failures are logged and recorded but do not propagate.
+     * @return true if payment succeeded, false if failed
      */
-    private void payHolder(Asset bond, UserPosition holder,
+    private boolean payHolder(Asset bond, UserPosition holder,
                            BigDecimal faceValue, BigDecimal annualRate,
                            int periodMonths, LocalDate couponDate) {
         // couponAmount = units * faceValue * (annualRate / 100) * (periodMonths / 12)
@@ -116,7 +154,7 @@ public class InterestPaymentScheduler {
                 .divide(BigDecimal.valueOf(12), 0, RoundingMode.HALF_UP);
 
         if (cashAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            return;
+            return true;
         }
 
         String currency = assetServiceConfig.getSettlementCurrency();
@@ -151,14 +189,17 @@ public class InterestPaymentScheduler {
             log.debug("Coupon paid: bond={}, user={}, amount={} {}, transferId={}",
                     bond.getSymbol(), holder.getUserId(), cashAmount, currency, transferId);
 
+            interestPaymentRepository.save(record.build());
+            return true;
+
         } catch (Exception e) {
             record.status("FAILED").failureReason(truncate(e.getMessage(), 500));
             assetMetrics.recordCouponFailed();
             log.error("Coupon payment failed: bond={}, user={}, amount={} {}, error={}",
                     bond.getSymbol(), holder.getUserId(), cashAmount, currency, e.getMessage());
+            interestPaymentRepository.save(record.build());
+            return false;
         }
-
-        interestPaymentRepository.save(record.build());
     }
 
     /**

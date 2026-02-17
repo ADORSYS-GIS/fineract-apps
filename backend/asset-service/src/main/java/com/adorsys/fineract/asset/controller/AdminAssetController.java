@@ -1,10 +1,14 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
+import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.InterestPayment;
+import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
+import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
 import com.adorsys.fineract.asset.service.AssetProvisioningService;
+import com.adorsys.fineract.asset.service.CouponForecastService;
 import com.adorsys.fineract.asset.service.InventoryService;
 import com.adorsys.fineract.asset.service.PricingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +37,9 @@ public class AdminAssetController {
     private final PricingService pricingService;
     private final InventoryService inventoryService;
     private final InterestPaymentRepository interestPaymentRepository;
+    private final CouponForecastService couponForecastService;
+    private final InterestPaymentScheduler interestPaymentScheduler;
+    private final AssetRepository assetRepository;
 
     @PostMapping
     @Operation(summary = "Create asset", description = "Create a new asset with Fineract provisioning")
@@ -122,6 +129,46 @@ public class AdminAssetController {
                 .findByAssetIdOrderByPaidAtDesc(id, pageable)
                 .map(this::toCouponPaymentResponse);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}/coupon-forecast")
+    @Operation(summary = "Coupon obligation forecast",
+            description = "Shows remaining coupon liability, principal at maturity, treasury balance, and shortfall for a bond")
+    public ResponseEntity<CouponForecastResponse> getCouponForecast(@PathVariable String id) {
+        return ResponseEntity.ok(couponForecastService.getForecast(id));
+    }
+
+    @PostMapping("/{id}/coupons/trigger")
+    @Operation(summary = "Trigger coupon payment",
+            description = "Manually trigger coupon payment for a bond, regardless of nextCouponDate")
+    public ResponseEntity<CouponTriggerResponse> triggerCouponPayment(@PathVariable String id) {
+        Asset bond = assetRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + id));
+        if (bond.getInterestRate() == null || bond.getCouponFrequencyMonths() == null) {
+            throw new IllegalArgumentException("Asset " + id + " is not a bond");
+        }
+
+        java.time.LocalDate couponDate = bond.getNextCouponDate() != null
+                ? bond.getNextCouponDate() : java.time.LocalDate.now();
+        interestPaymentScheduler.processBondCoupon(bond, couponDate);
+
+        // Reload to get updated nextCouponDate
+        Asset updated = assetRepository.findById(id).orElse(bond);
+
+        // Count results from this coupon date
+        var payments = interestPaymentRepository.findByAssetIdOrderByPaidAtDesc(id,
+                org.springframework.data.domain.Pageable.unpaged()).getContent().stream()
+                .filter(p -> couponDate.equals(p.getCouponDate()))
+                .toList();
+        int paid = (int) payments.stream().filter(p -> "SUCCESS".equals(p.getStatus())).count();
+        int failed = (int) payments.stream().filter(p -> "FAILED".equals(p.getStatus())).count();
+        java.math.BigDecimal totalPaid = payments.stream()
+                .filter(p -> "SUCCESS".equals(p.getStatus()))
+                .map(InterestPayment::getCashAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        return ResponseEntity.ok(new CouponTriggerResponse(
+                id, bond.getSymbol(), couponDate, paid, failed, totalPaid, updated.getNextCouponDate()));
     }
 
     private CouponPaymentResponse toCouponPaymentResponse(InterestPayment ip) {

@@ -185,7 +185,7 @@ export interface CouponPaymentResponse {
 	faceValue: number;
 	annualRate: number;
 	periodMonths: number;
-	xafAmount: number;
+	cashAmount: number;
 	fineractTransferId?: number;
 	status: string;
 	failureReason?: string;
@@ -208,6 +208,37 @@ export interface InventoryItem {
 	availableSupply: number;
 	currentPrice: number;
 	totalValueLocked: number;
+}
+
+/** Coupon obligation forecast for a bond (matches backend CouponForecastResponse). */
+export interface CouponForecastResponse {
+	assetId: string;
+	symbol: string;
+	interestRate: number;
+	couponFrequencyMonths: number;
+	maturityDate: string;
+	nextCouponDate: string;
+	totalUnitsOutstanding: number;
+	faceValuePerUnit: number;
+	couponPerPeriod: number;
+	remainingCouponPeriods: number;
+	totalRemainingCouponObligation: number;
+	principalAtMaturity: number;
+	totalObligation: number;
+	treasuryBalance: number;
+	shortfall: number;
+	couponsCoveredByBalance: number;
+}
+
+/** Result of manually triggering a coupon payment (matches backend CouponTriggerResponse). */
+export interface CouponTriggerResponse {
+	assetId: string;
+	symbol: string;
+	couponDate: string;
+	holdersPaid: number;
+	holdersFailed: number;
+	totalAmountPaid: number;
+	nextCouponDate: string;
 }
 
 export interface MarketStatusResponse {
@@ -308,6 +339,14 @@ export const assetApi = {
 			totalPages: number;
 			totalElements: number;
 		}>(`/api/admin/assets/${assetId}/coupons`, { params }),
+	getCouponForecast: (assetId: string) =>
+		assetClient.get<CouponForecastResponse>(
+			`/api/admin/assets/${assetId}/coupon-forecast`,
+		),
+	triggerCouponPayment: (assetId: string) =>
+		assetClient.post<CouponTriggerResponse>(
+			`/api/admin/assets/${assetId}/coupons/trigger`,
+		),
 
 	// Orders - Admin
 	getAdminOrders: (params?: { page?: number; size?: number }) =>

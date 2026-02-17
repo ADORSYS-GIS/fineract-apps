@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { FC, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { CouponForecastCard } from "@/components/CouponForecastCard";
 import { CouponHistoryTable } from "@/components/CouponHistoryTable";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { ErrorFallback } from "@/components/ErrorFallback";
@@ -306,6 +307,9 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 
 				{/* Coupon Payment History */}
 				{asset.category === "BONDS" && <CouponHistoryTable assetId={assetId} />}
+
+				{/* Coupon Obligation Forecast */}
+				{asset.category === "BONDS" && <CouponForecastCard assetId={assetId} />}
 
 				{/* Manual Price Override */}
 				<Card className="p-4 mb-6">
