@@ -109,6 +109,38 @@ public class FineractClient {
     }
 
     /**
+     * Best-effort deregistration of a currency from Fineract.
+     * Used during rollback if provisioning fails after currency registration.
+     */
+    @SuppressWarnings("unchecked")
+    public void deregisterCurrency(String currencyCode) {
+        try {
+            List<Map<String, Object>> existing = getExistingCurrencies();
+            List<String> remaining = existing.stream()
+                    .map(c -> (String) c.get("code"))
+                    .filter(code -> !code.equals(currencyCode))
+                    .toList();
+
+            Map<String, Object> body = Map.of("currencies", remaining);
+
+            webClient.put()
+                    .uri("/fineract-provider/api/v1/currencies")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            log.info("Deregistered currency: {}", currencyCode);
+        } catch (Exception e) {
+            log.error("ROLLBACK FAILURE: Failed to deregister currency {}. "
+                    + "Orphaned resource requires manual cleanup.", currencyCode, e);
+        }
+    }
+
+    /**
      * Create a savings product for an asset currency.
      *
      * @return The created product ID
@@ -163,6 +195,26 @@ public class FineractClient {
         } catch (Exception e) {
             log.error("Failed to create savings product: {}", e.getMessage());
             throw new AssetException("Failed to create savings product in Fineract", e);
+        }
+    }
+
+    /**
+     * Best-effort deletion of a savings product by ID.
+     * Used during rollback if provisioning fails after product creation.
+     */
+    public void deleteSavingsProduct(Integer productId) {
+        try {
+            webClient.delete()
+                    .uri("/fineract-provider/api/v1/savingsproducts/{productId}", productId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .toBodilessEntity()
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+            log.info("Rolled back savings product: productId={}", productId);
+        } catch (Exception e) {
+            log.error("ROLLBACK FAILURE: Failed to delete savings product {}. "
+                    + "Orphaned resource requires manual cleanup.", productId, e);
         }
     }
 

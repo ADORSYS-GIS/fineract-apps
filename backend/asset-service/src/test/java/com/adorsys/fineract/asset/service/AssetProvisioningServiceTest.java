@@ -147,7 +147,7 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
-    void createAsset_fineractProvisioningFails_throws() {
+    void createAsset_productCreationFails_noRollbackNeeded() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
         when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
@@ -166,6 +166,37 @@ class AssetProvisioningServiceTest {
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Failed to provision asset"));
         verify(assetRepository, never()).save(any());
+        // productId is null when createSavingsProduct fails, so no product rollback
+        verify(fineractClient, never()).deleteSavingsProduct(anyInt());
+        // Currency was registered before product creation, so it should be deregistered
+        verify(fineractClient).deregisterCurrency("TST");
+    }
+
+    @Test
+    void createAsset_accountProvisioningFails_rollsBackProductAndCurrency() {
+        CreateAssetRequest request = createAssetRequest();
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
+
+        Map<String, Object> xafAccount = Map.of(
+                "id", 300,
+                "currency", Map.of("code", "XAF"),
+                "status", Map.of("active", true)
+        );
+        when(fineractClient.getClientSavingsAccounts(TREASURY_CLIENT_ID))
+                .thenReturn(List.of(xafAccount));
+        when(assetServiceConfig.getGlAccounts()).thenReturn(glAccounts);
+        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong()))
+                .thenReturn(10);
+        when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
+                .thenThrow(new RuntimeException("Batch API timeout"));
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("Failed to provision asset"));
+        verify(assetRepository, never()).save(any());
+        // Both product and currency should be rolled back
+        verify(fineractClient).deleteSavingsProduct(10);
+        verify(fineractClient).deregisterCurrency("TST");
     }
 
     // -------------------------------------------------------------------------

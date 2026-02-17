@@ -115,14 +115,12 @@ public class AssetProvisioningService {
                     treasuryAssetAccountId, request.totalSupply());
 
         } catch (AssetException e) {
+            rollbackFineractResources(productId, request.currencyCode(), assetId);
             throw e;
         } catch (Exception e) {
-            // NOTE: If currency was registered but account creation failed, the currency remains in Fineract.
-            // A retry with the same currency code will fail because the currency already exists.
-            // Manual cleanup via Fineract admin API may be needed.
-            log.error("Fineract provisioning failed for asset {}: {}. productId={}, currencyCode={}. "
-                    + "Manual cleanup of orphaned Fineract resources may be required.",
-                    assetId, e.getMessage(), productId, request.currencyCode());
+            rollbackFineractResources(productId, request.currencyCode(), assetId);
+            log.error("Fineract provisioning failed for asset {}: {}. productId={}.",
+                    assetId, e.getMessage(), productId);
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
         }
 
@@ -310,6 +308,20 @@ public class AssetProvisioningService {
         }
         if (request.nextCouponDate().isAfter(request.maturityDate())) {
             throw new AssetException("First coupon date must be on or before the maturity date");
+        }
+    }
+
+    /**
+     * Best-effort rollback of Fineract resources created during provisioning.
+     * Follows the same pattern as RegistrationService.rollback().
+     */
+    private void rollbackFineractResources(Integer productId, String currencyCode, String assetId) {
+        log.info("Rolling back Fineract resources for asset {}...", assetId);
+        if (productId != null) {
+            fineractClient.deleteSavingsProduct(productId);
+        }
+        if (currencyCode != null) {
+            fineractClient.deregisterCurrency(currencyCode);
         }
     }
 }
