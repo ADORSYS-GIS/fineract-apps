@@ -5,7 +5,8 @@ ALTER TABLE assets ADD COLUMN maturity_date DATE;
 ALTER TABLE assets ADD COLUMN interest_rate DECIMAL(8,4);
 ALTER TABLE assets ADD COLUMN coupon_frequency_months INTEGER;
 ALTER TABLE assets ADD COLUMN next_coupon_date DATE;
-ALTER TABLE assets ADD COLUMN validity_date DATE;
+ALTER TABLE assets ADD COLUMN subscription_end_date DATE NOT NULL;
+ALTER TABLE assets ADD COLUMN capital_opened_percent DECIMAL(5,2);
 
 -- Partial indexes for scheduler queries
 CREATE INDEX idx_assets_maturity ON assets(status, maturity_date) WHERE maturity_date IS NOT NULL;

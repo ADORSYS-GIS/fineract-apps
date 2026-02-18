@@ -92,9 +92,9 @@ public class Asset {
     @Column(name = "spread_percent", precision = 5, scale = 4)
     private BigDecimal spreadPercent;
 
-    /** Planned launch date for PENDING assets. Null for already-active assets. */
-    @Column(name = "expected_launch_date")
-    private LocalDate expectedLaunchDate;
+    /** Start of the subscription period. BUY orders are rejected before this date. */
+    @Column(name = "subscription_start_date", nullable = false)
+    private LocalDate subscriptionStartDate;
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──────────────
 
@@ -122,9 +122,13 @@ public class Asset {
     @Column(name = "next_coupon_date")
     private LocalDate nextCouponDate;
 
-    /** Offer validity deadline. BUY orders are rejected after this date; SELL is always allowed. */
-    @Column(name = "validity_date")
-    private LocalDate validityDate;
+    /** End of the subscription period. BUY orders are rejected after this date; SELL is always allowed. */
+    @Column(name = "subscription_end_date", nullable = false)
+    private LocalDate subscriptionEndDate;
+
+    /** Percentage of capital opened for subscription (e.g. 44.44). Null if not applicable. */
+    @Column(name = "capital_opened_percent", precision = 5, scale = 2)
+    private BigDecimal capitalOpenedPercent;
 
     // ── End bond fields ────────────────────────────────────────────────────
 

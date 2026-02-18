@@ -30,6 +30,12 @@ public record AssetResponse(
     BigDecimal availableSupply,
     /** Maximum total units that can ever exist. */
     BigDecimal totalSupply,
+    /** Start of the subscription period. */
+    LocalDate subscriptionStartDate,
+    /** End of the subscription period. */
+    LocalDate subscriptionEndDate,
+    /** Percentage of capital opened for subscription. */
+    BigDecimal capitalOpenedPercent,
 
     // ── Bond summary fields (null for non-bond assets) ──
 
@@ -48,7 +54,7 @@ public record AssetResponse(
     /** Days remaining until maturity. Null for non-bond assets. */
     @Schema(description = "Days remaining until maturity date. Computed at query time.")
     Long residualDays,
-    /** Whether the offer validity period has expired. Null if no validityDate set. */
-    @Schema(description = "True if validityDate has passed and new BUY orders are blocked.")
-    Boolean offerExpired
+    /** Whether the subscription period has ended. */
+    @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
+    Boolean subscriptionClosed
 ) {}

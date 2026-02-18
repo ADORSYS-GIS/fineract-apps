@@ -210,7 +210,7 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
 
         UpdateAssetRequest request = new UpdateAssetRequest(
-                "New Name", null, null, null, null, null, null, null, null);
+                "New Name", null, null, null, null, null, null, null, null, null, null);
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -227,7 +227,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -329,9 +329,10 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, null, null, TREASURY_CLIENT_ID,
+                null, null, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                TREASURY_CLIENT_ID,
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
-                LocalDate.now().plusMonths(6), null
+                LocalDate.now().plusMonths(6)
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -343,9 +344,10 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, null, null, TREASURY_CLIENT_ID,
+                null, null, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                TREASURY_CLIENT_ID,
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
-                LocalDate.now().plusMonths(5), null
+                LocalDate.now().plusMonths(5)
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -353,43 +355,31 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
-    void createAsset_pastValidityDate_throws() {
-        // Non-bond asset with past validity date
+    void createAsset_subscriptionEndBeforeStart_throws() {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Token", "TKN", "TKN", null, null, AssetCategory.STOCKS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, null, null, TREASURY_CLIENT_ID,
-                null, null, null, null, null, null, LocalDate.now().minusDays(1)
+                null, null, LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
+                TREASURY_CLIENT_ID,
+                null, null, null, null, null, null
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
-        assertTrue(ex.getMessage().contains("Validity date must be in the future"));
+        assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
     }
 
     @Test
-    void createBondAsset_validityAfterMaturity_throws() {
-        CreateAssetRequest request = new CreateAssetRequest(
-                "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
-                new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, null, null, TREASURY_CLIENT_ID,
-                "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
-                LocalDate.now().plusMonths(6), LocalDate.now().plusYears(2)
-        );
-
-        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
-        assertTrue(ex.getMessage().contains("Validity date must be on or before the maturity date"));
-    }
-
-    @Test
-    void updateAsset_pastValidityDate_throws() {
+    void updateAsset_subscriptionEndBeforeStart_throws() {
         Asset existing = activeAsset();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
 
         UpdateAssetRequest request = new UpdateAssetRequest(
-                null, null, null, null, null, null, null, null, LocalDate.now().minusDays(1));
+                null, null, null, null, null, null,
+                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
+                null, null);
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
-        assertTrue(ex.getMessage().contains("Validity date must be in the future"));
+        assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
     }
 
     @Test
@@ -397,9 +387,10 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, null, null, TREASURY_CLIENT_ID,
+                null, null, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                TREASURY_CLIENT_ID,
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
-                LocalDate.now().plusMonths(6), null
+                LocalDate.now().plusMonths(6)
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));

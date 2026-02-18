@@ -90,12 +90,6 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 						</div>
 						<div className="text-gray-600">First Coupon Date:</div>
 						<div className="font-medium">{formData.nextCouponDate}</div>
-						{formData.validityDate && (
-							<>
-								<div className="text-gray-600">Validity Date:</div>
-								<div className="font-medium">{formData.validityDate}</div>
-							</>
-						)}
 					</div>
 				</Card>
 			)}
@@ -134,10 +128,16 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 						{(formData.totalSupply * formData.initialPrice).toLocaleString()}{" "}
 						XAF
 					</div>
-					{formData.expectedLaunchDate && (
+					<div className="text-gray-600">Subscription Start:</div>
+					<div className="font-medium">{formData.subscriptionStartDate}</div>
+					<div className="text-gray-600">Subscription End:</div>
+					<div className="font-medium">{formData.subscriptionEndDate}</div>
+					{formData.capitalOpenedPercent > 0 && (
 						<>
-							<div className="text-gray-600">Expected Launch:</div>
-							<div className="font-medium">{formData.expectedLaunchDate}</div>
+							<div className="text-gray-600">Capital Opened:</div>
+							<div className="font-medium">
+								{formData.capitalOpenedPercent}%
+							</div>
 						</>
 					)}
 				</div>

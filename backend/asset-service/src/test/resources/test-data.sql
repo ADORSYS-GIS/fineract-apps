@@ -10,18 +10,24 @@ DELETE FROM assets;
 -- Active asset for integration tests
 INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
     manual_price, total_supply, circulating_supply, spread_percent, trading_fee_percent,
-    decimal_places, treasury_client_id, treasury_asset_account_id, treasury_cash_account_id,
+    decimal_places, subscription_start_date, subscription_end_date,
+    treasury_client_id, treasury_asset_account_id, treasury_cash_account_id,
     fineract_product_id, version, created_at, updated_at)
 VALUES ('asset-001', 'TST', 'TST', 'Test Asset', 'STOCKS', 'ACTIVE', 'MANUAL',
-    100.00, 1000, 0, 0.01, 0.005, 0, 1, 400, 300, 10, 0, NOW(), NOW());
+    100.00, 1000, 0, 0.01, 0.005, 0,
+    DATEADD('MONTH', -1, CURRENT_DATE), DATEADD('YEAR', 1, CURRENT_DATE),
+    1, 400, 300, 10, 0, NOW(), NOW());
 
 -- Pending asset for admin lifecycle tests
 INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
     manual_price, total_supply, circulating_supply, spread_percent, trading_fee_percent,
-    decimal_places, treasury_client_id, treasury_asset_account_id, treasury_cash_account_id,
+    decimal_places, subscription_start_date, subscription_end_date,
+    treasury_client_id, treasury_asset_account_id, treasury_cash_account_id,
     fineract_product_id, version, created_at, updated_at)
 VALUES ('asset-002', 'PND', 'PND', 'Pending Asset', 'COMMODITIES', 'PENDING', 'MANUAL',
-    50.00, 500, 0, 0.02, 0.01, 0, 1, 401, 301, 11, 0, NOW(), NOW());
+    50.00, 500, 0, 0.02, 0.01, 0,
+    DATEADD('MONTH', -1, CURRENT_DATE), DATEADD('YEAR', 1, CURRENT_DATE),
+    1, 401, 301, 11, 0, NOW(), NOW());
 
 -- Price data for active asset
 INSERT INTO asset_prices (asset_id, current_price, day_open, day_high, day_low,

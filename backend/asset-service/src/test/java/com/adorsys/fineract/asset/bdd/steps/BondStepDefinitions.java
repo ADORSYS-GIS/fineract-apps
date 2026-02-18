@@ -140,8 +140,15 @@ public class BondStepDefinitions {
         request.put("maturityDate", resolveDateExpression(maturity));
         String nextCoupon = data.get("nextCouponDate");
         request.put("nextCouponDate", resolveDateExpression(nextCoupon));
-        if (data.containsKey("validityDate")) {
-            request.put("validityDate", resolveDateExpression(data.get("validityDate")));
+        if (data.containsKey("subscriptionStartDate")) {
+            request.put("subscriptionStartDate", resolveDateExpression(data.get("subscriptionStartDate")));
+        } else {
+            request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
+        }
+        if (data.containsKey("subscriptionEndDate")) {
+            request.put("subscriptionEndDate", resolveDateExpression(data.get("subscriptionEndDate")));
+        } else {
+            request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
         }
 
         MvcResult result = mockMvc.perform(post("/api/admin/assets")

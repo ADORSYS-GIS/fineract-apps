@@ -89,13 +89,16 @@ export interface AssetResponse {
 	change24hPercent: number;
 	availableSupply: number;
 	totalSupply: number;
+	subscriptionStartDate: string;
+	subscriptionEndDate: string;
+	capitalOpenedPercent?: number;
 	// Bond fields (null for non-bond assets)
 	issuer?: string;
 	isinCode?: string;
 	maturityDate?: string;
 	interestRate?: number;
 	residualDays?: number;
-	offerExpired?: boolean;
+	subscriptionClosed?: boolean;
 }
 
 /** Full asset detail with Fineract IDs (matches backend AssetDetailResponse). */
@@ -121,7 +124,9 @@ export interface AssetDetailResponse {
 	tradingFeePercent?: number;
 	spreadPercent?: number;
 	decimalPlaces: number;
-	expectedLaunchDate?: string;
+	subscriptionStartDate: string;
+	subscriptionEndDate: string;
+	capitalOpenedPercent?: number;
 	treasuryClientId: number;
 	treasuryAssetAccountId?: number;
 	treasuryCashAccountId?: number;
@@ -135,9 +140,8 @@ export interface AssetDetailResponse {
 	interestRate?: number;
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
-	validityDate?: string;
 	residualDays?: number;
-	offerExpired?: boolean;
+	subscriptionClosed?: boolean;
 }
 
 export interface CreateAssetRequest {
@@ -152,8 +156,10 @@ export interface CreateAssetRequest {
 	spreadPercent?: number;
 	totalSupply: number;
 	decimalPlaces: number;
+	subscriptionStartDate: string;
+	subscriptionEndDate: string;
+	capitalOpenedPercent?: number;
 	treasuryClientId: number;
-	expectedLaunchDate?: string;
 	// Bond fields (required when category is BONDS)
 	issuer?: string;
 	isinCode?: string;
@@ -161,7 +167,6 @@ export interface CreateAssetRequest {
 	interestRate?: number;
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
-	validityDate?: string;
 }
 
 export interface UpdateAssetRequest {
@@ -171,10 +176,12 @@ export interface UpdateAssetRequest {
 	category?: string;
 	tradingFeePercent?: number;
 	spreadPercent?: number;
+	subscriptionStartDate?: string;
+	subscriptionEndDate?: string;
+	capitalOpenedPercent?: number;
 	// Bond-specific updatable fields
 	interestRate?: number;
 	maturityDate?: string;
-	validityDate?: string;
 }
 
 /** Coupon payment audit record (matches backend CouponPaymentResponse). */

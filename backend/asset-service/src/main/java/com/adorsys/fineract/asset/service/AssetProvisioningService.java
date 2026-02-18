@@ -54,11 +54,14 @@ public class AssetProvisioningService {
             throw new AssetException("Currency code already exists: " + request.currencyCode());
         }
 
+        // Validate subscription dates
+        if (request.subscriptionEndDate().isBefore(request.subscriptionStartDate())) {
+            throw new AssetException("Subscription end date must be on or after the start date");
+        }
+
         // Validate bond-specific fields when category is BONDS
         if (request.category() == AssetCategory.BONDS) {
             validateBondFields(request);
-        } else if (request.validityDate() != null && !request.validityDate().isAfter(LocalDate.now())) {
-            throw new AssetException("Validity date must be in the future");
         }
 
         String assetId = UUID.randomUUID().toString();
@@ -135,14 +138,15 @@ public class AssetProvisioningService {
                 .circulatingSupply(BigDecimal.ZERO)
                 .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
                 .spreadPercent(request.spreadPercent() != null ? request.spreadPercent() : new BigDecimal("0.0100"))
-                .expectedLaunchDate(request.expectedLaunchDate())
+                .subscriptionStartDate(request.subscriptionStartDate())
+                .subscriptionEndDate(request.subscriptionEndDate())
+                .capitalOpenedPercent(request.capitalOpenedPercent())
                 .issuer(request.issuer())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
                 .interestRate(request.interestRate())
                 .couponFrequencyMonths(request.couponFrequencyMonths())
                 .nextCouponDate(request.nextCouponDate())
-                .validityDate(request.validityDate())
                 .treasuryClientId(request.treasuryClientId())
                 .treasuryAssetAccountId(treasuryAssetAccountId)
                 .treasuryCashAccountId(treasuryCashAccountId)
@@ -178,14 +182,10 @@ public class AssetProvisioningService {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
 
-        // Validate validity date if provided
-        if (request.validityDate() != null) {
-            if (!request.validityDate().isAfter(LocalDate.now())) {
-                throw new AssetException("Validity date must be in the future");
-            }
-            LocalDate effectiveMaturity = request.maturityDate() != null ? request.maturityDate() : asset.getMaturityDate();
-            if (effectiveMaturity != null && request.validityDate().isAfter(effectiveMaturity)) {
-                throw new AssetException("Validity date must be on or before the maturity date");
+        // Validate subscription dates if provided
+        if (request.subscriptionEndDate() != null && request.subscriptionStartDate() != null) {
+            if (request.subscriptionEndDate().isBefore(request.subscriptionStartDate())) {
+                throw new AssetException("Subscription end date must be on or after the start date");
             }
         }
 
@@ -195,9 +195,11 @@ public class AssetProvisioningService {
         if (request.category() != null) asset.setCategory(request.category());
         if (request.tradingFeePercent() != null) asset.setTradingFeePercent(request.tradingFeePercent());
         if (request.spreadPercent() != null) asset.setSpreadPercent(request.spreadPercent());
+        if (request.subscriptionStartDate() != null) asset.setSubscriptionStartDate(request.subscriptionStartDate());
+        if (request.subscriptionEndDate() != null) asset.setSubscriptionEndDate(request.subscriptionEndDate());
+        if (request.capitalOpenedPercent() != null) asset.setCapitalOpenedPercent(request.capitalOpenedPercent());
         if (request.interestRate() != null) asset.setInterestRate(request.interestRate());
         if (request.maturityDate() != null) asset.setMaturityDate(request.maturityDate());
-        if (request.validityDate() != null) asset.setValidityDate(request.validityDate());
 
         assetRepository.save(asset);
         log.info("Updated asset: id={}", assetId);
@@ -312,14 +314,6 @@ public class AssetProvisioningService {
         }
         if (request.nextCouponDate().isAfter(request.maturityDate())) {
             throw new AssetException("First coupon date must be on or before the maturity date");
-        }
-        if (request.validityDate() != null) {
-            if (!request.validityDate().isAfter(LocalDate.now())) {
-                throw new AssetException("Validity date must be in the future");
-            }
-            if (request.validityDate().isAfter(request.maturityDate())) {
-                throw new AssetException("Validity date must be on or before the maturity date");
-            }
         }
     }
 

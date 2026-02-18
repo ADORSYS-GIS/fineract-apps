@@ -45,6 +45,8 @@ public final class TestDataFactory {
                 .treasuryCashAccountId(TREASURY_CASH_ACCOUNT)
                 .treasuryAssetAccountId(TREASURY_ASSET_ACCOUNT)
                 .fineractProductId(10)
+                .subscriptionStartDate(LocalDate.now().minusMonths(1))
+                .subscriptionEndDate(LocalDate.now().plusYears(1))
                 .createdAt(Instant.now())
                 .build();
     }
@@ -118,9 +120,11 @@ public final class TestDataFactory {
                 0,
                 new BigDecimal("0.005"),
                 new BigDecimal("0.01"),
+                LocalDate.now().minusMonths(1),
+                LocalDate.now().plusYears(1),
                 null,
                 TREASURY_CLIENT_ID,
-                null, null, null, null, null, null, null
+                null, null, null, null, null, null
         );
     }
 
@@ -137,6 +141,8 @@ public final class TestDataFactory {
                 0,
                 new BigDecimal("0.005"),
                 new BigDecimal("0.01"),
+                LocalDate.now().minusMonths(1),
+                LocalDate.now().plusYears(1),
                 null,
                 TREASURY_CLIENT_ID,
                 "Etat du Sénégal",
@@ -144,8 +150,7 @@ public final class TestDataFactory {
                 LocalDate.now().plusYears(5),
                 new BigDecimal("5.80"),
                 6,
-                LocalDate.now().plusMonths(6),
-                LocalDate.now().plusYears(1)
+                LocalDate.now().plusMonths(6)
         );
     }
 
@@ -158,7 +163,7 @@ public final class TestDataFactory {
         bond.setInterestRate(new BigDecimal("5.80"));
         bond.setCouponFrequencyMonths(6);
         bond.setNextCouponDate(LocalDate.now().plusMonths(6));
-        bond.setValidityDate(LocalDate.now().plusYears(1));
+        bond.setSubscriptionEndDate(LocalDate.now().plusYears(1));
         return bond;
     }
 }

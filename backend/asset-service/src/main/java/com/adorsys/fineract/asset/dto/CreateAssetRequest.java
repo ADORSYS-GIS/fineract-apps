@@ -32,8 +32,12 @@ public record CreateAssetRequest(
     @PositiveOrZero @DecimalMax("0.50") BigDecimal tradingFeePercent,
     /** Optional bid-ask spread as a percentage (e.g. 0.01 = 1%). Null means no spread. */
     @PositiveOrZero @DecimalMax("0.50") BigDecimal spreadPercent,
-    /** Optional planned launch date. If set, asset starts in PENDING status until this date. */
-    LocalDate expectedLaunchDate,
+    /** Start of the subscription period. BUY orders rejected before this date. */
+    @NotNull LocalDate subscriptionStartDate,
+    /** End of the subscription period. BUY orders rejected after this date; SELL always allowed. */
+    @NotNull LocalDate subscriptionEndDate,
+    /** Percentage of capital opened for subscription (e.g. 44.44). */
+    @PositiveOrZero @DecimalMax("100.00") BigDecimal capitalOpenedPercent,
     /** Fineract client ID of the treasury that will hold this asset's reserves. */
     @NotNull Long treasuryClientId,
 
@@ -56,8 +60,5 @@ public record CreateAssetRequest(
     Integer couponFrequencyMonths,
     /** First coupon payment date. Required for BONDS, must be on or before maturityDate. */
     @Schema(description = "First coupon payment date. Required when category is BONDS.")
-    LocalDate nextCouponDate,
-    /** Offer validity deadline. BUY orders rejected after this date; SELL always allowed. */
-    @Schema(description = "Offer validity deadline. BUY orders rejected after this date.")
-    LocalDate validityDate
+    LocalDate nextCouponDate
 ) {}

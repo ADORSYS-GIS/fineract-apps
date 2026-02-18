@@ -83,13 +83,15 @@ public class AssetCatalogService {
                 price != null ? price.getDayClose() : null,
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
                 available, asset.getTradingFeePercent(), asset.getSpreadPercent(),
-                asset.getDecimalPlaces(), asset.getExpectedLaunchDate(),
+                asset.getDecimalPlaces(),
+                asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
+                asset.getCapitalOpenedPercent(),
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIssuer(), asset.getIsinCode(), asset.getMaturityDate(),
                 asset.getInterestRate(), asset.getCouponFrequencyMonths(),
-                asset.getNextCouponDate(), asset.getValidityDate(),
+                asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
-                isOfferExpired(asset.getValidityDate())
+                isSubscriptionClosed(asset.getSubscriptionEndDate())
         );
     }
 
@@ -117,15 +119,17 @@ public class AssetCatalogService {
                 price != null ? price.getDayClose() : null,
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
                 available, asset.getTradingFeePercent(), asset.getSpreadPercent(),
-                asset.getDecimalPlaces(), asset.getExpectedLaunchDate(),
+                asset.getDecimalPlaces(),
+                asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
+                asset.getCapitalOpenedPercent(),
                 asset.getTreasuryClientId(), asset.getTreasuryAssetAccountId(),
                 asset.getTreasuryCashAccountId(), asset.getFineractProductId(),
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIssuer(), asset.getIsinCode(), asset.getMaturityDate(),
                 asset.getInterestRate(), asset.getCouponFrequencyMonths(),
-                asset.getNextCouponDate(), asset.getValidityDate(),
+                asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
-                isOfferExpired(asset.getValidityDate())
+                isSubscriptionClosed(asset.getSubscriptionEndDate())
         );
     }
 
@@ -137,13 +141,13 @@ public class AssetCatalogService {
         Page<Asset> assets = assetRepository.findByStatus(AssetStatus.PENDING, withIdTiebreaker(pageable));
 
         return assets.map(a -> {
-            long daysUntilLaunch = 0;
-            if (a.getExpectedLaunchDate() != null && a.getExpectedLaunchDate().isAfter(LocalDate.now())) {
-                daysUntilLaunch = ChronoUnit.DAYS.between(LocalDate.now(), a.getExpectedLaunchDate());
+            long daysUntilSubscription = 0;
+            if (a.getSubscriptionStartDate() != null && a.getSubscriptionStartDate().isAfter(LocalDate.now())) {
+                daysUntilSubscription = ChronoUnit.DAYS.between(LocalDate.now(), a.getSubscriptionStartDate());
             }
             return new DiscoverAssetResponse(
                     a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
-                    a.getCategory(), a.getStatus(), a.getExpectedLaunchDate(), daysUntilLaunch
+                    a.getCategory(), a.getStatus(), a.getSubscriptionStartDate(), daysUntilSubscription
             );
         });
     }
@@ -178,10 +182,12 @@ public class AssetCatalogService {
                 a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
                 a.getCategory(), a.getStatus(), currentPrice, change,
                 available, a.getTotalSupply(),
+                a.getSubscriptionStartDate(), a.getSubscriptionEndDate(),
+                a.getCapitalOpenedPercent(),
                 a.getIssuer(), a.getIsinCode(), a.getMaturityDate(),
                 a.getInterestRate(),
                 computeResidualDays(a.getMaturityDate()),
-                isOfferExpired(a.getValidityDate())
+                isSubscriptionClosed(a.getSubscriptionEndDate())
         );
     }
 
@@ -198,13 +204,13 @@ public class AssetCatalogService {
     }
 
     /**
-     * Checks whether the offer validity period has expired.
+     * Checks whether the subscription period has ended.
      *
-     * @param validityDate the offer deadline, or null if no deadline is set
-     * @return true if expired, false if still valid, null if no validityDate
+     * @param subscriptionEndDate the subscription deadline
+     * @return true if ended, false if still open
      */
-    private Boolean isOfferExpired(LocalDate validityDate) {
-        if (validityDate == null) return null;
-        return !validityDate.isAfter(LocalDate.now());
+    private Boolean isSubscriptionClosed(LocalDate subscriptionEndDate) {
+        if (subscriptionEndDate == null) return null;
+        return !subscriptionEndDate.isAfter(LocalDate.now());
     }
 }

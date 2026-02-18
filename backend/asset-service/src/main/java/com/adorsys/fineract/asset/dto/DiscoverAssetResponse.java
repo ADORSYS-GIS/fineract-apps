@@ -18,8 +18,8 @@ public record DiscoverAssetResponse(
     AssetCategory category,
     /** Always PENDING for discover assets. */
     AssetStatus status,
-    /** Planned date when the asset will become ACTIVE and tradeable. */
-    LocalDate expectedLaunchDate,
-    /** Countdown: number of days until expectedLaunchDate. Calculated at read time. */
-    long daysUntilLaunch
+    /** Start of the subscription period. */
+    LocalDate subscriptionStartDate,
+    /** Countdown: number of days until subscriptionStartDate. Calculated at read time. */
+    long daysUntilSubscription
 ) {}

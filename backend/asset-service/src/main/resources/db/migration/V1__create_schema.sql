@@ -20,7 +20,7 @@ CREATE TABLE assets (
     circulating_supply DECIMAL(20,8) NOT NULL DEFAULT 0,
     trading_fee_percent DECIMAL(5,4) DEFAULT 0.0050,
     spread_percent DECIMAL(5,4) DEFAULT 0.0100,
-    expected_launch_date DATE,
+    subscription_start_date DATE NOT NULL,
     treasury_client_id BIGINT NOT NULL,
     treasury_asset_account_id BIGINT,
     treasury_cash_account_id BIGINT,

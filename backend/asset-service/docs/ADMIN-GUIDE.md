@@ -40,7 +40,9 @@ Body:
   "totalSupply": 100000,
   "decimalPlaces": 0,
   "treasuryClientId": 42,
-  "expectedLaunchDate": "2026-03-15"
+  "subscriptionStartDate": "2025-12-15",
+  "subscriptionEndDate": "2026-03-15",
+  "capitalOpenedPercent": 44.44
 }
 ```
 
@@ -64,12 +66,13 @@ Body:
   "totalSupply": 50000,
   "decimalPlaces": 0,
   "treasuryClientId": 42,
+  "subscriptionStartDate": "2025-12-01",
+  "subscriptionEndDate": "2026-06-30",
   "issuer": "Etat du Senegal",
   "isinCode": "SN0000000001",
   "maturityDate": "2028-06-30",
   "interestRate": 5.80,
-  "couponFrequencyMonths": 6,
-  "validityDate": "2026-06-30"
+  "couponFrequencyMonths": 6
 }
 ```
 
@@ -82,7 +85,14 @@ Bond-specific fields:
 | `maturityDate` | Yes (for BONDS) | Bond maturity date (must be in the future) |
 | `interestRate` | Yes (for BONDS) | Annual coupon rate as percentage (e.g. 5.80) |
 | `couponFrequencyMonths` | Yes (for BONDS) | Payment frequency: 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual) |
-| `validityDate` | No | Offer validity deadline. BUY orders are rejected after this date; SELL is always allowed. |
+
+General fields (all categories):
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `subscriptionStartDate` | Yes | Start of the subscription window. BUY orders are rejected before this date. |
+| `subscriptionEndDate` | Yes | End of the subscription window. BUY orders are rejected after this date; SELL is always allowed. |
+| `capitalOpenedPercent` | No | Percentage of capital opened for subscription (e.g. 44.44 for RENAPROV-style offerings). |
 
 ### What Happens on Create
 

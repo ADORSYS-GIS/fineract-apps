@@ -193,6 +193,38 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 					</Card>
 				</div>
 
+				{/* Subscription Period (all categories) */}
+				<Card className="p-4 mb-6">
+					<h2 className="text-lg font-semibold text-gray-800 mb-3">
+						Subscription Period
+					</h2>
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+						<div>
+							<p className="text-gray-500">Start Date</p>
+							<p className="font-medium">
+								{asset.subscriptionStartDate ?? "—"}
+							</p>
+						</div>
+						<div>
+							<p className="text-gray-500">End Date</p>
+							<p className="font-medium">
+								{asset.subscriptionEndDate ?? "—"}
+								{asset.subscriptionClosed && (
+									<span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+										Closed
+									</span>
+								)}
+							</p>
+						</div>
+						{asset.capitalOpenedPercent != null && (
+							<div>
+								<p className="text-gray-500">Capital Opened</p>
+								<p className="font-medium">{asset.capitalOpenedPercent}%</p>
+							</div>
+						)}
+					</div>
+				</Card>
+
 				{/* Bond Information */}
 				{asset.category === "BONDS" && (
 					<Card className="p-4 mb-6">
@@ -242,17 +274,6 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 									{asset.residualDays != null
 										? `${asset.residualDays} days`
 										: "—"}
-								</p>
-							</div>
-							<div>
-								<p className="text-gray-500">Validity</p>
-								<p className="font-medium">
-									{asset.validityDate ?? "No deadline"}
-									{asset.offerExpired && (
-										<span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-											Expired
-										</span>
-									)}
 								</p>
 							</div>
 						</div>

@@ -95,6 +95,10 @@ public class AdminAssetStepDefinitions {
         request.put("totalSupply", new BigDecimal(data.get("totalSupply")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("treasuryClientId", 1L);
+        request.put("subscriptionStartDate", data.getOrDefault("subscriptionStartDate",
+                java.time.LocalDate.now().minusMonths(1).toString()));
+        request.put("subscriptionEndDate", data.getOrDefault("subscriptionEndDate",
+                java.time.LocalDate.now().plusYears(1).toString()));
 
         MvcResult result = mockMvc.perform(post("/api/admin/assets")
                         .with(jwt().authorities(ADMIN))

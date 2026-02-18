@@ -26,15 +26,16 @@ export interface AssetFormData {
 	interestRate: number;
 	couponFrequencyMonths: number;
 	nextCouponDate: string;
-	validityDate: string;
 	// Step 3: Pricing
 	initialPrice: number;
 	tradingFeePercent: number;
 	spreadPercent: number;
-	// Step 4: Supply
+	// Step 4: Supply & Subscription
 	totalSupply: number;
 	decimalPlaces: number;
-	expectedLaunchDate: string;
+	subscriptionStartDate: string;
+	subscriptionEndDate: string;
+	capitalOpenedPercent: number;
 }
 
 const initialFormData: AssetFormData = {
@@ -51,13 +52,14 @@ const initialFormData: AssetFormData = {
 	interestRate: 0,
 	couponFrequencyMonths: 12,
 	nextCouponDate: "",
-	validityDate: "",
 	initialPrice: 0,
 	tradingFeePercent: 0.5,
 	spreadPercent: 1.0,
 	totalSupply: 0,
 	decimalPlaces: 0,
-	expectedLaunchDate: "",
+	subscriptionStartDate: "",
+	subscriptionEndDate: "",
+	capitalOpenedPercent: 0,
 };
 
 export const useCreateAsset = () => {
@@ -136,15 +138,6 @@ export const useCreateAsset = () => {
 					errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
 				if (!formData.nextCouponDate)
 					errors.push("First coupon date is required");
-				if (formData.validityDate) {
-					if (formData.validityDate <= new Date().toISOString().split("T")[0])
-						errors.push("Validity date must be in the future");
-					else if (
-						formData.maturityDate &&
-						formData.validityDate > formData.maturityDate
-					)
-						errors.push("Validity date must be on or before the maturity date");
-				}
 				break;
 			case "Pricing & Fees":
 				if (formData.initialPrice <= 0)
@@ -157,6 +150,23 @@ export const useCreateAsset = () => {
 			case "Supply":
 				if (formData.totalSupply <= 0)
 					errors.push("Total supply must be greater than 0");
+				if (!formData.subscriptionStartDate)
+					errors.push("Subscription start date is required");
+				if (!formData.subscriptionEndDate)
+					errors.push("Subscription end date is required");
+				if (
+					formData.subscriptionStartDate &&
+					formData.subscriptionEndDate &&
+					formData.subscriptionEndDate < formData.subscriptionStartDate
+				)
+					errors.push(
+						"Subscription end date must be on or after the start date",
+					);
+				if (
+					formData.capitalOpenedPercent < 0 ||
+					formData.capitalOpenedPercent > 100
+				)
+					errors.push("Capital opened must be between 0% and 100%");
 				break;
 		}
 		return errors;
@@ -203,8 +213,10 @@ export const useCreateAsset = () => {
 			spreadPercent: formData.spreadPercent,
 			totalSupply: formData.totalSupply,
 			decimalPlaces: formData.decimalPlaces,
+			subscriptionStartDate: formData.subscriptionStartDate,
+			subscriptionEndDate: formData.subscriptionEndDate,
+			capitalOpenedPercent: formData.capitalOpenedPercent || undefined,
 			treasuryClientId: formData.treasuryClientId,
-			expectedLaunchDate: formData.expectedLaunchDate || undefined,
 			// Bond fields (only included when category is BONDS)
 			...(formData.category === "BONDS" && {
 				issuer: formData.issuer,
@@ -213,7 +225,6 @@ export const useCreateAsset = () => {
 				interestRate: formData.interestRate,
 				couponFrequencyMonths: formData.couponFrequencyMonths,
 				nextCouponDate: formData.nextCouponDate,
-				validityDate: formData.validityDate || undefined,
 			}),
 		};
 

@@ -83,9 +83,9 @@ public class TradingStepDefinitions {
         // For now, mark scenarios using this as @wip
     }
 
-    @Given("asset {string} has a validity date of yesterday")
-    public void assetHasExpiredValidity(String assetId) {
-        jdbcTemplate.update("UPDATE assets SET validity_date = DATEADD('DAY', -1, CURRENT_DATE) WHERE id = ?", assetId);
+    @Given("asset {string} has a subscription end date of yesterday")
+    public void assetHasExpiredSubscription(String assetId) {
+        jdbcTemplate.update("UPDATE assets SET subscription_end_date = DATEADD('DAY', -1, CURRENT_DATE) WHERE id = ?", assetId);
     }
 
     // -------------------------------------------------------------------------

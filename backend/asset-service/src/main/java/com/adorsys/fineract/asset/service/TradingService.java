@@ -97,10 +97,14 @@ public class TradingService {
             throw new TradingHaltedException(request.assetId());
         }
 
-        // 3b. Validity date check — block BUY if offer has expired (holders can still SELL)
-        if (asset.getValidityDate() != null && !asset.getValidityDate().isAfter(LocalDate.now())) {
-            assetMetrics.incrementBondValidityExpiredRejections();
-            throw new TradingException("Offer validity has expired for this asset", "OFFER_EXPIRED");
+        // 3b. Subscription period check — block BUY outside subscription window (holders can still SELL)
+        if (LocalDate.now().isBefore(asset.getSubscriptionStartDate())) {
+            assetMetrics.incrementSubscriptionExpiredRejections();
+            throw new TradingException("Subscription period has not started for this asset", "SUBSCRIPTION_NOT_STARTED");
+        }
+        if (!asset.getSubscriptionEndDate().isAfter(LocalDate.now())) {
+            assetMetrics.incrementSubscriptionExpiredRejections();
+            throw new TradingException("Subscription period has ended for this asset", "SUBSCRIPTION_ENDED");
         }
 
         // 4. Get execution price (current price + spread for buy side, if spread enabled)
@@ -562,11 +566,14 @@ public class TradingService {
             blockers.add("TRADING_HALTED");
         }
 
-        // 2b. Validity date check — BUY only
-        if (request.side() == TradeSide.BUY
-                && asset.getValidityDate() != null
-                && !asset.getValidityDate().isAfter(LocalDate.now())) {
-            blockers.add("OFFER_EXPIRED");
+        // 2b. Subscription period check — BUY only
+        if (request.side() == TradeSide.BUY) {
+            if (LocalDate.now().isBefore(asset.getSubscriptionStartDate())) {
+                blockers.add("SUBSCRIPTION_NOT_STARTED");
+            }
+            if (!asset.getSubscriptionEndDate().isAfter(LocalDate.now())) {
+                blockers.add("SUBSCRIPTION_ENDED");
+            }
         }
 
         // 3. Price calculation (same logic as executeBuy/executeSell)

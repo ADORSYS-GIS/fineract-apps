@@ -56,9 +56,13 @@ public record AssetDetailResponse(
     BigDecimal spreadPercent,
     /** Number of decimal places for fractional units (0-8). */
     Integer decimalPlaces,
-    /** Planned launch date for PENDING assets. Null for active assets. */
+    /** Start of the subscription period. */
+    LocalDate subscriptionStartDate,
+    /** End of the subscription period. */
+    LocalDate subscriptionEndDate,
+    /** Percentage of capital opened for subscription. */
     @Schema(nullable = true)
-    LocalDate expectedLaunchDate,
+    BigDecimal capitalOpenedPercent,
     /** Fineract client ID of the treasury holding this asset's reserves. */
     Long treasuryClientId,
     /** Fineract savings account ID for the treasury's asset units. */
@@ -93,13 +97,10 @@ public record AssetDetailResponse(
     /** Next scheduled coupon payment date. Null for non-bond assets. */
     @Schema(description = "Next scheduled coupon payment date.", nullable = true)
     LocalDate nextCouponDate,
-    /** Offer validity deadline. Null if no deadline set. */
-    @Schema(description = "Offer validity deadline. BUY orders rejected after this date.", nullable = true)
-    LocalDate validityDate,
     /** Days remaining until maturity. Null for non-bond assets. Computed, not stored. */
     @Schema(description = "Days remaining until maturity date. Computed at query time.", nullable = true)
     Long residualDays,
-    /** Whether the offer validity period has expired. Null if no validityDate set. */
-    @Schema(description = "True if validityDate has passed and new BUY orders are blocked.", nullable = true)
-    Boolean offerExpired
+    /** Whether the subscription period has ended. */
+    @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
+    Boolean subscriptionClosed
 ) {}

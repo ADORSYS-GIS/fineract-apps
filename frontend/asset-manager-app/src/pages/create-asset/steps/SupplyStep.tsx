@@ -74,20 +74,78 @@ export const SupplyStep: FC<Props> = ({
 
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Expected Launch Date
+						Subscription Start Date *
 					</label>
 					<input
 						type="date"
-						aria-label="Expected launch date"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-						value={formData.expectedLaunchDate}
+						aria-label="Subscription start date"
+						className={inputClass("subscription start")}
+						value={formData.subscriptionStartDate}
 						onChange={(e) =>
-							updateFormData({ expectedLaunchDate: e.target.value })
+							updateFormData({ subscriptionStartDate: e.target.value })
 						}
 					/>
-					<p className="text-xs text-gray-400 mt-1">
-						Leave empty if the asset is ready to go live immediately
-					</p>
+					{fieldError("subscription start") ? (
+						<p className="text-xs text-red-600 mt-1">
+							{fieldError("subscription start")}
+						</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							BUY orders are blocked before this date
+						</p>
+					)}
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Subscription End Date *
+					</label>
+					<input
+						type="date"
+						aria-label="Subscription end date"
+						className={inputClass("subscription end")}
+						value={formData.subscriptionEndDate}
+						onChange={(e) =>
+							updateFormData({ subscriptionEndDate: e.target.value })
+						}
+					/>
+					{fieldError("subscription end") ? (
+						<p className="text-xs text-red-600 mt-1">
+							{fieldError("subscription end")}
+						</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							BUY orders are blocked after this date
+						</p>
+					)}
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Capital Opened (%)
+					</label>
+					<input
+						type="number"
+						aria-label="Capital opened percent"
+						className={inputClass("capital")}
+						placeholder="e.g. 44.44"
+						step="0.01"
+						min="0"
+						max="100"
+						value={formData.capitalOpenedPercent || ""}
+						onChange={(e) =>
+							updateFormData({
+								capitalOpenedPercent: Number.parseFloat(e.target.value),
+							})
+						}
+					/>
+					{fieldError("capital") ? (
+						<p className="text-xs text-red-600 mt-1">{fieldError("capital")}</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Percentage of total capital opened for subscription
+						</p>
+					)}
 				</div>
 			</div>
 

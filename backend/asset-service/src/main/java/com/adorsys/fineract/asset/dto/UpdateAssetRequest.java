@@ -24,6 +24,16 @@ public record UpdateAssetRequest(
     /** New spread percentage (e.g. 0.01 = 1%). Null to keep current. */
     @PositiveOrZero BigDecimal spreadPercent,
 
+    /** New subscription start date. Null to keep current. */
+    @Schema(description = "New subscription start date.")
+    LocalDate subscriptionStartDate,
+    /** New subscription end date. Null to keep current. */
+    @Schema(description = "New subscription end date.")
+    LocalDate subscriptionEndDate,
+    /** New capital opened percentage. Null to keep current. */
+    @Schema(description = "New capital opened percentage.")
+    @PositiveOrZero BigDecimal capitalOpenedPercent,
+
     // ── Bond-specific updatable fields ──
 
     /** New annual coupon rate as percentage. Null to keep current. */
@@ -31,8 +41,5 @@ public record UpdateAssetRequest(
     @PositiveOrZero BigDecimal interestRate,
     /** New maturity date. Null to keep current. */
     @Schema(description = "New bond maturity date.")
-    LocalDate maturityDate,
-    /** New offer validity deadline. Null to keep current. */
-    @Schema(description = "New offer validity deadline.")
-    LocalDate validityDate
+    LocalDate maturityDate
 ) {}

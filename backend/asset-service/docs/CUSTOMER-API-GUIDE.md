@@ -132,7 +132,7 @@ Response:
 ```
 
 - `feasible` — whether the trade can execute right now
-- `blockers` — reasons if not feasible: `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_FUNDS`, `INSUFFICIENT_INVENTORY`, `NO_POSITION`, `OFFER_EXPIRED`
+- `blockers` — reasons if not feasible: `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_FUNDS`, `INSUFFICIENT_INVENTORY`, `NO_POSITION`, `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_ENDED`
 - `netAmount` — BUY: total charged (gross + fee). SELL: net proceeds (gross - fee)
 - `bondBenefit` — null for non-bond assets. For bonds (BUY side), includes:
 
@@ -209,7 +209,8 @@ Response:
 
 Error responses:
 - `409` - `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_INVENTORY`
-- `409` - `OFFER_EXPIRED` (bond's validity date has passed; SELL is still allowed)
+- `409` - `SUBSCRIPTION_NOT_STARTED` (subscription period has not started yet)
+- `409` - `SUBSCRIPTION_ENDED` (subscription period has passed; SELL is still allowed)
 - `429` - `TRADE_LOCKED` (another trade in progress, retry after a few seconds)
 - `400` - `NO_XAF_ACCOUNT` (user has no active settlement currency savings account)
 - `400` - `TRADING_ERROR` (insufficient balance, validation errors)
@@ -367,8 +368,9 @@ Response:
       "imageUrl": "https://...",
       "category": "REAL_ESTATE",
       "status": "PENDING",
-      "expectedLaunchDate": "2026-03-15",
-      "daysUntilLaunch": 36
+      "subscriptionStartDate": "2025-12-15",
+      "subscriptionEndDate": "2026-03-15",
+      "daysUntilSubscription": 36
     }
   ]
 }

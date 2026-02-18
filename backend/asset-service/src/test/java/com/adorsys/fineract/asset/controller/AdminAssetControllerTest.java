@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -51,6 +52,7 @@ class AdminAssetControllerTest {
                 AssetCategory.STOCKS, AssetStatus.ACTIVE,
                 new BigDecimal("500"), new BigDecimal("2.5"),
                 new BigDecimal("900"), new BigDecimal("1000"),
+                null, null, null,
                 null, null, null, null, null, null
         );
         when(catalogService.listAllAssets(any(Pageable.class)))
@@ -94,8 +96,9 @@ class AdminAssetControllerTest {
                 AssetCategory.STOCKS,
                 new BigDecimal("500"), new BigDecimal("1000"),
                 0, new BigDecimal("0.005"), new BigDecimal("0.01"),
-                null, 1L,
-                null, null, null, null, null, null, null
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                1L,
+                null, null, null, null, null, null
         );
 
         AssetDetailResponse response = new AssetDetailResponse(
@@ -105,10 +108,10 @@ class AdminAssetControllerTest {
                 null, null, null, null,
                 new BigDecimal("1000"), BigDecimal.ZERO, new BigDecimal("1000"),
                 new BigDecimal("0.005"), new BigDecimal("0.01"),
-                0, null,
+                0, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 1L, 200L, 300L, 10,
                 Instant.now(), null,
-                null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null
         );
 
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);

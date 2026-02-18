@@ -91,6 +91,8 @@ class TradingServiceTest {
                 .treasuryCashAccountId(TREASURY_CASH_ACCOUNT)
                 .treasuryAssetAccountId(TREASURY_ASSET_ACCOUNT)
                 .fineractProductId(10)
+                .subscriptionStartDate(LocalDate.now().minusMonths(1))
+                .subscriptionEndDate(LocalDate.now().plusYears(1))
                 .build();
 
         // Default accounting config (spread enabled)
@@ -384,6 +386,8 @@ class TradingServiceTest {
                 .treasuryCashAccountId(TREASURY_CASH_ACCOUNT)
                 .treasuryAssetAccountId(TREASURY_ASSET_ACCOUNT)
                 .fineractProductId(10)
+                .subscriptionStartDate(LocalDate.now().minusMonths(1))
+                .subscriptionEndDate(LocalDate.now().plusYears(1))
                 .build();
 
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
@@ -767,9 +771,9 @@ class TradingServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void executeBuy_validityExpired_throwsOfferExpired() {
-        // Arrange: asset with an expired validity date
-        activeAsset.setValidityDate(LocalDate.now().minusDays(1));
+    void executeBuy_subscriptionEnded_throwsSubscriptionEnded() {
+        // Arrange: asset with an expired subscription end date
+        activeAsset.setSubscriptionEndDate(LocalDate.now().minusDays(1));
 
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
 
@@ -777,11 +781,11 @@ class TradingServiceTest {
         doNothing().when(marketHoursService).assertMarketOpen();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
 
-        // Act & Assert — validity check fires before price lookup or user resolution
+        // Act & Assert — subscription check fires before price lookup or user resolution
         TradingException ex = assertThrows(TradingException.class,
                 () -> tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY));
-        assertTrue(ex.getMessage().contains("expired"));
-        assertEquals("OFFER_EXPIRED", ex.getErrorCode());
+        assertTrue(ex.getMessage().contains("ended"));
+        assertEquals("SUBSCRIPTION_ENDED", ex.getErrorCode());
 
         verifyNoInteractions(tradeLockService);
         verify(pricingService, never()).getCurrentPrice(anyString());

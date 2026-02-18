@@ -33,7 +33,9 @@ public record AssetPublicDetailResponse(
     BigDecimal tradingFeePercent,
     BigDecimal spreadPercent,
     Integer decimalPlaces,
-    LocalDate expectedLaunchDate,
+    LocalDate subscriptionStartDate,
+    LocalDate subscriptionEndDate,
+    BigDecimal capitalOpenedPercent,
     Instant createdAt,
     Instant updatedAt,
 
@@ -51,10 +53,8 @@ public record AssetPublicDetailResponse(
     Integer couponFrequencyMonths,
     @Schema(description = "Next scheduled coupon payment date.")
     LocalDate nextCouponDate,
-    @Schema(description = "Offer validity deadline. BUY orders rejected after this date.")
-    LocalDate validityDate,
     @Schema(description = "Days remaining until maturity date. Computed at query time.")
     Long residualDays,
-    @Schema(description = "True if validityDate has passed and new BUY orders are blocked.")
-    Boolean offerExpired
+    @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
+    Boolean subscriptionClosed
 ) {}
