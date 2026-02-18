@@ -1,9 +1,12 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
+import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
+import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
 import com.adorsys.fineract.asset.service.AssetProvisioningService;
+import com.adorsys.fineract.asset.service.CouponForecastService;
 import com.adorsys.fineract.asset.service.InventoryService;
 import com.adorsys.fineract.asset.service.PricingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +41,10 @@ class AdminAssetControllerTest {
     @MockBean private AssetCatalogService catalogService;
     @MockBean private PricingService pricingService;
     @MockBean private InventoryService inventoryService;
+    @MockBean private CouponForecastService couponForecastService;
+    @MockBean private InterestPaymentScheduler interestPaymentScheduler;
     @MockBean private InterestPaymentRepository interestPaymentRepository;
+    @MockBean private AssetRepository assetRepository;
 
     // -------------------------------------------------------------------------
     // GET /api/admin/assets
@@ -110,6 +116,7 @@ class AdminAssetControllerTest {
                 new BigDecimal("0.005"), new BigDecimal("0.01"),
                 0, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 1L, 200L, 300L, 10,
+                "Test Company", "Test Asset Token",
                 Instant.now(), null,
                 null, null, null, null, null, null, null, null
         );

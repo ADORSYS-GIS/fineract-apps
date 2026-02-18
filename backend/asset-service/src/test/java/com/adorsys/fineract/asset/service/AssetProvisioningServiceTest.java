@@ -68,14 +68,14 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
         when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
-        // Fineract: find treasury XAF account
-        Map<String, Object> xafAccount = Map.of(
-                "id", 300,
-                "currency", Map.of("code", "XAF"),
-                "status", Map.of("active", true)
-        );
-        when(fineractClient.getClientSavingsAccounts(TREASURY_CLIENT_ID))
-                .thenReturn(List.of(xafAccount));
+        // Look up client display name
+        when(fineractClient.getClientDisplayName(TREASURY_CLIENT_ID)).thenReturn("Test Company");
+
+        // Fineract: find XAF savings product and provision cash account
+        when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
+        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
+        when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(50), isNull(), isNull()))
+                .thenReturn(300L);
 
         // Fineract: register currency, create product, provision account
 
@@ -101,6 +101,7 @@ class AssetProvisioningServiceTest {
         assertEquals(BigDecimal.ZERO, saved.getCirculatingSupply());
         assertEquals(300L, saved.getTreasuryCashAccountId());
         assertEquals(400L, saved.getTreasuryAssetAccountId());
+        assertEquals("Test Company", saved.getTreasuryClientName());
 
         // Verify price saved
         verify(assetPriceRepository).save(priceCaptor.capture());
@@ -129,22 +130,17 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
-    void createAsset_noTreasuryCashAccount_throws() {
+    void createAsset_noSettlementProduct_throws() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
         when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
-        // No XAF account
-        Map<String, Object> eurAccount = Map.of(
-                "id", 500,
-                "currency", Map.of("code", "EUR"),
-                "status", Map.of("active", true)
-        );
-        when(fineractClient.getClientSavingsAccounts(TREASURY_CLIENT_ID))
-                .thenReturn(List.of(eurAccount));
+        // Settlement product not found
+        when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
+        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(null);
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
-        assertTrue(ex.getMessage().contains("No active XAF savings account"));
+        assertTrue(ex.getMessage().contains("Settlement currency savings product"));
     }
 
     @Test
@@ -153,13 +149,10 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
         when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
-        Map<String, Object> xafAccount = Map.of(
-                "id", 300,
-                "currency", Map.of("code", "XAF"),
-                "status", Map.of("active", true)
-        );
-        when(fineractClient.getClientSavingsAccounts(TREASURY_CLIENT_ID))
-                .thenReturn(List.of(xafAccount));
+        when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
+        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
+        when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(50), isNull(), isNull()))
+                .thenReturn(300L);
 
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenThrow(new RuntimeException("Connection timeout"));
@@ -179,13 +172,10 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
         when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
-        Map<String, Object> xafAccount = Map.of(
-                "id", 300,
-                "currency", Map.of("code", "XAF"),
-                "status", Map.of("active", true)
-        );
-        when(fineractClient.getClientSavingsAccounts(TREASURY_CLIENT_ID))
-                .thenReturn(List.of(xafAccount));
+        when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
+        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
+        when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(50), isNull(), isNull()))
+                .thenReturn(300L);
 
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);

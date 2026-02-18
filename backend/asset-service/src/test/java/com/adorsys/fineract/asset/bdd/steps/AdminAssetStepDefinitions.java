@@ -44,12 +44,18 @@ public class AdminAssetStepDefinitions {
 
     @Given("Fineract provisioning is mocked to succeed")
     public void fineractProvisioningMocked() {
-        Map<String, Object> xafAccount = Map.of(
-                "id", 300, "currency", Map.of("code", "XAF"), "status", Map.of("active", true));
-        when(fineractClient.getClientSavingsAccounts(anyLong())).thenReturn(List.of(xafAccount));
+        // Mock client name lookup
+        when(fineractClient.getClientDisplayName(anyLong())).thenReturn("Test Company");
+        // Mock settlement product lookup and cash account provisioning
+        when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(50);
+        // Cash account provisioning (null deposit amount)
+        when(fineractClient.provisionSavingsAccount(anyLong(), eq(50), isNull(), isNull()))
+                .thenReturn(300L);
+        // Asset product creation
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
-        when(fineractClient.provisionSavingsAccount(anyLong(), anyInt(), any(BigDecimal.class), anyLong()))
+        // Asset account provisioning (with deposit amount)
+        when(fineractClient.provisionSavingsAccount(anyLong(), eq(10), any(BigDecimal.class), anyLong()))
                 .thenReturn(400L);
     }
 
@@ -63,8 +69,10 @@ public class AdminAssetStepDefinitions {
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 manual_price, total_supply, circulating_supply, decimal_places, treasury_client_id,
-                treasury_asset_account_id, treasury_cash_account_id, fineract_product_id, version, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 300, 10, 0, NOW(), NOW())
+                treasury_asset_account_id, treasury_cash_account_id, fineract_product_id,
+                subscription_start_date, subscription_end_date, version, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 300, 10,
+                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), 0, NOW(), NOW())
             """, "dup-" + symbol, symbol, symbol, "Duplicate " + symbol);
     }
 
@@ -110,10 +118,12 @@ public class AdminAssetStepDefinitions {
 
     @When("the admin creates an asset with symbol {string}")
     public void adminCreatesAssetWithSymbol(String symbol) throws Exception {
-        Map<String, Object> request = Map.of(
+        Map<String, Object> request = new HashMap<>(Map.of(
                 "name", "Test", "symbol", symbol, "currencyCode", symbol,
                 "category", "STOCKS", "initialPrice", 100, "totalSupply", 1000,
-                "decimalPlaces", 0, "treasuryClientId", 1L);
+                "decimalPlaces", 0, "treasuryClientId", 1L));
+        request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
+        request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/api/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -125,10 +135,12 @@ public class AdminAssetStepDefinitions {
 
     @When("the admin creates an asset with empty name")
     public void adminCreatesAssetWithEmptyName() throws Exception {
-        Map<String, Object> request = Map.of(
+        Map<String, Object> request = new HashMap<>(Map.of(
                 "name", "", "symbol", "X", "currencyCode", "X",
                 "category", "STOCKS", "initialPrice", 100, "totalSupply", 1000,
-                "decimalPlaces", 0, "treasuryClientId", 1L);
+                "decimalPlaces", 0, "treasuryClientId", 1L));
+        request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
+        request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/api/admin/assets")
                         .with(jwt().authorities(ADMIN))

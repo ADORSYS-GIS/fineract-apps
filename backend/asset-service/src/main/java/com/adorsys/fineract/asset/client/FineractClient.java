@@ -623,6 +623,30 @@ public class FineractClient {
     }
 
     /**
+     * Get the display name of a Fineract client by ID.
+     *
+     * @param clientId the Fineract client ID
+     * @return the client's displayName, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public String getClientDisplayName(Long clientId) {
+        try {
+            Map<String, Object> client = webClient.get()
+                    .uri("/fineract-provider/api/v1/clients/{id}", clientId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            return client != null ? (String) client.get("displayName") : null;
+        } catch (Exception e) {
+            log.warn("Failed to look up client displayName for clientId={}: {}", clientId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Get client by external ID (Keycloak UUID).
      */
     @SuppressWarnings("unchecked")

@@ -165,7 +165,7 @@ public class TradingService {
         orderRepository.save(order);
 
         // 11. Acquire distributed lock
-        String lockValue = tradeLockService.acquireTradeLock(userId, request.assetId());
+        String lockValue = tradeLockService.acquireTradeLock(userId, request.assetId()); 
 
         try {
             order.setStatus(OrderStatus.EXECUTING);

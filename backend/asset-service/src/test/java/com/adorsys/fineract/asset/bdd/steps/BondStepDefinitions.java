@@ -67,9 +67,11 @@ public class BondStepDefinitions {
                 manual_price, total_supply, circulating_supply, decimal_places, treasury_client_id,
                 treasury_asset_account_id, treasury_cash_account_id, fineract_product_id, version,
                 interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
+                subscription_start_date, subscription_end_date,
                 created_at, updated_at)
             VALUES (?, ?, ?, ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, 10, 0,
-                ?, ?, ?, ?, NOW(), NOW())
+                ?, ?, ?, ?,
+                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), NOW(), NOW())
             """, bondId, bondId, bondId, "Bond " + bondId,
                 new BigDecimal(data.get("manualPrice")),
                 new BigDecimal(data.get("interestRate")),
@@ -113,6 +115,8 @@ public class BondStepDefinitions {
     public void fineractTransferMocked() {
         when(fineractClient.createAccountTransfer(anyLong(), anyLong(), any(BigDecimal.class), anyString()))
                 .thenReturn(1L);
+        // Mock treasury balance for coupon sufficiency check
+        when(fineractClient.getAccountBalance(anyLong())).thenReturn(new BigDecimal("999999999"));
     }
 
     // -------------------------------------------------------------------------
@@ -168,6 +172,8 @@ public class BondStepDefinitions {
         request.put("interestRate", 5.0); request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().plusYears(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
+        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
+        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/api/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -187,6 +193,8 @@ public class BondStepDefinitions {
         request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().minusDays(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
+        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
+        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/api/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -206,6 +214,8 @@ public class BondStepDefinitions {
         request.put("couponFrequencyMonths", frequency);
         request.put("maturityDate", LocalDate.now().plusYears(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
+        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
+        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/api/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -268,9 +278,11 @@ public class BondStepDefinitions {
                 manual_price, total_supply, circulating_supply, decimal_places, treasury_client_id,
                 treasury_asset_account_id, treasury_cash_account_id, fineract_product_id, version,
                 issuer, interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
+                subscription_start_date, subscription_end_date,
                 created_at, updated_at)
             VALUES (?, ?, ?, ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, 10, 0,
-                'Test Issuer', 5.80, 6, ?, ?, NOW(), NOW())
+                'Test Issuer', 5.80, 6, ?, ?,
+                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), NOW(), NOW())
             """, bondId, bondId, bondId, "Bond " + bondId, status, nextCouponDate, maturityDate);
 
         jdbcTemplate.update("""
@@ -282,9 +294,11 @@ public class BondStepDefinitions {
 
     private String resolveDateExpression(String expr) {
         if (expr == null) return null;
-        if (expr.startsWith("+")) {
+        if (expr.startsWith("+") || expr.startsWith("-")) {
+            boolean negative = expr.startsWith("-");
             String unit = expr.substring(expr.length() - 1);
             int amount = Integer.parseInt(expr.substring(1, expr.length() - 1));
+            if (negative) amount = -amount;
             return switch (unit) {
                 case "y" -> LocalDate.now().plusYears(amount).toString();
                 case "m" -> LocalDate.now().plusMonths(amount).toString();

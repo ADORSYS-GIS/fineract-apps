@@ -136,6 +136,10 @@ public class Asset {
     @Column(name = "treasury_client_id", nullable = false)
     private Long treasuryClientId;
 
+    /** Display name of the treasury client in Fineract. Stored at creation time. */
+    @Column(name = "treasury_client_name", length = 200)
+    private String treasuryClientName;
+
     /** Fineract savings account ID where the treasury holds asset units. */
     @Column(name = "treasury_asset_account_id")
     private Long treasuryAssetAccountId;

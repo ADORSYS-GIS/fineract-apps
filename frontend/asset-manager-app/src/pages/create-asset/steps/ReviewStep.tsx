@@ -114,7 +114,7 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 			{/* Supply */}
 			<Card className="p-4">
 				<h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
-					Supply
+					Supply & Precision
 				</h3>
 				<div className="grid grid-cols-2 gap-2 text-sm">
 					<div className="text-gray-600">Total Supply:</div>
@@ -128,6 +128,15 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 						{(formData.totalSupply * formData.initialPrice).toLocaleString()}{" "}
 						XAF
 					</div>
+				</div>
+			</Card>
+
+			{/* Subscription Period */}
+			<Card className="p-4">
+				<h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
+					Subscription Period
+				</h3>
+				<div className="grid grid-cols-2 gap-2 text-sm">
 					<div className="text-gray-600">Subscription Start:</div>
 					<div className="font-medium">{formData.subscriptionStartDate}</div>
 					<div className="text-gray-600">Subscription End:</div>

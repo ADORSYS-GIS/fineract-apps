@@ -71,6 +71,12 @@ public record AssetDetailResponse(
     Long treasuryCashAccountId,
     /** Corresponding Fineract savings product ID. */
     Integer fineractProductId,
+    /** Display name of the treasury client in Fineract. */
+    @Schema(description = "Treasury client display name from Fineract.", nullable = true)
+    String treasuryClientName,
+    /** Derived name of the Fineract savings product (asset name + " Token"). */
+    @Schema(description = "Fineract savings product name.", nullable = true)
+    String fineractProductName,
     /** Timestamp when the asset was created. */
     Instant createdAt,
     /** Timestamp of the last update. Null if never updated. */

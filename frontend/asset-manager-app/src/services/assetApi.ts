@@ -131,6 +131,8 @@ export interface AssetDetailResponse {
 	treasuryAssetAccountId?: number;
 	treasuryCashAccountId?: number;
 	fineractProductId?: number;
+	treasuryClientName?: string;
+	fineractProductName?: string;
 	createdAt: string;
 	updatedAt?: string;
 	// Bond fields (null for non-bond assets)

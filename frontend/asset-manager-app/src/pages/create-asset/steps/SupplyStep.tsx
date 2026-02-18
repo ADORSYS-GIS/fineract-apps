@@ -19,133 +19,154 @@ export const SupplyStep: FC<Props> = ({
 	return (
 		<div className="space-y-6">
 			<div>
-				<h2 className="text-lg font-semibold text-gray-800 mb-1">Supply</h2>
+				<h2 className="text-lg font-semibold text-gray-800 mb-1">
+					Supply & Subscription
+				</h2>
 				<p className="text-sm text-gray-500">
-					Define the total supply and precision for this asset.
+					Define the total supply, precision, and subscription period for this
+					asset.
 				</p>
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Total Supply (Units) *
-					</label>
-					<input
-						type="number"
-						aria-label="Total supply"
-						className={inputClass("supply")}
-						placeholder="e.g. 100000"
-						value={formData.totalSupply || ""}
-						onChange={(e) =>
-							updateFormData({ totalSupply: Number(e.target.value) })
-						}
-						min={1}
-					/>
-					{fieldError("supply") ? (
-						<p className="text-xs text-red-600 mt-1">{fieldError("supply")}</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							Total number of units to mint into the treasury
-						</p>
-					)}
-				</div>
+			{/* Supply & Precision */}
+			<div>
+				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+					Supply & Precision
+				</h3>
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Total Supply (Units) *
+						</label>
+						<input
+							type="number"
+							aria-label="Total supply"
+							className={inputClass("supply")}
+							placeholder="e.g. 100000"
+							value={formData.totalSupply || ""}
+							onChange={(e) =>
+								updateFormData({ totalSupply: Number(e.target.value) })
+							}
+							min={1}
+						/>
+						{fieldError("supply") ? (
+							<p className="text-xs text-red-600 mt-1">
+								{fieldError("supply")}
+							</p>
+						) : (
+							<p className="text-xs text-gray-400 mt-1">
+								Total number of units to mint into the treasury
+							</p>
+						)}
+					</div>
 
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Decimal Places
-					</label>
-					<select
-						aria-label="Decimal places"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-						value={formData.decimalPlaces}
-						onChange={(e) =>
-							updateFormData({ decimalPlaces: Number(e.target.value) })
-						}
-					>
-						<option value={0}>0 (whole units only)</option>
-						<option value={2}>2 (e.g. 1.50 units)</option>
-						<option value={4}>4 (e.g. 1.0050 units)</option>
-						<option value={8}>8 (high precision)</option>
-					</select>
-					<p className="text-xs text-gray-400 mt-1">
-						Precision for fractional ownership
-					</p>
-				</div>
-
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Subscription Start Date *
-					</label>
-					<input
-						type="date"
-						aria-label="Subscription start date"
-						className={inputClass("subscription start")}
-						value={formData.subscriptionStartDate}
-						onChange={(e) =>
-							updateFormData({ subscriptionStartDate: e.target.value })
-						}
-					/>
-					{fieldError("subscription start") ? (
-						<p className="text-xs text-red-600 mt-1">
-							{fieldError("subscription start")}
-						</p>
-					) : (
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Decimal Places
+						</label>
+						<select
+							aria-label="Decimal places"
+							className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							value={formData.decimalPlaces}
+							onChange={(e) =>
+								updateFormData({ decimalPlaces: Number(e.target.value) })
+							}
+						>
+							<option value={0}>0 (whole units only)</option>
+							<option value={2}>2 (e.g. 1.50 units)</option>
+							<option value={4}>4 (e.g. 1.0050 units)</option>
+							<option value={8}>8 (high precision)</option>
+						</select>
 						<p className="text-xs text-gray-400 mt-1">
-							BUY orders are blocked before this date
+							Precision for fractional ownership
 						</p>
-					)}
+					</div>
 				</div>
+			</div>
 
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Subscription End Date *
-					</label>
-					<input
-						type="date"
-						aria-label="Subscription end date"
-						className={inputClass("subscription end")}
-						value={formData.subscriptionEndDate}
-						onChange={(e) =>
-							updateFormData({ subscriptionEndDate: e.target.value })
-						}
-					/>
-					{fieldError("subscription end") ? (
-						<p className="text-xs text-red-600 mt-1">
-							{fieldError("subscription end")}
-						</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							BUY orders are blocked after this date
-						</p>
-					)}
-				</div>
+			{/* Subscription Period */}
+			<div>
+				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+					Subscription Period
+				</h3>
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Subscription Start Date *
+						</label>
+						<input
+							type="date"
+							aria-label="Subscription start date"
+							className={inputClass("subscription start")}
+							value={formData.subscriptionStartDate}
+							onChange={(e) =>
+								updateFormData({ subscriptionStartDate: e.target.value })
+							}
+						/>
+						{fieldError("subscription start") ? (
+							<p className="text-xs text-red-600 mt-1">
+								{fieldError("subscription start")}
+							</p>
+						) : (
+							<p className="text-xs text-gray-400 mt-1">
+								BUY orders are blocked before this date
+							</p>
+						)}
+					</div>
 
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Capital Opened (%)
-					</label>
-					<input
-						type="number"
-						aria-label="Capital opened percent"
-						className={inputClass("capital")}
-						placeholder="e.g. 44.44"
-						step="0.01"
-						min="0"
-						max="100"
-						value={formData.capitalOpenedPercent || ""}
-						onChange={(e) =>
-							updateFormData({
-								capitalOpenedPercent: Number.parseFloat(e.target.value),
-							})
-						}
-					/>
-					{fieldError("capital") ? (
-						<p className="text-xs text-red-600 mt-1">{fieldError("capital")}</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							Percentage of total capital opened for subscription
-						</p>
-					)}
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Subscription End Date *
+						</label>
+						<input
+							type="date"
+							aria-label="Subscription end date"
+							className={inputClass("subscription end")}
+							value={formData.subscriptionEndDate}
+							onChange={(e) =>
+								updateFormData({ subscriptionEndDate: e.target.value })
+							}
+						/>
+						{fieldError("subscription end") ? (
+							<p className="text-xs text-red-600 mt-1">
+								{fieldError("subscription end")}
+							</p>
+						) : (
+							<p className="text-xs text-gray-400 mt-1">
+								BUY orders are blocked after this date
+							</p>
+						)}
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Capital Opened (%)
+						</label>
+						<input
+							type="number"
+							aria-label="Capital opened percent"
+							className={inputClass("capital")}
+							placeholder="e.g. 44.44"
+							step="0.01"
+							min="0"
+							max="100"
+							value={formData.capitalOpenedPercent || ""}
+							onChange={(e) =>
+								updateFormData({
+									capitalOpenedPercent: Number.parseFloat(e.target.value),
+								})
+							}
+						/>
+						{fieldError("capital") ? (
+							<p className="text-xs text-red-600 mt-1">
+								{fieldError("capital")}
+							</p>
+						) : (
+							<p className="text-xs text-gray-400 mt-1">
+								Percentage of total capital opened for subscription
+							</p>
+						)}
+					</div>
 				</div>
 			</div>
 

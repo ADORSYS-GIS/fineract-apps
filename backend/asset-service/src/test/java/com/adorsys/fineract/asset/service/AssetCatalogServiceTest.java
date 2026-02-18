@@ -94,6 +94,8 @@ class AssetCatalogServiceTest {
         assertEquals(200L, response.treasuryAssetAccountId());
         assertEquals(300L, response.treasuryCashAccountId());
         assertEquals(10, response.fineractProductId());
+        assertEquals("Test TST Token", response.fineractProductName());
+        assertNull(response.treasuryClientName());
 
         verify(assetRepository).findById(ASSET_ID);
         verify(assetPriceRepository).findById(ASSET_ID);

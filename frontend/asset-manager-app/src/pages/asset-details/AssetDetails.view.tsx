@@ -286,36 +286,12 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				{/* Coupon Obligation Forecast */}
 				{asset.category === "BONDS" && <CouponForecastCard assetId={assetId} />}
 
-				{/* Asset Info */}
-				<Card className="p-4">
+				{/* Asset Overview */}
+				<Card className="p-4 mb-6">
 					<h2 className="text-lg font-semibold text-gray-800 mb-3">
-						Asset Information
+						Asset Overview
 					</h2>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-						<div>
-							<span className="text-gray-500">Fineract Product ID:</span>{" "}
-							<span className="font-medium">
-								{asset.fineractProductId ?? "—"}
-							</span>
-						</div>
-						<div>
-							<span className="text-gray-500">Treasury Client ID:</span>{" "}
-							<span className="font-medium">
-								{asset.treasuryClientId ?? "—"}
-							</span>
-						</div>
-						<div>
-							<span className="text-gray-500">Treasury Asset Account:</span>{" "}
-							<span className="font-medium">
-								{asset.treasuryAssetAccountId ?? "—"}
-							</span>
-						</div>
-						<div>
-							<span className="text-gray-500">Treasury Cash Account:</span>{" "}
-							<span className="font-medium">
-								{asset.treasuryCashAccountId ?? "—"}
-							</span>
-						</div>
 						<div>
 							<span className="text-gray-500">Currency Code:</span>{" "}
 							<span className="font-medium">{asset.currencyCode}</span>
@@ -340,6 +316,43 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								<span className="font-medium">{asset.description}</span>
 							</div>
 						)}
+					</div>
+				</Card>
+
+				{/* Fineract Integration */}
+				<Card className="p-4">
+					<h2 className="text-lg font-semibold text-gray-800 mb-3">
+						Fineract Integration
+					</h2>
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+						<div>
+							<p className="text-gray-500 text-xs">Savings Product</p>
+							<p className="font-medium">{asset.fineractProductName ?? "—"}</p>
+							<p className="text-xs text-gray-400">
+								ID: {asset.fineractProductId ?? "—"}
+							</p>
+						</div>
+						<div>
+							<p className="text-gray-500 text-xs">Treasury Client</p>
+							<p className="font-medium">{asset.treasuryClientName ?? "—"}</p>
+							<p className="text-xs text-gray-400">
+								ID: {asset.treasuryClientId ?? "—"}
+							</p>
+						</div>
+						<div>
+							<p className="text-gray-500 text-xs">Asset Account</p>
+							<p className="font-medium">Token Holdings</p>
+							<p className="text-xs text-gray-400">
+								ID: {asset.treasuryAssetAccountId ?? "—"}
+							</p>
+						</div>
+						<div>
+							<p className="text-gray-500 text-xs">Cash Account</p>
+							<p className="font-medium">Cash ({asset.currencyCode})</p>
+							<p className="text-xs text-gray-400">
+								ID: {asset.treasuryCashAccountId ?? "—"}
+							</p>
+						</div>
 					</div>
 				</Card>
 			</main>

@@ -124,6 +124,7 @@ public class AssetCatalogService {
                 asset.getCapitalOpenedPercent(),
                 asset.getTreasuryClientId(), asset.getTreasuryAssetAccountId(),
                 asset.getTreasuryCashAccountId(), asset.getFineractProductId(),
+                asset.getTreasuryClientName(), asset.getName() + " Token",
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIssuer(), asset.getIsinCode(), asset.getMaturityDate(),
                 asset.getInterestRate(), asset.getCouponFrequencyMonths(),

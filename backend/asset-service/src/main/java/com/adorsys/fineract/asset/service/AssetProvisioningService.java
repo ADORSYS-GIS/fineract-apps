@@ -67,6 +67,9 @@ public class AssetProvisioningService {
         String assetId = UUID.randomUUID().toString();
         log.info("Creating asset: id={}, symbol={}, currency={}", assetId, request.symbol(), request.currencyCode());
 
+        // Look up client display name (best-effort, non-blocking)
+        String clientName = fineractClient.getClientDisplayName(request.treasuryClientId());
+
         Integer productId = null;
         Long treasuryAssetAccountId = null;
         Long treasuryCashAccountId = null;
@@ -148,6 +151,7 @@ public class AssetProvisioningService {
                 .couponFrequencyMonths(request.couponFrequencyMonths())
                 .nextCouponDate(request.nextCouponDate())
                 .treasuryClientId(request.treasuryClientId())
+                .treasuryClientName(clientName)
                 .treasuryAssetAccountId(treasuryAssetAccountId)
                 .treasuryCashAccountId(treasuryCashAccountId)
                 .build();
