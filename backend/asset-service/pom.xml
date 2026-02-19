@@ -217,6 +217,16 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>repackage</id>
+                        <goals><goal>repackage</goal></goals>
+                        <configuration>
+                            <!-- Keep original JAR as main artifact so other modules can depend on it -->
+                            <classifier>exec</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
                 <configuration>
                     <excludes>
                         <exclude>
