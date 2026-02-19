@@ -1,4 +1,4 @@
-package com.adorsys.fineract.e2e.steps;
+package com.adorsys.fineract.e2e.asset.steps;
 
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
 import com.jayway.jsonpath.JsonPath;

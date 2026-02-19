@@ -16,6 +16,7 @@ import java.time.Duration;
  * <p>Container topology:
  * <ul>
  *   <li>assetServicePostgres - PostgreSQL for asset-service (Flyway migrations run on Spring Boot startup)</li>
+ *   <li>paymentGatewayPostgres - PostgreSQL for payment-gateway-service</li>
  *   <li>fineractPostgres - PostgreSQL for Fineract (init script creates fineract_tenants + fineract_default)</li>
  *   <li>redis - Redis for distributed locks and price cache</li>
  *   <li>fineract - Apache Fineract with basic auth (no Keycloak needed)</li>
@@ -36,6 +37,15 @@ public final class TestcontainersConfig {
                     .withPassword("password")
                     .withNetwork(SHARED_NETWORK)
                     .withNetworkAliases("asset-service-postgres");
+
+    /** PostgreSQL for the payment-gateway-service database. */
+    public static final PostgreSQLContainer<?> PAYMENT_GATEWAY_POSTGRES =
+            new PostgreSQLContainer<>(DockerImageName.parse("postgres:15-alpine"))
+                    .withDatabaseName("payment_gateway")
+                    .withUsername("payment_gateway")
+                    .withPassword("password")
+                    .withNetwork(SHARED_NETWORK)
+                    .withNetworkAliases("payment-gateway-postgres");
 
     /** PostgreSQL for Fineract (hosts fineract_default + fineract_tenants). */
     public static final PostgreSQLContainer<?> FINERACT_POSTGRES =
@@ -107,7 +117,7 @@ public final class TestcontainersConfig {
 
     static {
         // Start Postgres + Redis first (Fineract depends on fineractPostgres)
-        Startables.deepStart(ASSET_SERVICE_POSTGRES, FINERACT_POSTGRES, REDIS).join();
+        Startables.deepStart(ASSET_SERVICE_POSTGRES, PAYMENT_GATEWAY_POSTGRES, FINERACT_POSTGRES, REDIS).join();
         // Then start Fineract (needs fineractPostgres via shared network)
         FINERACT.start();
     }

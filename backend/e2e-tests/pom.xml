@@ -27,10 +27,15 @@
     </properties>
 
     <dependencies>
-        <!-- The service under test (brings in all transitive deps) -->
+        <!-- Services under test (bring in all transitive deps) -->
         <dependency>
             <groupId>com.adorsys.fineract</groupId>
             <artifactId>asset-service</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.adorsys.fineract</groupId>
+            <artifactId>payment-gateway-service</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 
@@ -112,6 +117,14 @@
             <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- WireMock for simulating external payment provider APIs -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>3.5.4</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -123,7 +136,7 @@
                     <skipTests>${skipTests}</skipTests>
                     <!-- Do NOT retry failed tests — Fineract state is not idempotent -->
                     <rerunFailingTestsCount>0</rerunFailingTestsCount>
-                    <!-- Cucumber discovery is configured via RunE2ETests.java annotations.
+                    <!-- Cucumber discovery is configured via RunAssetE2ETests / RunPaymentE2ETests annotations.
                          Do NOT add cucumber.features or cucumber.glue here — that
                          would cause the Cucumber engine to discover tests independently
                          of the @Suite class, running every scenario twice. -->
@@ -143,11 +156,103 @@
     </build>
 
     <profiles>
+        <!-- Run both suites (two separate executions to isolate Flyway migrations) -->
         <profile>
             <id>e2e</id>
             <properties>
                 <skipTests>false</skipTests>
             </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <executions>
+                            <!-- Disable default-test to avoid running both suites with mixed classpath -->
+                            <execution>
+                                <id>default-test</id>
+                                <configuration>
+                                    <skipTests>true</skipTests>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>asset-e2e</id>
+                                <goals><goal>test</goal></goals>
+                                <configuration>
+                                    <skipTests>false</skipTests>
+                                    <includes>
+                                        <include>**/RunAssetE2ETests.java</include>
+                                    </includes>
+                                    <classpathDependencyExcludes>
+                                        <classpathDependencyExclude>com.adorsys.fineract:payment-gateway-service</classpathDependencyExclude>
+                                    </classpathDependencyExcludes>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>payment-e2e</id>
+                                <goals><goal>test</goal></goals>
+                                <configuration>
+                                    <skipTests>false</skipTests>
+                                    <includes>
+                                        <include>**/RunPaymentE2ETests.java</include>
+                                    </includes>
+                                    <classpathDependencyExcludes>
+                                        <classpathDependencyExclude>com.adorsys.fineract:asset-service</classpathDependencyExclude>
+                                    </classpathDependencyExcludes>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- Run only asset-service E2E -->
+        <profile>
+            <id>e2e-asset</id>
+            <properties>
+                <skipTests>false</skipTests>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>**/RunAssetE2ETests.java</include>
+                            </includes>
+                            <!-- Exclude payment-gateway JAR to avoid Flyway migration conflicts -->
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>com.adorsys.fineract:payment-gateway-service</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- Run only payment-gateway E2E -->
+        <profile>
+            <id>e2e-payment</id>
+            <properties>
+                <skipTests>false</skipTests>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>**/RunPaymentE2ETests.java</include>
+                            </includes>
+                            <!-- Exclude asset-service JAR to avoid Flyway migration conflicts -->
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>com.adorsys.fineract:asset-service</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>

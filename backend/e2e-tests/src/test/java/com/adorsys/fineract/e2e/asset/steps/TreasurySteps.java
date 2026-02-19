@@ -1,4 +1,4 @@
-package com.adorsys.fineract.e2e.steps;
+package com.adorsys.fineract.e2e.asset.steps;
 
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
@@ -18,7 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for treasury balance verification across asset-service and Fineract.
- * Ensures that treasury accounts in Fineract match the expected state after trades.
  */
 public class TreasurySteps {
 
@@ -50,7 +49,6 @@ public class TreasurySteps {
 
     @Then("the treasury asset account balance in Fineract should match the asset-service inventory")
     public void treasuryBalanceShouldMatchInventory() {
-        // Get the asset details from asset-service
         String assetId = context.getId("lastAssetId");
 
         Response assetResp = RestAssured.given()
@@ -63,7 +61,6 @@ public class TreasurySteps {
         Number circulatingSupplyNum = assetResp.jsonPath().get("circulatingSupply");
         int expectedTreasuryUnits = totalSupplyNum.intValue() - circulatingSupplyNum.intValue();
 
-        // The treasury's asset (BRV) account balance should reflect the remaining units
         Number treasuryAssetAccountId = assetResp.jsonPath().get("treasuryAssetAccountId");
         if (treasuryAssetAccountId != null) {
             BigDecimal treasuryBalance = fineractTestClient.getAccountBalance(
@@ -74,7 +71,6 @@ public class TreasurySteps {
 
     @Then("the treasury should have received XAF for {int} units at price {int}")
     public void treasuryShouldHaveReceivedXaf(int units, int price) {
-        // After a buy, the treasury's XAF (cash) account should have increased
         String assetId = context.getId("lastAssetId");
 
         Response assetResp = RestAssured.given()
@@ -85,7 +81,6 @@ public class TreasurySteps {
         if (cashAccountId != null) {
             BigDecimal cashBalance = fineractTestClient.getAccountBalance(
                     cashAccountId.longValue());
-            // Cash balance should be at least units * price (might include fees)
             assertThat(cashBalance.longValue())
                     .isGreaterThanOrEqualTo((long) units * price);
         }
@@ -96,10 +91,8 @@ public class TreasurySteps {
         List<Map<String, Object>> accounts = fineractTestClient.getClientSavingsAccounts(
                 FineractInitializer.getTestUserClientId());
 
-        // The user should have at least their XAF account + any asset accounts created
         assertThat(accounts).isNotEmpty();
 
-        // Check that at least one account exists (XAF settlement)
         boolean hasXaf = accounts.stream()
                 .anyMatch(a -> "XAF".equals(
                         ((Map<?, ?>) a.get("currency")).get("code")));

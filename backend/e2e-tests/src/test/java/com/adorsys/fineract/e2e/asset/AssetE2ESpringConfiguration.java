@@ -1,4 +1,4 @@
-package com.adorsys.fineract.e2e;
+package com.adorsys.fineract.e2e.asset;
 
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
@@ -15,7 +15,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * E2E Cucumber/Spring integration configuration.
+ * E2E Cucumber/Spring integration configuration for the asset-service suite.
  *
  * <p>Boots the real asset-service in the test JVM with:
  * <ul>
@@ -36,8 +36,8 @@ import org.springframework.test.context.DynamicPropertySource;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @ActiveProfiles("e2e")
-@Import(E2ESpringConfiguration.E2EBeans.class)
-public class E2ESpringConfiguration {
+@Import(AssetE2ESpringConfiguration.E2EBeans.class)
+public class AssetE2ESpringConfiguration {
 
     // Force Testcontainers to start and Fineract to be initialized
     // BEFORE Spring context boots (static initializer in TestcontainersConfig)
@@ -87,8 +87,6 @@ public class E2ESpringConfiguration {
         registry.add("app.security.permit-all-admin", () -> "true");
 
         // JWT: point at the embedded JWKS server started by JwtTokenFactory.
-        // This lets the production SecurityConfig's JwtDecoder validate our
-        // test tokens without any bean overriding.
         registry.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri",
                 JwtTokenFactory::getJwksUri);
 
@@ -101,7 +99,7 @@ public class E2ESpringConfiguration {
     }
 
     @TestConfiguration
-    @ComponentScan("com.adorsys.fineract.e2e")
+    @ComponentScan({"com.adorsys.fineract.e2e.asset", "com.adorsys.fineract.e2e.support", "com.adorsys.fineract.e2e.client"})
     static class E2EBeans {
 
         @Bean

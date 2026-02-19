@@ -1,4 +1,4 @@
-package com.adorsys.fineract.e2e.hooks;
+package com.adorsys.fineract.e2e.asset.hooks;
 
 import io.cucumber.java.Before;
 import org.springframework.beans.factory.annotation.Autowired;

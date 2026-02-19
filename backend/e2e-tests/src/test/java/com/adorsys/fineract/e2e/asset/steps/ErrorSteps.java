@@ -1,4 +1,4 @@
-package com.adorsys.fineract.e2e.steps;
+package com.adorsys.fineract.e2e.asset.steps;
 
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
@@ -146,7 +146,6 @@ public class ErrorSteps {
     public void userBuysMoreThanSupply(String symbolRef) {
         String assetId = context.getId("lastAssetId");
 
-        // Try to buy more than total supply
         Map<String, Object> body = Map.of(
                 "assetId", assetId,
                 "units", 999999
@@ -167,6 +166,32 @@ public class ErrorSteps {
     // Then steps
     // ---------------------------------------------------------------
 
+    @Then("the trade should be rejected")
+    public void tradeShouldBeRejected() {
+        int status = context.getStatusCode();
+        assertThat(status).isBetween(400, 499);
+    }
+
+    @Then("the idempotent order should return the same result")
+    public void idempotentOrderShouldReturnSameResult() {
+        int firstStatus = context.getValue("firstOrderStatus");
+        int secondStatus = context.getStatusCode();
+
+        assertThat(secondStatus).isEqualTo(firstStatus);
+    }
+
+    @Then("only one trade should be recorded in the trade log")
+    public void onlyOneTradeRecorded() {
+        String assetId = context.getId("lastAssetId");
+
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/admin/assets/" + assetId);
+
+        Number circulatingSupply = response.jsonPath().get("circulatingSupply");
+        assertThat(circulatingSupply.intValue()).isEqualTo(1);
+    }
+
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
@@ -176,41 +201,5 @@ public class ErrorSteps {
                 FineractInitializer.TEST_USER_EXTERNAL_ID,
                 FineractInitializer.getTestUserClientId(),
                 java.util.List.of());
-    }
-
-    // ---------------------------------------------------------------
-    // Then steps
-    // ---------------------------------------------------------------
-
-    @Then("the trade should be rejected")
-    public void tradeShouldBeRejected() {
-        int status = context.getStatusCode();
-        // Should be 4xx (400 or 409)
-        assertThat(status).isBetween(400, 499);
-    }
-
-    @Then("the idempotent order should return the same result")
-    public void idempotentOrderShouldReturnSameResult() {
-        int firstStatus = context.getValue("firstOrderStatus");
-        int secondStatus = context.getStatusCode();
-
-        // Both should succeed (or both fail with same code)
-        assertThat(secondStatus).isEqualTo(firstStatus);
-    }
-
-    @Then("only one trade should be recorded in the trade log")
-    public void onlyOneTradeRecorded() {
-        // The idempotency key ensures only one actual trade
-        // Verify by checking circulating supply only increased once
-        String assetId = context.getId("lastAssetId");
-
-        Response response = RestAssured.given()
-                .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
-
-        // circulatingSupply is BigDecimal in the entity — JSON may return "1.0"
-        Number circulatingSupply = response.jsonPath().get("circulatingSupply");
-        // With idempotency, circulating supply should reflect only one trade
-        assertThat(circulatingSupply.intValue()).isEqualTo(1);
     }
 }

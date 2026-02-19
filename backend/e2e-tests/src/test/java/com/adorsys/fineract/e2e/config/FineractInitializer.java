@@ -27,13 +27,15 @@ public final class FineractInitializer {
     private static Long glExpenseAccountId;       // code 91 - Expense type
     private static Long glFundSourceId;           // code 42 - Asset type
     private static Long paymentTypeId;
+    private static Long paymentTypeMtnId;
+    private static Long paymentTypeOrangeId;
     private static Integer xafSavingsProductId;
     private static Long treasuryClientId;
     private static Long testUserClientId;
     private static Long testUserXafAccountId;
 
-    /** The external ID used for the test user in Fineract. */
-    public static final String TEST_USER_EXTERNAL_ID = "e2e-test-user-001";
+    /** The external ID used for the test user in Fineract (UUID format for payment-gateway compatibility). */
+    public static final String TEST_USER_EXTERNAL_ID = "00000000-e2e0-4000-a000-000000000001";
     public static final BigDecimal TEST_USER_INITIAL_BALANCE = new BigDecimal("5000000");
 
     private FineractInitializer() {}
@@ -75,9 +77,12 @@ public final class FineractInitializer {
         client.createFinancialActivityAccount(200, glTransfersInSuspenseId);
         log.info("Created Financial Activity Account mapping: 200 -> GL {}", glTransfersInSuspenseId);
 
-        // 2. Create payment type
+        // 2. Create payment types
         paymentTypeId = client.createPaymentType("Asset Issuance", 20);
-        log.info("Created payment type 'Asset Issuance': id={}", paymentTypeId);
+        paymentTypeMtnId = client.createPaymentType("MTN Mobile Money", 21);
+        paymentTypeOrangeId = client.createPaymentType("Orange Money", 22);
+        log.info("Created payment types: Asset Issuance={}, MTN={}, Orange={}",
+                paymentTypeId, paymentTypeMtnId, paymentTypeOrangeId);
 
         // 3. Register XAF currency
         client.registerCurrencies(List.of("XAF"));
@@ -121,4 +126,13 @@ public final class FineractInitializer {
     public static Long getTestUserClientId() { return testUserClientId; }
     public static Long getTestUserXafAccountId() { return testUserXafAccountId; }
     public static Integer getXafSavingsProductId() { return xafSavingsProductId; }
+    public static Long getPaymentTypeId() { return paymentTypeId; }
+    public static Long getPaymentTypeMtnId() { return paymentTypeMtnId; }
+    public static Long getPaymentTypeOrangeId() { return paymentTypeOrangeId; }
+    public static Long getGlAssetInventoryId() { return glAssetInventoryId; }
+    public static Long getGlCustomerHoldingsId() { return glCustomerHoldingsId; }
+    public static Long getGlTransfersInSuspenseId() { return glTransfersInSuspenseId; }
+    public static Long getGlIncomeFromInterestId() { return glIncomeFromInterestId; }
+    public static Long getGlExpenseAccountId() { return glExpenseAccountId; }
+    public static Long getGlFundSourceId() { return glFundSourceId; }
 }

@@ -1,4 +1,4 @@
-package com.adorsys.fineract.e2e.steps;
+package com.adorsys.fineract.e2e.asset.steps;
 
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
@@ -50,9 +50,6 @@ public class BondLifecycleSteps {
 
     @Given("an active bond asset {string} priced at {int} with supply {int} and interest rate {double}")
     public void activeBondAsset(String symbolRef, int price, int supply, double interestRate) {
-        // Each scenario uses a unique 3-char ticker — no suffix needed.
-        // Currency codes in Fineract m_currency are limited to 3 characters.
-
         Map<String, Object> request = new HashMap<>();
         request.put("name", "Bond " + symbolRef);
         request.put("symbol", symbolRef);
@@ -94,7 +91,6 @@ public class BondLifecycleSteps {
 
     @Given("the user holds {int} units of bond {string}")
     public void userHoldsBondUnits(int units, String symbolRef) {
-        // Buy units via the trading API
         String assetId = context.getId("lastAssetId");
 
         for (int i = 0; i < units; i++) {
@@ -139,13 +135,11 @@ public class BondLifecycleSteps {
 
     @When("the maturity scheduler runs")
     public void maturitySchedulerRuns() {
-        // Force the bond into maturity by setting maturity date to yesterday
         String assetId = context.getId("lastAssetId");
         jdbcTemplate.update(
                 "UPDATE assets SET maturity_date = ? WHERE id = ?",
                 java.sql.Date.valueOf(LocalDate.now().minusDays(1)), assetId);
 
-        // Invoke the scheduler directly (cron won't fire during test)
         maturityScheduler.matureBonds();
     }
 
@@ -217,7 +211,6 @@ public class BondLifecycleSteps {
         assertThat(context.getStatusCode())
                 .as("Redemption response: %s", context.getBody())
                 .isEqualTo(200);
-        // Verify that holders were actually redeemed
         Number holdersRedeemed = context.jsonPath("holdersRedeemed");
         assertThat(holdersRedeemed.intValue())
                 .as("Holders redeemed — response: %s", context.getBody())
@@ -241,20 +234,8 @@ public class BondLifecycleSteps {
                 .baseUri("http://localhost:" + port)
                 .get("/api/admin/assets/" + assetId);
 
-        // circulatingSupply is BigDecimal — JSON may return "0.0"
         Number circulatingSupply = response.jsonPath().get("circulatingSupply");
         assertThat(circulatingSupply.intValue()).isEqualTo(0);
-    }
-
-    // ---------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------
-
-    private String testUserJwt() {
-        return JwtTokenFactory.generateToken(
-                FineractInitializer.TEST_USER_EXTERNAL_ID,
-                FineractInitializer.getTestUserClientId(),
-                java.util.List.of());
     }
 
     @Then("redemption records should exist for the bond")
@@ -268,5 +249,16 @@ public class BondLifecycleSteps {
         assertThat(response.statusCode()).isEqualTo(200);
         int totalElements = response.jsonPath().getInt("totalElements");
         assertThat(totalElements).isGreaterThan(0);
+    }
+
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
+
+    private String testUserJwt() {
+        return JwtTokenFactory.generateToken(
+                FineractInitializer.TEST_USER_EXTERNAL_ID,
+                FineractInitializer.getTestUserClientId(),
+                java.util.List.of());
     }
 }

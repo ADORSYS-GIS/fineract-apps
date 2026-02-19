@@ -78,7 +78,8 @@ public class JwtTokenFactory {
     }
 
     /**
-     * Generate a signed JWT with the given claims.
+     * Generate a signed JWT with the given claims (for asset-service).
+     * Asset-service reads the {@code sub} claim as the user's external ID.
      *
      * @param subject          Keycloak user UUID (used as externalId in Fineract)
      * @param fineractClientId Fineract client ID for the user
@@ -105,6 +106,91 @@ public class JwtTokenFactory {
             return signedJWT.serialize();
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate E2E test JWT", e);
+        }
+    }
+
+    /**
+     * Generate a signed JWT for payment-gateway-service.
+     * Payment-gateway reads {@code fineract_external_id} (not {@code sub}).
+     *
+     * @param externalId       Fineract external ID for the user
+     * @param fineractClientId Fineract client ID for the user
+     * @return signed JWT string
+     */
+    public static String generatePaymentToken(String externalId, Long fineractClientId) {
+        try {
+            Instant now = Instant.now();
+            JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                    .subject(externalId)
+                    .issuer("e2e-test-issuer")
+                    .issueTime(Date.from(now))
+                    .expirationTime(Date.from(now.plusSeconds(3600)))
+                    .claim("fineract_external_id", externalId)
+                    .claim("fineract_client_id", fineractClientId)
+                    .claim("realm_access", Map.of("roles", List.of()))
+                    .build();
+
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                    .keyID(KEY_ID)
+                    .build();
+            SignedJWT signedJWT = new SignedJWT(header, claims);
+            signedJWT.sign(SIGNER);
+            return signedJWT.serialize();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate E2E payment JWT", e);
+        }
+    }
+
+    /**
+     * Generate an admin JWT with ADMIN realm role.
+     *
+     * @return signed JWT string with ADMIN role
+     */
+    public static String generateAdminToken() {
+        try {
+            Instant now = Instant.now();
+            JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                    .subject("e2e-admin")
+                    .issuer("e2e-test-issuer")
+                    .issueTime(Date.from(now))
+                    .expirationTime(Date.from(now.plusSeconds(3600)))
+                    .claim("realm_access", Map.of("roles", List.of("ADMIN")))
+                    .build();
+
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                    .keyID(KEY_ID)
+                    .build();
+            SignedJWT signedJWT = new SignedJWT(header, claims);
+            signedJWT.sign(SIGNER);
+            return signedJWT.serialize();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate E2E admin JWT", e);
+        }
+    }
+
+    /**
+     * Generate an expired JWT for testing 401 responses.
+     *
+     * @return signed JWT string that is already expired
+     */
+    public static String generateExpiredToken() {
+        try {
+            Instant past = Instant.now().minusSeconds(7200);
+            JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                    .subject("e2e-expired-user")
+                    .issuer("e2e-test-issuer")
+                    .issueTime(Date.from(past))
+                    .expirationTime(Date.from(past.plusSeconds(3600)))
+                    .build();
+
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                    .keyID(KEY_ID)
+                    .build();
+            SignedJWT signedJWT = new SignedJWT(header, claims);
+            signedJWT.sign(SIGNER);
+            return signedJWT.serialize();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate E2E expired JWT", e);
         }
     }
 }

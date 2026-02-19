@@ -1,4 +1,4 @@
-package com.adorsys.fineract.e2e.steps;
+package com.adorsys.fineract.e2e.asset.steps;
 
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
@@ -40,7 +40,7 @@ public class AssetProvisioningSteps {
 
     @Given("Fineract is initialized with GL accounts and payment types")
     public void fineractIsInitialized() {
-        // Already done in E2ESpringConfiguration static block
+        // Already done in AssetE2ESpringConfiguration static block
     }
 
     @Given("a treasury client exists in Fineract")
@@ -69,8 +69,6 @@ public class AssetProvisioningSteps {
     public void adminCreatesStockAsset(io.cucumber.datatable.DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
 
-        // Each scenario uses a unique 3-char ticker — no suffix needed.
-        // Currency codes in Fineract m_currency are limited to 3 characters.
         String symbol = data.getOrDefault("symbol", "TST");
         String currencyCode = data.getOrDefault("currencyCode", symbol);
 
@@ -201,8 +199,6 @@ public class AssetProvisioningSteps {
 
     @Then("the asset should be in {word} status")
     public void assetShouldBeInStatus(String expectedStatus) {
-        // Fetch the asset directly — the last response (from activate/halt/resume)
-        // may have an empty body.
         String assetId = context.getId("lastAssetId");
 
         Response response = RestAssured.given()
@@ -216,22 +212,17 @@ public class AssetProvisioningSteps {
 
     @Then("Fineract should have a currency {string} registered")
     public void fineractShouldHaveCurrency(String currencyCode) {
-        // The asset creation process registers the currency in Fineract.
-        // We verify by checking if the savings product was created successfully
-        // (which requires the currency to exist).
         assertThat(context.getStatusCode()).isIn(200, 201);
     }
 
     @Then("Fineract should have a savings product with shortName {string}")
     public void fineractShouldHaveSavingsProduct(String shortName) {
-        // If asset creation succeeded, the savings product was created
         Object productId = context.jsonPath("fineractProductId");
         assertThat(productId).isNotNull();
     }
 
     @Then("the treasury should have a {word} account with balance {int} in Fineract")
     public void treasuryShouldHaveAssetAccount(String currencyCode, int expectedBalance) {
-        // Fetch asset details — the last response may have been from activate (empty body)
         String assetId = context.getId("lastAssetId");
 
         Response assetResp = RestAssured.given()
@@ -242,7 +233,6 @@ public class AssetProvisioningSteps {
         Number accountId = assetResp.jsonPath().get("treasuryAssetAccountId");
         assertThat(accountId).as("treasuryAssetAccountId for asset " + assetId).isNotNull();
 
-        // Verify actual Fineract balance
         BigDecimal balance = fineractTestClient.getAccountBalance(accountId.longValue());
         assertThat(balance.intValue()).isEqualTo(expectedBalance);
     }
@@ -252,16 +242,13 @@ public class AssetProvisioningSteps {
     // ---------------------------------------------------------------
 
     private String resolveAssetId(String ref) {
-        // "lastCreated" always resolves to the most recently created asset
         if ("lastCreated".equals(ref)) {
             return context.getId("lastAssetId");
         }
-        // If the ref matches a stored symbol, look up the asset ID
         String stored = context.getId("lastAssetId");
         if (stored != null && ref.equals(context.getValue("lastSymbol"))) {
             return stored;
         }
-        // Otherwise treat as literal asset ID
         return ref;
     }
 

@@ -1,4 +1,4 @@
-package com.adorsys.fineract.e2e.steps;
+package com.adorsys.fineract.e2e.asset.steps;
 
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
@@ -39,10 +39,6 @@ public class StockTradingSteps {
 
     @Given("an active stock asset {string} with price {int} and supply {int}")
     public void activeStockAsset(String symbolRef, int price, int supply) {
-        // Each scenario uses a unique 3-char ticker — no suffix needed.
-        // Currency codes in Fineract m_currency are limited to 3 characters.
-
-        // Create
         Map<String, Object> request = Map.of(
                 "name", "Stock " + symbolRef,
                 "symbol", symbolRef,
@@ -86,7 +82,6 @@ public class StockTradingSteps {
     public void userBuysUnits(int units, String symbolRef) {
         String assetId = resolveAssetId(symbolRef);
 
-        // Record XAF balance before trade
         BigDecimal balanceBefore = fineractTestClient.getAccountBalance(
                 FineractInitializer.getTestUserXafAccountId());
         context.storeValue("xafBalanceBefore", balanceBefore);
@@ -159,7 +154,6 @@ public class StockTradingSteps {
                 FineractInitializer.getTestUserXafAccountId());
 
         BigDecimal actualDecrease = balanceBefore.subtract(balanceAfter);
-        // Allow 5% tolerance for fees
         assertThat(actualDecrease.longValue())
                 .isCloseTo(expectedDecrease, org.assertj.core.data.Offset.offset(
                         (long) (expectedDecrease * 0.05)));
@@ -182,7 +176,6 @@ public class StockTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .get("/api/admin/assets/" + assetId);
 
-        // circulatingSupply is BigDecimal in the entity — JSON may return "5.0"
         Number circulatingSupply = response.jsonPath().get("circulatingSupply");
         assertThat(circulatingSupply.intValue()).isEqualTo(expected);
     }
