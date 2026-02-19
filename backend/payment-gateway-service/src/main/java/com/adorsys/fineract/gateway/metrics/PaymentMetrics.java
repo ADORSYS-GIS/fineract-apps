@@ -161,6 +161,51 @@ public class PaymentMetrics {
     }
 
     /**
+     * Increment callback processing failure counter.
+     * Tracks exceptions swallowed during callback handling for alerting.
+     */
+    public void incrementCallbackProcessingFailure(PaymentProvider provider) {
+        Counter.builder("payment_callback_processing_failures_total")
+                .description("Total number of callback processing failures (exceptions swallowed)")
+                .tag("provider", provider.name().toLowerCase())
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
+     * Increment callback amount mismatch counter.
+     */
+    public void incrementCallbackAmountMismatch(PaymentProvider provider) {
+        Counter.builder("payment_callback_amount_mismatch_total")
+                .description("Total callbacks where reported amount differs from expected")
+                .tag("provider", provider.name().toLowerCase())
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
+     * Increment daily limit exceeded counter.
+     */
+    public void incrementDailyLimitExceeded() {
+        Counter.builder("payment_daily_limit_exceeded_total")
+                .description("Total number of payments rejected due to daily limit")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
+     * Increment stale PROCESSING transaction resolved counter.
+     */
+    public void incrementStaleProcessingResolved(PaymentProvider provider, String outcome) {
+        Counter.builder("payment_stale_processing_resolved_total")
+                .description("Total stale PROCESSING transactions resolved by scheduler")
+                .tag("provider", provider.name().toLowerCase())
+                .tag("outcome", outcome)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    /**
      * Create a timer sample to measure duration.
      */
     public Timer.Sample startTimer() {

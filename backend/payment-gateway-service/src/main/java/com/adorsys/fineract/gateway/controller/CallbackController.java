@@ -1,9 +1,8 @@
 package com.adorsys.fineract.gateway.controller;
 
 import com.adorsys.fineract.gateway.config.MtnMomoConfig;
-import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
-import com.adorsys.fineract.gateway.dto.MtnCallbackRequest;
-import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
+import com.adorsys.fineract.gateway.dto.*;
+import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +26,7 @@ public class CallbackController {
 
     private final PaymentService paymentService;
     private final MtnMomoConfig mtnConfig;
+    private final PaymentMetrics paymentMetrics;
 
     /**
      * Handle MTN MoMo collection callback (deposit completed).
@@ -51,7 +51,7 @@ public class CallbackController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process MTN collection callback: {}", e.getMessage(), e);
-            // Return 200 to prevent retries for processing errors
+            paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.MTN_MOMO);
             return ResponseEntity.ok().build();
         }
     }
@@ -79,6 +79,7 @@ public class CallbackController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process MTN disbursement callback: {}", e.getMessage(), e);
+            paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.MTN_MOMO);
             return ResponseEntity.ok().build();
         }
     }
@@ -99,6 +100,7 @@ public class CallbackController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process Orange payment callback: {}", e.getMessage(), e);
+            paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.ORANGE_MONEY);
             return ResponseEntity.ok().build();
         }
     }
@@ -119,6 +121,7 @@ public class CallbackController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process Orange cashout callback: {}", e.getMessage(), e);
+            paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.ORANGE_MONEY);
             return ResponseEntity.ok().build();
         }
     }
@@ -143,6 +146,7 @@ public class CallbackController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process CinetPay payment callback: {}", e.getMessage(), e);
+            paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.CINETPAY);
             return ResponseEntity.ok().build();
         }
     }
@@ -165,6 +169,7 @@ public class CallbackController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process CinetPay payment callback (Form): {}", e.getMessage(), e);
+            paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.CINETPAY);
             return ResponseEntity.ok().build();
         }
     }
@@ -180,7 +185,7 @@ public class CallbackController {
 
         log.info("Received CinetPay transfer callback: transactionId={}, status={}",
             callback.getTransactionId(), callback.getResultCode());
-        
+
         callback.setXToken(xToken);
 
         try {
@@ -188,6 +193,7 @@ public class CallbackController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process CinetPay transfer callback: {}", e.getMessage(), e);
+            paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.CINETPAY);
             return ResponseEntity.ok().build();
         }
     }
@@ -210,6 +216,7 @@ public class CallbackController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process CinetPay transfer callback (Form): {}", e.getMessage(), e);
+            paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.CINETPAY);
             return ResponseEntity.ok().build();
         }
     }
@@ -254,16 +261,18 @@ public class CallbackController {
 
     /**
      * Validate MTN callback subscription key.
-     * Fail-open when key is not configured (dev mode).
+     * Fail-closed: rejects callbacks when keys are not configured.
      */
     private boolean isValidMtnCallback(String subscriptionKey) {
         String collectionKey = mtnConfig.getCollectionSubscriptionKey();
         String disbursementKey = mtnConfig.getDisbursementSubscriptionKey();
 
-        // Fail-open if subscription keys are not configured (dev/sandbox mode)
+        // Fail-closed: reject if subscription keys are not configured
         if ((collectionKey == null || collectionKey.isEmpty()) &&
             (disbursementKey == null || disbursementKey.isEmpty())) {
-            return true;
+            log.error("MTN subscription keys not configured. Rejecting callback for security.");
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "keys_not_configured");
+            return false;
         }
 
         if (subscriptionKey == null || subscriptionKey.isEmpty()) {

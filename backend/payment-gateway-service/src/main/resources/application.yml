@@ -131,6 +131,11 @@ app:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
     interval-ms: ${APP_CLEANUP_INTERVAL_MS:300000}
+    processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:60}
+    processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:600000}
+  limits:
+    daily-deposit-max: ${APP_DAILY_DEPOSIT_MAX:10000000}
+    daily-withdrawal-max: ${APP_DAILY_WITHDRAWAL_MAX:5000000}
 
 # Actuator Configuration
 management:

@@ -4,6 +4,7 @@ import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
 import com.adorsys.fineract.gateway.dto.MtnCallbackRequest;
 import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
+import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.service.PaymentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +18,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.junit.jupiter.api.BeforeEach;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -26,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 class CallbackControllerTest {
+
+    private static final String MTN_SUBSCRIPTION_KEY = "test-collection-key";
 
     @Autowired
     private MockMvc mockMvc;
@@ -40,7 +45,16 @@ class CallbackControllerTest {
     private MtnMomoConfig mtnConfig;
 
     @MockBean
+    private PaymentMetrics paymentMetrics;
+
+    @MockBean
     private JwtDecoder jwtDecoder;
+
+    @BeforeEach
+    void setUp() {
+        when(mtnConfig.getCollectionSubscriptionKey()).thenReturn(MTN_SUBSCRIPTION_KEY);
+        when(mtnConfig.getDisbursementSubscriptionKey()).thenReturn("test-disbursement-key");
+    }
 
     // =========================================================================
     // MTN Callbacks
@@ -57,6 +71,7 @@ class CallbackControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/callbacks/mtn/collection")
+                        .header("Ocp-Apim-Subscription-Key", MTN_SUBSCRIPTION_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(callback)))
                 .andExpect(status().isOk());
@@ -76,6 +91,7 @@ class CallbackControllerTest {
                 .when(paymentService).handleMtnCollectionCallback(any());
 
         mockMvc.perform(post("/api/callbacks/mtn/collection")
+                        .header("Ocp-Apim-Subscription-Key", MTN_SUBSCRIPTION_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(callback)))
                 .andExpect(status().isOk());
@@ -92,6 +108,7 @@ class CallbackControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/callbacks/mtn/disbursement")
+                        .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(callback)))
                 .andExpect(status().isOk());

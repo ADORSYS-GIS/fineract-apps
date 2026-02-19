@@ -6,7 +6,7 @@ spring:
           issuer-uri: https://test-issuer.example.com
           jwk-set-uri: https://test-issuer.example.com/.well-known/jwks.json
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -78,3 +78,6 @@ app:
     secret: test-secret-for-hmac-validation
   cleanup:
     enabled: false
+  limits:
+    daily-deposit-max: 10000000
+    daily-withdrawal-max: 5000000

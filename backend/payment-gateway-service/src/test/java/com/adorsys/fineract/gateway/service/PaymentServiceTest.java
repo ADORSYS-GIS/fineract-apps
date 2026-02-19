@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -79,6 +80,10 @@ class PaymentServiceTest {
         lenient().when(mtnConfig.getCurrency()).thenReturn("XAF");
         lenient().when(orangeConfig.getCurrency()).thenReturn("XAF");
         lenient().when(cinetPayConfig.getCurrency()).thenReturn("XAF");
+
+        // Set @Value fields that aren't injected by Mockito
+        ReflectionTestUtils.setField(paymentService, "dailyDepositMax", BigDecimal.valueOf(10000000));
+        ReflectionTestUtils.setField(paymentService, "dailyWithdrawalMax", BigDecimal.valueOf(5000000));
     }
 
     // =========================================================================
@@ -94,6 +99,13 @@ class PaymentServiceTest {
         void initiateDeposit_mtn_happyPath() {
             when(transactionRepository.findById(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
+            when(transactionRepository.sumAmountByExternalIdAndTypeInPeriod(
+                    eq(EXTERNAL_ID), eq(PaymentResponse.TransactionType.DEPOSIT), any(), any()))
+                    .thenReturn(BigDecimal.ZERO);
+            when(transactionRepository.insertIfAbsent(
+                    eq(IDEMPOTENCY_KEY), eq(EXTERNAL_ID), eq(ACCOUNT_ID),
+                    eq("MTN_MOMO"), eq("DEPOSIT"), eq(BigDecimal.valueOf(10000)),
+                    eq("XAF"), eq("PENDING"))).thenReturn(1);
             when(mtnClient.requestToPay(eq(IDEMPOTENCY_KEY), eq(BigDecimal.valueOf(10000)),
                     eq(PHONE), anyString())).thenReturn("mtn-ref-123");
 
@@ -108,7 +120,8 @@ class PaymentServiceTest {
             assertThat(response.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(10000));
             assertThat(response.getCurrency()).isEqualTo("XAF");
 
-            verify(transactionRepository).save(any(PaymentTransaction.class));
+            verify(transactionRepository).insertIfAbsent(anyString(), anyString(), anyLong(),
+                    anyString(), anyString(), any(), anyString(), anyString());
             verify(paymentMetrics).incrementTransaction(PaymentProvider.MTN_MOMO,
                     PaymentResponse.TransactionType.DEPOSIT, PaymentStatus.PENDING);
         }
@@ -121,6 +134,12 @@ class PaymentServiceTest {
 
             when(transactionRepository.findById(key)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
+            when(transactionRepository.sumAmountByExternalIdAndTypeInPeriod(
+                    eq(EXTERNAL_ID), eq(PaymentResponse.TransactionType.DEPOSIT), any(), any()))
+                    .thenReturn(BigDecimal.ZERO);
+            when(transactionRepository.insertIfAbsent(
+                    eq(key), anyString(), anyLong(), eq("ORANGE_MONEY"), eq("DEPOSIT"),
+                    any(), anyString(), anyString())).thenReturn(1);
             when(orangeClient.initializePayment(eq(key), eq(BigDecimal.valueOf(10000)), anyString()))
                     .thenReturn(new OrangeMoneyClient.PaymentInitResponse(
                             "https://pay.orange.com/checkout", "pay-token-123", "notif-token"));
@@ -141,6 +160,12 @@ class PaymentServiceTest {
 
             when(transactionRepository.findById(key)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
+            when(transactionRepository.sumAmountByExternalIdAndTypeInPeriod(
+                    eq(EXTERNAL_ID), eq(PaymentResponse.TransactionType.DEPOSIT), any(), any()))
+                    .thenReturn(BigDecimal.ZERO);
+            when(transactionRepository.insertIfAbsent(
+                    eq(key), anyString(), anyLong(), eq("CINETPAY"), eq("DEPOSIT"),
+                    any(), anyString(), anyString())).thenReturn(1);
             when(cinetPayClient.initializePayment(eq(key), eq(BigDecimal.valueOf(10000)),
                     anyString(), eq(PHONE)))
                     .thenReturn(new CinetPayClient.PaymentInitResponse(
@@ -170,7 +195,33 @@ class PaymentServiceTest {
 
             verify(fineractClient, never()).verifyAccountOwnership(any(), any());
             verify(mtnClient, never()).requestToPay(any(), any(), any(), any());
-            verify(transactionRepository, never()).save(any());
+            verify(transactionRepository, never()).insertIfAbsent(
+                    anyString(), anyString(), anyLong(), anyString(), anyString(), any(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("should return existing on concurrent idempotency key collision")
+        void initiateDeposit_concurrentCollision_returnsExisting() {
+            PaymentTransaction existing = new PaymentTransaction(
+                    IDEMPOTENCY_KEY, null, EXTERNAL_ID, ACCOUNT_ID,
+                    PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT,
+                    BigDecimal.valueOf(10000), "XAF", PaymentStatus.PENDING);
+
+            when(transactionRepository.findById(IDEMPOTENCY_KEY))
+                    .thenReturn(Optional.empty())   // first check
+                    .thenReturn(Optional.of(existing)); // after collision
+            when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
+            when(transactionRepository.sumAmountByExternalIdAndTypeInPeriod(
+                    eq(EXTERNAL_ID), eq(PaymentResponse.TransactionType.DEPOSIT), any(), any()))
+                    .thenReturn(BigDecimal.ZERO);
+            when(transactionRepository.insertIfAbsent(
+                    anyString(), anyString(), anyLong(), anyString(), anyString(),
+                    any(), anyString(), anyString())).thenReturn(0); // another thread won
+
+            PaymentResponse response = paymentService.initiateDeposit(depositRequest, IDEMPOTENCY_KEY);
+
+            assertThat(response.getTransactionId()).isEqualTo(IDEMPOTENCY_KEY);
+            verify(mtnClient, never()).requestToPay(any(), any(), any(), any());
         }
 
         @Test
@@ -212,6 +263,12 @@ class PaymentServiceTest {
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
             when(fineractClient.getSavingsAccount(ACCOUNT_ID))
                     .thenReturn(Map.of("availableBalance", 50000));
+            when(transactionRepository.sumAmountByExternalIdAndTypeInPeriod(
+                    eq(EXTERNAL_ID), eq(PaymentResponse.TransactionType.WITHDRAWAL), any(), any()))
+                    .thenReturn(BigDecimal.ZERO);
+            when(transactionRepository.insertIfAbsent(
+                    eq(key), anyString(), anyLong(), eq("MTN_MOMO"), eq("WITHDRAWAL"),
+                    any(), anyString(), anyString())).thenReturn(1);
             when(mtnConfig.getFineractPaymentTypeId()).thenReturn(1L);
             when(fineractClient.createWithdrawal(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(5000)),
                     eq(1L), eq(key))).thenReturn(789L);
@@ -225,8 +282,6 @@ class PaymentServiceTest {
             assertThat(response.getStatus()).isEqualTo(PaymentStatus.PROCESSING);
             assertThat(response.getFineractTransactionId()).isEqualTo(789L);
             assertThat(response.getProviderReference()).isEqualTo("mtn-transfer-ref");
-
-            verify(transactionRepository).save(any(PaymentTransaction.class));
         }
 
         @Test
@@ -255,6 +310,12 @@ class PaymentServiceTest {
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
             when(fineractClient.getSavingsAccount(ACCOUNT_ID))
                     .thenReturn(Map.of("availableBalance", 50000));
+            when(transactionRepository.sumAmountByExternalIdAndTypeInPeriod(
+                    eq(EXTERNAL_ID), eq(PaymentResponse.TransactionType.WITHDRAWAL), any(), any()))
+                    .thenReturn(BigDecimal.ZERO);
+            when(transactionRepository.insertIfAbsent(
+                    eq(key), anyString(), anyLong(), anyString(), anyString(),
+                    any(), anyString(), anyString())).thenReturn(1);
             when(mtnConfig.getFineractPaymentTypeId()).thenReturn(1L);
             when(fineractClient.createWithdrawal(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(5000)),
                     eq(1L), eq(key))).thenReturn(789L);
@@ -306,6 +367,7 @@ class PaymentServiceTest {
                     .referenceId("ref-id")
                     .externalId("mtn-ref-1")
                     .status("SUCCESSFUL")
+                    .amount("10000")
                     .financialTransactionId("fin-txn-123")
                     .build();
 
@@ -452,17 +514,20 @@ class PaymentServiceTest {
     class OrangeCallbackTests {
 
         @Test
-        @DisplayName("should create Fineract deposit on successful Orange deposit callback")
-        void handleOrangeCallback_depositSuccess_createsFineractDeposit() {
+        @DisplayName("should create Fineract deposit on successful Orange deposit callback with valid notif_token")
+        void handleOrangeCallback_depositSuccess_validToken_createsFineractDeposit() {
             PaymentTransaction txn = new PaymentTransaction(
                     "txn-o1", "orange-ref-1", EXTERNAL_ID, ACCOUNT_ID,
                     PaymentProvider.ORANGE_MONEY, PaymentResponse.TransactionType.DEPOSIT,
                     BigDecimal.valueOf(10000), "XAF", PaymentStatus.PENDING);
+            txn.setNotifToken("valid-notif-token");
 
             OrangeCallbackRequest callback = OrangeCallbackRequest.builder()
                     .orderId("txn-o1")
                     .status("SUCCESS")
+                    .amount("10000")
                     .transactionId("orange-txn-123")
+                    .notifToken("valid-notif-token")
                     .build();
 
             when(transactionRepository.findByIdForUpdate("txn-o1")).thenReturn(Optional.of(txn));
@@ -475,6 +540,32 @@ class PaymentServiceTest {
             assertThat(txn.getStatus()).isEqualTo(PaymentStatus.SUCCESSFUL);
             assertThat(txn.getFineractTransactionId()).isEqualTo(888L);
             verify(transactionRepository).save(txn);
+        }
+
+        @Test
+        @DisplayName("should reject Orange callback with invalid notif_token")
+        void handleOrangeCallback_invalidToken_rejected() {
+            PaymentTransaction txn = new PaymentTransaction(
+                    "txn-o-bad", "orange-ref-bad", EXTERNAL_ID, ACCOUNT_ID,
+                    PaymentProvider.ORANGE_MONEY, PaymentResponse.TransactionType.DEPOSIT,
+                    BigDecimal.valueOf(10000), "XAF", PaymentStatus.PENDING);
+            txn.setNotifToken("valid-notif-token");
+
+            OrangeCallbackRequest callback = OrangeCallbackRequest.builder()
+                    .orderId("txn-o-bad")
+                    .status("SUCCESS")
+                    .notifToken("forged-token")
+                    .build();
+
+            when(transactionRepository.findByIdForUpdate("txn-o-bad")).thenReturn(Optional.of(txn));
+
+            paymentService.handleOrangeCallback(callback);
+
+            // Should not have changed status or created deposit
+            assertThat(txn.getStatus()).isEqualTo(PaymentStatus.PENDING);
+            verify(transactionRepository, never()).save(any());
+            verify(fineractClient, never()).createDeposit(any(), any(), any(), any());
+            verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.ORANGE_MONEY, "invalid_notif_token");
         }
 
         @Test
@@ -519,6 +610,7 @@ class PaymentServiceTest {
             CinetPayCallbackRequest callback = CinetPayCallbackRequest.builder()
                     .transactionId("txn-cp1")
                     .resultCode("00")
+                    .amount("10000")
                     .paymentMethod("MOMO")
                     .paymentId("cp-pay-123")
                     .build();
@@ -546,6 +638,7 @@ class PaymentServiceTest {
             CinetPayCallbackRequest callback = CinetPayCallbackRequest.builder()
                     .transactionId("txn-cp2")
                     .resultCode("00")
+                    .amount("10000")
                     .paymentMethod("OM")
                     .paymentId("cp-pay-456")
                     .build();
