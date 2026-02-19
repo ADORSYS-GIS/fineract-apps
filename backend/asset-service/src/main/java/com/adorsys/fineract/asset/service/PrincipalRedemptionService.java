@@ -95,8 +95,7 @@ public class PrincipalRedemptionService {
         if (pendingHolders.isEmpty() && !holders.isEmpty()) {
             // All holders already redeemed — ensure bond is marked REDEEMED
             if (bond.getStatus() != AssetStatus.REDEEMED) {
-                bond.setStatus(AssetStatus.REDEEMED);
-                assetRepository.save(bond);
+                assetRepository.updateStatus(bond.getId(), AssetStatus.REDEEMED);
             }
             return new RedemptionTriggerResponse(
                     assetId, bond.getSymbol(), redemptionDate,
@@ -107,8 +106,7 @@ public class PrincipalRedemptionService {
 
         if (holders.isEmpty()) {
             // No holders at all — mark as REDEEMED immediately
-            bond.setStatus(AssetStatus.REDEEMED);
-            assetRepository.save(bond);
+            assetRepository.updateStatus(bond.getId(), AssetStatus.REDEEMED);
             return new RedemptionTriggerResponse(
                     assetId, bond.getSymbol(), redemptionDate,
                     0, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO,
@@ -163,11 +161,11 @@ public class PrincipalRedemptionService {
             }
         }
 
-        // 6. Update bond status
+        // 6. Update bond status — use @Modifying query to avoid a full-entity save
+        //    that would overwrite circulatingSupply set by adjustCirculatingSupply()
         boolean allSucceeded = failCount == 0;
         if (allSucceeded) {
-            bond.setStatus(AssetStatus.REDEEMED);
-            assetRepository.save(bond);
+            assetRepository.updateStatus(bond.getId(), AssetStatus.REDEEMED);
             log.info("Bond {} fully redeemed: {} holders paid, total={} XAF",
                     bond.getSymbol(), successCount + alreadySucceeded.size(), totalPaid);
         } else {

@@ -17,7 +17,7 @@ Feature: Bond Asset Lifecycle (E2E)
   Scenario: Create and activate a bond asset
     When the admin creates a bond asset:
       | name                  | E2E Test Bond |
-      | symbol                | EBND          |
+      | symbol                | EBD           |
       | initialPrice          | 10000         |
       | totalSupply           | 1000          |
       | issuer                | Test Corp     |

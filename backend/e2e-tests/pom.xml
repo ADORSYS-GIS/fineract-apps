@@ -121,14 +121,12 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <skipTests>${skipTests}</skipTests>
-                    <properties>
-                        <configurationParameters>
-                            cucumber.junit-platform.naming-strategy=long
-                            cucumber.plugin=pretty,html:target/cucumber-reports/cucumber.html,json:target/cucumber-reports/cucumber.json
-                            cucumber.glue=com.adorsys.fineract.e2e
-                            cucumber.features=classpath:features/e2e
-                        </configurationParameters>
-                    </properties>
+                    <!-- Do NOT retry failed tests — Fineract state is not idempotent -->
+                    <rerunFailingTestsCount>0</rerunFailingTestsCount>
+                    <!-- Cucumber discovery is configured via RunE2ETests.java annotations.
+                         Do NOT add cucumber.features or cucumber.glue here — that
+                         would cause the Cucumber engine to discover tests independently
+                         of the @Suite class, running every scenario twice. -->
                     <!-- Generous timeout for Fineract startup -->
                     <forkedProcessExitTimeoutInSeconds>600</forkedProcessExitTimeoutInSeconds>
                 </configuration>

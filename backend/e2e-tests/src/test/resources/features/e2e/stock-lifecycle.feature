@@ -17,11 +17,11 @@ Feature: Stock Asset Lifecycle (E2E)
   Scenario: Create and activate a stock asset with Fineract provisioning
     When the admin creates a stock asset:
       | name         | E2E Test Stock |
-      | symbol       | ETST           |
+      | symbol       | TST            |
       | initialPrice | 5000           |
       | totalSupply  | 10000          |
     Then the response status should be 201
-    And the response body should contain field "status" with value "DRAFT"
+    And the response body should contain field "status" with value "PENDING"
     When the admin activates asset "lastCreated"
     Then the response status should be 200
     And the asset should be in ACTIVE status

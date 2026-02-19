@@ -69,13 +69,13 @@ public class AssetProvisioningSteps {
     public void adminCreatesStockAsset(io.cucumber.datatable.DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
 
-        // Use scenario suffix for unique currency/symbol
-        String suffix = context.getScenarioSuffix();
-        String symbol = data.getOrDefault("symbol", "TST") + suffix;
+        // Each scenario uses a unique 3-char ticker — no suffix needed.
+        // Currency codes in Fineract m_currency are limited to 3 characters.
+        String symbol = data.getOrDefault("symbol", "TST");
         String currencyCode = data.getOrDefault("currencyCode", symbol);
 
         Map<String, Object> request = new HashMap<>();
-        request.put("name", data.getOrDefault("name", "Test Stock " + suffix));
+        request.put("name", data.getOrDefault("name", "Test Stock " + symbol));
         request.put("symbol", symbol);
         request.put("currencyCode", currencyCode);
         request.put("category", data.getOrDefault("category", "STOCKS"));
@@ -107,12 +107,11 @@ public class AssetProvisioningSteps {
     public void adminCreatesBondAsset(io.cucumber.datatable.DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
 
-        String suffix = context.getScenarioSuffix();
-        String symbol = data.getOrDefault("symbol", "BND") + suffix;
+        String symbol = data.getOrDefault("symbol", "BND");
         String currencyCode = data.getOrDefault("currencyCode", symbol);
 
         Map<String, Object> request = new HashMap<>();
-        request.put("name", data.getOrDefault("name", "Test Bond " + suffix));
+        request.put("name", data.getOrDefault("name", "Test Bond " + symbol));
         request.put("symbol", symbol);
         request.put("currencyCode", currencyCode);
         request.put("category", "BONDS");
@@ -202,7 +201,16 @@ public class AssetProvisioningSteps {
 
     @Then("the asset should be in {word} status")
     public void assetShouldBeInStatus(String expectedStatus) {
-        String status = context.jsonPath("status");
+        // Fetch the asset directly — the last response (from activate/halt/resume)
+        // may have an empty body.
+        String assetId = context.getId("lastAssetId");
+
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/admin/assets/" + assetId);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        String status = response.jsonPath().getString("status");
         assertThat(status).isEqualTo(expectedStatus);
     }
 
@@ -223,9 +231,16 @@ public class AssetProvisioningSteps {
 
     @Then("the treasury should have a {word} account with balance {int} in Fineract")
     public void treasuryShouldHaveAssetAccount(String currencyCode, int expectedBalance) {
-        // Verify via asset-service response
-        Number accountId = context.jsonPath("treasuryAssetAccountId");
-        assertThat(accountId).isNotNull();
+        // Fetch asset details — the last response may have been from activate (empty body)
+        String assetId = context.getId("lastAssetId");
+
+        Response assetResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/admin/assets/" + assetId);
+
+        assertThat(assetResp.statusCode()).isEqualTo(200);
+        Number accountId = assetResp.jsonPath().get("treasuryAssetAccountId");
+        assertThat(accountId).as("treasuryAssetAccountId for asset " + assetId).isNotNull();
 
         // Verify actual Fineract balance
         BigDecimal balance = fineractTestClient.getAccountBalance(accountId.longValue());
@@ -237,6 +252,10 @@ public class AssetProvisioningSteps {
     // ---------------------------------------------------------------
 
     private String resolveAssetId(String ref) {
+        // "lastCreated" always resolves to the most recently created asset
+        if ("lastCreated".equals(ref)) {
+            return context.getId("lastAssetId");
+        }
         // If the ref matches a stored symbol, look up the asset ID
         String stored = context.getId("lastAssetId");
         if (stored != null && ref.equals(context.getValue("lastSymbol"))) {

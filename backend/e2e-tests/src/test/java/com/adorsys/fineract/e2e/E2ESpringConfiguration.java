@@ -3,10 +3,12 @@ package com.adorsys.fineract.e2e;
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.config.TestcontainersConfig;
+import com.adorsys.fineract.e2e.support.JwtTokenFactory;
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -21,6 +23,7 @@ import org.springframework.test.context.DynamicPropertySource;
  *   <li>Real Redis (Testcontainers)</li>
  *   <li>Real Fineract (Testcontainers) — no MockBeans</li>
  *   <li>Admin endpoints open (permit-all-admin=true)</li>
+ *   <li>JWT validated against an embedded JWKS endpoint (no Keycloak needed)</li>
  * </ul>
  *
  * <p>Before Spring context starts, {@link FineractInitializer} creates the
@@ -83,11 +86,11 @@ public class E2ESpringConfiguration {
         // Admin endpoints open (no JWT needed for admin)
         registry.add("app.security.permit-all-admin", () -> "true");
 
-        // JWT: use a dummy JWK-set URI — admin endpoints don't need JWT,
-        // and trading endpoints use test tokens
+        // JWT: point at the embedded JWKS server started by JwtTokenFactory.
+        // This lets the production SecurityConfig's JwtDecoder validate our
+        // test tokens without any bean overriding.
         registry.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri",
-                () -> TestcontainersConfig.getFineractBaseUrl()
-                        + "/fineract-provider/actuator/health");
+                JwtTokenFactory::getJwksUri);
 
         // Market hours: always open for tests
         registry.add("asset-service.market-hours.open", () -> "00:00");
@@ -98,6 +101,7 @@ public class E2ESpringConfiguration {
     }
 
     @TestConfiguration
+    @ComponentScan("com.adorsys.fineract.e2e")
     static class E2EBeans {
 
         @Bean

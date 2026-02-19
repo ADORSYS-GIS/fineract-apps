@@ -18,7 +18,7 @@ public class CommonSteps {
     @Then("the response status should be {int}")
     public void responseStatusShouldBe(int expectedStatus) {
         assertThat(context.getStatusCode())
-                .as("HTTP status code")
+                .as("HTTP status code — body: %s", context.getBody())
                 .isEqualTo(expectedStatus);
     }
 

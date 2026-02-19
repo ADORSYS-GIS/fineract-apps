@@ -34,15 +34,6 @@ public class FineractTestClient {
     // Setup Methods (for @Given steps and initialization)
     // ---------------------------------------------------------------
 
-    /**
-     * Create a GL account in Fineract.
-     *
-     * @param name    Display name
-     * @param glCode  GL code (e.g. "47")
-     * @param type    1=Asset, 2=Liability, 4=Income, 5=Expense
-     * @param usage   1=Header, 2=Detail
-     * @return The created GL account database ID
-     */
     public Long createGlAccount(String name, String glCode, int type, int usage) {
         Map<String, Object> body = Map.of(
                 "name", name,
@@ -57,13 +48,10 @@ public class FineractTestClient {
                 .body(body)
                 .post("/fineract-provider/api/v1/glaccounts");
 
-        response.then().statusCode(200);
+        assertOk(response, "createGlAccount(" + glCode + ")");
         return response.jsonPath().getLong("resourceId");
     }
 
-    /**
-     * Create a payment type in Fineract.
-     */
     public Long createPaymentType(String name, int position) {
         Map<String, Object> body = Map.of(
                 "name", name,
@@ -76,27 +64,35 @@ public class FineractTestClient {
                 .body(body)
                 .post("/fineract-provider/api/v1/paymenttypes");
 
-        response.then().statusCode(200);
+        assertOk(response, "createPaymentType(" + name + ")");
         return response.jsonPath().getLong("resourceId");
     }
 
-    /**
-     * Register currencies in Fineract.
-     */
+    public Long createFinancialActivityAccount(int financialActivityId, Long glAccountId) {
+        Map<String, Object> body = Map.of(
+                "financialActivityId", financialActivityId,
+                "glAccountId", glAccountId
+        );
+
+        Response response = request()
+                .body(body)
+                .post("/fineract-provider/api/v1/financialactivityaccounts");
+
+        assertOk(response, "createFinancialActivityAccount(" + financialActivityId
+                + " -> glAccount " + glAccountId + ")");
+        return response.jsonPath().getLong("resourceId");
+    }
+
     public void registerCurrencies(List<String> currencyCodes) {
         Map<String, Object> body = Map.of("currencies", currencyCodes);
 
-        request()
+        Response response = request()
                 .body(body)
-                .put("/fineract-provider/api/v1/currencies")
-                .then().statusCode(200);
+                .put("/fineract-provider/api/v1/currencies");
+
+        assertOk(response, "registerCurrencies(" + currencyCodes + ")");
     }
 
-    /**
-     * Create a savings product for the given currency.
-     *
-     * @return The created product ID
-     */
     public Integer createSavingsProduct(String name, String shortName,
                                          String currencyCode, int decimalPlaces,
                                          Long savingsReferenceAccountId,
@@ -131,15 +127,10 @@ public class FineractTestClient {
                 .body(body)
                 .post("/fineract-provider/api/v1/savingsproducts");
 
-        response.then().statusCode(200);
+        assertOk(response, "createSavingsProduct(" + shortName + ")");
         return response.jsonPath().getInt("resourceId");
     }
 
-    /**
-     * Create a client in Fineract.
-     *
-     * @return The created client ID
-     */
     public Long createClient(String firstname, String lastname, String externalId) {
         String today = LocalDate.now().format(DATE_FORMAT);
         Map<String, Object> body = new HashMap<>();
@@ -150,6 +141,7 @@ public class FineractTestClient {
         body.put("activationDate", today);
         body.put("dateFormat", "dd MMMM yyyy");
         body.put("locale", "en");
+        body.put("legalFormId", 1); // 1=Person
         if (externalId != null) {
             body.put("externalId", externalId);
         }
@@ -158,15 +150,10 @@ public class FineractTestClient {
                 .body(body)
                 .post("/fineract-provider/api/v1/clients");
 
-        response.then().statusCode(200);
+        assertOk(response, "createClient(" + firstname + " " + lastname + ")");
         return response.jsonPath().getLong("clientId");
     }
 
-    /**
-     * Provision a savings account: create, approve, activate.
-     *
-     * @return The created savings account ID
-     */
     public Long provisionSavingsAccount(Long clientId, Integer productId) {
         String today = LocalDate.now().format(DATE_FORMAT);
 
@@ -181,7 +168,7 @@ public class FineractTestClient {
         Response createResp = request()
                 .body(createBody)
                 .post("/fineract-provider/api/v1/savingsaccounts");
-        createResp.then().statusCode(200);
+        assertOk(createResp, "createSavingsAccount(clientId=" + clientId + ")");
         Long accountId = createResp.jsonPath().getLong("savingsId");
 
         // Approve
@@ -190,10 +177,10 @@ public class FineractTestClient {
                 "dateFormat", "dd MMMM yyyy",
                 "approvedOnDate", today
         );
-        request().body(approveBody)
+        Response approveResp = request().body(approveBody)
                 .post("/fineract-provider/api/v1/savingsaccounts/" + accountId
-                        + "?command=approve")
-                .then().statusCode(200);
+                        + "?command=approve");
+        assertOk(approveResp, "approveSavingsAccount(" + accountId + ")");
 
         // Activate
         Map<String, Object> activateBody = Map.of(
@@ -201,19 +188,14 @@ public class FineractTestClient {
                 "dateFormat", "dd MMMM yyyy",
                 "activatedOnDate", today
         );
-        request().body(activateBody)
+        Response activateResp = request().body(activateBody)
                 .post("/fineract-provider/api/v1/savingsaccounts/" + accountId
-                        + "?command=activate")
-                .then().statusCode(200);
+                        + "?command=activate");
+        assertOk(activateResp, "activateSavingsAccount(" + accountId + ")");
 
         return accountId;
     }
 
-    /**
-     * Deposit to a savings account.
-     *
-     * @return Transaction ID
-     */
     public Long depositToSavingsAccount(Long accountId, BigDecimal amount) {
         String today = LocalDate.now().format(DATE_FORMAT);
         Map<String, Object> body = Map.of(
@@ -229,7 +211,7 @@ public class FineractTestClient {
                 .post("/fineract-provider/api/v1/savingsaccounts/" + accountId
                         + "/transactions?command=deposit");
 
-        response.then().statusCode(200);
+        assertOk(response, "depositToSavingsAccount(" + accountId + ", " + amount + ")");
         return response.jsonPath().getLong("resourceId");
     }
 
@@ -237,16 +219,12 @@ public class FineractTestClient {
     // Verification Methods (for @Then steps)
     // ---------------------------------------------------------------
 
-    /**
-     * Get the available balance of a savings account.
-     */
     public BigDecimal getAccountBalance(Long accountId) {
         Response response = request()
                 .get("/fineract-provider/api/v1/savingsaccounts/" + accountId);
 
-        response.then().statusCode(200);
+        assertOk(response, "getAccountBalance(" + accountId + ")");
 
-        // Try summary.availableBalance first, then accountBalance
         Object availableBalance = response.jsonPath()
                 .get("summary.availableBalance");
         if (availableBalance != null) {
@@ -259,57 +237,45 @@ public class FineractTestClient {
         return BigDecimal.ZERO;
     }
 
-    /**
-     * Get all savings accounts for a client.
-     */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getClientSavingsAccounts(Long clientId) {
         Response response = request()
                 .get("/fineract-provider/api/v1/clients/" + clientId
                         + "/accounts?fields=savingsAccounts");
 
-        response.then().statusCode(200);
+        assertOk(response, "getClientSavingsAccounts(" + clientId + ")");
         List<Map<String, Object>> accounts = response.jsonPath()
                 .getList("savingsAccounts");
         return accounts != null ? accounts : List.of();
     }
 
-    /**
-     * Get savings account transactions.
-     */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getAccountTransactions(Long accountId) {
         Response response = request()
                 .get("/fineract-provider/api/v1/savingsaccounts/" + accountId
                         + "?associations=transactions");
 
-        response.then().statusCode(200);
+        assertOk(response, "getAccountTransactions(" + accountId + ")");
         List<Map<String, Object>> txns = response.jsonPath()
                 .getList("transactions");
         return txns != null ? txns : List.of();
     }
 
-    /**
-     * Get all GL accounts from Fineract.
-     */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getGlAccounts() {
         Response response = request()
                 .get("/fineract-provider/api/v1/glaccounts");
 
-        response.then().statusCode(200);
+        assertOk(response, "getGlAccounts");
         return response.jsonPath().getList("");
     }
 
-    /**
-     * Check if a client exists by external ID.
-     */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getClientByExternalId(String externalId) {
         Response response = request()
                 .get("/fineract-provider/api/v1/clients?externalId=" + externalId);
 
-        response.then().statusCode(200);
+        assertOk(response, "getClientByExternalId(" + externalId + ")");
         List<Map<String, Object>> pageItems = response.jsonPath()
                 .getList("pageItems");
         return pageItems != null && !pageItems.isEmpty() ? pageItems.get(0) : null;
@@ -318,6 +284,13 @@ public class FineractTestClient {
     // ---------------------------------------------------------------
     // Internal
     // ---------------------------------------------------------------
+
+    private void assertOk(Response response, String operation) {
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Fineract " + operation + " failed: HTTP "
+                    + response.statusCode() + " - " + response.body().asString());
+        }
+    }
 
     private RequestSpecification request() {
         return RestAssured.given()

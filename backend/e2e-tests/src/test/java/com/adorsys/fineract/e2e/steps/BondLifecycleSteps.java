@@ -3,6 +3,8 @@ package com.adorsys.fineract.e2e.steps;
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
+import com.adorsys.fineract.e2e.support.JwtTokenFactory;
+import com.adorsys.fineract.asset.scheduler.MaturityScheduler;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -39,19 +41,22 @@ public class BondLifecycleSteps {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private MaturityScheduler maturityScheduler;
+
     // ---------------------------------------------------------------
     // Given steps
     // ---------------------------------------------------------------
 
     @Given("an active bond asset {string} priced at {int} with supply {int} and interest rate {double}")
     public void activeBondAsset(String symbolRef, int price, int supply, double interestRate) {
-        String suffix = context.getScenarioSuffix();
-        String symbol = symbolRef + suffix;
+        // Each scenario uses a unique 3-char ticker — no suffix needed.
+        // Currency codes in Fineract m_currency are limited to 3 characters.
 
         Map<String, Object> request = new HashMap<>();
-        request.put("name", "Bond " + symbol);
-        request.put("symbol", symbol);
-        request.put("currencyCode", symbol);
+        request.put("name", "Bond " + symbolRef);
+        request.put("symbol", symbolRef);
+        request.put("currencyCode", symbolRef);
         request.put("category", "BONDS");
         request.put("initialPrice", price);
         request.put("totalSupply", supply);
@@ -71,10 +76,12 @@ public class BondLifecycleSteps {
                 .body(request)
                 .post("/api/admin/assets");
 
-        assertThat(createResp.statusCode()).isEqualTo(201);
+        assertThat(createResp.statusCode())
+                .as("Create bond %s: %s", symbolRef, createResp.body().asString())
+                .isEqualTo(201);
         String assetId = createResp.jsonPath().getString("id");
         context.storeId("lastAssetId", assetId);
-        context.storeValue("lastSymbol", symbol);
+        context.storeValue("lastSymbol", symbolRef);
 
         // Activate
         Response activateResp = RestAssured.given()
@@ -100,8 +107,7 @@ public class BondLifecycleSteps {
                     .baseUri("http://localhost:" + port)
                     .contentType(ContentType.JSON)
                     .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                    .header("Authorization", "Bearer dummy")
-                    .header("X-User-External-Id", FineractInitializer.TEST_USER_EXTERNAL_ID)
+                    .header("Authorization", "Bearer " + testUserJwt())
                     .body(body)
                     .post("/api/trades/buy");
 
@@ -133,17 +139,14 @@ public class BondLifecycleSteps {
 
     @When("the maturity scheduler runs")
     public void maturitySchedulerRuns() {
-        // Force the bond into MATURED status by setting maturity date to yesterday via DB
+        // Force the bond into maturity by setting maturity date to yesterday
         String assetId = context.getId("lastAssetId");
         jdbcTemplate.update(
                 "UPDATE assets SET maturity_date = ? WHERE id = ?",
-                LocalDate.now().minusDays(1), assetId);
+                java.sql.Date.valueOf(LocalDate.now().minusDays(1)), assetId);
 
-        // Call the maturity check endpoint or trigger directly via scheduler bean
-        // The scheduler is a Spring bean, so we invoke it via the injected context
-        // For E2E, we'll use a direct HTTP call to verify the state after
-        // the scheduler would have run (or we can trigger it)
-        // Since schedulers are cron-based, let's just verify the state
+        // Invoke the scheduler directly (cron won't fire during test)
+        maturityScheduler.matureBonds();
     }
 
     @When("the admin triggers bond redemption for {string}")
@@ -168,8 +171,10 @@ public class BondLifecycleSteps {
 
     @Then("the coupon trigger should succeed with {int} payments")
     public void couponTriggerShouldSucceed(int expectedPayments) {
-        assertThat(context.getStatusCode()).isEqualTo(200);
-        int paid = context.jsonPath("paid");
+        assertThat(context.getStatusCode())
+                .as("Coupon trigger response — body: %s", context.getBody())
+                .isEqualTo(200);
+        int paid = context.jsonPath("holdersPaid");
         assertThat(paid).isEqualTo(expectedPayments);
     }
 
@@ -209,7 +214,14 @@ public class BondLifecycleSteps {
 
     @Then("the redemption should succeed")
     public void redemptionShouldSucceed() {
-        assertThat(context.getStatusCode()).isEqualTo(200);
+        assertThat(context.getStatusCode())
+                .as("Redemption response: %s", context.getBody())
+                .isEqualTo(200);
+        // Verify that holders were actually redeemed
+        Number holdersRedeemed = context.jsonPath("holdersRedeemed");
+        assertThat(holdersRedeemed.intValue())
+                .as("Holders redeemed — response: %s", context.getBody())
+                .isGreaterThan(0);
     }
 
     @Then("the user's XAF balance should have increased after redemption")
@@ -229,8 +241,20 @@ public class BondLifecycleSteps {
                 .baseUri("http://localhost:" + port)
                 .get("/api/admin/assets/" + assetId);
 
-        int circulatingSupply = response.jsonPath().getInt("circulatingSupply");
-        assertThat(circulatingSupply).isEqualTo(0);
+        // circulatingSupply is BigDecimal — JSON may return "0.0"
+        Number circulatingSupply = response.jsonPath().get("circulatingSupply");
+        assertThat(circulatingSupply.intValue()).isEqualTo(0);
+    }
+
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
+
+    private String testUserJwt() {
+        return JwtTokenFactory.generateToken(
+                FineractInitializer.TEST_USER_EXTERNAL_ID,
+                FineractInitializer.getTestUserClientId(),
+                java.util.List.of());
     }
 
     @Then("redemption records should exist for the bond")

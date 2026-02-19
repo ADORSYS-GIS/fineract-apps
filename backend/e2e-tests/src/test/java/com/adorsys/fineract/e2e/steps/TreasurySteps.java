@@ -59,9 +59,9 @@ public class TreasurySteps {
 
         assertThat(assetResp.statusCode()).isEqualTo(200);
 
-        int totalSupply = assetResp.jsonPath().getInt("totalSupply");
-        int circulatingSupply = assetResp.jsonPath().getInt("circulatingSupply");
-        int expectedTreasuryUnits = totalSupply - circulatingSupply;
+        Number totalSupplyNum = assetResp.jsonPath().get("totalSupply");
+        Number circulatingSupplyNum = assetResp.jsonPath().get("circulatingSupply");
+        int expectedTreasuryUnits = totalSupplyNum.intValue() - circulatingSupplyNum.intValue();
 
         // The treasury's asset (BRV) account balance should reflect the remaining units
         Number treasuryAssetAccountId = assetResp.jsonPath().get("treasuryAssetAccountId");

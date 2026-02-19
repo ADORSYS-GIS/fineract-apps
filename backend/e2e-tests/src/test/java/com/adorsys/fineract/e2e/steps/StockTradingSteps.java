@@ -3,6 +3,7 @@ package com.adorsys.fineract.e2e.steps;
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
+import com.adorsys.fineract.e2e.support.JwtTokenFactory;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -38,15 +39,14 @@ public class StockTradingSteps {
 
     @Given("an active stock asset {string} with price {int} and supply {int}")
     public void activeStockAsset(String symbolRef, int price, int supply) {
-        // This step creates and activates a stock asset
-        String suffix = context.getScenarioSuffix();
-        String symbol = symbolRef + suffix;
+        // Each scenario uses a unique 3-char ticker — no suffix needed.
+        // Currency codes in Fineract m_currency are limited to 3 characters.
 
         // Create
         Map<String, Object> request = Map.of(
-                "name", "Stock " + symbol,
-                "symbol", symbol,
-                "currencyCode", symbol,
+                "name", "Stock " + symbolRef,
+                "symbol", symbolRef,
+                "currencyCode", symbolRef,
                 "category", "STOCKS",
                 "initialPrice", price,
                 "totalSupply", supply,
@@ -62,10 +62,12 @@ public class StockTradingSteps {
                 .body(request)
                 .post("/api/admin/assets");
 
-        assertThat(createResp.statusCode()).isEqualTo(201);
+        assertThat(createResp.statusCode())
+                .as("Create asset %s: %s", symbolRef, createResp.body().asString())
+                .isEqualTo(201);
         String assetId = createResp.jsonPath().getString("id");
         context.storeId("lastAssetId", assetId);
-        context.storeValue("lastSymbol", symbol);
+        context.storeValue("lastSymbol", symbolRef);
 
         // Activate
         Response activateResp = RestAssured.given()
@@ -98,8 +100,7 @@ public class StockTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                .header("Authorization", "Bearer dummy") // admin permit-all handles this
-                .header("X-User-External-Id", FineractInitializer.TEST_USER_EXTERNAL_ID)
+                .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
                 .post("/api/trades/buy");
 
@@ -123,8 +124,7 @@ public class StockTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                .header("Authorization", "Bearer dummy")
-                .header("X-User-External-Id", FineractInitializer.TEST_USER_EXTERNAL_ID)
+                .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
                 .post("/api/trades/sell");
 
@@ -182,13 +182,21 @@ public class StockTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .get("/api/admin/assets/" + assetId);
 
-        int circulatingSupply = response.jsonPath().getInt("circulatingSupply");
-        assertThat(circulatingSupply).isEqualTo(expected);
+        // circulatingSupply is BigDecimal in the entity — JSON may return "5.0"
+        Number circulatingSupply = response.jsonPath().get("circulatingSupply");
+        assertThat(circulatingSupply.intValue()).isEqualTo(expected);
     }
 
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
+
+    private String testUserJwt() {
+        return JwtTokenFactory.generateToken(
+                FineractInitializer.TEST_USER_EXTERNAL_ID,
+                FineractInitializer.getTestUserClientId(),
+                java.util.List.of());
+    }
 
     private String resolveAssetId(String ref) {
         String stored = context.getId("lastAssetId");

@@ -55,11 +55,12 @@ public final class TestcontainersConfig {
                     .withNetwork(SHARED_NETWORK)
                     .withNetworkAliases("redis");
 
-    /** Apache Fineract with basic auth enabled. */
+    /** Apache Fineract with basic auth enabled and custom currency plugin. */
     @SuppressWarnings("resource")
     public static final GenericContainer<?> FINERACT =
             new GenericContainer<>(
-                    DockerImageName.parse("ghcr.io/adorsys-gis/fineract:5aa35aa15"))
+                    DockerImageName.parse(System.getProperty("fineract.image",
+                            "fineract-custom:latest")))
                     .withExposedPorts(8443)
                     .withNetwork(SHARED_NETWORK)
                     .withNetworkAliases("fineract")
@@ -91,9 +92,13 @@ public final class TestcontainersConfig {
                     .withEnv("FINERACT_MODE_READ_ENABLED", "true")
                     .withEnv("FINERACT_MODE_WRITE_ENABLED", "true")
                     .withEnv("FINERACT_MODE_BATCH_ENABLED", "true")
-                    // Disable S3 and cache
+                    // Disable S3
                     .withEnv("FINERACT_CONTENT_S3_ENABLED", "false")
-                    .withEnv("SPRING_CACHE_TYPE", "none")
+                    // Redis (for cache + custom currency plugin)
+                    .withEnv("SPRING_CACHE_TYPE", "redis")
+                    .withEnv("SPRING_REDIS_HOST", "redis")
+                    .withEnv("SPRING_REDIS_PORT", "6379")
+                    .withEnv("SPRING_REDIS_PASSWORD", "")
                     // JVM settings
                     .withEnv("JAVA_OPTS", "-Xmx1024m -Xms512m")
                     // Wait strategy and timeout

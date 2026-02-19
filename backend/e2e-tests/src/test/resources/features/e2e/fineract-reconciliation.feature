@@ -31,10 +31,10 @@ Feature: Fineract Reconciliation (E2E)
   Scenario: Activated asset creates savings product and treasury accounts in Fineract
     When the admin creates a stock asset:
       | name         | Reconciliation Stock |
-      | symbol       | RCST                 |
+      | symbol       | RCS                  |
       | initialPrice | 3000                 |
       | totalSupply  | 500                  |
     Then the response status should be 201
     When the admin activates asset "lastCreated"
     Then the response status should be 200
-    And the treasury should have a RCST account with balance 500 in Fineract
+    And the treasury should have a RCS account with balance 500 in Fineract

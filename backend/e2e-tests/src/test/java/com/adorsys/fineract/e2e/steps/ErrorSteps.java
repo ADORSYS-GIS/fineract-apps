@@ -2,6 +2,7 @@ package com.adorsys.fineract.e2e.steps;
 
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
+import com.adorsys.fineract.e2e.support.JwtTokenFactory;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -61,8 +62,7 @@ public class ErrorSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                .header("Authorization", "Bearer dummy")
-                .header("X-User-External-Id", FineractInitializer.TEST_USER_EXTERNAL_ID)
+                .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
                 .post("/api/trades/buy");
 
@@ -82,8 +82,7 @@ public class ErrorSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                .header("Authorization", "Bearer dummy")
-                .header("X-User-External-Id", FineractInitializer.TEST_USER_EXTERNAL_ID)
+                .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
                 .post("/api/trades/sell");
 
@@ -103,8 +102,7 @@ public class ErrorSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                .header("Authorization", "Bearer dummy")
-                .header("X-User-External-Id", FineractInitializer.TEST_USER_EXTERNAL_ID)
+                .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
                 .post("/api/trades/buy");
 
@@ -126,8 +124,7 @@ public class ErrorSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", idempotencyKey)
-                .header("Authorization", "Bearer dummy")
-                .header("X-User-External-Id", FineractInitializer.TEST_USER_EXTERNAL_ID)
+                .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
                 .post("/api/trades/buy");
 
@@ -138,8 +135,7 @@ public class ErrorSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", idempotencyKey)
-                .header("Authorization", "Bearer dummy")
-                .header("X-User-External-Id", FineractInitializer.TEST_USER_EXTERNAL_ID)
+                .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
                 .post("/api/trades/buy");
 
@@ -160,12 +156,26 @@ public class ErrorSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                .header("Authorization", "Bearer dummy")
-                .header("X-User-External-Id", FineractInitializer.TEST_USER_EXTERNAL_ID)
+                .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
                 .post("/api/trades/buy");
 
         context.setLastResponse(response);
+    }
+
+    // ---------------------------------------------------------------
+    // Then steps
+    // ---------------------------------------------------------------
+
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
+
+    private String testUserJwt() {
+        return JwtTokenFactory.generateToken(
+                FineractInitializer.TEST_USER_EXTERNAL_ID,
+                FineractInitializer.getTestUserClientId(),
+                java.util.List.of());
     }
 
     // ---------------------------------------------------------------
@@ -198,8 +208,9 @@ public class ErrorSteps {
                 .baseUri("http://localhost:" + port)
                 .get("/api/admin/assets/" + assetId);
 
-        int circulatingSupply = response.jsonPath().getInt("circulatingSupply");
+        // circulatingSupply is BigDecimal in the entity — JSON may return "1.0"
+        Number circulatingSupply = response.jsonPath().get("circulatingSupply");
         // With idempotency, circulating supply should reflect only one trade
-        assertThat(circulatingSupply).isEqualTo(1);
+        assertThat(circulatingSupply.intValue()).isEqualTo(1);
     }
 }

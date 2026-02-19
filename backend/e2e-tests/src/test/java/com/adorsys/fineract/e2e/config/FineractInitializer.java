@@ -70,6 +70,11 @@ public final class FineractInitializer {
                 glAssetInventoryId, glFundSourceId, glCustomerHoldingsId,
                 glTransfersInSuspenseId, glIncomeFromInterestId, glExpenseAccountId);
 
+        // 1b. Financial Activity Account mappings (required for savings transfers)
+        // FAA 200 = LIABILITY_TRANSFER → maps to a liability GL account
+        client.createFinancialActivityAccount(200, glTransfersInSuspenseId);
+        log.info("Created Financial Activity Account mapping: 200 -> GL {}", glTransfersInSuspenseId);
+
         // 2. Create payment type
         paymentTypeId = client.createPaymentType("Asset Issuance", 20);
         log.info("Created payment type 'Asset Issuance': id={}", paymentTypeId);

@@ -52,6 +52,14 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
     int adjustCirculatingSupply(@Param("assetId") String assetId, @Param("delta") BigDecimal delta);
 
     /**
+     * Update asset status directly via SQL, avoiding a full-entity save that
+     * would overwrite fields modified by {@code adjustCirculatingSupply}.
+     */
+    @Modifying
+    @Query("UPDATE Asset a SET a.status = :status WHERE a.id = :assetId")
+    void updateStatus(@Param("assetId") String assetId, @Param("status") AssetStatus status);
+
+    /**
      * Find ACTIVE bonds whose maturity date has passed (for MaturityScheduler).
      */
     List<Asset> findByStatusAndMaturityDateLessThanEqual(AssetStatus status, LocalDate date);
