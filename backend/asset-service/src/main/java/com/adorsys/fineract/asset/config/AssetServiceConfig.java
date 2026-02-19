@@ -67,7 +67,7 @@ public class AssetServiceConfig {
 
     @Data
     public static class TradeLock {
-        private int ttlSeconds = 10;
+        private int ttlSeconds = 45;
     }
 
     @Data
@@ -109,6 +109,11 @@ public class AssetServiceConfig {
             throw new IllegalStateException(
                     "asset-service.market-hours.timezone is invalid: '" + marketHours.getTimezone()
                     + "'. Must be a valid IANA timezone (e.g. 'Africa/Douala').", e);
+        }
+        if (tradeLock.getTtlSeconds() < 30) {
+            throw new IllegalStateException(
+                    "asset-service.trade-lock.ttl-seconds (" + tradeLock.getTtlSeconds()
+                    + ") must be >= 30 to outlive the transaction timeout.");
         }
     }
 }

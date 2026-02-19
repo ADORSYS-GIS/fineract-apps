@@ -38,7 +38,7 @@ class TradeLockServiceTest {
         assetMetrics = Mockito.mock(AssetMetrics.class);
 
         AssetServiceConfig.TradeLock tradeLock = new AssetServiceConfig.TradeLock();
-        tradeLock.setTtlSeconds(10);
+        tradeLock.setTtlSeconds(45);
         when(config.getTradeLock()).thenReturn(tradeLock);
 
         tradeLockService = new TradeLockService(

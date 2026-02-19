@@ -1,7 +1,7 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
-import com.adorsys.fineract.asset.client.FineractClient.BatchTransferRequest;
+import com.adorsys.fineract.asset.client.FineractClient.*;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
@@ -53,13 +53,14 @@ class TradingServiceTest {
     @Mock private AssetServiceConfig assetServiceConfig;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
     @Mock private AssetMetrics assetMetrics;
+    @Mock private BondBenefitService bondBenefitService;
 
     @InjectMocks
     private TradingService tradingService;
 
     @Mock private Jwt jwt;
 
-    @Captor private ArgumentCaptor<List<BatchTransferRequest>> transfersCaptor;
+    @Captor private ArgumentCaptor<List<BatchOperation>> batchOpsCaptor;
     @Captor private ArgumentCaptor<Order> orderCaptor;
 
     private static final String ASSET_ID = "asset-001";
@@ -172,8 +173,8 @@ class TradingServiceTest {
         when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT))
                 .thenReturn(new BigDecimal("50000"));
 
-        // Batch transfers succeed
-        when(fineractClient.executeBatchTransfers(anyList())).thenReturn(List.of());
+        // Atomic batch succeeds
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
 
         // Circulating supply adjustment succeeds
         when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("10"))).thenReturn(1);
@@ -192,32 +193,37 @@ class TradingServiceTest {
         assertEquals(spreadAmount, response.spreadAmount());
         assertNull(response.realizedPnl());
 
-        // Verify batch transfers were called with correct legs
-        verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
-        List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        // Should have 3 legs: cash, spread, asset (fee is separate withdrawal + journal entry)
-        assertEquals(3, transfers.size());
+        // Verify atomic batch was called with all legs (transfers + fee) in one batch
+        verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
+        List<BatchOperation> ops = batchOpsCaptor.getValue();
+        // Should have 5 legs: cash transfer, spread transfer, asset transfer, fee withdrawal, fee journal entry
+        assertEquals(5, ops.size());
 
         // Cash leg: user XAF -> treasury XAF
-        assertEquals(USER_CASH_ACCOUNT, transfers.get(0).fromAccountId());
-        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(0).toAccountId());
-        assertEquals(actualCost, transfers.get(0).amount());
+        assertTransferOp(ops.get(0), USER_CASH_ACCOUNT, TREASURY_CASH_ACCOUNT, actualCost);
 
         // Spread leg: treasury XAF -> spread collection (internal)
-        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(1).fromAccountId());
-        assertEquals(SPREAD_COLLECTION_ACCOUNT, transfers.get(1).toAccountId());
-        assertEquals(spreadAmount, transfers.get(1).amount());
+        assertTransferOp(ops.get(1), TREASURY_CASH_ACCOUNT, SPREAD_COLLECTION_ACCOUNT, spreadAmount);
 
         // Asset leg: treasury asset -> user asset
-        assertEquals(TREASURY_ASSET_ACCOUNT, transfers.get(2).fromAccountId());
-        assertEquals(USER_ASSET_ACCOUNT, transfers.get(2).toAccountId());
-        assertEquals(new BigDecimal("10"), transfers.get(2).amount());
+        assertTransferOp(ops.get(2), TREASURY_ASSET_ACCOUNT, USER_ASSET_ACCOUNT, new BigDecimal("10"));
 
-        // Fee leg: withdrawal from user savings + journal entry to GL
-        verify(fineractClient).withdrawFromSavingsAccount(USER_CASH_ACCOUNT, fee,
-                "Trading fee: BUY TST");
-        verify(fineractClient).createJournalEntry(FUND_SOURCE_GL_ID, FEE_INCOME_GL_ID,
-                fee, "XAF", "Trading fee: BUY TST");
+        // Fee withdrawal leg
+        assertInstanceOf(BatchWithdrawalOp.class, ops.get(3));
+        BatchWithdrawalOp withdrawal = (BatchWithdrawalOp) ops.get(3);
+        assertEquals(USER_CASH_ACCOUNT, withdrawal.savingsAccountId());
+        assertEquals(fee, withdrawal.amount());
+
+        // Fee journal entry leg
+        assertInstanceOf(BatchJournalEntryOp.class, ops.get(4));
+        BatchJournalEntryOp journal = (BatchJournalEntryOp) ops.get(4);
+        assertEquals(FUND_SOURCE_GL_ID, journal.debitGlAccountId());
+        assertEquals(FEE_INCOME_GL_ID, journal.creditGlAccountId());
+        assertEquals(fee, journal.amount());
+
+        // Verify no separate fee calls (everything is in the batch now)
+        verify(fineractClient, never()).withdrawFromSavingsAccount(anyLong(), any(), anyString());
+        verify(fineractClient, never()).createJournalEntry(anyLong(), anyLong(), any(), anyString(), anyString());
 
         // Verify portfolio updated with effective cost per unit (including fee)
         verify(portfolioService).updatePositionAfterBuy(
@@ -435,8 +441,8 @@ class TradingServiceTest {
         // Verify the lock was released in finally block
         verify(tradeLockService).releaseTradeLock(USER_ID, ASSET_ID, "lock-val");
 
-        // Verify no batch transfers were attempted
-        verify(fineractClient, never()).executeBatchTransfers(anyList());
+        // Verify no batch was attempted
+        verify(fineractClient, never()).executeAtomicBatch(anyList());
     }
 
     @Test
@@ -487,8 +493,8 @@ class TradingServiceTest {
         // Verify the lock was released in finally block
         verify(tradeLockService).releaseTradeLock(USER_ID, ASSET_ID, "lock-val");
 
-        // Verify no batch transfers were attempted
-        verify(fineractClient, never()).executeBatchTransfers(anyList());
+        // Verify no batch was attempted
+        verify(fineractClient, never()).executeAtomicBatch(anyList());
     }
 
     // -------------------------------------------------------------------------
@@ -551,8 +557,8 @@ class TradingServiceTest {
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
 
-        // Batch transfers
-        when(fineractClient.executeBatchTransfers(anyList())).thenReturn(List.of());
+        // Atomic batch succeeds
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
 
         // Portfolio update returns realized P&L
         BigDecimal realizedPnl = new BigDecimal("-7");
@@ -577,32 +583,37 @@ class TradingServiceTest {
         assertEquals(spreadAmount, response.spreadAmount());
         assertEquals(realizedPnl, response.realizedPnl());
 
-        // Verify batch transfers
-        verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
-        List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        // Should have 3 legs: asset, cash, spread (fee is separate withdrawal + journal entry)
-        assertEquals(3, transfers.size());
+        // Verify atomic batch with all legs in one batch
+        verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
+        List<BatchOperation> ops = batchOpsCaptor.getValue();
+        // Should have 5 legs: asset return, cash credit, spread sweep, fee withdrawal, fee journal
+        assertEquals(5, ops.size());
 
         // Leg 1: Asset return: user asset -> treasury asset
-        assertEquals(USER_ASSET_ACCOUNT, transfers.get(0).fromAccountId());
-        assertEquals(TREASURY_ASSET_ACCOUNT, transfers.get(0).toAccountId());
-        assertEquals(new BigDecimal("5"), transfers.get(0).amount());
+        assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, TREASURY_ASSET_ACCOUNT, new BigDecimal("5"));
 
         // Leg 2: Cash credit: treasury XAF -> user XAF (gross proceeds)
-        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(1).fromAccountId());
-        assertEquals(USER_CASH_ACCOUNT, transfers.get(1).toAccountId());
-        assertEquals(grossAmount, transfers.get(1).amount());
+        assertTransferOp(ops.get(1), TREASURY_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount);
 
         // Leg 3: Spread sweep: treasury XAF -> spread collection (internal)
-        assertEquals(TREASURY_CASH_ACCOUNT, transfers.get(2).fromAccountId());
-        assertEquals(SPREAD_COLLECTION_ACCOUNT, transfers.get(2).toAccountId());
-        assertEquals(spreadAmount, transfers.get(2).amount());
+        assertTransferOp(ops.get(2), TREASURY_CASH_ACCOUNT, SPREAD_COLLECTION_ACCOUNT, spreadAmount);
 
-        // Fee leg: withdrawal from user savings + journal entry to GL
-        verify(fineractClient).withdrawFromSavingsAccount(USER_CASH_ACCOUNT, fee,
-                "Trading fee: SELL TST");
-        verify(fineractClient).createJournalEntry(FUND_SOURCE_GL_ID, FEE_INCOME_GL_ID,
-                fee, "XAF", "Trading fee: SELL TST");
+        // Leg 4: Fee withdrawal from user savings
+        assertInstanceOf(BatchWithdrawalOp.class, ops.get(3));
+        BatchWithdrawalOp withdrawal = (BatchWithdrawalOp) ops.get(3);
+        assertEquals(USER_CASH_ACCOUNT, withdrawal.savingsAccountId());
+        assertEquals(fee, withdrawal.amount());
+
+        // Leg 5: Fee journal entry
+        assertInstanceOf(BatchJournalEntryOp.class, ops.get(4));
+        BatchJournalEntryOp journal = (BatchJournalEntryOp) ops.get(4);
+        assertEquals(FUND_SOURCE_GL_ID, journal.debitGlAccountId());
+        assertEquals(FEE_INCOME_GL_ID, journal.creditGlAccountId());
+        assertEquals(fee, journal.amount());
+
+        // Verify no separate fee calls
+        verify(fineractClient, never()).withdrawFromSavingsAccount(anyLong(), any(), anyString());
+        verify(fineractClient, never()).createJournalEntry(anyLong(), anyLong(), any(), anyString(), anyString());
 
         // Verify circulating supply decreased
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, new BigDecimal("5").negate());
@@ -652,7 +663,7 @@ class TradingServiceTest {
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
         when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT)).thenReturn(new BigDecimal("50000"));
-        when(fineractClient.executeBatchTransfers(anyList())).thenReturn(List.of());
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
         when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("10"))).thenReturn(1);
 
         // Act
@@ -662,10 +673,14 @@ class TradingServiceTest {
         assertEquals(basePrice, response.pricePerUnit());
         assertEquals(BigDecimal.ZERO, response.spreadAmount());
 
-        // Assert: only 2 batch legs (no spread leg; fee is separate withdrawal + journal entry)
-        verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
-        List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        assertEquals(2, transfers.size()); // cash, asset — no spread (fee is separate)
+        // Assert: 4 batch ops (cash, asset, fee withdrawal, fee journal — no spread)
+        verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
+        List<BatchOperation> ops = batchOpsCaptor.getValue();
+        assertEquals(4, ops.size());
+        assertInstanceOf(BatchTransferOp.class, ops.get(0)); // cash
+        assertInstanceOf(BatchTransferOp.class, ops.get(1)); // asset
+        assertInstanceOf(BatchWithdrawalOp.class, ops.get(2)); // fee withdrawal
+        assertInstanceOf(BatchJournalEntryOp.class, ops.get(3)); // fee journal
     }
 
     @Test
@@ -705,7 +720,7 @@ class TradingServiceTest {
 
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
-        when(fineractClient.executeBatchTransfers(anyList())).thenReturn(List.of());
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
         when(portfolioService.updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID),
                 eq(new BigDecimal("5")), eq(netProceedsPerUnit))).thenReturn(BigDecimal.ZERO);
         when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("5").negate())).thenReturn(1);
@@ -717,10 +732,14 @@ class TradingServiceTest {
         assertEquals(basePrice, response.pricePerUnit());
         assertEquals(BigDecimal.ZERO, response.spreadAmount());
 
-        // Assert: only 2 batch legs (asset, cash — no spread; fee is separate)
-        verify(fineractClient).executeBatchTransfers(transfersCaptor.capture());
-        List<BatchTransferRequest> transfers = transfersCaptor.getValue();
-        assertEquals(2, transfers.size());
+        // Assert: 4 batch ops (asset, cash, fee withdrawal, fee journal — no spread)
+        verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
+        List<BatchOperation> ops = batchOpsCaptor.getValue();
+        assertEquals(4, ops.size());
+        assertInstanceOf(BatchTransferOp.class, ops.get(0)); // asset return
+        assertInstanceOf(BatchTransferOp.class, ops.get(1)); // cash credit
+        assertInstanceOf(BatchWithdrawalOp.class, ops.get(2)); // fee withdrawal
+        assertInstanceOf(BatchJournalEntryOp.class, ops.get(3)); // fee journal
     }
 
     @Test
@@ -763,7 +782,7 @@ class TradingServiceTest {
 
         // Verify no lock was acquired (check happens before lock)
         verifyNoInteractions(tradeLockService);
-        verify(fineractClient, never()).executeBatchTransfers(anyList());
+        verify(fineractClient, never()).executeAtomicBatch(anyList());
     }
 
     // -------------------------------------------------------------------------
@@ -789,6 +808,66 @@ class TradingServiceTest {
 
         verifyNoInteractions(tradeLockService);
         verify(pricingService, never()).getCurrentPrice(anyString());
-        verify(fineractClient, never()).executeBatchTransfers(anyList());
+        verify(fineractClient, never()).executeAtomicBatch(anyList());
+    }
+
+    // -------------------------------------------------------------------------
+    // Zero fee test
+    // -------------------------------------------------------------------------
+
+    @Test
+    void executeBuy_zeroFee_noFeeLegsInBatch() {
+        // Arrange: asset with no trading fee
+        activeAsset.setTradingFeePercent(BigDecimal.ZERO);
+        BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
+        BigDecimal basePrice = new BigDecimal("100");
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        doNothing().when(marketHoursService).assertMarketOpen();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(pricingService.getCurrentPrice(ASSET_ID))
+                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null));
+
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+        when(userPositionRepository.findByUserIdAndAssetId(USER_ID, ASSET_ID))
+                .thenReturn(Optional.of(UserPosition.builder()
+                        .userId(USER_ID).assetId(ASSET_ID)
+                        .fineractSavingsAccountId(USER_ASSET_ACCOUNT)
+                        .totalUnits(BigDecimal.ZERO).avgPurchasePrice(BigDecimal.ZERO)
+                        .totalCostBasis(BigDecimal.ZERO).realizedPnl(BigDecimal.ZERO)
+                        .lastTradeAt(Instant.now()).build()));
+
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
+        when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT)).thenReturn(new BigDecimal("50000"));
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
+        when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("10"))).thenReturn(1);
+
+        // Act
+        TradeResponse response = tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY);
+
+        // Assert: no fee
+        assertEquals(BigDecimal.ZERO, response.fee());
+
+        // Assert: only 3 batch ops (cash, spread, asset — no fee legs)
+        verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
+        List<BatchOperation> ops = batchOpsCaptor.getValue();
+        assertEquals(3, ops.size());
+        // All should be transfer ops (no withdrawal or journal entry)
+        ops.forEach(op -> assertInstanceOf(BatchTransferOp.class, op));
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    private void assertTransferOp(BatchOperation op, Long expectedFrom, Long expectedTo, BigDecimal expectedAmount) {
+        assertInstanceOf(BatchTransferOp.class, op);
+        BatchTransferOp transfer = (BatchTransferOp) op;
+        assertEquals(expectedFrom, transfer.fromAccountId());
+        assertEquals(expectedTo, transfer.toAccountId());
+        assertEquals(expectedAmount, transfer.amount());
     }
 }

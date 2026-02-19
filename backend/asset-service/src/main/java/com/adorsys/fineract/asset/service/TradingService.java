@@ -1,7 +1,7 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
-import com.adorsys.fineract.asset.client.FineractClient.BatchTransferRequest;
+import com.adorsys.fineract.asset.client.FineractClient.*;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
@@ -18,6 +18,10 @@ import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
+import com.adorsys.fineract.asset.service.trade.BuyStrategy;
+import com.adorsys.fineract.asset.service.trade.SellStrategy;
+import com.adorsys.fineract.asset.service.trade.TradeContext;
+import com.adorsys.fineract.asset.service.trade.TradeStrategy;
 import com.adorsys.fineract.asset.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,19 +74,52 @@ public class TradingService {
 
     /**
      * Execute a BUY order. User identity and accounts are resolved from the JWT.
-     * Uses Fineract Batch API for atomic transfers.
      */
     @Transactional(timeout = 30)
     public TradeResponse executeBuy(BuyRequest request, Jwt jwt, String idempotencyKey) {
+        TradeContext ctx = TradeContext.builder()
+                .assetId(request.assetId())
+                .units(request.units())
+                .idempotencyKey(idempotencyKey)
+                .jwt(jwt)
+                .strategy(BuyStrategy.INSTANCE)
+                .build();
+        return executeTrade(ctx);
+    }
+
+    /**
+     * Execute a SELL order. User identity and accounts are resolved from the JWT.
+     */
+    @Transactional(timeout = 30)
+    public TradeResponse executeSell(SellRequest request, Jwt jwt, String idempotencyKey) {
+        TradeContext ctx = TradeContext.builder()
+                .assetId(request.assetId())
+                .units(request.units())
+                .idempotencyKey(idempotencyKey)
+                .jwt(jwt)
+                .strategy(SellStrategy.INSTANCE)
+                .build();
+        return executeTrade(ctx);
+    }
+
+    /**
+     * Unified trade execution flow shared by BUY and SELL.
+     * Side-specific behavior is handled via {@link TradeStrategy}.
+     */
+    private TradeResponse executeTrade(TradeContext ctx) {
+        TradeStrategy strategy = ctx.getStrategy();
+        TradeSide side = strategy.side();
+        BigDecimal units = ctx.getUnits();
+
         // 1. Idempotency check — verify ownership to prevent privilege escalation
-        var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
+        var existingOrder = orderRepository.findByIdempotencyKey(ctx.getIdempotencyKey());
         if (existingOrder.isPresent()) {
             Order o = existingOrder.get();
-            String requestingExternalId = JwtUtils.extractExternalId(jwt);
+            String requestingExternalId = JwtUtils.extractExternalId(ctx.getJwt());
             if (!o.getUserExternalId().equals(requestingExternalId)) {
                 throw new TradingException("Idempotency key already used", "IDEMPOTENCY_KEY_CONFLICT");
             }
-            log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
+            log.info("Idempotency collision: key={}, returning existing orderId={}", ctx.getIdempotencyKey(), o.getId());
             return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
                     o.getExecutionPrice(), o.getCashAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
         }
@@ -91,48 +128,57 @@ public class TradingService {
         marketHoursService.assertMarketOpen();
 
         // 3. Load and validate asset
-        Asset asset = assetRepository.findById(request.assetId())
-                .orElseThrow(() -> new AssetException("Asset not found: " + request.assetId()));
+        Asset asset = assetRepository.findById(ctx.getAssetId())
+                .orElseThrow(() -> new AssetException("Asset not found: " + ctx.getAssetId()));
         if (asset.getStatus() != AssetStatus.ACTIVE) {
-            throw new TradingHaltedException(request.assetId());
+            throw new TradingHaltedException(ctx.getAssetId());
+        }
+        ctx.setAsset(asset);
+
+        // 3b. BUY only: Subscription period check
+        if (side == TradeSide.BUY) {
+            if (LocalDate.now().isBefore(asset.getSubscriptionStartDate())) {
+                assetMetrics.incrementSubscriptionExpiredRejections();
+                throw new TradingException("Subscription period has not started for this asset", "SUBSCRIPTION_NOT_STARTED");
+            }
+            if (!asset.getSubscriptionEndDate().isAfter(LocalDate.now())) {
+                assetMetrics.incrementSubscriptionExpiredRejections();
+                throw new TradingException("Subscription period has ended for this asset", "SUBSCRIPTION_ENDED");
+            }
         }
 
-        // 3b. Subscription period check — block BUY outside subscription window (holders can still SELL)
-        if (LocalDate.now().isBefore(asset.getSubscriptionStartDate())) {
-            assetMetrics.incrementSubscriptionExpiredRejections();
-            throw new TradingException("Subscription period has not started for this asset", "SUBSCRIPTION_NOT_STARTED");
-        }
-        if (!asset.getSubscriptionEndDate().isAfter(LocalDate.now())) {
-            assetMetrics.incrementSubscriptionExpiredRejections();
-            throw new TradingException("Subscription period has ended for this asset", "SUBSCRIPTION_ENDED");
-        }
-
-        // 4. Get execution price (current price + spread for buy side, if spread enabled)
-        CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
+        // 4. Get execution price (strategy applies spread in correct direction)
+        CurrentPriceResponse priceData = pricingService.getCurrentPrice(ctx.getAssetId());
         BigDecimal basePrice = priceData.currentPrice();
         BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
         BigDecimal effectiveSpread = isSpreadEnabled() ? spread : BigDecimal.ZERO;
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
-        BigDecimal executionPrice = basePrice.add(basePrice.multiply(effectiveSpread));
+        BigDecimal executionPrice = strategy.applySpread(basePrice, effectiveSpread);
 
-        // 5. Calculate cost
-        BigDecimal units = request.units();
-        BigDecimal actualCost = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = actualCost.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        ctx.setEffectiveSpread(effectiveSpread);
+        ctx.setFeePercent(feePercent);
+
+        // 5. Calculate amounts
+        BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
         BigDecimal spreadAmount = units.multiply(basePrice.multiply(effectiveSpread))
                 .setScale(0, RoundingMode.HALF_UP);
-        BigDecimal chargedAmount = actualCost.add(fee);
+        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee);
 
-        // 6. Verify sufficient inventory
-        BigDecimal availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
-        if (units.compareTo(availableSupply) > 0) {
-            throw new InsufficientInventoryException(request.assetId(), units, availableSupply);
+        // 6. BUY: verify sufficient inventory (SELL position check happens after user resolution)
+        if (side == TradeSide.BUY) {
+            BigDecimal availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
+            if (units.compareTo(availableSupply) > 0) {
+                throw new InsufficientInventoryException(ctx.getAssetId(), units, availableSupply);
+            }
         }
 
         // 7. Resolve user from JWT
-        String externalId = JwtUtils.extractExternalId(jwt);
+        String externalId = JwtUtils.extractExternalId(ctx.getJwt());
         Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
         Long userId = ((Number) clientData.get("id")).longValue();
+        ctx.setExternalId(externalId);
+        ctx.setUserId(userId);
 
         // 8. Resolve user cash account
         String currency = assetServiceConfig.getSettlementCurrency();
@@ -142,380 +188,167 @@ public class TradingService {
                     "No active " + currency + " account found. Please create one in the Account Manager.",
                     "NO_CASH_ACCOUNT");
         }
+        ctx.setUserCashAccountId(userCashAccountId);
 
-        // 9. Resolve or create user asset account
-        Long userAssetAccountId = resolveOrCreateUserAssetAccount(userId, request.assetId(), asset);
+        // 9. Resolve user asset account
+        Long userAssetAccountId;
+        if (side == TradeSide.BUY) {
+            userAssetAccountId = resolveOrCreateUserAssetAccount(userId, ctx.getAssetId(), asset);
+        } else {
+            UserPosition position = userPositionRepository.findByUserIdAndAssetId(userId, ctx.getAssetId())
+                    .orElseThrow(() -> new TradingException(
+                            "No position found for this asset. You must own units before selling.",
+                            "NO_POSITION"));
+            userAssetAccountId = position.getFineractSavingsAccountId();
 
-        // 10. Create order
-        String orderId = UUID.randomUUID().toString();
-        Order order = Order.builder()
-                .id(orderId)
-                .idempotencyKey(idempotencyKey)
-                .userId(userId)
-                .userExternalId(externalId)
-                .assetId(request.assetId())
-                .side(TradeSide.BUY)
-                .cashAmount(chargedAmount)
-                .units(units)
-                .executionPrice(executionPrice)
-                .fee(fee)
-                .spreadAmount(spreadAmount)
-                .status(OrderStatus.PENDING)
-                .build();
-        orderRepository.save(order);
-
-        // 11. Acquire distributed lock
-        String lockValue = tradeLockService.acquireTradeLock(userId, request.assetId()); 
-
-        try {
-            order.setStatus(OrderStatus.EXECUTING);
-            orderRepository.save(order);
-
-            // 12a. Re-verify inventory INSIDE the lock to prevent race condition
-            Asset lockedAsset = assetRepository.findById(request.assetId())
-                    .orElseThrow(() -> new AssetException("Asset not found: " + request.assetId()));
-            BigDecimal lockedAvailableSupply = lockedAsset.getTotalSupply().subtract(lockedAsset.getCirculatingSupply());
-            if (units.compareTo(lockedAvailableSupply) > 0) {
-                order.setStatus(OrderStatus.REJECTED);
-                order.setFailureReason("Insufficient inventory");
-                orderRepository.save(order);
-                throw new InsufficientInventoryException(request.assetId(), units, lockedAvailableSupply);
-            }
-
-            // 12a2. Validate treasury accounts are configured
-            if (lockedAsset.getTreasuryCashAccountId() == null || lockedAsset.getTreasuryAssetAccountId() == null) {
-                order.setStatus(OrderStatus.REJECTED);
-                order.setFailureReason("Asset treasury accounts not configured");
-                orderRepository.save(order);
+            // SELL: validate sufficient units before creating order
+            if (units.compareTo(position.getTotalUnits()) > 0) {
                 throw new TradingException(
-                        "Asset is not fully configured for trading. Contact admin.", "CONFIG_ERROR");
-            }
-
-            // 12b. Re-fetch authoritative price inside the lock to avoid stale pricing
-            CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(request.assetId());
-            BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
-            executionPrice = lockedBasePrice.add(lockedBasePrice.multiply(effectiveSpread));
-            actualCost = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-            fee = actualCost.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
-            spreadAmount = units.multiply(lockedBasePrice.multiply(effectiveSpread))
-                    .setScale(0, RoundingMode.HALF_UP);
-            chargedAmount = actualCost.add(fee);
-
-            // Update order with authoritative locked values
-            order.setExecutionPrice(executionPrice);
-            order.setCashAmount(chargedAmount);
-            order.setFee(fee);
-            order.setSpreadAmount(spreadAmount);
-            orderRepository.save(order);
-
-            // 12b2. Verify user has sufficient balance for the purchase
-            BigDecimal availableBalance = fineractClient.getAccountBalance(userCashAccountId);
-            if (availableBalance.compareTo(chargedAmount) < 0) {
-                order.setStatus(OrderStatus.REJECTED);
-                order.setFailureReason("Insufficient " + currency + " balance");
-                orderRepository.save(order);
-                throw new TradingException(
-                        "Insufficient " + currency + " balance. Required: " + chargedAmount + " " + currency + ", Available: " + availableBalance + " " + currency,
-                        "INSUFFICIENT_FUNDS");
-            }
-
-            // 12c. Record trade log BEFORE external call to ensure local state is consistent
-            TradeLog tradeLog = TradeLog.builder()
-                    .id(UUID.randomUUID().toString())
-                    .orderId(orderId)
-                    .userId(userId)
-                    .assetId(request.assetId())
-                    .side(TradeSide.BUY)
-                    .units(units)
-                    .pricePerUnit(executionPrice)
-                    .totalAmount(chargedAmount)
-                    .fee(fee)
-                    .spreadAmount(spreadAmount)
-                    .build();
-            tradeLogRepository.save(tradeLog);
-
-            // 12e. Update portfolio (WAP) — include fee in cost basis for accurate P&L
-            BigDecimal effectiveCostPerUnit = chargedAmount.divide(units, 4, RoundingMode.HALF_UP);
-            portfolioService.updatePositionAfterBuy(userId, request.assetId(),
-                    userAssetAccountId, units, effectiveCostPerUnit);
-
-            // 12f. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
-            int supplyUpdated = assetRepository.adjustCirculatingSupply(request.assetId(), units);
-            if (supplyUpdated == 0) {
-                order.setStatus(OrderStatus.REJECTED);
-                order.setFailureReason("Supply constraint violated");
-                orderRepository.save(order);
-                throw new TradingException("Insufficient available supply for this trade.", "SUPPLY_EXCEEDED");
-            }
-
-            // 12g. Update OHLC
-            pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
-
-            // 12h. Execute Fineract Batch API LAST — all local DB writes are done, so if this
-            // fails, @Transactional rolls back everything cleanly with no orphaned Fineract transfers.
-            List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
-            transfers.add(new BatchTransferRequest(
-                    userCashAccountId, lockedAsset.getTreasuryCashAccountId(),
-                    actualCost, "Asset purchase: " + lockedAsset.getSymbol()));
-            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
-                transfers.add(new BatchTransferRequest(
-                        lockedAsset.getTreasuryCashAccountId(),
-                        assetServiceConfig.getAccounting().getSpreadCollectionAccountId(),
-                        spreadAmount, "Spread: BUY " + lockedAsset.getSymbol()));
-            }
-            transfers.add(new BatchTransferRequest(
-                    lockedAsset.getTreasuryAssetAccountId(), userAssetAccountId,
-                    units, "Asset delivery: " + lockedAsset.getSymbol()));
-
-            try {
-                fineractClient.executeBatchTransfers(transfers);
-                // Fee leg: withdraw from user savings + post journal entry to GL fee income
-                if (fee.compareTo(BigDecimal.ZERO) > 0) {
-                    fineractClient.withdrawFromSavingsAccount(userCashAccountId, fee,
-                            "Trading fee: BUY " + lockedAsset.getSymbol());
-                    fineractClient.createJournalEntry(
-                            resolvedGlAccounts.getFundSourceId(),
-                            resolvedGlAccounts.getFeeIncomeId(),
-                            fee, currency,
-                            "Trading fee: BUY " + lockedAsset.getSymbol());
-                }
-            } catch (Exception batchError) {
-                log.error("Batch transfer failed for BUY order {}: {}", orderId, batchError.getMessage());
-                order.setStatus(OrderStatus.FAILED);
-                order.setFailureReason("Batch transfer failed: " + batchError.getMessage());
-                orderRepository.save(order);
-                throw new TradingException("Trade failed: " + batchError.getMessage(), "TRADE_FAILED");
-            }
-
-            // 13. Mark order as filled
-            order.setStatus(OrderStatus.FILLED);
-            orderRepository.save(order);
-
-            log.info("BUY executed: orderId={}, userId={}, asset={}, units={}, price={}, charged={}",
-                    orderId, userId, lockedAsset.getSymbol(), units, executionPrice, chargedAmount);
-
-            assetMetrics.recordBuy();
-            return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.BUY,
-                    units, executionPrice, chargedAmount, fee, spreadAmount, null, Instant.now());
-
-        } catch (TradingException e) {
-            assetMetrics.recordTradeFailure();
-            throw e;
-        } catch (Exception e) {
-            assetMetrics.recordTradeFailure();
-            log.error("Unexpected error during BUY order {}: {}", orderId, e.getMessage(), e);
-            throw new TradingException("Trade failed unexpectedly: " + e.getMessage(), "TRADE_FAILED");
-        } finally {
-            tradeLockService.releaseTradeLock(userId, request.assetId(), lockValue);
-        }
-    }
-
-    /**
-     * Execute a SELL order. User identity and accounts are resolved from the JWT.
-     * Uses Fineract Batch API for atomic transfers.
-     */
-    @Transactional(timeout = 30)
-    public TradeResponse executeSell(SellRequest request, Jwt jwt, String idempotencyKey) {
-        // 1. Idempotency check — verify ownership to prevent privilege escalation
-        var existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
-        if (existingOrder.isPresent()) {
-            Order o = existingOrder.get();
-            String requestingExternalId = JwtUtils.extractExternalId(jwt);
-            if (!o.getUserExternalId().equals(requestingExternalId)) {
-                throw new TradingException("Idempotency key already used", "IDEMPOTENCY_KEY_CONFLICT");
-            }
-            log.info("Idempotency collision: key={}, returning existing orderId={}", idempotencyKey, o.getId());
-            return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
-                    o.getExecutionPrice(), o.getCashAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
-        }
-
-        // 2. Market hours check
-        marketHoursService.assertMarketOpen();
-
-        // 3. Load and validate asset
-        Asset asset = assetRepository.findById(request.assetId())
-                .orElseThrow(() -> new AssetException("Asset not found: " + request.assetId()));
-        if (asset.getStatus() != AssetStatus.ACTIVE) {
-            throw new TradingHaltedException(request.assetId());
-        }
-
-        // 4. Get execution price (current price - spread for sell side, if spread enabled)
-        CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
-        BigDecimal basePrice = priceData.currentPrice();
-        BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
-        BigDecimal effectiveSpread = isSpreadEnabled() ? spread : BigDecimal.ZERO;
-        BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
-        BigDecimal executionPrice = basePrice.subtract(basePrice.multiply(effectiveSpread));
-
-        // 5. Calculate cash amount and fee
-        BigDecimal units = request.units();
-        BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal spreadAmount = units.multiply(basePrice.multiply(effectiveSpread))
-                .setScale(0, RoundingMode.HALF_UP);
-        BigDecimal netAmount = grossAmount.subtract(fee);
-
-        // 6. Resolve user from JWT
-        String externalId = JwtUtils.extractExternalId(jwt);
-        Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
-        Long userId = ((Number) clientData.get("id")).longValue();
-
-        // 7. Resolve user cash account
-        String currency = assetServiceConfig.getSettlementCurrency();
-        Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, currency);
-        if (userCashAccountId == null) {
-            throw new TradingException(
-                    "No active " + currency + " account found. Please create one in the Account Manager.",
-                    "NO_CASH_ACCOUNT");
-        }
-
-        // 8. Resolve user asset account from existing position
-        UserPosition position = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId())
-                .orElseThrow(() -> new TradingException(
-                        "No position found for this asset. You must own units before selling.",
-                        "NO_POSITION"));
-        Long userAssetAccountId = position.getFineractSavingsAccountId();
-
-        // 9. Validate sufficient units
-        if (units.compareTo(position.getTotalUnits()) > 0) {
-            throw new TradingException(
-                    "Insufficient units. You hold " + position.getTotalUnits() + " but tried to sell " + units,
-                    "INSUFFICIENT_UNITS");
-        }
-
-        // 10. Create order
-        String orderId = UUID.randomUUID().toString();
-        Order order = Order.builder()
-                .id(orderId)
-                .idempotencyKey(idempotencyKey)
-                .userId(userId)
-                .userExternalId(externalId)
-                .assetId(request.assetId())
-                .side(TradeSide.SELL)
-                .cashAmount(netAmount)
-                .units(units)
-                .executionPrice(executionPrice)
-                .fee(fee)
-                .spreadAmount(spreadAmount)
-                .status(OrderStatus.PENDING)
-                .build();
-        orderRepository.save(order);
-
-        // 11. Acquire distributed lock
-        String lockValue = tradeLockService.acquireTradeLock(userId, request.assetId());
-
-        try {
-            order.setStatus(OrderStatus.EXECUTING);
-            orderRepository.save(order);
-
-            // 12a. Re-fetch asset INSIDE the lock to prevent stale treasury account IDs
-            Asset lockedAsset = assetRepository.findById(request.assetId())
-                    .orElseThrow(() -> new AssetException("Asset not found: " + request.assetId()));
-
-            // 12a2. Validate treasury accounts are configured
-            if (lockedAsset.getTreasuryCashAccountId() == null || lockedAsset.getTreasuryAssetAccountId() == null) {
-                order.setStatus(OrderStatus.REJECTED);
-                order.setFailureReason("Asset treasury accounts not configured");
-                orderRepository.save(order);
-                throw new TradingException(
-                        "Asset is not fully configured for trading. Contact admin.", "CONFIG_ERROR");
-            }
-
-            // 12b. Re-verify position INSIDE the lock to prevent race condition on concurrent sells
-            UserPosition lockedPosition = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId())
-                    .orElseThrow(() -> new TradingException("No position found (concurrent sell detected)", "NO_POSITION"));
-            if (units.compareTo(lockedPosition.getTotalUnits()) > 0) {
-                order.setStatus(OrderStatus.REJECTED);
-                order.setFailureReason("Insufficient units after lock");
-                orderRepository.save(order);
-                throw new TradingException(
-                        "Insufficient units. You hold " + lockedPosition.getTotalUnits() + " but tried to sell " + units,
+                        "Insufficient units. You hold " + position.getTotalUnits() + " but tried to sell " + units,
                         "INSUFFICIENT_UNITS");
+            }
+        }
+        ctx.setUserAssetAccountId(userAssetAccountId);
+
+        // 10. Create order
+        String orderId = UUID.randomUUID().toString();
+        ctx.setOrderId(orderId);
+        Order order = Order.builder()
+                .id(orderId)
+                .idempotencyKey(ctx.getIdempotencyKey())
+                .userId(userId)
+                .userExternalId(externalId)
+                .assetId(ctx.getAssetId())
+                .side(side)
+                .cashAmount(orderCashAmount)
+                .units(units)
+                .executionPrice(executionPrice)
+                .fee(fee)
+                .spreadAmount(spreadAmount)
+                .status(OrderStatus.PENDING)
+                .build();
+        orderRepository.save(order);
+        ctx.setOrder(order);
+
+        // 11. Acquire distributed lock
+        String lockValue = tradeLockService.acquireTradeLock(userId, ctx.getAssetId());
+        ctx.setLockValue(lockValue);
+
+        try {
+            order.setStatus(OrderStatus.EXECUTING);
+            orderRepository.save(order);
+
+            // 12a. Re-fetch asset INSIDE the lock
+            Asset lockedAsset = assetRepository.findById(ctx.getAssetId())
+                    .orElseThrow(() -> new AssetException("Asset not found: " + ctx.getAssetId()));
+
+            // 12a2. Validate treasury accounts are configured
+            if (lockedAsset.getTreasuryCashAccountId() == null || lockedAsset.getTreasuryAssetAccountId() == null) {
+                rejectOrder(order, "Asset treasury accounts not configured");
+                throw new TradingException(
+                        "Asset is not fully configured for trading. Contact admin.", "CONFIG_ERROR");
+            }
+
+            // 12b. Side-specific re-verification inside the lock
+            if (side == TradeSide.BUY) {
+                BigDecimal lockedAvailableSupply = lockedAsset.getTotalSupply().subtract(lockedAsset.getCirculatingSupply());
+                if (units.compareTo(lockedAvailableSupply) > 0) {
+                    rejectOrder(order, "Insufficient inventory");
+                    throw new InsufficientInventoryException(ctx.getAssetId(), units, lockedAvailableSupply);
+                }
+            } else {
+                UserPosition lockedPosition = userPositionRepository.findByUserIdAndAssetId(userId, ctx.getAssetId())
+                        .orElseThrow(() -> new TradingException("No position found (concurrent sell detected)", "NO_POSITION"));
+                if (units.compareTo(lockedPosition.getTotalUnits()) > 0) {
+                    rejectOrder(order, "Insufficient units after lock");
+                    throw new TradingException(
+                            "Insufficient units. You hold " + lockedPosition.getTotalUnits() + " but tried to sell " + units,
+                            "INSUFFICIENT_UNITS");
+                }
             }
 
             // 12c. Re-fetch authoritative price inside the lock to avoid stale pricing
-            CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(request.assetId());
+            CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(ctx.getAssetId());
             BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
-            executionPrice = lockedBasePrice.subtract(lockedBasePrice.multiply(effectiveSpread));
+            executionPrice = strategy.applySpread(lockedBasePrice, effectiveSpread);
             grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
             fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
             spreadAmount = units.multiply(lockedBasePrice.multiply(effectiveSpread))
                     .setScale(0, RoundingMode.HALF_UP);
-            netAmount = grossAmount.subtract(fee);
+            orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee);
 
             // Update order with authoritative locked values
             order.setExecutionPrice(executionPrice);
-            order.setCashAmount(netAmount);
+            order.setCashAmount(orderCashAmount);
             order.setFee(fee);
             order.setSpreadAmount(spreadAmount);
             orderRepository.save(order);
 
-            // 12d. Calculate realized P&L and update local DB BEFORE external call
-            BigDecimal netProceedsPerUnit = netAmount.divide(units, 4, RoundingMode.HALF_UP);
-            BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    userId, request.assetId(), units, netProceedsPerUnit);
+            // 12d. BUY: verify user has sufficient balance
+            if (side == TradeSide.BUY) {
+                BigDecimal availableBalance = fineractClient.getAccountBalance(userCashAccountId);
+                if (availableBalance.compareTo(orderCashAmount) < 0) {
+                    rejectOrder(order, "Insufficient " + currency + " balance");
+                    throw new TradingException(
+                            "Insufficient " + currency + " balance. Required: " + orderCashAmount + " " + currency + ", Available: " + availableBalance + " " + currency,
+                            "INSUFFICIENT_FUNDS");
+                }
+            }
+
+            // 12e. Update portfolio
+            BigDecimal realizedPnl = null;
+            if (side == TradeSide.BUY) {
+                BigDecimal effectiveCostPerUnit = orderCashAmount.divide(units, 4, RoundingMode.HALF_UP);
+                portfolioService.updatePositionAfterBuy(userId, ctx.getAssetId(),
+                        userAssetAccountId, units, effectiveCostPerUnit);
+            } else {
+                BigDecimal netProceedsPerUnit = orderCashAmount.divide(units, 4, RoundingMode.HALF_UP);
+                realizedPnl = portfolioService.updatePositionAfterSell(
+                        userId, ctx.getAssetId(), units, netProceedsPerUnit);
+            }
 
             // 12f. Record trade log
             TradeLog tradeLog = TradeLog.builder()
                     .id(UUID.randomUUID().toString())
                     .orderId(orderId)
                     .userId(userId)
-                    .assetId(request.assetId())
-                    .side(TradeSide.SELL)
+                    .assetId(ctx.getAssetId())
+                    .side(side)
                     .units(units)
                     .pricePerUnit(executionPrice)
-                    .totalAmount(netAmount)
+                    .totalAmount(orderCashAmount)
                     .fee(fee)
                     .spreadAmount(spreadAmount)
                     .realizedPnl(realizedPnl)
                     .build();
             tradeLogRepository.save(tradeLog);
 
-            // 12g. Update circulating supply (atomic SQL to prevent lost updates from concurrent trades)
-            int supplyUpdated = assetRepository.adjustCirculatingSupply(request.assetId(), units.negate());
+            // 12g. Update circulating supply (atomic SQL)
+            BigDecimal supplyDelta = strategy.supplyAdjustment(units);
+            int supplyUpdated = assetRepository.adjustCirculatingSupply(ctx.getAssetId(), supplyDelta);
             if (supplyUpdated == 0) {
-                order.setStatus(OrderStatus.REJECTED);
-                order.setFailureReason("Supply constraint violated during sell");
-                orderRepository.save(order);
-                throw new TradingException("Supply constraint violated during sell.", "SUPPLY_ERROR");
+                String reason = side == TradeSide.BUY ? "Supply constraint violated" : "Supply constraint violated during sell";
+                String errorCode = side == TradeSide.BUY ? "SUPPLY_EXCEEDED" : "SUPPLY_ERROR";
+                rejectOrder(order, reason);
+                throw new TradingException(
+                        side == TradeSide.BUY ? "Insufficient available supply for this trade." : "Supply constraint violated during sell.",
+                        errorCode);
             }
 
             // 12h. Update OHLC
-            pricingService.updateOhlcAfterTrade(request.assetId(), executionPrice);
+            pricingService.updateOhlcAfterTrade(ctx.getAssetId(), executionPrice);
 
             // 12i. Execute Fineract Batch API LAST — all local DB writes are done, so if this
             // fails, @Transactional rolls back everything cleanly with no orphaned Fineract transfers.
-            List<BatchTransferRequest> transfers = new java.util.ArrayList<>();
-            // Leg 1: Return asset units to treasury
-            transfers.add(new BatchTransferRequest(
-                    userAssetAccountId, lockedAsset.getTreasuryAssetAccountId(),
-                    units, "Asset sell: " + lockedAsset.getSymbol()));
-            // Leg 2: Pay user gross proceeds (fee deducted separately via withdrawal + journal entry)
-            transfers.add(new BatchTransferRequest(
-                    lockedAsset.getTreasuryCashAccountId(), userCashAccountId,
-                    grossAmount, "Asset sale proceeds: " + lockedAsset.getSymbol()));
-            // Leg 3: Sweep spread from treasury to spread collection account (internal)
-            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
-                transfers.add(new BatchTransferRequest(
-                        lockedAsset.getTreasuryCashAccountId(),
-                        assetServiceConfig.getAccounting().getSpreadCollectionAccountId(),
-                        spreadAmount, "Spread: SELL " + lockedAsset.getSymbol()));
-            }
+            // All operations (transfers + fee) are included in a single atomic batch.
+            List<BatchOperation> batchOps = buildBatchOperations(
+                    side, lockedAsset, userCashAccountId, userAssetAccountId,
+                    grossAmount, units, fee, spreadAmount, currency);
 
             try {
-                fineractClient.executeBatchTransfers(transfers);
-                // Fee leg: withdraw from user savings + post journal entry to GL fee income
-                if (fee.compareTo(BigDecimal.ZERO) > 0) {
-                    fineractClient.withdrawFromSavingsAccount(userCashAccountId, fee,
-                            "Trading fee: SELL " + lockedAsset.getSymbol());
-                    fineractClient.createJournalEntry(
-                            resolvedGlAccounts.getFundSourceId(),
-                            resolvedGlAccounts.getFeeIncomeId(),
-                            fee, currency,
-                            "Trading fee: SELL " + lockedAsset.getSymbol());
-                }
+                fineractClient.executeAtomicBatch(batchOps);
             } catch (Exception batchError) {
-                log.error("Batch transfer failed for SELL order {}: {}", orderId, batchError.getMessage());
+                log.error("Batch transfer failed for {} order {}: {}", side, orderId, batchError.getMessage());
                 order.setStatus(OrderStatus.FAILED);
                 order.setFailureReason("Batch transfer failed: " + batchError.getMessage());
                 orderRepository.save(order);
@@ -526,23 +359,96 @@ public class TradingService {
             order.setStatus(OrderStatus.FILLED);
             orderRepository.save(order);
 
-            log.info("SELL executed: orderId={}, userId={}, asset={}, units={}, price={}, pnl={}",
-                    orderId, userId, lockedAsset.getSymbol(), units, executionPrice, realizedPnl);
+            if (side == TradeSide.BUY) {
+                log.info("BUY executed: orderId={}, userId={}, asset={}, units={}, price={}, charged={}",
+                        orderId, userId, lockedAsset.getSymbol(), units, executionPrice, orderCashAmount);
+                assetMetrics.recordBuy();
+            } else {
+                log.info("SELL executed: orderId={}, userId={}, asset={}, units={}, price={}, pnl={}",
+                        orderId, userId, lockedAsset.getSymbol(), units, executionPrice, realizedPnl);
+                assetMetrics.recordSell();
+            }
 
-            assetMetrics.recordSell();
-            return new TradeResponse(orderId, OrderStatus.FILLED, TradeSide.SELL,
-                    units, executionPrice, netAmount, fee, spreadAmount, realizedPnl, Instant.now());
+            return new TradeResponse(orderId, OrderStatus.FILLED, side,
+                    units, executionPrice, orderCashAmount, fee, spreadAmount, realizedPnl, Instant.now());
 
         } catch (TradingException e) {
             assetMetrics.recordTradeFailure();
             throw e;
         } catch (Exception e) {
             assetMetrics.recordTradeFailure();
-            log.error("Unexpected error during SELL order {}: {}", orderId, e.getMessage(), e);
+            log.error("Unexpected error during {} order {}: {}", side, orderId, e.getMessage(), e);
             throw new TradingException("Trade failed unexpectedly: " + e.getMessage(), "TRADE_FAILED");
         } finally {
-            tradeLockService.releaseTradeLock(userId, request.assetId(), lockValue);
+            tradeLockService.releaseTradeLock(userId, ctx.getAssetId(), lockValue);
         }
+    }
+
+    /**
+     * Build the atomic batch operations for a trade. Includes transfers, spread sweep,
+     * fee withdrawal, and fee journal entry — all in one atomic Fineract batch.
+     */
+    private List<BatchOperation> buildBatchOperations(
+            TradeSide side, Asset asset,
+            Long userCashAccountId, Long userAssetAccountId,
+            BigDecimal grossAmount, BigDecimal units, BigDecimal fee,
+            BigDecimal spreadAmount, String currency) {
+
+        List<BatchOperation> ops = new ArrayList<>();
+
+        if (side == TradeSide.BUY) {
+            // Cash leg: user XAF -> treasury XAF
+            ops.add(new BatchTransferOp(
+                    userCashAccountId, asset.getTreasuryCashAccountId(),
+                    grossAmount, "Asset purchase: " + asset.getSymbol()));
+            // Spread leg (if applicable)
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchTransferOp(
+                        asset.getTreasuryCashAccountId(),
+                        assetServiceConfig.getAccounting().getSpreadCollectionAccountId(),
+                        spreadAmount, "Spread: BUY " + asset.getSymbol()));
+            }
+            // Asset leg: treasury asset -> user asset
+            ops.add(new BatchTransferOp(
+                    asset.getTreasuryAssetAccountId(), userAssetAccountId,
+                    units, "Asset delivery: " + asset.getSymbol()));
+        } else {
+            // Asset return: user asset -> treasury asset
+            ops.add(new BatchTransferOp(
+                    userAssetAccountId, asset.getTreasuryAssetAccountId(),
+                    units, "Asset sell: " + asset.getSymbol()));
+            // Cash credit: treasury XAF -> user XAF (gross proceeds)
+            ops.add(new BatchTransferOp(
+                    asset.getTreasuryCashAccountId(), userCashAccountId,
+                    grossAmount, "Asset sale proceeds: " + asset.getSymbol()));
+            // Spread sweep (if applicable)
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchTransferOp(
+                        asset.getTreasuryCashAccountId(),
+                        assetServiceConfig.getAccounting().getSpreadCollectionAccountId(),
+                        spreadAmount, "Spread: SELL " + asset.getSymbol()));
+            }
+        }
+
+        // Fee legs (both BUY and SELL): withdrawal + journal entry in the same atomic batch
+        if (fee.compareTo(BigDecimal.ZERO) > 0) {
+            ops.add(new BatchWithdrawalOp(
+                    userCashAccountId, fee,
+                    "Trading fee: " + side + " " + asset.getSymbol()));
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getFundSourceId(),
+                    resolvedGlAccounts.getFeeIncomeId(),
+                    fee, currency,
+                    "Trading fee: " + side + " " + asset.getSymbol()));
+        }
+
+        return ops;
+    }
+
+    private void rejectOrder(Order order, String reason) {
+        order.setStatus(OrderStatus.REJECTED);
+        order.setFailureReason(reason);
+        orderRepository.save(order);
     }
 
     /**
@@ -576,28 +482,23 @@ public class TradingService {
             }
         }
 
-        // 3. Price calculation (same logic as executeBuy/executeSell)
+        // 3. Price calculation
         CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
         BigDecimal basePrice = priceData.currentPrice();
         BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
         BigDecimal effectiveSpread = isSpreadEnabled() ? spread : BigDecimal.ZERO;
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
 
-        BigDecimal executionPrice;
-        if (request.side() == TradeSide.BUY) {
-            executionPrice = basePrice.add(basePrice.multiply(effectiveSpread));
-        } else {
-            executionPrice = basePrice.subtract(basePrice.multiply(effectiveSpread));
-        }
+        TradeStrategy previewStrategy = request.side() == TradeSide.BUY
+                ? BuyStrategy.INSTANCE : SellStrategy.INSTANCE;
+        BigDecimal executionPrice = previewStrategy.applySpread(basePrice, effectiveSpread);
 
         BigDecimal units = request.units();
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
         BigDecimal spreadAmount = units.multiply(basePrice.multiply(effectiveSpread))
                 .setScale(0, RoundingMode.HALF_UP);
-        BigDecimal netAmount = request.side() == TradeSide.BUY
-                ? grossAmount.add(fee)
-                : grossAmount.subtract(fee);
+        BigDecimal netAmount = previewStrategy.computeOrderCashAmount(grossAmount, fee);
 
         // 4. Resolve user and check balances (soft-fail)
         BigDecimal availableBalance = null;
@@ -668,22 +569,18 @@ public class TradingService {
 
     /**
      * Resolve or create the user's Fineract savings account for the given asset.
-     * Checks UserPosition first; if no account exists, creates one in Fineract (approve + activate).
      */
     private Long resolveOrCreateUserAssetAccount(Long userId, String assetId, Asset asset) {
-        // Check if user already has a position with a Fineract account
         var existingPosition = userPositionRepository.findByUserIdAndAssetId(userId, assetId);
         if (existingPosition.isPresent()) {
             return existingPosition.get().getFineractSavingsAccountId();
         }
 
-        // Check if user already has an active savings account for this asset currency
         Long existingAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, asset.getCurrencyCode());
         if (existingAccountId != null) {
             return existingAccountId;
         }
 
-        // Atomically create, approve, and activate via Fineract Batch API
         log.info("Provisioning asset account for user {} and asset {} (product {})",
                 userId, assetId, asset.getFineractProductId());
         Long accountId = fineractClient.provisionSavingsAccount(
@@ -738,9 +635,6 @@ public class TradingService {
         );
     }
 
-    /**
-     * Check if spread is enabled (spread collection account configured).
-     */
     private boolean isSpreadEnabled() {
         Long id = assetServiceConfig.getAccounting().getSpreadCollectionAccountId();
         return id != null && id > 0;

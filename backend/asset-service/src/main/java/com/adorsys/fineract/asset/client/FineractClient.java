@@ -48,8 +48,38 @@ public class FineractClient {
     }
 
     /**
-     * Transfer request for the Fineract Batch API.
+     * Sealed interface for operations that can be included in an atomic Fineract batch.
      */
+    public sealed interface BatchOperation permits BatchTransferOp, BatchWithdrawalOp, BatchJournalEntryOp {}
+
+    /**
+     * Account transfer between two savings accounts.
+     */
+    public record BatchTransferOp(
+            Long fromAccountId, Long toAccountId,
+            BigDecimal amount, String description
+    ) implements BatchOperation {}
+
+    /**
+     * Withdrawal from a savings account (e.g. fee deduction).
+     */
+    public record BatchWithdrawalOp(
+            Long savingsAccountId, BigDecimal amount, String note
+    ) implements BatchOperation {}
+
+    /**
+     * Journal entry (debit + credit) posted directly to GL accounts.
+     */
+    public record BatchJournalEntryOp(
+            Long debitGlAccountId, Long creditGlAccountId,
+            BigDecimal amount, String currencyCode, String comments
+    ) implements BatchOperation {}
+
+    /**
+     * Legacy transfer request. Delegates to {@link BatchTransferOp}.
+     * @deprecated Use {@link BatchTransferOp} with {@link #executeAtomicBatch} instead.
+     */
+    @Deprecated
     public record BatchTransferRequest(
             Long fromAccountId, Long toAccountId,
             BigDecimal amount, String description
@@ -785,34 +815,140 @@ public class FineractClient {
     }
 
     /**
-     * Execute multiple account transfers sequentially.
-     * Each transfer is executed via the direct /accounttransfers endpoint.
+     * Execute multiple account transfers via Fineract Batch API atomically.
      *
      * @param transfers List of transfers to execute
-     * @return List of transfer IDs
-     * @throws AssetException if any transfer fails
+     * @return List of batch response items
+     * @throws AssetException if the batch fails
+     * @deprecated Use {@link #executeAtomicBatch(List)} with {@link BatchOperation} types instead.
      */
+    @Deprecated
     @CircuitBreaker(name = "fineract")
     public List<Map<String, Object>> executeBatchTransfers(List<BatchTransferRequest> transfers) {
-        List<Map<String, Object>> results = new ArrayList<>();
-        for (int i = 0; i < transfers.size(); i++) {
-            BatchTransferRequest t = transfers.get(i);
-            try {
-                Long transferId = createAccountTransfer(
-                        t.fromAccountId(), t.toAccountId(), t.amount(), t.description());
-                Map<String, Object> result = new HashMap<>();
-                result.put("requestId", (long) (i + 1));
-                result.put("statusCode", 200);
-                result.put("resourceId", transferId);
-                results.add(result);
-            } catch (Exception e) {
-                log.error("Transfer {} failed: from={}, to={}, amount={}, error={}",
-                        i + 1, t.fromAccountId(), t.toAccountId(), t.amount(), e.getMessage());
-                throw new AssetException("Transfer failed (leg " + (i + 1) + "): " + e.getMessage(), e);
-            }
+        List<BatchOperation> ops = transfers.stream()
+                .<BatchOperation>map(t -> new BatchTransferOp(
+                        t.fromAccountId(), t.toAccountId(), t.amount(), t.description()))
+                .toList();
+        return executeAtomicBatch(ops);
+    }
+
+    /**
+     * Execute mixed operations atomically via Fineract's Batch API.
+     * Uses {@code POST /batches?enclosingTransaction=true} so all operations
+     * succeed or all are rolled back on the Fineract side.
+     *
+     * @param operations List of batch operations (transfers, withdrawals, journal entries)
+     * @return List of batch response items from Fineract
+     * @throws AssetException if the batch fails
+     */
+    @CircuitBreaker(name = "fineract")
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> executeAtomicBatch(List<BatchOperation> operations) {
+        if (operations.isEmpty()) {
+            return List.of();
         }
-        log.info("Executed {} transfers sequentially", transfers.size());
-        return results;
+
+        List<Map<String, Object>> batchRequests = new ArrayList<>();
+        String today = LocalDate.now().format(DATE_FORMAT);
+
+        for (int i = 0; i < operations.size(); i++) {
+            BatchOperation op = operations.get(i);
+            Map<String, Object> body;
+            String relativeUrl;
+
+            switch (op) {
+                case BatchTransferOp t -> {
+                    body = new HashMap<>();
+                    body.put("fromOfficeId", 1);
+                    body.put("fromClientId", 1);
+                    body.put("fromAccountType", 2);
+                    body.put("fromAccountId", t.fromAccountId());
+                    body.put("toOfficeId", 1);
+                    body.put("toClientId", 1);
+                    body.put("toAccountType", 2);
+                    body.put("toAccountId", t.toAccountId());
+                    body.put("transferAmount", t.amount());
+                    body.put("transferDate", today);
+                    body.put("transferDescription", t.description());
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    relativeUrl = "accounttransfers";
+                }
+                case BatchWithdrawalOp w -> {
+                    body = new HashMap<>();
+                    body.put("transactionDate", today);
+                    body.put("transactionAmount", w.amount());
+                    body.put("paymentTypeId", 2);
+                    body.put("note", w.note());
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    relativeUrl = "savingsaccounts/" + w.savingsAccountId() + "/transactions?command=withdrawal";
+                }
+                case BatchJournalEntryOp j -> {
+                    body = new HashMap<>();
+                    body.put("officeId", 1);
+                    body.put("transactionDate", today);
+                    body.put("referenceNumber", UUID.randomUUID().toString());
+                    body.put("comments", j.comments());
+                    body.put("currencyCode", j.currencyCode());
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    body.put("debits", List.of(Map.of("glAccountId", j.debitGlAccountId(), "amount", j.amount())));
+                    body.put("credits", List.of(Map.of("glAccountId", j.creditGlAccountId(), "amount", j.amount())));
+                    relativeUrl = "journalentries";
+                }
+            }
+
+            String bodyJson;
+            try {
+                bodyJson = objectMapper.writeValueAsString(body);
+            } catch (JsonProcessingException e) {
+                throw new AssetException("Failed to serialize batch request body", e);
+            }
+
+            Map<String, Object> batchItem = new HashMap<>();
+            batchItem.put("requestId", (long) (i + 1));
+            batchItem.put("relativeUrl", relativeUrl);
+            batchItem.put("method", "POST");
+            batchItem.put("headers", List.of(Map.of("name", "Content-Type", "value", "application/json")));
+            batchItem.put("body", bodyJson);
+            batchRequests.add(batchItem);
+        }
+
+        try {
+            List<Map<String, Object>> responses = webClient.post()
+                    .uri("/fineract-provider/api/v1/batches?enclosingTransaction=true")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .header("Fineract-Platform-TenantId", config.getTenant())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(batchRequests)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract batch API error: " + b))))
+                    .bodyToMono(List.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            if (responses != null) {
+                for (Map<String, Object> resp : responses) {
+                    Integer statusCode = (Integer) resp.get("statusCode");
+                    if (statusCode == null || statusCode < 200 || statusCode >= 300) {
+                        String respBody = resp.get("body") != null ? resp.get("body").toString() : "unknown error";
+                        throw new AssetException("Batch leg " + resp.get("requestId")
+                                + " failed with status " + statusCode + ": " + respBody);
+                    }
+                }
+            }
+
+            log.info("Executed {} operations atomically via Fineract Batch API", operations.size());
+            return responses != null ? responses : List.of();
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Fineract batch API failed: {}", e.getMessage());
+            throw new AssetException("Batch operation failed: " + e.getMessage(), e);
+        }
     }
 
     /**

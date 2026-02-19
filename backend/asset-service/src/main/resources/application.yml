@@ -87,7 +87,7 @@ asset-service:
   orders:
     stale-cleanup-minutes: 30
   trade-lock:
-    ttl-seconds: 10
+    ttl-seconds: 45
   accounting:
     spread-collection-account-id: ${SPREAD_COLLECTION_ACCOUNT_ID:1}
   rate-limit:
