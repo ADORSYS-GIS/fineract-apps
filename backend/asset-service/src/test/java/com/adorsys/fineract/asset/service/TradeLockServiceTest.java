@@ -39,6 +39,7 @@ class TradeLockServiceTest {
 
         AssetServiceConfig.TradeLock tradeLock = new AssetServiceConfig.TradeLock();
         tradeLock.setTtlSeconds(45);
+        tradeLock.setLocalFallbackTimeoutSeconds(40);
         when(config.getTradeLock()).thenReturn(tradeLock);
 
         tradeLockService = new TradeLockService(

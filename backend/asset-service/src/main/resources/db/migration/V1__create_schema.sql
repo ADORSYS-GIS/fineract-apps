@@ -90,6 +90,7 @@ CREATE TABLE orders (
     spread_amount DECIMAL(20,0) DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     failure_reason VARCHAR(500),
+    fineract_batch_id VARCHAR(255),
     resolved_by VARCHAR(100),
     resolved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

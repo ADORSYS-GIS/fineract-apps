@@ -68,6 +68,7 @@ public class AssetServiceConfig {
     @Data
     public static class TradeLock {
         private int ttlSeconds = 45;
+        private int localFallbackTimeoutSeconds = 40;
     }
 
     @Data
@@ -114,6 +115,12 @@ public class AssetServiceConfig {
             throw new IllegalStateException(
                     "asset-service.trade-lock.ttl-seconds (" + tradeLock.getTtlSeconds()
                     + ") must be >= 30 to outlive the transaction timeout.");
+        }
+        if (tradeLock.getLocalFallbackTimeoutSeconds() < 10) {
+            throw new IllegalStateException(
+                    "asset-service.trade-lock.local-fallback-timeout-seconds ("
+                    + tradeLock.getLocalFallbackTimeoutSeconds()
+                    + ") must be >= 10 to allow trades to complete under local locking.");
         }
     }
 }

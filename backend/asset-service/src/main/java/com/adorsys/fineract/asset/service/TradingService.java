@@ -346,7 +346,8 @@ public class TradingService {
                     grossAmount, units, fee, spreadAmount, currency);
 
             try {
-                fineractClient.executeAtomicBatch(batchOps);
+                List<Map<String, Object>> batchResponses = fineractClient.executeAtomicBatch(batchOps);
+                order.setFineractBatchId(extractBatchId(batchResponses));
             } catch (Exception batchError) {
                 log.error("Batch transfer failed for {} order {}: {}", side, orderId, batchError.getMessage());
                 order.setStatus(OrderStatus.FAILED);
@@ -449,6 +450,19 @@ public class TradingService {
         order.setStatus(OrderStatus.REJECTED);
         order.setFailureReason(reason);
         orderRepository.save(order);
+    }
+
+    private String extractBatchId(List<Map<String, Object>> batchResponses) {
+        if (batchResponses == null || batchResponses.isEmpty()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < batchResponses.size(); i++) {
+            if (i > 0) sb.append(",");
+            Object requestId = batchResponses.get(i).get("requestId");
+            sb.append(requestId != null ? requestId : "?");
+        }
+        return sb.toString();
     }
 
     /**

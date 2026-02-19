@@ -84,7 +84,8 @@ public class TradeLockService {
             String localKey = userKey + ":" + treasuryKey;
             ReentrantLock lock = localLocks.computeIfAbsent(localKey, k -> new ReentrantLock());
             try {
-                if (!lock.tryLock(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                int timeoutSeconds = config.getTradeLock().getLocalFallbackTimeoutSeconds();
+                if (!lock.tryLock(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)) {
                     assetMetrics.recordTradeLockFailure();
                     throw new TradeLockException("Another trade is in progress (local lock). Please wait.");
                 }

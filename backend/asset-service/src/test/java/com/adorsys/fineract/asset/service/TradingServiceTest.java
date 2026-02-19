@@ -173,8 +173,14 @@ class TradingServiceTest {
         when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT))
                 .thenReturn(new BigDecimal("50000"));
 
-        // Atomic batch succeeds
-        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
+        // Atomic batch succeeds — return response with requestIds for batch ID tracking
+        List<Map<String, Object>> batchResponses = List.of(
+                Map.of("requestId", 1L, "statusCode", 200),
+                Map.of("requestId", 2L, "statusCode", 200),
+                Map.of("requestId", 3L, "statusCode", 200),
+                Map.of("requestId", 4L, "statusCode", 200),
+                Map.of("requestId", 5L, "statusCode", 200));
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(batchResponses);
 
         // Circulating supply adjustment succeeds
         when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("10"))).thenReturn(1);
@@ -192,6 +198,13 @@ class TradingServiceTest {
         assertEquals(fee, response.fee());
         assertEquals(spreadAmount, response.spreadAmount());
         assertNull(response.realizedPnl());
+
+        // Verify batch ID stored on order
+        verify(orderRepository, atLeast(3)).save(orderCaptor.capture());
+        Order finalOrder = orderCaptor.getAllValues().stream()
+                .filter(o -> o.getStatus() == OrderStatus.FILLED)
+                .findFirst().orElseThrow();
+        assertEquals("1,2,3,4,5", finalOrder.getFineractBatchId());
 
         // Verify atomic batch was called with all legs (transfers + fee) in one batch
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
@@ -557,8 +570,14 @@ class TradingServiceTest {
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
 
-        // Atomic batch succeeds
-        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
+        // Atomic batch succeeds — return response with requestIds for batch ID tracking
+        List<Map<String, Object>> batchResponses = List.of(
+                Map.of("requestId", 1L, "statusCode", 200),
+                Map.of("requestId", 2L, "statusCode", 200),
+                Map.of("requestId", 3L, "statusCode", 200),
+                Map.of("requestId", 4L, "statusCode", 200),
+                Map.of("requestId", 5L, "statusCode", 200));
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(batchResponses);
 
         // Portfolio update returns realized P&L
         BigDecimal realizedPnl = new BigDecimal("-7");
@@ -610,6 +629,13 @@ class TradingServiceTest {
         assertEquals(FUND_SOURCE_GL_ID, journal.debitGlAccountId());
         assertEquals(FEE_INCOME_GL_ID, journal.creditGlAccountId());
         assertEquals(fee, journal.amount());
+
+        // Verify batch ID stored on order
+        verify(orderRepository, atLeast(3)).save(orderCaptor.capture());
+        Order finalSellOrder = orderCaptor.getAllValues().stream()
+                .filter(o -> o.getStatus() == OrderStatus.FILLED)
+                .findFirst().orElseThrow();
+        assertEquals("1,2,3,4,5", finalSellOrder.getFineractBatchId());
 
         // Verify no separate fee calls
         verify(fineractClient, never()).withdrawFromSavingsAccount(anyLong(), any(), anyString());

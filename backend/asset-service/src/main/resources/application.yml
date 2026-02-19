@@ -88,6 +88,7 @@ asset-service:
     stale-cleanup-minutes: 30
   trade-lock:
     ttl-seconds: 45
+    local-fallback-timeout-seconds: 40
   accounting:
     spread-collection-account-id: ${SPREAD_COLLECTION_ACCOUNT_ID:1}
   rate-limit:

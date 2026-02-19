@@ -82,6 +82,10 @@ public class Order {
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
 
+    /** Fineract batch request IDs from the atomic batch execution. Used for admin reconciliation. */
+    @Column(name = "fineract_batch_id")
+    private String fineractBatchId;
+
     /** Username/ID of the admin who resolved this order. Null until manually resolved. */
     @Column(name = "resolved_by", length = 100)
     private String resolvedBy;
