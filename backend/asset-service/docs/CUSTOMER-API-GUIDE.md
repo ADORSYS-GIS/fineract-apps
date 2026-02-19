@@ -41,23 +41,51 @@ Response:
       "id": "uuid",
       "name": "Douala Tower Token",
       "symbol": "DTT",
+      "imageUrl": "https://...",
+      "category": "REAL_ESTATE",
+      "status": "ACTIVE",
       "currentPrice": 5000,
       "change24hPercent": 2.50,
-      "totalSupply": 100000,
-      "circulatingSupply": 15000,
       "availableSupply": 85000,
-      "category": "REAL_ESTATE",
-      "status": "ACTIVE"
+      "totalSupply": 100000,
+      "subscriptionStartDate": "2025-12-15",
+      "subscriptionEndDate": "2026-03-15",
+      "capitalOpenedPercent": 44.44,
+      "issuer": null,
+      "isinCode": null,
+      "maturityDate": null,
+      "interestRate": null,
+      "residualDays": null,
+      "subscriptionClosed": false
     }
   ],
   "totalPages": 1
 }
 ```
 
+For bond assets, the bond-specific fields are populated:
+
+```json
+{
+  "id": "uuid",
+  "name": "Senegal Bond 5.80%",
+  "symbol": "SEN580",
+  "category": "BONDS",
+  "status": "ACTIVE",
+  "currentPrice": 10000,
+  "issuer": "Etat du Senegal",
+  "isinCode": "SN0000000001",
+  "maturityDate": "2028-06-30",
+  "interestRate": 5.80,
+  "residualDays": 850,
+  "subscriptionClosed": false
+}
+```
+
 Query parameters:
 - `page` (int, default 0)
 - `size` (int, default 20)
-- `category` (string, optional): REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO
+- `category` (string, optional): REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, BONDS
 - `search` (string, optional): search by name or symbol
 
 ---
@@ -92,7 +120,37 @@ Response:
 
 ---
 
-## Flow 3: Trade Preview
+## Flow 3: Recent Trades
+
+View the last 20 executed trades for an asset. This is a public, anonymous feed (no user information is exposed).
+
+```
+GET /api/assets/{assetId}/recent-trades
+```
+
+Response:
+```json
+[
+  {
+    "price": 5050,
+    "quantity": 10,
+    "side": "BUY",
+    "executedAt": "2026-02-19T10:30:00Z"
+  },
+  {
+    "price": 4950,
+    "quantity": 5,
+    "side": "SELL",
+    "executedAt": "2026-02-19T10:25:00Z"
+  }
+]
+```
+
+Returns an empty array `[]` if no trades have been executed for this asset yet.
+
+---
+
+## Flow 4: Trade Preview
 
 Before executing a trade, the app can preview fees, net amount, and feasibility. For bond assets, the preview also includes a benefit projection showing expected coupon income and yield.
 
@@ -159,11 +217,11 @@ Response:
 
 ---
 
-## Flow 4: Buy Asset
+## Flow 5: Buy Asset
 
 **Prerequisites**: User must have a savings account in the settlement currency (XAF) with sufficient balance.
 
-### 4.1 Check market is open
+### 5.1 Check market is open
 
 ```
 GET /api/market/status
@@ -171,7 +229,7 @@ GET /api/market/status
 
 Assert `isOpen == true`.
 
-### 4.2 Execute buy
+### 5.2 Execute buy
 
 ```
 POST /api/trades/buy
@@ -217,9 +275,9 @@ Error responses:
 
 ---
 
-## Flow 5: Sell Asset
+## Flow 6: Sell Asset
 
-### 5.1 Execute sell
+### 6.1 Execute sell
 
 ```
 POST /api/trades/sell
@@ -264,9 +322,9 @@ Error responses:
 
 ---
 
-## Flow 6: View Portfolio
+## Flow 7: View Portfolio
 
-### 6.1 Full Portfolio
+### 7.1 Full Portfolio
 
 ```
 GET /api/portfolio
@@ -295,13 +353,24 @@ Response:
       "realizedPnl": 0,
       "bondBenefit": null
     }
-  ]
+  ],
+  "allocations": [
+    { "category": "REAL_ESTATE", "totalValue": 150000, "percentage": 60.0 },
+    { "category": "BONDS", "totalValue": 100000, "percentage": 40.0 }
+  ],
+  "estimatedAnnualYieldPercent": 8.50,
+  "categoryCount": 2
 }
 ```
 
 For bond positions, the `bondBenefit` field contains projected coupon income and principal return (same structure as the trade preview, but without `investmentCost`, `netProjectedProfit`, or `annualizedYieldPercent` since the user already holds the position).
 
-### 6.2 Single Position
+New fields:
+- `allocations` — breakdown of portfolio value by asset category (category name, total value, percentage)
+- `estimatedAnnualYieldPercent` — estimated annual return including unrealized gains and projected bond coupon income
+- `categoryCount` — number of distinct asset categories in the portfolio
+
+### 7.2 Single Position
 
 ```
 GET /api/portfolio/positions/{assetId}
@@ -310,7 +379,45 @@ Headers: Authorization: Bearer {jwt}
 
 ---
 
-## Flow 7: Trade History
+## Flow 8: Portfolio History
+
+Get portfolio value over time for charting. Snapshots are taken daily at 20:30 WAT.
+
+```
+GET /api/portfolio/history?period=1M
+Headers: Authorization: Bearer {jwt}
+```
+
+Periods: `1M` (default), `3M`, `6M`, `1Y`
+
+Response:
+```json
+{
+  "period": "1M",
+  "snapshots": [
+    {
+      "date": "2026-01-20",
+      "totalValue": 200000,
+      "totalCostBasis": 195000,
+      "unrealizedPnl": 5000,
+      "positionCount": 3
+    },
+    {
+      "date": "2026-01-21",
+      "totalValue": 205000,
+      "totalCostBasis": 195000,
+      "unrealizedPnl": 10000,
+      "positionCount": 3
+    }
+  ]
+}
+```
+
+Returns an empty `snapshots` array if no snapshots exist for the requested period.
+
+---
+
+## Flow 9: Trade History
 
 ```
 GET /api/trades/orders?page=0&size=20&assetId={optional}
@@ -340,7 +447,7 @@ Response:
 
 ---
 
-## Flow 8: Favorites / Watchlist
+## Flow 10: Favorites / Watchlist
 
 ```
 POST /api/favorites/{assetId}          → 201 Created
@@ -351,7 +458,7 @@ Headers: Authorization: Bearer {jwt}
 
 ---
 
-## Flow 9: Discover Upcoming Assets
+## Flow 11: Discover Upcoming Assets
 
 ```
 GET /api/assets/discover?page=0&size=20

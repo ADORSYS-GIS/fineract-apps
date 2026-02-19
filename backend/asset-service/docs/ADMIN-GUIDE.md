@@ -214,11 +214,16 @@ Body:
   "imageUrl": "https://new-image.jpg",
   "category": "REAL_ESTATE",
   "tradingFeePercent": 0.75,
-  "spreadPercent": 1.50
+  "spreadPercent": 1.50,
+  "subscriptionStartDate": "2026-01-01",
+  "subscriptionEndDate": "2026-12-31",
+  "capitalOpenedPercent": 50.00,
+  "interestRate": 6.25,
+  "maturityDate": "2029-06-30"
 }
 ```
 
-All fields are optional. Only provided fields are updated.
+All fields are optional. Only provided fields are updated. Bond-specific fields (`interestRate`, `maturityDate`) are only meaningful for BONDS category assets.
 
 ---
 
@@ -258,6 +263,64 @@ Coupon formula: `units x faceValue x (annualRate / 100) x (periodMonths / 12)`
 
 In the example above: 100 x 10,000 x (5.80 / 100) x (6 / 12) = **29,000 XAF**
 
+### Coupon Obligation Forecast
+
+View the remaining coupon obligations, principal at maturity, and treasury coverage for a bond:
+
+```
+GET /api/admin/assets/{id}/coupon-forecast
+Headers: Authorization: Bearer {jwt}
+```
+
+Response:
+```json
+{
+  "assetId": "uuid",
+  "symbol": "SEN580",
+  "interestRate": 5.80,
+  "couponFrequencyMonths": 6,
+  "maturityDate": "2028-06-30",
+  "nextCouponDate": "2026-06-30",
+  "totalUnitsOutstanding": 5000,
+  "faceValuePerUnit": 10000,
+  "couponPerPeriod": 1450000,
+  "remainingCouponPeriods": 5,
+  "totalRemainingCouponObligation": 7250000,
+  "principalAtMaturity": 50000000,
+  "totalObligation": 57250000,
+  "treasuryBalance": 60000000,
+  "shortfall": 0,
+  "couponsCoveredByBalance": 5
+}
+```
+
+Key fields:
+- `couponPerPeriod` — total coupon payment to all holders per period
+- `shortfall` — how much treasury balance is short of total obligation (0 if fully covered)
+- `couponsCoveredByBalance` — number of coupon periods the current treasury balance can cover
+
+### Manually Trigger Coupon Payment
+
+Trigger a coupon payment immediately (bypasses the scheduler):
+
+```
+POST /api/admin/assets/{id}/coupons/trigger
+Headers: Authorization: Bearer {jwt}
+```
+
+Response:
+```json
+{
+  "assetId": "uuid",
+  "symbol": "SEN580",
+  "couponDate": "2026-06-30",
+  "holdersPaid": 42,
+  "holdersFailed": 1,
+  "totalAmountPaid": 1218000,
+  "nextCouponDate": "2026-12-30"
+}
+```
+
 ---
 
 ## 10. Scheduled Jobs
@@ -283,6 +346,12 @@ Individual holder failures do not block other holders. Failed payments are logge
 
 - **PENDING orders** older than 30 minutes (configurable via `asset-service.orders.stale-cleanup-minutes`) are marked as **FAILED** with a timeout reason
 - **EXECUTING orders** older than 30 minutes are marked as **NEEDS_RECONCILIATION** — these require manual verification against Fineract batch transfer logs
+
+### Portfolio Snapshots (daily at 20:30 WAT)
+
+Takes a daily snapshot of each user's portfolio value (total value, cost basis, unrealized P&L, position count). Run 30 minutes after market close. These snapshots power the portfolio history chart endpoint (`GET /api/portfolio/history`).
+
+Each user's snapshot is independent — one failure does not block others. Unique constraint on `(userId, snapshotDate)` prevents duplicates.
 
 ### Data Archival (1st of each month at 03:00 WAT)
 

@@ -82,6 +82,7 @@ Flyway migrations create the following tables:
 - `trade_log` — Executed trades (immutable audit log)
 - `user_favorites` — Watchlist
 - `interest_payments` — Bond coupon payment audit log
+- `portfolio_snapshots` — Daily portfolio value snapshots for performance charting
 - `orders_archive` — Archived old orders (moved by ArchivalScheduler)
 - `trade_log_archive` — Archived old trade logs (moved by ArchivalScheduler)
 
@@ -100,6 +101,7 @@ Flyway migrations create the following tables:
 | StaleOrderCleanupScheduler | Every 5 min | Fails stale PENDING orders, flags stuck EXECUTING as NEEDS_RECONCILIATION |
 | PriceSnapshotScheduler | Hourly (configurable) | Captures price snapshots for chart history |
 | OhlcScheduler | Every 60s | Resets/closes daily OHLC candles at market open/close |
+| PortfolioSnapshotScheduler | 20:30 WAT daily | Takes daily portfolio value snapshots for performance charting |
 | ArchivalScheduler | 03:00 WAT 1st of month | Archives trade_log + orders older than retention period (default 12 months) |
 
 ## Market Hours
