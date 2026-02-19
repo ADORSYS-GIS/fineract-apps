@@ -3,14 +3,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://test-issuer.example.com
           jwk-set-uri: https://test-issuer.example.com/.well-known/jwks.json
 
-keycloak:
-  server-url: http://localhost:8080
-  realm: test-realm
-  client-id: test-client
-  client-secret: test-secret
 
 fineract:
   url: http://localhost:8443/fineract-provider

@@ -1,8 +1,7 @@
 package com.adorsys.fineract.registration.config;
 
 import com.adorsys.fineract.registration.client.FineractTokenProvider;
-import lombok.Getter;
-import lombok.Setter;
+import com.adorsys.fineract.registration.exception.FineractConfigurationException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -11,7 +10,6 @@ import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.ssl.TrustStrategy;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -30,45 +28,32 @@ import java.util.Base64;
 
 @Slf4j
 @Configuration
-@ConfigurationProperties(prefix = "fineract")
-@Getter
-@Setter
 public class FineractConfig {
 
-    private String url;
-    private String tenant = "default";
-    private String authType;
-    private String tokenUrl;
-    private String clientId;
-    private String clientSecret;
-    private String grantType;
-    private String oauthUsername;
-    private String oauthPassword;
-    private String username;
-    private String password;
-    private boolean verifySsl = true;
-    private Long defaultOfficeId = 1L;
-    private Long defaultSavingsProductId = 1L;
-    private Long defaultGenderId = 1L;
+    private final FineractProperties fineractProperties;
+
+    public FineractConfig(FineractProperties fineractProperties) {
+        this.fineractProperties = fineractProperties;
+    }
 
     public boolean isOAuthEnabled() {
-        return "oauth".equalsIgnoreCase(authType);
+        return "oauth".equalsIgnoreCase(fineractProperties.getAuth().getType());
     }
 
     @Bean
     public RestClient fineractRestClient(FineractTokenProvider tokenProvider) {
         RestClient.Builder builder = RestClient.builder();
 
-        log.info("Fineract authentication type configured: {}", authType);
-        log.info("Fineract OAuth grant type configured: {}", grantType);
-        log.info("Fineract SSL verification is set to: {}", verifySsl);
+        log.info("Fineract authentication type configured: {}", fineractProperties.getAuth().getType());
+        log.info("Fineract OAuth grant type configured: {}", fineractProperties.getAuth().getGrantType());
+        log.info("Fineract SSL verification is set to: {}", fineractProperties.isVerifySsl());
 
-        if (!verifySsl) {
+        if (!fineractProperties.isVerifySsl()) {
             builder.requestFactory(getUnsafeRequestFactoryApache());
         }
 
-        builder.baseUrl(url)
-                .defaultHeader("Fineract-Platform-TenantId", tenant)
+        builder.baseUrl(fineractProperties.getUrl())
+                .defaultHeader("Fineract-Platform-TenantId", fineractProperties.getTenant())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .requestInterceptor(loggingInterceptor());
@@ -76,7 +61,7 @@ public class FineractConfig {
         if (isOAuthEnabled()) {
             builder.requestInterceptor(oauthInterceptor(tokenProvider));
         } else {
-            String credentials = username + ":" + password;
+            String credentials = fineractProperties.getAuth().getUsername() + ":" + fineractProperties.getAuth().getPassword();
             String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
             builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedCredentials);
         }
@@ -123,7 +108,7 @@ public class FineractConfig {
                     .build();
             return new HttpComponentsClientHttpRequestFactory(httpClient);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create unsafe SSL context", e);
+            throw new FineractConfigurationException("Failed to create unsafe SSL context", e);
         }
     }
 
@@ -156,7 +141,7 @@ public class FineractConfig {
             try {
                 return response.getStatusCode();
             } catch (java.io.IOException e) {
-                throw new RuntimeException(e);
+                throw new FineractConfigurationException("Failed to get status code", e);
             }
         }
 
@@ -165,7 +150,7 @@ public class FineractConfig {
             try {
                 return response.getRawStatusCode();
             } catch (java.io.IOException e) {
-                throw new RuntimeException(e);
+                throw new FineractConfigurationException("Failed to get raw status code", e);
             }
         }
 
@@ -174,7 +159,7 @@ public class FineractConfig {
             try {
                 return response.getStatusText();
             } catch (java.io.IOException e) {
-                throw new RuntimeException(e);
+                throw new FineractConfigurationException("Failed to get status text", e);
             }
         }
     }

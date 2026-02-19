@@ -3,17 +3,13 @@ package com.adorsys.fineract.registration.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -21,34 +17,22 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+
 
 /**
- * Security configuration for JWT-based authentication with Keycloak.
- *
- * This configuration:
- * - Validates JWT tokens issued by Keycloak
- * - Extracts roles from the token for authorization
- * - Allows public access to registration and health endpoints
- * - Requires authentication for all other endpoints
+ * Security configuration.
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
-    private String issuerUri;
-
-    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
-    private String jwkSetUri;
 
     @Value("${app.cors.allowed-origins:*}")
     private String[] allowedOrigins;
+
+    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
+    private String jwkSetUri;
 
     /**
      * Configure security filter chain with JWT authentication
@@ -56,33 +40,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF for stateless API
             .csrf(csrf -> csrf.disable())
-
-            // Configure CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-            // Stateless session management
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-
-            // Configure authorization rules
             .authorizeHttpRequests(authz -> authz
-                // Public endpoints - no authentication required
-                .requestMatchers(HttpMethod.POST, "/api/registration/register").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/registration/register").authenticated()
                 .requestMatchers("/api/registration/health/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
-
-                // Account endpoints - require authentication with self-service role
-                .requestMatchers("/api/accounts/**").hasRole("self-service-customer")
-
-                // All other endpoints require authentication
+                .requestMatchers("/api/accounts/**").authenticated()
                 .anyRequest().authenticated()
             )
-
-            // Configure OAuth2 Resource Server with JWT
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .decoder(jwtDecoder())
@@ -93,28 +63,17 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Configure JWT decoder to validate tokens from Keycloak
-     */
     @Bean
     public JwtDecoder jwtDecoder() {
         return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
     }
 
-    /**
-     * Configure JWT authentication converter to extract authorities from Keycloak token
-     * Keycloak stores roles in realm_access.roles and resource_access.{client}.roles
-     */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(new KeycloakRealmRoleConverter());
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(new RoleConverter());
         return jwtAuthenticationConverter;
     }
-
-    /**
-     * Configure CORS to allow requests from frontend applications
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -142,16 +101,3 @@ public class SecurityConfig {
     }
 }
 
-class KeycloakRealmRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
-    @Override
-    public Collection<GrantedAuthority> convert(Jwt jwt) {
-        final Map<String, Object> realmAccess = (Map<String, Object>) jwt.getClaims().get("realm_access");
-        if (realmAccess == null || realmAccess.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return ((List<String>) realmAccess.get("roles")).stream()
-            .map(roleName -> "ROLE_" + roleName)
-            .map(SimpleGrantedAuthority::new)
-            .collect(Collectors.toList());
-    }
-}

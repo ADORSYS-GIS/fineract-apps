@@ -18,10 +18,7 @@ public class RegistrationMetrics {
 
     private final Counter registrationRequestsTotal;
     private final Counter registrationSuccessTotal;
-    private final Counter registrationFailureTotal;
-    private final Counter kycSubmissionsTotal;
     private final Timer registrationDuration;
-    private final Timer kycReviewDuration;
     private final MeterRegistry meterRegistry;
 
     public RegistrationMetrics(MeterRegistry meterRegistry) {
@@ -36,22 +33,9 @@ public class RegistrationMetrics {
                 .description("Total number of successful registrations")
                 .register(meterRegistry);
 
-        this.registrationFailureTotal = Counter.builder("registration_failure_total")
-                .description("Total number of failed registrations")
-                .register(meterRegistry);
-
-        // KYC counters (base counter, document type is added as tag)
-        this.kycSubmissionsTotal = Counter.builder("kyc_submissions_total")
-                .description("Total number of KYC document submissions")
-                .register(meterRegistry);
-
         // Timers
         this.registrationDuration = Timer.builder("registration_duration_seconds")
                 .description("Time taken to complete a registration")
-                .register(meterRegistry);
-
-        this.kycReviewDuration = Timer.builder("kyc_review_duration_seconds")
-                .description("Time taken to review KYC submissions")
                 .register(meterRegistry);
 
         log.info("Registration metrics initialized");
@@ -83,32 +67,10 @@ public class RegistrationMetrics {
     }
 
     /**
-     * Increment KYC submission counter with document type tag.
-     */
-    public void incrementKycSubmission(String documentType) {
-        Counter.builder("kyc_submissions_total")
-                .tag("document_type", documentType)
-                .description("Total number of KYC document submissions")
-                .register(meterRegistry)
-                .increment();
-    }
-
-    /**
      * Record registration duration.
      */
     public void recordRegistrationDuration(long durationMs) {
         registrationDuration.record(durationMs, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Record KYC review duration with status tag.
-     */
-    public void recordKycReviewDuration(long durationMs, String status) {
-        Timer.builder("kyc_review_duration_seconds")
-                .tag("status", status)
-                .description("Time taken to review KYC submissions")
-                .register(meterRegistry)
-                .record(durationMs, TimeUnit.MILLISECONDS);
     }
 
     /**
