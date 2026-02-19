@@ -4,8 +4,10 @@ import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.exception.AssetException;
+import com.adorsys.fineract.asset.entity.TradeLog;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,6 +33,7 @@ class AssetCatalogServiceTest {
 
     @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
+    @Mock private TradeLogRepository tradeLogRepository;
 
     @InjectMocks
     private AssetCatalogService assetCatalogService;
@@ -179,5 +182,65 @@ class AssetCatalogServiceTest {
         // Verify the correct repository method was called (status = ACTIVE)
         verify(assetRepository).findByStatus(eq(AssetStatus.ACTIVE), any(Pageable.class));
         verify(assetRepository, never()).findAll(any(Pageable.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // getRecentTrades tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getRecentTrades_withTrades_returnsMappedDtos() {
+        // Arrange
+        TradeLog t1 = TradeLog.builder()
+                .id("t1").orderId("o1").userId(1L).assetId(ASSET_ID)
+                .side(TradeSide.BUY).units(new BigDecimal("10"))
+                .pricePerUnit(new BigDecimal("500")).totalAmount(new BigDecimal("5000"))
+                .fee(BigDecimal.ZERO).spreadAmount(BigDecimal.ZERO)
+                .executedAt(Instant.now())
+                .build();
+        TradeLog t2 = TradeLog.builder()
+                .id("t2").orderId("o2").userId(2L).assetId(ASSET_ID)
+                .side(TradeSide.SELL).units(new BigDecimal("5"))
+                .pricePerUnit(new BigDecimal("510")).totalAmount(new BigDecimal("2550"))
+                .fee(BigDecimal.ZERO).spreadAmount(BigDecimal.ZERO)
+                .executedAt(Instant.now().minusSeconds(60))
+                .build();
+
+        when(tradeLogRepository.findTop20ByAssetIdOrderByExecutedAtDesc(ASSET_ID))
+                .thenReturn(List.of(t1, t2));
+
+        // Act
+        List<RecentTradeDto> result = assetCatalogService.getRecentTrades(ASSET_ID);
+
+        // Assert
+        assertEquals(2, result.size());
+
+        RecentTradeDto first = result.get(0);
+        assertEquals(0, new BigDecimal("500").compareTo(first.price()));
+        assertEquals(0, new BigDecimal("10").compareTo(first.quantity()));
+        assertEquals(TradeSide.BUY, first.side());
+        assertNotNull(first.executedAt());
+
+        RecentTradeDto second = result.get(1);
+        assertEquals(0, new BigDecimal("510").compareTo(second.price()));
+        assertEquals(TradeSide.SELL, second.side());
+
+        verify(tradeLogRepository).findTop20ByAssetIdOrderByExecutedAtDesc(ASSET_ID);
+    }
+
+    @Test
+    void getRecentTrades_noTrades_returnsEmptyList() {
+        // Arrange
+        when(tradeLogRepository.findTop20ByAssetIdOrderByExecutedAtDesc(ASSET_ID))
+                .thenReturn(Collections.emptyList());
+
+        // Act
+        List<RecentTradeDto> result = assetCatalogService.getRecentTrades(ASSET_ID);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        verify(tradeLogRepository).findTop20ByAssetIdOrderByExecutedAtDesc(ASSET_ID);
     }
 }

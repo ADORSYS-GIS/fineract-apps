@@ -4,6 +4,7 @@ import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.dto.AssetPublicDetailResponse;
 import com.adorsys.fineract.asset.dto.AssetResponse;
 import com.adorsys.fineract.asset.dto.DiscoverAssetResponse;
+import com.adorsys.fineract.asset.dto.RecentTradeDto;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Public endpoints for asset catalog browsing.
@@ -37,6 +40,12 @@ public class AssetCatalogController {
     @Operation(summary = "Get asset detail", description = "Full asset detail with OHLC, price, supply stats")
     public ResponseEntity<AssetPublicDetailResponse> getAssetDetail(@PathVariable String id) {
         return ResponseEntity.ok(assetCatalogService.getAssetDetail(id));
+    }
+
+    @GetMapping("/{id}/recent-trades")
+    @Operation(summary = "Recent trades", description = "Last 20 executed trades for an asset (anonymous, no user info)")
+    public ResponseEntity<List<RecentTradeDto>> getRecentTrades(@PathVariable String id) {
+        return ResponseEntity.ok(assetCatalogService.getRecentTrades(id));
     }
 
     @GetMapping("/discover")

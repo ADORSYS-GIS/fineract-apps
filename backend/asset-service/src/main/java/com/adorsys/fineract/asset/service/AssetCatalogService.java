@@ -6,6 +6,7 @@ import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,6 +34,7 @@ public class AssetCatalogService {
 
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
+    private final TradeLogRepository tradeLogRepository;
 
     /**
      * List active assets with optional category filter and search.
@@ -164,6 +166,17 @@ public class AssetCatalogService {
                 .stream().collect(Collectors.toMap(AssetPrice::getAssetId, Function.identity()));
 
         return assets.map(a -> toAssetResponse(a, priceMap.get(a.getId())));
+    }
+
+    /**
+     * Get the most recent executed trades for an asset (public, anonymous feed).
+     */
+    @Transactional(readOnly = true)
+    public List<RecentTradeDto> getRecentTrades(String assetId) {
+        return tradeLogRepository.findTop20ByAssetIdOrderByExecutedAtDesc(assetId)
+                .stream()
+                .map(t -> new RecentTradeDto(t.getPricePerUnit(), t.getUnits(), t.getSide(), t.getExecutedAt()))
+                .toList();
     }
 
     /**
