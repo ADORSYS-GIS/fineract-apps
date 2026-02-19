@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,8 @@ class PortfolioServiceTest {
     @Mock private UserPositionRepository userPositionRepository;
     @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
+    @Mock private BondBenefitService bondBenefitService;
+    @Mock private PortfolioSnapshotRepository portfolioSnapshotRepository;
 
     @InjectMocks
     private PortfolioService portfolioService;

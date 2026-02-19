@@ -107,6 +107,8 @@ asset-service:
   archival:
     retention-months: ${ARCHIVAL_RETENTION_MONTHS:12}
     batch-size: ${ARCHIVAL_BATCH_SIZE:1000}
+  portfolio:
+    snapshot-cron: "0 30 20 * * *"
 
 # Resilience4j Circuit Breaker
 resilience4j:

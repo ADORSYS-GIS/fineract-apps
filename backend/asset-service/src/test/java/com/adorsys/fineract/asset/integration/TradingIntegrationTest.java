@@ -2,6 +2,8 @@ package com.adorsys.fineract.asset.integration;
 
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractTokenProvider;
+import com.adorsys.fineract.asset.client.GlAccountResolver;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.TradeSide;
 import com.adorsys.fineract.asset.dto.TradePreviewRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,7 +11,10 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
@@ -35,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @Sql(scripts = "classpath:test-data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Import(TradingIntegrationTest.TestGlConfig.class)
 class TradingIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
@@ -43,6 +49,21 @@ class TradingIntegrationTest {
     // Mock external dependencies
     @MockBean private FineractClient fineractClient;
     @MockBean private FineractTokenProvider fineractTokenProvider;
+    @MockBean private GlAccountResolver glAccountResolver;
+
+    @TestConfiguration
+    static class TestGlConfig {
+        @Bean
+        public ResolvedGlAccounts resolvedGlAccounts() {
+            ResolvedGlAccounts r = new ResolvedGlAccounts();
+            r.setDigitalAssetInventoryId(47L);
+            r.setCustomerDigitalAssetHoldingsId(65L);
+            r.setTransfersInSuspenseId(48L);
+            r.setIncomeFromInterestId(87L);
+            r.setAssetIssuancePaymentTypeId(22L);
+            return r;
+        }
+    }
 
     private static final String EXTERNAL_ID = "ext-id-123";
     private static final Long USER_ID = 42L;

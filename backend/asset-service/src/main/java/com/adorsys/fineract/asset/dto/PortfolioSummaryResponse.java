@@ -16,5 +16,11 @@ public record PortfolioSummaryResponse(
     /** Aggregate unrealized P&L as a percentage of totalCostBasis (e.g. 25.0 = +25%). Zero if totalCostBasis is zero. */
     BigDecimal unrealizedPnlPercent,
     /** Per-asset position breakdown with individual P&L. */
-    List<PositionResponse> positions
+    List<PositionResponse> positions,
+    /** Allocation breakdown by asset category. */
+    List<CategoryAllocationResponse> allocations,
+    /** Estimated annual yield (total return) as a percentage — includes unrealized gains and projected bond coupon income. */
+    BigDecimal estimatedAnnualYieldPercent,
+    /** Number of distinct asset categories in the portfolio. */
+    int categoryCount
 ) {}

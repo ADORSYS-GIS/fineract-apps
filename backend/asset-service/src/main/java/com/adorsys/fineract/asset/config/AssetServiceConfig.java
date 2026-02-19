@@ -29,6 +29,7 @@ public class AssetServiceConfig {
     private Accounting accounting = new Accounting();
     private GlAccounts glAccounts = new GlAccounts();
     private Archival archival = new Archival();
+    private Portfolio portfolio = new Portfolio();
 
     @Data
     public static class Archival {
@@ -36,6 +37,12 @@ public class AssetServiceConfig {
         private int retentionMonths = 12;
         /** Number of rows to process per batch during archival. */
         private int batchSize = 1000;
+    }
+
+    @Data
+    public static class Portfolio {
+        /** Cron expression for daily portfolio snapshot. Default: 20:30 daily. */
+        private String snapshotCron = "0 30 20 * * *";
     }
 
     @Data

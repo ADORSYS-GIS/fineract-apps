@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.controller;
 
+import com.adorsys.fineract.asset.dto.PortfolioHistoryResponse;
 import com.adorsys.fineract.asset.dto.PortfolioSummaryResponse;
 import com.adorsys.fineract.asset.dto.PositionResponse;
 import com.adorsys.fineract.asset.service.PortfolioService;
@@ -36,5 +37,14 @@ public class PortfolioController {
                                                          @AuthenticationPrincipal Jwt jwt) {
         Long userId = JwtUtils.extractUserId(jwt);
         return ResponseEntity.ok(portfolioService.getPosition(userId, assetId));
+    }
+
+    @GetMapping("/history")
+    @Operation(summary = "Portfolio value history", description = "Time series for charting. Period: 1M, 3M, 6M, 1Y")
+    public ResponseEntity<PortfolioHistoryResponse> getPortfolioHistory(
+            @RequestParam(defaultValue = "1M") String period,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long userId = JwtUtils.extractUserId(jwt);
+        return ResponseEntity.ok(portfolioService.getPortfolioHistory(userId, period));
     }
 }

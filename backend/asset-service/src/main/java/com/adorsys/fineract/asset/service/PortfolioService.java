@@ -1,11 +1,14 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.dto.*;
+import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
+import com.adorsys.fineract.asset.entity.PortfolioSnapshot;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,9 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -33,6 +35,7 @@ public class PortfolioService {
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
     private final BondBenefitService bondBenefitService;
+    private final PortfolioSnapshotRepository portfolioSnapshotRepository;
 
     /**
      * Get full portfolio summary for a user including positions and holdings.
@@ -43,7 +46,8 @@ public class PortfolioService {
 
         if (positions.isEmpty()) {
             return new PortfolioSummaryResponse(BigDecimal.ZERO, BigDecimal.ZERO,
-                    BigDecimal.ZERO, BigDecimal.ZERO, List.of());
+                    BigDecimal.ZERO, BigDecimal.ZERO, List.of(),
+                    List.of(), BigDecimal.ZERO, 0);
         }
 
         List<String> assetIds = positions.stream().map(UserPosition::getAssetId).toList();
@@ -91,9 +95,53 @@ public class PortfolioService {
                         .multiply(new BigDecimal("100"))
                 : BigDecimal.ZERO;
 
+        // --- Category allocation ---
+        Map<String, BigDecimal> categoryValues = new LinkedHashMap<>();
+        for (UserPosition pos : positions) {
+            Asset asset = assetMap.get(pos.getAssetId());
+            String category = asset != null ? asset.getCategory().name() : "UNKNOWN";
+            AssetPrice price = priceMap.get(pos.getAssetId());
+            BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
+            BigDecimal marketValue = pos.getTotalUnits().multiply(currentPrice);
+            categoryValues.merge(category, marketValue, BigDecimal::add);
+        }
+        List<CategoryAllocationResponse> allocations = new ArrayList<>();
+        for (Map.Entry<String, BigDecimal> entry : categoryValues.entrySet()) {
+            BigDecimal pct = totalValue.compareTo(BigDecimal.ZERO) > 0
+                    ? entry.getValue().divide(totalValue, 4, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal("100"))
+                    : BigDecimal.ZERO;
+            allocations.add(new CategoryAllocationResponse(entry.getKey(), entry.getValue(), pct));
+        }
+
+        // --- Estimated annual yield (total return) ---
+        BigDecimal projectedAnnualCouponIncome = BigDecimal.ZERO;
+        for (UserPosition pos : positions) {
+            Asset asset = assetMap.get(pos.getAssetId());
+            if (asset != null && asset.getCategory() == AssetCategory.BONDS
+                    && asset.getInterestRate() != null && asset.getCouponFrequencyMonths() != null
+                    && asset.getManualPrice() != null) {
+                BigDecimal couponPerPeriod = pos.getTotalUnits()
+                        .multiply(asset.getManualPrice())
+                        .multiply(asset.getInterestRate())
+                        .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(asset.getCouponFrequencyMonths()))
+                        .divide(BigDecimal.valueOf(12), 0, RoundingMode.HALF_UP);
+                BigDecimal annualCoupon = couponPerPeriod
+                        .multiply(BigDecimal.valueOf(12))
+                        .divide(BigDecimal.valueOf(asset.getCouponFrequencyMonths()), 0, RoundingMode.HALF_UP);
+                projectedAnnualCouponIncome = projectedAnnualCouponIncome.add(annualCoupon);
+            }
+        }
+        BigDecimal estimatedAnnualYieldPercent = totalCostBasis.compareTo(BigDecimal.ZERO) > 0
+                ? projectedAnnualCouponIncome.add(totalUnrealizedPnl)
+                        .divide(totalCostBasis, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"))
+                : BigDecimal.ZERO;
+
         return new PortfolioSummaryResponse(
                 totalValue, totalCostBasis, totalUnrealizedPnl, totalUnrealizedPnlPercent,
-                positionResponses
+                positionResponses, allocations, estimatedAnnualYieldPercent, categoryValues.size()
         );
     }
 
@@ -205,5 +253,33 @@ public class PortfolioService {
         log.info("Updated position after SELL: userId={}, assetId={}, soldUnits={}, realizedPnl={}",
                 userId, assetId, units, realizedPnl);
         return realizedPnl;
+    }
+
+    /**
+     * Get portfolio value history for charting.
+     *
+     * @param userId Fineract user/client ID
+     * @param period one of "1M", "3M", "6M", "1Y"
+     */
+    @Transactional(readOnly = true)
+    public PortfolioHistoryResponse getPortfolioHistory(Long userId, String period) {
+        LocalDate fromDate = switch (period) {
+            case "3M" -> LocalDate.now().minusMonths(3);
+            case "6M" -> LocalDate.now().minusMonths(6);
+            case "1Y" -> LocalDate.now().minusYears(1);
+            default -> LocalDate.now().minusMonths(1); // "1M" or fallback
+        };
+
+        List<PortfolioSnapshot> snapshots = portfolioSnapshotRepository
+                .findByUserIdAndSnapshotDateGreaterThanEqualOrderBySnapshotDateAsc(userId, fromDate);
+
+        List<PortfolioSnapshotDto> dtos = snapshots.stream()
+                .map(s -> new PortfolioSnapshotDto(
+                        s.getSnapshotDate(), s.getTotalValue(),
+                        s.getTotalCostBasis(), s.getUnrealizedPnl(),
+                        s.getPositionCount()))
+                .toList();
+
+        return new PortfolioHistoryResponse(period, dtos);
     }
 }

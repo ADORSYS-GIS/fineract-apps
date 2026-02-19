@@ -23,4 +23,10 @@ public interface UserPositionRepository extends JpaRepository<UserPosition, Long
     @Query("SELECT p FROM UserPosition p WHERE p.assetId = :assetId AND p.totalUnits > :zero")
     List<UserPosition> findHoldersByAssetId(@Param("assetId") String assetId,
                                              @Param("zero") BigDecimal zero);
+
+    /**
+     * Find all distinct user IDs that have at least one position with positive units.
+     */
+    @Query("SELECT DISTINCT p.userId FROM UserPosition p WHERE p.totalUnits > 0")
+    List<Long> findDistinctUserIdsWithPositions();
 }
