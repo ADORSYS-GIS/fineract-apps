@@ -10,7 +10,8 @@ public class AddressDTO {
     private String addressLine2;
     private String addressLine3;
     private String city;
-    private Integer stateProvinceId;
-    private Integer countryId;
+    private String stateProvince;
+    private String country;
     private String postalCode;
+    private String addressType;
 }

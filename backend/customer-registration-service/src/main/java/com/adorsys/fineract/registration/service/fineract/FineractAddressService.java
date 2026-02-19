@@ -17,6 +17,10 @@ import java.util.Map;
 @Service
 public class FineractAddressService {
 
+    private static final String ADDRESS_TYPE = "ADDRESS_TYPE";
+    private static final String STATE = "STATE";
+    private static final String COUNTRY = "COUNTRY";
+
     /**
      * This service centralizes all address-related operations for Fineract clients.
      * It is responsible for retrieving a client's registered addresses and for constructing
@@ -52,9 +56,9 @@ public class FineractAddressService {
         Map<String, Object> address = new HashMap<>();
         address.put("isActive", true);
 
-        putDynamicIdIfPresent(address, "addressTypeId", "ADDRESS_TYPE", request.getAddressType());
-        putDynamicIdIfPresent(address, "stateProvinceId", "STATE", request.getStateProvince());
-        putDynamicIdIfPresent(address, "countryId", "COUNTRY", request.getCountry());
+        putDynamicIdIfPresent(address, "addressTypeId", ADDRESS_TYPE, request.getAddressType());
+        putDynamicIdIfPresent(address, "stateProvinceId", STATE, request.getStateProvince());
+        putDynamicIdIfPresent(address, "countryId", COUNTRY, request.getCountry());
 
         putIfPresent(address, "addressLine1", request.getAddressLine1());
         putIfPresent(address, "addressLine2", request.getAddressLine2());
@@ -81,7 +85,7 @@ public class FineractAddressService {
             }
         }
     }
-    public AddressResponseDTO createClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
+    public AddressResponseDTO createClientAddress(Long clientId, AddressDTO addressDTO) {
         log.info("Creating address for client: {}", clientId);
         Map<String, Object> body = new HashMap<>();
         body.put("street", addressDTO.getStreet());
@@ -89,9 +93,12 @@ public class FineractAddressService {
         body.put("addressLine2", addressDTO.getAddressLine2());
         body.put("addressLine3", addressDTO.getAddressLine3());
         body.put("city", addressDTO.getCity());
-        body.put("stateProvinceId", addressDTO.getStateProvinceId());
-        body.put("countryId", addressDTO.getCountryId());
         body.put("postalCode", addressDTO.getPostalCode());
+
+        putDynamicIdIfPresent(body, "stateProvinceId", STATE, addressDTO.getStateProvince());
+        putDynamicIdIfPresent(body, "countryId", COUNTRY, addressDTO.getCountry());
+
+        Long addressTypeId = fineractCodeValueService.getDynamicId(ADDRESS_TYPE, addressDTO.getAddressType());
 
 
         try {
@@ -106,11 +113,13 @@ public class FineractAddressService {
         }
     }
 
-    public AddressResponseDTO updateClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
+    public AddressResponseDTO updateClientAddress(Long clientId, AddressDTO addressDTO) {
         log.info("Updating address for client: {}", clientId);
         Map<String, Object> body = new HashMap<>();
         body.put("addressId", addressDTO.getAddressId());
         body.put("street", addressDTO.getStreet());
+
+        Long addressTypeId = fineractCodeValueService.getDynamicId(ADDRESS_TYPE, addressDTO.getAddressType());
 
         try {
             return fineractRestClient.put()

@@ -69,11 +69,11 @@ public class FineractService {
         return fineractAccountService.createSavingsAccount(clientId);
     }
 
-    public AddressResponseDTO createClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
-        return fineractAddressService.createClientAddress(clientId, addressTypeId, addressDTO);
+    public AddressResponseDTO createClientAddress(Long clientId, AddressDTO addressDTO) {
+        return fineractAddressService.createClientAddress(clientId, addressDTO);
     }
 
-    public AddressResponseDTO updateClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
-        return fineractAddressService.updateClientAddress(clientId, addressTypeId, addressDTO);
+    public AddressResponseDTO updateClientAddress(Long clientId, AddressDTO addressDTO) {
+        return fineractAddressService.updateClientAddress(clientId, addressDTO);
     }
 }

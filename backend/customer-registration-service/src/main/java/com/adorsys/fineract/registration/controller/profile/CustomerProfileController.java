@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Validated
@@ -74,9 +73,8 @@ public class CustomerProfileController {
     })
     public ResponseEntity<AddressResponseDTO> createClientAddress(
             @PathVariable @NotNull Long clientId,
-            @RequestParam @NotNull Long type,
             @Valid @RequestBody AddressDTO addressDTO) {
-        AddressResponseDTO response = customerProfileService.createClientAddress(clientId, type, addressDTO);
+        AddressResponseDTO response = customerProfileService.createClientAddress(clientId, addressDTO);
         return ResponseEntity.ok(response);
     }
 
@@ -89,9 +87,8 @@ public class CustomerProfileController {
     })
     public ResponseEntity<AddressResponseDTO> updateClientAddress(
             @PathVariable @NotNull Long clientId,
-            @RequestParam @NotNull Long type,
             @Valid @RequestBody AddressDTO addressDTO) {
-        AddressResponseDTO response = customerProfileService.updateClientAddress(clientId, type, addressDTO);
+        AddressResponseDTO response = customerProfileService.updateClientAddress(clientId, addressDTO);
         return ResponseEntity.ok(response);
     }
 }

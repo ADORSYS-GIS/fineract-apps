@@ -122,9 +122,10 @@ The endpoint expects a `Content-Type: application/json` body.
 | `addressLine2` | `String` | No | Additional address line 2. |
 | `addressLine3` | `String` | No | Additional address line 3. |
 | `city` | `String` | Yes | The city. |
-| `stateProvinceId` | `Integer` | Yes | The ID of the state or province. |
-| `countryId` | `Integer` | Yes | The ID of the country. |
+| `stateProvince` | `String` | Yes | The name of the state or province. |
+| `country` | `String` | Yes | The name of the country. |
 | `postalCode` | `String` | No | The postal code. |
+| `addressType` | `String` | Yes | The type of address (e.g., "Home", "Work"). |
 
 #### Sample Request
 
@@ -135,9 +136,10 @@ The endpoint expects a `Content-Type: application/json` body.
   "addressLine2": "plot47",
   "addressLine3": "charkop",
   "city": "Mumbai",
-  "stateProvinceId": 800,
-  "countryId": 802,
-  "postalCode": "400064"
+  "stateProvince": "Maharashtra",
+  "country": "India",
+  "postalCode": "400064",
+  "addressType": "Home"
 }
 ```
 
@@ -182,16 +184,18 @@ The endpoint expects a `Content-Type: application/json` body.
 | `addressLine2` | `String` | No | Additional address line 2. |
 | `addressLine3` | `String` | No | Additional address line 3. |
 | `city` | `String` | No | The new city. |
-| `stateProvinceId` | `Integer` | No | The new ID of the state or province. |
-| `countryId` | `Integer` | No | The new ID of the country. |
+| `stateProvince` | `String` | No | The new name of the state or province. |
+| `country` | `String` | No | The new name of the country. |
 | `postalCode` | `String` | No | The new postal code. |
+| `addressType` | `String` | Yes | The type of address (e.g., "Home", "Work"). |
 
 #### Sample Request
 
 ```json
 {
   "addressId": 67,
-  "street": "goldensource"
+  "street": "goldensource",
+  "addressType": "Work"
 }
 ```
 
@@ -280,10 +284,10 @@ curl --location --request GET 'http://localhost:8081/api/profile/clients/123/add
 **Objective:** Verify that a new address can be created for a client.
 **Expected Result:** `200 OK`
 
-*Note: Replace `123` with an actual Fineract Client ID and `805` with a valid address type ID.*
+*Note: Replace `123` with an actual Fineract Client ID.*
 
 ```bash
-curl --location --request POST 'http://localhost:8081/api/profile/clients/123/addresses?type=805' \
+curl --location --request POST 'http://localhost:8081/api/profile/clients/123/addresses' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
@@ -292,9 +296,10 @@ curl --location --request POST 'http://localhost:8081/api/profile/clients/123/ad
     "addressLine2":"plot47",
     "addressLine3":"charkop",
     "city":"Mumbai",
-    "stateProvinceId":800,
-    "countryId":802,
-    "postalCode":"400064"
+    "stateProvince":"Maharashtra",
+    "country":"India",
+    "postalCode":"400064",
+    "addressType":"Home"
 }'
 ```
 
@@ -302,14 +307,15 @@ curl --location --request POST 'http://localhost:8081/api/profile/clients/123/ad
 **Objective:** Verify that an existing address can be updated for a client.
 **Expected Result:** `200 OK`
 
-*Note: Replace `123` with an actual Fineract Client ID, `805` with a valid address type ID, and `67` with a valid address ID.*
+*Note: Replace `123` with an actual Fineract Client ID and `67` with a valid address ID.*
 
 ```bash
-curl --location --request PUT 'http://localhost:8081/api/profile/clients/123/addresses?type=805' \
+curl --location --request PUT 'http://localhost:8081/api/profile/clients/123/addresses' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
     "addressId":67,
-    "street":"goldensource"
+    "street":"goldensource",
+    "addressType":"Work"
 }'
 ```

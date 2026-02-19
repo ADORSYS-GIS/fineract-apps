@@ -64,11 +64,11 @@ public class CustomerProfileService {
         return address;
     }
 
-    public AddressResponseDTO createClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
-        return fineractService.createClientAddress(clientId, addressTypeId, addressDTO);
+    public AddressResponseDTO createClientAddress(Long clientId, AddressDTO addressDTO) {
+        return fineractService.createClientAddress(clientId, addressDTO);
     }
 
-    public AddressResponseDTO updateClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
-        return fineractService.updateClientAddress(clientId, addressTypeId, addressDTO);
+    public AddressResponseDTO updateClientAddress(Long clientId, AddressDTO addressDTO) {
+        return fineractService.updateClientAddress(clientId, addressDTO);
     }
 }
