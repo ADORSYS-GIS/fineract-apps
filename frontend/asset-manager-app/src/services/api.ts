@@ -8,6 +8,7 @@ import {
 	SavingsAccountService,
 	SavingsProductService,
 } from "@fineract-apps/fineract-api";
+import axios from "axios";
 
 export function configureApi() {
 	OpenAPI.BASE = import.meta.env.VITE_FINERACT_API_URL;
@@ -22,6 +23,21 @@ export function configureApi() {
 			};
 			return request;
 		});
+	}
+
+	// In OAuth mode, intercept CORS-blocked auth redirects on the default axios instance
+	// (used by the generated OpenAPI client) and redirect to login
+	if (import.meta.env.VITE_AUTH_MODE === "oauth") {
+		axios.interceptors.response.use(
+			(response) => response,
+			(error) => {
+				if (!error.response) {
+					sessionStorage.removeItem("auth");
+					window.location.href = `/oauth2/authorization/keycloak?rd=${encodeURIComponent(window.location.href)}`;
+				}
+				return Promise.reject(error);
+			},
+		);
 	}
 }
 

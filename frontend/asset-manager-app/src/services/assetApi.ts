@@ -42,6 +42,13 @@ assetClient.interceptors.response.use(
 			return Promise.reject(error);
 		}
 
+		// In OAuth mode, network errors are likely CORS-blocked auth redirects (token expired)
+		if (!error.response && import.meta.env.VITE_AUTH_MODE === "oauth") {
+			sessionStorage.removeItem("auth");
+			window.location.href = `/oauth2/authorization/keycloak?rd=${encodeURIComponent(window.location.href)}`;
+			return Promise.reject(error);
+		}
+
 		// Retry on network errors or 5xx (up to 2 retries)
 		const config = error.config as AxiosError["config"] & {
 			__retryCount?: number;
