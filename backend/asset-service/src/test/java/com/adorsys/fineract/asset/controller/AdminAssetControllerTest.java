@@ -3,12 +3,14 @@ package com.adorsys.fineract.asset.controller;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
+import com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository;
 import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
 import com.adorsys.fineract.asset.service.AssetProvisioningService;
 import com.adorsys.fineract.asset.service.CouponForecastService;
 import com.adorsys.fineract.asset.service.InventoryService;
 import com.adorsys.fineract.asset.service.PricingService;
+import com.adorsys.fineract.asset.service.PrincipalRedemptionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +46,8 @@ class AdminAssetControllerTest {
     @MockBean private CouponForecastService couponForecastService;
     @MockBean private InterestPaymentScheduler interestPaymentScheduler;
     @MockBean private InterestPaymentRepository interestPaymentRepository;
+    @MockBean private PrincipalRedemptionRepository principalRedemptionRepository;
+    @MockBean private PrincipalRedemptionService principalRedemptionService;
     @MockBean private AssetRepository assetRepository;
 
     // -------------------------------------------------------------------------

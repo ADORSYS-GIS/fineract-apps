@@ -2,7 +2,6 @@ package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
-import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.InterestPayment;
 import com.adorsys.fineract.asset.entity.UserPosition;
@@ -52,8 +51,7 @@ public class InterestPaymentScheduler {
     @Scheduled(cron = "0 15 0 * * *", zone = "Africa/Douala")
     public void processCouponPayments() {
         LocalDate today = LocalDate.now();
-        List<Asset> dueBonds = assetRepository.findByStatusAndNextCouponDateLessThanEqual(
-                AssetStatus.ACTIVE, today);
+        List<Asset> dueBonds = assetRepository.findBondsWithDueCoupons(today);
 
         if (dueBonds.isEmpty()) {
             log.debug("No coupon payments due today ({})", today);

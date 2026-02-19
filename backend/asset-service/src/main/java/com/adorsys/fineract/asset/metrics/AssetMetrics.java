@@ -31,6 +31,10 @@ public class AssetMetrics {
     // Order resolution metrics
     private final Counter ordersResolvedCounter;
 
+    // Bond redemption metrics
+    private final Counter bondRedeemedCounter;
+    private final DistributionSummary redemptionCashTotal;
+
     // Archival metrics
     private final Counter tradesArchivedCounter;
     private final Counter ordersArchivedCounter;
@@ -92,6 +96,16 @@ public class AssetMetrics {
                 .description("Number of orders manually resolved by admins")
                 .register(registry);
 
+        // Bond redemption metrics
+        bondRedeemedCounter = Counter.builder("asset.bonds.redeemed")
+                .description("Number of successful principal redemption payments")
+                .register(registry);
+
+        redemptionCashTotal = DistributionSummary.builder("asset.bonds.redemption.cash_total")
+                .description("Total " + config.getSettlementCurrency() + " paid as principal redemption")
+                .baseUnit(config.getSettlementCurrency())
+                .register(registry);
+
         // Archival metrics
         tradesArchivedCounter = Counter.builder("asset.archival.trades_archived")
                 .description("Total trade_log rows archived")
@@ -135,4 +149,10 @@ public class AssetMetrics {
     public void recordOrdersArchived(int count) { ordersArchivedCounter.increment(count); }
     /** Record an archival job failure. */
     public void recordArchivalFailure() { archivalFailureCounter.increment(); }
+
+    /** Record successful principal redemption payments. */
+    public void recordBondRedeemed(int holderCount, double cashTotal) {
+        bondRedeemedCounter.increment(holderCount);
+        redemptionCashTotal.record(cashTotal);
+    }
 }

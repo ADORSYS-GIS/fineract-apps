@@ -257,6 +257,42 @@ export interface CouponTriggerResponse {
 	nextCouponDate: string;
 }
 
+/** Result of triggering bond principal redemption (matches backend RedemptionTriggerResponse). */
+export interface RedemptionTriggerResponse {
+	assetId: string;
+	symbol: string;
+	redemptionDate: string;
+	totalHolders: number;
+	holdersRedeemed: number;
+	holdersFailed: number;
+	totalPrincipalPaid: number;
+	totalPrincipalFailed: number;
+	bondStatus: string;
+	details: {
+		userId: number;
+		units: number;
+		cashAmount: number;
+		status: string;
+		failureReason?: string;
+	}[];
+}
+
+/** Principal redemption audit record (matches backend RedemptionHistoryResponse). */
+export interface RedemptionHistoryResponse {
+	id: number;
+	userId: number;
+	units: number;
+	faceValue: number;
+	cashAmount: number;
+	realizedPnl?: number;
+	fineractCashTransferId?: number;
+	fineractAssetTransferId?: number;
+	status: string;
+	failureReason?: string;
+	redeemedAt: string;
+	redemptionDate: string;
+}
+
 export interface MarketStatusResponse {
 	isOpen: boolean;
 	schedule: string;
@@ -363,6 +399,19 @@ export const assetApi = {
 		assetClient.post<CouponTriggerResponse>(
 			`/api/admin/assets/${assetId}/coupons/trigger`,
 		),
+	redeemBond: (assetId: string) =>
+		assetClient.post<RedemptionTriggerResponse>(
+			`/api/admin/assets/${assetId}/redeem`,
+		),
+	getRedemptionHistory: (
+		assetId: string,
+		params?: { page?: number; size?: number },
+	) =>
+		assetClient.get<{
+			content: RedemptionHistoryResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>(`/api/admin/assets/${assetId}/redemptions`, { params }),
 
 	// Orders - Admin
 	getAdminOrders: (params?: { page?: number; size?: number }) =>

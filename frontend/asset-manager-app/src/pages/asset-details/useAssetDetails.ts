@@ -83,6 +83,24 @@ export const useAssetDetails = () => {
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
+	const redeemMutation = useMutation({
+		mutationFn: () => assetApi.redeemBond(assetId),
+		onSuccess: (res) => {
+			const r = res.data;
+			if (r.holdersFailed > 0) {
+				toast.error(
+					`Partial redemption: ${r.holdersRedeemed} paid, ${r.holdersFailed} failed`,
+				);
+			} else {
+				toast.success(
+					`Bond redeemed: ${r.holdersRedeemed} holders paid, ${r.totalPrincipalPaid.toLocaleString()} XAF`,
+				);
+			}
+			invalidateAll();
+		},
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
+	});
+
 	const setPriceMutation = useMutation({
 		mutationFn: (newPrice: number) =>
 			assetApi.setPrice(assetId, { price: newPrice }),
@@ -107,11 +125,13 @@ export const useAssetDetails = () => {
 		onResume: () => resumeMutation.mutate(),
 		onMint: (data: { additionalSupply: number }) => mintMutation.mutate(data),
 		onSetPrice: (newPrice: number) => setPriceMutation.mutate(newPrice),
+		onRedeem: () => redeemMutation.mutate(),
 		isUpdating: updateMutation.isPending,
 		isMinting: mintMutation.isPending,
 		isActivating: activateMutation.isPending,
 		isHalting: haltMutation.isPending,
 		isResuming: resumeMutation.isPending,
 		isSettingPrice: setPriceMutation.isPending,
+		isRedeeming: redeemMutation.isPending,
 	};
 };

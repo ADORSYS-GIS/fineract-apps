@@ -3,14 +3,17 @@ package com.adorsys.fineract.asset.controller;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.InterestPayment;
+import com.adorsys.fineract.asset.entity.PrincipalRedemption;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
+import com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository;
 import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
 import com.adorsys.fineract.asset.service.AssetProvisioningService;
 import com.adorsys.fineract.asset.service.CouponForecastService;
 import com.adorsys.fineract.asset.service.InventoryService;
 import com.adorsys.fineract.asset.service.PricingService;
+import com.adorsys.fineract.asset.service.PrincipalRedemptionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -37,8 +40,10 @@ public class AdminAssetController {
     private final PricingService pricingService;
     private final InventoryService inventoryService;
     private final InterestPaymentRepository interestPaymentRepository;
+    private final PrincipalRedemptionRepository principalRedemptionRepository;
     private final CouponForecastService couponForecastService;
     private final InterestPaymentScheduler interestPaymentScheduler;
+    private final PrincipalRedemptionService principalRedemptionService;
     private final AssetRepository assetRepository;
 
     @PostMapping
@@ -169,6 +174,42 @@ public class AdminAssetController {
 
         return ResponseEntity.ok(new CouponTriggerResponse(
                 id, bond.getSymbol(), couponDate, paid, failed, totalPaid, updated.getNextCouponDate()));
+    }
+
+    @PostMapping("/{id}/redeem")
+    @Operation(summary = "Trigger bond principal redemption",
+            description = "Redeems principal for all holders of a MATURED bond at face value. "
+                    + "Transfers treasury cash to each holder's XAF account and returns asset units to treasury. "
+                    + "Partial failures are isolated — failed holders can be retried by calling this endpoint again.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Redemption processed")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Bond not MATURED or treasury insufficient")
+    public ResponseEntity<RedemptionTriggerResponse> redeemBond(@PathVariable String id) {
+        return ResponseEntity.ok(principalRedemptionService.redeemBond(id));
+    }
+
+    @GetMapping("/{id}/redemptions")
+    @Operation(summary = "Redemption history",
+            description = "Paginated list of principal redemption records for a bond asset")
+    public ResponseEntity<Page<RedemptionHistoryResponse>> getRedemptionHistory(
+            @PathVariable String id,
+            @PageableDefault(size = 20) Pageable pageable) {
+        if (pageable.getPageSize() > 100) {
+            throw new IllegalArgumentException("Max page size is 100");
+        }
+        Page<RedemptionHistoryResponse> result = principalRedemptionRepository
+                .findByAssetIdOrderByRedeemedAtDesc(id, pageable)
+                .map(this::toRedemptionHistoryResponse);
+        return ResponseEntity.ok(result);
+    }
+
+    private RedemptionHistoryResponse toRedemptionHistoryResponse(PrincipalRedemption pr) {
+        return new RedemptionHistoryResponse(
+                pr.getId(), pr.getUserId(), pr.getUnits(), pr.getFaceValue(),
+                pr.getCashAmount(), pr.getRealizedPnl(),
+                pr.getFineractCashTransferId(), pr.getFineractAssetTransferId(),
+                pr.getStatus(), pr.getFailureReason(),
+                pr.getRedeemedAt(), pr.getRedemptionDate()
+        );
     }
 
     private CouponPaymentResponse toCouponPaymentResponse(InterestPayment ip) {

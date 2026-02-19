@@ -1,6 +1,7 @@
 import { Button, Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import {
+	Banknote,
 	BarChart3,
 	Pause,
 	Pencil,
@@ -17,6 +18,7 @@ import { CouponHistoryTable } from "@/components/CouponHistoryTable";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { ErrorFallback } from "@/components/ErrorFallback";
 import { MintSupplyDialog } from "@/components/MintSupplyDialog";
+import { RedemptionHistoryTable } from "@/components/RedemptionHistoryTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAssetDetails } from "./useAssetDetails";
 
@@ -32,14 +34,16 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	onHalt,
 	onResume,
 	onMint,
+	onRedeem,
 	isUpdating,
 	isActivating,
 	isHalting,
 	isResuming,
 	isMinting,
+	isRedeeming,
 }) => {
 	const [confirmAction, setConfirmAction] = useState<
-		"activate" | "halt" | "resume" | null
+		"activate" | "halt" | "resume" | "redeem" | null
 	>(null);
 	const [editOpen, setEditOpen] = useState(false);
 	const [mintOpen, setMintOpen] = useState(false);
@@ -117,6 +121,20 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 									<Play className="h-4 w-4" />
 								)}
 								{isResuming ? "Resuming..." : "Resume Trading"}
+							</Button>
+						)}
+						{asset.status === "MATURED" && asset.category === "BONDS" && (
+							<Button
+								onClick={() => setConfirmAction("redeem")}
+								disabled={isRedeeming}
+								className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+							>
+								{isRedeeming ? (
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+								) : (
+									<Banknote className="h-4 w-4" />
+								)}
+								{isRedeeming ? "Redeeming..." : "Redeem Bond"}
 							</Button>
 						)}
 						<Button
@@ -286,6 +304,12 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				{/* Coupon Obligation Forecast */}
 				{asset.category === "BONDS" && <CouponForecastCard assetId={assetId} />}
 
+				{/* Principal Redemption History (only for matured/redeemed bonds) */}
+				{asset.category === "BONDS" &&
+					(asset.status === "MATURED" || asset.status === "REDEEMED") && (
+						<RedemptionHistoryTable assetId={assetId} />
+					)}
+
 				{/* Asset Overview */}
 				<Card className="p-4 mb-6">
 					<h2 className="text-lg font-semibold text-gray-800 mb-3">
@@ -396,6 +420,19 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				}}
 				onCancel={() => setConfirmAction(null)}
 				isLoading={isResuming}
+			/>
+			<ConfirmDialog
+				isOpen={confirmAction === "redeem"}
+				title="Redeem Bond Principal"
+				message={`This will pay the face value to all holders of "${asset.name}" and return their asset units to treasury. No fees will be charged. This action cannot be undone.`}
+				confirmLabel="Redeem Bond"
+				confirmClassName="bg-purple-600 hover:bg-purple-700"
+				onConfirm={() => {
+					onRedeem();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isRedeeming}
 			/>
 			<EditAssetDialog
 				isOpen={editOpen}

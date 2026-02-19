@@ -61,4 +61,14 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
      */
     List<Asset> findByStatusAndNextCouponDateLessThanEqual(AssetStatus status, LocalDate date);
 
+    /**
+     * Find bonds with due coupons, including MATURED bonds.
+     * This ensures the final coupon is not missed when maturity date == coupon date,
+     * since MaturityScheduler (00:05) runs before InterestPaymentScheduler (00:15).
+     */
+    @Query("SELECT a FROM Asset a WHERE a.status IN (com.adorsys.fineract.asset.dto.AssetStatus.ACTIVE, " +
+           "com.adorsys.fineract.asset.dto.AssetStatus.MATURED) " +
+           "AND a.nextCouponDate IS NOT NULL AND a.nextCouponDate <= :date")
+    List<Asset> findBondsWithDueCoupons(@Param("date") LocalDate date);
+
 }

@@ -11,5 +11,7 @@ public enum AssetStatus {
     /** Asset permanently removed from trading. */
     DELISTED,
     /** Bond reached maturity date; no further trading allowed. */
-    MATURED
+    MATURED,
+    /** Bond principal has been fully redeemed; all holders paid out. */
+    REDEEMED
 }
