@@ -1,7 +1,9 @@
 package com.adorsys.fineract.registration.service.profile;
 
+import com.adorsys.fineract.registration.dto.profile.AddressDTO;
 import com.adorsys.fineract.registration.dto.profile.AddressListResponse;
 import com.adorsys.fineract.registration.dto.profile.AddressResponse;
+import com.adorsys.fineract.registration.dto.profile.AddressResponseDTO;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
 import com.adorsys.fineract.registration.service.FineractService;
@@ -60,5 +62,13 @@ public class CustomerProfileService {
         address.setCountry((String) fineractAddress.get("countryName"));
         address.setPostalCode((String) fineractAddress.get("postalCode"));
         return address;
+    }
+
+    public AddressResponseDTO createClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
+        return fineractService.createClientAddress(clientId, addressTypeId, addressDTO);
+    }
+
+    public AddressResponseDTO updateClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
+        return fineractService.updateClientAddress(clientId, addressTypeId, addressDTO);
     }
 }

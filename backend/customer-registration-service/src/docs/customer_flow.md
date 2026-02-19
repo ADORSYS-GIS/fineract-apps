@@ -98,11 +98,122 @@ A successful request returns a JSON object containing a list of addresses.
 
 ---
 
-## 4. Local Testing via cURL
+## 4. Create Client Address
 
-To test the service logic, use the following `curl` commands.
+### 4.1. API Endpoint
 
-### 4.1. Obtain an Access Token
+#### `POST /api/profile/clients/{clientId}/addresses`
+
+This endpoint creates a new address for a specific Fineract client.
+
+### 4.2. Security Model
+
+-   **Authentication:** Requires a valid JWT `Bearer` token.
+-   **Authorization:** No specific role is required. Any authenticated user can create an address for a client.
+
+### 4.3. Request Payload
+
+The endpoint expects a `Content-Type: application/json` body.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `street` | `String` | Yes | The street name. |
+| `addressLine1` | `String` | No | Additional address line 1. |
+| `addressLine2` | `String` | No | Additional address line 2. |
+| `addressLine3` | `String` | No | Additional address line 3. |
+| `city` | `String` | Yes | The city. |
+| `stateProvinceId` | `Integer` | Yes | The ID of the state or province. |
+| `countryId` | `Integer` | Yes | The ID of the country. |
+| `postalCode` | `String` | No | The postal code. |
+
+#### Sample Request
+
+```json
+{
+  "street": "Ipca",
+  "addressLine1": "Kandivali",
+  "addressLine2": "plot47",
+  "addressLine3": "charkop",
+  "city": "Mumbai",
+  "stateProvinceId": 800,
+  "countryId": 802,
+  "postalCode": "400064"
+}
+```
+
+### 4.4. API Responses
+
+-   **Success (`200 OK`):** A JSON object with the `resourceId` of the newly created address is returned.
+-   **Error (`400 Bad Request`):** Returned for validation errors.
+-   **Error (`401 Unauthorized`):** Returned if the request lacks a valid JWT.
+
+#### Sample Success Response
+
+```json
+{
+    "resourceId": 15
+}
+```
+
+---
+
+## 5. Update Client Address
+
+### 5.1. API Endpoint
+
+#### `PUT /api/profile/clients/{clientId}/addresses`
+
+This endpoint updates an existing address for a specific Fineract client.
+
+### 5.2. Security Model
+
+-   **Authentication:** Requires a valid JWT `Bearer` token.
+-   **Authorization:** No specific role is required. Any authenticated user can update an address for a client.
+
+### 5.3. Request Payload
+
+The endpoint expects a `Content-Type: application/json` body.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `addressId` | `Long` | Yes | The ID of the address to update. |
+| `street` | `String` | No | The new street name. |
+| `addressLine1` | `String` | No | Additional address line 1. |
+| `addressLine2` | `String` | No | Additional address line 2. |
+| `addressLine3` | `String` | No | Additional address line 3. |
+| `city` | `String` | No | The new city. |
+| `stateProvinceId` | `Integer` | No | The new ID of the state or province. |
+| `countryId` | `Integer` | No | The new ID of the country. |
+| `postalCode` | `String` | No | The new postal code. |
+
+#### Sample Request
+
+```json
+{
+  "addressId": 67,
+  "street": "goldensource"
+}
+```
+
+### 5.4. API Responses
+
+-   **Success (`200 OK`):** A JSON object with the `resourceId` of the updated address is returned.
+-   **Error (`400 Bad Request`):** Returned for validation errors.
+-   **Error (`401 Unauthorized`):** Returned if the request lacks a valid JWT.
+
+#### Sample Success Response
+
+```json
+{
+    "resourceId": 67
+}
+```
+
+---
+
+## 6. Local Testing via cURL
+
+### 6.1. Obtain an Access Token
 
 First, obtain a token from Keycloak. This token is required in the `Authorization` header for all subsequent requests. The user (`mifos`) has the `ROLE_KYC_MANAGER` authority required for testing the get addresses endpoint.
 
@@ -116,7 +227,7 @@ export TOKEN=$(curl -s --location --request POST "http://localhost:9000/realms/f
 --data-urlencode "grant_type=password" | jq -r '.access_token')
 ```
 
-### 4.2. Test Case: Update Customer Profile (SUCCESS)
+### 6.2. Test Case: Update Customer Profile (SUCCESS)
 **Objective:** Verify that a customer can successfully update their profile information.
 **Expected Result:** `200 OK`
 
@@ -130,7 +241,7 @@ curl --location --request PATCH 'http://localhost:8081/api/profile' \
 }'
 ```
 
-### 4.3. Test Case: Update a Single Field (SUCCESS)
+### 6.3. Test Case: Update a Single Field (SUCCESS)
 **Objective:** Verify that a customer can update just one piece of their profile information.
 **Expected Result:** `200 OK`
 
@@ -143,7 +254,7 @@ curl --location --request PATCH 'http://localhost:8081/api/profile' \
 }'
 ```
 
-### 4.4. Test Case: Get Client Addresses (SUCCESS)
+### 6.4. Test Case: Get Client Addresses (SUCCESS)
 **Objective:** Verify that a KYC Manager can retrieve the addresses for a specific client.
 **Expected Result:** `200 OK`
 
@@ -154,7 +265,7 @@ curl --location --request GET 'http://localhost:8081/api/profile/clients/123/add
 --header "Authorization: Bearer $TOKEN"
 ```
 
-### 4.5. Test Case: Get Client Addresses (FAILURE)
+### 6.5. Test Case: Get Client Addresses (FAILURE)
 **Objective:** Verify that a user without the `ROLE_KYC_MANAGER` authority cannot retrieve addresses.
 **Expected Result:** `403 Forbidden`
 
@@ -164,4 +275,41 @@ curl --location --request GET 'http://localhost:8081/api/profile/clients/123/add
 # Assuming $USER_TOKEN is a token for a non-manager user
 curl --location --request GET 'http://localhost:8081/api/profile/clients/123/addresses' \
 --header "Authorization: Bearer $USER_TOKEN"
+```
+### 6.6. Test Case: Create Client Address (SUCCESS)
+**Objective:** Verify that a new address can be created for a client.
+**Expected Result:** `200 OK`
+
+*Note: Replace `123` with an actual Fineract Client ID and `805` with a valid address type ID.*
+
+```bash
+curl --location --request POST 'http://localhost:8081/api/profile/clients/123/addresses?type=805' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "street":"Ipca",
+    "addressLine1":"Kandivali",
+    "addressLine2":"plot47",
+    "addressLine3":"charkop",
+    "city":"Mumbai",
+    "stateProvinceId":800,
+    "countryId":802,
+    "postalCode":"400064"
+}'
+```
+
+### 6.7. Test Case: Update Client Address (SUCCESS)
+**Objective:** Verify that an existing address can be updated for a client.
+**Expected Result:** `200 OK`
+
+*Note: Replace `123` with an actual Fineract Client ID, `805` with a valid address type ID, and `67` with a valid address ID.*
+
+```bash
+curl --location --request PUT 'http://localhost:8081/api/profile/clients/123/addresses?type=805' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "addressId":67,
+    "street":"goldensource"
+}'
 ```

@@ -1,7 +1,10 @@
 package com.adorsys.fineract.registration.service.fineract;
 
 import com.adorsys.fineract.registration.config.FineractProperties;
+import com.adorsys.fineract.registration.dto.profile.AddressDTO;
+import com.adorsys.fineract.registration.dto.profile.AddressResponseDTO;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
+import com.adorsys.fineract.registration.exception.FineractApiException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -76,6 +79,48 @@ public class FineractAddressService {
             if (id != null) {
                 map.put(mapKey, id);
             }
+        }
+    }
+    public AddressResponseDTO createClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
+        log.info("Creating address for client: {}", clientId);
+        Map<String, Object> body = new HashMap<>();
+        body.put("street", addressDTO.getStreet());
+        body.put("addressLine1", addressDTO.getAddressLine1());
+        body.put("addressLine2", addressDTO.getAddressLine2());
+        body.put("addressLine3", addressDTO.getAddressLine3());
+        body.put("city", addressDTO.getCity());
+        body.put("stateProvinceId", addressDTO.getStateProvinceId());
+        body.put("countryId", addressDTO.getCountryId());
+        body.put("postalCode", addressDTO.getPostalCode());
+
+
+        try {
+            return fineractRestClient.post()
+                    .uri("/fineract-provider/api/v1/clients/{clientId}/addresses?type={addressTypeId}", clientId, addressTypeId)
+                    .body(body)
+                    .retrieve()
+                    .body(AddressResponseDTO.class);
+        } catch (Exception e) {
+            log.error("Failed to create address for client {}: {}", clientId, e.getMessage());
+            throw new FineractApiException("Failed to create address", e);
+        }
+    }
+
+    public AddressResponseDTO updateClientAddress(Long clientId, Long addressTypeId, AddressDTO addressDTO) {
+        log.info("Updating address for client: {}", clientId);
+        Map<String, Object> body = new HashMap<>();
+        body.put("addressId", addressDTO.getAddressId());
+        body.put("street", addressDTO.getStreet());
+
+        try {
+            return fineractRestClient.put()
+                    .uri("/fineract-provider/api/v1/clients/{clientId}/addresses?type={addressTypeId}", clientId, addressTypeId)
+                    .body(body)
+                    .retrieve()
+                    .body(AddressResponseDTO.class);
+        } catch (Exception e) {
+            log.error("Failed to update address for client {}: {}", clientId, e.getMessage());
+            throw new FineractApiException("Failed to update address", e);
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.adorsys.fineract.registration.controller.profile;
 
+import com.adorsys.fineract.registration.dto.profile.AddressDTO;
 import com.adorsys.fineract.registration.dto.profile.AddressListResponse;
+import com.adorsys.fineract.registration.dto.profile.AddressResponseDTO;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
 import com.adorsys.fineract.registration.service.profile.CustomerProfileService;
@@ -9,18 +11,24 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Validated
 @RestController
 @RequestMapping("/api/profile")
 @RequiredArgsConstructor
@@ -55,5 +63,35 @@ public class CustomerProfileController {
             @PathVariable Long clientId) {
         AddressListResponse addresses = customerProfileService.getAddressesByClientId(clientId);
         return ResponseEntity.ok(addresses);
+    }
+
+    @PostMapping("/clients/{clientId}/addresses")
+    @Operation(summary = "Create client address", description = "Creates a new address for a given client.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Address created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<AddressResponseDTO> createClientAddress(
+            @PathVariable @NotNull Long clientId,
+            @RequestParam @NotNull Long type,
+            @Valid @RequestBody AddressDTO addressDTO) {
+        AddressResponseDTO response = customerProfileService.createClientAddress(clientId, type, addressDTO);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/clients/{clientId}/addresses")
+    @Operation(summary = "Update client address", description = "Updates an existing address for a given client.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Address updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<AddressResponseDTO> updateClientAddress(
+            @PathVariable @NotNull Long clientId,
+            @RequestParam @NotNull Long type,
+            @Valid @RequestBody AddressDTO addressDTO) {
+        AddressResponseDTO response = customerProfileService.updateClientAddress(clientId, type, addressDTO);
+        return ResponseEntity.ok(response);
     }
 }
