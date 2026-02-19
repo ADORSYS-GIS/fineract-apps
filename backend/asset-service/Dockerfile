@@ -11,7 +11,7 @@ RUN mvn package -DskipTests -B
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/target/*-exec.jar app.jar
 RUN chown -R appuser:appgroup /app
 USER appuser
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
