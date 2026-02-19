@@ -71,6 +71,8 @@ fineract:
   default-savings-product-id: 1
 
 app:
+  ssl:
+    insecure: true
   rate-limit:
     enabled: false
   stepup:
@@ -81,3 +83,6 @@ app:
   limits:
     daily-deposit-max: 10000000
     daily-withdrawal-max: 5000000
+  callbacks:
+    ip-whitelist:
+      enabled: false

@@ -6,9 +6,10 @@ import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.config.OrangeMoneyConfig;
 import com.adorsys.fineract.gateway.dto.PaymentProvider;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
+import com.adorsys.fineract.gateway.entity.ReversalDeadLetter;
 import com.adorsys.fineract.gateway.exception.PaymentException;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
-import com.adorsys.fineract.gateway.util.PhoneNumberUtils;
+import com.adorsys.fineract.gateway.repository.ReversalDeadLetterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Backoff;
@@ -31,6 +32,7 @@ public class ReversalService {
     private final OrangeMoneyConfig orangeConfig;
     private final CinetPayConfig cinetPayConfig;
     private final PaymentMetrics paymentMetrics;
+    private final ReversalDeadLetterRepository deadLetterRepository;
 
     /**
      * Reverse a Fineract withdrawal via compensating deposit.
@@ -62,6 +64,25 @@ public class ReversalService {
             "transactionId={}, fineractTxnId={}, amount={}, accountId={}",
             txn.getTransactionId(), txn.getFineractTransactionId(),
             txn.getAmount(), txn.getAccountId(), ex);
+
+        try {
+            deadLetterRepository.save(new ReversalDeadLetter(
+                txn.getTransactionId(),
+                txn.getFineractTransactionId(),
+                txn.getAccountId(),
+                txn.getAmount(),
+                txn.getCurrency(),
+                txn.getProvider(),
+                truncate(ex.getMessage(), 500)
+            ));
+        } catch (Exception dlqEx) {
+            log.error("CRITICAL: Failed to persist reversal to dead-letter queue! transactionId={}",
+                txn.getTransactionId(), dlqEx);
+        }
+    }
+
+    private static String truncate(String s, int maxLen) {
+        return s != null && s.length() > maxLen ? s.substring(0, maxLen) : s;
     }
 
     /**

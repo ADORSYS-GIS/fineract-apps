@@ -9,9 +9,11 @@ import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.config.OrangeMoneyConfig;
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
+import com.adorsys.fineract.gateway.entity.ReversalDeadLetter;
 import com.adorsys.fineract.gateway.exception.PaymentException;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
+import com.adorsys.fineract.gateway.repository.ReversalDeadLetterRepository;
 import com.adorsys.fineract.gateway.util.PhoneNumberUtils;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,7 @@ public class PaymentService {
     private final PaymentMetrics paymentMetrics;
     private final PaymentTransactionRepository transactionRepository;
     private final ReversalService reversalService;
+    private final ReversalDeadLetterRepository deadLetterRepository;
 
     @Value("${app.limits.daily-deposit-max:10000000}")
     private BigDecimal dailyDepositMax;
@@ -242,6 +245,17 @@ public class PaymentService {
             } catch (Exception revEx) {
                 log.error("CRITICAL: Failed to reverse Fineract withdrawal. Manual intervention required! transactionId={}, error={}",
                     transactionId, revEx.getMessage());
+                try {
+                    String reason = revEx.getMessage();
+                    if (reason != null && reason.length() > 500) reason = reason.substring(0, 500);
+                    deadLetterRepository.save(new ReversalDeadLetter(
+                        transactionId, fineractTxnId, request.getAccountId(),
+                        request.getAmount(), "XAF", request.getProvider(), reason
+                    ));
+                } catch (Exception dlqEx) {
+                    log.error("CRITICAL: Failed to persist reversal to dead-letter queue! transactionId={}",
+                        transactionId, dlqEx);
+                }
             }
             markTransactionFailed(transactionId);
             paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, PaymentStatus.FAILED);

@@ -267,19 +267,21 @@ public class CallbackController {
         String collectionKey = mtnConfig.getCollectionSubscriptionKey();
         String disbursementKey = mtnConfig.getDisbursementSubscriptionKey();
 
-        // Fail-closed: reject if subscription keys are not configured
-        if ((collectionKey == null || collectionKey.isEmpty()) &&
-            (disbursementKey == null || disbursementKey.isEmpty())) {
+        // Fail-closed: reject if subscription keys are not configured (null, empty, or whitespace)
+        boolean collectionConfigured = org.springframework.util.StringUtils.hasText(collectionKey);
+        boolean disbursementConfigured = org.springframework.util.StringUtils.hasText(disbursementKey);
+        if (!collectionConfigured && !disbursementConfigured) {
             log.error("MTN subscription keys not configured. Rejecting callback for security.");
             paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "keys_not_configured");
             return false;
         }
 
-        if (subscriptionKey == null || subscriptionKey.isEmpty()) {
+        if (!org.springframework.util.StringUtils.hasText(subscriptionKey)) {
             return false;
         }
 
-        return subscriptionKey.equals(collectionKey) || subscriptionKey.equals(disbursementKey);
+        return (collectionConfigured && subscriptionKey.equals(collectionKey)) ||
+               (disbursementConfigured && subscriptionKey.equals(disbursementKey));
     }
 
     private CinetPayCallbackRequest mapToCinetPayTransferRequest(MultiValueMap<String, String> formData) {

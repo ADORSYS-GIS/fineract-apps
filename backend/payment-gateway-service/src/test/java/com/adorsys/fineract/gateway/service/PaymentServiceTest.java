@@ -12,6 +12,7 @@ import com.adorsys.fineract.gateway.entity.PaymentTransaction;
 import com.adorsys.fineract.gateway.exception.PaymentException;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
+import com.adorsys.fineract.gateway.repository.ReversalDeadLetterRepository;
 import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +47,7 @@ class PaymentServiceTest {
     @Mock private PaymentMetrics paymentMetrics;
     @Mock private PaymentTransactionRepository transactionRepository;
     @Mock private ReversalService reversalService;
+    @Mock private ReversalDeadLetterRepository deadLetterRepository;
 
     @InjectMocks
     private PaymentService paymentService;

@@ -55,6 +55,9 @@ public class SecurityConfig {
                 // Callback endpoints from payment providers - verified by signature/token
                 .requestMatchers("/api/callbacks/**").permitAll()
 
+                // Admin endpoints require ADMIN role
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )

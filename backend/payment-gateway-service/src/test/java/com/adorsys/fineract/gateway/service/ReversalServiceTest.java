@@ -8,6 +8,7 @@ import com.adorsys.fineract.gateway.dto.PaymentResponse;
 import com.adorsys.fineract.gateway.dto.PaymentStatus;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
+import com.adorsys.fineract.gateway.repository.ReversalDeadLetterRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,7 @@ class ReversalServiceTest {
     @Mock private MtnMomoConfig mtnConfig;
     @Mock private OrangeMoneyConfig orangeConfig;
     @Mock private PaymentMetrics paymentMetrics;
+    @Mock private ReversalDeadLetterRepository deadLetterRepository;
 
     @InjectMocks
     private ReversalService reversalService;

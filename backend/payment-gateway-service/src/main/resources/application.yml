@@ -64,7 +64,7 @@ mtn:
     target-environment: ${MTN_TARGET_ENV:sandbox}
     callback-url: ${MTN_CALLBACK_URL:http://localhost:8082/api/callbacks}
     currency: XAF
-    timeout-seconds: 30
+    timeout-seconds: 60
     fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:1}
     gl-account-code: ${MTN_GL_ACCOUNT_CODE:}
 
@@ -119,11 +119,13 @@ fineract:
   # Basic auth settings (used when auth-type=basic)
   username: ${FINERACT_USERNAME:mifos}
   password: ${FINERACT_PASSWORD:password}
-  timeout-seconds: 30
+  timeout-seconds: 15
   default-savings-product-id: ${FINERACT_SAVINGS_PRODUCT_ID:9}
 
 # Step-up authentication for withdrawals (disabled until frontend supports it)
 app:
+  ssl:
+    insecure: ${SSL_INSECURE:false}
   stepup:
     enabled: ${APP_STEPUP_ENABLED:false}
     secret: ${APP_STEPUP_SECRET:}
@@ -136,6 +138,17 @@ app:
   limits:
     daily-deposit-max: ${APP_DAILY_DEPOSIT_MAX:10000000}
     daily-withdrawal-max: ${APP_DAILY_WITHDRAWAL_MAX:5000000}
+  rate-limit:
+    enabled: true
+    payment-per-minute: ${RATE_LIMIT_PAYMENT:5}
+    status-per-minute: ${RATE_LIMIT_STATUS:50}
+    callback-per-minute: ${RATE_LIMIT_CALLBACK:100}
+  callbacks:
+    ip-whitelist:
+      enabled: ${CALLBACK_IP_WHITELIST_ENABLED:false}
+      mtn: ${CALLBACK_IPS_MTN:}
+      orange: ${CALLBACK_IPS_ORANGE:}
+      cinetpay: ${CALLBACK_IPS_CINETPAY:}
 
 # Actuator Configuration
 management:
