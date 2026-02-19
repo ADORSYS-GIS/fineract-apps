@@ -68,8 +68,10 @@ The endpoint expects a `Content-Type: application/json` body with the following 
 6.  The `FineractService` constructs a specific payload for the Fineract "Create Client" API endpoint, mapping fields from the request and adding necessary default values.
 7.  An HTTP `POST` request is sent to the Fineract API to create the client.
 8.  Upon successful client creation, the `FineractService` is called again to create a default savings account for the new client.
-9.  Upon successful creation of both entities in Fineract, the `RegistrationService` forms a success response.
-10. The `RegistrationController` returns a `201 Created` HTTP status to the original caller, including the newly created Fineract Client ID and Savings Account ID in the response body.
+9.  After the savings account is created, the `FineractService` approves the account.
+10. After the savings account is approved, the `FineractService` activates the account.
+11. Upon successful creation of both entities in Fineract, the `RegistrationService` forms a success response.
+12. The `RegistrationController` returns a `201 Created` HTTP status to the original caller, including the newly created Fineract Client ID and Savings Account ID in the response body.
 
 ## 6. Fineract Payload Mapping
 
@@ -296,4 +298,4 @@ A successful registration will return a `201 Created` status with a JSON body si
 
 ## 9. Post-Registration State
 
-Upon successful registration, the immediate result is the creation of a **Client** record in Fineract with its `active` status set to `true`, and a new **Savings Account** associated with that client.
+Upon successful registration, the immediate result is the creation of a **Client** record in Fineract with its `active` status set to `true`, and a new **Savings Account** associated with that client. The savings account is also **approved** and **activated**, making it ready for transactions.

@@ -122,6 +122,8 @@ public class FineractAccountService {
             if (response != null && response.containsKey(SAVINGS_ID)) {
                 Long savingsId = ((Number) response.get(SAVINGS_ID)).longValue();
                 log.info("Created savings account with ID: {}", savingsId);
+                approveSavingsAccount(savingsId);
+                activateSavingsAccount(savingsId);
                 return savingsId;
             }
 
@@ -129,6 +131,53 @@ public class FineractAccountService {
         } catch (Exception e) {
             log.error("Failed to create savings account: {}", e.getMessage(), e);
             throw new RegistrationException("Failed to create savings account", e);
+        }
+    }
+
+    @SuppressWarnings({"null"})
+    private void approveSavingsAccount(Long savingsId) {
+        log.info("Approving savings account: {}", savingsId);
+
+        Map<String, Object> approvePayload = Map.of(
+                "approvedOnDate", LocalDate.now().format(dateTimeFormatter),
+                DATE_FORMAT, fineractProperties.getDefaults().getDateFormat(),
+                LOCALE, fineractProperties.getDefaults().getLocale(),
+                "note", ""
+        );
+
+        try {
+            fineractRestClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{savingsId}?command=approve", savingsId)
+                    .body(approvePayload)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("Approved savings account with ID: {}", savingsId);
+        } catch (Exception e) {
+            log.error("Failed to approve savings account: {}", e.getMessage(), e);
+            throw new RegistrationException("Failed to approve savings account", e);
+        }
+    }
+
+    @SuppressWarnings({"null"})
+    private void activateSavingsAccount(Long savingsId) {
+        log.info("Activating savings account: {}", savingsId);
+
+        Map<String, Object> activatePayload = Map.of(
+                "activatedOnDate", LocalDate.now().format(dateTimeFormatter),
+                DATE_FORMAT, fineractProperties.getDefaults().getDateFormat(),
+                LOCALE, fineractProperties.getDefaults().getLocale()
+        );
+
+        try {
+            fineractRestClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{savingsId}?command=activate", savingsId)
+                    .body(activatePayload)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("Activated savings account with ID: {}", savingsId);
+        } catch (Exception e) {
+            log.error("Failed to activate savings account: {}", e.getMessage(), e);
+            throw new RegistrationException("Failed to activate savings account", e);
         }
     }
 }
