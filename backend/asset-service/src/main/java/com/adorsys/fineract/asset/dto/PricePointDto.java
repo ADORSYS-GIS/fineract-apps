@@ -10,5 +10,5 @@ public record PricePointDto(
     /** Price of the asset at this point in time, in settlement currency. */
     BigDecimal price,
     /** Timestamp when this price was captured. */
-    Instant timestamp
+    Instant capturedAt
 ) {}
