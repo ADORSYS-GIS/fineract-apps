@@ -20,26 +20,12 @@ public class CustomerProfileService {
     private final FineractService fineractService;
 
     public ProfileUpdateResponse updateProfile(ProfileUpdateRequest request, Jwt jwt) {
-        // Extract fineract_client_id from JWT
-        String fineractClientId = jwt.getClaimAsString("fineract_client_id");
-        if (fineractClientId == null) {
-            String fineractExternalId = jwt.getClaimAsString("fineract_external_id");
-            if (fineractExternalId == null) {
-                throw new IllegalArgumentException("fineract_client_id and fineract_external_id claims are missing from JWT");
-            }
-            Map<String, Object> client = fineractService.getClientByExternalId(fineractExternalId);
-            if (client == null || client.isEmpty()) {
-                throw new IllegalArgumentException("Client not found with external id " + fineractExternalId);
-            }
-            fineractClientId = String.valueOf(client.get("id"));
-        }
-
-
-        // Call Fineract to update the client
-        return fineractService.updateClient(Long.valueOf(fineractClientId), request);
+        Long clientId = getClientIdFromJwt(jwt);
+        return fineractService.updateClient(clientId, request);
     }
 
-    public AddressListResponse getAddressesByClientId(Long clientId) {
+    public AddressListResponse getAddressesByClientId(Jwt jwt) {
+        Long clientId = getClientIdFromJwt(jwt);
         List<Map<String, Object>> fineractAddresses = fineractService.getClientAddresses(clientId);
         List<AddressResponse> addresses = fineractAddresses.stream()
                 .map(this::mapToAddressResponse)
@@ -64,11 +50,29 @@ public class CustomerProfileService {
         return address;
     }
 
-    public AddressResponseDTO createClientAddress(Long clientId, AddressDTO addressDTO) {
+    public AddressResponseDTO createClientAddress(Jwt jwt, AddressDTO addressDTO) {
+        Long clientId = getClientIdFromJwt(jwt);
         return fineractService.createClientAddress(clientId, addressDTO);
     }
 
-    public AddressResponseDTO updateClientAddress(Long clientId, AddressDTO addressDTO) {
+    public AddressResponseDTO updateClientAddress(Jwt jwt, AddressDTO addressDTO) {
+        Long clientId = getClientIdFromJwt(jwt);
         return fineractService.updateClientAddress(clientId, addressDTO);
+    }
+
+    private Long getClientIdFromJwt(Jwt jwt) {
+        String fineractClientId = jwt.getClaimAsString("fineract_client_id");
+        if (fineractClientId == null) {
+            String fineractExternalId = jwt.getClaimAsString("fineract_external_id");
+            if (fineractExternalId == null) {
+                throw new IllegalArgumentException("fineract_client_id and fineract_external_id claims are missing from JWT");
+            }
+            Map<String, Object> client = fineractService.getClientByExternalId(fineractExternalId);
+            if (client == null || client.isEmpty()) {
+                throw new IllegalArgumentException("Client not found with external id " + fineractExternalId);
+            }
+            fineractClientId = String.valueOf(client.get("id"));
+        }
+        return Long.valueOf(fineractClientId);
     }
 }
