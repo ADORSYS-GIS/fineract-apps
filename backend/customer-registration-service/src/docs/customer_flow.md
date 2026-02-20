@@ -217,7 +217,6 @@ The endpoint expects a `Content-Type: application/json` body.
 
 ```json
 {
-  "addressType": "Residential",
   "street": "Avenue Deido",
   "addressType": "Business"
 }
