@@ -118,8 +118,7 @@ The endpoint expects a `Content-Type: application/json` body.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `street` | `String` | Yes | The street name. |
-| `addressLine1` | `String` | No | Additional address line 1. |
+| `addressLine1` | `String` | Yes | The street name. |
 | `addressLine2` | `String` | No | Additional address line 2. |
 | `addressLine3` | `String` | No | Additional address line 3. |
 | `city` | `String` | Yes | The city. |
@@ -154,8 +153,7 @@ The `addressType`, `stateProvince`, and `country` fields are not free-form strin
 
 ```json
 {
-  "street": "Rue Deido",
-  "addressLine1": "B.P. 1234",
+  "addressLine1": "Rue Deido",
   "city": "Douala",
   "stateProvince": "Littoral",
   "country": "Cameroon",
@@ -201,8 +199,7 @@ The endpoint expects a `Content-Type: application/json` body.
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `addressId` | `Long` | Yes | The ID of the address in Fineract to update. |
-| `street` | `String` | No | The new street name. |
-| `addressLine1` | `String` | No | Additional address line 1. |
+| `addressLine1` | `String` | No | The new street name. |
 | `addressLine2` | `String` | No | Additional address line 2. |
 | `addressLine3` | `String` | No | Additional address line 3. |
 | `city` | `String` | No | The new city. |
@@ -217,7 +214,7 @@ The endpoint expects a `Content-Type: application/json` body.
 
 ```json
 {
-  "street": "Avenue Deido",
+  "addressLine1": "Avenue Deido",
   "addressType": "Business"
 }
 ```
@@ -339,8 +336,7 @@ curl --location --request POST 'http://localhost:8081/api/profile/addresses' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
-    "street": "Rue Deido",
-    "addressLine1": "B.P. 1234",
+    "addressLine1": "Rue Deido",
     "city": "Douala",
     "stateProvince": "Littoral",
     "country": "Cameroon",
@@ -360,7 +356,7 @@ curl --location --request PUT 'http://localhost:8081/api/profile/addresses' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
     "addressType": "Residential",
-    "street": "Avenue Deido",
+    "addressLine1": "Avenue Deido",
     "addressType": "Business"
 }'
 ```

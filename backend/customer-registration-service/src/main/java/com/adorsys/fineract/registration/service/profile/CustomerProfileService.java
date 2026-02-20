@@ -39,8 +39,7 @@ public class CustomerProfileService {
     private AddressDetailsResponse mapToAddressDetailsResponse(Map<String, Object> fineractAddress) {
         AddressDetailsResponse address = new AddressDetailsResponse();
         address.setAddressType((String) fineractAddress.get("addressType"));
-        // Fineract uses 'street' for addressLine1 in its GET address response
-        address.setAddressLine1((String) fineractAddress.get("street"));
+        address.setAddressLine1((String) fineractAddress.get("addressLine1"));
         address.setAddressLine2((String) fineractAddress.get("addressLine2"));
         address.setAddressLine3((String) fineractAddress.get("addressLine3"));
         address.setCity((String) fineractAddress.get("city"));

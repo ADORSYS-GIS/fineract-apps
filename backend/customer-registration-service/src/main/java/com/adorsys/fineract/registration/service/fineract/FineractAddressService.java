@@ -96,7 +96,6 @@ public class FineractAddressService {
     public AddressResponse createClientAddress(Long clientId, AddressRequest addressRequest) {
         log.info("Creating address for client: {}", clientId);
         Map<String, Object> body = new HashMap<>();
-        body.put("street", addressRequest.getStreet());
         body.put(ADDRESS_LINE_1, addressRequest.getAddressLine1());
         body.put(ADDRESS_LINE_2, addressRequest.getAddressLine2());
         body.put(ADDRESS_LINE_3, addressRequest.getAddressLine3());
@@ -125,7 +124,6 @@ public class FineractAddressService {
         log.info("Updating address for client: {}", clientId);
         Map<String, Object> body = new HashMap<>();
         body.put("addressId", addressRequest.getAddressId());
-        putIfPresent(body, "street", addressRequest.getStreet());
         putIfPresent(body, ADDRESS_LINE_1, addressRequest.getAddressLine1());
         putIfPresent(body, ADDRESS_LINE_2, addressRequest.getAddressLine2());
         putIfPresent(body, ADDRESS_LINE_3, addressRequest.getAddressLine3());
