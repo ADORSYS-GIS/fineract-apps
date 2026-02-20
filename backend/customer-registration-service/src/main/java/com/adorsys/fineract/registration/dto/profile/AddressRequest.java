@@ -3,7 +3,7 @@ package com.adorsys.fineract.registration.dto.profile;
 import lombok.Data;
 
 @Data
-public class AddressDTO {
+public class AddressRequest {
     private Long addressId;
     private String street;
     private String addressLine1;

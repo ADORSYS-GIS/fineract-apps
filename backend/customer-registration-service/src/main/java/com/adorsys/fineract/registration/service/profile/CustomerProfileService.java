@@ -1,9 +1,9 @@
 package com.adorsys.fineract.registration.service.profile;
 
-import com.adorsys.fineract.registration.dto.profile.AddressDTO;
+import com.adorsys.fineract.registration.dto.profile.AddressRequest;
 import com.adorsys.fineract.registration.dto.profile.AddressListResponse;
+import com.adorsys.fineract.registration.dto.profile.AddressDetailsResponse;
 import com.adorsys.fineract.registration.dto.profile.AddressResponse;
-import com.adorsys.fineract.registration.dto.profile.AddressResponseDTO;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
 import com.adorsys.fineract.registration.service.FineractService;
@@ -27,8 +27,8 @@ public class CustomerProfileService {
     public AddressListResponse getAddressesByClientId(Jwt jwt) {
         Long clientId = getClientIdFromJwt(jwt);
         List<Map<String, Object>> fineractAddresses = fineractService.getClientAddresses(clientId);
-        List<AddressResponse> addresses = fineractAddresses.stream()
-                .map(this::mapToAddressResponse)
+        List<AddressDetailsResponse> addresses = fineractAddresses.stream()
+                .map(this::mapToAddressDetailsResponse)
                 .toList();
 
         AddressListResponse response = new AddressListResponse();
@@ -36,8 +36,8 @@ public class CustomerProfileService {
         return response;
     }
 
-    private AddressResponse mapToAddressResponse(Map<String, Object> fineractAddress) {
-        AddressResponse address = new AddressResponse();
+    private AddressDetailsResponse mapToAddressDetailsResponse(Map<String, Object> fineractAddress) {
+        AddressDetailsResponse address = new AddressDetailsResponse();
         address.setAddressType((String) fineractAddress.get("addressType"));
         // Fineract uses 'street' for addressLine1 in its GET address response
         address.setAddressLine1((String) fineractAddress.get("street"));
@@ -50,14 +50,14 @@ public class CustomerProfileService {
         return address;
     }
 
-    public AddressResponseDTO createClientAddress(Jwt jwt, AddressDTO addressDTO) {
+    public AddressResponse createClientAddress(Jwt jwt, AddressRequest addressRequest) {
         Long clientId = getClientIdFromJwt(jwt);
-        return fineractService.createClientAddress(clientId, addressDTO);
+        return fineractService.createClientAddress(clientId, addressRequest);
     }
 
-    public AddressResponseDTO updateClientAddress(Jwt jwt, AddressDTO addressDTO) {
+    public AddressResponse updateClientAddress(Jwt jwt, AddressRequest addressRequest) {
         Long clientId = getClientIdFromJwt(jwt);
-        return fineractService.updateClientAddress(clientId, addressDTO);
+        return fineractService.updateClientAddress(clientId, addressRequest);
     }
 
     private Long getClientIdFromJwt(Jwt jwt) {

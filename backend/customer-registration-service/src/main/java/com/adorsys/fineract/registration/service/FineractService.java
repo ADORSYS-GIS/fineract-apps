@@ -1,7 +1,7 @@
 package com.adorsys.fineract.registration.service;
 
-import com.adorsys.fineract.registration.dto.profile.AddressDTO;
-import com.adorsys.fineract.registration.dto.profile.AddressResponseDTO;
+import com.adorsys.fineract.registration.dto.profile.AddressRequest;
+import com.adorsys.fineract.registration.dto.profile.AddressResponse;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
@@ -69,11 +69,11 @@ public class FineractService {
         return fineractAccountService.createSavingsAccount(clientId);
     }
 
-    public AddressResponseDTO createClientAddress(Long clientId, AddressDTO addressDTO) {
-        return fineractAddressService.createClientAddress(clientId, addressDTO);
+    public AddressResponse createClientAddress(Long clientId, AddressRequest addressRequest) {
+        return fineractAddressService.createClientAddress(clientId, addressRequest);
     }
 
-    public AddressResponseDTO updateClientAddress(Long clientId, AddressDTO addressDTO) {
-        return fineractAddressService.updateClientAddress(clientId, addressDTO);
+    public AddressResponse updateClientAddress(Long clientId, AddressRequest addressRequest) {
+        return fineractAddressService.updateClientAddress(clientId, addressRequest);
     }
 }

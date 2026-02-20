@@ -1,8 +1,8 @@
 package com.adorsys.fineract.registration.controller.profile;
 
-import com.adorsys.fineract.registration.dto.profile.AddressDTO;
+import com.adorsys.fineract.registration.dto.profile.AddressRequest;
 import com.adorsys.fineract.registration.dto.profile.AddressListResponse;
-import com.adorsys.fineract.registration.dto.profile.AddressResponseDTO;
+import com.adorsys.fineract.registration.dto.profile.AddressResponse;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
 import com.adorsys.fineract.registration.service.profile.CustomerProfileService;
@@ -71,10 +71,10 @@ public class CustomerProfileController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
-    public ResponseEntity<AddressResponseDTO> createClientAddress(
+    public ResponseEntity<AddressResponse> createClientAddress(
             @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody AddressDTO addressDTO) {
-        AddressResponseDTO response = customerProfileService.createClientAddress(jwt, addressDTO);
+            @Valid @RequestBody AddressRequest addressRequest) {
+        AddressResponse response = customerProfileService.createClientAddress(jwt, addressRequest);
         return ResponseEntity.ok(response);
     }
 
@@ -86,10 +86,10 @@ public class CustomerProfileController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
-    public ResponseEntity<AddressResponseDTO> updateClientAddress(
+    public ResponseEntity<AddressResponse> updateClientAddress(
             @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody AddressDTO addressDTO) {
-        AddressResponseDTO response = customerProfileService.updateClientAddress(jwt, addressDTO);
+            @Valid @RequestBody AddressRequest addressRequest) {
+        AddressResponse response = customerProfileService.updateClientAddress(jwt, addressRequest);
         return ResponseEntity.ok(response);
     }
 }

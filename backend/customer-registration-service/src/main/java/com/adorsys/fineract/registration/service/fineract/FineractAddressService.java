@@ -1,8 +1,8 @@
 package com.adorsys.fineract.registration.service.fineract;
 
 import com.adorsys.fineract.registration.config.FineractProperties;
-import com.adorsys.fineract.registration.dto.profile.AddressDTO;
-import com.adorsys.fineract.registration.dto.profile.AddressResponseDTO;
+import com.adorsys.fineract.registration.dto.profile.AddressRequest;
+import com.adorsys.fineract.registration.dto.profile.AddressResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.FineractApiException;
 import lombok.extern.slf4j.Slf4j;
@@ -93,20 +93,20 @@ public class FineractAddressService {
             }
         }
     }
-    public AddressResponseDTO createClientAddress(Long clientId, AddressDTO addressDTO) {
+    public AddressResponse createClientAddress(Long clientId, AddressRequest addressRequest) {
         log.info("Creating address for client: {}", clientId);
         Map<String, Object> body = new HashMap<>();
-        body.put("street", addressDTO.getStreet());
-        body.put(ADDRESS_LINE_1, addressDTO.getAddressLine1());
-        body.put(ADDRESS_LINE_2, addressDTO.getAddressLine2());
-        body.put(ADDRESS_LINE_3, addressDTO.getAddressLine3());
-        body.put(CITY, addressDTO.getCity());
-        body.put(POSTAL_CODE, addressDTO.getPostalCode());
+        body.put("street", addressRequest.getStreet());
+        body.put(ADDRESS_LINE_1, addressRequest.getAddressLine1());
+        body.put(ADDRESS_LINE_2, addressRequest.getAddressLine2());
+        body.put(ADDRESS_LINE_3, addressRequest.getAddressLine3());
+        body.put(CITY, addressRequest.getCity());
+        body.put(POSTAL_CODE, addressRequest.getPostalCode());
 
-        putDynamicIdIfPresent(body, STATE_PROVINCE_ID, STATE, addressDTO.getStateProvince());
-        putDynamicIdIfPresent(body, COUNTRY_ID, COUNTRY, addressDTO.getCountry());
+        putDynamicIdIfPresent(body, STATE_PROVINCE_ID, STATE, addressRequest.getStateProvince());
+        putDynamicIdIfPresent(body, COUNTRY_ID, COUNTRY, addressRequest.getCountry());
 
-        Long addressTypeId = fineractCodeValueService.getDynamicId(ADDRESS_TYPE, addressDTO.getAddressType());
+        Long addressTypeId = fineractCodeValueService.getDynamicId(ADDRESS_TYPE, addressRequest.getAddressType());
 
 
         try {
@@ -114,35 +114,35 @@ public class FineractAddressService {
                     .uri("/fineract-provider/api/v1/clients/{clientId}/addresses?type={addressTypeId}", clientId, addressTypeId)
                     .body(body)
                     .retrieve()
-                    .body(AddressResponseDTO.class);
+                    .body(AddressResponse.class);
         } catch (Exception e) {
             log.error("Failed to create address for client {}: {}", clientId, e.getMessage());
             throw new FineractApiException("Failed to create address", e);
         }
     }
 
-    public AddressResponseDTO updateClientAddress(Long clientId, AddressDTO addressDTO) {
+    public AddressResponse updateClientAddress(Long clientId, AddressRequest addressRequest) {
         log.info("Updating address for client: {}", clientId);
         Map<String, Object> body = new HashMap<>();
-        body.put("addressId", addressDTO.getAddressId());
-        putIfPresent(body, "street", addressDTO.getStreet());
-        putIfPresent(body, ADDRESS_LINE_1, addressDTO.getAddressLine1());
-        putIfPresent(body, ADDRESS_LINE_2, addressDTO.getAddressLine2());
-        putIfPresent(body, ADDRESS_LINE_3, addressDTO.getAddressLine3());
-        putIfPresent(body, CITY, addressDTO.getCity());
-        putIfPresent(body, POSTAL_CODE, addressDTO.getPostalCode());
+        body.put("addressId", addressRequest.getAddressId());
+        putIfPresent(body, "street", addressRequest.getStreet());
+        putIfPresent(body, ADDRESS_LINE_1, addressRequest.getAddressLine1());
+        putIfPresent(body, ADDRESS_LINE_2, addressRequest.getAddressLine2());
+        putIfPresent(body, ADDRESS_LINE_3, addressRequest.getAddressLine3());
+        putIfPresent(body, CITY, addressRequest.getCity());
+        putIfPresent(body, POSTAL_CODE, addressRequest.getPostalCode());
 
-        putDynamicIdIfPresent(body, STATE_PROVINCE_ID, STATE, addressDTO.getStateProvince());
-        putDynamicIdIfPresent(body, COUNTRY_ID, COUNTRY, addressDTO.getCountry());
+        putDynamicIdIfPresent(body, STATE_PROVINCE_ID, STATE, addressRequest.getStateProvince());
+        putDynamicIdIfPresent(body, COUNTRY_ID, COUNTRY, addressRequest.getCountry());
 
-        Long addressTypeId = fineractCodeValueService.getDynamicId(ADDRESS_TYPE, addressDTO.getAddressType());
+        Long addressTypeId = fineractCodeValueService.getDynamicId(ADDRESS_TYPE, addressRequest.getAddressType());
 
         try {
             return fineractRestClient.put()
                     .uri("/fineract-provider/api/v1/clients/{clientId}/addresses?type={addressTypeId}", clientId, addressTypeId)
                     .body(body)
                     .retrieve()
-                    .body(AddressResponseDTO.class);
+                    .body(AddressResponse.class);
         } catch (Exception e) {
             log.error("Failed to update address for client {}: {}", clientId, e.getMessage());
             throw new FineractApiException("Failed to update address", e);
