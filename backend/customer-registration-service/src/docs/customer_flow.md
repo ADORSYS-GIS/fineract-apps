@@ -17,7 +17,7 @@ This endpoint is used to initiate an update to the authenticated customer's prof
 ### 2.2. Security Model
 
 -   **Authentication:** Requires a valid JWT `Bearer` token for an authenticated user.
--   **Authorization:** The service determines the Fineract client ID from a `fineract_client_id` or `fineract_external_id` claim in the JWT, ensuring that a user can only update their own profile.
+-   **Authorization:** Access is restricted by method-level security. The caller must have a valid JWT containing the `ROLE_KYC_MANAGER` authority. The service determines the Fineract client ID from a `fineract_client_id` or `fineract_external_id` claim in the JWT.
 
 ### 2.3. Request Payload
 
@@ -44,6 +44,7 @@ The endpoint expects a `Content-Type: application/json` body. Any combination of
 -   **Success (`200 OK`):** A JSON object detailing the changes is returned on a successful update.
 -   **Error (`400 Bad Request`):** Returned for validation errors.
 -   **Error (`401 Unauthorized`):** Returned if the request lacks a valid JWT.
+-   **Error (`403 Forbidden`):** Returned if the user does not have the `ROLE_KYC_MANAGER` authority.
 
 #### Sample Success Response
 
@@ -216,7 +217,7 @@ The endpoint expects a `Content-Type: application/json` body.
 
 ```json
 {
-  "addressId": 15,
+  "addressType": "Residential",
   "street": "Avenue Deido",
   "addressType": "Business"
 }
@@ -326,13 +327,11 @@ curl --location --request POST 'http://localhost:8081/api/profile/addresses' \
 **Expected Result:** `200 OK`
 
 
-
 ```bash
 curl --location --request PUT 'http://localhost:8081/api/profile/addresses' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
-        
     "addressType": "Residential",
     "street": "Avenue Deido",
     "addressType": "Business"

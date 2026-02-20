@@ -40,6 +40,7 @@ public class CustomerProfileController {
             @ApiResponse(responseCode = "400", description = "Invalid input"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
+    @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
     public ResponseEntity<ProfileUpdateResponse> updateProfile(
             @Valid @RequestBody ProfileUpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
