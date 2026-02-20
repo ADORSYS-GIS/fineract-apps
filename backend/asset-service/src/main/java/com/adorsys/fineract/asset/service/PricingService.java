@@ -224,15 +224,23 @@ public class PricingService {
     @Transactional
     public void snapshotPrices() {
         List<AssetPrice> prices = assetPriceRepository.findAll();
+        int snapshotted = 0;
         for (AssetPrice price : prices) {
+            var last = priceHistoryRepository
+                    .findTopByAssetIdOrderByCapturedAtDesc(price.getAssetId());
+            if (last.isPresent() && last.get().getPrice().compareTo(price.getCurrentPrice()) == 0) {
+                continue; // skip — price unchanged
+            }
             PriceHistory history = PriceHistory.builder()
                     .assetId(price.getAssetId())
                     .price(price.getCurrentPrice())
                     .capturedAt(Instant.now())
                     .build();
             priceHistoryRepository.save(history);
+            snapshotted++;
         }
-        log.info("Snapshotted {} prices to history", prices.size());
+        log.info("Snapshotted {} prices to history ({} unchanged, skipped)",
+                snapshotted, prices.size() - snapshotted);
     }
 
     /**
