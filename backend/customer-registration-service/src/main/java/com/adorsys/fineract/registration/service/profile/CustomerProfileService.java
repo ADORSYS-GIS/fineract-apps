@@ -38,6 +38,7 @@ public class CustomerProfileService {
 
     private AddressDetailsResponse mapToAddressDetailsResponse(Map<String, Object> fineractAddress) {
         AddressDetailsResponse address = new AddressDetailsResponse();
+        address.setAddressId(((Number) fineractAddress.get("addressId")).longValue());
         address.setAddressType((String) fineractAddress.get("addressType"));
         address.setAddressLine1((String) fineractAddress.get("addressLine1"));
         address.setAddressLine2((String) fineractAddress.get("addressLine2"));

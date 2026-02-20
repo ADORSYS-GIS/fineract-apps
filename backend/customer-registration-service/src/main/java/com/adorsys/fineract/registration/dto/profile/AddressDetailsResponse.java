@@ -6,6 +6,8 @@ import lombok.Data;
 @Data
 @Schema(description = "Represents a single address of a customer")
 public class AddressDetailsResponse {
+    @Schema(description = "The unique identifier for the address", example = "1")
+    private Long addressId;
     @Schema(description = "The type of address (e.g., Residential, Business)", example = "Residential")
     private String addressType;
     @Schema(description = "The primary address line", example = "Rue Drouot")

@@ -84,6 +84,7 @@ A successful request returns a JSON object containing a list of addresses.
 {
     "addresses": [
         {
+            "addressId": 1,
             "addressType": "Residential",
             "addressLine1": "Rue Drouot",
             "addressLine2": "4.1585",
@@ -214,6 +215,7 @@ The endpoint expects a `Content-Type: application/json` body.
 
 ```json
 {
+  "addressId": 1,
   "addressLine1": "Avenue Deido",
   "addressType": "Business"
 }
@@ -355,7 +357,7 @@ curl --location --request PUT 'http://localhost:8081/api/profile/addresses' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
-    "addressType": "Residential",
+    "addressId": 1, // Replace with a valid addressId from the GET /api/profile/addresses response
     "addressLine1": "Avenue Deido",
     "addressType": "Business"
 }'
