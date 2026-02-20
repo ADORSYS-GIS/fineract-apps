@@ -207,7 +207,7 @@ The endpoint expects a `Content-Type: application/json` body.
 | `stateProvince` | `String` | No | The new name of the state or province. See "Address Field Values" for allowed values. |
 | `country` | `String` | No | The new name of the country. See "Address Field Values" for allowed values. |
 | `postalCode` | `String` | No | The new postal code. |
-| `addressType` | `String` | Yes | The type of address. See "Address Field Values" for allowed values. |
+| `addressType` | `String` | Yes | The type of address. This field is mandatory for updates. See "Address Field Values" for allowed values. |
 
 **Note on `addressType`, `stateProvince`, and `country`:** As with creating an address, these fields are sent as strings (e.g., "Business", "Littoral", "Cameroon") and are converted to their corresponding IDs on the backend.
 
@@ -357,8 +357,13 @@ curl --location --request PUT 'http://localhost:8081/api/profile/addresses' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
-    "addressId": 1, // Replace with a valid addressId from the GET /api/profile/addresses response
-    "addressLine1": "Avenue Deido",
-    "addressType": "Business"
+    "addressId": 4, // Replace with a valid addressId
+    "addressType": "Business",
+    "addressLine2": "New Address Line 2",
+    "addressLine3": "New Address Line 3",
+    "city": "New City",
+    "stateProvince": "Centre",
+    "country": "Cameroon",
+    "postalCode": "12345"
 }'
 ```

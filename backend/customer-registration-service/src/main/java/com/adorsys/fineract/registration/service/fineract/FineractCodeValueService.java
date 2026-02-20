@@ -57,6 +57,9 @@ public class FineractCodeValueService {
     }
 
     public Long getDynamicId(String codeName, String label) {
+        if (label == null) {
+            return null;
+        }
         String key = codeName + ":" + label.toLowerCase();
         if (!codeValueCache.containsKey(key)) {
             refreshCodeValueCache(codeName);
