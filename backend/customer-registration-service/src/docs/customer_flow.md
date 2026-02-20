@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Customer Profile Management service is a feature within the Customer Registration microservice that allows for the modification and retrieval of existing customer data. It provides secure endpoints for updating a customer's basic profile information and fetching their addresses from the Fineract core banking platform. This functionality is essential for maintaining accurate and up-to-date customer records.
+The Customer Profile Management service is a feature within the Customer Registration microservice that allows for the modification and retrieval of existing customer data. It provides secure endpoints for updating a customer's basic profile information and managing their addresses on the Fineract core banking platform. This functionality is essential for maintaining accurate and up-to-date customer records.
 
 ---
 
@@ -17,7 +17,7 @@ This endpoint is used to initiate an update to the authenticated customer's prof
 ### 2.2. Security Model
 
 -   **Authentication:** Requires a valid JWT `Bearer` token for an authenticated user.
--   **Authorization:** The service determines the Fineract client ID from a `fineract_client_id` or `fineract_external_id` claim in the JWT, ensuring that a user can only update their own profile.
+-   **Authorization:** Access is restricted by method-level security. The caller must have a valid JWT containing the `ROLE_KYC_MANAGER` authority. The service determines the Fineract client ID from a `fineract_client_id` or `fineract_external_id` claim in the JWT.
 
 ### 2.3. Request Payload
 
@@ -44,6 +44,7 @@ The endpoint expects a `Content-Type: application/json` body. Any combination of
 -   **Success (`200 OK`):** A JSON object detailing the changes is returned on a successful update.
 -   **Error (`400 Bad Request`):** Returned for validation errors.
 -   **Error (`401 Unauthorized`):** Returned if the request lacks a valid JWT.
+-   **Error (`403 Forbidden`):** Returned if the user does not have the `ROLE_KYC_MANAGER` authority.
 
 #### Sample Success Response
 
@@ -64,14 +65,14 @@ The endpoint expects a `Content-Type: application/json` body. Any combination of
 
 ### 3.1. API Endpoint
 
-#### `GET /api/profile/clients/{clientId}/addresses`
+#### `GET /api/profile/addresses`
 
-This endpoint retrieves a list of all addresses associated with a specific Fineract client.
+This endpoint retrieves a list of all addresses associated with the authenticated Fineract client.
 
 ### 3.2. Security Model
 
 -   **Authentication:** Requires a valid JWT `Bearer` token.
--   **Authorization:** Access is restricted by method-level security. The caller must have a valid JWT containing the `ROLE_KYC_MANAGER` authority. Requests from authenticated users without this role will be rejected with a `403 Forbidden` error.
+-   **Authorization:** Access is restricted by method-level security. The caller must have a valid JWT containing the `ROLE_KYC_MANAGER` authority. The service determines the Fineract client ID from a `fineract_client_id` or `fineract_external_id` claim in the JWT. Requests from authenticated users without this role will be rejected with a `403 Forbidden` error.
 
 ### 3.3. Success Response (`200 OK`)
 
@@ -83,6 +84,7 @@ A successful request returns a JSON object containing a list of addresses.
 {
     "addresses": [
         {
+            "addressId": 1,
             "addressType": "Residential",
             "addressLine1": "Rue Drouot",
             "addressLine2": "4.1585",
@@ -102,14 +104,14 @@ A successful request returns a JSON object containing a list of addresses.
 
 ### 4.1. API Endpoint
 
-#### `POST /api/profile/clients/{clientId}/addresses`
+#### `POST /api/profile/addresses`
 
-This endpoint creates a new address for a specific Fineract client.
+This endpoint creates a new address for the authenticated Fineract client.
 
 ### 4.2. Security Model
 
 -   **Authentication:** Requires a valid JWT `Bearer` token.
--   **Authorization:** No specific role is required. Any authenticated user can create an address for a client.
+-   **Authorization:** Access is restricted by method-level security. The caller must have a valid JWT containing the `ROLE_KYC_MANAGER` authority. The service determines the Fineract client ID from a `fineract_client_id` or `fineract_external_id` claim in the JWT.
 
 ### 4.3. Request Payload
 
@@ -117,37 +119,56 @@ The endpoint expects a `Content-Type: application/json` body.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `street` | `String` | Yes | The street name. |
-| `addressLine1` | `String` | No | Additional address line 1. |
+| `addressLine1` | `String` | Yes | The street name. |
 | `addressLine2` | `String` | No | Additional address line 2. |
 | `addressLine3` | `String` | No | Additional address line 3. |
 | `city` | `String` | Yes | The city. |
-| `stateProvince` | `String` | Yes | The name of the state or province. |
-| `country` | `String` | Yes | The name of the country. |
+| `stateProvince` | `String` | Yes | The name of the state or province. See "Address Field Values" for allowed values. |
+| `country` | `String` | Yes | The name of the country. See "Address Field Values" for allowed values. |
 | `postalCode` | `String` | No | The postal code. |
-| `addressType` | `String` | Yes | The type of address (e.g., "Home", "Work"). |
+| `addressType` | `String` | Yes | The type of address. See "Address Field Values" for allowed values. |
+
+#### Address Field Values
+
+The `addressType`, `stateProvince`, and `country` fields are not free-form strings. They are mapped to pre-configured values in Fineract. Providing a value that is not configured in Fineract will result in an error.
+
+*   **`addressType`**:
+    *   `Residential`
+    *   `Business`
+    *   `Other`
+*   **`country`**:
+    *   `Cameroon`
+*   **`stateProvince`**:
+    *   `Adamaoua`
+    *   `Centre`
+    *   `East`
+    *   `Far North`
+    *   `Littoral`
+    *   `North`
+    *   `North-West`
+    *   `South`
+    *   `South-West`
+    *   `West`
 
 #### Sample Request
 
 ```json
 {
-  "street": "Ipca",
-  "addressLine1": "Kandivali",
-  "addressLine2": "plot47",
-  "addressLine3": "charkop",
-  "city": "Mumbai",
-  "stateProvince": "Maharashtra",
-  "country": "India",
-  "postalCode": "400064",
-  "addressType": "Home"
+  "addressLine1": "Rue Deido",
+  "city": "Douala",
+  "stateProvince": "Littoral",
+  "country": "Cameroon",
+  "postalCode": "00237",
+  "addressType": "Residential"
 }
 ```
 
 ### 4.4. API Responses
 
 -   **Success (`200 OK`):** A JSON object with the `resourceId` of the newly created address is returned.
--   **Error (`400 Bad Request`):** Returned for validation errors.
+-   **Error (`400 Bad Request`):** Returned for validation errors or if an invalid value is provided for `addressType`, `stateProvince`, or `country`.
 -   **Error (`401 Unauthorized`):** Returned if the request lacks a valid JWT.
+-   **Error (`403 Forbidden`):** Returned if the user does not have the `ROLE_KYC_MANAGER` authority.
 
 #### Sample Success Response
 
@@ -163,14 +184,14 @@ The endpoint expects a `Content-Type: application/json` body.
 
 ### 5.1. API Endpoint
 
-#### `PUT /api/profile/clients/{clientId}/addresses`
+#### `PUT /api/profile/addresses`
 
-This endpoint updates an existing address for a specific Fineract client.
+This endpoint updates an existing address for the authenticated Fineract client. It supports partial updates, so you only need to provide the fields you want to change.
 
 ### 5.2. Security Model
 
 -   **Authentication:** Requires a valid JWT `Bearer` token.
--   **Authorization:** No specific role is required. Any authenticated user can update an address for a client.
+-   **Authorization:** Access is restricted by method-level security. The caller must have a valid JWT containing the `ROLE_KYC_MANAGER` authority. The service determines the Fineract client ID from a `fineract_client_id` or `fineract_external_id` claim in the JWT.
 
 ### 5.3. Request Payload
 
@@ -178,38 +199,40 @@ The endpoint expects a `Content-Type: application/json` body.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `addressId` | `Long` | Yes | The ID of the address to update. |
-| `street` | `String` | No | The new street name. |
-| `addressLine1` | `String` | No | Additional address line 1. |
+| `addressId` | `Long` | Yes | The ID of the address in Fineract to update. |
+| `addressLine1` | `String` | No | The new street name. |
 | `addressLine2` | `String` | No | Additional address line 2. |
 | `addressLine3` | `String` | No | Additional address line 3. |
 | `city` | `String` | No | The new city. |
-| `stateProvince` | `String` | No | The new name of the state or province. |
-| `country` | `String` | No | The new name of the country. |
+| `stateProvince` | `String` | No | The new name of the state or province. See "Address Field Values" for allowed values. |
+| `country` | `String` | No | The new name of the country. See "Address Field Values" for allowed values. |
 | `postalCode` | `String` | No | The new postal code. |
-| `addressType` | `String` | Yes | The type of address (e.g., "Home", "Work"). |
+| `addressType` | `String` | Yes | The type of address. This field is mandatory for updates. See "Address Field Values" for allowed values. |
+
+**Note on `addressType`, `stateProvince`, and `country`:** As with creating an address, these fields are sent as strings (e.g., "Business", "Littoral", "Cameroon") and are converted to their corresponding IDs on the backend.
 
 #### Sample Request
 
 ```json
 {
-  "addressId": 67,
-  "street": "goldensource",
-  "addressType": "Work"
+  "addressId": 1,
+  "addressLine1": "Avenue Deido",
+  "addressType": "Business"
 }
 ```
 
 ### 5.4. API Responses
 
 -   **Success (`200 OK`):** A JSON object with the `resourceId` of the updated address is returned.
--   **Error (`400 Bad Request`):** Returned for validation errors.
+-   **Error (`400 Bad Request`):** Returned for validation errors or if an invalid value is provided for `addressType`, `stateProvince`, or `country`.
 -   **Error (`401 Unauthorized`):** Returned if the request lacks a valid JWT.
+-   **Error (`403 Forbidden`):** Returned if the user does not have the `ROLE_KYC_MANAGER` authority.
 
 #### Sample Success Response
 
 ```json
 {
-    "resourceId": 67
+    "resourceId": 15
 }
 ```
 
@@ -258,18 +281,44 @@ curl --location --request PATCH 'http://localhost:8081/api/profile' \
 }'
 ```
 
-### 6.4. Test Case: Get Client Addresses (SUCCESS)
-**Objective:** Verify that a KYC Manager can retrieve the addresses for a specific client.
+### 6.4. Test Case: Update Only Email (SUCCESS)
+**Objective:** Verify that a customer can update just their email address.
 **Expected Result:** `200 OK`
 
-*Note: Replace `123` with an actual Fineract Client ID.*
+```bash
+curl --location --request PATCH 'http://localhost:8081/api/profile' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "emailAddress": "new.email.only@example.com"
+}'
+```
+
+### 6.5. Test Case: Update First and Last Name (SUCCESS)
+**Objective:** Verify that a customer can update their first and last name.
+**Note:** The first name and last name must always be sent together.
+**Expected Result:** `200 OK`
 
 ```bash
-curl --location --request GET 'http://localhost:8081/api/profile/clients/123/addresses' \
+curl --location --request PATCH 'http://localhost:8081/api/profile' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "firstName": "NewFirstName",
+    "lastName": "NewLastName"
+}'
+```
+
+### 6.6. Test Case: Get Client Addresses (SUCCESS)
+**Objective:** Verify that a KYC Manager can retrieve the addresses for the authenticated client.
+**Expected Result:** `200 OK`
+
+```bash
+curl --location --request GET 'http://localhost:8081/api/profile/addresses' \
 --header "Authorization: Bearer $TOKEN"
 ```
 
-### 6.5. Test Case: Get Client Addresses (FAILURE)
+### 6.7. Test Case: Get Client Addresses (FAILURE)
 **Objective:** Verify that a user without the `ROLE_KYC_MANAGER` authority cannot retrieve addresses.
 **Expected Result:** `403 Forbidden`
 
@@ -277,45 +326,44 @@ curl --location --request GET 'http://localhost:8081/api/profile/clients/123/add
 
 ```bash
 # Assuming $USER_TOKEN is a token for a non-manager user
-curl --location --request GET 'http://localhost:8081/api/profile/clients/123/addresses' \
+curl --location --request GET 'http://localhost:8081/api/profile/addresses' \
 --header "Authorization: Bearer $USER_TOKEN"
 ```
-### 6.6. Test Case: Create Client Address (SUCCESS)
-**Objective:** Verify that a new address can be created for a client.
+### 6.8. Test Case: Create Client Address (SUCCESS)
+**Objective:** Verify that a new address can be created for the authenticated client.
 **Expected Result:** `200 OK`
 
-*Note: Replace `123` with an actual Fineract Client ID.*
-
 ```bash
-curl --location --request POST 'http://localhost:8081/api/profile/clients/123/addresses' \
+curl --location --request POST 'http://localhost:8081/api/profile/addresses' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
-    "street":"Ipca",
-    "addressLine1":"Kandivali",
-    "addressLine2":"plot47",
-    "addressLine3":"charkop",
-    "city":"Mumbai",
-    "stateProvince":"Maharashtra",
-    "country":"India",
-    "postalCode":"400064",
-    "addressType":"Home"
+    "addressLine1": "Rue Deido",
+    "city": "Douala",
+    "stateProvince": "Littoral",
+    "country": "Cameroon",
+    "postalCode": "00237",
+    "addressType": "Residential"
 }'
 ```
 
-### 6.7. Test Case: Update Client Address (SUCCESS)
-**Objective:** Verify that an existing address can be updated for a client.
+### 6.9. Test Case: Update Client Address (SUCCESS)
+**Objective:** Verify that an existing address can be updated for the authenticated client.
 **Expected Result:** `200 OK`
 
-*Note: Replace `123` with an actual Fineract Client ID and `67` with a valid address ID.*
 
 ```bash
-curl --location --request PUT 'http://localhost:8081/api/profile/clients/123/addresses' \
+curl --location --request PUT 'http://localhost:8081/api/profile/addresses' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
-    "addressId":67,
-    "street":"goldensource",
-    "addressType":"Work"
+    "addressId": 4, // Replace with a valid addressId
+    "addressType": "Business",
+    "addressLine2": "New Address Line 2",
+    "addressLine3": "New Address Line 3",
+    "city": "New City",
+    "stateProvince": "Centre",
+    "country": "Cameroon",
+    "postalCode": "12345"
 }'
 ```
