@@ -12,8 +12,8 @@ function exportCsv(inventory: ReturnType<typeof useInventory>["inventory"]) {
 	const rows = inventory.map((item) => {
 		const utilization =
 			item.totalSupply > 0
-				? ((item.circulatingSupply / item.totalSupply) * 100).toFixed(1)
-				: "0.0";
+				? ((item.circulatingSupply / item.totalSupply) * 100).toFixed(2)
+				: "0.00";
 		return [
 			`"${item.name}"`,
 			item.symbol,
@@ -142,7 +142,10 @@ export const InventoryView: FC<ReturnType<typeof useInventory>> = ({
 										<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
 											Price (XAF)
 										</th>
-										<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+										<th
+											className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+											title="Total Value Locked"
+										>
 											TVL (XAF)
 										</th>
 										<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -157,8 +160,8 @@ export const InventoryView: FC<ReturnType<typeof useInventory>> = ({
 												? (
 														(item.circulatingSupply / item.totalSupply) *
 														100
-													).toFixed(1)
-												: "0.0";
+													).toFixed(2)
+												: "0.00";
 										return (
 											<tr key={item.assetId} className="hover:bg-gray-50">
 												<td className="px-6 py-4 whitespace-nowrap">
