@@ -51,7 +51,7 @@ public class FineractAddressService {
 
         try {
             return fineractRestClient.get()
-                    .uri("/fineract-provider/api/v1/clients/{clientId}/addresses", clientId)
+                    .uri("/fineract-provider/api/v1/client/{clientId}/addresses", clientId)
                     .retrieve()
                     .body(List.class);
         } catch (Exception e) {
@@ -111,7 +111,7 @@ public class FineractAddressService {
 
         try {
             return fineractRestClient.post()
-                    .uri("/fineract-provider/api/v1/clients/{clientId}/addresses?type={addressTypeId}", clientId, addressTypeId)
+                    .uri("/fineract-provider/api/v1/client/{clientId}/addresses?type={addressTypeId}", clientId, addressTypeId)
                     .body(body)
                     .retrieve()
                     .body(AddressResponse.class);
@@ -139,7 +139,7 @@ public class FineractAddressService {
 
         try {
             return fineractRestClient.put()
-                    .uri("/fineract-provider/api/v1/clients/{clientId}/addresses?type={addressTypeId}", clientId, addressTypeId)
+                    .uri("/fineract-provider/api/v1/client/{clientId}/addresses?type={addressTypeId}", clientId, addressTypeId)
                     .body(body)
                     .retrieve()
                     .body(AddressResponse.class);

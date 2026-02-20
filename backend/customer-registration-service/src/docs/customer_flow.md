@@ -282,7 +282,35 @@ curl --location --request PATCH 'http://localhost:8081/api/profile' \
 }'
 ```
 
-### 6.4. Test Case: Get Client Addresses (SUCCESS)
+### 6.4. Test Case: Update Only Email (SUCCESS)
+**Objective:** Verify that a customer can update just their email address.
+**Expected Result:** `200 OK`
+
+```bash
+curl --location --request PATCH 'http://localhost:8081/api/profile' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "emailAddress": "new.email.only@example.com"
+}'
+```
+
+### 6.5. Test Case: Update First and Last Name (SUCCESS)
+**Objective:** Verify that a customer can update their first and last name.
+**Note:** The first name and last name must always be sent together.
+**Expected Result:** `200 OK`
+
+```bash
+curl --location --request PATCH 'http://localhost:8081/api/profile' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "firstName": "NewFirstName",
+    "lastName": "NewLastName"
+}'
+```
+
+### 6.6. Test Case: Get Client Addresses (SUCCESS)
 **Objective:** Verify that a KYC Manager can retrieve the addresses for the authenticated client.
 **Expected Result:** `200 OK`
 
@@ -291,7 +319,7 @@ curl --location --request GET 'http://localhost:8081/api/profile/addresses' \
 --header "Authorization: Bearer $TOKEN"
 ```
 
-### 6.5. Test Case: Get Client Addresses (FAILURE)
+### 6.7. Test Case: Get Client Addresses (FAILURE)
 **Objective:** Verify that a user without the `ROLE_KYC_MANAGER` authority cannot retrieve addresses.
 **Expected Result:** `403 Forbidden`
 
@@ -302,7 +330,7 @@ curl --location --request GET 'http://localhost:8081/api/profile/addresses' \
 curl --location --request GET 'http://localhost:8081/api/profile/addresses' \
 --header "Authorization: Bearer $USER_TOKEN"
 ```
-### 6.6. Test Case: Create Client Address (SUCCESS)
+### 6.8. Test Case: Create Client Address (SUCCESS)
 **Objective:** Verify that a new address can be created for the authenticated client.
 **Expected Result:** `200 OK`
 
@@ -321,7 +349,7 @@ curl --location --request POST 'http://localhost:8081/api/profile/addresses' \
 }'
 ```
 
-### 6.7. Test Case: Update Client Address (SUCCESS)
+### 6.9. Test Case: Update Client Address (SUCCESS)
 **Objective:** Verify that an existing address can be updated for the authenticated client.
 **Expected Result:** `200 OK`
 
