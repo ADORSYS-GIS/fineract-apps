@@ -81,6 +81,8 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	const [editOpen, setEditOpen] = useState(false);
 	const [mintOpen, setMintOpen] = useState(false);
 	const [delistOpen, setDelistOpen] = useState(false);
+	const accountManagerUrl =
+		import.meta.env.VITE_ACCOUNT_MANAGER_URL || "/account";
 
 	if (isError) {
 		return (
@@ -112,6 +114,11 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						<p className="text-sm text-gray-500 mt-1">
 							{asset.symbol} | {asset.category} | ID: {asset.id}
 						</p>
+						{asset.treasuryClientName && (
+							<p className="text-xs text-gray-400 mt-0.5">
+								Managed by {asset.treasuryClientName}
+							</p>
+						)}
 					</div>
 					<div className="flex gap-2 flex-wrap">
 						{asset.status === "PENDING" && (
@@ -554,23 +561,50 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						<div>
 							<p className="text-gray-500 text-xs">Treasury Client</p>
 							<p className="font-medium">{asset.treasuryClientName ?? "—"}</p>
-							<p className="text-xs text-gray-400">
-								ID: {asset.treasuryClientId ?? "—"}
-							</p>
+							{asset.treasuryClientId ? (
+								<a
+									href={`${accountManagerUrl}/client-details/${asset.treasuryClientId}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+								>
+									ID: {asset.treasuryClientId} ↗
+								</a>
+							) : (
+								<p className="text-xs text-gray-400">ID: —</p>
+							)}
 						</div>
 						<div>
 							<p className="text-gray-500 text-xs">Asset Account</p>
 							<p className="font-medium">Token Holdings</p>
-							<p className="text-xs text-gray-400">
-								ID: {asset.treasuryAssetAccountId ?? "—"}
-							</p>
+							{asset.treasuryAssetAccountId ? (
+								<a
+									href={`${accountManagerUrl}/savings-account-details/${asset.treasuryAssetAccountId}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+								>
+									ID: {asset.treasuryAssetAccountId} ↗
+								</a>
+							) : (
+								<p className="text-xs text-gray-400">ID: —</p>
+							)}
 						</div>
 						<div>
 							<p className="text-gray-500 text-xs">Cash Account</p>
 							<p className="font-medium">Cash ({asset.currencyCode})</p>
-							<p className="text-xs text-gray-400">
-								ID: {asset.treasuryCashAccountId ?? "—"}
-							</p>
+							{asset.treasuryCashAccountId ? (
+								<a
+									href={`${accountManagerUrl}/savings-account-details/${asset.treasuryCashAccountId}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+								>
+									ID: {asset.treasuryCashAccountId} ↗
+								</a>
+							) : (
+								<p className="text-xs text-gray-400">ID: —</p>
+							)}
 						</div>
 					</div>
 				</Card>
