@@ -1,4 +1,5 @@
 import { Button, Card, Pagination } from "@fineract-apps/ui";
+import { X } from "lucide-react";
 import { FC, useState } from "react";
 import { ErrorFallback } from "@/components/ErrorFallback";
 import { TableSkeleton } from "@/components/TableSkeleton";
@@ -8,6 +9,10 @@ const statusColors: Record<string, string> = {
 	NEEDS_RECONCILIATION: "bg-yellow-100 text-yellow-800",
 	FAILED: "bg-red-100 text-red-800",
 	MANUALLY_CLOSED: "bg-gray-100 text-gray-600",
+	FILLED: "bg-green-100 text-green-800",
+	PENDING: "bg-blue-100 text-blue-800",
+	EXECUTING: "bg-purple-100 text-purple-800",
+	REJECTED: "bg-orange-100 text-orange-800",
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -16,10 +21,12 @@ function StatusBadge({ status }: { status: string }) {
 		<span
 			className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}
 		>
-			{status.replace("_", " ")}
+			{status.replace(/_/g, " ")}
 		</span>
 	);
 }
+
+const fmtDate = (d?: string) => (d ? new Date(d).toLocaleString() : "—");
 
 export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 	orders,
@@ -32,6 +39,22 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 	onPageChange,
 	resolveOrder,
 	isResolving,
+	statusFilter,
+	setStatusFilter,
+	assetFilter,
+	setAssetFilter,
+	searchInput,
+	setSearchInput,
+	fromDate,
+	setFromDate,
+	toDate,
+	setToDate,
+	assetOptions,
+	selectedOrderId,
+	setSelectedOrderId,
+	orderDetail,
+	detailLoading,
+	adminAlertCount,
 }) => {
 	const [resolveModal, setResolveModal] = useState<{
 		orderId: string;
@@ -55,12 +78,20 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 		);
 	}
 
+	const inputClass =
+		"border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+
 	return (
 		<div className="bg-gray-50 min-h-screen">
 			<main className="p-4 sm:p-6 lg:p-8">
-				<h1 className="text-2xl font-bold text-gray-800 mb-6">
-					Order Resolution
-				</h1>
+				<div className="flex items-center gap-3 mb-6">
+					<h1 className="text-2xl font-bold text-gray-800">Order Resolution</h1>
+					{adminAlertCount > 0 && (
+						<span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">
+							{adminAlertCount}
+						</span>
+					)}
+				</div>
 
 				{/* Summary Cards */}
 				<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -84,10 +115,80 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 					</Card>
 				</div>
 
+				{/* Filter Bar */}
+				<div className="flex flex-wrap gap-3 mb-4">
+					<select
+						className={inputClass}
+						value={statusFilter}
+						onChange={(e) => setStatusFilter(e.target.value)}
+					>
+						<option value="">All Statuses</option>
+						<option value="NEEDS_RECONCILIATION">Needs Reconciliation</option>
+						<option value="FAILED">Failed</option>
+						<option value="MANUALLY_CLOSED">Manually Closed</option>
+						<option value="FILLED">Filled</option>
+						<option value="PENDING">Pending</option>
+						<option value="EXECUTING">Executing</option>
+					</select>
+					<select
+						className={inputClass}
+						value={assetFilter}
+						onChange={(e) => setAssetFilter(e.target.value)}
+					>
+						<option value="">All Assets</option>
+						{assetOptions.map((a) => (
+							<option key={a.assetId} value={a.assetId}>
+								{a.symbol} — {a.name}
+							</option>
+						))}
+					</select>
+					<input
+						type="text"
+						className={`${inputClass} w-48`}
+						placeholder="Search order/user ID..."
+						value={searchInput}
+						onChange={(e) => setSearchInput(e.target.value)}
+					/>
+					<input
+						type="date"
+						className={inputClass}
+						value={fromDate}
+						onChange={(e) => setFromDate(e.target.value)}
+						title="From date"
+					/>
+					<input
+						type="date"
+						className={inputClass}
+						value={toDate}
+						onChange={(e) => setToDate(e.target.value)}
+						title="To date"
+					/>
+					{(statusFilter ||
+						assetFilter ||
+						searchInput ||
+						fromDate ||
+						toDate) && (
+						<button
+							onClick={() => {
+								setStatusFilter("");
+								setAssetFilter("");
+								setSearchInput("");
+								setFromDate("");
+								setToDate("");
+							}}
+							className="text-sm text-blue-600 hover:text-blue-800 px-2"
+						>
+							Clear filters
+						</button>
+					)}
+				</div>
+
 				{/* Orders Table */}
 				{orders.length === 0 ? (
 					<Card className="p-12 text-center">
-						<p className="text-gray-500">No orders require resolution.</p>
+						<p className="text-gray-500">
+							No orders match the current filters.
+						</p>
 					</Card>
 				) : (
 					<>
@@ -134,7 +235,11 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 									</thead>
 									<tbody className="bg-white divide-y divide-gray-200">
 										{orders.map((order) => (
-											<tr key={order.orderId} className="hover:bg-gray-50">
+											<tr
+												key={order.orderId}
+												className="hover:bg-gray-50 cursor-pointer"
+												onClick={() => setSelectedOrderId(order.orderId)}
+											>
 												<td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-600">
 													{order.orderId.slice(0, 8)}...
 												</td>
@@ -168,18 +273,22 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 													{new Date(order.createdAt).toLocaleDateString()}
 												</td>
 												<td className="px-4 py-3 whitespace-nowrap text-center">
-													<Button
-														variant="outline"
-														onClick={() =>
-															setResolveModal({
-																orderId: order.orderId,
-																resolution: "",
-															})
-														}
-														className="text-xs"
-													>
-														Resolve
-													</Button>
+													{(order.status === "NEEDS_RECONCILIATION" ||
+														order.status === "FAILED") && (
+														<Button
+															variant="outline"
+															onClick={(e) => {
+																e.stopPropagation();
+																setResolveModal({
+																	orderId: order.orderId,
+																	resolution: "",
+																});
+															}}
+															className="text-xs"
+														>
+															Resolve
+														</Button>
+													)}
 												</td>
 											</tr>
 										))}
@@ -199,6 +308,153 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 					</>
 				)}
 			</main>
+
+			{/* Detail Slide-Over Panel */}
+			{selectedOrderId && (
+				<div
+					className="fixed inset-0 bg-black/30 z-40"
+					onClick={() => setSelectedOrderId(null)}
+				>
+					<div
+						className="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-xl z-50 overflow-y-auto"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className="p-6">
+							<div className="flex items-center justify-between mb-6">
+								<h2 className="text-lg font-semibold text-gray-900">
+									Order Detail
+								</h2>
+								<button
+									onClick={() => setSelectedOrderId(null)}
+									className="p-1 hover:bg-gray-100 rounded"
+								>
+									<X className="h-5 w-5 text-gray-500" />
+								</button>
+							</div>
+
+							{detailLoading ? (
+								<div className="flex justify-center py-12">
+									<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+								</div>
+							) : orderDetail ? (
+								<div className="space-y-4">
+									<DetailRow
+										label="Order ID"
+										value={orderDetail.orderId}
+										mono
+									/>
+									<DetailRow
+										label="Asset"
+										value={`${orderDetail.symbol} — ${orderDetail.assetName}`}
+									/>
+									<DetailRow label="User" value={orderDetail.userExternalId} />
+									<DetailRow
+										label="User ID"
+										value={String(orderDetail.userId)}
+									/>
+									<DetailRow label="Side" value={orderDetail.side} />
+									<DetailRow
+										label="Units"
+										value={orderDetail.units?.toLocaleString() ?? "—"}
+									/>
+									<DetailRow
+										label="Price/Unit"
+										value={orderDetail.pricePerUnit?.toLocaleString() ?? "—"}
+									/>
+									<DetailRow
+										label="Total Amount"
+										value={`${orderDetail.totalAmount?.toLocaleString()} XAF`}
+									/>
+									<DetailRow
+										label="Fee"
+										value={orderDetail.fee?.toLocaleString() ?? "—"}
+									/>
+									<DetailRow
+										label="Spread"
+										value={orderDetail.spreadAmount?.toLocaleString() ?? "—"}
+									/>
+
+									<hr className="border-gray-200" />
+
+									<DetailRow label="Status" value={orderDetail.status}>
+										<StatusBadge status={orderDetail.status} />
+									</DetailRow>
+									{orderDetail.failureReason && (
+										<div>
+											<p className="text-xs text-gray-500 mb-1">
+												Failure Reason
+											</p>
+											<p className="text-sm text-red-700 bg-red-50 p-2 rounded">
+												{orderDetail.failureReason}
+											</p>
+										</div>
+									)}
+
+									<hr className="border-gray-200" />
+
+									<DetailRow
+										label="Idempotency Key"
+										value={orderDetail.idempotencyKey}
+										mono
+									/>
+									<DetailRow
+										label="Fineract Batch ID"
+										value={orderDetail.fineractBatchId ?? "—"}
+										mono
+									/>
+									<DetailRow
+										label="Version"
+										value={String(orderDetail.version)}
+									/>
+
+									<hr className="border-gray-200" />
+
+									<DetailRow
+										label="Created"
+										value={fmtDate(orderDetail.createdAt)}
+									/>
+									<DetailRow
+										label="Updated"
+										value={fmtDate(orderDetail.updatedAt)}
+									/>
+									{orderDetail.resolvedBy && (
+										<>
+											<DetailRow
+												label="Resolved By"
+												value={orderDetail.resolvedBy}
+											/>
+											<DetailRow
+												label="Resolved At"
+												value={fmtDate(orderDetail.resolvedAt)}
+											/>
+										</>
+									)}
+
+									{(orderDetail.status === "NEEDS_RECONCILIATION" ||
+										orderDetail.status === "FAILED") && (
+										<div className="pt-4">
+											<Button
+												onClick={() => {
+													setSelectedOrderId(null);
+													setResolveModal({
+														orderId: orderDetail.orderId,
+														resolution: "",
+													});
+												}}
+												className="w-full"
+											>
+												Resolve Order
+											</Button>
+										</div>
+									)}
+								</div>
+							) : (
+								<p className="text-gray-500">Order not found.</p>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* Resolve Modal */}
 			{resolveModal && (
@@ -254,3 +510,28 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 		</div>
 	);
 };
+
+function DetailRow({
+	label,
+	value,
+	mono,
+	children,
+}: {
+	label: string;
+	value?: string;
+	mono?: boolean;
+	children?: React.ReactNode;
+}) {
+	return (
+		<div className="flex justify-between items-start gap-4">
+			<p className="text-xs text-gray-500 shrink-0">{label}</p>
+			{children ?? (
+				<p
+					className={`text-sm text-gray-900 text-right ${mono ? "font-mono" : ""}`}
+				>
+					{value}
+				</p>
+			)}
+		</div>
+	);
+}

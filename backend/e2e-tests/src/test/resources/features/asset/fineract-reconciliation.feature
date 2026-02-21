@@ -38,3 +38,16 @@ Feature: Fineract Reconciliation (E2E)
     When the admin activates asset "lastCreated"
     Then the response status should be 200
     And the treasury should have a RCS account with balance 500 in Fineract
+
+  # -----------------------------------------------------------------
+  # Single-Asset Reconciliation Trigger
+  # -----------------------------------------------------------------
+
+  Scenario: Single-asset reconciliation only checks the specified asset
+    Given an active stock asset "SA1" with price 2000 and supply 100
+    And an active stock asset "SA2" with price 3000 and supply 200
+    When the user buys 5 units of "SA1"
+    Then the trade should be FILLED
+    When the admin triggers reconciliation for asset "SA1"
+    Then the response status should be 200
+    And the reconciliation result should have 0 discrepancies

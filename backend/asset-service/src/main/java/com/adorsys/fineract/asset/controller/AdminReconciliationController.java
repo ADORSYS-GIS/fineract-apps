@@ -46,9 +46,7 @@ public class AdminReconciliationController {
     @PostMapping("/trigger/{assetId}")
     @Operation(summary = "Trigger reconciliation for a single asset")
     public Map<String, Integer> triggerAssetReconciliation(@PathVariable String assetId) {
-        var asset = reconciliationService.getReports(null, null, assetId,
-                Pageable.unpaged()); // just to verify asset exists
-        int discrepancies = reconciliationService.runDailyReconciliation();
+        int discrepancies = reconciliationService.reconcileSingleAsset(assetId);
         return Map.of("discrepancies", discrepancies);
     }
 

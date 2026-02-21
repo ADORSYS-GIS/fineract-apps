@@ -6,6 +6,7 @@ import com.adorsys.fineract.asset.dto.ReconciliationReportResponse;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.ReconciliationReport;
 import com.adorsys.fineract.asset.entity.UserPosition;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
@@ -13,6 +14,7 @@ import com.adorsys.fineract.asset.repository.ReconciliationReportRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,7 @@ public class ReconciliationService {
     private final ReconciliationReportRepository reportRepository;
     private final FineractClient fineractClient;
     private final AssetMetrics assetMetrics;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final BigDecimal POSITION_THRESHOLD = new BigDecimal("0.001");
 
@@ -67,6 +70,20 @@ public class ReconciliationService {
                     totalDiscrepancies, activeAssets.size());
             return totalDiscrepancies;
         });
+    }
+
+    /**
+     * Reconcile a single asset by ID. Used by the per-asset trigger endpoint.
+     */
+    @Transactional
+    public int reconcileSingleAsset(String assetId) {
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
+        LocalDate today = LocalDate.now();
+        int discrepancies = reconcileAsset(asset, today);
+        assetMetrics.setReconciliationOpenReports(reportRepository.countByStatus("OPEN"));
+        log.info("Single-asset reconciliation for {}: {} discrepancies found", asset.getSymbol(), discrepancies);
+        return discrepancies;
     }
 
     /**
@@ -109,6 +126,20 @@ public class ReconciliationService {
             } catch (Exception e) {
                 log.warn("Could not check position for user {} asset {}: {}",
                         pos.getUserId(), asset.getSymbol(), e.getMessage());
+            }
+        }
+
+        // 3. Treasury cash balance: verify non-negative
+        if (asset.getTreasuryCashAccountId() != null) {
+            try {
+                BigDecimal treasuryCashBalance = fineractClient.getAccountBalance(asset.getTreasuryCashAccountId());
+                if (treasuryCashBalance.compareTo(BigDecimal.ZERO) < 0) {
+                    createReport(reportDate, "TREASURY_CASH_NEGATIVE", asset.getId(), null,
+                            BigDecimal.ZERO, treasuryCashBalance, treasuryCashBalance, "CRITICAL");
+                    discrepancies++;
+                }
+            } catch (Exception e) {
+                log.warn("Could not check treasury cash for asset {}: {}", asset.getSymbol(), e.getMessage());
             }
         }
 
@@ -179,6 +210,16 @@ public class ReconciliationService {
 
         log.warn("Reconciliation discrepancy: type={}, asset={}, user={}, expected={}, actual={}, discrepancy={}, severity={}",
                 reportType, assetId, userId, expected, actual, discrepancy, severity);
+
+        if ("CRITICAL".equals(severity)) {
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "RECONCILIATION_CRITICAL",
+                    "Critical discrepancy: " + reportType,
+                    String.format("Asset %s: expected=%s, actual=%s, discrepancy=%s",
+                            assetId, expected, actual, discrepancy),
+                    assetId, "ASSET"
+            ));
+        }
     }
 
     private ReconciliationReportResponse toResponse(ReconciliationReport r) {

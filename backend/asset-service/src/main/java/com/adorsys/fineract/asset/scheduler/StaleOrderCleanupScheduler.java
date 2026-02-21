@@ -3,10 +3,12 @@ package com.adorsys.fineract.asset.scheduler;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.OrderStatus;
 import com.adorsys.fineract.asset.entity.Order;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +28,7 @@ public class StaleOrderCleanupScheduler {
     private final OrderRepository orderRepository;
     private final AssetServiceConfig config;
     private final AssetMetrics assetMetrics;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(fixedRate = 300000) // Every 5 minutes
     public void cleanupStaleOrders() {
@@ -57,6 +60,16 @@ public class StaleOrderCleanupScheduler {
             }
             if (!stuckExecuting.isEmpty()) {
                 orderRepository.saveAll(stuckExecuting);
+                for (Order stuck : stuckExecuting) {
+                    eventPublisher.publishEvent(new AdminAlertEvent(
+                            "ORDER_STUCK",
+                            "Order stuck in EXECUTING",
+                            String.format("Order %s for asset %s (user %s, %s %s) stuck for >%d min. Verify Fineract batch transfer.",
+                                    stuck.getId(), stuck.getAssetId(), stuck.getUserId(),
+                                    stuck.getSide(), stuck.getCashAmount(), minutes),
+                            stuck.getId(), "ORDER"
+                    ));
+                }
             }
 
             int total = stalePending.size() + stuckExecuting.size();

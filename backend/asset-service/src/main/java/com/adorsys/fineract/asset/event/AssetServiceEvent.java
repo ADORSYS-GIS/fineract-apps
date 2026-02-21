@@ -7,5 +7,5 @@ package com.adorsys.fineract.asset.event;
 public sealed interface AssetServiceEvent permits
         TradeExecutedEvent, CouponPaidEvent, RedemptionCompletedEvent,
         AssetStatusChangedEvent, OrderStuckEvent, TreasuryShortfallEvent,
-        IncomePaidEvent, DelistingAnnouncedEvent {
+        IncomePaidEvent, DelistingAnnouncedEvent, AdminAlertEvent {
 }

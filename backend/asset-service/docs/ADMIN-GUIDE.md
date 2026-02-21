@@ -546,13 +546,35 @@ ACTIVE → DELISTING → DELISTED
 
 Admin tools for managing stuck or problematic orders.
 
-### View Orders
+### List Orders (with Filters)
 
 ```
-GET /api/admin/orders?page=0&size=20
+GET /api/admin/orders?status=FAILED&assetId=uuid&search=text&fromDate=ISO&toDate=ISO&page=0&size=20
 ```
 
-Returns all orders across all users with full details including `status`, `failureReason`, and Fineract batch IDs.
+Returns paginated orders with optional filters:
+- `status` — Filter by order status (e.g., `FAILED`, `NEEDS_RECONCILIATION`, `MANUALLY_CLOSED`)
+- `assetId` — Filter by asset UUID
+- `search` — Search by order ID or user external ID (partial match)
+- `fromDate` / `toDate` — ISO-8601 date range filter on `createdAt`
+
+All filters are optional. When none are provided, returns all orders sorted by `createdAt` descending.
+
+### Asset Filter Options
+
+```
+GET /api/admin/orders/asset-options
+```
+
+Returns distinct assets that have orders in resolution-relevant statuses (`NEEDS_RECONCILIATION`, `FAILED`, `MANUALLY_CLOSED`). Used to populate the asset filter dropdown in the UI.
+
+### Order Detail
+
+```
+GET /api/admin/orders/{id}
+```
+
+Returns full order detail including `assetName`, `idempotencyKey`, `fineractBatchId`, and `version`. Use this to inspect an order's Fineract batch transfer status.
 
 ### Order Summary
 
@@ -595,7 +617,12 @@ Detects discrepancies between the asset-service database and Fineract ledger. Co
 POST /api/admin/reconciliation/trigger
 ```
 
-Scans all active assets: compares circulating supply in DB vs. actual Fineract account balances. Returns `{ "discrepancies": 3 }`.
+Scans all active/delisting/matured assets. Performs three checks per asset:
+1. **Supply mismatch** — `circulatingSupply` vs `totalSupply - treasuryAssetBalance`
+2. **Position mismatch** — Each user's `UserPosition.totalUnits` vs Fineract savings account balance
+3. **Treasury cash negative** — Verifies treasury cash account balance is non-negative
+
+Returns `{ "discrepancies": 3 }`.
 
 ### Trigger Per-Asset Reconciliation
 
@@ -603,19 +630,30 @@ Scans all active assets: compares circulating supply in DB vs. actual Fineract a
 POST /api/admin/reconciliation/trigger/{assetId}
 ```
 
+Runs the same three checks but only for the specified asset. Returns `{ "discrepancies": 0 }`.
+
 ### View Reports
 
 ```
-GET /api/admin/reconciliation/reports?status=OPEN&severity=HIGH&page=0&size=20
+GET /api/admin/reconciliation/reports?status=OPEN&severity=CRITICAL&page=0&size=20
 ```
+
+### Report Types
+
+| Type | Description |
+|------|-------------|
+| `SUPPLY_MISMATCH` | Circulating supply differs from Fineract treasury balance |
+| `POSITION_MISMATCH` | User position differs from Fineract savings account balance |
+| `TREASURY_CASH_NEGATIVE` | Treasury cash account has negative balance |
 
 ### Report Severity Levels
 
 | Severity | Meaning |
 |----------|---------|
-| `LOW` | Minor rounding discrepancy (< 1 unit or < 100 XAF) |
-| `MEDIUM` | Moderate discrepancy (1-10 units or 100-10,000 XAF) |
-| `HIGH` | Significant discrepancy (> 10 units or > 10,000 XAF) |
+| `WARNING` | Supply mismatch (drift detected, not immediately dangerous) |
+| `CRITICAL` | Position mismatch or negative treasury cash (immediate investigation required) |
+
+**Note:** CRITICAL discrepancies automatically generate admin broadcast notifications visible at `GET /api/admin/notifications`.
 
 ### Acknowledge / Resolve Reports
 
@@ -623,6 +661,8 @@ GET /api/admin/reconciliation/reports?status=OPEN&severity=HIGH&page=0&size=20
 PATCH /api/admin/reconciliation/reports/{id}/acknowledge?admin=john
 PATCH /api/admin/reconciliation/reports/{id}/resolve?admin=john&notes=Fixed%20via%20manual%20transfer
 ```
+
+Report lifecycle: `OPEN` → `ACKNOWLEDGED` → `RESOLVED`
 
 ### Summary
 
@@ -634,7 +674,7 @@ Returns `{ "openReports": 5 }`.
 
 ### Automated Reconciliation
 
-The reconciliation scheduler runs **daily at 01:00 WAT**. Reports are created automatically for any discrepancies found.
+The reconciliation scheduler runs **daily at 01:30 WAT**. Reports are created automatically for any discrepancies found. CRITICAL discrepancies generate admin notifications.
 
 ---
 
@@ -650,17 +690,21 @@ The system generates notifications for significant events. Both users and admins
 | `COUPON_PAID` | Bond coupon payment deposited |
 | `INCOME_PAID` | Non-bond income distribution deposited |
 | `REDEMPTION_COMPLETED` | Bond principal redeemed |
-
-### Admin Event Types
-
-| Event | Triggered When |
-|-------|---------------|
+| `ORDER_STUCK` | User's order stuck in EXECUTING > 30 min |
 | `ASSET_STATUS_CHANGED` | Asset transitions status (ACTIVE → HALTED, etc.) |
-| `ORDER_STUCK` | Order remains in EXECUTING for > 5 minutes |
 | `TREASURY_SHORTFALL` | Coupon forecast shows treasury can't cover obligations |
 | `DELISTING_ANNOUNCED` | Asset enters DELISTING status |
 
-### Endpoints
+### Admin Broadcast Event Types
+
+Admin broadcasts are notifications with `userId = NULL`, visible to all admins via the admin notifications endpoint.
+
+| Event | Triggered When |
+|-------|---------------|
+| `ORDER_STUCK` | Order stuck in EXECUTING > 30 min (admin broadcast in addition to user notification) |
+| `RECONCILIATION_CRITICAL` | Critical discrepancy detected during reconciliation (position mismatch, negative treasury cash) |
+
+### User Notification Endpoints
 
 ```
 GET  /api/notifications?page=0&size=20        # List notifications
@@ -669,6 +713,13 @@ POST /api/notifications/{id}/read              # Mark single as read
 POST /api/notifications/read-all               # Mark all as read
 GET  /api/notifications/preferences            # Get preference toggles
 PUT  /api/notifications/preferences            # Update preferences
+```
+
+### Admin Notification Endpoints
+
+```
+GET  /api/admin/notifications?page=0&size=20   # List admin broadcast notifications
+GET  /api/admin/notifications/unread-count      # Get unread admin notification count
 ```
 
 ### Preferences

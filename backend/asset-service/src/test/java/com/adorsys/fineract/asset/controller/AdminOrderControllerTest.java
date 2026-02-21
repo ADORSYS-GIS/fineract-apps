@@ -32,10 +32,12 @@ class AdminOrderControllerTest {
 
     @MockBean private AdminOrderService adminOrderService;
 
+    // ── GET /api/admin/orders (filtered) ──
+
     @Test
-    void getResolvableOrders_returns200WithPaginatedResults() throws Exception {
+    void getOrders_noFilters_returns200() throws Exception {
         AdminOrderResponse order = buildAdminOrderResponse("o1", OrderStatus.NEEDS_RECONCILIATION);
-        when(adminOrderService.getResolvableOrders(any(Pageable.class)))
+        when(adminOrderService.getFilteredOrders(isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(order)));
 
         mockMvc.perform(get("/api/admin/orders")
@@ -49,6 +51,85 @@ class AdminOrderControllerTest {
     }
 
     @Test
+    void getOrders_withStatusFilter_passesParameter() throws Exception {
+        when(adminOrderService.getFilteredOrders(eq(OrderStatus.FAILED), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/api/admin/orders").param("status", "FAILED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
+        verify(adminOrderService).getFilteredOrders(eq(OrderStatus.FAILED), isNull(), isNull(), isNull(), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void getOrders_withSearchFilter_passesParameter() throws Exception {
+        AdminOrderResponse order = buildAdminOrderResponse("o1", OrderStatus.NEEDS_RECONCILIATION);
+        when(adminOrderService.getFilteredOrders(isNull(), isNull(), eq("user-ext"), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(order)));
+
+        mockMvc.perform(get("/api/admin/orders").param("search", "user-ext"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].userExternalId").value("user-ext-1"));
+    }
+
+    @Test
+    void getOrders_pageSizeTooLarge_returnsError() throws Exception {
+        mockMvc.perform(get("/api/admin/orders")
+                        .param("size", "200"))
+                .andExpect(status().isInternalServerError());
+        verifyNoInteractions(adminOrderService);
+    }
+
+    // ── GET /api/admin/orders/{id} (detail) ──
+
+    @Test
+    void getOrderDetail_returns200() throws Exception {
+        OrderDetailResponse detail = new OrderDetailResponse(
+                "o1", "asset-1", "TST", "Test Asset", TradeSide.BUY,
+                new BigDecimal("10"), new BigDecimal("500"), new BigDecimal("5000"),
+                new BigDecimal("25"), new BigDecimal("50"),
+                OrderStatus.FILLED, null, "user-ext-1", 1L,
+                "idemp-key-1", "batch-123", 1L,
+                null, null,
+                Instant.parse("2025-06-01T10:00:00Z"), null
+        );
+        when(adminOrderService.getOrderDetail("o1")).thenReturn(detail);
+
+        mockMvc.perform(get("/api/admin/orders/o1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderId").value("o1"))
+                .andExpect(jsonPath("$.assetName").value("Test Asset"))
+                .andExpect(jsonPath("$.idempotencyKey").value("idemp-key-1"))
+                .andExpect(jsonPath("$.fineractBatchId").value("batch-123"));
+    }
+
+    @Test
+    void getOrderDetail_notFound_returns404() throws Exception {
+        when(adminOrderService.getOrderDetail("missing"))
+                .thenThrow(new AssetNotFoundException("Order not found: missing"));
+
+        mockMvc.perform(get("/api/admin/orders/missing"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ── GET /api/admin/orders/asset-options ──
+
+    @Test
+    void getAssetOptions_returns200() throws Exception {
+        when(adminOrderService.getOrderAssetOptions())
+                .thenReturn(List.of(new AssetOptionResponse("asset-1", "TST", "Test Asset")));
+
+        mockMvc.perform(get("/api/admin/orders/asset-options"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].assetId").value("asset-1"))
+                .andExpect(jsonPath("$[0].symbol").value("TST"));
+    }
+
+    // ── GET /api/admin/orders/summary ──
+
+    @Test
     void getOrderSummary_returns200WithCounts() throws Exception {
         when(adminOrderService.getOrderSummary())
                 .thenReturn(new OrderSummaryResponse(3, 5, 2));
@@ -59,6 +140,8 @@ class AdminOrderControllerTest {
                 .andExpect(jsonPath("$.failed").value(5))
                 .andExpect(jsonPath("$.manuallyClosed").value(2));
     }
+
+    // ── POST /api/admin/orders/{id}/resolve ──
 
     @Test
     void resolveOrder_returns200WithResolvedOrder() throws Exception {
@@ -104,13 +187,6 @@ class AdminOrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void getResolvableOrders_pageSizeTooLarge_returnsError() throws Exception {
-        mockMvc.perform(get("/api/admin/orders")
-                        .param("size", "200"))
-                .andExpect(status().isInternalServerError());
     }
 
     private AdminOrderResponse buildAdminOrderResponse(String orderId, OrderStatus status) {

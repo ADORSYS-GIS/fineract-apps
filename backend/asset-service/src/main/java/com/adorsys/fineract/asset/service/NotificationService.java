@@ -155,6 +155,27 @@ public class NotificationService {
         }
     }
 
+    @Async
+    @EventListener
+    public void onAdminAlert(AdminAlertEvent event) {
+        try {
+            NotificationLog notif = NotificationLog.builder()
+                    .userId(null) // admin broadcast
+                    .eventType(event.alertType())
+                    .title(event.title())
+                    .body(event.body())
+                    .referenceId(event.referenceId())
+                    .referenceType(event.referenceType())
+                    .build();
+            notificationLogRepository.save(notif);
+            assetMetrics.recordNotificationSent(event.alertType());
+            log.info("Admin alert created: type={}, title={}", event.alertType(), event.title());
+        } catch (Exception e) {
+            log.error("Failed to create admin alert: type={}, error={}",
+                    event.alertType(), e.getMessage());
+        }
+    }
+
     // ── Query methods ──
 
     @Transactional(readOnly = true)
@@ -185,6 +206,17 @@ public class NotificationService {
     @Transactional
     public int markAllRead(Long userId) {
         return notificationLogRepository.markAllReadByUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<NotificationResponse> getAdminNotifications(Pageable pageable) {
+        return notificationLogRepository.findByUserIdIsNullOrderByCreatedAtDesc(pageable)
+                .map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public long getAdminUnreadCount() {
+        return notificationLogRepository.countByUserIdIsNullAndReadFalse();
     }
 
     @Transactional(readOnly = true)

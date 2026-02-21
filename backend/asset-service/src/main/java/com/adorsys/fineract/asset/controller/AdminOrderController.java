@@ -1,8 +1,6 @@
 package com.adorsys.fineract.asset.controller;
 
-import com.adorsys.fineract.asset.dto.AdminOrderResponse;
-import com.adorsys.fineract.asset.dto.OrderSummaryResponse;
-import com.adorsys.fineract.asset.dto.ResolveOrderRequest;
+import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.service.AdminOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +15,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.util.List;
+
 /**
  * Admin endpoints for viewing and resolving orders that need manual intervention.
  */
@@ -29,19 +30,37 @@ public class AdminOrderController {
     private final AdminOrderService adminOrderService;
 
     @GetMapping
-    @Operation(summary = "List resolvable orders", description = "Paginated list of NEEDS_RECONCILIATION and FAILED orders")
-    public ResponseEntity<Page<AdminOrderResponse>> getResolvableOrders(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+    @Operation(summary = "List orders with filters",
+            description = "Paginated list of orders, filterable by status, asset, search text, and date range")
+    public ResponseEntity<Page<AdminOrderResponse>> getOrders(
+            @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) String assetId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Instant fromDate,
+            @RequestParam(required = false) Instant toDate,
+            @PageableDefault(size = 20, sort = "created_at", direction = Sort.Direction.DESC) Pageable pageable) {
         if (pageable.getPageSize() > 100) {
             throw new IllegalArgumentException("Max page size is 100");
         }
-        return ResponseEntity.ok(adminOrderService.getResolvableOrders(pageable));
+        return ResponseEntity.ok(adminOrderService.getFilteredOrders(status, assetId, search, fromDate, toDate, pageable));
     }
 
     @GetMapping("/summary")
     @Operation(summary = "Order status summary", description = "Counts of orders by resolution-relevant statuses")
     public ResponseEntity<OrderSummaryResponse> getOrderSummary() {
         return ResponseEntity.ok(adminOrderService.getOrderSummary());
+    }
+
+    @GetMapping("/asset-options")
+    @Operation(summary = "Asset options for order filter", description = "Distinct assets that have orders in resolution-relevant statuses")
+    public ResponseEntity<List<AssetOptionResponse>> getAssetOptions() {
+        return ResponseEntity.ok(adminOrderService.getOrderAssetOptions());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get order detail", description = "Full order detail including Fineract batch ID and idempotency key")
+    public ResponseEntity<OrderDetailResponse> getOrderDetail(@PathVariable String id) {
+        return ResponseEntity.ok(adminOrderService.getOrderDetail(id));
     }
 
     @PostMapping("/{id}/resolve")

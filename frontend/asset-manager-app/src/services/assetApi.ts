@@ -419,6 +419,47 @@ export interface ResolveOrderRequest {
 	resolution: string;
 }
 
+/** Admin order filter parameters. */
+export interface AdminOrderFilter {
+	status?: string;
+	assetId?: string;
+	search?: string;
+	fromDate?: string;
+	toDate?: string;
+}
+
+/** Lightweight asset summary for filter dropdowns. */
+export interface AssetOption {
+	assetId: string;
+	symbol: string;
+	name: string;
+}
+
+/** Extended order detail (matches backend OrderDetailResponse). */
+export interface OrderDetail {
+	orderId: string;
+	assetId: string;
+	symbol: string;
+	assetName: string;
+	side: "BUY" | "SELL";
+	units?: number;
+	pricePerUnit?: number;
+	totalAmount: number;
+	fee?: number;
+	spreadAmount?: number;
+	status: string;
+	failureReason?: string;
+	userExternalId: string;
+	userId: number;
+	idempotencyKey: string;
+	fineractBatchId?: string;
+	version: number;
+	resolvedBy?: string;
+	resolvedAt?: string;
+	createdAt: string;
+	updatedAt?: string;
+}
+
 /** Notification response (matches backend NotificationResponse). */
 export interface NotificationResponse {
 	id: number;
@@ -709,7 +750,9 @@ export const assetApi = {
 		),
 
 	// Orders - Admin
-	getAdminOrders: (params?: { page?: number; size?: number }) =>
+	getAdminOrders: (
+		params?: { page?: number; size?: number } & AdminOrderFilter,
+	) =>
 		assetClient.get<{
 			content: AdminOrder[];
 			totalPages: number;
@@ -717,8 +760,24 @@ export const assetApi = {
 		}>("/api/admin/orders", { params }),
 	getOrderSummary: () =>
 		assetClient.get<OrderSummary>("/api/admin/orders/summary"),
+	getOrderAssetOptions: () =>
+		assetClient.get<AssetOption[]>("/api/admin/orders/asset-options"),
+	getOrderDetail: (id: string) =>
+		assetClient.get<OrderDetail>(`/api/admin/orders/${id}`),
 	resolveOrder: (id: string, data: ResolveOrderRequest) =>
 		assetClient.post<AdminOrder>(`/api/admin/orders/${id}/resolve`, data),
+
+	// Admin Notifications
+	getAdminNotifications: (params?: { page?: number; size?: number }) =>
+		assetClient.get<{
+			content: NotificationResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>("/api/admin/notifications", { params }),
+	getAdminUnreadCount: () =>
+		assetClient.get<{ unreadCount: number }>(
+			"/api/admin/notifications/unread-count",
+		),
 
 	// Prices
 	getPrice: (assetId: string) => assetClient.get(`/api/prices/${assetId}`),
