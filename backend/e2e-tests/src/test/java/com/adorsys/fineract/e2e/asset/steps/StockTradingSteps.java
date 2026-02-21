@@ -63,6 +63,7 @@ public class StockTradingSteps {
                 .isEqualTo(201);
         String assetId = createResp.jsonPath().getString("id");
         context.storeId("lastAssetId", assetId);
+        context.storeId("assetId_" + symbolRef, assetId);
         context.storeValue("lastSymbol", symbolRef);
 
         // Activate
@@ -192,6 +193,12 @@ public class StockTradingSteps {
     }
 
     private String resolveAssetId(String ref) {
+        // First try per-symbol lookup
+        String perSymbol = context.getId("assetId_" + ref);
+        if (perSymbol != null) {
+            return perSymbol;
+        }
+        // Fall back to last-created asset if symbol matches
         String stored = context.getId("lastAssetId");
         String lastSymbol = context.getValue("lastSymbol");
         if (stored != null && ref.equals(lastSymbol)) {

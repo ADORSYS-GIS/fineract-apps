@@ -4,7 +4,6 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 
@@ -17,11 +16,14 @@ import java.math.BigDecimal;
 public record TradePreviewRequest(
     @NotBlank String assetId,
     @NotNull TradeSide side,
-    @Positive @DecimalMax("10000000") BigDecimal units,
-    @Positive @DecimalMax("100000000000") BigDecimal amount
+    @DecimalMax("10000000") BigDecimal units,
+    @DecimalMax("100000000000") BigDecimal amount
 ) {
-    @AssertTrue(message = "Exactly one of 'units' or 'amount' must be provided")
+    @AssertTrue(message = "Exactly one of 'units' or 'amount' must be provided and must be positive")
     boolean isValid() {
-        return (units != null) ^ (amount != null);
+        boolean exactlyOne = (units != null) ^ (amount != null);
+        if (!exactlyOne) return false;
+        BigDecimal value = units != null ? units : amount;
+        return value.compareTo(BigDecimal.ZERO) > 0;
     }
 }

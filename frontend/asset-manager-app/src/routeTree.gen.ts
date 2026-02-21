@@ -195,13 +195,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/income-calendar': {
-      id: '/income-calendar'
-      path: '/income-calendar'
-      fullPath: '/income-calendar'
-      preLoaderRoute: typeof IncomeCalendarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reconciliation': {
       id: '/reconciliation'
       path: '/reconciliation'
@@ -228,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/inventory'
       fullPath: '/inventory'
       preLoaderRoute: typeof InventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/income-calendar': {
+      id: '/income-calendar'
+      path: '/income-calendar'
+      fullPath: '/income-calendar'
+      preLoaderRoute: typeof IncomeCalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {

@@ -8,7 +8,7 @@ Feature: Exposure Limits (E2E)
     Given Fineract is initialized with GL accounts and payment types
     And a treasury client exists in Fineract
     And a test user exists in Fineract with external ID "e2e-test-user-001"
-    And the test user has an XAF account with balance 5000000
+    And the test user has an XAF account with balance 100000
 
   # -----------------------------------------------------------------
   # Max Order Size
@@ -19,7 +19,7 @@ Feature: Exposure Limits (E2E)
     When the user previews a BUY of 100 units of "MOS"
     Then the response status should be 200
     And the preview should not be feasible
-    And the preview blockers should contain "MAX_ORDER_SIZE_EXCEEDED"
+    And the preview blockers should contain "ORDER_SIZE_LIMIT_EXCEEDED"
 
   Scenario: BUY within max order size succeeds
     Given an active stock asset "MSO" with price 100, supply 10000, and max order size 50
@@ -36,4 +36,4 @@ Feature: Exposure Limits (E2E)
     When the user previews a BUY of 10 units of "MPP"
     Then the response status should be 200
     And the preview should not be feasible
-    And the preview blockers should contain "MAX_POSITION_EXCEEDED"
+    And the preview blockers should contain "POSITION_LIMIT_EXCEEDED"

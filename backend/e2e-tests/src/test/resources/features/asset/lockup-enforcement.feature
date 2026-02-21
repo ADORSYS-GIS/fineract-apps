@@ -8,7 +8,7 @@ Feature: Lock-up Period Enforcement (E2E)
     Given Fineract is initialized with GL accounts and payment types
     And a treasury client exists in Fineract
     And a test user exists in Fineract with external ID "e2e-test-user-001"
-    And the test user has an XAF account with balance 5000000
+    And the test user has an XAF account with balance 100000
 
   # -----------------------------------------------------------------
   # Lock-up prevents immediate sell
