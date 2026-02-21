@@ -54,6 +54,10 @@ class TradingServiceTest {
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
     @Mock private AssetMetrics assetMetrics;
     @Mock private BondBenefitService bondBenefitService;
+    @Mock private IncomeBenefitService incomeBenefitService;
+    @Mock private ExposureLimitService exposureLimitService;
+    @Mock private LockupService lockupService;
+    @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private TradingService tradingService;

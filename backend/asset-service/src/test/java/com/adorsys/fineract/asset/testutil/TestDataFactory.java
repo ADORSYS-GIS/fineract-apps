@@ -125,7 +125,8 @@ public final class TestDataFactory {
                 null,
                 TREASURY_CLIENT_ID,
                 null, null, null, null, // exposure limits
-                null, null, null, null, null, null // bond fields
+                null, null, null, null, null, null, // bond fields
+                null, null, null, null // income fields
         );
     }
 
@@ -152,7 +153,8 @@ public final class TestDataFactory {
                 LocalDate.now().plusYears(5),
                 new BigDecimal("5.80"),
                 6,
-                LocalDate.now().plusMonths(6)
+                LocalDate.now().plusMonths(6),
+                null, null, null, null // income fields
         );
     }
 

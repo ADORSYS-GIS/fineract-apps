@@ -60,7 +60,7 @@ public class BondStepDefinitions {
     public void activeBondWith(String bondId, io.cucumber.datatable.DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         String nextCoupon = data.get("nextCouponDate");
-        LocalDate couponDate = "today".equals(nextCoupon) ? LocalDate.now() : LocalDate.parse(nextCoupon);
+        LocalDate couponDate = resolveDateToLocalDate(nextCoupon);
 
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
@@ -69,7 +69,7 @@ public class BondStepDefinitions {
                 interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
                 subscription_start_date, subscription_end_date,
                 created_at, updated_at)
-            VALUES (?, ?, ?, ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, 10, 0,
+            VALUES (?, ?, ?, ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL, 0,
                 ?, ?, ?, ?,
                 CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), NOW(), NOW())
             """, bondId, bondId, bondId, "Bond " + bondId,
@@ -280,7 +280,7 @@ public class BondStepDefinitions {
                 issuer, interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
                 subscription_start_date, subscription_end_date,
                 created_at, updated_at)
-            VALUES (?, ?, ?, ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, 10, 0,
+            VALUES (?, ?, ?, ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, NULL, 0,
                 'Test Issuer', 5.80, 6, ?, ?,
                 CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), NOW(), NOW())
             """, bondId, bondId, bondId, "Bond " + bondId, status, nextCouponDate, maturityDate);
@@ -294,18 +294,24 @@ public class BondStepDefinitions {
 
     private String resolveDateExpression(String expr) {
         if (expr == null) return null;
+        return resolveDateToLocalDate(expr).toString();
+    }
+
+    private LocalDate resolveDateToLocalDate(String expr) {
+        if (expr == null) return null;
+        if ("today".equals(expr)) return LocalDate.now();
         if (expr.startsWith("+") || expr.startsWith("-")) {
             boolean negative = expr.startsWith("-");
             String unit = expr.substring(expr.length() - 1);
             int amount = Integer.parseInt(expr.substring(1, expr.length() - 1));
             if (negative) amount = -amount;
             return switch (unit) {
-                case "y" -> LocalDate.now().plusYears(amount).toString();
-                case "m" -> LocalDate.now().plusMonths(amount).toString();
-                case "d" -> LocalDate.now().plusDays(amount).toString();
-                default -> expr;
+                case "y" -> LocalDate.now().plusYears(amount);
+                case "m" -> LocalDate.now().plusMonths(amount);
+                case "d" -> LocalDate.now().plusDays(amount);
+                default -> LocalDate.parse(expr);
             };
         }
-        return expr;
+        return LocalDate.parse(expr);
     }
 }

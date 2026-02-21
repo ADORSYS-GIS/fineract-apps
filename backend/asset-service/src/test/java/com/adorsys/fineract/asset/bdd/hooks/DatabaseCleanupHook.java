@@ -15,6 +15,10 @@ public class DatabaseCleanupHook {
 
     @Before(order = 1)
     public void cleanDatabase() {
+        jdbcTemplate.execute("DELETE FROM notification_log");
+        jdbcTemplate.execute("DELETE FROM audit_log");
+        jdbcTemplate.execute("DELETE FROM income_distributions");
+        jdbcTemplate.execute("DELETE FROM reconciliation_reports");
         jdbcTemplate.execute("DELETE FROM interest_payments");
         jdbcTemplate.execute("DELETE FROM price_history");
         jdbcTemplate.execute("DELETE FROM trade_log");

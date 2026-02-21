@@ -375,51 +375,58 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				)}
 
 				{/* Income Distribution (non-bond assets) */}
-				{asset.category !== "BONDS" && asset.incomeType && (
+				{asset.category !== "BONDS" && (
 					<Card className="p-4 mb-6">
 						<h2 className="text-lg font-semibold text-gray-800 mb-3">
 							Income Distribution
 						</h2>
-						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-							<div>
-								<p className="text-gray-500">Income Type</p>
-								<p className="font-medium">
-									{INCOME_TYPE_LABELS[asset.incomeType] ?? asset.incomeType}
-									{INCOME_VARIABILITY[asset.incomeType] && (
-										<span
-											className={`ml-2 inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
-												INCOME_VARIABILITY[asset.incomeType].variable
-													? "bg-amber-100 text-amber-700"
-													: "bg-green-100 text-green-700"
-											}`}
-										>
-											{INCOME_VARIABILITY[asset.incomeType].label}
-										</span>
-									)}
-								</p>
-							</div>
-							{asset.incomeRate != null && (
+						{asset.incomeType ? (
+							<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
 								<div>
-									<p className="text-gray-500">Income Rate</p>
-									<p className="font-medium">{asset.incomeRate}%</p>
-								</div>
-							)}
-							{asset.distributionFrequencyMonths != null && (
-								<div>
-									<p className="text-gray-500">Frequency</p>
+									<p className="text-gray-500">Income Type</p>
 									<p className="font-medium">
-										{FREQ_LABELS[asset.distributionFrequencyMonths] ??
-											`Every ${asset.distributionFrequencyMonths} months`}
+										{INCOME_TYPE_LABELS[asset.incomeType] ?? asset.incomeType}
+										{INCOME_VARIABILITY[asset.incomeType] && (
+											<span
+												className={`ml-2 inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
+													INCOME_VARIABILITY[asset.incomeType].variable
+														? "bg-amber-100 text-amber-700"
+														: "bg-green-100 text-green-700"
+												}`}
+											>
+												{INCOME_VARIABILITY[asset.incomeType].label}
+											</span>
+										)}
 									</p>
 								</div>
-							)}
-							{asset.nextDistributionDate && (
-								<div>
-									<p className="text-gray-500">Next Distribution</p>
-									<p className="font-medium">{asset.nextDistributionDate}</p>
-								</div>
-							)}
-						</div>
+								{asset.incomeRate != null && (
+									<div>
+										<p className="text-gray-500">Income Rate</p>
+										<p className="font-medium">{asset.incomeRate}%</p>
+									</div>
+								)}
+								{asset.distributionFrequencyMonths != null && (
+									<div>
+										<p className="text-gray-500">Frequency</p>
+										<p className="font-medium">
+											{FREQ_LABELS[asset.distributionFrequencyMonths] ??
+												`Every ${asset.distributionFrequencyMonths} months`}
+										</p>
+									</div>
+								)}
+								{asset.nextDistributionDate && (
+									<div>
+										<p className="text-gray-500">Next Distribution</p>
+										<p className="font-medium">{asset.nextDistributionDate}</p>
+									</div>
+								)}
+							</div>
+						) : (
+							<p className="text-sm text-gray-400">
+								Not configured. Use the Edit button to set income type, rate,
+								and frequency.
+							</p>
+						)}
 					</Card>
 				)}
 

@@ -77,5 +77,16 @@ public record AssetPublicDetailResponse(
     // ── Lock-up ──
 
     @Schema(description = "Lock-up period in days. Null means no lock-up.", nullable = true)
-    Integer lockupDays
+    Integer lockupDays,
+
+    // ── Income distribution (non-bond) ──
+
+    @Schema(description = "Income type: DIVIDEND, RENT, HARVEST_YIELD, PROFIT_SHARE.", nullable = true)
+    String incomeType,
+    @Schema(description = "Annual income rate as percentage.", nullable = true)
+    BigDecimal incomeRate,
+    @Schema(description = "Distribution frequency in months.", nullable = true)
+    Integer distributionFrequencyMonths,
+    @Schema(description = "Next scheduled income distribution date.", nullable = true)
+    LocalDate nextDistributionDate
 ) {}

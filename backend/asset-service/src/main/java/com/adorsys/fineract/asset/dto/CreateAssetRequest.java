@@ -75,5 +75,17 @@ public record CreateAssetRequest(
     Integer couponFrequencyMonths,
     /** First coupon payment date. Required for BONDS, must be on or before maturityDate. */
     @Schema(description = "First coupon payment date. Required when category is BONDS.")
-    LocalDate nextCouponDate
+    LocalDate nextCouponDate,
+
+    // ── Income distribution fields (optional, for non-bond income-bearing assets) ──
+
+    /** Income distribution type: DIVIDEND, RENT, HARVEST_YIELD, PROFIT_SHARE. Null means no income. */
+    @Schema(description = "Income type: DIVIDEND, RENT, HARVEST_YIELD, PROFIT_SHARE.")
+    String incomeType,
+    /** Income rate as a percentage per distribution period. */
+    @PositiveOrZero BigDecimal incomeRate,
+    /** Distribution frequency in months (1, 3, 6, or 12). */
+    @Min(1) Integer distributionFrequencyMonths,
+    /** First scheduled distribution date. */
+    LocalDate nextDistributionDate
 ) {}

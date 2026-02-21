@@ -135,5 +135,20 @@ public record AssetDetailResponse(
 
     /** Lock-up period in days from first purchase. Null = no lock-up. */
     @Schema(description = "Lock-up period in days. Null means no lock-up.", nullable = true)
-    Integer lockupDays
+    Integer lockupDays,
+
+    // ── Income distribution (non-bond) ──
+
+    /** Income type: DIVIDEND, RENT, HARVEST_YIELD, PROFIT_SHARE. Null for non-income assets. */
+    @Schema(description = "Income type: DIVIDEND, RENT, HARVEST_YIELD, PROFIT_SHARE.", nullable = true)
+    String incomeType,
+    /** Annual income rate as a percentage. Null for non-income assets. */
+    @Schema(description = "Annual income rate as percentage.", nullable = true)
+    BigDecimal incomeRate,
+    /** Distribution frequency in months: 1, 3, 6, or 12. Null for non-income assets. */
+    @Schema(description = "Distribution frequency in months.", nullable = true)
+    Integer distributionFrequencyMonths,
+    /** Next scheduled income distribution date. Null for non-income assets. */
+    @Schema(description = "Next scheduled income distribution date.", nullable = true)
+    LocalDate nextDistributionDate
 ) {}

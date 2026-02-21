@@ -97,7 +97,9 @@ public class AssetCatalogService {
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
                 asset.getMaxPositionPercent(), asset.getMaxOrderSize(),
-                asset.getDailyTradeLimitXaf(), asset.getLockupDays()
+                asset.getDailyTradeLimitXaf(), asset.getLockupDays(),
+                asset.getIncomeType(), asset.getIncomeRate(),
+                asset.getDistributionFrequencyMonths(), asset.getNextDistributionDate()
         );
     }
 
@@ -140,7 +142,9 @@ public class AssetCatalogService {
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
                 asset.getMaxPositionPercent(), asset.getMaxOrderSize(),
-                asset.getDailyTradeLimitXaf(), asset.getLockupDays()
+                asset.getDailyTradeLimitXaf(), asset.getLockupDays(),
+                asset.getIncomeType(), asset.getIncomeRate(),
+                asset.getDistributionFrequencyMonths(), asset.getNextDistributionDate()
         );
     }
 

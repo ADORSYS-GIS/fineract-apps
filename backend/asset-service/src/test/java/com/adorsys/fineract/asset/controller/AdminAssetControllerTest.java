@@ -49,6 +49,10 @@ class AdminAssetControllerTest {
     @MockBean private PrincipalRedemptionRepository principalRedemptionRepository;
     @MockBean private PrincipalRedemptionService principalRedemptionService;
     @MockBean private AssetRepository assetRepository;
+    @MockBean private com.adorsys.fineract.asset.service.DelistingService delistingService;
+    @MockBean private com.adorsys.fineract.asset.repository.IncomeDistributionRepository incomeDistributionRepository;
+    @MockBean private com.adorsys.fineract.asset.service.IncomeForecastService incomeForecastService;
+    @MockBean private com.adorsys.fineract.asset.service.IncomeDistributionService incomeDistributionService;
 
     // -------------------------------------------------------------------------
     // GET /api/admin/assets
@@ -109,7 +113,8 @@ class AdminAssetControllerTest {
                 LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 1L,
                 null, null, null, null, // exposure limits
-                null, null, null, null, null, null // bond fields
+                null, null, null, null, null, null, // bond fields
+                null, null, null, null // income fields
         );
 
         AssetDetailResponse response = new AssetDetailResponse(
@@ -125,7 +130,8 @@ class AdminAssetControllerTest {
                 Instant.now(), null,
                 null, null, null, null, null, null, null, null, // bond fields + residualDays + subscriptionClosed
                 null, null, // bidPrice, askPrice
-                null, null, null, null // exposure limits + lockupDays
+                null, null, null, null, // exposure limits + lockupDays
+                null, null, null, null // income distribution
         );
 
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);

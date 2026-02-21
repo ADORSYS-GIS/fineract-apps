@@ -221,6 +221,11 @@ export interface UpdateAssetRequest {
 	dailyTradeLimitXaf?: number;
 	// Lock-up
 	lockupDays?: number;
+	// Income distribution
+	incomeType?: string;
+	incomeRate?: number;
+	distributionFrequencyMonths?: number;
+	nextDistributionDate?: string;
 	// Bond-specific updatable fields
 	interestRate?: number;
 	maturityDate?: string;

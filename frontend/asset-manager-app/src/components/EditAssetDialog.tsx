@@ -6,6 +6,21 @@ import type {
 	UpdateAssetRequest,
 } from "@/services/assetApi";
 
+const INCOME_TYPES = [
+	{ value: "", label: "None" },
+	{ value: "DIVIDEND", label: "Dividend" },
+	{ value: "RENT", label: "Rent" },
+	{ value: "HARVEST_YIELD", label: "Harvest Yield" },
+	{ value: "PROFIT_SHARE", label: "Profit Share" },
+];
+
+const FREQUENCY_OPTIONS = [
+	{ value: "1", label: "Monthly" },
+	{ value: "3", label: "Quarterly" },
+	{ value: "6", label: "Semi-Annual" },
+	{ value: "12", label: "Annual" },
+];
+
 interface EditAssetDialogProps {
 	isOpen: boolean;
 	asset: AssetDetailResponse;
@@ -44,6 +59,15 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 	const [lockupDays, setLockupDays] = useState(
 		asset.lockupDays?.toString() ?? "",
 	);
+	const [incomeType, setIncomeType] = useState(asset.incomeType ?? "");
+	const [incomeRate, setIncomeRate] = useState(
+		asset.incomeRate?.toString() ?? "",
+	);
+	const [distributionFrequencyMonths, setDistributionFrequencyMonths] =
+		useState(asset.distributionFrequencyMonths?.toString() ?? "");
+	const [nextDistributionDate, setNextDistributionDate] = useState(
+		asset.nextDistributionDate ?? "",
+	);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -57,6 +81,12 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 			setMaxOrderSize(asset.maxOrderSize?.toString() ?? "");
 			setDailyTradeLimitXaf(asset.dailyTradeLimitXaf?.toString() ?? "");
 			setLockupDays(asset.lockupDays?.toString() ?? "");
+			setIncomeType(asset.incomeType ?? "");
+			setIncomeRate(asset.incomeRate?.toString() ?? "");
+			setDistributionFrequencyMonths(
+				asset.distributionFrequencyMonths?.toString() ?? "",
+			);
+			setNextDistributionDate(asset.nextDistributionDate ?? "");
 			cancelRef.current?.focus();
 		}
 	}, [isOpen, asset]);
@@ -97,6 +127,19 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 				: undefined;
 		if (lockupDays !== (asset.lockupDays?.toString() ?? ""))
 			data.lockupDays = lockupDays ? Number(lockupDays) : undefined;
+		if (incomeType !== (asset.incomeType ?? ""))
+			data.incomeType = incomeType || undefined;
+		if (incomeRate !== (asset.incomeRate?.toString() ?? ""))
+			data.incomeRate = incomeRate ? Number(incomeRate) : undefined;
+		if (
+			distributionFrequencyMonths !==
+			(asset.distributionFrequencyMonths?.toString() ?? "")
+		)
+			data.distributionFrequencyMonths = distributionFrequencyMonths
+				? Number(distributionFrequencyMonths)
+				: undefined;
+		if (nextDistributionDate !== (asset.nextDistributionDate ?? ""))
+			data.nextDistributionDate = nextDistributionDate || undefined;
 
 		if (Object.keys(data).length === 0) {
 			onCancel();
@@ -109,6 +152,7 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 		"w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white";
 	const labelClass =
 		"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
+	const showIncomeFields = asset.category !== "BONDS" && incomeType !== "";
 
 	return (
 		<div
@@ -256,6 +300,74 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 							/>
 						</div>
 					</div>
+
+					{/* Income Distribution (non-bond only) */}
+					{asset.category !== "BONDS" && (
+						<>
+							<hr className="border-gray-200 dark:border-gray-600" />
+							<p className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+								Income Distribution
+							</p>
+							<div>
+								<label className={labelClass}>Income Type</label>
+								<select
+									className={inputClass}
+									value={incomeType}
+									onChange={(e) => setIncomeType(e.target.value)}
+								>
+									{INCOME_TYPES.map((t) => (
+										<option key={t.value} value={t.value}>
+											{t.label}
+										</option>
+									))}
+								</select>
+							</div>
+							{showIncomeFields && (
+								<>
+									<div className="grid grid-cols-2 gap-4">
+										<div>
+											<label className={labelClass}>Income Rate (%)</label>
+											<input
+												type="number"
+												className={inputClass}
+												value={incomeRate}
+												onChange={(e) => setIncomeRate(e.target.value)}
+												min={0}
+												step="0.01"
+												placeholder="e.g. 5.00"
+											/>
+										</div>
+										<div>
+											<label className={labelClass}>Frequency</label>
+											<select
+												className={inputClass}
+												value={distributionFrequencyMonths}
+												onChange={(e) =>
+													setDistributionFrequencyMonths(e.target.value)
+												}
+											>
+												<option value="">Select...</option>
+												{FREQUENCY_OPTIONS.map((f) => (
+													<option key={f.value} value={f.value}>
+														{f.label}
+													</option>
+												))}
+											</select>
+										</div>
+									</div>
+									<div>
+										<label className={labelClass}>Next Distribution Date</label>
+										<input
+											type="date"
+											className={inputClass}
+											value={nextDistributionDate}
+											onChange={(e) => setNextDistributionDate(e.target.value)}
+										/>
+									</div>
+								</>
+							)}
+						</>
+					)}
 				</div>
 
 				<div className="flex justify-end gap-3 mt-6">

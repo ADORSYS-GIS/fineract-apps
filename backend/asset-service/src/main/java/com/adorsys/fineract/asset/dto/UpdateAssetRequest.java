@@ -49,6 +49,21 @@ public record UpdateAssetRequest(
     @Schema(description = "Lock-up period in days after first purchase.")
     Integer lockupDays,
 
+    // ── Income distribution ──
+
+    /** New income type. Null to keep current. */
+    @Schema(description = "Income type: DIVIDEND, RENT, HARVEST_YIELD, PROFIT_SHARE.")
+    String incomeType,
+    /** New annual income rate as percentage. Null to keep current. */
+    @Schema(description = "Annual income rate as percentage.")
+    @PositiveOrZero BigDecimal incomeRate,
+    /** New distribution frequency in months. Null to keep current. */
+    @Schema(description = "Distribution frequency in months: 1, 3, 6, or 12.")
+    Integer distributionFrequencyMonths,
+    /** New next distribution date. Null to keep current. */
+    @Schema(description = "Next income distribution date.")
+    LocalDate nextDistributionDate,
+
     // ── Bond-specific updatable fields ──
 
     /** New annual coupon rate as percentage. Null to keep current. */

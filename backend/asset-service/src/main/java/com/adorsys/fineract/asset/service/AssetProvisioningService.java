@@ -158,6 +158,10 @@ public class AssetProvisioningService {
                 .maxOrderSize(request.maxOrderSize())
                 .dailyTradeLimitXaf(request.dailyTradeLimitXaf())
                 .lockupDays(request.lockupDays())
+                .incomeType(request.incomeType())
+                .incomeRate(request.incomeRate())
+                .distributionFrequencyMonths(request.distributionFrequencyMonths())
+                .nextDistributionDate(request.nextDistributionDate())
                 .build();
 
         assetRepository.save(asset);
@@ -214,6 +218,12 @@ public class AssetProvisioningService {
         if (request.maxOrderSize() != null) asset.setMaxOrderSize(request.maxOrderSize());
         if (request.dailyTradeLimitXaf() != null) asset.setDailyTradeLimitXaf(request.dailyTradeLimitXaf());
         if (request.lockupDays() != null) asset.setLockupDays(request.lockupDays());
+
+        // Income distribution
+        if (request.incomeType() != null) asset.setIncomeType(request.incomeType());
+        if (request.incomeRate() != null) asset.setIncomeRate(request.incomeRate());
+        if (request.distributionFrequencyMonths() != null) asset.setDistributionFrequencyMonths(request.distributionFrequencyMonths());
+        if (request.nextDistributionDate() != null) asset.setNextDistributionDate(request.nextDistributionDate());
 
         assetRepository.save(asset);
         log.info("Updated asset: id={}", assetId);

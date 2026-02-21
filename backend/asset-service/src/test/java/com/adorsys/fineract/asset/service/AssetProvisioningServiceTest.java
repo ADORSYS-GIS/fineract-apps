@@ -202,6 +202,7 @@ class AssetProvisioningServiceTest {
         UpdateAssetRequest request = new UpdateAssetRequest(
                 "New Name", null, null, null, null, null, null, null, null,
                 null, null, null, null, // exposure limits
+                null, null, null, null, // income distribution
                 null, null); // bond fields
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
@@ -219,7 +220,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -325,7 +326,8 @@ class AssetProvisioningServiceTest {
                 TREASURY_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
-                LocalDate.now().plusMonths(6)
+                LocalDate.now().plusMonths(6),
+                null, null, null, null // income fields
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -341,7 +343,8 @@ class AssetProvisioningServiceTest {
                 TREASURY_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
-                LocalDate.now().plusMonths(5)
+                LocalDate.now().plusMonths(5),
+                null, null, null, null // income fields
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -356,7 +359,8 @@ class AssetProvisioningServiceTest {
                 null, null, LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
                 TREASURY_CLIENT_ID,
                 null, null, null, null, // exposure limits
-                null, null, null, null, null, null // bond fields
+                null, null, null, null, null, null, // bond fields
+                null, null, null, null // income fields
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -372,6 +376,7 @@ class AssetProvisioningServiceTest {
                 null, null, null, null, null, null,
                 LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
                 null, null, null, null, // exposure limits
+                null, null, null, null, // income distribution
                 null, null); // bond fields
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
@@ -387,7 +392,8 @@ class AssetProvisioningServiceTest {
                 TREASURY_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
-                LocalDate.now().plusMonths(6)
+                LocalDate.now().plusMonths(6),
+                null, null, null, null // income fields
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));

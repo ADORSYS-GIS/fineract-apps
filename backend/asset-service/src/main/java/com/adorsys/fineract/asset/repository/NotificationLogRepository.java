@@ -14,6 +14,6 @@ public interface NotificationLogRepository extends JpaRepository<NotificationLog
     long countByUserIdAndReadFalse(Long userId);
 
     @Modifying
-    @Query("UPDATE NotificationLog n SET n.read = true, n.readAt = CURRENT_TIMESTAMP WHERE n.userId = :userId AND n.read = false")
+    @Query(value = "UPDATE notification_log SET is_read = true, read_at = NOW() WHERE user_id = :userId AND is_read = false", nativeQuery = true)
     int markAllReadByUserId(Long userId);
 }
