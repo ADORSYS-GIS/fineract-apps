@@ -79,4 +79,21 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
            "AND a.nextCouponDate IS NOT NULL AND a.nextCouponDate <= :date")
     List<Asset> findBondsWithDueCoupons(@Param("date") LocalDate date);
 
+    /**
+     * Find ACTIVE/MATURED bonds with upcoming coupon dates within N days from now.
+     * Used by TreasuryShortfallScheduler to detect shortfalls before they happen.
+     */
+    @Query("SELECT a FROM Asset a WHERE a.status IN (com.adorsys.fineract.asset.dto.AssetStatus.ACTIVE, " +
+           "com.adorsys.fineract.asset.dto.AssetStatus.MATURED) " +
+           "AND a.nextCouponDate IS NOT NULL AND a.nextCouponDate <= :horizon")
+    List<Asset> findBondsWithUpcomingCoupons(@Param("horizon") LocalDate horizon);
+
+    /**
+     * Find non-bond ACTIVE assets with due income distributions.
+     */
+    @Query("SELECT a FROM Asset a WHERE a.status = com.adorsys.fineract.asset.dto.AssetStatus.ACTIVE " +
+           "AND a.incomeType IS NOT NULL AND a.nextDistributionDate IS NOT NULL " +
+           "AND a.nextDistributionDate <= :date")
+    List<Asset> findAssetsWithDueDistributions(@Param("date") LocalDate date);
+
 }

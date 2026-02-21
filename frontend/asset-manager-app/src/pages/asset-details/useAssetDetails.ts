@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import {
 	type AssetDetailResponse,
 	assetApi,
+	type DelistAssetRequest,
 	extractErrorMessage,
 	type UpdateAssetRequest,
 } from "@/services/assetApi";
@@ -112,6 +113,25 @@ export const useAssetDetails = () => {
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
+	const delistMutation = useMutation({
+		mutationFn: (data: DelistAssetRequest) =>
+			assetApi.delistAsset(assetId, data),
+		onSuccess: () => {
+			toast.success("Delisting initiated");
+			invalidateAll();
+		},
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
+	});
+
+	const cancelDelistMutation = useMutation({
+		mutationFn: () => assetApi.cancelDelisting(assetId),
+		onSuccess: () => {
+			toast.success("Delisting cancelled");
+			invalidateAll();
+		},
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
+	});
+
 	return {
 		assetId,
 		asset,
@@ -126,6 +146,8 @@ export const useAssetDetails = () => {
 		onMint: (data: { additionalSupply: number }) => mintMutation.mutate(data),
 		onSetPrice: (newPrice: number) => setPriceMutation.mutate(newPrice),
 		onRedeem: () => redeemMutation.mutate(),
+		onDelist: (data: DelistAssetRequest) => delistMutation.mutate(data),
+		onCancelDelist: () => cancelDelistMutation.mutate(),
 		isUpdating: updateMutation.isPending,
 		isMinting: mintMutation.isPending,
 		isActivating: activateMutation.isPending,
@@ -133,5 +155,7 @@ export const useAssetDetails = () => {
 		isResuming: resumeMutation.isPending,
 		isSettingPrice: setPriceMutation.isPending,
 		isRedeeming: redeemMutation.isPending,
+		isDelisting: delistMutation.isPending,
+		isCancellingDelist: cancelDelistMutation.isPending,
 	};
 };

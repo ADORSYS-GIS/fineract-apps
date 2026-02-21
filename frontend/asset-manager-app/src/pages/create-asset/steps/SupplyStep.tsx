@@ -170,6 +170,130 @@ export const SupplyStep: FC<Props> = ({
 				</div>
 			</div>
 
+			{/* Lock-up Period */}
+			<div>
+				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+					Lock-up Period (Optional)
+				</h3>
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Lock-up Days
+						</label>
+						<input
+							type="number"
+							aria-label="Lock-up days"
+							className={inputClass("lockup")}
+							placeholder="e.g. 30"
+							value={formData.lockupDays || ""}
+							onChange={(e) =>
+								updateFormData({ lockupDays: Number(e.target.value) })
+							}
+							min={0}
+						/>
+						{fieldError("lockup") ? (
+							<p className="text-xs text-red-600 mt-1">
+								{fieldError("lockup")}
+							</p>
+						) : (
+							<p className="text-xs text-gray-400 mt-1">
+								Users cannot sell until this many days after first purchase
+							</p>
+						)}
+					</div>
+				</div>
+			</div>
+
+			{/* Income Distribution (non-bond only) */}
+			{formData.category !== "BONDS" && (
+				<div>
+					<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+						Income Distribution (Optional)
+					</h3>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Income Type
+							</label>
+							<select
+								aria-label="Income type"
+								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={formData.incomeType}
+								onChange={(e) => updateFormData({ incomeType: e.target.value })}
+							>
+								<option value="">None</option>
+								<option value="DIVIDEND">Dividend</option>
+								<option value="RENT">Rental Income</option>
+								<option value="HARVEST_YIELD">Harvest Yield</option>
+								<option value="PROFIT_SHARE">Profit Share</option>
+							</select>
+						</div>
+
+						{formData.incomeType && (
+							<>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Income Rate (%)
+									</label>
+									<input
+										type="number"
+										aria-label="Income rate"
+										className={inputClass("income rate")}
+										placeholder="e.g. 5.0"
+										value={formData.incomeRate || ""}
+										onChange={(e) =>
+											updateFormData({
+												incomeRate: Number(e.target.value),
+											})
+										}
+										min={0}
+										max={100}
+										step={0.01}
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Distribution Frequency
+									</label>
+									<select
+										aria-label="Distribution frequency"
+										className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										value={formData.distributionFrequencyMonths || ""}
+										onChange={(e) =>
+											updateFormData({
+												distributionFrequencyMonths: Number(e.target.value),
+											})
+										}
+									>
+										<option value="">Select</option>
+										<option value={1}>Monthly</option>
+										<option value={3}>Quarterly</option>
+										<option value={6}>Semi-Annual</option>
+										<option value={12}>Annual</option>
+									</select>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										First Distribution Date
+									</label>
+									<input
+										type="date"
+										aria-label="First distribution date"
+										className={inputClass("distribution date")}
+										value={formData.nextDistributionDate}
+										onChange={(e) =>
+											updateFormData({
+												nextDistributionDate: e.target.value,
+											})
+										}
+									/>
+								</div>
+							</>
+						)}
+					</div>
+				</div>
+			)}
+
 			{/* Summary */}
 			{formData.totalSupply > 0 && formData.initialPrice > 0 && (
 				<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">

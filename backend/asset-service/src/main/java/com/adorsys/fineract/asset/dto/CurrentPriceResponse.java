@@ -17,5 +17,14 @@ public record CurrentPriceResponse(
     /** Latest price per unit, in settlement currency. */
     BigDecimal currentPrice,
     /** 24-hour price change as a percentage (e.g. 2.5 = +2.5%). */
-    BigDecimal change24hPercent
-) {}
+    BigDecimal change24hPercent,
+    /** Best price a seller receives (currentPrice - spread). Null if spread not configured. */
+    BigDecimal bidPrice,
+    /** Price a buyer pays (currentPrice + spread). Null if spread not configured. */
+    BigDecimal askPrice
+) {
+    /** Backward-compatible constructor without bid/ask. */
+    public CurrentPriceResponse(String assetId, BigDecimal currentPrice, BigDecimal change24hPercent) {
+        this(assetId, currentPrice, change24hPercent, null, null);
+    }
+}

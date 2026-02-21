@@ -20,7 +20,8 @@
 			"createAsset": "Create Asset",
 			"inventory": "Inventory",
 			"marketSettings": "Market Settings",
-			"orderResolution": "Order Resolution"
+			"orderResolution": "Order Resolution",
+			"reconciliation": "Reconciliation"
 		},
 		"navbar": {
 			"onlineBank": "OnlineBank"

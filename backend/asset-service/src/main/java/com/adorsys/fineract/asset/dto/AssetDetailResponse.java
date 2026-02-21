@@ -108,5 +108,32 @@ public record AssetDetailResponse(
     Long residualDays,
     /** Whether the subscription period has ended. */
     @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
-    Boolean subscriptionClosed
+    Boolean subscriptionClosed,
+
+    // ── Bid/Ask prices ──
+
+    /** Best price a seller receives (currentPrice - spread). */
+    @Schema(description = "Bid price: what sellers receive (mid - spread).", nullable = true)
+    BigDecimal bidPrice,
+    /** Price a buyer pays (currentPrice + spread). */
+    @Schema(description = "Ask price: what buyers pay (mid + spread).", nullable = true)
+    BigDecimal askPrice,
+
+    // ── Exposure limits ──
+
+    /** Max % of totalSupply a single user can hold. Null = unlimited. */
+    @Schema(description = "Max position as percentage of total supply.", nullable = true)
+    BigDecimal maxPositionPercent,
+    /** Max units per single order. Null = unlimited. */
+    @Schema(description = "Max units per single order.", nullable = true)
+    BigDecimal maxOrderSize,
+    /** Max XAF trading volume per user per day. Null = unlimited. */
+    @Schema(description = "Max XAF volume per user per day.", nullable = true)
+    BigDecimal dailyTradeLimitXaf,
+
+    // ── Lock-up ──
+
+    /** Lock-up period in days from first purchase. Null = no lock-up. */
+    @Schema(description = "Lock-up period in days. Null means no lock-up.", nullable = true)
+    Integer lockupDays
 ) {}

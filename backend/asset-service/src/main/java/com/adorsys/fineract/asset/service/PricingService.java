@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.adorsys.fineract.asset.entity.Asset;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -36,6 +37,7 @@ public class PricingService {
     private final AssetRepository assetRepository;
     private final RedisTemplate<String, String> redisTemplate;
     private final AssetServiceConfig config;
+    private final com.adorsys.fineract.asset.metrics.AssetMetrics assetMetrics;
 
     private static final String PRICE_CACHE_PREFIX = "asset:price:";
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
@@ -48,14 +50,17 @@ public class PricingService {
      */
     @Transactional(readOnly = true)
     public CurrentPriceResponse getCurrentPrice(String assetId) {
-        // Try Redis cache first
+        // Try Redis cache first (format: currentPrice:change24h:bidPrice:askPrice)
         try {
             String cached = redisTemplate.opsForValue().get(PRICE_CACHE_PREFIX + assetId);
             if (cached != null) {
                 try {
                     String[] parts = cached.split(":");
-                    return new CurrentPriceResponse(assetId, new BigDecimal(parts[0]),
-                            parts.length > 1 ? new BigDecimal(parts[1]) : null);
+                    BigDecimal currentPrice = new BigDecimal(parts[0]);
+                    BigDecimal change = parts.length > 1 && !"null".equals(parts[1]) ? new BigDecimal(parts[1]) : null;
+                    BigDecimal bid = parts.length > 2 && !"null".equals(parts[2]) ? new BigDecimal(parts[2]) : null;
+                    BigDecimal ask = parts.length > 3 && !"null".equals(parts[3]) ? new BigDecimal(parts[3]) : null;
+                    return new CurrentPriceResponse(assetId, currentPrice, change, bid, ask);
                 } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
                     log.warn("Malformed price cache for asset {}, falling back to DB: {}", assetId, cached);
                     redisTemplate.delete(PRICE_CACHE_PREFIX + assetId);
@@ -70,14 +75,17 @@ public class PricingService {
 
         // Cache in Redis (best-effort)
         try {
-            String cacheValue = price.getCurrentPrice().toPlainString() + ":" +
-                    (price.getChange24hPercent() != null ? price.getChange24hPercent().toPlainString() : "0");
+            String cacheValue = price.getCurrentPrice().toPlainString()
+                    + ":" + (price.getChange24hPercent() != null ? price.getChange24hPercent().toPlainString() : "0")
+                    + ":" + (price.getBidPrice() != null ? price.getBidPrice().toPlainString() : "null")
+                    + ":" + (price.getAskPrice() != null ? price.getAskPrice().toPlainString() : "null");
             redisTemplate.opsForValue().set(PRICE_CACHE_PREFIX + assetId, cacheValue, CACHE_TTL);
         } catch (Exception e) {
             log.warn("Redis error caching price for asset {}: {}", assetId, e.getMessage());
         }
 
-        return new CurrentPriceResponse(assetId, price.getCurrentPrice(), price.getChange24hPercent());
+        return new CurrentPriceResponse(assetId, price.getCurrentPrice(), price.getChange24hPercent(),
+                price.getBidPrice(), price.getAskPrice());
     }
 
     /**
@@ -158,6 +166,7 @@ public class PricingService {
             price.setDayLow(request.price());
         }
 
+        recalculateBidAsk(price, asset);
         assetPriceRepository.save(price);
 
         // Record price change in history for charts
@@ -208,6 +217,9 @@ public class PricingService {
             price.setChange24hPercent(change);
         }
 
+        // Recalculate bid/ask from the asset's spread
+        assetRepository.findById(assetId).ifPresent(asset -> recalculateBidAsk(price, asset));
+
         assetPriceRepository.save(price);
 
         // Invalidate cache (best-effort)
@@ -255,9 +267,30 @@ public class PricingService {
             price.setDayHigh(price.getCurrentPrice());
             price.setDayLow(price.getCurrentPrice());
             price.setDayClose(null);
+            // Recalculate bid/ask at market open
+            assetRepository.findById(price.getAssetId()).ifPresent(asset -> recalculateBidAsk(price, asset));
             assetPriceRepository.save(price);
         }
         log.info("Reset daily OHLC for {} assets", prices.size());
+    }
+
+    /**
+     * Recalculate bid and ask prices from the asset's current price and spread.
+     * bidPrice = currentPrice - (currentPrice * spreadPercent)
+     * askPrice = currentPrice + (currentPrice * spreadPercent)
+     */
+    private void recalculateBidAsk(AssetPrice price, Asset asset) {
+        BigDecimal spread = asset.getSpreadPercent();
+        if (spread == null || spread.compareTo(BigDecimal.ZERO) == 0) {
+            price.setBidPrice(price.getCurrentPrice());
+            price.setAskPrice(price.getCurrentPrice());
+            assetMetrics.recordSpread(asset.getId(), BigDecimal.ZERO);
+        } else {
+            BigDecimal spreadAmount = price.getCurrentPrice().multiply(spread);
+            price.setBidPrice(price.getCurrentPrice().subtract(spreadAmount).setScale(0, RoundingMode.HALF_UP));
+            price.setAskPrice(price.getCurrentPrice().add(spreadAmount).setScale(0, RoundingMode.HALF_UP));
+            assetMetrics.recordSpread(asset.getId(), price.getAskPrice().subtract(price.getBidPrice()));
+        }
     }
 
     /**

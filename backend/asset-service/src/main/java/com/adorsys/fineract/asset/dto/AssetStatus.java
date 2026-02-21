@@ -8,6 +8,8 @@ public enum AssetStatus {
     ACTIVE,
     /** Trading temporarily suspended by admin. */
     HALTED,
+    /** Asset is being delisted: BUY blocked, SELL allowed. */
+    DELISTING,
     /** Asset permanently removed from trading. */
     DELISTED,
     /** Bond reached maturity date; no further trading allowed. */

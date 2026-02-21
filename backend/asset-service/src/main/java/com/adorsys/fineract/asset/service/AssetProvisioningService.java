@@ -154,6 +154,10 @@ public class AssetProvisioningService {
                 .treasuryClientName(clientName)
                 .treasuryAssetAccountId(treasuryAssetAccountId)
                 .treasuryCashAccountId(treasuryCashAccountId)
+                .maxPositionPercent(request.maxPositionPercent())
+                .maxOrderSize(request.maxOrderSize())
+                .dailyTradeLimitXaf(request.dailyTradeLimitXaf())
+                .lockupDays(request.lockupDays())
                 .build();
 
         assetRepository.save(asset);
@@ -204,6 +208,12 @@ public class AssetProvisioningService {
         if (request.capitalOpenedPercent() != null) asset.setCapitalOpenedPercent(request.capitalOpenedPercent());
         if (request.interestRate() != null) asset.setInterestRate(request.interestRate());
         if (request.maturityDate() != null) asset.setMaturityDate(request.maturityDate());
+
+        // Exposure limits
+        if (request.maxPositionPercent() != null) asset.setMaxPositionPercent(request.maxPositionPercent());
+        if (request.maxOrderSize() != null) asset.setMaxOrderSize(request.maxOrderSize());
+        if (request.dailyTradeLimitXaf() != null) asset.setDailyTradeLimitXaf(request.dailyTradeLimitXaf());
+        if (request.lockupDays() != null) asset.setLockupDays(request.lockupDays());
 
         assetRepository.save(asset);
         log.info("Updated asset: id={}", assetId);

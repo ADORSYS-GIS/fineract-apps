@@ -30,12 +30,22 @@ export interface AssetFormData {
 	initialPrice: number;
 	tradingFeePercent: number;
 	spreadPercent: number;
+	// Step 3 continued: Exposure limits
+	maxPositionPercent: number;
+	maxOrderSize: number;
+	dailyTradeLimitXaf: number;
 	// Step 4: Supply & Subscription
 	totalSupply: number;
 	decimalPlaces: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
 	capitalOpenedPercent: number;
+	lockupDays: number;
+	// Income distribution (non-bond)
+	incomeType: string;
+	incomeRate: number;
+	distributionFrequencyMonths: number;
+	nextDistributionDate: string;
 }
 
 const initialFormData: AssetFormData = {
@@ -55,11 +65,19 @@ const initialFormData: AssetFormData = {
 	initialPrice: 0,
 	tradingFeePercent: 0.5,
 	spreadPercent: 1.0,
+	maxPositionPercent: 0,
+	maxOrderSize: 0,
+	dailyTradeLimitXaf: 0,
 	totalSupply: 0,
 	decimalPlaces: 0,
 	subscriptionStartDate: "",
 	subscriptionEndDate: "",
 	capitalOpenedPercent: 0,
+	lockupDays: 0,
+	incomeType: "",
+	incomeRate: 0,
+	distributionFrequencyMonths: 0,
+	nextDistributionDate: "",
 };
 
 export const useCreateAsset = () => {
@@ -217,6 +235,21 @@ export const useCreateAsset = () => {
 			subscriptionEndDate: formData.subscriptionEndDate,
 			capitalOpenedPercent: formData.capitalOpenedPercent || undefined,
 			treasuryClientId: formData.treasuryClientId,
+			// Exposure limits (only if set)
+			maxPositionPercent: formData.maxPositionPercent || undefined,
+			maxOrderSize: formData.maxOrderSize || undefined,
+			dailyTradeLimitXaf: formData.dailyTradeLimitXaf || undefined,
+			// Lock-up
+			lockupDays: formData.lockupDays || undefined,
+			// Income distribution (non-bond)
+			...(formData.category !== "BONDS" &&
+				formData.incomeType && {
+					incomeType: formData.incomeType,
+					incomeRate: formData.incomeRate || undefined,
+					distributionFrequencyMonths:
+						formData.distributionFrequencyMonths || undefined,
+					nextDistributionDate: formData.nextDistributionDate || undefined,
+				}),
 			// Bond fields (only included when category is BONDS)
 			...(formData.category === "BONDS" && {
 				issuer: formData.issuer,

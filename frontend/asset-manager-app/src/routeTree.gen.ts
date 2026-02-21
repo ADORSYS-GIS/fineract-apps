@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as OrderResolutionRouteImport } from './routes/order-resolution'
 import { Route as MarketSettingsRouteImport } from './routes/market-settings'
 import { Route as InventoryRouteImport } from './routes/inventory'
@@ -22,6 +23,11 @@ import { Route as AssetDetailsAssetIdRouteImport } from './routes/asset-details.
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReconciliationRoute = ReconciliationRouteImport.update({
+  id: '/reconciliation',
+  path: '/reconciliation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderResolutionRoute = OrderResolutionRouteImport.update({
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
+  '/reconciliation': typeof ReconciliationRoute
   '/settings': typeof SettingsRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
+  '/reconciliation': typeof ReconciliationRoute
   '/settings': typeof SettingsRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/inventory': typeof InventoryRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
+  '/reconciliation': typeof ReconciliationRoute
   '/settings': typeof SettingsRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/market-settings'
     | '/order-resolution'
+    | '/reconciliation'
     | '/settings'
     | '/asset-details/$assetId'
     | '/pricing/$assetId'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/market-settings'
     | '/order-resolution'
+    | '/reconciliation'
     | '/settings'
     | '/asset-details/$assetId'
     | '/pricing/$assetId'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/market-settings'
     | '/order-resolution'
+    | '/reconciliation'
     | '/settings'
     | '/asset-details/$assetId'
     | '/pricing/$assetId'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   InventoryRoute: typeof InventoryRoute
   MarketSettingsRoute: typeof MarketSettingsRoute
   OrderResolutionRoute: typeof OrderResolutionRoute
+  ReconciliationRoute: typeof ReconciliationRoute
   SettingsRoute: typeof SettingsRoute
   AssetDetailsAssetIdRoute: typeof AssetDetailsAssetIdRoute
   PricingAssetIdRoute: typeof PricingAssetIdRoute
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reconciliation': {
+      id: '/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/reconciliation'
+      preLoaderRoute: typeof ReconciliationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order-resolution': {
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryRoute: InventoryRoute,
   MarketSettingsRoute: MarketSettingsRoute,
   OrderResolutionRoute: OrderResolutionRoute,
+  ReconciliationRoute: ReconciliationRoute,
   SettingsRoute: SettingsRoute,
   AssetDetailsAssetIdRoute: AssetDetailsAssetIdRoute,
   PricingAssetIdRoute: PricingAssetIdRoute,

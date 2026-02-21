@@ -106,6 +106,82 @@ export const PricingStep: FC<Props> = ({
 					)}
 				</div>
 			</div>
+
+			{/* Exposure Limits */}
+			<div className="mt-6">
+				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+					Trading Limits (Optional)
+				</h3>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Max Position (% of supply)
+						</label>
+						<input
+							type="number"
+							aria-label="Max position percent"
+							className={inputClass("max position")}
+							placeholder="e.g. 10"
+							value={formData.maxPositionPercent || ""}
+							onChange={(e) =>
+								updateFormData({
+									maxPositionPercent: Number(e.target.value),
+								})
+							}
+							min={0}
+							max={100}
+							step={0.01}
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Max % of total supply one user can hold
+						</p>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Max Order Size (units)
+						</label>
+						<input
+							type="number"
+							aria-label="Max order size"
+							className={inputClass("max order")}
+							placeholder="e.g. 1000"
+							value={formData.maxOrderSize || ""}
+							onChange={(e) =>
+								updateFormData({
+									maxOrderSize: Number(e.target.value),
+								})
+							}
+							min={0}
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Maximum units per single order
+						</p>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Daily Trade Limit (XAF)
+						</label>
+						<input
+							type="number"
+							aria-label="Daily trade limit"
+							className={inputClass("daily")}
+							placeholder="e.g. 5000000"
+							value={formData.dailyTradeLimitXaf || ""}
+							onChange={(e) =>
+								updateFormData({
+									dailyTradeLimitXaf: Number(e.target.value),
+								})
+							}
+							min={0}
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Max XAF traded per user per day
+						</p>
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 };

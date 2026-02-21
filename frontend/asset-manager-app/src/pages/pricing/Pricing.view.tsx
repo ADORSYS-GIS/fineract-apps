@@ -71,10 +71,18 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 							</p>
 						</Card>
 						<Card className="p-4">
-							<p className="text-sm text-gray-500">Previous Close</p>
-							<p className="text-xl font-semibold">
-								{price?.previousClose?.toLocaleString() ?? "—"} XAF
+							<p className="text-sm text-gray-500">Bid Price</p>
+							<p className="text-xl font-semibold text-red-600">
+								{price?.bidPrice?.toLocaleString() ?? "—"} XAF
 							</p>
+							<p className="text-xs text-gray-400 mt-1">Sellers receive</p>
+						</Card>
+						<Card className="p-4">
+							<p className="text-sm text-gray-500">Ask Price</p>
+							<p className="text-xl font-semibold text-green-600">
+								{price?.askPrice?.toLocaleString() ?? "—"} XAF
+							</p>
+							<p className="text-xs text-gray-400 mt-1">Buyers pay</p>
 						</Card>
 						<Card className="p-4">
 							<p className="text-sm text-gray-500">24h Change</p>
@@ -88,10 +96,6 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 								{(price?.change24hPercent ?? 0) >= 0 ? "+" : ""}
 								{(price?.change24hPercent ?? 0).toFixed(2)}%
 							</p>
-						</Card>
-						<Card className="p-4">
-							<p className="text-sm text-gray-500">Price Mode</p>
-							<p className="text-xl font-semibold">{asset?.priceMode ?? "—"}</p>
 						</Card>
 					</div>
 				)}

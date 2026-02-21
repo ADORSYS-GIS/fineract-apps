@@ -56,5 +56,26 @@ public record AssetPublicDetailResponse(
     @Schema(description = "Days remaining until maturity date. Computed at query time.")
     Long residualDays,
     @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
-    Boolean subscriptionClosed
+    Boolean subscriptionClosed,
+
+    // ── Bid/Ask prices ──
+
+    @Schema(description = "Bid price: what sellers receive (mid - spread).", nullable = true)
+    BigDecimal bidPrice,
+    @Schema(description = "Ask price: what buyers pay (mid + spread).", nullable = true)
+    BigDecimal askPrice,
+
+    // ── Exposure limits ──
+
+    @Schema(description = "Max position as percentage of total supply.", nullable = true)
+    BigDecimal maxPositionPercent,
+    @Schema(description = "Max units per single order.", nullable = true)
+    BigDecimal maxOrderSize,
+    @Schema(description = "Max XAF volume per user per day.", nullable = true)
+    BigDecimal dailyTradeLimitXaf,
+
+    // ── Lock-up ──
+
+    @Schema(description = "Lock-up period in days. Null means no lock-up.", nullable = true)
+    Integer lockupDays
 ) {}

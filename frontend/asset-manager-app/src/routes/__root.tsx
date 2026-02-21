@@ -13,11 +13,12 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { Bell, Moon, Sun, UserCircle } from "lucide-react";
+import { Moon, Sun, UserCircle } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { AuthGuard } from "@/components/AuthGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { configureApi } from "@/services/api";
@@ -79,7 +80,7 @@ function RootLayout() {
 										<Moon className="w-5 h-5" />
 									)}
 								</button>
-								<Bell aria-label="Notifications" />
+								<NotificationDropdown />
 							</div>
 						}
 						userSection={

@@ -20,7 +20,8 @@
 			"createAsset": "Créer un actif",
 			"inventory": "Inventaire",
 			"marketSettings": "Paramètres du marché",
-			"orderResolution": "Résolution d'ordres"
+			"orderResolution": "Résolution d'ordres",
+			"reconciliation": "Réconciliation"
 		},
 		"navbar": {
 			"onlineBank": "Banque en ligne"

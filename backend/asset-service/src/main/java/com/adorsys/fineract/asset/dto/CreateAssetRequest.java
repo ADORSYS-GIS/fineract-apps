@@ -41,6 +41,21 @@ public record CreateAssetRequest(
     /** Fineract client ID of the treasury that will hold this asset's reserves. */
     @NotNull Long treasuryClientId,
 
+    // ── Exposure limits (all optional) ──
+
+    /** Max % of totalSupply a single user can hold (e.g. 10 = 10%). Null = unlimited. */
+    @Schema(description = "Max position as percentage of total supply.")
+    @PositiveOrZero BigDecimal maxPositionPercent,
+    /** Max units per single order. Null = unlimited. */
+    @Schema(description = "Max units per single order.")
+    @PositiveOrZero BigDecimal maxOrderSize,
+    /** Max XAF volume per user per day. Null = unlimited. */
+    @Schema(description = "Max XAF volume per user per day.")
+    @PositiveOrZero BigDecimal dailyTradeLimitXaf,
+    /** Lock-up period in days from first purchase. Null = no lock-up. */
+    @Schema(description = "Lock-up period in days after first purchase.")
+    @Min(0) Integer lockupDays,
+
     // ── Bond / fixed-income fields (required when category = BONDS) ──
 
     /** Bond issuer name (e.g. "Etat du Sénégal"). Required for BONDS. */

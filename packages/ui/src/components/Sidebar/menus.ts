@@ -10,6 +10,7 @@ import {
 	Lock,
 	Package,
 	PlusCircle,
+	Scale,
 	Send,
 	Settings,
 	Shield,
@@ -142,6 +143,12 @@ export const menuAssetManager: MenuItem[] = [
 		title: "sidebar.orderResolution",
 		link: "/order-resolution",
 		icon: ClipboardCheck,
+	},
+	{
+		name: "reconciliation",
+		title: "sidebar.reconciliation",
+		link: "/reconciliation",
+		icon: Scale,
 	},
 	{
 		name: "settings",

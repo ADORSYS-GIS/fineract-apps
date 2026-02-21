@@ -9,8 +9,10 @@ import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
+import com.adorsys.fineract.asset.event.CouponPaidEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +49,7 @@ public class InterestPaymentScheduler {
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
     private final AssetMetrics assetMetrics;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 15 0 * * *", zone = "Africa/Douala")
     public void processCouponPayments() {
@@ -183,6 +186,11 @@ public class InterestPaymentScheduler {
 
             record.fineractTransferId(transferId).status("SUCCESS");
             assetMetrics.recordCouponPaid(cashAmount.doubleValue());
+
+            // Publish notification event
+            eventPublisher.publishEvent(new CouponPaidEvent(
+                    holder.getUserId(), bond.getId(), bond.getSymbol(),
+                    cashAmount, annualRate, couponDate));
 
             log.debug("Coupon paid: bond={}, user={}, amount={} {}, transferId={}",
                     bond.getSymbol(), holder.getUserId(), cashAmount, currency, transferId);

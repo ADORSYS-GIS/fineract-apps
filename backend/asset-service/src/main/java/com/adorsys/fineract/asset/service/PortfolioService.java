@@ -216,6 +216,11 @@ public class PortfolioService {
         pos.setFineractSavingsAccountId(fineractAccountId);
         pos.setLastTradeAt(Instant.now());
 
+        // Set first purchase date only on initial buy (lock-up enforcement)
+        if (pos.getFirstPurchaseDate() == null) {
+            pos.setFirstPurchaseDate(Instant.now());
+        }
+
         userPositionRepository.save(pos);
         log.info("Updated position after BUY: userId={}, assetId={}, units={}, avgPrice={}",
                 userId, assetId, newTotalUnits, newAvgPrice);

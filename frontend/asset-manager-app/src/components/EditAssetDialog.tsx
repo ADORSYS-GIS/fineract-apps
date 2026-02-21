@@ -32,6 +32,18 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 	const [spreadPercent, setSpreadPercent] = useState(
 		asset.spreadPercent?.toString() ?? "",
 	);
+	const [maxPositionPercent, setMaxPositionPercent] = useState(
+		asset.maxPositionPercent?.toString() ?? "",
+	);
+	const [maxOrderSize, setMaxOrderSize] = useState(
+		asset.maxOrderSize?.toString() ?? "",
+	);
+	const [dailyTradeLimitXaf, setDailyTradeLimitXaf] = useState(
+		asset.dailyTradeLimitXaf?.toString() ?? "",
+	);
+	const [lockupDays, setLockupDays] = useState(
+		asset.lockupDays?.toString() ?? "",
+	);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -41,6 +53,10 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 			setCategory(asset.category);
 			setTradingFeePercent(asset.tradingFeePercent?.toString() ?? "");
 			setSpreadPercent(asset.spreadPercent?.toString() ?? "");
+			setMaxPositionPercent(asset.maxPositionPercent?.toString() ?? "");
+			setMaxOrderSize(asset.maxOrderSize?.toString() ?? "");
+			setDailyTradeLimitXaf(asset.dailyTradeLimitXaf?.toString() ?? "");
+			setLockupDays(asset.lockupDays?.toString() ?? "");
 			cancelRef.current?.focus();
 		}
 	}, [isOpen, asset]);
@@ -69,6 +85,18 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 				: undefined;
 		if (spreadPercent !== (asset.spreadPercent?.toString() ?? ""))
 			data.spreadPercent = spreadPercent ? Number(spreadPercent) : undefined;
+		if (maxPositionPercent !== (asset.maxPositionPercent?.toString() ?? ""))
+			data.maxPositionPercent = maxPositionPercent
+				? Number(maxPositionPercent)
+				: undefined;
+		if (maxOrderSize !== (asset.maxOrderSize?.toString() ?? ""))
+			data.maxOrderSize = maxOrderSize ? Number(maxOrderSize) : undefined;
+		if (dailyTradeLimitXaf !== (asset.dailyTradeLimitXaf?.toString() ?? ""))
+			data.dailyTradeLimitXaf = dailyTradeLimitXaf
+				? Number(dailyTradeLimitXaf)
+				: undefined;
+		if (lockupDays !== (asset.lockupDays?.toString() ?? ""))
+			data.lockupDays = lockupDays ? Number(lockupDays) : undefined;
 
 		if (Object.keys(data).length === 0) {
 			onCancel();
@@ -173,6 +201,58 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 								min={0}
 								step="0.0001"
 								placeholder="e.g. 0.01"
+							/>
+						</div>
+					</div>
+
+					<div className="grid grid-cols-2 gap-4">
+						<div>
+							<label className={labelClass}>Max Position (%)</label>
+							<input
+								type="number"
+								className={inputClass}
+								value={maxPositionPercent}
+								onChange={(e) => setMaxPositionPercent(e.target.value)}
+								min={0}
+								max={100}
+								step="0.01"
+								placeholder="e.g. 10"
+							/>
+						</div>
+						<div>
+							<label className={labelClass}>Max Order Size</label>
+							<input
+								type="number"
+								className={inputClass}
+								value={maxOrderSize}
+								onChange={(e) => setMaxOrderSize(e.target.value)}
+								min={0}
+								placeholder="e.g. 1000"
+							/>
+						</div>
+					</div>
+
+					<div className="grid grid-cols-2 gap-4">
+						<div>
+							<label className={labelClass}>Daily Limit (XAF)</label>
+							<input
+								type="number"
+								className={inputClass}
+								value={dailyTradeLimitXaf}
+								onChange={(e) => setDailyTradeLimitXaf(e.target.value)}
+								min={0}
+								placeholder="e.g. 5000000"
+							/>
+						</div>
+						<div>
+							<label className={labelClass}>Lock-up Days</label>
+							<input
+								type="number"
+								className={inputClass}
+								value={lockupDays}
+								onChange={(e) => setLockupDays(e.target.value)}
+								min={0}
+								placeholder="e.g. 30"
 							/>
 						</div>
 					</div>

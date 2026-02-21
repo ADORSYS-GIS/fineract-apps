@@ -65,6 +65,10 @@ public class UserPosition {
     @Column(name = "last_trade_at", nullable = false)
     private Instant lastTradeAt;
 
+    /** Timestamp of the first purchase. Set once on first BUY, never updated on subsequent buys. Used for lock-up period enforcement. */
+    @Column(name = "first_purchase_date")
+    private Instant firstPurchaseDate;
+
     /** Optimistic locking version. Incremented on each update to prevent concurrent modification. */
     @Version
     private Long version;

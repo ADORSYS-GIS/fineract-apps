@@ -11,6 +11,7 @@ import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
 import com.adorsys.fineract.asset.service.AssetProvisioningService;
 import com.adorsys.fineract.asset.service.CouponForecastService;
+import com.adorsys.fineract.asset.service.DelistingService;
 import com.adorsys.fineract.asset.service.InventoryService;
 import com.adorsys.fineract.asset.service.PricingService;
 import com.adorsys.fineract.asset.service.PrincipalRedemptionService;
@@ -45,6 +46,7 @@ public class AdminAssetController {
     private final InterestPaymentScheduler interestPaymentScheduler;
     private final PrincipalRedemptionService principalRedemptionService;
     private final AssetRepository assetRepository;
+    private final DelistingService delistingService;
 
     @PostMapping
     @Operation(summary = "Create asset", description = "Create a new asset with Fineract provisioning")
@@ -210,6 +212,23 @@ public class AdminAssetController {
                 pr.getStatus(), pr.getFailureReason(),
                 pr.getRedeemedAt(), pr.getRedemptionDate()
         );
+    }
+
+    @PostMapping("/{id}/delist")
+    @Operation(summary = "Initiate asset delisting",
+            description = "Sets asset to DELISTING status. BUY is blocked, SELL is allowed. Forced buyback occurs on delisting date.")
+    public ResponseEntity<Void> delistAsset(@PathVariable String id,
+                                             @RequestBody DelistAssetRequest request) {
+        delistingService.initiateDelist(id, request.delistingDate(), request.redemptionPrice());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/cancel-delist")
+    @Operation(summary = "Cancel asset delisting",
+            description = "Reverts DELISTING status back to ACTIVE. Only works before the delisting date.")
+    public ResponseEntity<Void> cancelDelisting(@PathVariable String id) {
+        delistingService.cancelDelisting(id);
+        return ResponseEntity.ok().build();
     }
 
     private CouponPaymentResponse toCouponPaymentResponse(InterestPayment ip) {

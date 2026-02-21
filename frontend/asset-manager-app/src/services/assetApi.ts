@@ -120,6 +120,8 @@ export interface AssetDetailResponse {
 	status: string;
 	priceMode: string;
 	currentPrice: number;
+	bidPrice?: number;
+	askPrice?: number;
 	change24hPercent?: number;
 	dayOpen?: number;
 	dayHigh?: number;
@@ -142,6 +144,20 @@ export interface AssetDetailResponse {
 	fineractProductName?: string;
 	createdAt: string;
 	updatedAt?: string;
+	// Exposure limits
+	maxPositionPercent?: number;
+	maxOrderSize?: number;
+	dailyTradeLimitXaf?: number;
+	// Lock-up
+	lockupDays?: number;
+	// Income distribution (non-bond)
+	incomeType?: string;
+	incomeRate?: number;
+	distributionFrequencyMonths?: number;
+	nextDistributionDate?: string;
+	// Delisting
+	delistingDate?: string;
+	delistingRedemptionPrice?: number;
 	// Bond fields (null for non-bond assets)
 	issuer?: string;
 	isinCode?: string;
@@ -169,6 +185,17 @@ export interface CreateAssetRequest {
 	subscriptionEndDate: string;
 	capitalOpenedPercent?: number;
 	treasuryClientId: number;
+	// Exposure limits
+	maxPositionPercent?: number;
+	maxOrderSize?: number;
+	dailyTradeLimitXaf?: number;
+	// Lock-up
+	lockupDays?: number;
+	// Income distribution (non-bond)
+	incomeType?: string;
+	incomeRate?: number;
+	distributionFrequencyMonths?: number;
+	nextDistributionDate?: string;
 	// Bond fields (required when category is BONDS)
 	issuer?: string;
 	isinCode?: string;
@@ -188,6 +215,12 @@ export interface UpdateAssetRequest {
 	subscriptionStartDate?: string;
 	subscriptionEndDate?: string;
 	capitalOpenedPercent?: number;
+	// Exposure limits
+	maxPositionPercent?: number;
+	maxOrderSize?: number;
+	dailyTradeLimitXaf?: number;
+	// Lock-up
+	lockupDays?: number;
 	// Bond-specific updatable fields
 	interestRate?: number;
 	maturityDate?: string;
@@ -338,6 +371,65 @@ export interface ResolveOrderRequest {
 	resolution: string;
 }
 
+/** Notification response (matches backend NotificationResponse). */
+export interface NotificationResponse {
+	id: number;
+	eventType: string;
+	title: string;
+	body: string;
+	referenceId?: string;
+	referenceType?: string;
+	read: boolean;
+	readAt?: string;
+	createdAt: string;
+}
+
+/** Notification preferences (matches backend NotificationPreferencesResponse). */
+export interface NotificationPreferencesResponse {
+	tradeExecuted: boolean;
+	couponPaid: boolean;
+	redemptionCompleted: boolean;
+	assetStatusChanged: boolean;
+	orderStuck: boolean;
+	incomePaid: boolean;
+	treasuryShortfall: boolean;
+	delistingAnnounced: boolean;
+}
+
+export interface UpdateNotificationPreferencesRequest {
+	tradeExecuted?: boolean;
+	couponPaid?: boolean;
+	redemptionCompleted?: boolean;
+	assetStatusChanged?: boolean;
+	orderStuck?: boolean;
+	incomePaid?: boolean;
+	treasuryShortfall?: boolean;
+	delistingAnnounced?: boolean;
+}
+
+/** Reconciliation report (matches backend ReconciliationReportResponse). */
+export interface ReconciliationReportResponse {
+	id: number;
+	reportDate: string;
+	reportType: string;
+	assetId?: string;
+	userId?: number;
+	expectedValue?: number;
+	actualValue?: number;
+	discrepancy?: number;
+	severity: string;
+	status: string;
+	notes?: string;
+	resolvedBy?: string;
+	resolvedAt?: string;
+	createdAt: string;
+}
+
+export interface DelistAssetRequest {
+	delistingDate: string;
+	delistingRedemptionPrice?: number;
+}
+
 // --- API ---
 
 export const assetApi = {
@@ -438,4 +530,66 @@ export const assetApi = {
 	// Market
 	getMarketStatus: () =>
 		assetClient.get<MarketStatusResponse>("/api/market/status"),
+
+	// Delisting - Admin
+	delistAsset: (id: string, data: DelistAssetRequest) =>
+		assetClient.post(`/api/admin/assets/${id}/delist`, data),
+	cancelDelisting: (id: string) =>
+		assetClient.post(`/api/admin/assets/${id}/cancel-delist`),
+
+	// Notifications
+	getNotifications: (params?: { page?: number; size?: number }) =>
+		assetClient.get<{
+			content: NotificationResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>("/api/notifications", { params }),
+	getUnreadCount: () =>
+		assetClient.get<{ count: number }>("/api/notifications/unread-count"),
+	markNotificationRead: (id: number) =>
+		assetClient.post(`/api/notifications/${id}/read`),
+	markAllNotificationsRead: () =>
+		assetClient.post("/api/notifications/read-all"),
+	getNotificationPreferences: () =>
+		assetClient.get<NotificationPreferencesResponse>(
+			"/api/notifications/preferences",
+		),
+	updateNotificationPreferences: (data: UpdateNotificationPreferencesRequest) =>
+		assetClient.put("/api/notifications/preferences", data),
+
+	// Reconciliation - Admin
+	getReconciliationReports: (params?: {
+		page?: number;
+		size?: number;
+		status?: string;
+		severity?: string;
+		assetId?: string;
+	}) =>
+		assetClient.get<{
+			content: ReconciliationReportResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>("/api/admin/reconciliation/reports", { params }),
+	getReconciliationSummary: () =>
+		assetClient.get<{ openReports: number }>(
+			"/api/admin/reconciliation/summary",
+		),
+	triggerReconciliation: () =>
+		assetClient.post<{ discrepancies: number }>(
+			"/api/admin/reconciliation/trigger",
+		),
+	triggerAssetReconciliation: (assetId: string) =>
+		assetClient.post<{ discrepancies: number }>(
+			`/api/admin/reconciliation/trigger/${assetId}`,
+		),
+	acknowledgeReport: (id: number, admin?: string) =>
+		assetClient.patch(
+			`/api/admin/reconciliation/reports/${id}/acknowledge`,
+			null,
+			{ params: { admin } },
+		),
+	resolveReport: (id: number, admin?: string, notes?: string) =>
+		assetClient.patch(`/api/admin/reconciliation/reports/${id}/resolve`, null, {
+			params: { admin, notes },
+		}),
 };

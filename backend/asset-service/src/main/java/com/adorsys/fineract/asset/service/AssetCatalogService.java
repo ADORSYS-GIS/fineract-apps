@@ -93,7 +93,11 @@ public class AssetCatalogService {
                 asset.getInterestRate(), asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
-                isSubscriptionClosed(asset.getSubscriptionEndDate())
+                isSubscriptionClosed(asset.getSubscriptionEndDate()),
+                price != null ? price.getBidPrice() : null,
+                price != null ? price.getAskPrice() : null,
+                asset.getMaxPositionPercent(), asset.getMaxOrderSize(),
+                asset.getDailyTradeLimitXaf(), asset.getLockupDays()
         );
     }
 
@@ -132,7 +136,11 @@ public class AssetCatalogService {
                 asset.getInterestRate(), asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
-                isSubscriptionClosed(asset.getSubscriptionEndDate())
+                isSubscriptionClosed(asset.getSubscriptionEndDate()),
+                price != null ? price.getBidPrice() : null,
+                price != null ? price.getAskPrice() : null,
+                asset.getMaxPositionPercent(), asset.getMaxOrderSize(),
+                asset.getDailyTradeLimitXaf(), asset.getLockupDays()
         );
     }
 

@@ -1,6 +1,7 @@
 import { Button, Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import {
+	AlertTriangle,
 	Banknote,
 	BarChart3,
 	Pause,
@@ -8,19 +9,36 @@ import {
 	Play,
 	Plus,
 	Power,
+	Trash2,
 	TrendingDown,
 	TrendingUp,
+	XCircle,
 } from "lucide-react";
 import { FC, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CouponForecastCard } from "@/components/CouponForecastCard";
 import { CouponHistoryTable } from "@/components/CouponHistoryTable";
+import { DelistDialog } from "@/components/DelistDialog";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { ErrorFallback } from "@/components/ErrorFallback";
 import { MintSupplyDialog } from "@/components/MintSupplyDialog";
 import { RedemptionHistoryTable } from "@/components/RedemptionHistoryTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAssetDetails } from "./useAssetDetails";
+
+const INCOME_TYPE_LABELS: Record<string, string> = {
+	DIVIDEND: "Dividend",
+	RENT: "Rental Income",
+	HARVEST_YIELD: "Harvest Yield",
+	PROFIT_SHARE: "Profit Share",
+};
+
+const FREQ_LABELS: Record<number, string> = {
+	1: "Monthly",
+	3: "Quarterly",
+	6: "Semi-Annual",
+	12: "Annual",
+};
 
 export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	assetId,
@@ -35,18 +53,23 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	onResume,
 	onMint,
 	onRedeem,
+	onDelist,
+	onCancelDelist,
 	isUpdating,
 	isActivating,
 	isHalting,
 	isResuming,
 	isMinting,
 	isRedeeming,
+	isDelisting,
+	isCancellingDelist,
 }) => {
 	const [confirmAction, setConfirmAction] = useState<
-		"activate" | "halt" | "resume" | "redeem" | null
+		"activate" | "halt" | "resume" | "redeem" | "cancel-delist" | null
 	>(null);
 	const [editOpen, setEditOpen] = useState(false);
 	const [mintOpen, setMintOpen] = useState(false);
+	const [delistOpen, setDelistOpen] = useState(false);
 
 	if (isError) {
 		return (
@@ -137,6 +160,28 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								{isRedeeming ? "Redeeming..." : "Redeem Bond"}
 							</Button>
 						)}
+						{(asset.status === "ACTIVE" || asset.status === "HALTED") && (
+							<Button
+								onClick={() => setDelistOpen(true)}
+								disabled={isDelisting}
+								variant="outline"
+								className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50"
+							>
+								<Trash2 className="h-4 w-4" />
+								{isDelisting ? "Delisting..." : "Delist Asset"}
+							</Button>
+						)}
+						{asset.status === "DELISTING" && (
+							<Button
+								onClick={() => setConfirmAction("cancel-delist")}
+								disabled={isCancellingDelist}
+								variant="outline"
+								className="flex items-center gap-2 text-green-600 border-green-300 hover:bg-green-50"
+							>
+								<XCircle className="h-4 w-4" />
+								{isCancellingDelist ? "Cancelling..." : "Cancel Delisting"}
+							</Button>
+						)}
 						<Button
 							variant="outline"
 							className="flex items-center gap-2"
@@ -164,6 +209,27 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 					</div>
 				</div>
 
+				{/* Delisting Warning Banner */}
+				{asset.status === "DELISTING" && (
+					<div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+						<AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+						<div>
+							<p className="text-sm font-medium text-orange-800">
+								This asset is being delisted
+								{asset.delistingDate ? ` on ${asset.delistingDate}` : ""}.
+							</p>
+							<p className="text-sm text-orange-700 mt-1">
+								Only SELL orders are accepted. On the delisting date, remaining
+								holders will be force-bought out
+								{asset.delistingRedemptionPrice
+									? ` at ${asset.delistingRedemptionPrice.toLocaleString()} XAF per unit`
+									: " at the last traded price"}
+								.
+							</p>
+						</div>
+					</div>
+				)}
+
 				{/* Stats Cards */}
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 					<Card className="p-4">
@@ -190,6 +256,16 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								{(price?.change24hPercent ?? 0).toFixed(2)}%
 							</span>
 						</div>
+						{(asset.bidPrice != null || asset.askPrice != null) && (
+							<div className="flex gap-3 mt-2 text-xs">
+								<span className="text-red-600">
+									Bid: {asset.bidPrice?.toLocaleString() ?? "—"}
+								</span>
+								<span className="text-green-600">
+									Ask: {asset.askPrice?.toLocaleString() ?? "—"}
+								</span>
+							</div>
+						)}
 					</Card>
 					<Card className="p-4">
 						<p className="text-sm text-gray-500">Total Supply</p>
@@ -242,6 +318,88 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						)}
 					</div>
 				</Card>
+
+				{/* Trading Limits & Lock-up */}
+				{(asset.maxPositionPercent != null ||
+					asset.maxOrderSize != null ||
+					asset.dailyTradeLimitXaf != null ||
+					asset.lockupDays != null) && (
+					<Card className="p-4 mb-6">
+						<h2 className="text-lg font-semibold text-gray-800 mb-3">
+							Trading Limits
+						</h2>
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+							{asset.maxPositionPercent != null && (
+								<div>
+									<p className="text-gray-500">Max Position</p>
+									<p className="font-medium">
+										{asset.maxPositionPercent}% of supply
+									</p>
+								</div>
+							)}
+							{asset.maxOrderSize != null && (
+								<div>
+									<p className="text-gray-500">Max Order Size</p>
+									<p className="font-medium">
+										{asset.maxOrderSize.toLocaleString()} units
+									</p>
+								</div>
+							)}
+							{asset.dailyTradeLimitXaf != null && (
+								<div>
+									<p className="text-gray-500">Daily Trade Limit</p>
+									<p className="font-medium">
+										{asset.dailyTradeLimitXaf.toLocaleString()} XAF
+									</p>
+								</div>
+							)}
+							{asset.lockupDays != null && (
+								<div>
+									<p className="text-gray-500">Lock-up Period</p>
+									<p className="font-medium">{asset.lockupDays} days</p>
+								</div>
+							)}
+						</div>
+					</Card>
+				)}
+
+				{/* Income Distribution (non-bond assets) */}
+				{asset.category !== "BONDS" && asset.incomeType && (
+					<Card className="p-4 mb-6">
+						<h2 className="text-lg font-semibold text-gray-800 mb-3">
+							Income Distribution
+						</h2>
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+							<div>
+								<p className="text-gray-500">Income Type</p>
+								<p className="font-medium">
+									{INCOME_TYPE_LABELS[asset.incomeType] ?? asset.incomeType}
+								</p>
+							</div>
+							{asset.incomeRate != null && (
+								<div>
+									<p className="text-gray-500">Income Rate</p>
+									<p className="font-medium">{asset.incomeRate}%</p>
+								</div>
+							)}
+							{asset.distributionFrequencyMonths != null && (
+								<div>
+									<p className="text-gray-500">Frequency</p>
+									<p className="font-medium">
+										{FREQ_LABELS[asset.distributionFrequencyMonths] ??
+											`Every ${asset.distributionFrequencyMonths} months`}
+									</p>
+								</div>
+							)}
+							{asset.nextDistributionDate && (
+								<div>
+									<p className="text-gray-500">Next Distribution</p>
+									<p className="font-medium">{asset.nextDistributionDate}</p>
+								</div>
+							)}
+						</div>
+					</Card>
+				)}
 
 				{/* Bond Information */}
 				{asset.category === "BONDS" && (
@@ -454,6 +612,30 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				}}
 				onCancel={() => setMintOpen(false)}
 				isLoading={isMinting}
+			/>
+			<ConfirmDialog
+				isOpen={confirmAction === "cancel-delist"}
+				title="Cancel Delisting"
+				message={`Are you sure you want to cancel the delisting of "${asset.name}"? The asset will return to ACTIVE status and BUY orders will be allowed again.`}
+				confirmLabel="Cancel Delisting"
+				confirmClassName="bg-green-600 hover:bg-green-700"
+				onConfirm={() => {
+					onCancelDelist();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isCancellingDelist}
+			/>
+			<DelistDialog
+				isOpen={delistOpen}
+				assetName={asset.name}
+				currentPrice={asset.currentPrice}
+				onSubmit={(data) => {
+					onDelist(data);
+					setDelistOpen(false);
+				}}
+				onCancel={() => setDelistOpen(false)}
+				isLoading={isDelisting}
 			/>
 		</div>
 	);

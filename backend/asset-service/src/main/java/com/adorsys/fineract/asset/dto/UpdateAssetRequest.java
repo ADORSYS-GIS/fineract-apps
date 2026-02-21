@@ -34,6 +34,21 @@ public record UpdateAssetRequest(
     @Schema(description = "New capital opened percentage.")
     @PositiveOrZero BigDecimal capitalOpenedPercent,
 
+    // ── Exposure limits ──
+
+    /** New max position percent. Null to keep current. */
+    @Schema(description = "Max position as percentage of total supply.")
+    @PositiveOrZero BigDecimal maxPositionPercent,
+    /** New max order size. Null to keep current. */
+    @Schema(description = "Max units per single order.")
+    @PositiveOrZero BigDecimal maxOrderSize,
+    /** New daily trade limit in XAF. Null to keep current. */
+    @Schema(description = "Max XAF volume per user per day.")
+    @PositiveOrZero BigDecimal dailyTradeLimitXaf,
+    /** New lock-up period in days. Null to keep current. */
+    @Schema(description = "Lock-up period in days after first purchase.")
+    Integer lockupDays,
+
     // ── Bond-specific updatable fields ──
 
     /** New annual coupon rate as percentage. Null to keep current. */

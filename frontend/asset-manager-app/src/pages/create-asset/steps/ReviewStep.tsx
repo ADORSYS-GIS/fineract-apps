@@ -108,6 +108,30 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="font-medium">{formData.tradingFeePercent}%</div>
 					<div className="text-gray-600">Spread:</div>
 					<div className="font-medium">{formData.spreadPercent}%</div>
+					{formData.maxPositionPercent > 0 && (
+						<>
+							<div className="text-gray-600">Max Position:</div>
+							<div className="font-medium">
+								{formData.maxPositionPercent}% of supply
+							</div>
+						</>
+					)}
+					{formData.maxOrderSize > 0 && (
+						<>
+							<div className="text-gray-600">Max Order Size:</div>
+							<div className="font-medium">
+								{formData.maxOrderSize.toLocaleString()} units
+							</div>
+						</>
+					)}
+					{formData.dailyTradeLimitXaf > 0 && (
+						<>
+							<div className="text-gray-600">Daily Trade Limit:</div>
+							<div className="font-medium">
+								{formData.dailyTradeLimitXaf.toLocaleString()} XAF
+							</div>
+						</>
+					)}
 				</div>
 			</Card>
 
@@ -149,8 +173,50 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 							</div>
 						</>
 					)}
+					{formData.lockupDays > 0 && (
+						<>
+							<div className="text-gray-600">Lock-up Period:</div>
+							<div className="font-medium">{formData.lockupDays} days</div>
+						</>
+					)}
 				</div>
 			</Card>
+
+			{/* Income Distribution (non-bond) */}
+			{formData.category !== "BONDS" && formData.incomeType && (
+				<Card className="p-4">
+					<h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
+						Income Distribution
+					</h3>
+					<div className="grid grid-cols-2 gap-2 text-sm">
+						<div className="text-gray-600">Income Type:</div>
+						<div className="font-medium">{formData.incomeType}</div>
+						{formData.incomeRate > 0 && (
+							<>
+								<div className="text-gray-600">Income Rate:</div>
+								<div className="font-medium">{formData.incomeRate}%</div>
+							</>
+						)}
+						{formData.distributionFrequencyMonths > 0 && (
+							<>
+								<div className="text-gray-600">Frequency:</div>
+								<div className="font-medium">
+									{FREQUENCY_LABELS[formData.distributionFrequencyMonths] ??
+										`${formData.distributionFrequencyMonths} months`}
+								</div>
+							</>
+						)}
+						{formData.nextDistributionDate && (
+							<>
+								<div className="text-gray-600">First Distribution:</div>
+								<div className="font-medium">
+									{formData.nextDistributionDate}
+								</div>
+							</>
+						)}
+					</div>
+				</Card>
+			)}
 
 			{/* Provisioning Note */}
 			<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

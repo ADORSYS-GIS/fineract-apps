@@ -96,6 +96,42 @@ public class Asset {
     @Column(name = "subscription_start_date", nullable = false)
     private LocalDate subscriptionStartDate;
 
+    // ── Exposure limits (all nullable — null means no limit) ───────────────
+
+    /** Maximum percentage of totalSupply a single user can hold (e.g. 10.00 = 10%). */
+    @Column(name = "max_position_percent", precision = 5, scale = 2)
+    private BigDecimal maxPositionPercent;
+
+    /** Maximum units a single order can trade. */
+    @Column(name = "max_order_size", precision = 20, scale = 8)
+    private BigDecimal maxOrderSize;
+
+    /** Maximum XAF volume a single user can trade per day. */
+    @Column(name = "daily_trade_limit_xaf", precision = 20, scale = 0)
+    private BigDecimal dailyTradeLimitXaf;
+
+    /** Lock-up period in days from first purchase. SELL blocked until lock-up expires. Null = no lock-up. */
+    @Column(name = "lockup_days")
+    private Integer lockupDays;
+
+    // ── Income distribution fields (non-bond: dividends, rent, harvest yield) ──
+
+    /** Type of income distribution: DIVIDEND, RENT, HARVEST_YIELD, etc. Null means no income. */
+    @Column(name = "income_type", length = 30)
+    private String incomeType;
+
+    /** Income rate as a percentage per distribution period. Null means no income. */
+    @Column(name = "income_rate", precision = 8, scale = 4)
+    private BigDecimal incomeRate;
+
+    /** Distribution frequency in months (1, 3, 6, or 12). Null means no income. */
+    @Column(name = "distribution_frequency_months")
+    private Integer distributionFrequencyMonths;
+
+    /** Next scheduled income distribution date. Auto-advanced after each distribution. */
+    @Column(name = "next_distribution_date")
+    private LocalDate nextDistributionDate;
+
     // ── Bond / fixed-income fields (null for non-bond assets) ──────────────
 
     /** Bond issuer name (e.g. "Etat du Sénégal"). Null for non-bond assets. */
@@ -129,6 +165,16 @@ public class Asset {
     /** Percentage of capital opened for subscription (e.g. 44.44). Null if not applicable. */
     @Column(name = "capital_opened_percent", precision = 5, scale = 2)
     private BigDecimal capitalOpenedPercent;
+
+    // ── Delisting fields ─────────────────────────────────────────────────────
+
+    /** Date on which forced buyback will occur. Set when delisting is initiated. */
+    @Column(name = "delisting_date")
+    private LocalDate delistingDate;
+
+    /** Price at which forced buyback is executed. Null uses last traded price. */
+    @Column(name = "delisting_redemption_price", precision = 20, scale = 0)
+    private BigDecimal delistingRedemptionPrice;
 
     // ── End bond fields ────────────────────────────────────────────────────
 

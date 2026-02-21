@@ -59,6 +59,14 @@ public class AssetPrice {
     @Column(name = "day_close", precision = 20, scale = 0)
     private BigDecimal dayClose;
 
+    /** Best price a seller receives (currentPrice - spread). Computed, not manually set. */
+    @Column(name = "bid_price", precision = 20, scale = 0)
+    private BigDecimal bidPrice;
+
+    /** Price a buyer pays (currentPrice + spread). Computed, not manually set. */
+    @Column(name = "ask_price", precision = 20, scale = 0)
+    private BigDecimal askPrice;
+
     /** Timestamp of the last price update. Auto-set on insert and update. */
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
