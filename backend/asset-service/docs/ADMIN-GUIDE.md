@@ -676,6 +676,212 @@ Returns `{ "openReports": 5 }`.
 
 The reconciliation scheduler runs **daily at 01:30 WAT**. Reports are created automatically for any discrepancies found. CRITICAL discrepancies generate admin notifications.
 
+### Investigation Workflow
+
+When a discrepancy is detected (either by the daily scheduler or ad-hoc trigger):
+
+1. **Receive alert** — CRITICAL discrepancies send an admin broadcast notification (`RECONCILIATION_CRITICAL`). Check `GET /api/admin/notifications` or the dashboard badge.
+2. **Review the report** — `GET /api/admin/reconciliation/reports?status=OPEN`. Note the `reportType`, `assetId`, `expectedValue`, `actualValue`, `discrepancy`, and `userId` (for position mismatches).
+3. **Acknowledge** — Signal that you are investigating: `PATCH /api/admin/reconciliation/reports/{id}/acknowledge?admin=<your-username>`
+4. **Follow the type-specific procedure** below (SUPPLY_MISMATCH, POSITION_MISMATCH, or TREASURY_CASH_NEGATIVE).
+5. **Re-trigger reconciliation** — After correcting the issue: `POST /api/admin/reconciliation/trigger/{assetId}` — confirm 0 discrepancies.
+6. **Resolve the report** — `PATCH /api/admin/reconciliation/reports/{id}/resolve?admin=<your-username>&notes=<what-was-found-and-fixed>`
+
+### Correcting a SUPPLY_MISMATCH
+
+**What it means:** The `circulatingSupply` recorded in the asset-service database differs from `totalSupply - treasuryAssetBalance` computed from Fineract. Severity: WARNING.
+
+**Step 1 — Check the treasury asset account in Fineract:**
+
+```
+-- Get the asset's treasury account ID
+SELECT id, symbol, total_supply, circulating_supply, treasury_asset_account_id
+FROM assets WHERE id = '<assetId>';
+```
+
+Then query Fineract for the treasury's remaining units:
+
+```
+GET /fineract-provider/api/v1/savingsaccounts/{treasuryAssetAccountId}
+```
+
+Note `summary.availableBalance` — this is the number of units the treasury still holds.
+
+**Step 2 — Compute what circulating supply should be:**
+
+```
+expectedCirculating = totalSupply - treasuryAvailableBalance
+```
+
+Compare with the `circulating_supply` value in the `assets` table.
+
+**Step 3 — Identify root cause.** Common causes:
+
+- A trade partially executed (Fineract transfer succeeded but asset-service DB update failed)
+- A mint operation updated Fineract but the asset-service `circulating_supply` was not incremented
+- A manual Fineract adjustment was made outside the asset-service
+
+**Step 4 — Correct:**
+
+- **If the DB drifted** (Fineract is the source of truth): update `circulating_supply` to match the computed value:
+
+  ```sql
+  UPDATE assets
+  SET circulating_supply = <totalSupply> - <treasuryBalance>,
+      version = version + 1
+  WHERE id = '<assetId>';
+  ```
+
+- **If Fineract drifted** (rare — e.g., a manual Fineract adjustment was incorrect): make a manual deposit or withdrawal on the treasury asset savings account via the Fineract API to correct the balance.
+
+**Step 5 — Verify:** re-trigger reconciliation and confirm 0 discrepancies.
+
+### Correcting a POSITION_MISMATCH
+
+**What it means:** A user's `UserPosition.totalUnits` in the asset-service database differs from their Fineract savings account balance for that asset. Severity: CRITICAL — investigate immediately.
+
+**Step 1 — Identify the user and their Fineract account:**
+
+```sql
+-- Get the user's position in asset-service
+SELECT id, user_id, total_units
+FROM user_positions WHERE asset_id = '<assetId>' AND user_id = <userId>;
+```
+
+Then look up their Fineract savings account for this asset:
+
+```
+GET /fineract-provider/api/v1/clients/<userId>/accounts?fields=savingsAccounts
+```
+
+Find the savings account whose product matches the asset's `savingsProductId`, and check:
+
+```
+GET /fineract-provider/api/v1/savingsaccounts/{savingsAccountId}
+→ summary.availableBalance
+```
+
+**Step 2 — Review transaction history:**
+
+```
+GET /fineract-provider/api/v1/savingsaccounts/{savingsAccountId}?associations=transactions
+```
+
+Cross-reference with the user's order history in asset-service:
+
+```
+GET /api/admin/orders?search=<userExternalId>&assetId=<assetId>
+```
+
+Look for orders that are FILLED in asset-service but whose Fineract transfers may be missing or duplicated.
+
+**Step 3 — Identify root cause.** Common causes:
+
+- Order marked FILLED in asset-service but the Fineract batch transfer partially failed
+- Duplicate Fineract deposit/withdrawal from a retry
+- Manual Fineract adjustment not reflected in asset-service
+
+**Step 4 — Correct:**
+
+- **If Fineract is correct** (DB drifted): update the user's position to match:
+
+  ```sql
+  UPDATE user_positions
+  SET total_units = <fineractBalance>,
+      version = version + 1
+  WHERE asset_id = '<assetId>' AND user_id = <userId>;
+  ```
+
+- **If the DB is correct** (Fineract drifted): make a manual deposit or withdrawal on the user's asset savings account:
+
+  ```
+  POST /fineract-provider/api/v1/savingsaccounts/{id}/transactions?command=deposit
+  Body: {
+    "transactionDate": "21 February 2026",
+    "transactionAmount": <correctionAmount>,
+    "paymentTypeId": 1,
+    "locale": "en",
+    "dateFormat": "dd MMMM yyyy",
+    "note": "Reconciliation correction — report #<id>"
+  }
+  ```
+
+  Use `?command=withdrawal` if the Fineract balance is too high.
+
+**Step 5 — Verify:** re-trigger reconciliation and confirm 0 discrepancies.
+
+### Correcting TREASURY_CASH_NEGATIVE
+
+**What it means:** The treasury's settlement-currency (XAF) cash account for an asset has gone negative, meaning the treasury has more cash obligations than available funds. Severity: CRITICAL.
+
+**Step 1 — Check the treasury cash account:**
+
+```sql
+SELECT id, symbol, treasury_cash_account_id
+FROM assets WHERE id = '<assetId>';
+```
+
+```
+GET /fineract-provider/api/v1/savingsaccounts/{treasuryCashAccountId}
+→ summary.availableBalance (should be negative)
+```
+
+Review recent transactions to understand how it went negative:
+
+```
+GET /fineract-provider/api/v1/savingsaccounts/{treasuryCashAccountId}?associations=transactions
+```
+
+**Step 2 — Identify root cause.** Common causes:
+
+- A SELL order paid out to a user but the corresponding deposit into treasury cash failed
+- Coupon payments or income distributions exceeded available treasury cash
+- Multiple concurrent trades caused a race condition on the treasury balance
+
+**Step 3 — Correct by depositing the deficit into the treasury cash account:**
+
+```
+POST /fineract-provider/api/v1/savingsaccounts/{treasuryCashAccountId}/transactions?command=deposit
+Body: {
+  "transactionDate": "21 February 2026",
+  "transactionAmount": <deficitAmount>,
+  "paymentTypeId": 1,
+  "locale": "en",
+  "dateFormat": "dd MMMM yyyy",
+  "note": "Treasury top-up — reconciliation correction report #<id>"
+}
+```
+
+**Step 4 — Verify:** re-trigger reconciliation and confirm 0 discrepancies.
+
+### Resolving Stuck or Failed Orders
+
+Cross-reference with [Section 15 — Order Resolution](#15-order-resolution). When a reconciliation report points to an order-level issue:
+
+**NEEDS_RECONCILIATION orders** (timed out during execution):
+
+1. Get the order's `fineractBatchId`: `GET /api/admin/orders/{orderId}`
+2. Check Fineract for evidence of the batch transfer — look for deposits/withdrawals matching the order's `cashAmount`, `fee`, and `units` on the relevant savings accounts
+3. **If the transfer completed in Fineract** — the trade was successful but the status update was lost. Resolve:
+
+   ```
+   POST /api/admin/orders/{orderId}/resolve
+   Body: { "resolution": "Fineract batch verified — transfer completed. savingsAccountId=X, txnId=Y" }
+   ```
+
+4. **If no transfer exists in Fineract** — the trade never executed. No funds were moved. Resolve:
+
+   ```
+   POST /api/admin/orders/{orderId}/resolve
+   Body: { "resolution": "No Fineract transfer found. Trade never executed. User funds and position unchanged." }
+   ```
+
+**FAILED orders:**
+
+1. Check the `failureReason` field for the specific Fineract error
+2. **"insufficient funds" / "account not active"** — No Fineract cleanup needed. Simply resolve with the reason.
+3. **"batch partially failed"** — Check which sub-operations in the batch succeeded and which failed. Manually reverse incomplete operations via Fineract deposit/withdrawal, then resolve with details of what was corrected.
+
 ---
 
 ## 17. Notifications
