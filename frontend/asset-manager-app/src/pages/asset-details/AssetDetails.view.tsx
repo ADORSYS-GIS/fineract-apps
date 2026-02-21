@@ -493,11 +493,11 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 					</Card>
 				)}
 
-				{/* Coupon Payment History */}
-				{asset.category === "BONDS" && <CouponHistoryTable assetId={assetId} />}
-
 				{/* Coupon Obligation Forecast */}
 				{asset.category === "BONDS" && <CouponForecastCard assetId={assetId} />}
+
+				{/* Coupon Payment History */}
+				{asset.category === "BONDS" && <CouponHistoryTable assetId={assetId} />}
 
 				{/* Principal Redemption History (only for matured/redeemed bonds) */}
 				{asset.category === "BONDS" &&
