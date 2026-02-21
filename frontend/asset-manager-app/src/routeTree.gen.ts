@@ -14,8 +14,10 @@ import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as OrderResolutionRouteImport } from './routes/order-resolution'
 import { Route as MarketSettingsRouteImport } from './routes/market-settings'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as IncomeCalendarRouteImport } from './routes/income-calendar'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CreateAssetRouteImport } from './routes/create-asset'
+import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PricingAssetIdRouteImport } from './routes/pricing.$assetId'
 import { Route as AssetDetailsAssetIdRouteImport } from './routes/asset-details.$assetId'
@@ -45,6 +47,11 @@ const InventoryRoute = InventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IncomeCalendarRoute = IncomeCalendarRouteImport.update({
+  id: '/income-calendar',
+  path: '/income-calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -53,6 +60,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const CreateAssetRoute = CreateAssetRouteImport.update({
   id: '/create-asset',
   path: '/create-asset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditLogRoute = AuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -73,8 +85,10 @@ const AssetDetailsAssetIdRoute = AssetDetailsAssetIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
+  '/income-calendar': typeof IncomeCalendarRoute
   '/inventory': typeof InventoryRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -85,8 +99,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
+  '/income-calendar': typeof IncomeCalendarRoute
   '/inventory': typeof InventoryRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -98,8 +114,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
+  '/income-calendar': typeof IncomeCalendarRoute
   '/inventory': typeof InventoryRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -112,8 +130,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/audit-log'
     | '/create-asset'
     | '/dashboard'
+    | '/income-calendar'
     | '/inventory'
     | '/market-settings'
     | '/order-resolution'
@@ -124,8 +144,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/audit-log'
     | '/create-asset'
     | '/dashboard'
+    | '/income-calendar'
     | '/inventory'
     | '/market-settings'
     | '/order-resolution'
@@ -136,8 +158,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/audit-log'
     | '/create-asset'
     | '/dashboard'
+    | '/income-calendar'
     | '/inventory'
     | '/market-settings'
     | '/order-resolution'
@@ -149,8 +173,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuditLogRoute: typeof AuditLogRoute
   CreateAssetRoute: typeof CreateAssetRoute
   DashboardRoute: typeof DashboardRoute
+  IncomeCalendarRoute: typeof IncomeCalendarRoute
   InventoryRoute: typeof InventoryRoute
   MarketSettingsRoute: typeof MarketSettingsRoute
   OrderResolutionRoute: typeof OrderResolutionRoute
@@ -167,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/income-calendar': {
+      id: '/income-calendar'
+      path: '/income-calendar'
+      fullPath: '/income-calendar'
+      preLoaderRoute: typeof IncomeCalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reconciliation': {
@@ -211,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAssetRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/audit-log': {
+      id: '/audit-log'
+      path: '/audit-log'
+      fullPath: '/audit-log'
+      preLoaderRoute: typeof AuditLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -237,8 +277,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuditLogRoute: AuditLogRoute,
   CreateAssetRoute: CreateAssetRoute,
   DashboardRoute: DashboardRoute,
+  IncomeCalendarRoute: IncomeCalendarRoute,
   InventoryRoute: InventoryRoute,
   MarketSettingsRoute: MarketSettingsRoute,
   OrderResolutionRoute: OrderResolutionRoute,
