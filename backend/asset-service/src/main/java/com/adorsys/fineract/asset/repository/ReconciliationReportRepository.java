@@ -19,4 +19,6 @@ public interface ReconciliationReportRepository extends JpaRepository<Reconcilia
     Page<ReconciliationReport> findAllOrderByCreatedAtDesc(Pageable pageable);
 
     long countByStatus(String status);
+
+    long countByStatusAndSeverity(String status, String severity);
 }

@@ -47,7 +47,8 @@ export const PricingStep: FC<Props> = ({
 						<p className="text-xs text-red-600 mt-1">{fieldError("price")}</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Price per unit in XAF (Central African CFA Franc)
+							Starting price per unit in XAF. For bonds, this is also the face
+							value used in coupon calculations
 						</p>
 					)}
 				</div>
@@ -75,7 +76,8 @@ export const PricingStep: FC<Props> = ({
 						</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Fee charged on each trade (default: 0.50%)
+							Fee charged on each BUY/SELL transaction. Added to buyer's cost,
+							deducted from seller's proceeds. Default: 0.50%
 						</p>
 					)}
 				</div>
@@ -101,7 +103,8 @@ export const PricingStep: FC<Props> = ({
 						<p className="text-xs text-red-600 mt-1">{fieldError("spread")}</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Bid-ask spread percentage (default: 1.00%)
+							Difference between buy (ask) and sell (bid) price. Ask = price +
+							spread, Bid = price - spread. Default: 1.00%
 						</p>
 					)}
 				</div>
@@ -133,7 +136,8 @@ export const PricingStep: FC<Props> = ({
 							step={0.01}
 						/>
 						<p className="text-xs text-gray-400 mt-1">
-							Max % of total supply one user can hold
+							Max % of total supply one user can hold. Leave at 0 for no limit.
+							Example: 10 means a user can hold at most 10% of all units
 						</p>
 					</div>
 
@@ -155,7 +159,8 @@ export const PricingStep: FC<Props> = ({
 							min={0}
 						/>
 						<p className="text-xs text-gray-400 mt-1">
-							Maximum units per single order
+							Max units a user can buy or sell in a single order. Leave at 0 for
+							no limit
 						</p>
 					</div>
 
@@ -177,7 +182,8 @@ export const PricingStep: FC<Props> = ({
 							min={0}
 						/>
 						<p className="text-xs text-gray-400 mt-1">
-							Max XAF traded per user per day
+							Max total XAF value a user can trade per day for this asset.
+							Resets at midnight. Leave at 0 for no limit
 						</p>
 					</div>
 				</div>

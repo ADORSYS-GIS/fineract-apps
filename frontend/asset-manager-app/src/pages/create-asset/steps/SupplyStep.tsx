@@ -55,7 +55,8 @@ export const SupplyStep: FC<Props> = ({
 							</p>
 						) : (
 							<p className="text-xs text-gray-400 mt-1">
-								Total number of units to mint into the treasury
+								Total units created and deposited into the treasury. This is the
+								maximum that can be sold to investors (you can mint more later)
 							</p>
 						)}
 					</div>
@@ -78,7 +79,8 @@ export const SupplyStep: FC<Props> = ({
 							<option value={8}>8 (high precision)</option>
 						</select>
 						<p className="text-xs text-gray-400 mt-1">
-							Precision for fractional ownership
+							Controls fractional ownership. 0 = whole units only, 2 = 0.01 unit
+							precision, 8 = very fine-grained. Most assets use 0
 						</p>
 					</div>
 				</div>
@@ -109,7 +111,8 @@ export const SupplyStep: FC<Props> = ({
 							</p>
 						) : (
 							<p className="text-xs text-gray-400 mt-1">
-								BUY orders are blocked before this date
+								Users cannot buy until this date. Use this to schedule a future
+								launch
 							</p>
 						)}
 					</div>
@@ -133,7 +136,7 @@ export const SupplyStep: FC<Props> = ({
 							</p>
 						) : (
 							<p className="text-xs text-gray-400 mt-1">
-								BUY orders are blocked after this date
+								Users cannot buy after this date. SELL orders remain allowed
 							</p>
 						)}
 					</div>
@@ -163,7 +166,8 @@ export const SupplyStep: FC<Props> = ({
 							</p>
 						) : (
 							<p className="text-xs text-gray-400 mt-1">
-								Percentage of total capital opened for subscription
+								Percentage of total market cap (supply × price) available for
+								public purchase. 100% = full capital open
 							</p>
 						)}
 					</div>
@@ -197,7 +201,8 @@ export const SupplyStep: FC<Props> = ({
 							</p>
 						) : (
 							<p className="text-xs text-gray-400 mt-1">
-								Users cannot sell until this many days after first purchase
+								Minimum holding period. After buying, a user must wait this many
+								days before selling. Prevents pump-and-dump. 0 = no lock-up
 							</p>
 						)}
 					</div>
@@ -227,6 +232,52 @@ export const SupplyStep: FC<Props> = ({
 								<option value="HARVEST_YIELD">Harvest Yield</option>
 								<option value="PROFIT_SHARE">Profit Share</option>
 							</select>
+							<p className="text-xs text-gray-400 mt-1">
+								Type of periodic income paid to holders. Leave as
+								&quot;None&quot; for non-income assets
+							</p>
+							{formData.incomeType && (
+								<div className="mt-2 text-xs bg-blue-50 border border-blue-200 rounded p-2">
+									{formData.incomeType === "DIVIDEND" && (
+										<>
+											<span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium mr-1">
+												Variable
+											</span>
+											Cash distribution from company profits. Typically annual
+											or semi-annual.
+										</>
+									)}
+									{formData.incomeType === "RENT" && (
+										<>
+											<span className="inline-block px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium mr-1">
+												Typically Fixed
+											</span>
+											Rental income from property holdings. Typically monthly.
+										</>
+									)}
+									{formData.incomeType === "HARVEST_YIELD" && (
+										<>
+											<span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium mr-1">
+												Variable
+											</span>
+											Proceeds from agricultural harvest. Typically semi-annual
+											after harvest season.
+										</>
+									)}
+									{formData.incomeType === "PROFIT_SHARE" && (
+										<>
+											<span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium mr-1">
+												Variable
+											</span>
+											Share of business profits. Typically annual.
+										</>
+									)}
+									<p className="mt-1 text-gray-500">
+										Income = units × currentPrice × (rate/100) × (months/12).
+										Payout varies with market price.
+									</p>
+								</div>
+							)}
 						</div>
 
 						{formData.incomeType && (
@@ -250,6 +301,10 @@ export const SupplyStep: FC<Props> = ({
 										max={100}
 										step={0.01}
 									/>
+									<p className="text-xs text-gray-400 mt-1">
+										Annual income rate as a percentage. Applied to current
+										market price at distribution time
+									</p>
 								</div>
 								<div>
 									<label className="block text-sm font-medium text-gray-700 mb-1">
@@ -271,6 +326,10 @@ export const SupplyStep: FC<Props> = ({
 										<option value={6}>Semi-Annual</option>
 										<option value={12}>Annual</option>
 									</select>
+									<p className="text-xs text-gray-400 mt-1">
+										How often income is distributed. The scheduler runs daily
+										and pays when the distribution date arrives
+									</p>
 								</div>
 								<div>
 									<label className="block text-sm font-medium text-gray-700 mb-1">
@@ -287,6 +346,10 @@ export const SupplyStep: FC<Props> = ({
 											})
 										}
 									/>
+									<p className="text-xs text-gray-400 mt-1">
+										Date of the first income payment. Automatically advances by
+										the frequency after each payment
+									</p>
 								</div>
 							</>
 						)}

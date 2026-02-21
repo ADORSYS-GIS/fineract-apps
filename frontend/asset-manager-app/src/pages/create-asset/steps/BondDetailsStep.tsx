@@ -105,7 +105,8 @@ export const BondDetailsStep: FC<Props> = ({
 						</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Annual coupon rate paid to bondholders
+							Annual coupon rate. Coupon per period = units × faceValue ×
+							(rate/100) × (months/12)
 						</p>
 					)}
 				</div>
@@ -127,7 +128,8 @@ export const BondDetailsStep: FC<Props> = ({
 						</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Date when the bond matures and trading stops automatically
+							On this date the bond status changes to MATURED. Admin can then
+							trigger principal redemption
 						</p>
 					)}
 				</div>
@@ -180,7 +182,8 @@ export const BondDetailsStep: FC<Props> = ({
 						</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Date of the first coupon payment (must be on or before maturity)
+							The system automatically advances to the next coupon date after
+							each payment
 						</p>
 					)}
 				</div>

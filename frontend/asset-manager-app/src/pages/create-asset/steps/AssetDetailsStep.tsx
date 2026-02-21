@@ -69,7 +69,8 @@ export const AssetDetailsStep: FC<Props> = ({
 						<p className="text-xs text-red-600 mt-1">{fieldError("symbol")}</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Also used as the currency code in Fineract
+							3-letter ticker code (e.g. DTT). Also registered as a currency
+							code in Fineract
 						</p>
 					)}
 				</div>
@@ -91,7 +92,8 @@ export const AssetDetailsStep: FC<Props> = ({
 						))}
 					</select>
 					<p className="text-xs text-gray-400 mt-1">
-						Determines which marketplace section the asset appears in
+						Determines marketplace section and available income options. Bonds
+						get a separate coupon configuration step
 					</p>
 				</div>
 			</div>

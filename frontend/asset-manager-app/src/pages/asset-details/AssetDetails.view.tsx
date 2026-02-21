@@ -21,6 +21,8 @@ import { CouponHistoryTable } from "@/components/CouponHistoryTable";
 import { DelistDialog } from "@/components/DelistDialog";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import { IncomeForecastCard } from "@/components/IncomeForecastCard";
+import { IncomeHistoryTable } from "@/components/IncomeHistoryTable";
 import { MintSupplyDialog } from "@/components/MintSupplyDialog";
 import { RedemptionHistoryTable } from "@/components/RedemptionHistoryTable";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -32,6 +34,15 @@ const INCOME_TYPE_LABELS: Record<string, string> = {
 	HARVEST_YIELD: "Harvest Yield",
 	PROFIT_SHARE: "Profit Share",
 };
+
+/** Whether the income type is variable (based on market price) or typically fixed. */
+const INCOME_VARIABILITY: Record<string, { label: string; variable: boolean }> =
+	{
+		DIVIDEND: { label: "Variable", variable: true },
+		RENT: { label: "Typically Fixed", variable: false },
+		HARVEST_YIELD: { label: "Variable", variable: true },
+		PROFIT_SHARE: { label: "Variable", variable: true },
+	};
 
 const FREQ_LABELS: Record<number, string> = {
 	1: "Monthly",
@@ -374,6 +385,17 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								<p className="text-gray-500">Income Type</p>
 								<p className="font-medium">
 									{INCOME_TYPE_LABELS[asset.incomeType] ?? asset.incomeType}
+									{INCOME_VARIABILITY[asset.incomeType] && (
+										<span
+											className={`ml-2 inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
+												INCOME_VARIABILITY[asset.incomeType].variable
+													? "bg-amber-100 text-amber-700"
+													: "bg-green-100 text-green-700"
+											}`}
+										>
+											{INCOME_VARIABILITY[asset.incomeType].label}
+										</span>
+									)}
 								</p>
 							</div>
 							{asset.incomeRate != null && (
@@ -399,6 +421,14 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 							)}
 						</div>
 					</Card>
+				)}
+
+				{/* Income Forecast & History (non-bond assets with income) */}
+				{asset.category !== "BONDS" && asset.incomeType && (
+					<>
+						<IncomeForecastCard assetId={assetId} />
+						<IncomeHistoryTable assetId={assetId} />
+					</>
 				)}
 
 				{/* Bond Information */}

@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useDeferredValue, useMemo, useState } from "react";
-import { type AssetResponse, assetApi } from "@/services/assetApi";
+import {
+	type AdminDashboardResponse,
+	type AssetResponse,
+	assetApi,
+} from "@/services/assetApi";
 
 export const useDashboard = () => {
 	const [searchValue, setSearchValue] = useState("");
@@ -29,6 +33,13 @@ export const useDashboard = () => {
 	const { data: marketStatus } = useQuery({
 		queryKey: ["market-status"],
 		queryFn: () => assetApi.getMarketStatus(),
+		select: (res) => res.data,
+		refetchInterval: 30000,
+	});
+
+	const { data: dashboardSummary } = useQuery({
+		queryKey: ["dashboard-summary"],
+		queryFn: () => assetApi.getDashboardSummary(),
 		select: (res) => res.data,
 		refetchInterval: 30000,
 	});
@@ -80,6 +91,7 @@ export const useDashboard = () => {
 		categoryFilter,
 		onCategoryChange: handleCategoryChange,
 		marketStatus,
+		dashboardSummary,
 		refetch,
 	};
 };

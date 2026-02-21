@@ -96,4 +96,9 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
            "AND a.nextDistributionDate <= :date")
     List<Asset> findAssetsWithDueDistributions(@Param("date") LocalDate date);
 
+    /**
+     * Count assets by status (for admin dashboard).
+     */
+    long countByStatus(AssetStatus status);
+
 }

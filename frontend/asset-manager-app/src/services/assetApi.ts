@@ -259,6 +259,49 @@ export interface InventoryItem {
 	totalValueLocked: number;
 }
 
+/** Income distribution audit record (matches backend IncomeDistributionResponse). */
+export interface IncomeDistributionResponse {
+	id: number;
+	userId: number;
+	incomeType: string;
+	units: number;
+	rateApplied: number;
+	cashAmount: number;
+	fineractTransferId?: number;
+	status: string;
+	failureReason?: string;
+	paidAt: string;
+	distributionDate: string;
+}
+
+/** Income distribution forecast (matches backend IncomeForecastResponse). */
+export interface IncomeForecastResponse {
+	assetId: string;
+	symbol: string;
+	incomeType: string;
+	incomeRate: number;
+	distributionFrequencyMonths: number;
+	nextDistributionDate: string;
+	totalUnitsOutstanding: number;
+	currentPrice: number;
+	incomePerPeriod: number;
+	treasuryBalance: number;
+	shortfall: number;
+	periodsCoveredByBalance: number;
+}
+
+/** Result of manually triggering an income distribution (matches backend IncomeTriggerResponse). */
+export interface IncomeTriggerResponse {
+	assetId: string;
+	symbol: string;
+	incomeType: string;
+	distributionDate: string;
+	holdersPaid: number;
+	holdersFailed: number;
+	totalAmountPaid: number;
+	nextDistributionDate: string;
+}
+
 /** Coupon obligation forecast for a bond (matches backend CouponForecastResponse). */
 export interface CouponForecastResponse {
 	assetId: string;
@@ -430,6 +473,142 @@ export interface DelistAssetRequest {
 	delistingRedemptionPrice?: number;
 }
 
+/** Trade preview request (matches backend TradePreviewRequest). */
+export interface TradePreviewRequest {
+	assetId: string;
+	side: "BUY" | "SELL";
+	/** Number of units to trade. Exactly one of units or amount must be provided. */
+	units?: number;
+	/** XAF amount to invest. System computes max units purchasable for this amount. */
+	amount?: number;
+}
+
+/** Bond benefit projections (matches backend BondBenefitProjection). */
+export interface BondBenefitProjection {
+	faceValue: number;
+	interestRate: number;
+	couponFrequencyMonths: number;
+	maturityDate: string;
+	nextCouponDate?: string;
+	couponPerPeriod: number;
+	remainingCouponPayments: number;
+	totalCouponIncome: number;
+	principalAtMaturity: number;
+	investmentCost?: number;
+	totalProjectedReturn: number;
+	netProjectedProfit?: number;
+	annualizedYieldPercent?: number;
+	daysToMaturity: number;
+}
+
+/** Income benefit projections for non-bond assets (matches backend IncomeBenefitProjection). */
+export interface IncomeBenefitProjection {
+	incomeType: string;
+	incomeRate: number;
+	distributionFrequencyMonths: number;
+	nextDistributionDate?: string;
+	incomePerPeriod: number;
+	estimatedAnnualIncome: number;
+	estimatedYieldPercent?: number;
+	variableIncome: boolean;
+}
+
+/** Trade preview response (matches backend TradePreviewResponse). */
+export interface TradePreviewResponse {
+	feasible: boolean;
+	blockers: string[];
+	assetId: string;
+	assetSymbol?: string;
+	side: "BUY" | "SELL";
+	units: number;
+	basePrice?: number;
+	executionPrice?: number;
+	spreadPercent?: number;
+	grossAmount?: number;
+	fee?: number;
+	feePercent?: number;
+	spreadAmount?: number;
+	netAmount?: number;
+	availableBalance?: number;
+	availableUnits?: number;
+	availableSupply?: number;
+	bondBenefit?: BondBenefitProjection;
+	incomeBenefit?: IncomeBenefitProjection;
+	/** Original XAF amount (only present in amount-based mode). */
+	computedFromAmount?: number;
+	/** Leftover XAF that cannot buy another unit (only present in amount-based mode). */
+	remainder?: number;
+}
+
+// Income Calendar
+export interface IncomeEvent {
+	assetId: string;
+	symbol: string;
+	assetName: string;
+	incomeType: string;
+	paymentDate: string;
+	expectedAmount: number;
+	units: number;
+	rateApplied: number;
+}
+
+export interface MonthlyAggregate {
+	month: string;
+	totalAmount: number;
+	eventCount: number;
+}
+
+export interface IncomeCalendarResponse {
+	events: IncomeEvent[];
+	monthlyTotals: MonthlyAggregate[];
+	totalExpectedIncome: number;
+	totalByIncomeType: Record<string, number>;
+}
+
+// Audit Log
+export interface AuditLogResponse {
+	id: number;
+	action: string;
+	adminSubject: string;
+	targetAssetId: string | null;
+	targetAssetSymbol: string | null;
+	result: string;
+	errorMessage: string | null;
+	durationMs: number;
+	requestSummary: string | null;
+	performedAt: string;
+}
+
+// Admin Dashboard
+export interface AdminDashboardResponse {
+	assets: {
+		total: number;
+		active: number;
+		halted: number;
+		pending: number;
+		delisting: number;
+		matured: number;
+		delisted: number;
+	};
+	trading: {
+		tradeCount24h: number;
+		buyVolume24h: number;
+		sellVolume24h: number;
+		activeTraders24h: number;
+	};
+	orders: {
+		needsReconciliation: number;
+		failed: number;
+		manuallyClosed: number;
+	};
+	reconciliation: {
+		openReports: number;
+		criticalOpen: number;
+		warningOpen: number;
+	};
+	activeInvestors: number;
+}
+
 // --- API ---
 
 export const assetApi = {
@@ -505,6 +684,25 @@ export const assetApi = {
 			totalElements: number;
 		}>(`/api/admin/assets/${assetId}/redemptions`, { params }),
 
+	// Income distributions (non-bond)
+	getIncomeHistory: (
+		assetId: string,
+		params?: { page?: number; size?: number },
+	) =>
+		assetClient.get<{
+			content: IncomeDistributionResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>(`/api/admin/assets/${assetId}/income-distributions`, { params }),
+	getIncomeForecast: (assetId: string) =>
+		assetClient.get<IncomeForecastResponse>(
+			`/api/admin/assets/${assetId}/income-forecast`,
+		),
+	triggerIncomeDistribution: (assetId: string) =>
+		assetClient.post<IncomeTriggerResponse>(
+			`/api/admin/assets/${assetId}/income-distributions/trigger`,
+		),
+
 	// Orders - Admin
 	getAdminOrders: (params?: { page?: number; size?: number }) =>
 		assetClient.get<{
@@ -556,6 +754,30 @@ export const assetApi = {
 		),
 	updateNotificationPreferences: (data: UpdateNotificationPreferencesRequest) =>
 		assetClient.put("/api/notifications/preferences", data),
+
+	// Portfolio - Income Calendar
+	getIncomeCalendar: (months = 12) =>
+		assetClient.get<IncomeCalendarResponse>("/api/portfolio/income-calendar", {
+			params: { months },
+		}),
+
+	// Dashboard - Admin
+	getDashboardSummary: () =>
+		assetClient.get<AdminDashboardResponse>("/api/admin/dashboard/summary"),
+
+	// Audit Log - Admin
+	getAuditLog: (params?: {
+		page?: number;
+		size?: number;
+		admin?: string;
+		assetId?: string;
+		action?: string;
+	}) =>
+		assetClient.get<{
+			content: AuditLogResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>("/api/admin/audit-log", { params }),
 
 	// Reconciliation - Admin
 	getReconciliationReports: (params?: {

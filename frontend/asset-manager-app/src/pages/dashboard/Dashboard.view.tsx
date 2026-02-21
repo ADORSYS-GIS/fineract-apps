@@ -6,7 +6,22 @@ import { ErrorFallback } from "@/components/ErrorFallback";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { ASSET_CATEGORIES_WITH_ALL } from "@/constants/categories";
+import type { AdminDashboardResponse } from "@/services/assetApi";
 import { useDashboard } from "./useDashboard";
+
+const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
+
+const StatCard: FC<{
+	title: string;
+	children: React.ReactNode;
+}> = ({ title, children }) => (
+	<Card className="p-4">
+		<h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+			{title}
+		</h3>
+		{children}
+	</Card>
+);
 
 export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	searchValue,
@@ -21,6 +36,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	categoryFilter,
 	onCategoryChange,
 	marketStatus,
+	dashboardSummary,
 	refetch,
 }) => {
 	return (
@@ -84,6 +100,103 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 						</button>
 					))}
 				</div>
+
+				{/* Dashboard Summary */}
+				{dashboardSummary && (
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+						<StatCard title="Assets">
+							<p className="text-2xl font-bold text-gray-900">
+								{dashboardSummary.assets.active}
+								<span className="text-sm font-normal text-gray-500">
+									{" "}
+									active
+								</span>
+							</p>
+							<div className="flex gap-3 mt-1 text-xs text-gray-500">
+								<span>{dashboardSummary.assets.pending} pending</span>
+								<span>{dashboardSummary.assets.halted} halted</span>
+								<span>{dashboardSummary.assets.total} total</span>
+							</div>
+						</StatCard>
+
+						<StatCard title="Trading (24h)">
+							<p className="text-2xl font-bold text-gray-900">
+								{dashboardSummary.trading.tradeCount24h}
+								<span className="text-sm font-normal text-gray-500">
+									{" "}
+									trades
+								</span>
+							</p>
+							<div className="flex gap-3 mt-1 text-xs text-gray-500">
+								<span className="text-green-600">
+									Buy {fmt(dashboardSummary.trading.buyVolume24h)}
+								</span>
+								<span className="text-red-600">
+									Sell {fmt(dashboardSummary.trading.sellVolume24h)}
+								</span>
+								<span>{dashboardSummary.trading.activeTraders24h} traders</span>
+							</div>
+						</StatCard>
+
+						<StatCard title="Order Health">
+							{dashboardSummary.orders.needsReconciliation +
+								dashboardSummary.orders.failed >
+							0 ? (
+								<>
+									<p className="text-2xl font-bold text-red-600">
+										{dashboardSummary.orders.needsReconciliation +
+											dashboardSummary.orders.failed}
+										<span className="text-sm font-normal"> issues</span>
+									</p>
+									<div className="flex gap-3 mt-1 text-xs text-gray-500">
+										<span>
+											{dashboardSummary.orders.needsReconciliation} stuck
+										</span>
+										<span>{dashboardSummary.orders.failed} failed</span>
+									</div>
+								</>
+							) : (
+								<p className="text-2xl font-bold text-green-600">All clear</p>
+							)}
+						</StatCard>
+
+						<StatCard title="Reconciliation">
+							{dashboardSummary.reconciliation.openReports > 0 ? (
+								<>
+									<p
+										className={`text-2xl font-bold ${dashboardSummary.reconciliation.criticalOpen > 0 ? "text-red-600" : "text-yellow-600"}`}
+									>
+										{dashboardSummary.reconciliation.openReports}
+										<span className="text-sm font-normal text-gray-500">
+											{" "}
+											open
+										</span>
+									</p>
+									<div className="flex gap-3 mt-1 text-xs text-gray-500">
+										{dashboardSummary.reconciliation.criticalOpen > 0 && (
+											<span className="text-red-600">
+												{dashboardSummary.reconciliation.criticalOpen} critical
+											</span>
+										)}
+										{dashboardSummary.reconciliation.warningOpen > 0 && (
+											<span className="text-yellow-600">
+												{dashboardSummary.reconciliation.warningOpen} warnings
+											</span>
+										)}
+										<span>{dashboardSummary.activeInvestors} investors</span>
+									</div>
+								</>
+							) : (
+								<>
+									<p className="text-2xl font-bold text-green-600">All clear</p>
+									<p className="text-xs text-gray-500 mt-1">
+										{dashboardSummary.activeInvestors} active investors
+									</p>
+								</>
+							)}
+						</StatCard>
+					</div>
+				)}
 
 				{/* Assets Table */}
 				{isAssetsError ? (
