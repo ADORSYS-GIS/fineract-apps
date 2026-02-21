@@ -37,5 +37,11 @@ public record TradePreviewResponse(
     /** Remaining asset inventory (BUY only), null for SELL. */
     BigDecimal availableSupply,
     /** Bond benefit projections (coupon income, total return, yield). Null for non-bond assets. */
-    BondBenefitProjection bondBenefit
+    BondBenefitProjection bondBenefit,
+    /** Income benefit projections (dividend/rent/yield). Null for bonds and non-income assets. */
+    IncomeBenefitProjection incomeBenefit,
+    /** Original XAF amount from amount-based preview. Null in unit-based mode. */
+    BigDecimal computedFromAmount,
+    /** Leftover XAF that cannot buy another unit. Null in unit-based mode. */
+    BigDecimal remainder
 ) {}

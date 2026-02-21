@@ -108,7 +108,8 @@ class AdminAssetControllerTest {
                 0, new BigDecimal("0.005"), new BigDecimal("0.01"),
                 LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 1L,
-                null, null, null, null, null, null
+                null, null, null, null, // exposure limits
+                null, null, null, null, null, null // bond fields
         );
 
         AssetDetailResponse response = new AssetDetailResponse(
@@ -122,7 +123,9 @@ class AdminAssetControllerTest {
                 1L, 200L, 300L, 10,
                 "Test Company", "Test Asset Token",
                 Instant.now(), null,
-                null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, // bond fields + residualDays + subscriptionClosed
+                null, null, // bidPrice, askPrice
+                null, null, null, null // exposure limits + lockupDays
         );
 
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);

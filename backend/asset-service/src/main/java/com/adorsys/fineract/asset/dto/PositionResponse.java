@@ -29,5 +29,7 @@ public record PositionResponse(
     /** Cumulative realized P&L from all completed SELL trades for this position, in settlement currency. Persisted in UserPosition. */
     BigDecimal realizedPnl,
     /** Bond benefit projections (coupon income, principal return). Null for non-bond assets. */
-    BondBenefitProjection bondBenefit
+    BondBenefitProjection bondBenefit,
+    /** Income benefit projections (dividend/rent/yield). Null for bonds and non-income assets. */
+    IncomeBenefitProjection incomeBenefit
 ) {}

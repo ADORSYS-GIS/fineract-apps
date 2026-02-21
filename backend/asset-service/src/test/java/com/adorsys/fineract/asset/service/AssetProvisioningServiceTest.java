@@ -200,7 +200,9 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
 
         UpdateAssetRequest request = new UpdateAssetRequest(
-                "New Name", null, null, null, null, null, null, null, null, null, null);
+                "New Name", null, null, null, null, null, null, null, null,
+                null, null, null, null, // exposure limits
+                null, null); // bond fields
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -217,7 +219,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -321,6 +323,7 @@ class AssetProvisioningServiceTest {
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, null, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 TREASURY_CLIENT_ID,
+                null, null, null, null, // exposure limits
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6)
         );
@@ -336,6 +339,7 @@ class AssetProvisioningServiceTest {
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, null, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 TREASURY_CLIENT_ID,
+                null, null, null, null, // exposure limits
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
                 LocalDate.now().plusMonths(5)
         );
@@ -351,7 +355,8 @@ class AssetProvisioningServiceTest {
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, null, LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
                 TREASURY_CLIENT_ID,
-                null, null, null, null, null, null
+                null, null, null, null, // exposure limits
+                null, null, null, null, null, null // bond fields
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -366,7 +371,8 @@ class AssetProvisioningServiceTest {
         UpdateAssetRequest request = new UpdateAssetRequest(
                 null, null, null, null, null, null,
                 LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
-                null, null);
+                null, null, null, null, // exposure limits
+                null, null); // bond fields
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
@@ -379,6 +385,7 @@ class AssetProvisioningServiceTest {
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, null, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 TREASURY_CLIENT_ID,
+                null, null, null, null, // exposure limits
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6)
         );

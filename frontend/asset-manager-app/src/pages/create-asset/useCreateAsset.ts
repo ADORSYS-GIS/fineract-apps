@@ -48,6 +48,22 @@ export interface AssetFormData {
 	nextDistributionDate: string;
 }
 
+const toDateStr = (d: Date) => d.toISOString().split("T")[0];
+const today = () => toDateStr(new Date());
+const daysFromNow = (n: number) =>
+	toDateStr(new Date(Date.now() + n * 86400000));
+
+/** Default distribution frequency per income type. */
+const INCOME_TYPE_DEFAULTS: Record<
+	string,
+	{ frequency: number; offsetDays: number }
+> = {
+	RENT: { frequency: 1, offsetDays: 30 },
+	DIVIDEND: { frequency: 12, offsetDays: 365 },
+	HARVEST_YIELD: { frequency: 6, offsetDays: 180 },
+	PROFIT_SHARE: { frequency: 12, offsetDays: 365 },
+};
+
 const initialFormData: AssetFormData = {
 	treasuryClientId: null,
 	treasuryClientName: "",
@@ -70,13 +86,13 @@ const initialFormData: AssetFormData = {
 	dailyTradeLimitXaf: 0,
 	totalSupply: 0,
 	decimalPlaces: 0,
-	subscriptionStartDate: "",
-	subscriptionEndDate: "",
-	capitalOpenedPercent: 0,
+	subscriptionStartDate: today(),
+	subscriptionEndDate: daysFromNow(90),
+	capitalOpenedPercent: 100,
 	lockupDays: 0,
 	incomeType: "",
 	incomeRate: 0,
-	distributionFrequencyMonths: 0,
+	distributionFrequencyMonths: 12,
 	nextDistributionDate: "",
 };
 
@@ -191,7 +207,25 @@ export const useCreateAsset = () => {
 	};
 
 	const updateFormData = (updates: Partial<AssetFormData>) => {
-		setFormData((prev) => ({ ...prev, ...updates }));
+		setFormData((prev) => {
+			const next = { ...prev, ...updates };
+			// Auto-set income defaults when income type changes
+			if (
+				updates.incomeType !== undefined &&
+				updates.incomeType !== prev.incomeType
+			) {
+				const defaults = INCOME_TYPE_DEFAULTS[updates.incomeType];
+				if (defaults) {
+					next.distributionFrequencyMonths = defaults.frequency;
+					next.nextDistributionDate = daysFromNow(defaults.offsetDays);
+				} else {
+					// Cleared to "None"
+					next.distributionFrequencyMonths = 12;
+					next.nextDistributionDate = "";
+				}
+			}
+			return next;
+		});
 		setValidationErrors([]);
 	};
 

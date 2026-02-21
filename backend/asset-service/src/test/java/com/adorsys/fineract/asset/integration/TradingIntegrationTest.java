@@ -92,7 +92,7 @@ class TradingIntegrationTest {
         setupFineractMocks();
 
         TradePreviewRequest request = new TradePreviewRequest(
-                "asset-001", TradeSide.BUY, new BigDecimal("5"));
+                "asset-001", TradeSide.BUY, new BigDecimal("5"), null);
 
         mockMvc.perform(post("/api/trades/preview")
                         .with(jwt().jwt(j -> j
@@ -118,7 +118,7 @@ class TradingIntegrationTest {
 
         // Request more units than total supply (1000)
         TradePreviewRequest request = new TradePreviewRequest(
-                "asset-001", TradeSide.BUY, new BigDecimal("9999"));
+                "asset-001", TradeSide.BUY, new BigDecimal("9999"), null);
 
         mockMvc.perform(post("/api/trades/preview")
                         .with(jwt().jwt(j -> j
@@ -137,7 +137,7 @@ class TradingIntegrationTest {
         setupFineractMocks();
 
         TradePreviewRequest request = new TradePreviewRequest(
-                "asset-001", TradeSide.SELL, new BigDecimal("5"));
+                "asset-001", TradeSide.SELL, new BigDecimal("5"), null);
 
         mockMvc.perform(post("/api/trades/preview")
                         .with(jwt().jwt(j -> j
@@ -154,7 +154,7 @@ class TradingIntegrationTest {
     @Order(4)
     void preview_noAuth_returns401() throws Exception {
         TradePreviewRequest request = new TradePreviewRequest(
-                "asset-001", TradeSide.BUY, new BigDecimal("5"));
+                "asset-001", TradeSide.BUY, new BigDecimal("5"), null);
 
         mockMvc.perform(post("/api/trades/preview")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -194,7 +194,7 @@ class TradingIntegrationTest {
         setupFineractMocks();
 
         TradePreviewRequest request = new TradePreviewRequest(
-                "nonexistent-asset", TradeSide.BUY, new BigDecimal("5"));
+                "nonexistent-asset", TradeSide.BUY, new BigDecimal("5"), null);
 
         mockMvc.perform(post("/api/trades/preview")
                         .with(jwt().jwt(j -> j

@@ -35,6 +35,7 @@ public class PortfolioService {
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
     private final BondBenefitService bondBenefitService;
+    private final IncomeBenefitService incomeBenefitService;
     private final PortfolioSnapshotRepository portfolioSnapshotRepository;
 
     /**
@@ -77,6 +78,9 @@ public class PortfolioService {
             BondBenefitProjection bondBenefit = asset != null
                     ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
                     : null;
+            IncomeBenefitProjection incomeBenefit = asset != null
+                    ? incomeBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
+                    : null;
 
             positionResponses.add(new PositionResponse(
                     pos.getAssetId(),
@@ -85,7 +89,7 @@ public class PortfolioService {
                     pos.getTotalUnits(), pos.getAvgPurchasePrice(), currentPrice,
                     marketValue, pos.getTotalCostBasis(),
                     unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
-                    bondBenefit
+                    bondBenefit, incomeBenefit
             ));
         }
 
@@ -157,7 +161,7 @@ public class PortfolioService {
             return new PositionResponse(assetId, null, null,
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                     BigDecimal.ZERO, BigDecimal.ZERO,
-                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null);
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null, null);
         }
 
         Asset asset = assetRepository.findById(assetId).orElse(null);
@@ -173,6 +177,9 @@ public class PortfolioService {
         BondBenefitProjection bondBenefit = asset != null
                 ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
                 : null;
+        IncomeBenefitProjection incomeBenefit = asset != null
+                ? incomeBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
+                : null;
 
         return new PositionResponse(
                 assetId,
@@ -181,7 +188,7 @@ public class PortfolioService {
                 pos.getTotalUnits(), pos.getAvgPurchasePrice(), currentPrice,
                 marketValue, pos.getTotalCostBasis(),
                 unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
-                bondBenefit
+                bondBenefit, incomeBenefit
         );
     }
 

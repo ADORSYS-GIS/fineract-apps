@@ -73,6 +73,7 @@ public class TradingService {
     private final ResolvedGlAccounts resolvedGlAccounts;
     private final AssetMetrics assetMetrics;
     private final BondBenefitService bondBenefitService;
+    private final IncomeBenefitService incomeBenefitService;
     private final ExposureLimitService exposureLimitService;
     private final LockupService lockupService;
     private final ApplicationEventPublisher eventPublisher;
@@ -616,6 +617,13 @@ public class TradingService {
     /**
      * Preview a trade without executing it. Returns a price quote and feasibility check.
      * No locks, no DB writes, no Fineract mutations — purely read-only.
+     *
+     * <p>Supports two modes:
+     * <ul>
+     *   <li><b>Unit-based</b>: caller specifies {@code units} directly.</li>
+     *   <li><b>Amount-based</b>: caller specifies {@code amount} in XAF; the system computes
+     *       the maximum whole units purchasable for that amount (including fees).</li>
+     * </ul>
      */
     public TradePreviewResponse previewTrade(TradePreviewRequest request, Jwt jwt) {
         List<String> blockers = new ArrayList<>();
@@ -655,12 +663,45 @@ public class TradingService {
                 ? BuyStrategy.INSTANCE : SellStrategy.INSTANCE;
         BigDecimal executionPrice = previewStrategy.applySpread(basePrice, effectiveSpread);
 
-        BigDecimal units = request.units();
+        // 3b. Amount-based conversion: compute units from XAF amount
+        BigDecimal computedFromAmount = null;
+        BigDecimal remainder = null;
+        BigDecimal units;
+
+        if (request.amount() != null) {
+            // Amount mode: derive units from the XAF budget
+            computedFromAmount = request.amount();
+            int scale = asset.getDecimalPlaces() != null ? asset.getDecimalPlaces() : 0;
+            // effectivePricePerUnit = executionPrice * (1 + feePercent)
+            BigDecimal effectivePricePerUnit = executionPrice
+                    .multiply(BigDecimal.ONE.add(feePercent));
+            if (effectivePricePerUnit.compareTo(BigDecimal.ZERO) <= 0) {
+                return immediateReject("INVALID_PRICE", request);
+            }
+            units = request.amount()
+                    .divide(effectivePricePerUnit, scale, RoundingMode.DOWN);
+            if (units.compareTo(BigDecimal.ZERO) <= 0) {
+                blockers.add("AMOUNT_TOO_SMALL");
+                // Still return a response with zero units so the caller sees the blocker
+                units = BigDecimal.ZERO;
+            }
+        } else {
+            units = request.units();
+        }
+
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
         BigDecimal spreadAmount = units.multiply(basePrice.multiply(effectiveSpread))
                 .setScale(0, RoundingMode.HALF_UP);
         BigDecimal netAmount = previewStrategy.computeOrderCashAmount(grossAmount, fee);
+
+        // Compute remainder for amount-based mode
+        if (computedFromAmount != null && units.compareTo(BigDecimal.ZERO) > 0) {
+            remainder = computedFromAmount.subtract(netAmount);
+            if (remainder.compareTo(BigDecimal.ZERO) < 0) {
+                remainder = BigDecimal.ZERO;
+            }
+        }
 
         // 4. Resolve user and check balances (soft-fail)
         BigDecimal availableBalance = null;
@@ -724,20 +765,30 @@ public class TradingService {
             bondBenefit = bondBenefitService.calculateForPurchase(asset, units, netAmount);
         }
 
+        // 6. Income benefit projections (BUY only, null for bonds and non-income assets)
+        IncomeBenefitProjection incomeBenefit = null;
+        if (request.side() == TradeSide.BUY) {
+            incomeBenefit = incomeBenefitService.calculateForPurchase(
+                    asset, units, basePrice, netAmount);
+        }
+
         return new TradePreviewResponse(
                 blockers.isEmpty(), blockers,
                 asset.getId(), asset.getSymbol(), request.side(), units,
                 basePrice, executionPrice, spread, grossAmount, fee, feePercent, spreadAmount, netAmount,
-                availableBalance, availableUnits, availableSupply, bondBenefit
+                availableBalance, availableUnits, availableSupply,
+                bondBenefit, incomeBenefit, computedFromAmount, remainder
         );
     }
 
     private TradePreviewResponse immediateReject(String blocker, TradePreviewRequest request) {
+        BigDecimal units = request.units() != null ? request.units() : BigDecimal.ZERO;
         return new TradePreviewResponse(
                 false, List.of(blocker),
-                request.assetId(), null, request.side(), request.units(),
+                request.assetId(), null, request.side(), units,
                 null, null, null, null, null, null, null, null,
-                null, null, null, null
+                null, null, null, null, null,
+                request.amount(), null
         );
     }
 

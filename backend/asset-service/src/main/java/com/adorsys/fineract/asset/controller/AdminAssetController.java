@@ -2,9 +2,11 @@ package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.IncomeDistribution;
 import com.adorsys.fineract.asset.entity.InterestPayment;
 import com.adorsys.fineract.asset.entity.PrincipalRedemption;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.IncomeDistributionRepository;
 import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
 import com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository;
 import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
@@ -12,6 +14,8 @@ import com.adorsys.fineract.asset.service.AssetCatalogService;
 import com.adorsys.fineract.asset.service.AssetProvisioningService;
 import com.adorsys.fineract.asset.service.CouponForecastService;
 import com.adorsys.fineract.asset.service.DelistingService;
+import com.adorsys.fineract.asset.service.IncomeForecastService;
+import com.adorsys.fineract.asset.service.IncomeDistributionService;
 import com.adorsys.fineract.asset.service.InventoryService;
 import com.adorsys.fineract.asset.service.PricingService;
 import com.adorsys.fineract.asset.service.PrincipalRedemptionService;
@@ -47,6 +51,9 @@ public class AdminAssetController {
     private final PrincipalRedemptionService principalRedemptionService;
     private final AssetRepository assetRepository;
     private final DelistingService delistingService;
+    private final IncomeDistributionRepository incomeDistributionRepository;
+    private final IncomeForecastService incomeForecastService;
+    private final IncomeDistributionService incomeDistributionService;
 
     @PostMapping
     @Operation(summary = "Create asset", description = "Create a new asset with Fineract provisioning")
@@ -214,6 +221,64 @@ public class AdminAssetController {
         );
     }
 
+    // ── Income distribution endpoints (non-bond assets) ────────────────────
+
+    @GetMapping("/{id}/income-distributions")
+    @Operation(summary = "Income distribution history",
+            description = "Paginated list of income distribution payments for a non-bond asset")
+    public ResponseEntity<Page<IncomeDistributionResponse>> getIncomeHistory(
+            @PathVariable String id,
+            @PageableDefault(size = 20) Pageable pageable) {
+        if (pageable.getPageSize() > 100) {
+            throw new IllegalArgumentException("Max page size is 100");
+        }
+        Page<IncomeDistributionResponse> result = incomeDistributionRepository
+                .findByAssetIdOrderByPaidAtDesc(id, pageable)
+                .map(this::toIncomeDistributionResponse);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}/income-forecast")
+    @Operation(summary = "Income distribution forecast",
+            description = "Shows per-period income obligation, treasury balance, and shortfall for a non-bond asset")
+    public ResponseEntity<IncomeForecastResponse> getIncomeForecast(@PathVariable String id) {
+        return ResponseEntity.ok(incomeForecastService.getForecast(id));
+    }
+
+    @PostMapping("/{id}/income-distributions/trigger")
+    @Operation(summary = "Trigger income distribution",
+            description = "Manually trigger income distribution for a non-bond asset, regardless of nextDistributionDate")
+    public ResponseEntity<IncomeTriggerResponse> triggerIncomeDistribution(@PathVariable String id) {
+        Asset asset = assetRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + id));
+        if (asset.getIncomeType() == null || asset.getIncomeRate() == null) {
+            throw new IllegalArgumentException("Asset " + id + " has no income distribution configured");
+        }
+
+        java.time.LocalDate distributionDate = asset.getNextDistributionDate() != null
+                ? asset.getNextDistributionDate() : java.time.LocalDate.now();
+        incomeDistributionService.processDistribution(asset, distributionDate);
+
+        // Reload to get updated nextDistributionDate
+        Asset updated = assetRepository.findById(id).orElse(asset);
+
+        // Count results from this distribution date
+        var payments = incomeDistributionRepository.findByAssetIdOrderByPaidAtDesc(id,
+                org.springframework.data.domain.Pageable.unpaged()).getContent().stream()
+                .filter(p -> distributionDate.equals(p.getDistributionDate()))
+                .toList();
+        int paid = (int) payments.stream().filter(p -> "SUCCESS".equals(p.getStatus())).count();
+        int failed = (int) payments.stream().filter(p -> "FAILED".equals(p.getStatus())).count();
+        java.math.BigDecimal totalPaid = payments.stream()
+                .filter(p -> "SUCCESS".equals(p.getStatus()))
+                .map(IncomeDistribution::getCashAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        return ResponseEntity.ok(new IncomeTriggerResponse(
+                id, asset.getSymbol(), asset.getIncomeType(), distributionDate,
+                paid, failed, totalPaid, updated.getNextDistributionDate()));
+    }
+
     @PostMapping("/{id}/delist")
     @Operation(summary = "Initiate asset delisting",
             description = "Sets asset to DELISTING status. BUY is blocked, SELL is allowed. Forced buyback occurs on delisting date.")
@@ -229,6 +294,14 @@ public class AdminAssetController {
     public ResponseEntity<Void> cancelDelisting(@PathVariable String id) {
         delistingService.cancelDelisting(id);
         return ResponseEntity.ok().build();
+    }
+
+    private IncomeDistributionResponse toIncomeDistributionResponse(IncomeDistribution d) {
+        return new IncomeDistributionResponse(
+                d.getId(), d.getUserId(), d.getIncomeType(), d.getUnits(),
+                d.getRateApplied(), d.getCashAmount(), d.getFineractTransferId(),
+                d.getStatus(), d.getFailureReason(), d.getPaidAt(), d.getDistributionDate()
+        );
     }
 
     private CouponPaymentResponse toCouponPaymentResponse(InterestPayment ip) {

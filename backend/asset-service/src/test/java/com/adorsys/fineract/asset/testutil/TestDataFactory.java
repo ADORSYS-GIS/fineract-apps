@@ -124,7 +124,8 @@ public final class TestDataFactory {
                 LocalDate.now().plusYears(1),
                 null,
                 TREASURY_CLIENT_ID,
-                null, null, null, null, null, null
+                null, null, null, null, // exposure limits
+                null, null, null, null, null, null // bond fields
         );
     }
 
@@ -145,6 +146,7 @@ public final class TestDataFactory {
                 LocalDate.now().plusYears(1),
                 null,
                 TREASURY_CLIENT_ID,
+                null, null, null, null, // exposure limits
                 "Etat du Sénégal",
                 "SN0000038741",
                 LocalDate.now().plusYears(5),

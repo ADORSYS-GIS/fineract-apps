@@ -365,3 +365,385 @@ Configuration:
 | `archival.batch-size` | `ARCHIVAL_BATCH_SIZE` | 1000 | Rows per batch |
 
 Archived data remains queryable via direct SQL on the archive tables (e.g. `SELECT * FROM trade_log_archive WHERE user_id = 42`).
+
+---
+
+## 11. Exposure Limits
+
+Control risk by setting per-asset limits on trading activity. All fields are optional — `null` or `0` means no limit.
+
+### Fields (set during asset creation or update)
+
+| Field | Description |
+|-------|-------------|
+| `maxPositionPercent` | Max % of totalSupply a single user can hold (e.g. `10.00` = 10%) |
+| `maxOrderSize` | Max units in a single BUY or SELL order |
+| `dailyTradeLimitXaf` | Max XAF value a user can trade per day for this asset |
+
+### Behavior
+
+- **Max Position %**: On BUY, the system checks `(currentHolding + orderUnits) / totalSupply * 100 <= maxPositionPercent`. Rejected with `MAX_POSITION_EXCEEDED`.
+- **Max Order Size**: On BUY or SELL, `orderUnits <= maxOrderSize`. Rejected with `MAX_ORDER_SIZE_EXCEEDED`.
+- **Daily Trade Limit**: On BUY or SELL, `todayVolume + orderXafAmount <= dailyTradeLimitXaf`. Resets at midnight WAT. Rejected with `DAILY_VOLUME_EXCEEDED`.
+
+All limits are soft-checked in trade preview (returned as blockers) and hard-checked during execution.
+
+### Example
+
+```
+PUT /api/admin/assets/{id}
+Body: {
+  "maxPositionPercent": 10.00,
+  "maxOrderSize": 500,
+  "dailyTradeLimitXaf": 5000000
+}
+```
+
+---
+
+## 12. Lock-up Period
+
+Prevent early selling after purchase. Useful for preventing pump-and-dump on newly issued assets.
+
+### Field
+
+| Field | Description |
+|-------|-------------|
+| `lockupDays` | Number of days after first purchase before SELL is allowed. `null` or `0` = no lock-up. |
+
+### Behavior
+
+- Lock-up is measured from the user's **first purchase date** (`firstPurchaseDate` on `UserPosition`).
+- SELL orders are rejected with `LOCKUP_PERIOD_ACTIVE` until `firstPurchaseDate + lockupDays` has passed.
+- Trade preview shows `LOCKUP_PERIOD_ACTIVE` blocker.
+- Lock-up only applies to SELL. BUY is always allowed (subject to other limits).
+
+### Example
+
+```
+POST /api/admin/assets
+Body: { ..., "lockupDays": 30 }
+```
+
+A user who buys on Jan 1 cannot sell until Jan 31.
+
+---
+
+## 13. Income Distribution (Non-Bond Assets)
+
+Non-bond assets (REAL_ESTATE, AGRICULTURE, STOCKS, etc.) can pay periodic income to holders. This is the equivalent of coupons for bonds but based on **current market price** instead of face value.
+
+### Fields
+
+| Field | Description |
+|-------|-------------|
+| `incomeType` | Type: `DIVIDEND`, `RENT`, `HARVEST_YIELD`, or `PROFIT_SHARE`. `null` = no income. |
+| `incomeRate` | Annual income rate as percentage (e.g. `5.0` = 5%) |
+| `distributionFrequencyMonths` | Distribution frequency: `1` (monthly), `3` (quarterly), `6` (semi-annual), `12` (annual) |
+| `nextDistributionDate` | Next scheduled distribution date (auto-advanced after each distribution) |
+
+### Formula
+
+```
+cashAmount = units × currentPrice × (incomeRate / 100) × (frequencyMonths / 12)
+```
+
+**Important**: Unlike bond coupons (which use fixed face value), income distributions use the **current market price** at distribution time. This means actual payouts **vary with price changes** (variable income).
+
+### Scheduler (daily at 00:30 WAT)
+
+For each ACTIVE non-bond asset where `nextDistributionDate <= today` and `incomeType` is set:
+1. Finds all holders with positive units
+2. Calculates income using the formula above with current price
+3. Transfers from treasury XAF account to each holder's XAF account
+4. Records each payment in `income_distributions` (SUCCESS or FAILED)
+5. Advances `nextDistributionDate` by the frequency
+
+### Example — Create Asset with Rental Income
+
+```
+POST /api/admin/assets
+Body: {
+  "name": "Douala Tower Token",
+  "symbol": "DTT",
+  "category": "REAL_ESTATE",
+  "initialPrice": 5000,
+  "totalSupply": 100000,
+  "treasuryClientId": 42,
+  ...,
+  "incomeType": "RENT",
+  "incomeRate": 8.0,
+  "distributionFrequencyMonths": 1,
+  "nextDistributionDate": "2026-04-01"
+}
+```
+
+A holder with 100 units at price 5,000 XAF would receive:
+`100 × 5,000 × (8/100) × (1/12) = 3,333 XAF` monthly.
+
+### Income Types
+
+| Type | Typical Frequency | Variability |
+|------|-------------------|-------------|
+| `DIVIDEND` | Annual or Semi-Annual | Variable (based on market price) |
+| `RENT` | Monthly | Typically fixed (price tends to be stable) |
+| `HARVEST_YIELD` | Semi-Annual | Variable |
+| `PROFIT_SHARE` | Annual | Variable |
+
+---
+
+## 14. Delisting
+
+Remove an asset from the marketplace. Supports a grace period for voluntary selling before forced buyback.
+
+### Initiate Delisting
+
+```
+POST /api/admin/assets/{id}/delist
+Body: {
+  "delistingDate": "2026-06-01",
+  "delistingRedemptionPrice": 5200
+}
+```
+
+- `delistingDate` (required): Date of forced buyback. Until then, the asset is in **DELISTING** status.
+- `delistingRedemptionPrice` (optional): Price for forced buyback. If null, uses last traded price.
+
+### During DELISTING Status
+
+- **BUY orders are blocked** — rejected with `ASSET_DELISTING`
+- **SELL orders remain allowed** — users can voluntarily sell at market price
+- Asset is still visible in the marketplace with a DELISTING badge
+
+### Cancel Delisting
+
+```
+POST /api/admin/assets/{id}/cancel-delist
+```
+
+Returns the asset to **ACTIVE** status. Only possible before the delisting date.
+
+### Forced Buyback (on delisting date)
+
+The scheduler runs daily. When `delistingDate <= today`:
+1. For each holder with positive units, executes a forced SELL at the redemption price
+2. Cash is transferred from treasury to each holder
+3. Asset units are returned to treasury
+4. All positions are closed
+5. Asset status transitions to **DELISTED**
+
+### Lifecycle
+
+```
+ACTIVE → DELISTING → DELISTED
+                  ↗
+           (cancel-delist returns to ACTIVE)
+```
+
+---
+
+## 15. Order Resolution
+
+Admin tools for managing stuck or problematic orders.
+
+### View Orders
+
+```
+GET /api/admin/orders?page=0&size=20
+```
+
+Returns all orders across all users with full details including `status`, `failureReason`, and Fineract batch IDs.
+
+### Order Summary
+
+```
+GET /api/admin/orders/summary
+```
+
+Returns counts: `{ "needsReconciliation": 2, "failed": 5, "manuallyClosed": 1 }`
+
+### Resolve a Stuck Order
+
+```
+POST /api/admin/orders/{id}/resolve
+Body: { "resolution": "Manually verified in Fineract. Transfer completed." }
+```
+
+Transitions orders in `NEEDS_RECONCILIATION` or `FAILED` status to `MANUALLY_CLOSED`. Use this after verifying the order state in Fineract directly.
+
+### Order Statuses
+
+| Status | Meaning |
+|--------|---------|
+| `PENDING` | Created, awaiting lock acquisition |
+| `EXECUTING` | Inside the distributed lock, executing Fineract batch |
+| `FILLED` | Successfully completed |
+| `FAILED` | Fineract batch failed or timeout |
+| `REJECTED` | Validation failed (insufficient funds, inventory, etc.) |
+| `NEEDS_RECONCILIATION` | Timed out during execution — manual verification required |
+| `MANUALLY_CLOSED` | Resolved by admin |
+
+---
+
+## 16. Reconciliation
+
+Detects discrepancies between the asset-service database and Fineract ledger. Complements Order Resolution: orders handle stuck trades, reconciliation handles silent drift.
+
+### Trigger Full Reconciliation
+
+```
+POST /api/admin/reconciliation/trigger
+```
+
+Scans all active assets: compares circulating supply in DB vs. actual Fineract account balances. Returns `{ "discrepancies": 3 }`.
+
+### Trigger Per-Asset Reconciliation
+
+```
+POST /api/admin/reconciliation/trigger/{assetId}
+```
+
+### View Reports
+
+```
+GET /api/admin/reconciliation/reports?status=OPEN&severity=HIGH&page=0&size=20
+```
+
+### Report Severity Levels
+
+| Severity | Meaning |
+|----------|---------|
+| `LOW` | Minor rounding discrepancy (< 1 unit or < 100 XAF) |
+| `MEDIUM` | Moderate discrepancy (1-10 units or 100-10,000 XAF) |
+| `HIGH` | Significant discrepancy (> 10 units or > 10,000 XAF) |
+
+### Acknowledge / Resolve Reports
+
+```
+PATCH /api/admin/reconciliation/reports/{id}/acknowledge?admin=john
+PATCH /api/admin/reconciliation/reports/{id}/resolve?admin=john&notes=Fixed%20via%20manual%20transfer
+```
+
+### Summary
+
+```
+GET /api/admin/reconciliation/summary
+```
+
+Returns `{ "openReports": 5 }`.
+
+### Automated Reconciliation
+
+The reconciliation scheduler runs **daily at 01:00 WAT**. Reports are created automatically for any discrepancies found.
+
+---
+
+## 17. Notifications
+
+The system generates notifications for significant events. Both users and admins receive targeted alerts.
+
+### User Event Types
+
+| Event | Triggered When |
+|-------|---------------|
+| `TRADE_EXECUTED` | A BUY or SELL order is filled |
+| `COUPON_PAID` | Bond coupon payment deposited |
+| `INCOME_PAID` | Non-bond income distribution deposited |
+| `REDEMPTION_COMPLETED` | Bond principal redeemed |
+
+### Admin Event Types
+
+| Event | Triggered When |
+|-------|---------------|
+| `ASSET_STATUS_CHANGED` | Asset transitions status (ACTIVE → HALTED, etc.) |
+| `ORDER_STUCK` | Order remains in EXECUTING for > 5 minutes |
+| `TREASURY_SHORTFALL` | Coupon forecast shows treasury can't cover obligations |
+| `DELISTING_ANNOUNCED` | Asset enters DELISTING status |
+
+### Endpoints
+
+```
+GET  /api/notifications?page=0&size=20        # List notifications
+GET  /api/notifications/unread-count           # Get unread count
+POST /api/notifications/{id}/read              # Mark single as read
+POST /api/notifications/read-all               # Mark all as read
+GET  /api/notifications/preferences            # Get preference toggles
+PUT  /api/notifications/preferences            # Update preferences
+```
+
+### Preferences
+
+Users can toggle which event types generate notifications:
+
+```
+PUT /api/notifications/preferences
+Body: {
+  "tradeExecuted": true,
+  "couponPaid": true,
+  "incomePaid": true,
+  "redemptionCompleted": true,
+  "assetStatusChanged": false,
+  "orderStuck": true,
+  "treasuryShortfall": true,
+  "delistingAnnounced": true
+}
+```
+
+---
+
+## 18. Amount-Based Trade Preview
+
+In addition to specifying units, the trade preview API accepts an XAF **amount**. The system computes the maximum whole units purchasable for that budget (including fees).
+
+### Request (amount mode)
+
+```
+POST /api/trades/preview
+Body: {
+  "assetId": "uuid",
+  "side": "BUY",
+  "amount": 500000
+}
+```
+
+Exactly one of `units` or `amount` must be provided.
+
+### Response (additional fields)
+
+| Field | Description |
+|-------|-------------|
+| `computedFromAmount` | Original XAF amount from the request (null in unit mode) |
+| `remainder` | Leftover XAF that cannot buy another unit (null in unit mode) |
+| `units` | Computed units (max purchasable for the amount) |
+| `incomeBenefit` | Income projections for non-bond assets (null for bonds) |
+
+### Amount → Units Conversion
+
+```
+effectivePricePerUnit = executionPrice × (1 + feePercent)
+units = floor(amount / effectivePricePerUnit, decimalPlaces)
+remainder = amount - netAmount
+```
+
+If the amount is too small to buy even 1 unit, `AMOUNT_TOO_SMALL` is returned as a blocker.
+
+### Income Benefit Projections
+
+For non-bond assets with an income type set, BUY previews include an `incomeBenefit` object:
+
+```json
+{
+  "incomeBenefit": {
+    "incomeType": "RENT",
+    "incomeRate": 8.0,
+    "distributionFrequencyMonths": 1,
+    "nextDistributionDate": "2026-04-01",
+    "incomePerPeriod": 3333,
+    "estimatedAnnualIncome": 39996,
+    "estimatedYieldPercent": 7.82,
+    "variableIncome": true
+  }
+}
+```
+
+`variableIncome` is always `true` for non-bond income — payouts depend on current market price.
