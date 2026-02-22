@@ -1,0 +1,58 @@
+version: "3.8"
+services:
+  # asset-service:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8083:8083"
+  #   environment:
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/asset_service
+  #     SPRING_DATASOURCE_USERNAME: asset_service
+  #     SPRING_DATASOURCE_PASSWORD: password
+  #     REDIS_HOST: redis
+  #     REDIS_PORT: 6379
+  #     FINERACT_URL: https://localhost
+  #     FINERACT_TENANT: default
+  #     FINERACT_AUTH_TYPE: basic
+  #     FINERACT_USERNAME: mifos
+  #     FINERACT_PASSWORD: password
+  #     KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/fineract
+  #     KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/fineract/protocol/openid-connect/certs
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: asset_service
+      POSTGRES_USER: asset_service
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asset_service"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -13,21 +13,41 @@ import { useCreateClient } from "./useCreateClient";
 
 const CreateClientForm: FC = () => {
 	const { t } = useTranslation();
-	useFormContext<CreateClientFormType>();
+	const { values } = useFormContext<CreateClientFormType>();
+	const isPerson = values.legalFormId === "1";
 
 	return (
 		<>
+			<Input
+				name="legalFormId"
+				type="radio"
+				label={t("createClient.clientType.label")}
+				options={[
+					{ label: t("createClient.clientType.person"), value: "1" },
+					{ label: t("createClient.clientType.entity"), value: "2" },
+				]}
+			/>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-				<Input
-					name="firstname"
-					label={t("createClient.firstName.label")}
-					placeholder={t("createClient.firstName.placeholder")}
-				/>
-				<Input
-					name="lastname"
-					label={t("createClient.lastName.label")}
-					placeholder={t("createClient.lastName.placeholder")}
-				/>
+				{isPerson ? (
+					<>
+						<Input
+							name="firstname"
+							label={t("createClient.firstName.label")}
+							placeholder={t("createClient.firstName.placeholder")}
+						/>
+						<Input
+							name="lastname"
+							label={t("createClient.lastName.label")}
+							placeholder={t("createClient.lastName.placeholder")}
+						/>
+					</>
+				) : (
+					<Input
+						name="fullname"
+						label={t("createClient.fullname.label")}
+						placeholder={t("createClient.fullname.placeholder")}
+					/>
+				)}
 				<Input
 					name="emailAddress"
 					label={t("createClient.email.label")}

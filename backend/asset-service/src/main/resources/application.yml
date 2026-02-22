@@ -1,0 +1,197 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: asset-service
+
+  # Database configuration
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/asset_service}
+    username: ${SPRING_DATASOURCE_USERNAME:asset_service}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    hikari:
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:5}
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:20}
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:10000}
+      leak-detection-threshold: ${SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD:60000}
+
+  # JPA configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  # Flyway migrations
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  # Redis configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 1
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/fineract}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/fineract/protocol/openid-connect/certs}
+
+# Application Configuration
+app:
+  fineract:
+    ssl-verify: ${FINERACT_SSL_VERIFY:false}  # Only disable in dev; defaults to true in WebClientConfig
+
+# Fineract Configuration
+fineract:
+  url: ${FINERACT_URL:https://localhost}
+  tenant: ${FINERACT_TENANT:default}
+  auth-type: ${FINERACT_AUTH_TYPE:basic}
+  token-url: ${FINERACT_TOKEN_URL:http://keycloak:8080/realms/fineract/protocol/openid-connect/token}
+  client-id: ${FINERACT_CLIENT_ID:fineract-service}
+  client-secret: ${FINERACT_CLIENT_SECRET:}
+  username: ${FINERACT_USERNAME:mifos}
+  password: ${FINERACT_PASSWORD:password}
+  timeout-seconds: 30
+
+# Asset Service Configuration
+asset-service:
+  settlement-currency: ${SETTLEMENT_CURRENCY:XAF}
+  market-hours:
+    open: "08:00"
+    close: "20:00"
+    timezone: "Africa/Douala"
+    weekend-trading-enabled: false
+  pricing:
+    snapshot-cron: "0 0 * * * *"
+    max-change-percent: 50
+  orders:
+    stale-cleanup-minutes: 30
+  trade-lock:
+    ttl-seconds: 45
+    local-fallback-timeout-seconds: 40
+  accounting:
+    spread-collection-account-id: ${SPREAD_COLLECTION_ACCOUNT_ID:1}
+  rate-limit:
+    trade-limit: ${RATE_LIMIT_TRADE:10}
+    trade-duration-minutes: ${RATE_LIMIT_TRADE_DURATION:1}
+    general-limit: ${RATE_LIMIT_GENERAL:100}
+    general-duration-minutes: ${RATE_LIMIT_GENERAL_DURATION:1}
+  gl-accounts:
+    digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:47}
+    customer-digital-asset-holdings: ${GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS:65}
+    transfers-in-suspense: ${GL_TRANSFERS_IN_SUSPENSE:48}
+    income-from-interest: ${GL_INCOME_FROM_INTEREST:87}
+    expense-account: ${GL_EXPENSE_ACCOUNT:91}
+    asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:Asset Issuance}
+    fee-income: ${GL_FEE_INCOME:87}
+    fund-source: ${GL_FUND_SOURCE:42}
+  archival:
+    retention-months: ${ARCHIVAL_RETENTION_MONTHS:12}
+    batch-size: ${ARCHIVAL_BATCH_SIZE:1000}
+  portfolio:
+    snapshot-cron: "0 30 20 * * *"
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      fineract:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        recordExceptions:
+          - com.adorsys.fineract.asset.exception.AssetException
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+  timelimiter:
+    instances:
+      fineract:
+        timeoutDuration: 30s
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.adorsys.fineract.asset: DEBUG
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+---
+# Kubernetes Profile
+spring:
+  config:
+    activate:
+      on-profile: kubernetes
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract
+          jwk-set-uri: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/certs
+
+  data:
+    redis:
+      host: redis.fineract.svc.cluster.local
+
+fineract:
+  url: http://fineract.fineract.svc.cluster.local:8443/fineract-provider
+  token-url: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/token
+
+logging:
+  level:
+    root: INFO
+    com.adorsys.fineract.asset: INFO
+
+# Enable OTLP tracing
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}

@@ -2,6 +2,7 @@ package com.adorsys.fineract.registration.service;
 
 import com.adorsys.fineract.registration.dto.*;
 import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -21,6 +22,7 @@ public class KycReviewService {
 
     private final KeycloakService keycloakService;
     private final FineractService fineractService;
+    private final RegistrationMetrics registrationMetrics;
 
     /**
      * Get statistics for KYC reviews.
@@ -151,6 +153,12 @@ public class KycReviewService {
             throw new RegistrationException("NOT_FOUND", "Submission not found", "externalId");
         }
 
+        // Pre-condition: only allow approval if status is under_review
+        String currentStatus = getKycStatus(userOpt.get());
+        if ("approved".equals(currentStatus) || "rejected".equals(currentStatus)) {
+            throw new RegistrationException("CONFLICT", "Submission has already been reviewed (status: " + currentStatus + ")", "externalId");
+        }
+
         // Update Keycloak user attributes
         Map<String, List<String>> updates = new HashMap<>();
         updates.put("kyc_tier", List.of(String.valueOf(request.getNewTier())));
@@ -161,10 +169,14 @@ public class KycReviewService {
             updates.put("kyc_review_notes", List.of(request.getNotes()));
         }
 
+        // Append to audit trail
+        appendAuditEntry(userOpt.get(), updates, "approved", reviewerName,
+                request.getNotes() != null ? request.getNotes() : "");
+
         keycloakService.updateUserAttributes(userOpt.get().getId(), updates);
 
+        registrationMetrics.incrementKycReview("approved");
         log.info("KYC approved: externalId={}, newTier={}", externalId, request.getNewTier());
-
     }
 
     /**
@@ -178,6 +190,12 @@ public class KycReviewService {
             throw new RegistrationException("NOT_FOUND", "Submission not found", "externalId");
         }
 
+        // Pre-condition: only allow rejection if status is under_review
+        String currentStatus = getKycStatus(userOpt.get());
+        if ("approved".equals(currentStatus) || "rejected".equals(currentStatus)) {
+            throw new RegistrationException("CONFLICT", "Submission has already been reviewed (status: " + currentStatus + ")", "externalId");
+        }
+
         // Update Keycloak user attributes
         Map<String, List<String>> updates = new HashMap<>();
         updates.put("kyc_status", List.of("rejected"));
@@ -188,8 +206,12 @@ public class KycReviewService {
             updates.put("kyc_review_notes", List.of(request.getNotes()));
         }
 
+        // Append to audit trail
+        appendAuditEntry(userOpt.get(), updates, "rejected", reviewerName, request.getReason());
+
         keycloakService.updateUserAttributes(userOpt.get().getId(), updates);
 
+        registrationMetrics.incrementKycReview("rejected");
         log.info("KYC rejected: externalId={}, reason={}", externalId, request.getReason());
     }
 
@@ -210,9 +232,35 @@ public class KycReviewService {
 
         keycloakService.updateUserAttributes(userOpt.get().getId(), updates);
 
+        registrationMetrics.incrementKycReview("more_info");
         log.info("More info requested: externalId={}", externalId);
 
         // TODO: Send email notification to customer
+    }
+
+    /**
+     * Append a review action to the audit trail stored in Keycloak attributes.
+     * The audit trail is a semicolon-separated list of entries in the format:
+     * "timestamp|action|reviewer|notes"
+     */
+    private void appendAuditEntry(UserRepresentation user, Map<String, List<String>> updates,
+                                   String action, String reviewerName, String notes) {
+        Map<String, List<String>> attrs = user.getAttributes() != null ? user.getAttributes() : Collections.emptyMap();
+        String existingAudit = getAttr(attrs, "kyc_audit_trail", "");
+
+        String entry = String.format("%s|%s|%s|%s",
+                Instant.now().toString(), action, reviewerName,
+                notes != null ? notes.replace("|", " ").replace(";", " ") : "");
+
+        String newAudit = existingAudit.isEmpty() ? entry : existingAudit + ";" + entry;
+
+        // Keep only last 20 entries to prevent unbounded growth
+        String[] entries = newAudit.split(";");
+        if (entries.length > 20) {
+            newAudit = String.join(";", java.util.Arrays.copyOfRange(entries, entries.length - 20, entries.length));
+        }
+
+        updates.put("kyc_audit_trail", List.of(newAudit));
     }
 
     private KycSubmissionSummary toSummary(UserRepresentation user) {

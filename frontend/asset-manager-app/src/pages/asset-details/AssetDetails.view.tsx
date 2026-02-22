@@ -1,0 +1,713 @@
+import { Button, Card } from "@fineract-apps/ui";
+import { Link } from "@tanstack/react-router";
+import {
+	AlertTriangle,
+	Banknote,
+	BarChart3,
+	Pause,
+	Pencil,
+	Play,
+	Plus,
+	Power,
+	Trash2,
+	TrendingDown,
+	TrendingUp,
+	XCircle,
+} from "lucide-react";
+import { FC, useState } from "react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { CouponForecastCard } from "@/components/CouponForecastCard";
+import { CouponHistoryTable } from "@/components/CouponHistoryTable";
+import { DelistDialog } from "@/components/DelistDialog";
+import { EditAssetDialog } from "@/components/EditAssetDialog";
+import { ErrorFallback } from "@/components/ErrorFallback";
+import { IncomeForecastCard } from "@/components/IncomeForecastCard";
+import { IncomeHistoryTable } from "@/components/IncomeHistoryTable";
+import { MintSupplyDialog } from "@/components/MintSupplyDialog";
+import { RedemptionHistoryTable } from "@/components/RedemptionHistoryTable";
+import { StatusBadge } from "@/components/StatusBadge";
+import { useAssetDetails } from "./useAssetDetails";
+
+const INCOME_TYPE_LABELS: Record<string, string> = {
+	DIVIDEND: "Dividend",
+	RENT: "Rental Income",
+	HARVEST_YIELD: "Harvest Yield",
+	PROFIT_SHARE: "Profit Share",
+};
+
+/** Whether the income type is variable (based on market price) or typically fixed. */
+const INCOME_VARIABILITY: Record<string, { label: string; variable: boolean }> =
+	{
+		DIVIDEND: { label: "Variable", variable: true },
+		RENT: { label: "Typically Fixed", variable: false },
+		HARVEST_YIELD: { label: "Variable", variable: true },
+		PROFIT_SHARE: { label: "Variable", variable: true },
+	};
+
+const FREQ_LABELS: Record<number, string> = {
+	1: "Monthly",
+	3: "Quarterly",
+	6: "Semi-Annual",
+	12: "Annual",
+};
+
+export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
+	assetId,
+	asset,
+	isLoading,
+	isError,
+	refetch,
+	price,
+	onUpdate,
+	onActivate,
+	onHalt,
+	onResume,
+	onMint,
+	onRedeem,
+	onDelist,
+	onCancelDelist,
+	isUpdating,
+	isActivating,
+	isHalting,
+	isResuming,
+	isMinting,
+	isRedeeming,
+	isDelisting,
+	isCancellingDelist,
+}) => {
+	const [confirmAction, setConfirmAction] = useState<
+		"activate" | "halt" | "resume" | "redeem" | "cancel-delist" | null
+	>(null);
+	const [editOpen, setEditOpen] = useState(false);
+	const [mintOpen, setMintOpen] = useState(false);
+	const [delistOpen, setDelistOpen] = useState(false);
+	const accountManagerUrl =
+		import.meta.env.VITE_ACCOUNT_MANAGER_URL || "/account";
+
+	if (isError) {
+		return (
+			<ErrorFallback
+				message="Failed to load asset details."
+				onRetry={refetch}
+			/>
+		);
+	}
+
+	if (isLoading || !asset) {
+		return (
+			<div className="flex items-center justify-center min-h-screen">
+				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+			</div>
+		);
+	}
+
+	return (
+		<div className="bg-gray-50 min-h-screen">
+			<main className="p-4 sm:p-6 lg:p-8">
+				{/* Header */}
+				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+					<div>
+						<div className="flex items-center gap-3">
+							<h1 className="text-2xl font-bold text-gray-800">{asset.name}</h1>
+							<StatusBadge status={asset.status} />
+						</div>
+						<p className="text-sm text-gray-500 mt-1">
+							{asset.symbol} | {asset.category} | ID: {asset.id}
+						</p>
+						{asset.treasuryClientName && (
+							<p className="text-xs text-gray-400 mt-0.5">
+								Managed by {asset.treasuryClientName}
+							</p>
+						)}
+					</div>
+					<div className="flex gap-2 flex-wrap">
+						{asset.status === "PENDING" && (
+							<Button
+								onClick={() => setConfirmAction("activate")}
+								disabled={isActivating}
+								className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+							>
+								{isActivating ? (
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+								) : (
+									<Power className="h-4 w-4" />
+								)}
+								{isActivating ? "Activating..." : "Activate"}
+							</Button>
+						)}
+						{asset.status === "ACTIVE" && (
+							<Button
+								onClick={() => setConfirmAction("halt")}
+								disabled={isHalting}
+								variant="outline"
+								className="flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50"
+							>
+								{isHalting ? (
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600" />
+								) : (
+									<Pause className="h-4 w-4" />
+								)}
+								{isHalting ? "Halting..." : "Halt Trading"}
+							</Button>
+						)}
+						{asset.status === "HALTED" && (
+							<Button
+								onClick={() => setConfirmAction("resume")}
+								disabled={isResuming}
+								className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+							>
+								{isResuming ? (
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+								) : (
+									<Play className="h-4 w-4" />
+								)}
+								{isResuming ? "Resuming..." : "Resume Trading"}
+							</Button>
+						)}
+						{asset.status === "MATURED" && asset.category === "BONDS" && (
+							<Button
+								onClick={() => setConfirmAction("redeem")}
+								disabled={isRedeeming}
+								className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+							>
+								{isRedeeming ? (
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+								) : (
+									<Banknote className="h-4 w-4" />
+								)}
+								{isRedeeming ? "Redeeming..." : "Redeem Bond"}
+							</Button>
+						)}
+						{(asset.status === "ACTIVE" || asset.status === "HALTED") && (
+							<Button
+								onClick={() => setDelistOpen(true)}
+								disabled={isDelisting}
+								variant="outline"
+								className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50"
+							>
+								<Trash2 className="h-4 w-4" />
+								{isDelisting ? "Delisting..." : "Delist Asset"}
+							</Button>
+						)}
+						{asset.status === "DELISTING" && (
+							<Button
+								onClick={() => setConfirmAction("cancel-delist")}
+								disabled={isCancellingDelist}
+								variant="outline"
+								className="flex items-center gap-2 text-green-600 border-green-300 hover:bg-green-50"
+							>
+								<XCircle className="h-4 w-4" />
+								{isCancellingDelist ? "Cancelling..." : "Cancel Delisting"}
+							</Button>
+						)}
+						<Button
+							variant="outline"
+							className="flex items-center gap-2"
+							onClick={() => setEditOpen(true)}
+						>
+							<Pencil className="h-4 w-4" />
+							Edit
+						</Button>
+						{asset.status !== "PENDING" && (
+							<Button
+								variant="outline"
+								className="flex items-center gap-2 text-green-600 border-green-300 hover:bg-green-50"
+								onClick={() => setMintOpen(true)}
+							>
+								<Plus className="h-4 w-4" />
+								Mint Supply
+							</Button>
+						)}
+						<Link to="/pricing/$assetId" params={{ assetId }}>
+							<Button variant="outline" className="flex items-center gap-2">
+								<BarChart3 className="h-4 w-4" />
+								Pricing
+							</Button>
+						</Link>
+					</div>
+				</div>
+
+				{/* Delisting Warning Banner */}
+				{asset.status === "DELISTING" && (
+					<div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+						<AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+						<div>
+							<p className="text-sm font-medium text-orange-800">
+								This asset is being delisted
+								{asset.delistingDate ? ` on ${asset.delistingDate}` : ""}.
+							</p>
+							<p className="text-sm text-orange-700 mt-1">
+								Only SELL orders are accepted. On the delisting date, remaining
+								holders will be force-bought out
+								{asset.delistingRedemptionPrice
+									? ` at ${asset.delistingRedemptionPrice.toLocaleString()} XAF per unit`
+									: " at the last traded price"}
+								.
+							</p>
+						</div>
+					</div>
+				)}
+
+				{/* Stats Cards */}
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+					<Card className="p-4">
+						<p className="text-sm text-gray-500">Current Price</p>
+						<p className="text-2xl font-bold text-gray-900">
+							{price?.currentPrice?.toLocaleString() ??
+								asset.currentPrice?.toLocaleString() ??
+								"—"}{" "}
+							XAF
+						</p>
+						<div className="flex items-center mt-1">
+							{(price?.change24hPercent ?? 0) >= 0 ? (
+								<TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+							) : (
+								<TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+							)}
+							<span
+								className={`text-sm ${
+									(price?.change24hPercent ?? 0) >= 0
+										? "text-green-600"
+										: "text-red-600"
+								}`}
+							>
+								{(price?.change24hPercent ?? 0).toFixed(2)}%
+							</span>
+						</div>
+						{(asset.bidPrice != null || asset.askPrice != null) && (
+							<div className="flex gap-3 mt-2 text-xs">
+								<span className="text-red-600">
+									Bid: {asset.bidPrice?.toLocaleString() ?? "—"}
+								</span>
+								<span className="text-green-600">
+									Ask: {asset.askPrice?.toLocaleString() ?? "—"}
+								</span>
+							</div>
+						)}
+					</Card>
+					<Card className="p-4">
+						<p className="text-sm text-gray-500">Total Supply</p>
+						<p className="text-2xl font-bold text-gray-900">
+							{asset.totalSupply?.toLocaleString()}
+						</p>
+						<p className="text-sm text-gray-400 mt-1">units</p>
+					</Card>
+					<Card className="p-4">
+						<p className="text-sm text-gray-500">Circulating</p>
+						<p className="text-2xl font-bold text-gray-900">
+							{asset.circulatingSupply?.toLocaleString()}
+						</p>
+						<p className="text-sm text-gray-400 mt-1">
+							{asset.totalSupply > 0
+								? `${((asset.circulatingSupply / asset.totalSupply) * 100).toFixed(1)}% of supply`
+								: ""}
+						</p>
+					</Card>
+				</div>
+
+				{/* Subscription Period (all categories) */}
+				<Card className="p-4 mb-6">
+					<h2 className="text-lg font-semibold text-gray-800 mb-3">
+						Subscription Period
+					</h2>
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+						<div>
+							<p className="text-gray-500">Start Date</p>
+							<p className="font-medium">
+								{asset.subscriptionStartDate ?? "—"}
+							</p>
+						</div>
+						<div>
+							<p className="text-gray-500">End Date</p>
+							<p className="font-medium">
+								{asset.subscriptionEndDate ?? "—"}
+								{asset.subscriptionClosed && (
+									<span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+										Closed
+									</span>
+								)}
+							</p>
+						</div>
+						{asset.capitalOpenedPercent != null && (
+							<div>
+								<p className="text-gray-500">Capital Opened</p>
+								<p className="font-medium">{asset.capitalOpenedPercent}%</p>
+							</div>
+						)}
+					</div>
+				</Card>
+
+				{/* Trading Limits & Lock-up */}
+				{(asset.maxPositionPercent != null ||
+					asset.maxOrderSize != null ||
+					asset.dailyTradeLimitXaf != null ||
+					asset.lockupDays != null) && (
+					<Card className="p-4 mb-6">
+						<h2 className="text-lg font-semibold text-gray-800 mb-3">
+							Trading Limits
+						</h2>
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+							{asset.maxPositionPercent != null && (
+								<div>
+									<p className="text-gray-500">Max Position</p>
+									<p className="font-medium">
+										{asset.maxPositionPercent}% of supply
+									</p>
+								</div>
+							)}
+							{asset.maxOrderSize != null && (
+								<div>
+									<p className="text-gray-500">Max Order Size</p>
+									<p className="font-medium">
+										{asset.maxOrderSize.toLocaleString()} units
+									</p>
+								</div>
+							)}
+							{asset.dailyTradeLimitXaf != null && (
+								<div>
+									<p className="text-gray-500">Daily Trade Limit</p>
+									<p className="font-medium">
+										{asset.dailyTradeLimitXaf.toLocaleString()} XAF
+									</p>
+								</div>
+							)}
+							{asset.lockupDays != null && (
+								<div>
+									<p className="text-gray-500">Lock-up Period</p>
+									<p className="font-medium">{asset.lockupDays} days</p>
+								</div>
+							)}
+						</div>
+					</Card>
+				)}
+
+				{/* Income Distribution (non-bond assets) */}
+				{asset.category !== "BONDS" && (
+					<Card className="p-4 mb-6">
+						<h2 className="text-lg font-semibold text-gray-800 mb-3">
+							Income Distribution
+						</h2>
+						{asset.incomeType ? (
+							<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+								<div>
+									<p className="text-gray-500">Income Type</p>
+									<p className="font-medium">
+										{INCOME_TYPE_LABELS[asset.incomeType] ?? asset.incomeType}
+										{INCOME_VARIABILITY[asset.incomeType] && (
+											<span
+												className={`ml-2 inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
+													INCOME_VARIABILITY[asset.incomeType].variable
+														? "bg-amber-100 text-amber-700"
+														: "bg-green-100 text-green-700"
+												}`}
+											>
+												{INCOME_VARIABILITY[asset.incomeType].label}
+											</span>
+										)}
+									</p>
+								</div>
+								{asset.incomeRate != null && (
+									<div>
+										<p className="text-gray-500">Income Rate</p>
+										<p className="font-medium">{asset.incomeRate}%</p>
+									</div>
+								)}
+								{asset.distributionFrequencyMonths != null && (
+									<div>
+										<p className="text-gray-500">Frequency</p>
+										<p className="font-medium">
+											{FREQ_LABELS[asset.distributionFrequencyMonths] ??
+												`Every ${asset.distributionFrequencyMonths} months`}
+										</p>
+									</div>
+								)}
+								{asset.nextDistributionDate && (
+									<div>
+										<p className="text-gray-500">Next Distribution</p>
+										<p className="font-medium">{asset.nextDistributionDate}</p>
+									</div>
+								)}
+							</div>
+						) : (
+							<p className="text-sm text-gray-400">
+								Not configured. Use the Edit button to set income type, rate,
+								and frequency.
+							</p>
+						)}
+					</Card>
+				)}
+
+				{/* Income Forecast & History (non-bond assets with income) */}
+				{asset.category !== "BONDS" && asset.incomeType && (
+					<>
+						<IncomeForecastCard assetId={assetId} />
+						<IncomeHistoryTable assetId={assetId} />
+					</>
+				)}
+
+				{/* Bond Information */}
+				{asset.category === "BONDS" && (
+					<Card className="p-4 mb-6">
+						<h2 className="text-lg font-semibold text-gray-800 mb-3">
+							Bond Information
+						</h2>
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+							<div>
+								<p className="text-gray-500">Issuer</p>
+								<p className="font-medium">{asset.issuer ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">ISIN</p>
+								<p className="font-medium font-mono">{asset.isinCode ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Maturity Date</p>
+								<p className="font-medium">{asset.maturityDate ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Yield</p>
+								<p className="font-medium">
+									{asset.interestRate != null ? `${asset.interestRate}%` : "—"}
+								</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Coupon Frequency</p>
+								<p className="font-medium">
+									{asset.couponFrequencyMonths === 1
+										? "Monthly"
+										: asset.couponFrequencyMonths === 3
+											? "Quarterly"
+											: asset.couponFrequencyMonths === 6
+												? "Semi-Annual"
+												: asset.couponFrequencyMonths === 12
+													? "Annual"
+													: "—"}
+								</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Next Coupon</p>
+								<p className="font-medium">{asset.nextCouponDate ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Residual Days</p>
+								<p className="font-medium">
+									{asset.residualDays != null
+										? `${asset.residualDays} days`
+										: "—"}
+								</p>
+							</div>
+						</div>
+					</Card>
+				)}
+
+				{/* Coupon Obligation Forecast */}
+				{asset.category === "BONDS" && <CouponForecastCard assetId={assetId} />}
+
+				{/* Coupon Payment History */}
+				{asset.category === "BONDS" && <CouponHistoryTable assetId={assetId} />}
+
+				{/* Principal Redemption History (only for matured/redeemed bonds) */}
+				{asset.category === "BONDS" &&
+					(asset.status === "MATURED" || asset.status === "REDEEMED") && (
+						<RedemptionHistoryTable assetId={assetId} />
+					)}
+
+				{/* Asset Overview */}
+				<Card className="p-4 mb-6">
+					<h2 className="text-lg font-semibold text-gray-800 mb-3">
+						Asset Overview
+					</h2>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+						<div>
+							<span className="text-gray-500">Currency Code:</span>{" "}
+							<span className="font-medium">{asset.currencyCode}</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Price Mode:</span>{" "}
+							<span className="font-medium">{asset.priceMode}</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Decimal Places:</span>{" "}
+							<span className="font-medium">{asset.decimalPlaces}</span>
+						</div>
+						<div>
+							<span className="text-gray-500">Created:</span>{" "}
+							<span className="font-medium">
+								{new Date(asset.createdAt).toLocaleDateString()}
+							</span>
+						</div>
+						{asset.description && (
+							<div className="md:col-span-2">
+								<span className="text-gray-500">Description:</span>{" "}
+								<span className="font-medium">{asset.description}</span>
+							</div>
+						)}
+					</div>
+				</Card>
+
+				{/* Fineract Integration */}
+				<Card className="p-4">
+					<h2 className="text-lg font-semibold text-gray-800 mb-3">
+						Fineract Integration
+					</h2>
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+						<div>
+							<p className="text-gray-500 text-xs">Savings Product</p>
+							<p className="font-medium">{asset.fineractProductName ?? "—"}</p>
+							<p className="text-xs text-gray-400">
+								ID: {asset.fineractProductId ?? "—"}
+							</p>
+						</div>
+						<div>
+							<p className="text-gray-500 text-xs">Treasury Client</p>
+							<p className="font-medium">{asset.treasuryClientName ?? "—"}</p>
+							{asset.treasuryClientId ? (
+								<a
+									href={`${accountManagerUrl}/client-details/${asset.treasuryClientId}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+								>
+									ID: {asset.treasuryClientId} ↗
+								</a>
+							) : (
+								<p className="text-xs text-gray-400">ID: —</p>
+							)}
+						</div>
+						<div>
+							<p className="text-gray-500 text-xs">Asset Account</p>
+							<p className="font-medium">Token Holdings</p>
+							{asset.treasuryAssetAccountId ? (
+								<a
+									href={`${accountManagerUrl}/savings-account-details/${asset.treasuryAssetAccountId}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+								>
+									ID: {asset.treasuryAssetAccountId} ↗
+								</a>
+							) : (
+								<p className="text-xs text-gray-400">ID: —</p>
+							)}
+						</div>
+						<div>
+							<p className="text-gray-500 text-xs">Cash Account</p>
+							<p className="font-medium">Cash ({asset.currencyCode})</p>
+							{asset.treasuryCashAccountId ? (
+								<a
+									href={`${accountManagerUrl}/savings-account-details/${asset.treasuryCashAccountId}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+								>
+									ID: {asset.treasuryCashAccountId} ↗
+								</a>
+							) : (
+								<p className="text-xs text-gray-400">ID: —</p>
+							)}
+						</div>
+					</div>
+				</Card>
+			</main>
+
+			{/* Confirmation Dialogs */}
+			<ConfirmDialog
+				isOpen={confirmAction === "activate"}
+				title="Activate Asset"
+				message={`Are you sure you want to activate "${asset.name}"? This will open it for trading.`}
+				confirmLabel="Activate"
+				confirmClassName="bg-green-600 hover:bg-green-700"
+				onConfirm={() => {
+					onActivate();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isActivating}
+			/>
+			<ConfirmDialog
+				isOpen={confirmAction === "halt"}
+				title="Halt Trading"
+				message={`Are you sure you want to halt trading for "${asset.name}"? No buys or sells will be possible until resumed.`}
+				confirmLabel="Halt Trading"
+				confirmClassName="bg-red-600 hover:bg-red-700"
+				onConfirm={() => {
+					onHalt();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isHalting}
+			/>
+			<ConfirmDialog
+				isOpen={confirmAction === "resume"}
+				title="Resume Trading"
+				message={`Are you sure you want to resume trading for "${asset.name}"?`}
+				confirmLabel="Resume"
+				confirmClassName="bg-green-600 hover:bg-green-700"
+				onConfirm={() => {
+					onResume();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isResuming}
+			/>
+			<ConfirmDialog
+				isOpen={confirmAction === "redeem"}
+				title="Redeem Bond Principal"
+				message={`This will pay the face value to all holders of "${asset.name}" and return their asset units to treasury. No fees will be charged. This action cannot be undone.`}
+				confirmLabel="Redeem Bond"
+				confirmClassName="bg-purple-600 hover:bg-purple-700"
+				onConfirm={() => {
+					onRedeem();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isRedeeming}
+			/>
+			<EditAssetDialog
+				isOpen={editOpen}
+				asset={asset}
+				onSubmit={(data) => {
+					onUpdate(data);
+					setEditOpen(false);
+				}}
+				onCancel={() => setEditOpen(false)}
+				isLoading={isUpdating}
+			/>
+			<MintSupplyDialog
+				isOpen={mintOpen}
+				currentSupply={asset.totalSupply}
+				assetSymbol={asset.symbol}
+				onSubmit={(data) => {
+					onMint(data);
+					setMintOpen(false);
+				}}
+				onCancel={() => setMintOpen(false)}
+				isLoading={isMinting}
+			/>
+			<ConfirmDialog
+				isOpen={confirmAction === "cancel-delist"}
+				title="Cancel Delisting"
+				message={`Are you sure you want to cancel the delisting of "${asset.name}"? The asset will return to ACTIVE status and BUY orders will be allowed again.`}
+				confirmLabel="Cancel Delisting"
+				confirmClassName="bg-green-600 hover:bg-green-700"
+				onConfirm={() => {
+					onCancelDelist();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isCancellingDelist}
+			/>
+			<DelistDialog
+				isOpen={delistOpen}
+				assetName={asset.name}
+				currentPrice={asset.currentPrice}
+				onSubmit={(data) => {
+					onDelist(data);
+					setDelistOpen(false);
+				}}
+				onCancel={() => setDelistOpen(false)}
+				isLoading={isDelisting}
+			/>
+		</div>
+	);
+};

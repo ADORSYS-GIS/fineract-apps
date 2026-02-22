@@ -13,6 +13,8 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import com.adorsys.fineract.gateway.service.TokenCacheService;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
@@ -20,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Client for CinetPay API.
@@ -45,15 +46,15 @@ public class CinetPayClient {
     private final CinetPayConfig config;
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
+    private final TokenCacheService tokenCacheService;
 
-    public CinetPayClient(CinetPayConfig config, @Qualifier("cinetpayWebClient") WebClient webClient, ObjectMapper objectMapper) {
+    public CinetPayClient(CinetPayConfig config, @Qualifier("cinetpayWebClient") WebClient webClient,
+                           ObjectMapper objectMapper, TokenCacheService tokenCacheService) {
         this.config = config;
         this.webClient = webClient;
         this.objectMapper = objectMapper;
+        this.tokenCacheService = tokenCacheService;
     }
-
-    // Token cache for transfer API (5 min TTL)
-    private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
 
     /**
      * Initialize a payment (deposit).
@@ -75,7 +76,7 @@ public class CinetPayClient {
             Map.entry("apikey", config.getApiKey()),
             Map.entry("site_id", config.getSiteId()),
             Map.entry("transaction_id", transactionId),
-            Map.entry("amount", amount.intValue()),
+            Map.entry("amount", amount.longValue()),
             Map.entry("currency", config.getCurrency()),
             Map.entry("description", description),
             Map.entry("customer_phone_number", normalizedPhone),
@@ -154,7 +155,7 @@ public class CinetPayClient {
 
         Map<String, Object> requestBody = Map.of(
             "transaction_id", transactionId,
-            "amount", amount.intValue(),
+            "amount", amount.longValue(),
             "currency", config.getCurrency(),
             "prefix", prefix,
             "phone", number,
@@ -265,10 +266,10 @@ public class CinetPayClient {
             return false;
         }
 
-        // Check if Secret Key is configured
+        // Fail-closed: reject callbacks when secret key is not configured
         if (config.getSecretKey() == null || config.getSecretKey().isEmpty()) {
-            log.warn("CinetPay Secret Key is not configured. Skipping HMAC validation.");
-            return true; // Allow if not configured, to avoid blocking payments
+            log.error("CinetPay Secret Key is not configured. Rejecting callback for security.");
+            return false;
         }
 
         // Check X-Token presence
@@ -302,7 +303,9 @@ public class CinetPayClient {
             log.debug("Verifying CinetPay HMAC. Data: {}", dataToSign);
 
             String generatedToken = generateHmacSha256(dataToSign, config.getSecretKey());
-            boolean valid = generatedToken.equalsIgnoreCase(callback.getXToken());
+            boolean valid = java.security.MessageDigest.isEqual(
+                generatedToken.toLowerCase().getBytes(StandardCharsets.UTF_8),
+                callback.getXToken().toLowerCase().getBytes(StandardCharsets.UTF_8));
 
             if (!valid) {
                 log.error("CinetPay HMAC validation failed. Received: {}, Generated: {}", callback.getXToken(), generatedToken);
@@ -321,68 +324,51 @@ public class CinetPayClient {
      * Get auth token for transfer API. Tokens have 5 minute TTL.
      */
     private String getAuthToken() {
-        TokenInfo cached = tokenCache.get("default");
+        String cacheKey = "cinetpay:transfer";
 
-        if (cached != null && !cached.isExpired()) {
-            return cached.token;
-        }
+        return tokenCacheService.getToken(cacheKey).orElseGet(() -> {
+            try {
+                Map<String, Object> response = WebClient.builder()
+                    .baseUrl(config.getTransferUrl())
+                    .build()
+                    .post()
+                    .uri("/v1/auth/login")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(BodyInserters.fromFormData("apikey", config.getApiKey())
+                            .with("password", config.getTransferPassword()))
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(10))
+                    .block();
 
-        try {
-            Map<String, Object> response = WebClient.builder()
-                .baseUrl(config.getTransferUrl())
-                .build()
-                .post()
-                .uri("/v1/auth/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(BodyInserters.fromFormData("apikey", config.getApiKey())
-                        .with("password", config.getTransferPassword()))
-                .retrieve()
-                .bodyToMono(Map.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
+                String code = String.valueOf(response.get("code"));
+                if (!"0".equals(code)) {
+                    throw new PaymentException("CinetPay auth failed: " + response.get("message"));
+                }
 
-            String code = String.valueOf(response.get("code"));
-            if (!"0".equals(code)) {
-                throw new PaymentException("CinetPay auth failed: " + response.get("message"));
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) response.get("data");
+                String token = (String) data.get("token");
+
+                // Cache for 4 minutes (tokens expire in 5 minutes)
+                tokenCacheService.putToken(cacheKey, token, 240);
+
+                return token;
+
+            } catch (PaymentException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("Failed to get CinetPay auth token: {}", e.getMessage());
+                throw new PaymentException("Failed to authenticate with CinetPay", e);
             }
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = (Map<String, Object>) response.get("data");
-            String token = (String) data.get("token");
-
-            // Cache for 4 minutes (tokens expire in 5 minutes)
-            tokenCache.put("default", new TokenInfo(token,
-                System.currentTimeMillis() + (4 * 60 * 1000L)));
-
-            return token;
-
-        } catch (PaymentException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to get CinetPay auth token: {}", e.getMessage());
-            throw new PaymentException("Failed to authenticate with CinetPay", e);
-        }
+        });
     }
 
     /**
      * Normalize phone number to Cameroon format (237XXXXXXXXX).
      */
     public String normalizePhoneNumber(String phoneNumber) {
-        if (phoneNumber == null) {
-            return null;
-        }
-
-        String normalized = phoneNumber.replaceAll("[\\s\\-+]", "");
-
-        if (!normalized.startsWith("237")) {
-            if (normalized.startsWith("0")) {
-                normalized = "237" + normalized.substring(1);
-            } else {
-                normalized = "237" + normalized;
-            }
-        }
-
-        return normalized;
+        return com.adorsys.fineract.gateway.util.PhoneNumberUtils.normalizePhoneNumber(phoneNumber);
     }
 
     private PaymentStatus mapCinetPayStatus(String code) {
@@ -406,10 +392,4 @@ public class CinetPayClient {
     }
 
     public record PaymentInitResponse(String paymentUrl, String paymentToken) {}
-
-    private record TokenInfo(String token, long expiresAt) {
-        boolean isExpired() {
-            return System.currentTimeMillis() >= expiresAt;
-        }
-    }
 }

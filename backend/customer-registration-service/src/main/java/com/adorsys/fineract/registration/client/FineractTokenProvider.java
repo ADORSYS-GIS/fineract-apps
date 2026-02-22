@@ -27,6 +27,7 @@ public class FineractTokenProvider {
     private final FineractConfig config;
 
     private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
+    private volatile RestClient tokenClient;
 
     private static final String CACHE_KEY = "fineract";
     private static final long EXPIRATION_BUFFER_MS = 60_000; // 60 seconds buffer
@@ -71,18 +72,15 @@ public class FineractTokenProvider {
         try {
             String requestBody = buildTokenRequestBody();
 
-            // Create a simple RestClient for token endpoint
-            RestClient tokenClient = RestClient.builder()
-                    .baseUrl(config.getTokenUrl())
-                    .build();
-
-            Map<String, Object> response = tokenClient.post()
+            Map<String, Object> response = getTokenClient().post()
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(requestBody)
                     .retrieve()
                     .body(Map.class);
 
-            log.info("Received response from Keycloak: {}", response);
+            log.debug("Received token response from Keycloak (token_type={}, expires_in={})",
+                    response != null ? response.get("token_type") : "null",
+                    response != null ? response.get("expires_in") : "null");
 
             if (response == null) {
                 throw new RuntimeException("Empty response from token endpoint");
@@ -104,15 +102,22 @@ public class FineractTokenProvider {
             long expiresAt = System.currentTimeMillis() + (expiresIn * 1000L) - EXPIRATION_BUFFER_MS;
             tokenCache.put(CACHE_KEY, new TokenInfo(accessToken, expiresAt));
 
-            log.info("Successfully obtained Fineract OAuth token (expires in {} seconds)", expiresIn);
-            log.warn("Logging full access token for debugging purposes. Do not use this in production.");
-            log.debug("Fineract access token: {}", accessToken);
+            log.info("Successfully obtained Fineract OAuth token (expires in {} seconds, length={})", expiresIn, accessToken.length());
             return accessToken;
 
         } catch (Exception e) {
             log.error("Failed to obtain Fineract OAuth token: {}", e.getMessage());
             throw new RuntimeException("Failed to obtain Fineract OAuth token", e);
         }
+    }
+
+    private RestClient getTokenClient() {
+        if (tokenClient == null) {
+            tokenClient = RestClient.builder()
+                    .baseUrl(config.getTokenUrl())
+                    .build();
+        }
+        return tokenClient;
     }
 
     private String buildTokenRequestBody() {

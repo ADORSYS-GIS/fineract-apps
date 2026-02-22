@@ -1,0 +1,172 @@
+name: Publish Backend Docker Images
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/publish-backend-images.yml'
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Services to build (comma-separated: asset-service,customer-registration-service,payment-gateway-service or "all")'
+        required: false
+        default: 'all'
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  determine-services:
+    name: Determine Services to Build
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.set-services.outputs.services }}
+
+    steps:
+      - name: Set services matrix
+        id: set-services
+        run: |
+          if [ "${{ github.event.inputs.services }}" == "all" ] || [ "${{ github.event.inputs.services }}" == "" ]; then
+            echo 'services=["asset-service","customer-registration-service","payment-gateway-service"]' >> $GITHUB_OUTPUT
+          else
+            SERVICES=$(echo "${{ github.event.inputs.services }}" | jq -R 'split(",") | map(. | gsub(" "; ""))')
+            echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-push:
+    name: Build and Push ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: determine-services
+
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.determine-services.outputs.services) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          # Extract branch name
+          BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+          # Extract git hashes
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          LONG_SHA=$(git rev-parse HEAD)
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "long_sha=$LONG_SHA" >> $GITHUB_OUTPUT
+
+          # Determine image tags
+          if [ "$BRANCH" == "develop" ]; then
+            TAGS="develop,$SHORT_SHA,$LONG_SHA"
+          elif [ "$BRANCH" == "main" ]; then
+            TAGS="main,$SHORT_SHA,$LONG_SHA"
+          else
+            SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
+            TAGS="$SAFE_BRANCH,$SHORT_SHA"
+          fi
+
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+          echo "Image tags: $TAGS"
+
+      - name: Determine Context Directory
+        id: context
+        run: |
+          SERVICE="${{ matrix.service }}"
+          DIR="backend/$SERVICE"
+          echo "dir=$DIR" >> $GITHUB_OUTPUT
+          echo "Building context: $DIR"
+
+      - name: Build and push ${{ matrix.service }} image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.context.outputs.dir }}
+          file: ${{ steps.context.outputs.dir }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.service }}:${{ steps.meta.outputs.short_sha }}
+            ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.service }}:${{ steps.meta.outputs.branch }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ steps.meta.outputs.long_sha }}
+            org.opencontainers.image.created=${{ github.event.repository.updated_at }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate build summary
+        run: |
+          echo "### ${{ matrix.service }} Image Built Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry**: \`${{ env.REGISTRY }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: \`adorsys-gis/fineract-apps/${{ matrix.service }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags**: \`${{ steps.meta.outputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Pull Command**:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.service }}:${{ steps.meta.outputs.short_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  trigger-gitops-update:
+    name: Trigger GitOps Update
+    needs: build-and-push
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Trigger GitOps repo update
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_PAT }}
+        run: |
+          BRANCH="${{ steps.meta.outputs.branch }}"
+          TAG="${{ steps.meta.outputs.short_sha }}"
+
+          # Trigger update for all backend services
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/adorsys-gis/fineract-gitops/dispatches \
+            -f event_type='update-backend-images' \
+            -f client_payload[tag]="$TAG" \
+            -f client_payload[branch]="$BRANCH" \
+            -f client_payload[services]='["asset-service","customer-registration-service","payment-gateway-service" ]'
+
+          echo "### GitOps Update Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag**: \`$TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`$BRANCH\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "A PR will be created in the fineract-gitops repository to update image tags." >> $GITHUB_STEP_SUMMARY

@@ -9,17 +9,27 @@ import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.config.OrangeMoneyConfig;
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
+import com.adorsys.fineract.gateway.entity.ReversalDeadLetter;
 import com.adorsys.fineract.gateway.exception.PaymentException;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
+import com.adorsys.fineract.gateway.repository.ReversalDeadLetterRepository;
+import com.adorsys.fineract.gateway.util.PhoneNumberUtils;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,7 +38,7 @@ import java.util.UUID;
  * Service for handling payment operations (deposits and withdrawals).
  *
  * Orchestrates communication between:
- * - Payment providers (MTN MoMo, Orange Money)
+ * - Payment providers (MTN MoMo, Orange Money, CinetPay)
  * - Fineract (savings transactions)
  */
 @Slf4j
@@ -45,22 +55,33 @@ public class PaymentService {
     private final CinetPayConfig cinetPayConfig;
     private final PaymentMetrics paymentMetrics;
     private final PaymentTransactionRepository transactionRepository;
+    private final ReversalService reversalService;
+    private final ReversalDeadLetterRepository deadLetterRepository;
+
+    @Value("${app.limits.daily-deposit-max:10000000}")
+    private BigDecimal dailyDepositMax;
+
+    @Value("${app.limits.daily-withdrawal-max:5000000}")
+    private BigDecimal dailyWithdrawalMax;
 
     /**
      * Initiate a deposit operation.
+     *
+     * Fix #3: Reserves the idempotency key in the DB BEFORE calling the provider
+     * to prevent TOCTOU race conditions where two concurrent requests both pass
+     * the idempotency check and both initiate real provider payments.
      */
-    @Transactional
     public PaymentResponse initiateDeposit(DepositRequest request, String idempotencyKey) {
         log.info("Initiating deposit: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
-        // Idempotency check: Return existing transaction if already processed
-        if (idempotencyKey != null) {
-            Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
-            if (existing.isPresent()) {
-                log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
-                return mapToResponse(existing.get());
-            }
+        validateIdempotencyKey(idempotencyKey);
+
+        // Fast path: return existing transaction for genuine retries
+        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        if (existing.isPresent()) {
+            log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
+            return mapToResponse(existing.get());
         }
 
         Timer.Sample timerSample = paymentMetrics.startTimer();
@@ -70,31 +91,46 @@ public class PaymentService {
             throw new PaymentException("Account does not belong to the customer");
         }
 
-        String transactionId = idempotencyKey != null ? idempotencyKey : UUID.randomUUID().toString();
-        String currency = "XAF";
+        // Fix #14: Enforce daily deposit limit
+        enforceDailyLimit(request.getExternalId(), PaymentResponse.TransactionType.DEPOSIT,
+                request.getAmount(), dailyDepositMax);
 
-        PaymentResponse response = switch (request.getProvider()) {
-            case MTN_MOMO -> initiateMtnDeposit(transactionId, request);
-            case ORANGE_MONEY -> initiateOrangeDeposit(transactionId, request);
-            case CINETPAY -> initiateCinetPayDeposit(transactionId, request);
-            default -> throw new PaymentException("Unsupported payment provider for deposits: " + request.getProvider());
-        };
+        String transactionId = idempotencyKey;
+        String currency = getProviderCurrency(request.getProvider());
 
-        // Save to database
-        PaymentTransaction txn = new PaymentTransaction(
-            transactionId,
-            response.getProviderReference(),
-            request.getExternalId(),
-            request.getAccountId(),
-            request.getProvider(),
-            PaymentResponse.TransactionType.DEPOSIT,
-            request.getAmount(),
-            currency,
-            PaymentStatus.PENDING
+        // Fix #3: Reserve the idempotency key atomically BEFORE calling the provider.
+        // Uses INSERT ON CONFLICT DO NOTHING - returns 0 if another thread already reserved it.
+        int inserted = transactionRepository.insertIfAbsent(
+            transactionId, request.getExternalId(), request.getAccountId(),
+            request.getProvider().name(), PaymentResponse.TransactionType.DEPOSIT.name(),
+            request.getAmount(), currency, PaymentStatus.PENDING.name()
         );
-        transactionRepository.save(txn);
+        if (inserted == 0) {
+            log.info("Concurrent idempotency key collision, returning existing: {}", idempotencyKey);
+            return transactionRepository.findById(idempotencyKey)
+                .map(this::mapToResponse)
+                .orElseThrow(() -> new PaymentException("Concurrent transaction conflict"));
+        }
 
-        // Record metrics
+        // Now call the provider - we hold the "lock" via the DB record
+        PaymentResponse response;
+        try {
+            response = switch (request.getProvider()) {
+                case MTN_MOMO -> initiateMtnDeposit(transactionId, request);
+                case ORANGE_MONEY -> initiateOrangeDeposit(transactionId, request);
+                case CINETPAY -> initiateCinetPayDeposit(transactionId, request);
+                default -> throw new PaymentException("Unsupported payment provider for deposits: " + request.getProvider());
+            };
+        } catch (Exception e) {
+            // Provider call failed - mark our reserved record as FAILED
+            markTransactionFailed(transactionId);
+            paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.DEPOSIT, PaymentStatus.FAILED);
+            throw e;
+        }
+
+        // Update the reserved record with provider reference
+        updateTransactionAfterProviderCall(transactionId, response.getProviderReference(), null);
+
         paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.DEPOSIT, PaymentStatus.PENDING);
         paymentMetrics.recordPaymentAmount(request.getProvider(), PaymentResponse.TransactionType.DEPOSIT, request.getAmount());
         paymentMetrics.stopProcessingTimer(timerSample, request.getProvider(), PaymentResponse.TransactionType.DEPOSIT, PaymentStatus.PENDING);
@@ -104,19 +140,22 @@ public class PaymentService {
 
     /**
      * Initiate a withdrawal operation.
+     *
+     * Fix #2: The balance check is advisory. Fineract is the authoritative source
+     * and will reject overdrafts. We handle Fineract rejection gracefully.
+     * Fix #3: Idempotency key reserved before provider call.
      */
-    @Transactional
     public PaymentResponse initiateWithdrawal(WithdrawalRequest request, String idempotencyKey) {
         log.info("Initiating withdrawal: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
-        // Idempotency check
-        if (idempotencyKey != null) {
-            Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
-            if (existing.isPresent()) {
-                log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
-                return mapToResponse(existing.get());
-            }
+        validateIdempotencyKey(idempotencyKey);
+
+        // Fast path: return existing transaction for genuine retries
+        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        if (existing.isPresent()) {
+            log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
+            return mapToResponse(existing.get());
         }
 
         Timer.Sample timerSample = paymentMetrics.startTimer();
@@ -126,38 +165,64 @@ public class PaymentService {
             throw new PaymentException("Account does not belong to the customer");
         }
 
-        // Check available balance
-        Map<String, Object> account = fineractClient.getSavingsAccount(request.getAccountId());
-        BigDecimal availableBalance;
-        
-        // Fineract usually nests balance info in 'summary'
-        if (account.containsKey("summary")) {
-            Map<String, Object> summary = (Map<String, Object>) account.get("summary");
-            availableBalance = new BigDecimal(String.valueOf(summary.get("availableBalance")));
-        } else if (account.containsKey("availableBalance")) {
-            availableBalance = new BigDecimal(String.valueOf(account.get("availableBalance")));
-        } else {
-            log.error("Could not find availableBalance. Account response: {}", account);
-            throw new PaymentException("Could not determine account balance");
-        }
+        // Fix #10: Safe balance extraction with proper error handling
+        // Fix #2: This is an advisory check only. Fineract is the authoritative balance enforcer.
+        BigDecimal availableBalance = extractAvailableBalance(
+                fineractClient.getSavingsAccount(request.getAccountId()));
 
         if (availableBalance.compareTo(request.getAmount()) < 0) {
             paymentMetrics.incrementInsufficientFunds();
             throw new PaymentException("Insufficient funds");
         }
 
-        String transactionId = idempotencyKey != null ? idempotencyKey : UUID.randomUUID().toString();
-        String currency = "XAF";
+        // Fix #14: Enforce daily withdrawal limit
+        enforceDailyLimit(request.getExternalId(), PaymentResponse.TransactionType.WITHDRAWAL,
+                request.getAmount(), dailyWithdrawalMax);
 
-        // For withdrawals, we first create the Fineract transaction, then send money
-        Long paymentTypeId = getPaymentTypeId(request.getProvider());
-        Long fineractTxnId = fineractClient.createWithdrawal(
-            request.getAccountId(),
-            request.getAmount(),
-            paymentTypeId,
-            transactionId
+        String transactionId = idempotencyKey;
+        String currency = getProviderCurrency(request.getProvider());
+
+        // Fix #4: For CinetPay, detect actual provider from phone number for correct GL mapping
+        Long paymentTypeId = getPaymentTypeId(request.getProvider(), request.getPhoneNumber());
+        String underlyingProvider = null;
+        if (request.getProvider() == PaymentProvider.CINETPAY && request.getPhoneNumber() != null) {
+            PaymentProvider detected = PhoneNumberUtils.detectProvider(request.getPhoneNumber());
+            if (detected != null) {
+                underlyingProvider = detected.name();
+            }
+        }
+
+        // Fix #3: Reserve the idempotency key BEFORE any financial operations
+        int inserted = transactionRepository.insertIfAbsent(
+            transactionId, request.getExternalId(), request.getAccountId(),
+            request.getProvider().name(), PaymentResponse.TransactionType.WITHDRAWAL.name(),
+            request.getAmount(), currency, PaymentStatus.PENDING.name()
         );
+        if (inserted == 0) {
+            log.info("Concurrent idempotency key collision, returning existing: {}", idempotencyKey);
+            return transactionRepository.findById(idempotencyKey)
+                .map(this::mapToResponse)
+                .orElseThrow(() -> new PaymentException("Concurrent transaction conflict"));
+        }
 
+        // Fix #2: Create Fineract withdrawal - Fineract enforces balance atomically.
+        // If Fineract rejects (e.g., concurrent overdraft), we mark our record FAILED.
+        Long fineractTxnId;
+        try {
+            fineractTxnId = fineractClient.createWithdrawal(
+                request.getAccountId(),
+                request.getAmount(),
+                paymentTypeId,
+                transactionId
+            );
+        } catch (Exception e) {
+            log.error("Fineract withdrawal rejected: {}", e.getMessage());
+            markTransactionFailed(transactionId);
+            paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, PaymentStatus.FAILED);
+            throw new PaymentException("Withdrawal rejected: " + e.getMessage(), e);
+        }
+
+        // Call the payment provider to disburse funds
         PaymentResponse response;
         try {
             response = switch (request.getProvider()) {
@@ -170,7 +235,6 @@ public class PaymentService {
         } catch (Exception e) {
             log.error("Withdrawal to provider failed, reversing Fineract transaction: {}", e.getMessage());
             try {
-                // Compensating transaction: Credit the money back
                 fineractClient.createDeposit(
                     request.getAccountId(),
                     request.getAmount(),
@@ -181,28 +245,26 @@ public class PaymentService {
             } catch (Exception revEx) {
                 log.error("CRITICAL: Failed to reverse Fineract withdrawal. Manual intervention required! transactionId={}, error={}",
                     transactionId, revEx.getMessage());
+                try {
+                    String reason = revEx.getMessage();
+                    if (reason != null && reason.length() > 500) reason = reason.substring(0, 500);
+                    deadLetterRepository.save(new ReversalDeadLetter(
+                        transactionId, fineractTxnId, request.getAccountId(),
+                        request.getAmount(), "XAF", request.getProvider(), reason
+                    ));
+                } catch (Exception dlqEx) {
+                    log.error("CRITICAL: Failed to persist reversal to dead-letter queue! transactionId={}",
+                        transactionId, dlqEx);
+                }
             }
-            
+            markTransactionFailed(transactionId);
             paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, PaymentStatus.FAILED);
             throw e;
         }
 
-        // Save to database
-        PaymentTransaction txn = new PaymentTransaction(
-            transactionId,
-            response.getProviderReference(),
-            request.getExternalId(),
-            request.getAccountId(),
-            request.getProvider(),
-            PaymentResponse.TransactionType.WITHDRAWAL,
-            request.getAmount(),
-            currency,
-            PaymentStatus.PROCESSING // Withdrawal starts as PROCESSING (money left account)
-        );
-        txn.setFineractTransactionId(fineractTxnId);
-        transactionRepository.save(txn);
+        // Update the reserved record with provider reference, fineractTxnId, and PROCESSING status
+        updateWithdrawalTransaction(transactionId, response.getProviderReference(), fineractTxnId, underlyingProvider);
 
-        // Record metrics
         paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, PaymentStatus.PROCESSING);
         paymentMetrics.recordPaymentAmount(request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, request.getAmount());
         paymentMetrics.stopProcessingTimer(timerSample, request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, PaymentStatus.PROCESSING);
@@ -213,13 +275,22 @@ public class PaymentService {
     /**
      * Handle MTN callback for collections (deposits).
      */
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleMtnCollectionCallback(MtnCallbackRequest callback) {
         log.info("Processing MTN collection callback: ref={}, status={}",
             callback.getReferenceId(), callback.getStatus());
 
+        if (callback.getExternalId() == null || callback.getStatus() == null) {
+            log.warn("MTN collection callback missing required fields: externalId={}, status={}",
+                callback.getExternalId(), callback.getStatus());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "missing_fields");
+            return;
+        }
+
         PaymentTransaction txn = transactionRepository
-            .findByProviderReference(callback.getExternalId())
+            .findByProviderReferenceForUpdate(callback.getExternalId())
             .orElse(null);
 
         if (txn == null) {
@@ -227,15 +298,16 @@ public class PaymentService {
             return;
         }
 
-        // Idempotency: Skip if already in terminal state
         if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
             log.info("Transaction already in terminal state: {}, status={}",
                 txn.getTransactionId(), txn.getStatus());
             return;
         }
 
+        // Fix #6: Verify callback amount matches expected amount
         if (callback.isSuccessful()) {
-            // Create Fineract deposit
+            verifyCallbackAmount(callback.getAmount(), txn, PaymentProvider.MTN_MOMO);
+
             Long fineractTxnId = fineractClient.createDeposit(
                 txn.getAccountId(),
                 txn.getAmount(),
@@ -263,13 +335,22 @@ public class PaymentService {
     /**
      * Handle MTN callback for disbursements (withdrawals).
      */
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleMtnDisbursementCallback(MtnCallbackRequest callback) {
         log.info("Processing MTN disbursement callback: ref={}, status={}",
             callback.getReferenceId(), callback.getStatus());
 
+        if (callback.getExternalId() == null || callback.getStatus() == null) {
+            log.warn("MTN disbursement callback missing required fields: externalId={}, status={}",
+                callback.getExternalId(), callback.getStatus());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "missing_fields");
+            return;
+        }
+
         PaymentTransaction txn = transactionRepository
-            .findByProviderReference(callback.getExternalId())
+            .findByProviderReferenceForUpdate(callback.getExternalId())
             .orElse(null);
 
         if (txn == null) {
@@ -290,29 +371,53 @@ public class PaymentService {
             log.info("Withdrawal completed: txnId={}", txn.getTransactionId());
 
         } else if (callback.isFailed()) {
-            // TODO: Reverse the Fineract withdrawal
+            log.warn("MTN withdrawal failed: txnId={}, reason={}. Reversing Fineract transaction...",
+                txn.getTransactionId(), callback.getReason());
+            reversalService.reverseWithdrawal(txn);
             txn.setStatus(PaymentStatus.FAILED);
             transactionRepository.save(txn);
 
             paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.FAILED);
-            log.warn("Withdrawal failed: txnId={}, reason={}", txn.getTransactionId(), callback.getReason());
         }
     }
 
     /**
      * Handle Orange Money callback.
+     * Fix #1: Validates notif_token from the callback against the stored token.
      */
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleOrangeCallback(OrangeCallbackRequest callback) {
         log.info("Processing Orange callback: orderId={}, status={}",
             callback.getOrderId(), callback.getStatus());
 
-        PaymentTransaction txn = transactionRepository.findById(callback.getOrderId())
+        if (callback.getOrderId() == null || callback.getStatus() == null) {
+            log.warn("Orange callback missing required fields: orderId={}, status={}",
+                callback.getOrderId(), callback.getStatus());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.ORANGE_MONEY, "missing_fields");
+            return;
+        }
+
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(callback.getOrderId())
             .orElse(null);
 
         if (txn == null) {
             log.warn("Transaction not found for Orange callback: {}", callback.getOrderId());
             return;
+        }
+
+        // Fix #1: Validate Orange notif_token to authenticate the callback
+        if (txn.getNotifToken() != null && !txn.getNotifToken().isEmpty()) {
+            if (callback.getNotifToken() == null || !txn.getNotifToken().equals(callback.getNotifToken())) {
+                log.warn("Orange callback notif_token mismatch for txnId={}: expected={}, received={}",
+                    txn.getTransactionId(), txn.getNotifToken(), callback.getNotifToken());
+                paymentMetrics.incrementCallbackRejected(PaymentProvider.ORANGE_MONEY, "invalid_notif_token");
+                return;
+            }
+        } else {
+            log.warn("No notif_token stored for Orange transaction {}. Accepting callback without token validation.",
+                txn.getTransactionId());
         }
 
         if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
@@ -321,6 +426,9 @@ public class PaymentService {
 
         if (txn.getType() == PaymentResponse.TransactionType.DEPOSIT) {
             if (callback.isSuccessful()) {
+                // Fix #6: Verify callback amount
+                verifyCallbackAmount(callback.getAmount(), txn, PaymentProvider.ORANGE_MONEY);
+
                 Long fineractTxnId = fineractClient.createDeposit(
                     txn.getAccountId(),
                     txn.getAmount(),
@@ -347,7 +455,9 @@ public class PaymentService {
                 paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.SUCCESSFUL);
                 paymentMetrics.recordPaymentAmountTotal(PaymentProvider.ORANGE_MONEY, PaymentResponse.TransactionType.WITHDRAWAL, txn.getAmount());
             } else {
-                // TODO: Reverse the Fineract withdrawal
+                log.warn("Orange withdrawal failed: txnId={}. Reversing Fineract transaction...",
+                    txn.getTransactionId());
+                reversalService.reverseWithdrawal(txn);
                 txn.setStatus(PaymentStatus.FAILED);
                 transactionRepository.save(txn);
                 paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.FAILED);
@@ -358,19 +468,27 @@ public class PaymentService {
     /**
      * Handle CinetPay callback with dynamic GL mapping.
      */
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     @Transactional
     public void handleCinetPayCallback(CinetPayCallbackRequest callback) {
         log.info("Processing CinetPay callback: transactionId={}, status={}, paymentMethod={}",
             callback.getTransactionId(), callback.getResultCode(), callback.getPaymentMethod());
 
-        // Validate callback signature
-        if (!cinetPayClient.validateCallbackSignature(callback)) {
-            log.warn("CinetPay callback signature validation failed: transactionId={}",
-                callback.getTransactionId());
+        if (callback.getTransactionId() == null) {
+            log.warn("CinetPay callback missing transactionId");
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.CINETPAY, "missing_fields");
             return;
         }
 
-        PaymentTransaction txn = transactionRepository.findById(callback.getTransactionId())
+        if (!cinetPayClient.validateCallbackSignature(callback)) {
+            log.warn("CinetPay callback signature validation failed: transactionId={}",
+                callback.getTransactionId());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.CINETPAY, "invalid_signature");
+            return;
+        }
+
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(callback.getTransactionId())
             .orElse(null);
 
         if (txn == null) {
@@ -391,7 +509,9 @@ public class PaymentService {
 
     private void handleCinetPayDepositCallback(CinetPayCallbackRequest callback, PaymentTransaction txn) {
         if (callback.isSuccessful()) {
-            // Dynamic GL mapping based on actual payment method used
+            // Fix #6: Verify callback amount
+            verifyCallbackAmount(callback.getAmount(), txn, PaymentProvider.CINETPAY);
+
             PaymentProvider actualProvider = callback.getActualProvider();
             Long paymentTypeId;
 
@@ -402,11 +522,12 @@ public class PaymentService {
                 paymentTypeId = orangeConfig.getFineractPaymentTypeId();
                 log.info("CinetPay deposit via Orange Money: transactionId={}, paymentTypeId={}", txn.getTransactionId(), paymentTypeId);
             } else {
-                // Unknown payment method - log warning and use default (MTN)
-                log.warn("Unknown CinetPay payment method: {}, defaulting to MTN",
+                log.error("Unknown CinetPay payment method: '{}'. Marking txn FAILED for safety.",
                     callback.getPaymentMethod());
-                paymentTypeId = mtnConfig.getFineractPaymentTypeId();
-                log.info("Defaulting to MTN payment type: {}", paymentTypeId);
+                txn.setStatus(PaymentStatus.FAILED);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.FAILED);
+                return;
             }
 
             Long fineractTxnId = fineractClient.createDeposit(
@@ -445,22 +566,7 @@ public class PaymentService {
         } else if (callback.isFailed() || callback.isCancelled()) {
             log.warn("CinetPay withdrawal failed: txnId={}, reason={}. Reversing Fineract transaction...",
                 txn.getTransactionId(), callback.getErrorMessage());
-            
-            try {
-                // Compensating transaction: Credit the money back
-                Long paymentTypeId = getPaymentTypeId(txn.getProvider());
-                fineractClient.createDeposit(
-                    txn.getAccountId(),
-                    txn.getAmount(),
-                    paymentTypeId,
-                    "REVERSAL-" + txn.getTransactionId()
-                );
-                log.info("Fineract withdrawal reversed successfully for transactionId={}", txn.getTransactionId());
-            } catch (Exception revEx) {
-                log.error("CRITICAL: Failed to reverse Fineract withdrawal. Manual intervention required! transactionId={}",
-                    txn.getTransactionId(), revEx);
-            }
-
+            reversalService.reverseWithdrawal(txn);
             txn.setStatus(PaymentStatus.FAILED);
             transactionRepository.save(txn);
 
@@ -491,6 +597,123 @@ public class PaymentService {
             .build();
     }
 
+    // ==================== Private helpers ====================
+
+    /**
+     * Fix #10: Safely extract available balance from Fineract account response.
+     */
+    private BigDecimal extractAvailableBalance(Map<String, Object> account) {
+        try {
+            if (account.containsKey("summary")) {
+                Object summaryObj = account.get("summary");
+                if (summaryObj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> summary = (Map<String, Object>) summaryObj;
+                    Object balance = summary.get("availableBalance");
+                    if (balance != null) {
+                        return new BigDecimal(String.valueOf(balance));
+                    }
+                }
+            }
+            if (account.containsKey("availableBalance")) {
+                Object balance = account.get("availableBalance");
+                if (balance != null) {
+                    return new BigDecimal(String.valueOf(balance));
+                }
+            }
+        } catch (NumberFormatException e) {
+            log.error("Failed to parse availableBalance from Fineract response: {}", e.getMessage());
+        }
+        log.error("Could not find availableBalance. Account response keys: {}", account.keySet());
+        throw new PaymentException("Could not determine account balance");
+    }
+
+    /**
+     * Fix #6: Verify callback-reported amount matches expected transaction amount.
+     * Logs a warning and increments a metric if there's a mismatch, but does not block processing
+     * (the mismatch may be due to provider formatting differences like decimal precision).
+     */
+    private void verifyCallbackAmount(String callbackAmountStr, PaymentTransaction txn, PaymentProvider provider) {
+        if (callbackAmountStr == null || callbackAmountStr.isEmpty()) {
+            return; // Some callbacks don't include amount
+        }
+        try {
+            BigDecimal callbackAmount = new BigDecimal(callbackAmountStr);
+            if (callbackAmount.compareTo(txn.getAmount()) != 0) {
+                log.error("AMOUNT MISMATCH: txnId={}, expected={}, provider_reported={}, provider={}",
+                    txn.getTransactionId(), txn.getAmount(), callbackAmount, provider);
+                paymentMetrics.incrementCallbackAmountMismatch(provider);
+            }
+        } catch (NumberFormatException e) {
+            log.warn("Could not parse callback amount '{}' for txnId={}", callbackAmountStr, txn.getTransactionId());
+        }
+    }
+
+    /**
+     * Fix #14: Enforce daily transaction limits.
+     */
+    private void enforceDailyLimit(String externalId, PaymentResponse.TransactionType type,
+                                   BigDecimal requestAmount, BigDecimal maxDaily) {
+        Instant dayStart = LocalDate.now(ZoneOffset.UTC).atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant dayEnd = dayStart.plusSeconds(86400);
+
+        BigDecimal todayTotal = transactionRepository.sumAmountByExternalIdAndTypeInPeriod(
+            externalId, type, dayStart, dayEnd);
+
+        if (todayTotal.add(requestAmount).compareTo(maxDaily) > 0) {
+            paymentMetrics.incrementDailyLimitExceeded();
+            throw new PaymentException(
+                String.format("Daily %s limit exceeded. Today's total: %s XAF, requested: %s XAF, max: %s XAF",
+                    type.name().toLowerCase(), todayTotal, requestAmount, maxDaily),
+                "DAILY_LIMIT_EXCEEDED");
+        }
+    }
+
+    /**
+     * Mark a reserved transaction as FAILED (used when provider call fails after DB reservation).
+     */
+    @Transactional
+    void markTransactionFailed(String transactionId) {
+        transactionRepository.findById(transactionId).ifPresent(txn -> {
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+        });
+    }
+
+    /**
+     * Update a reserved deposit transaction with the provider reference after successful provider call.
+     * Fix #1: Also stores Orange notifToken for callback verification.
+     */
+    @Transactional
+    void updateTransactionAfterProviderCall(String transactionId, String providerReference, String notifToken) {
+        transactionRepository.findById(transactionId).ifPresent(txn -> {
+            txn.setProviderReference(providerReference);
+            if (notifToken != null) {
+                txn.setNotifToken(notifToken);
+            }
+            transactionRepository.save(txn);
+        });
+    }
+
+    /**
+     * Update a reserved withdrawal transaction after successful provider call.
+     * Fix #4: Stores underlying provider hint in notifToken for CinetPay GL mapping.
+     */
+    @Transactional
+    void updateWithdrawalTransaction(String transactionId, String providerReference,
+                                     Long fineractTxnId, String underlyingProvider) {
+        transactionRepository.findById(transactionId).ifPresent(txn -> {
+            txn.setProviderReference(providerReference);
+            txn.setFineractTransactionId(fineractTxnId);
+            txn.setStatus(PaymentStatus.PROCESSING);
+            // For CinetPay, store the underlying provider name for correct GL mapping on reversals
+            if (underlyingProvider != null) {
+                txn.setNotifToken(underlyingProvider);
+            }
+            transactionRepository.save(txn);
+        });
+    }
+
     private PaymentResponse initiateMtnDeposit(String transactionId, DepositRequest request) {
         String externalId = mtnClient.requestToPay(
             transactionId,
@@ -505,13 +728,16 @@ public class PaymentService {
             .provider(PaymentProvider.MTN_MOMO)
             .type(PaymentResponse.TransactionType.DEPOSIT)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(mtnConfig.getCurrency())
             .status(PaymentStatus.PENDING)
             .message("Please approve the payment on your phone")
             .createdAt(Instant.now())
             .build();
     }
 
+    /**
+     * Fix #1: Store notifToken from Orange response for callback verification.
+     */
     private PaymentResponse initiateOrangeDeposit(String transactionId, DepositRequest request) {
         OrangeMoneyClient.PaymentInitResponse initResponse = orangeClient.initializePayment(
             transactionId,
@@ -519,13 +745,18 @@ public class PaymentService {
             "Deposit to Webank account"
         );
 
+        // Store notifToken for callback verification
+        if (initResponse.notifToken() != null) {
+            updateTransactionAfterProviderCall(transactionId, initResponse.payToken(), initResponse.notifToken());
+        }
+
         return PaymentResponse.builder()
             .transactionId(transactionId)
             .providerReference(initResponse.payToken())
             .provider(PaymentProvider.ORANGE_MONEY)
             .type(PaymentResponse.TransactionType.DEPOSIT)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(orangeConfig.getCurrency())
             .status(PaymentStatus.PENDING)
             .message("Complete payment using the link below")
             .paymentUrl(initResponse.paymentUrl())
@@ -547,7 +778,7 @@ public class PaymentService {
             .provider(PaymentProvider.MTN_MOMO)
             .type(PaymentResponse.TransactionType.WITHDRAWAL)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(mtnConfig.getCurrency())
             .status(PaymentStatus.PROCESSING)
             .message("Withdrawal is being processed")
             .createdAt(Instant.now())
@@ -567,7 +798,7 @@ public class PaymentService {
             .provider(PaymentProvider.ORANGE_MONEY)
             .type(PaymentResponse.TransactionType.WITHDRAWAL)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(orangeConfig.getCurrency())
             .status(PaymentStatus.PROCESSING)
             .message("Withdrawal is being processed")
             .createdAt(Instant.now())
@@ -588,7 +819,7 @@ public class PaymentService {
             .provider(PaymentProvider.CINETPAY)
             .type(PaymentResponse.TransactionType.DEPOSIT)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(cinetPayConfig.getCurrency())
             .status(PaymentStatus.PENDING)
             .message("Complete payment using the link below")
             .paymentUrl(initResponse.paymentUrl())
@@ -597,7 +828,7 @@ public class PaymentService {
     }
 
     private PaymentResponse initiateCinetPayWithdrawal(String transactionId, WithdrawalRequest request) {
-        String normalizedPhone = cinetPayClient.normalizePhoneNumber(request.getPhoneNumber());
+        String normalizedPhone = PhoneNumberUtils.normalizePhoneNumber(request.getPhoneNumber());
         String prefix = "237";
         String phone = normalizedPhone;
         if (normalizedPhone.startsWith("237")) {
@@ -617,22 +848,49 @@ public class PaymentService {
             .provider(PaymentProvider.CINETPAY)
             .type(PaymentResponse.TransactionType.WITHDRAWAL)
             .amount(request.getAmount())
-            .currency("XAF")
+            .currency(cinetPayConfig.getCurrency())
             .status(PaymentStatus.PROCESSING)
             .message("Withdrawal is being processed")
             .createdAt(Instant.now())
             .build();
     }
 
-    private Long getPaymentTypeId(PaymentProvider provider) {
+    private String getProviderCurrency(PaymentProvider provider) {
+        return switch (provider) {
+            case MTN_MOMO -> mtnConfig.getCurrency();
+            case ORANGE_MONEY -> orangeConfig.getCurrency();
+            case CINETPAY -> cinetPayConfig.getCurrency();
+            default -> "XAF";
+        };
+    }
+
+    /**
+     * Fix #4: For CinetPay, detect underlying provider from phone number for correct GL mapping.
+     */
+    private Long getPaymentTypeId(PaymentProvider provider, String phoneNumber) {
         return switch (provider) {
             case MTN_MOMO -> mtnConfig.getFineractPaymentTypeId();
             case ORANGE_MONEY -> orangeConfig.getFineractPaymentTypeId();
-            // For CinetPay transfers, we default to MTN payment type
-            // (actual routing depends on phone number prefix)
-            case CINETPAY -> mtnConfig.getFineractPaymentTypeId();
+            case CINETPAY -> {
+                if (phoneNumber != null) {
+                    PaymentProvider detected = PhoneNumberUtils.detectProvider(phoneNumber);
+                    if (detected == PaymentProvider.ORANGE_MONEY) {
+                        yield orangeConfig.getFineractPaymentTypeId();
+                    }
+                }
+                // Default to MTN for CinetPay if provider cannot be detected
+                yield mtnConfig.getFineractPaymentTypeId();
+            }
             default -> throw new PaymentException("Unknown payment type for provider: " + provider);
         };
+    }
+
+    private void validateIdempotencyKey(String idempotencyKey) {
+        try {
+            UUID.fromString(idempotencyKey);
+        } catch (IllegalArgumentException e) {
+            throw new PaymentException("X-Idempotency-Key must be a valid UUID");
+        }
     }
 
     private PaymentResponse mapToResponse(PaymentTransaction txn) {

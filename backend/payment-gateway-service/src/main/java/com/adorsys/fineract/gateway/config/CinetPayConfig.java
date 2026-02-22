@@ -1,6 +1,8 @@
 package com.adorsys.fineract.gateway.config;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -13,10 +15,18 @@ import org.springframework.context.annotation.Configuration;
  *
  * API documentation: https://docs.cinetpay.com/
  */
+@Slf4j
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "cinetpay")
 public class CinetPayConfig {
+
+    @PostConstruct
+    public void validateConfig() {
+        if (secretKey == null || secretKey.isEmpty()) {
+            log.warn("CINETPAY_SECRET_KEY is not configured. All CinetPay callbacks will be rejected.");
+        }
+    }
 
     /**
      * CinetPay Checkout API base URL

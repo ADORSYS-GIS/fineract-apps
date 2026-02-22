@@ -22,7 +22,7 @@ export const logout = (postLogoutRedirectUri?: string) => {
 
 	// Construct logout URL using OAuth2 Proxy's sign_out endpoint
 	// The 'rd' parameter specifies where to redirect after logout completes
-	const redirectUri = postLogoutRedirectUri || window.location.origin;
+	const redirectUri = postLogoutRedirectUri || "/logout";
 	const logoutUrl = `/oauth2/sign_out?rd=${encodeURIComponent(redirectUri)}`;
 
 	window.location.href = logoutUrl;

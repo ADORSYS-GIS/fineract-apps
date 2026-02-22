@@ -14,18 +14,12 @@ import { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
 function onLogout() {
-	const base = import.meta.env.BASE_URL ?? "/reporting/";
-	const appBase = base.endsWith("/") ? base : `${base}/`;
-	const redirectTo = `${globalThis.location.origin}${appBase}`;
 	if (import.meta.env.VITE_AUTH_MODE === "basic") {
-		// For basic auth, just redirect to the base, as there's no real logout endpoint
-		window.location.href = appBase;
+		window.location.href = "/home/";
 	} else {
-		// OAuth mode: Use OAuth2 Proxy global logout
-		// This terminates the Keycloak session across ALL devices
 		localStorage.clear();
 		sessionStorage.clear();
-		globalThis.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(redirectTo)}`;
+		globalThis.location.href = "/oauth2/sign_out?rd=/logout";
 	}
 }
 

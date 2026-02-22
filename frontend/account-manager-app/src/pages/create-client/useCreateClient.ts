@@ -24,15 +24,23 @@ export const useCreateClient = () => {
 			toast.error("No office found to assign the client to.");
 			return;
 		}
+
+		const isPerson = values.legalFormId === "1";
+
 		const requestBody = {
-			...values,
 			officeId,
-			legalFormId: 1,
+			legalFormId: Number(values.legalFormId),
+			emailAddress: values.emailAddress,
+			mobileNo: values.mobileNo,
+			active: values.active,
 			activationDate: values.active
 				? format(new Date(), "dd MMMM yyyy")
 				: undefined,
 			dateFormat: "dd MMMM yyyy",
 			locale: "en",
+			...(isPerson
+				? { firstname: values.firstname, lastname: values.lastname }
+				: { fullname: values.fullname }),
 		};
 		createClient({ requestBody });
 	};

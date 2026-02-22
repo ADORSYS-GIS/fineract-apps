@@ -60,6 +60,9 @@ public class PaymentTransaction {
 
     private Long fineractTransactionId;
 
+    @Column(length = 255)
+    private String notifToken;
+
     @Version
     private Long version;  // Optimistic locking for concurrent callback handling
 
