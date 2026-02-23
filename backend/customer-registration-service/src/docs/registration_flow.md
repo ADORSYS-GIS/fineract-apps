@@ -60,18 +60,22 @@ The endpoint expects a `Content-Type: application/json` body with the following 
 
 ## 5. Registration Workflow
 
+The registration process is designed to be **idempotent**. If a registration request is sent multiple times, the outcome will be the same as if it were sent only once. This prevents the creation of duplicate clients and ensures that every client has a savings account, even if the process is interrupted.
+
 1.  A client application sends a `POST` request to `/api/registration/register` with a valid JWT and the customer's data.
 2.  The Spring Security filter chain intercepts the request and validates the JWT.
 3.  The `RegistrationController` receives the request and passes it to the `RegistrationService`.
 4.  The `RegistrationService`'s `register` method is invoked. Spring Security verifies that the caller has the `ROLE_KYC_MANAGER` authority.
-5.  The `RegistrationService` invokes the `FineractService`, which is responsible for all communication with the Fineract platform.
-6.  The `FineractService` constructs a specific payload for the Fineract "Create Client" API endpoint, mapping fields from the request and adding necessary default values.
-7.  An HTTP `POST` request is sent to the Fineract API to create the client.
-8.  Upon successful client creation, the `FineractService` is called again to create a default savings account for the new client.
-9.  After the savings account is created, the `FineractService` approves the account.
-10. After the savings account is approved, the `FineractService` activates the account.
-11. Upon successful creation of both entities in Fineract, the `RegistrationService` forms a success response.
-12. The `RegistrationController` returns a `201 Created` HTTP status to the original caller, including the newly created Fineract Client ID and Savings Account ID in the response body.
+5.  The `RegistrationService` invokes the `FineractService` to check if a client with the provided `externalId` already exists.
+6.  **If the client exists:**
+    a. The service checks if the client already has a savings account.
+    b. **If a savings account exists:** The registration is considered complete. A success response is returned with the existing client and savings account IDs.
+    c. **If no savings account exists:** The service proceeds to create, approve, and activate a new savings account for the existing client.
+7.  **If the client does not exist:**
+    a. The service creates a new client in Fineract.
+    b. Upon successful client creation, the service proceeds to create, approve, and activate a new savings account for the new client.
+8.  Upon successful creation of both entities in Fineract, the `RegistrationService` forms a success response.
+9.  The `RegistrationController` returns a `201 Created` HTTP status to the original caller, including the Fineract Client ID and Savings Account ID in the response body.
 
 ## 6. Fineract Payload Mapping
 
