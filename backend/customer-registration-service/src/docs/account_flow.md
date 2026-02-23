@@ -32,6 +32,9 @@ Retrieves the transaction history for a specific savings account.
 
     Before any account information is returned, the service verifies that the Fineract client ID obtained from the token matches the owner of the requested savings account. If there is a mismatch, a `403 Forbidden` error is returned.
 
+### 3.2. Caching
+To improve performance, the `AccountSecurityService` uses an in-memory cache to store the set of accounts owned by a customer. Once a customer's accounts are fetched, the ownership information is cached. For subsequent requests, the ownership verification can be performed against the cache, avoiding unnecessary calls to the Fineract API. The cache is invalidated if a customer's account information is modified.
+
 ### 3.1. Ownership Verification Flow
 
 The ownership verification process is a critical security measure that ensures a customer can only access their own accounts. Here's a step-by-step breakdown of how it works, based on the implementation in `AccountSecurityService`:
@@ -61,23 +64,47 @@ sequenceDiagram
     AccountController->>AccountSecurityService: verifySavingsAccountOwnership(123, jwt)
     AccountSecurityService->>AccountSecurityService: getCustomerClientId(jwt)
     Note right of AccountSecurityService: Extracts fineract_client_id <br/> or looks up by fineract_external_id
-    AccountSecurityService->>FineractService: getSavingsAccountOwner(123)
-    FineractService-->>AccountSecurityService: Owner's Client ID
-    AccountSecurityService->>AccountSecurityService: Compare IDs
-    alt IDs Match
-        AccountSecurityService-->>AccountController: Verification Success
+
+    alt Cache Hit
+        AccountSecurityService->>AccountSecurityService: Check cache for account ownership
+        AccountSecurityService-->>AccountController: Verification Success (from cache)
         AccountController->>FineractService: getSavingsAccount(123)
         FineractService-->>AccountController: Account Details
         AccountController-->>Client: 200 OK with Account Details
-    else IDs Mismatch
-        AccountSecurityService-->>AccountController: Verification Failed (Exception)
-        AccountController-->>Client: 403 Forbidden
+    else Cache Miss
+        AccountSecurityService->>FineractService: getSavingsAccountOwner(123)
+        FineractService-->>AccountSecurityService: Owner's Client ID
+        AccountSecurityService->>AccountSecurityService: Compare IDs
+        alt IDs Match
+            AccountSecurityService-->>AccountController: Verification Success
+            Note right of AccountSecurityService: Update cache with ownership info
+            AccountController->>FineractService: getSavingsAccount(123)
+            FineractService-->>AccountController: Account Details
+            AccountController-->>Client: 200 OK with Account Details
+        else IDs Mismatch
+            AccountSecurityService-->>AccountController: Verification Failed (Exception)
+            AccountController-->>Client: 403 Forbidden
+        end
     end
 ```
 
 ---
 
-## 4. Account Creation
+## 4. Architecture
+
+The service follows a layered architecture that promotes separation of concerns and maintainability. The key components include:
+
+-   **Controllers**: Responsible for handling incoming HTTP requests, validating input, and returning appropriate responses. The `AccountController` is the entry point for all account-related operations.
+-   **Services**: Contain the core business logic of the application. The services are further divided into:
+    -   **Facade Service (`FineractService`)**: This service acts as a facade, providing a single, simplified entry point for all Fineract-related operations. It delegates the actual processing to more specialized services.
+    -   **Specialized Services**: These services handle specific domains, such as `AccountSecurityService` for ownership verification, `FineractAccountService` for account-related Fineract API interactions, and `FineractClientService` for client-related interactions.
+-   **Configuration**: The `FineractProperties` class provides a centralized location for all Fineract-related configuration, such as default values for account creation.
+
+This layered approach makes the codebase easier to understand, test, and maintain.
+
+---
+
+## 5. Account Creation
 
 Savings accounts are not created through the account management endpoints. Instead, a default savings account is automatically created, approved, and activated during the customer registration process.
 
@@ -85,6 +112,12 @@ The following default values, configured in the service's properties, are used f
 -   `productId`: The ID of the Fineract savings product.
 -   `locale`: "en"
 -   `dateFormat`: "dd MMMM yyyy"
+
+The account creation process involves the following steps:
+
+1.  **Create Savings Account**: A `POST` request is sent to the `/fineract-provider/api/v1/savingsaccounts` endpoint with the client's ID and the default account parameters.
+2.  **Approve Savings Account**: A `POST` request is sent to the `/fineract-provider/api/v1/savingsaccounts/{savingsId}?command=approve` endpoint to approve the newly created account.
+3.  **Activate Savings Account**: A `POST` request is sent to the `/fineract-provider/api/v1/savingsaccounts/{savingsId}?command=activate` endpoint to activate the account and make it ready for use.
 
 ---
 
