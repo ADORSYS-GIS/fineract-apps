@@ -33,7 +33,9 @@ Retrieves the transaction history for a specific savings account.
     Before any account information is returned, the service verifies that the Fineract client ID obtained from the token matches the owner of the requested savings account. If there is a mismatch, a `403 Forbidden` error is returned.
 
 ### 3.2. Caching
-To improve performance, the `AccountSecurityService` uses an in-memory cache to store the set of accounts owned by a customer. Once a customer's accounts are fetched, the ownership information is cached. For subsequent requests, the ownership verification can be performed against the cache, avoiding unnecessary calls to the Fineract API. The cache is invalidated if a customer's account information is modified.
+To improve performance, the `AccountSecurityService` uses an in-memory cache to store the set of accounts owned by a customer. Once a customer's accounts are fetched, the ownership information is cached. For subsequent requests, the ownership verification can be performed against the cache, avoiding unnecessary calls to the Fineract API.
+
+The cache is invalidated automatically when a customer's account information is modified (e.g., a new savings account is created). A specific `invalidateCache(clientId)` method is available for this purpose.
 
 ### 3.1. Ownership Verification Flow
 
@@ -121,7 +123,17 @@ The account creation process involves the following steps:
 
 ---
 
-## 5. API Responses
+## 5. Configuration
+
+The service is configured through the `FineractProperties` class, which maps to values in the `application.yml` file. Key properties relevant to the account creation flow include:
+
+-   `fineract.defaults.savingsProductId`: The ID of the default Fineract savings product to be used when creating a new savings account for a customer.
+-   `fineract.defaults.locale`: The locale used for date formatting and other localization purposes (e.g., "en").
+-   `fineract.defaults.dateFormat`: The date format string used when communicating with the Fineract API (e.g., "dd MMMM yyyy").
+
+---
+
+## 6. API Responses
 
 ### Success Response (`200 OK`) for `GET /api/accounts/savings`
 
@@ -230,9 +242,35 @@ The account creation process involves the following steps:
 }
 ```
 
+### Error Responses
+
+In addition to success responses, the API may return the following HTTP error codes:
+
+-   **`401 Unauthorized`**: If the request is missing a valid JWT `Bearer` token in the `Authorization` header.
+
+-   **`403 Forbidden`**: If the customer authenticated via the JWT token is not the owner of the requested savings account. The response body will contain more details:
+    ```json
+    {
+        "error": "FORBIDDEN",
+        "message": "Access denied to account 123",
+        "correlationId": "b1b7a4b-...",
+        "timestamp": "..."
+    }
+    ```
+
+-   **`404 Not Found`**: If the requested savings account does not exist in Fineract. The response body will be similar to this:
+    ```json
+    {
+        "error": "NOT_FOUND",
+        "message": "Account not found",
+        "correlationId": "a2a6b5c-...",
+        "timestamp": "..."
+    }
+    ```
+
 ---
 
-## 6. Local Testing via cURL
+## 7. Local Testing via cURL
 
 ### 6.1. Obtain an Access Token
 
