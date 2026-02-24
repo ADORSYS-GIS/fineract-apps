@@ -35,8 +35,8 @@ VALUES ('asset-002', 'PND', 'PND', 'Pending Asset', 'COMMODITIES', 'PENDING', 'M
 
 -- Price data for active asset
 INSERT INTO asset_prices (asset_id, current_price, day_open, day_high, day_low,
-    day_close, change_24h_percent, updated_at)
-VALUES ('asset-001', 100.00, 100.00, 100.00, 100.00, 100.00, 0, NOW());
+    day_close, change_24h_percent, updated_at, bid_price, ask_price)
+VALUES ('asset-001', 100.00, 100.00, 100.00, 100.00, 100.00, 0, NOW(), 99.00, 101.00);
 
 -- Price data for pending asset
 INSERT INTO asset_prices (asset_id, current_price, day_open, day_high, day_low,
