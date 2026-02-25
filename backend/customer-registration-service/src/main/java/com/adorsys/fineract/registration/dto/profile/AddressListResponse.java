@@ -9,5 +9,5 @@ import java.util.List;
 @Schema(description = "Represents a list of customer addresses")
 public class AddressListResponse {
     @Schema(description = "A list of addresses")
-    private List<AddressResponse> addresses;
+    private List<AddressDetailsResponse> addresses;
 }
