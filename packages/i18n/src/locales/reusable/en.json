@@ -21,7 +21,8 @@
 			"inventory": "Inventory",
 			"marketSettings": "Market Settings",
 			"orderResolution": "Order Resolution",
-			"reconciliation": "Reconciliation"
+			"reconciliation": "Reconciliation",
+			"scheduledPayments": "Scheduled Payments"
 		},
 		"navbar": {
 			"onlineBank": "OnlineBank"

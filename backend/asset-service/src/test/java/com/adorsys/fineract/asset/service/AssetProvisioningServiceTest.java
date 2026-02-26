@@ -203,7 +203,7 @@ class AssetProvisioningServiceTest {
                 "New Name", null, null, null, null, null, null, null, null,
                 null, null, null, null, // exposure limits
                 null, null, null, null, // income distribution
-                null, null); // bond fields
+                null, null, null); // bond fields
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -220,7 +220,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -377,7 +377,7 @@ class AssetProvisioningServiceTest {
                 LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
                 null, null, null, null, // exposure limits
                 null, null, null, null, // income distribution
-                null, null); // bond fields
+                null, null, null); // bond fields
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));

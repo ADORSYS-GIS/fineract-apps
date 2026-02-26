@@ -1,6 +1,7 @@
 import {
 	BarChart3,
 	BookOpen,
+	CalendarCheck,
 	CheckCircle,
 	ClipboardCheck,
 	FileText,
@@ -143,6 +144,12 @@ export const menuAssetManager: MenuItem[] = [
 		title: "sidebar.orderResolution",
 		link: "/order-resolution",
 		icon: ClipboardCheck,
+	},
+	{
+		name: "scheduled-payments",
+		title: "sidebar.scheduledPayments",
+		link: "/scheduled-payments",
+		icon: CalendarCheck,
 	},
 	{
 		name: "reconciliation",

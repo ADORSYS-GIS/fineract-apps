@@ -1,21 +1,17 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
-import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.IncomeDistribution;
 import com.adorsys.fineract.asset.entity.InterestPayment;
 import com.adorsys.fineract.asset.entity.PrincipalRedemption;
-import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.IncomeDistributionRepository;
 import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
 import com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository;
-import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.service.AssetCatalogService;
 import com.adorsys.fineract.asset.service.AssetProvisioningService;
 import com.adorsys.fineract.asset.service.CouponForecastService;
 import com.adorsys.fineract.asset.service.DelistingService;
 import com.adorsys.fineract.asset.service.IncomeForecastService;
-import com.adorsys.fineract.asset.service.IncomeDistributionService;
 import com.adorsys.fineract.asset.service.InventoryService;
 import com.adorsys.fineract.asset.service.PricingService;
 import com.adorsys.fineract.asset.service.PrincipalRedemptionService;
@@ -47,13 +43,10 @@ public class AdminAssetController {
     private final InterestPaymentRepository interestPaymentRepository;
     private final PrincipalRedemptionRepository principalRedemptionRepository;
     private final CouponForecastService couponForecastService;
-    private final InterestPaymentScheduler interestPaymentScheduler;
     private final PrincipalRedemptionService principalRedemptionService;
-    private final AssetRepository assetRepository;
     private final DelistingService delistingService;
     private final IncomeDistributionRepository incomeDistributionRepository;
     private final IncomeForecastService incomeForecastService;
-    private final IncomeDistributionService incomeDistributionService;
 
     @PostMapping
     @Operation(summary = "Create asset", description = "Create a new asset with Fineract provisioning")
@@ -152,39 +145,6 @@ public class AdminAssetController {
         return ResponseEntity.ok(couponForecastService.getForecast(id));
     }
 
-    @PostMapping("/{id}/coupons/trigger")
-    @Operation(summary = "Trigger coupon payment",
-            description = "Manually trigger coupon payment for a bond, regardless of nextCouponDate")
-    public ResponseEntity<CouponTriggerResponse> triggerCouponPayment(@PathVariable String id) {
-        Asset bond = assetRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + id));
-        if (bond.getInterestRate() == null || bond.getCouponFrequencyMonths() == null) {
-            throw new IllegalArgumentException("Asset " + id + " is not a bond");
-        }
-
-        java.time.LocalDate couponDate = bond.getNextCouponDate() != null
-                ? bond.getNextCouponDate() : java.time.LocalDate.now();
-        interestPaymentScheduler.processBondCoupon(bond, couponDate);
-
-        // Reload to get updated nextCouponDate
-        Asset updated = assetRepository.findById(id).orElse(bond);
-
-        // Count results from this coupon date
-        var payments = interestPaymentRepository.findByAssetIdOrderByPaidAtDesc(id,
-                org.springframework.data.domain.Pageable.unpaged()).getContent().stream()
-                .filter(p -> couponDate.equals(p.getCouponDate()))
-                .toList();
-        int paid = (int) payments.stream().filter(p -> "SUCCESS".equals(p.getStatus())).count();
-        int failed = (int) payments.stream().filter(p -> "FAILED".equals(p.getStatus())).count();
-        java.math.BigDecimal totalPaid = payments.stream()
-                .filter(p -> "SUCCESS".equals(p.getStatus()))
-                .map(InterestPayment::getCashAmount)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-
-        return ResponseEntity.ok(new CouponTriggerResponse(
-                id, bond.getSymbol(), couponDate, paid, failed, totalPaid, updated.getNextCouponDate()));
-    }
-
     @PostMapping("/{id}/redeem")
     @Operation(summary = "Trigger bond principal redemption",
             description = "Redeems principal for all holders of a MATURED bond at face value. "
@@ -243,40 +203,6 @@ public class AdminAssetController {
             description = "Shows per-period income obligation, treasury balance, and shortfall for a non-bond asset")
     public ResponseEntity<IncomeForecastResponse> getIncomeForecast(@PathVariable String id) {
         return ResponseEntity.ok(incomeForecastService.getForecast(id));
-    }
-
-    @PostMapping("/{id}/income-distributions/trigger")
-    @Operation(summary = "Trigger income distribution",
-            description = "Manually trigger income distribution for a non-bond asset, regardless of nextDistributionDate")
-    public ResponseEntity<IncomeTriggerResponse> triggerIncomeDistribution(@PathVariable String id) {
-        Asset asset = assetRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + id));
-        if (asset.getIncomeType() == null || asset.getIncomeRate() == null) {
-            throw new IllegalArgumentException("Asset " + id + " has no income distribution configured");
-        }
-
-        java.time.LocalDate distributionDate = asset.getNextDistributionDate() != null
-                ? asset.getNextDistributionDate() : java.time.LocalDate.now();
-        incomeDistributionService.processDistribution(asset, distributionDate);
-
-        // Reload to get updated nextDistributionDate
-        Asset updated = assetRepository.findById(id).orElse(asset);
-
-        // Count results from this distribution date
-        var payments = incomeDistributionRepository.findByAssetIdOrderByPaidAtDesc(id,
-                org.springframework.data.domain.Pageable.unpaged()).getContent().stream()
-                .filter(p -> distributionDate.equals(p.getDistributionDate()))
-                .toList();
-        int paid = (int) payments.stream().filter(p -> "SUCCESS".equals(p.getStatus())).count();
-        int failed = (int) payments.stream().filter(p -> "FAILED".equals(p.getStatus())).count();
-        java.math.BigDecimal totalPaid = payments.stream()
-                .filter(p -> "SUCCESS".equals(p.getStatus()))
-                .map(IncomeDistribution::getCashAmount)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-
-        return ResponseEntity.ok(new IncomeTriggerResponse(
-                id, asset.getSymbol(), asset.getIncomeType(), distributionDate,
-                paid, failed, totalPaid, updated.getNextDistributionDate()));
     }
 
     @PostMapping("/{id}/delist")

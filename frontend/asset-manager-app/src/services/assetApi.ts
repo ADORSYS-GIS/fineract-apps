@@ -295,18 +295,6 @@ export interface IncomeForecastResponse {
 	periodsCoveredByBalance: number;
 }
 
-/** Result of manually triggering an income distribution (matches backend IncomeTriggerResponse). */
-export interface IncomeTriggerResponse {
-	assetId: string;
-	symbol: string;
-	incomeType: string;
-	distributionDate: string;
-	holdersPaid: number;
-	holdersFailed: number;
-	totalAmountPaid: number;
-	nextDistributionDate: string;
-}
-
 /** Coupon obligation forecast for a bond (matches backend CouponForecastResponse). */
 export interface CouponForecastResponse {
 	assetId: string;
@@ -325,17 +313,6 @@ export interface CouponForecastResponse {
 	treasuryBalance: number;
 	shortfall: number;
 	couponsCoveredByBalance: number;
-}
-
-/** Result of manually triggering a coupon payment (matches backend CouponTriggerResponse). */
-export interface CouponTriggerResponse {
-	assetId: string;
-	symbol: string;
-	couponDate: string;
-	holdersPaid: number;
-	holdersFailed: number;
-	totalAmountPaid: number;
-	nextCouponDate: string;
 }
 
 /** Result of triggering bond principal redemption (matches backend RedemptionTriggerResponse). */
@@ -611,6 +588,56 @@ export interface IncomeCalendarResponse {
 	totalByIncomeType: Record<string, number>;
 }
 
+// Scheduled Payments
+export interface ScheduledPaymentResponse {
+	id: number;
+	assetId: string;
+	symbol: string;
+	assetName: string;
+	paymentType: string;
+	scheduleDate: string;
+	status: string;
+	estimatedRate: number;
+	estimatedAmountPerUnit: number;
+	estimatedTotal: number;
+	holderCount: number;
+	actualAmountPerUnit?: number;
+	confirmedBy?: string;
+	confirmedAt?: string;
+	cancelledBy?: string;
+	cancelledAt?: string;
+	cancelReason?: string;
+	holdersPaid?: number;
+	holdersFailed?: number;
+	totalAmountPaid?: number;
+	executedAt?: string;
+	createdAt: string;
+	treasuryBalance?: number;
+}
+
+export interface ScheduledPaymentDetailResponse
+	extends ScheduledPaymentResponse {
+	holders: {
+		userId: number;
+		units: number;
+		estimatedPayment: number;
+	}[];
+}
+
+export interface ScheduledPaymentSummary {
+	pendingCount: number;
+	confirmedThisMonth: number;
+	totalPaidThisMonth: number;
+}
+
+export interface ConfirmPaymentRequest {
+	amountPerUnit?: number;
+}
+
+export interface CancelPaymentRequest {
+	reason?: string;
+}
+
 // Audit Log
 export interface AuditLogResponse {
 	id: number;
@@ -712,10 +739,6 @@ export const assetApi = {
 		assetClient.get<CouponForecastResponse>(
 			`/api/admin/assets/${assetId}/coupon-forecast`,
 		),
-	triggerCouponPayment: (assetId: string) =>
-		assetClient.post<CouponTriggerResponse>(
-			`/api/admin/assets/${assetId}/coupons/trigger`,
-		),
 	redeemBond: (assetId: string) =>
 		assetClient.post<RedemptionTriggerResponse>(
 			`/api/admin/assets/${assetId}/redeem`,
@@ -744,11 +767,6 @@ export const assetApi = {
 		assetClient.get<IncomeForecastResponse>(
 			`/api/admin/assets/${assetId}/income-forecast`,
 		),
-	triggerIncomeDistribution: (assetId: string) =>
-		assetClient.post<IncomeTriggerResponse>(
-			`/api/admin/assets/${assetId}/income-distributions/trigger`,
-		),
-
 	// Orders - Admin
 	getAdminOrders: (
 		params?: { page?: number; size?: number } & AdminOrderFilter,
@@ -842,6 +860,38 @@ export const assetApi = {
 			totalPages: number;
 			totalElements: number;
 		}>("/api/admin/audit-log", { params }),
+
+	// Scheduled Payments - Admin
+	getScheduledPayments: (params?: {
+		page?: number;
+		size?: number;
+		status?: string;
+		assetId?: string;
+		type?: string;
+	}) =>
+		assetClient.get<{
+			content: ScheduledPaymentResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>("/api/admin/scheduled-payments", { params }),
+	getScheduledPaymentSummary: () =>
+		assetClient.get<ScheduledPaymentSummary>(
+			"/api/admin/scheduled-payments/summary",
+		),
+	getScheduledPaymentDetail: (id: number) =>
+		assetClient.get<ScheduledPaymentDetailResponse>(
+			`/api/admin/scheduled-payments/${id}`,
+		),
+	confirmScheduledPayment: (id: number, data?: ConfirmPaymentRequest) =>
+		assetClient.post<ScheduledPaymentResponse>(
+			`/api/admin/scheduled-payments/${id}/confirm`,
+			data || {},
+		),
+	cancelScheduledPayment: (id: number, data?: CancelPaymentRequest) =>
+		assetClient.post<ScheduledPaymentResponse>(
+			`/api/admin/scheduled-payments/${id}/cancel`,
+			data || {},
+		),
 
 	// Reconciliation - Admin
 	getReconciliationReports: (params?: {

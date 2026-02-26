@@ -212,6 +212,7 @@ public class AssetProvisioningService {
         if (request.capitalOpenedPercent() != null) asset.setCapitalOpenedPercent(request.capitalOpenedPercent());
         if (request.interestRate() != null) asset.setInterestRate(request.interestRate());
         if (request.maturityDate() != null) asset.setMaturityDate(request.maturityDate());
+        if (request.nextCouponDate() != null) asset.setNextCouponDate(request.nextCouponDate());
 
         // Exposure limits
         if (request.maxPositionPercent() != null) asset.setMaxPositionPercent(request.maxPositionPercent());

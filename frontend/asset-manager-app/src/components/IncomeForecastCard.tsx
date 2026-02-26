@@ -1,7 +1,7 @@
 import { Card } from "@fineract-apps/ui";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FC, useState } from "react";
-import { assetApi, type IncomeTriggerResponse } from "@/services/assetApi";
+import { useQuery } from "@tanstack/react-query";
+import { FC } from "react";
+import { assetApi } from "@/services/assetApi";
 
 interface Props {
 	assetId: string;
@@ -45,23 +45,10 @@ const Row: FC<{
 );
 
 export const IncomeForecastCard: FC<Props> = ({ assetId }) => {
-	const queryClient = useQueryClient();
-	const [triggerResult, setTriggerResult] =
-		useState<IncomeTriggerResponse | null>(null);
-
 	const { data: forecast, isLoading } = useQuery({
 		queryKey: ["income-forecast", assetId],
 		queryFn: () => assetApi.getIncomeForecast(assetId),
 		select: (res) => res.data,
-	});
-
-	const triggerMutation = useMutation({
-		mutationFn: () => assetApi.triggerIncomeDistribution(assetId),
-		onSuccess: (res) => {
-			setTriggerResult(res.data);
-			queryClient.invalidateQueries({ queryKey: ["income-forecast", assetId] });
-			queryClient.invalidateQueries({ queryKey: ["income-history", assetId] });
-		},
 	});
 
 	if (isLoading) {
@@ -165,26 +152,6 @@ export const IncomeForecastCard: FC<Props> = ({ assetId }) => {
 					</p>
 				</div>
 			)}
-
-			<div className="flex items-center gap-3">
-				<button
-					type="button"
-					onClick={() => triggerMutation.mutate()}
-					disabled={triggerMutation.isPending}
-					className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-				>
-					{triggerMutation.isPending
-						? "Processing..."
-						: `Trigger ${incomeTypeLabel} Payment`}
-				</button>
-
-				{triggerResult && (
-					<span className="text-sm text-gray-600">
-						{triggerResult.holdersPaid} paid, {triggerResult.holdersFailed}{" "}
-						failed, {fmt(triggerResult.totalAmountPaid)} XAF total
-					</span>
-				)}
-			</div>
 		</Card>
 	);
 };

@@ -20,6 +20,8 @@ public class ScenarioCleanupHook {
     @Before(order = 0)
     public void cleanAssetServiceDatabase() {
         // Delete in FK-safe order (children first)
+        jdbcTemplate.execute("DELETE FROM scheduled_payments");
+        jdbcTemplate.execute("DELETE FROM income_distributions");
         jdbcTemplate.execute("DELETE FROM principal_redemptions");
         jdbcTemplate.execute("DELETE FROM interest_payments");
         jdbcTemplate.execute("DELETE FROM portfolio_snapshots");

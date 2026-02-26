@@ -117,22 +117,6 @@ public class BondLifecycleSteps {
     // When steps
     // ---------------------------------------------------------------
 
-    @When("the admin triggers coupon payment for bond {string}")
-    public void adminTriggersCouponPayment(String symbolRef) {
-        String assetId = context.getId("lastAssetId");
-
-        BigDecimal balanceBefore = fineractTestClient.getAccountBalance(
-                FineractInitializer.getTestUserXafAccountId());
-        context.storeValue("xafBalanceBefore", balanceBefore);
-
-        Response response = RestAssured.given()
-                .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/coupons/trigger");
-
-        context.setLastResponse(response);
-    }
-
     @When("the maturity scheduler runs")
     public void maturitySchedulerRuns() {
         String assetId = context.getId("lastAssetId");
@@ -162,15 +146,6 @@ public class BondLifecycleSteps {
     // ---------------------------------------------------------------
     // Then steps
     // ---------------------------------------------------------------
-
-    @Then("the coupon trigger should succeed with {int} payments")
-    public void couponTriggerShouldSucceed(int expectedPayments) {
-        assertThat(context.getStatusCode())
-                .as("Coupon trigger response — body: %s", context.getBody())
-                .isEqualTo(200);
-        int paid = context.jsonPath("holdersPaid");
-        assertThat(paid).isEqualTo(expectedPayments);
-    }
 
     @Then("the user's XAF balance should have increased after coupon")
     public void xafBalanceShouldHaveIncreasedAfterCoupon() {

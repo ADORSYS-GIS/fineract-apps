@@ -21,7 +21,8 @@
 			"inventory": "Inventaire",
 			"marketSettings": "Paramètres du marché",
 			"orderResolution": "Résolution d'ordres",
-			"reconciliation": "Réconciliation"
+			"reconciliation": "Réconciliation",
+			"scheduledPayments": "Paiements programmés"
 		},
 		"navbar": {
 			"onlineBank": "Banque en ligne"

@@ -71,5 +71,8 @@ public record UpdateAssetRequest(
     @PositiveOrZero BigDecimal interestRate,
     /** New maturity date. Null to keep current. */
     @Schema(description = "New bond maturity date.")
-    LocalDate maturityDate
+    LocalDate maturityDate,
+    /** New next coupon date. Null to keep current. */
+    @Schema(description = "Next scheduled coupon payment date.")
+    LocalDate nextCouponDate
 ) {}

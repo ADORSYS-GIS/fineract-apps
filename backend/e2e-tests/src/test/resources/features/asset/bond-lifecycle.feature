@@ -46,12 +46,14 @@ Feature: Bond Asset Lifecycle (E2E)
   # Coupon Payment
   # -----------------------------------------------------------------
 
-  Scenario: Trigger coupon payment for bond holders
+  Scenario: Coupon payment via scheduled payment confirmation
     Given an active bond asset "CPN" priced at 10000 with supply 100 and interest rate 5.80
     And the user holds 5 units of bond "CPN"
-    When the admin triggers coupon payment for bond "CPN"
-    Then the response status should be 200
-    And the coupon trigger should succeed with 1 payments
+    When the scheduler creates a pending coupon schedule for "CPN"
+    Then a PENDING scheduled payment should exist for "CPN" with type "COUPON"
+    When the admin confirms the scheduled payment
+    Then the scheduled payment status should be "CONFIRMED"
+    And the confirmed payment should have 1 holders paid
     And the user's XAF balance should have increased after coupon
     And coupon payment records should exist for the bond
 

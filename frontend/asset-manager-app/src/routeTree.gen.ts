@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ScheduledPaymentsRouteImport } from './routes/scheduled-payments'
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as OrderResolutionRouteImport } from './routes/order-resolution'
 import { Route as MarketSettingsRouteImport } from './routes/market-settings'
@@ -25,6 +26,11 @@ import { Route as AssetDetailsAssetIdRouteImport } from './routes/asset-details.
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduledPaymentsRoute = ScheduledPaymentsRouteImport.update({
+  id: '/scheduled-payments',
+  path: '/scheduled-payments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReconciliationRoute = ReconciliationRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
   '/reconciliation': typeof ReconciliationRoute
+  '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
   '/reconciliation': typeof ReconciliationRoute
+  '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
   '/reconciliation': typeof ReconciliationRoute
+  '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/market-settings'
     | '/order-resolution'
     | '/reconciliation'
+    | '/scheduled-payments'
     | '/settings'
     | '/asset-details/$assetId'
     | '/pricing/$assetId'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/market-settings'
     | '/order-resolution'
     | '/reconciliation'
+    | '/scheduled-payments'
     | '/settings'
     | '/asset-details/$assetId'
     | '/pricing/$assetId'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/market-settings'
     | '/order-resolution'
     | '/reconciliation'
+    | '/scheduled-payments'
     | '/settings'
     | '/asset-details/$assetId'
     | '/pricing/$assetId'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   MarketSettingsRoute: typeof MarketSettingsRoute
   OrderResolutionRoute: typeof OrderResolutionRoute
   ReconciliationRoute: typeof ReconciliationRoute
+  ScheduledPaymentsRoute: typeof ScheduledPaymentsRoute
   SettingsRoute: typeof SettingsRoute
   AssetDetailsAssetIdRoute: typeof AssetDetailsAssetIdRoute
   PricingAssetIdRoute: typeof PricingAssetIdRoute
@@ -193,6 +206,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scheduled-payments': {
+      id: '/scheduled-payments'
+      path: '/scheduled-payments'
+      fullPath: '/scheduled-payments'
+      preLoaderRoute: typeof ScheduledPaymentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reconciliation': {
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketSettingsRoute: MarketSettingsRoute,
   OrderResolutionRoute: OrderResolutionRoute,
   ReconciliationRoute: ReconciliationRoute,
+  ScheduledPaymentsRoute: ScheduledPaymentsRoute,
   SettingsRoute: SettingsRoute,
   AssetDetailsAssetIdRoute: AssetDetailsAssetIdRoute,
   PricingAssetIdRoute: PricingAssetIdRoute,
