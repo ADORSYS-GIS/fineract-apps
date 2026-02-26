@@ -44,6 +44,7 @@ fineract:
     locale: ${DEFAULT_LOCALE:en}
     date-format: ${DEFAULT_DATE_FORMAT:dd MMMM yyyy}
     postal-code: ${DEFAULT_POSTAL_CODE:0000}
+    payment-type-id: ${DEFAULT_PAYMENT_TYPE_ID:1}
   codes:
     ADDRESS_TYPE: 29
     COUNTRY: 28

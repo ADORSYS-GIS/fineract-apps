@@ -10,7 +10,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import com.adorsys.fineract.registration.dto.batch.BatchRequest ;
 import com.adorsys.fineract.registration.service.FineractService;
-
+import com.adorsys.fineract.registration.exception.JsonSerializationException;
+import com.adorsys.fineract.registration.config.FineractProperties;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +26,7 @@ public class RegistrationService {
     private final RegistrationMetrics registrationMetrics;
     private final FineractBatchService fineractBatchService;
     private final FineractClientService fineractClientService;
+    private final FineractProperties fineractProperties;
 
     @Timed(value = "registration.service.register", description = "Time taken to register a new customer")
     @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
@@ -65,9 +69,9 @@ public class RegistrationService {
             }
 
             if (batchResponse.getRequestId() == 1) {
-                fineractClientId = com.jayway.jsonpath.JsonPath.read(batchResponse.getBody(), "$.clientId");
+                fineractClientId = JsonPath.read(batchResponse.getBody(), "$.clientId");
             } else if (batchResponse.getRequestId() == 2) {
-                savingsAccountId = com.jayway.jsonpath.JsonPath.read(batchResponse.getBody(), "$.savingsId");
+                savingsAccountId = JsonPath.read(batchResponse.getBody(), "$.savingsId");
             }
         }
 
@@ -101,7 +105,8 @@ public class RegistrationService {
         createSavingsAccountRequest.setMethod("POST");
         createSavingsAccountRequest.setRelativeUrl("savingsaccounts");
         createSavingsAccountRequest.setHeaders(java.util.List.of(new BatchRequest.Header("Content-Type", "application/json")));
-        createSavingsAccountRequest.setBody("{'clientId':'$.1.resourceId','productId':1,'locale':'en','dateFormat':'dd MMMM yyyy','submittedOnDate':'" + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd MMMM yyyy")) + "'}");
+        createSavingsAccountRequest.setBody(String.format("{'clientId':'$.1.resourceId','productId':%d,'locale':'%s','dateFormat':'%s','submittedOnDate':'%s'}",
+                fineractProperties.getDefaults().getSavingsProductId(), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat(), LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat()))));
         batchRequests.add(createSavingsAccountRequest);
         
         // Approve Savings Account Request
@@ -110,7 +115,8 @@ public class RegistrationService {
         approveSavingsAccountRequest.setMethod("POST");
         approveSavingsAccountRequest.setRelativeUrl("savingsaccounts/$.2.resourceId?command=approve");
         approveSavingsAccountRequest.setHeaders(java.util.List.of(new BatchRequest.Header("Content-Type", "application/json")));
-        approveSavingsAccountRequest.setBody("{'approvedOnDate':'" + LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy")) + "','locale':'en','dateFormat':'dd MMMM yyyy'}");
+        approveSavingsAccountRequest.setBody(String.format("{'approvedOnDate':'%s','locale':'%s','dateFormat':'%s'}",
+                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat()));
         batchRequests.add(approveSavingsAccountRequest);
 
         // Activate Savings Account Request
@@ -119,7 +125,8 @@ public class RegistrationService {
         activateSavingsAccountRequest.setMethod("POST");
         activateSavingsAccountRequest.setRelativeUrl("savingsaccounts/$.2.resourceId?command=activate");
         activateSavingsAccountRequest.setHeaders(java.util.List.of(new BatchRequest.Header("Content-Type", "application/json")));
-        activateSavingsAccountRequest.setBody("{'activatedOnDate':'" + LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy")) + "','locale':'en','dateFormat':'dd MMMM yyyy'}");
+        activateSavingsAccountRequest.setBody(String.format("{'activatedOnDate':'%s','locale':'%s','dateFormat':'%s'}",
+                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat()));
         batchRequests.add(activateSavingsAccountRequest);
 
         if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
@@ -128,7 +135,8 @@ public class RegistrationService {
             depositRequest.setMethod("POST");
             depositRequest.setRelativeUrl("savingsaccounts/$.2.resourceId/transactions?command=deposit");
             depositRequest.setHeaders(java.util.List.of(new com.adorsys.fineract.registration.dto.batch.BatchRequest.Header("Content-Type", "application/json")));
-            depositRequest.setBody("{'locale':'en','dateFormat':'dd MMMM yyyy','transactionDate':'" + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd MMMM yyyy")) + "','transactionAmount':" + request.getDepositAmount() + ",'paymentTypeId':1}");
+            depositRequest.setBody(String.format("{'locale':'%s','dateFormat':'%s','transactionDate':'%s','transactionAmount':%s,'paymentTypeId':%d}",
+                    fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat(), java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), request.getDepositAmount(), fineractProperties.getDefaults().getPaymentTypeId()));
             batchRequests.add(depositRequest);
         }
         
@@ -137,9 +145,9 @@ public class RegistrationService {
 
     private String buildClientPayload(RegistrationRequest request) {
         try {
-            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(fineractClientService.buildClientPayload(request));
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new RuntimeException(e);
+            return new ObjectMapper().writeValueAsString(fineractClientService.buildClientPayload(request));
+        } catch (JsonProcessingException e) {
+            throw new JsonSerializationException("Error serializing client payload", e);
         }
     }
 }
