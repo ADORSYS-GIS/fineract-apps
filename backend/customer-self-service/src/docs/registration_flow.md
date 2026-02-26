@@ -25,7 +25,7 @@ The endpoint expects a `Content-Type: application/json` body with the following 
 |---|---|---|---|
 | `firstName` | `String` | **Yes** | The customer's first name. |
 | `lastName` | `String` | **Yes** | The customer's last name. |
-| `email` | `String` | **Yes** | The customer's email address. Must be unique. |
+| `email` | `String` | **NO** | The customer's email address. Must be unique. |
 | `phone` | `String` | **Yes** | The customer's mobile phone number. |
 | `externalId`| `String` | **Yes** | A unique identifier from the external identity system (e.g., Keycloak user ID). |
 | `dateOfBirth`| `LocalDate` | No | The customer's date of birth (Format: `YYYY-MM-DD`). |
