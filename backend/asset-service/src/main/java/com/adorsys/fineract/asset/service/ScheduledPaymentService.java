@@ -149,6 +149,21 @@ public class ScheduledPaymentService {
             actualAmountPerUnit = schedule.getEstimatedAmountPerUnit();
         }
 
+        // Pre-flight: check treasury balance covers total payout
+        BigDecimal totalRequired = BigDecimal.ZERO;
+        for (UserPosition h : holders) {
+            totalRequired = totalRequired.add(
+                    h.getTotalUnits().multiply(actualAmountPerUnit)
+                            .setScale(0, RoundingMode.HALF_UP));
+        }
+
+        BigDecimal treasuryBalance = fineractClient.getAccountBalance(asset.getTreasuryCashAccountId());
+        if (treasuryBalance.compareTo(totalRequired) < 0) {
+            throw new IllegalStateException(String.format(
+                    "Insufficient treasury balance: %s available, %s required for %d holders",
+                    treasuryBalance.toPlainString(), totalRequired.toPlainString(), holders.size()));
+        }
+
         int successCount = 0;
         int failCount = 0;
         BigDecimal totalPaid = BigDecimal.ZERO;

@@ -525,6 +525,18 @@ export const ScheduledPaymentsView: FC<
 							</p>
 						</div>
 
+						{confirmModal.schedule.treasuryBalance != null &&
+							confirmModal.schedule.treasuryBalance <
+								(confirmModal.schedule.estimatedTotal ?? 0) && (
+								<div className="mb-4 bg-red-50 border border-red-200 p-3 rounded text-sm text-red-800">
+									Treasury balance (
+									{fmtAmount(confirmModal.schedule.treasuryBalance)}) is below
+									the estimated total (
+									{fmtAmount(confirmModal.schedule.estimatedTotal)}).
+									Confirmation will fail unless the treasury is funded.
+								</div>
+							)}
+
 						{confirmModal.schedule.paymentType === "INCOME" ? (
 							<div className="mb-4">
 								<label className="block text-sm font-medium text-gray-700 mb-1">
