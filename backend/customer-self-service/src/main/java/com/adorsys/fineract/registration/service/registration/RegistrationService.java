@@ -2,6 +2,8 @@ package com.adorsys.fineract.registration.service.registration;
 
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.dto.registration.RegistrationResponse;
+import com.adorsys.fineract.registration.dto.batch.BatchResponse;
+import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
 import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +12,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import com.adorsys.fineract.registration.dto.batch.BatchRequest ;
 import com.adorsys.fineract.registration.service.FineractService;
+import com.adorsys.fineract.registration.service.fineract.FineractBatchService;
+import com.adorsys.fineract.registration.service.fineract.FineractClientService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
 import com.adorsys.fineract.registration.exception.JsonSerializationException;
 import com.adorsys.fineract.registration.config.FineractProperties;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -72,9 +80,9 @@ public class RegistrationService {
             }
 
             if (batchResponse.getRequestId() == 1) {
-                fineractClientId = JsonPath.read(batchResponse.getBody(), "$.clientId");
+                fineractClientId = ((Number) JsonPath.read(batchResponse.getBody(), "$.clientId")).longValue();
             } else if (batchResponse.getRequestId() == 2) {
-                savingsAccountId = JsonPath.read(batchResponse.getBody(), "$.savingsId");
+                savingsAccountId = ((Number) JsonPath.read(batchResponse.getBody(), "$.savingsId")).longValue();
             }
         }
 

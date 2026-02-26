@@ -25,6 +25,8 @@ public class FineractAccountService {
     private static final String CLIENT_ID = "clientId";
 
     private final RestClient fineractRestClient;
+    private final FineractProperties fineractProperties;
+    private final DateTimeFormatter dateTimeFormatter;
 
     public FineractAccountService(RestClient fineractRestClient, FineractProperties fineractProperties) {
         this.fineractRestClient = fineractRestClient;

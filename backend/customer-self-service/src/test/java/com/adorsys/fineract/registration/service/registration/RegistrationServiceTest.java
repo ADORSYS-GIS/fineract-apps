@@ -4,7 +4,14 @@ import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.dto.registration.RegistrationResponse;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
+import com.adorsys.fineract.registration.service.fineract.FineractBatchService;
+import com.adorsys.fineract.registration.service.fineract.FineractClientService;
+import com.adorsys.fineract.registration.config.FineractProperties;
+import com.adorsys.fineract.registration.dto.batch.BatchResponse;
+import java.util.Collections;
+import java.util.ArrayList;
 import com.adorsys.fineract.registration.service.FineractService;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,6 +38,12 @@ class RegistrationServiceTest {
     @Mock
     private FineractClientService fineractClientService;
     
+    @Mock
+    private FineractService fineractService;
+
+    @Mock
+    private FineractProperties fineractProperties;
+    
     @InjectMocks
     private RegistrationService registrationService;
 
@@ -41,6 +54,14 @@ class RegistrationServiceTest {
         request = new RegistrationRequest();
         request.setEmail("test@example.com");
         request.setExternalId("external-id");
+
+        FineractProperties.Defaults defaults = new FineractProperties.Defaults();
+        defaults.setSavingsProductId(1L);
+        defaults.setLocale("en");
+        defaults.setDateFormat("yyyy-MM-dd");
+        defaults.setPaymentTypeId(1L);
+        when(fineractProperties.getDefaults()).thenReturn(defaults);
+        when(fineractService.getClientByExternalId(anyString())).thenReturn(Collections.emptyMap());
     }
 
     @Nested
@@ -51,15 +72,15 @@ class RegistrationServiceTest {
         void register_success() {
             // Arrange
             when(fineractBatchService.sendBatchRequest(anyList())).thenAnswer(invocation -> {
-                List<com.adorsys.fineract.registration.dto.batch.BatchResponse> responses = new java.util.ArrayList<>();
+                List<BatchResponse> responses = new ArrayList<>();
                 
-                com.adorsys.fineract.registration.dto.batch.BatchResponse clientResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                BatchResponse clientResponse = new BatchResponse();
                 clientResponse.setRequestId(1L);
                 clientResponse.setStatusCode(200);
                 clientResponse.setBody("{\"clientId\": 1}");
                 responses.add(clientResponse);
 
-                com.adorsys.fineract.registration.dto.batch.BatchResponse savingsResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                BatchResponse savingsResponse = new BatchResponse();
                 savingsResponse.setRequestId(2L);
                 savingsResponse.setStatusCode(200);
                 savingsResponse.setBody("{\"savingsId\": 2}");
@@ -94,11 +115,10 @@ class RegistrationServiceTest {
         @DisplayName("When client creation fails, it should throw RegistrationException and not create an account")
         void register_whenClientCreationFails_throwsRegistrationException() {
             // Arrange
-            String errorMessage = "Client creation failed";
             when(fineractBatchService.sendBatchRequest(anyList())).thenAnswer(invocation -> {
-                List<com.adorsys.fineract.registration.dto.batch.BatchResponse> responses = new java.util.ArrayList<>();
+                List<BatchResponse> responses = new ArrayList<>();
                 
-                com.adorsys.fineract.registration.dto.batch.BatchResponse clientResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                BatchResponse clientResponse = new BatchResponse();
                 clientResponse.setRequestId(1L);
                 clientResponse.setStatusCode(400);
                 clientResponse.setBody("{\"error\": \"Client creation failed\"}");
@@ -123,17 +143,16 @@ class RegistrationServiceTest {
         @DisplayName("When savings account creation fails, it should throw RegistrationException")
         void register_whenSavingsAccountCreationFails_throwsRegistrationException() {
             // Arrange
-            String errorMessage = "Savings account creation failed";
             when(fineractBatchService.sendBatchRequest(anyList())).thenAnswer(invocation -> {
-                List<com.adorsys.fineract.registration.dto.batch.BatchResponse> responses = new java.util.ArrayList<>();
+                List<BatchResponse> responses = new ArrayList<>();
                 
-                com.adorsys.fineract.registration.dto.batch.BatchResponse clientResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                BatchResponse clientResponse = new BatchResponse();
                 clientResponse.setRequestId(1L);
                 clientResponse.setStatusCode(200);
                 clientResponse.setBody("{\"clientId\": 1}");
                 responses.add(clientResponse);
 
-                com.adorsys.fineract.registration.dto.batch.BatchResponse savingsResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                BatchResponse savingsResponse = new BatchResponse();
                 savingsResponse.setRequestId(2L);
                 savingsResponse.setStatusCode(400);
                 savingsResponse.setBody("{\"error\": \"Savings account creation failed\"}");

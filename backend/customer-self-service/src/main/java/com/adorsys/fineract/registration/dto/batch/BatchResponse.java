@@ -1,4 +1,4 @@
-package main.java.com.adorsys.fineract.registration.dto.batch;
+package com.adorsys.fineract.registration.dto.batch;
 
 import java.util.List;
 import lombok.Data;

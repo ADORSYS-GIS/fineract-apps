@@ -1,4 +1,4 @@
-package main.java.com.adorsys.fineract.registration.service.fineract;
+package com.adorsys.fineract.registration.service.fineract;
 
 import com.adorsys.fineract.registration.dto.batch.BatchRequest;
 import com.adorsys.fineract.registration.dto.batch.BatchResponse;
