@@ -38,6 +38,8 @@ The endpoint expects a `Content-Type: application/json` body with the following 
 | `stateProvince`| `String`| Conditionally Yes | The state or province. Required if any other address field is provided. |
 | `country`| `String`| Conditionally Yes | The country. Required if any other address field is provided. |
 | `postalCode`| `String`| No | The postal code. Defaults to `0000` if not provided. |
+| `depositAmount` | `BigDecimal` | No | An optional amount to deposit into the new savings account. |
+| `depositAmount` | `BigDecimal` | No | An optional amount to deposit into the new savings account. |
 
 ### Sample Request
 
@@ -173,7 +175,8 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "lastName": "Biya",
     "email": "brenda.biya@example.cm",
     "phone": "+237691111111",
-    "externalId": "external-id-001"
+    "externalId": "external-id-001",
+    "depositAmount": 1000
 }'
 ```
 
@@ -200,7 +203,8 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "city": "Yaoundé",
     "stateProvince": "Centre",
     "country": "Cameroon",
-    "postalCode": "54321"
+    "postalCode": "54321",
+    "depositAmount": 1000
 }'
 ```
 
@@ -222,7 +226,8 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "addressLine1": "MMA Factory",
     "city": "Batié",
     "stateProvince": "West",
-    "country": "Cameroon"
+    "country": "Cameroon",
+    "depositAmount": 1000
 }'
 ```
 
@@ -244,7 +249,8 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "stateProvince": "South-West",
     "country": "Cameroon",
     "addressLine2": "4.1585",
-    "addressLine3": "9.2435"
+    "addressLine3": "9.2435",
+    "depositAmount": 1000
 }'
 ```
 
@@ -264,7 +270,8 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "externalId": "external-id-005",
     "addressType": "Residential",
     "city": "Ebolowa",
-    "country": "Cameroon"
+    "country": "Cameroon",
+    "depositAmount": 1000
 }'
 ```
 
@@ -283,7 +290,8 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "phone": "+237696666666",
     "externalId": "external-id-006",
     "stateProvince": "North-West",
-    "country": "Cameroon"
+    "country": "Cameroon",
+    "depositAmount": 1000
 }'
 ```
 

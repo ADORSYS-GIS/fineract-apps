@@ -124,7 +124,7 @@ public class FineractClientService {
         }
     }
 
-    private Map<String, Object> buildClientPayload(RegistrationRequest request) {
+    public Map<String, Object> buildClientPayload(RegistrationRequest request) {
         String currentDate = LocalDate.now().format(dateTimeFormatter);
         Map<String, Object> payload = new HashMap<>();
         payload.put("officeId", fineractProperties.getDefaults().getOfficeId());

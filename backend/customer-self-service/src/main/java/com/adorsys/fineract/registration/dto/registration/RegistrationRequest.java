@@ -44,5 +44,5 @@ public class RegistrationRequest {
     private String stateProvince;
     private String country;
     private String postalCode;
-
+    private BigDecimal depositAmount;
 }
