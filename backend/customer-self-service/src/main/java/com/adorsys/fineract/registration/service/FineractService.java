@@ -33,9 +33,6 @@ public class FineractService {
         this.fineractAddressService = fineractAddressService;
     }
 
-    public Long createClient(RegistrationRequest request) {
-        return fineractClientService.createClient(request);
-    }
 
     public Map<String, Object> getClientByExternalId(String externalId) {
         return fineractClientService.getClientByExternalId(externalId);
@@ -65,9 +62,6 @@ public class FineractService {
         return fineractClientService.updateClient(clientId, request);
     }
 
-    public Long createSavingsAccount(Long clientId) {
-        return fineractAccountService.createSavingsAccount(clientId);
-    }
 
     public AddressResponse createClientAddress(Long clientId, AddressRequest addressRequest) {
         return fineractAddressService.createClientAddress(clientId, addressRequest);

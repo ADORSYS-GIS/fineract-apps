@@ -22,14 +22,9 @@ public class FineractAccountService {
      */
     private static final String SAVINGS_ACCOUNTS = "savingsAccounts";
     private static final String TRANSACTIONS = "transactions";
-    private static final String SAVINGS_ID = "savingsId";
     private static final String CLIENT_ID = "clientId";
-    private static final String LOCALE = "locale";
-    private static final String DATE_FORMAT = "dateFormat";
 
     private final RestClient fineractRestClient;
-    private final FineractProperties fineractProperties;
-    private final DateTimeFormatter dateTimeFormatter;
 
     public FineractAccountService(RestClient fineractRestClient, FineractProperties fineractProperties) {
         this.fineractRestClient = fineractRestClient;
@@ -100,104 +95,4 @@ public class FineractAccountService {
         return null;
     }
 
-    public Long createSavingsAccount(Long clientId) {
-        log.info("Creating savings account for client: {}", clientId);
-
-        Map<String, Object> savingsPayload = Map.of(
-                CLIENT_ID, clientId,
-                "productId", fineractProperties.getDefaults().getSavingsProductId(),
-                LOCALE, fineractProperties.getDefaults().getLocale(),
-                DATE_FORMAT, fineractProperties.getDefaults().getDateFormat(),
-                "submittedOnDate", LocalDate.now().format(dateTimeFormatter)
-        );
-
-        try {
-            @SuppressWarnings({"unchecked", "null"})
-            Map<String, Object> response = fineractRestClient.post()
-                    .uri("/fineract-provider/api/v1/savingsaccounts")
-                    .body(savingsPayload)
-                    .retrieve()
-                    .body(Map.class);
-
-            if (response != null && response.containsKey(SAVINGS_ID)) {
-                Long savingsId = ((Number) response.get(SAVINGS_ID)).longValue();
-                log.info("Created savings account with ID: {}", savingsId);
-                return savingsId;
-            }
-
-            throw new RegistrationException("Failed to create savings account: invalid response");
-        } catch (Exception e) {
-            log.error("Failed to create savings account: {}", e.getMessage(), e);
-            throw new RegistrationException("Failed to create savings account", e);
-        }
-    }
-
-    @SuppressWarnings({"null"})
-    public void approveSavingsAccount(Long savingsId) {
-        log.info("Approving savings account: {}", savingsId);
-
-        Map<String, Object> approvePayload = Map.of(
-                "approvedOnDate", LocalDate.now().format(dateTimeFormatter),
-                DATE_FORMAT, fineractProperties.getDefaults().getDateFormat(),
-                LOCALE, fineractProperties.getDefaults().getLocale(),
-                "note", ""
-        );
-
-        try {
-            fineractRestClient.post()
-                    .uri("/fineract-provider/api/v1/savingsaccounts/{savingsId}?command=approve", savingsId)
-                    .body(approvePayload)
-                    .retrieve()
-                    .toBodilessEntity();
-            log.info("Approved savings account with ID: {}", savingsId);
-        } catch (Exception e) {
-            log.error("Failed to approve savings account: {}", e.getMessage(), e);
-            throw new RegistrationException("Failed to approve savings account", e);
-        }
-    }
-
-    @SuppressWarnings({"null"})
-    public void activateSavingsAccount(Long savingsId) {
-        log.info("Activating savings account: {}", savingsId);
-
-        Map<String, Object> activatePayload = Map.of(
-                "activatedOnDate", LocalDate.now().format(dateTimeFormatter),
-                DATE_FORMAT, fineractProperties.getDefaults().getDateFormat(),
-                LOCALE, fineractProperties.getDefaults().getLocale()
-        );
-
-        try {
-            fineractRestClient.post()
-                    .uri("/fineract-provider/api/v1/savingsaccounts/{savingsId}?command=activate", savingsId)
-                    .body(activatePayload)
-                    .retrieve()
-                    .toBodilessEntity();
-            log.info("Activated savings account with ID: {}", savingsId);
-        } catch (Exception e) {
-            log.error("Failed to activate savings account: {}", e.getMessage(), e);
-            throw new RegistrationException("Failed to activate savings account", e);
-        }
-    }
-    public void deposit(Long savingsId, java.math.BigDecimal amount) {
-        log.info("Depositing {} into savings account: {}", amount, savingsId);
-
-        Map<String, Object> depositPayload = new java.util.HashMap<>();
-        depositPayload.put("locale", "en");
-        depositPayload.put("dateFormat", "dd MMMM yyyy");
-        depositPayload.put("transactionDate", LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy")));
-        depositPayload.put("transactionAmount", amount);
-        depositPayload.put("paymentTypeId", 1);
-
-        try {
-            fineractRestClient.post()
-                    .uri("/fineract-provider/api/v1/savingsaccounts/{savingsId}/transactions?command=deposit", savingsId)
-                    .body(depositPayload)
-                    .retrieve()
-                    .toBodilessEntity();
-            log.info("Deposited {} into savings account with ID: {}", amount, savingsId);
-        } catch (Exception e) {
-            log.error("Failed to deposit into savings account: {}", e.getMessage(), e);
-            throw new RegistrationException("Failed to deposit into savings account", e);
-        }
-    }
 }

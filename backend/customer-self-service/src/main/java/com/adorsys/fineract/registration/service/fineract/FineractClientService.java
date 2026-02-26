@@ -45,35 +45,6 @@ public class FineractClientService {
         this.fineractCodeValueService = fineractCodeValueService;
     }
 
-    public Long createClient(RegistrationRequest request) {
-        log.info("Creating Fineract client for email: {}", request.getEmail());
-
-        Map<String, Object> clientPayload = buildClientPayload(request);
-        log.debug("Fineract client creation request payload: {}", clientPayload);
-
-        try {
-            @SuppressWarnings({"unchecked", "null"})
-            Map<String, Object> response = fineractRestClient.post()
-                    .uri("/fineract-provider/api/v1/clients")
-                    .body(clientPayload)
-                    .retrieve()
-                    .body(Map.class);
-            log.debug("Fineract client creation successful response: {}", response);
-            if (response != null && response.containsKey(CLIENT_ID)) {
-                Long clientId = ((Number) response.get(CLIENT_ID)).longValue();
-                log.info("Created Fineract client with ID: {}", clientId);
-                return clientId;
-            }
-
-            throw new RegistrationException("Failed to create Fineract client: invalid response");
-        } catch (HttpClientErrorException e) {
-            log.error("Fineract API error: {}", e.getResponseBodyAsString(), e);
-            throw new RegistrationException("Failed to create Fineract client: " + e.getResponseBodyAsString(), e);
-        } catch (Exception e) {
-            log.error("Failed to create Fineract client: {}", e.getMessage(), e);
-            throw new RegistrationException("Failed to create client account", e);
-        }
-    }
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> getClientByExternalId(String externalId) {

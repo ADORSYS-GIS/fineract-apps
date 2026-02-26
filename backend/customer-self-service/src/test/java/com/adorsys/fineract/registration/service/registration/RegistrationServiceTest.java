@@ -21,12 +21,16 @@ import static org.mockito.Mockito.*;
 @DisplayName("RegistrationService Tests")
 class RegistrationServiceTest {
 
-    @Mock
-    private FineractService fineractService;
 
     @Mock
     private RegistrationMetrics registrationMetrics;
 
+    @Mock
+    private FineractBatchService fineractBatchService;
+
+    @Mock
+    private FineractClientService fineractClientService;
+    
     @InjectMocks
     private RegistrationService registrationService;
 
@@ -46,8 +50,23 @@ class RegistrationServiceTest {
         @DisplayName("Should complete registration successfully when all steps pass")
         void register_success() {
             // Arrange
-            when(fineractService.createClient(request)).thenReturn(1L);
-            when(fineractService.createSavingsAccount(1L)).thenReturn(2L);
+            when(fineractBatchService.sendBatchRequest(anyList())).thenAnswer(invocation -> {
+                List<com.adorsys.fineract.registration.dto.batch.BatchResponse> responses = new java.util.ArrayList<>();
+                
+                com.adorsys.fineract.registration.dto.batch.BatchResponse clientResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                clientResponse.setRequestId(1L);
+                clientResponse.setStatusCode(200);
+                clientResponse.setBody("{\"clientId\": 1}");
+                responses.add(clientResponse);
+
+                com.adorsys.fineract.registration.dto.batch.BatchResponse savingsResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                savingsResponse.setRequestId(2L);
+                savingsResponse.setStatusCode(200);
+                savingsResponse.setBody("{\"savingsId\": 2}");
+                responses.add(savingsResponse);
+                
+                return responses;
+            });
 
             // Act
             RegistrationResponse response = registrationService.register(request);
@@ -60,8 +79,7 @@ class RegistrationServiceTest {
             assertEquals(2L, response.getSavingsAccountId());
 
             // Verify interactions
-            verify(fineractService, times(1)).createClient(request);
-            verify(fineractService, times(1)).createSavingsAccount(1L);
+            verify(fineractBatchService, times(1)).sendBatchRequest(anyList());
             verify(registrationMetrics, times(1)).incrementRegistrationRequests();
             verify(registrationMetrics, times(1)).incrementRegistrationSuccess();
             verify(registrationMetrics, never()).incrementRegistrationFailure(anyString());
@@ -77,18 +95,27 @@ class RegistrationServiceTest {
         void register_whenClientCreationFails_throwsRegistrationException() {
             // Arrange
             String errorMessage = "Client creation failed";
-            when(fineractService.createClient(request)).thenThrow(new RegistrationException(errorMessage));
+            when(fineractBatchService.sendBatchRequest(anyList())).thenAnswer(invocation -> {
+                List<com.adorsys.fineract.registration.dto.batch.BatchResponse> responses = new java.util.ArrayList<>();
+                
+                com.adorsys.fineract.registration.dto.batch.BatchResponse clientResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                clientResponse.setRequestId(1L);
+                clientResponse.setStatusCode(400);
+                clientResponse.setBody("{\"error\": \"Client creation failed\"}");
+                responses.add(clientResponse);
+                
+                return responses;
+            });
 
             // Act & Assert
             RegistrationException exception = assertThrows(RegistrationException.class, () -> registrationService.register(request));
 
-            assertEquals(errorMessage, exception.getMessage());
+            assertEquals("Batch request failed", exception.getMessage());
 
             // Verify interactions
-            verify(fineractService, times(1)).createClient(request);
-            verify(fineractService, never()).createSavingsAccount(anyLong());
+            verify(fineractBatchService, times(1)).sendBatchRequest(anyList());
             verify(registrationMetrics, times(1)).incrementRegistrationRequests();
-            verify(registrationMetrics, times(1)).incrementRegistrationFailure("CLIENT_CREATION_FAILED");
+            verify(registrationMetrics, times(1)).incrementRegistrationFailure("BATCH_REQUEST_FAILED");
             verify(registrationMetrics, never()).incrementRegistrationSuccess();
         }
 
@@ -97,19 +124,33 @@ class RegistrationServiceTest {
         void register_whenSavingsAccountCreationFails_throwsRegistrationException() {
             // Arrange
             String errorMessage = "Savings account creation failed";
-            when(fineractService.createClient(request)).thenReturn(1L);
-            when(fineractService.createSavingsAccount(1L)).thenThrow(new RegistrationException(errorMessage));
+            when(fineractBatchService.sendBatchRequest(anyList())).thenAnswer(invocation -> {
+                List<com.adorsys.fineract.registration.dto.batch.BatchResponse> responses = new java.util.ArrayList<>();
+                
+                com.adorsys.fineract.registration.dto.batch.BatchResponse clientResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                clientResponse.setRequestId(1L);
+                clientResponse.setStatusCode(200);
+                clientResponse.setBody("{\"clientId\": 1}");
+                responses.add(clientResponse);
+
+                com.adorsys.fineract.registration.dto.batch.BatchResponse savingsResponse = new com.adorsys.fineract.registration.dto.batch.BatchResponse();
+                savingsResponse.setRequestId(2L);
+                savingsResponse.setStatusCode(400);
+                savingsResponse.setBody("{\"error\": \"Savings account creation failed\"}");
+                responses.add(savingsResponse);
+                
+                return responses;
+            });
 
             // Act & Assert
             RegistrationException exception = assertThrows(RegistrationException.class, () -> registrationService.register(request));
 
-            assertEquals(errorMessage, exception.getMessage());
+            assertEquals("Batch request failed", exception.getMessage());
 
             // Verify interactions
-            verify(fineractService, times(1)).createClient(request);
-            verify(fineractService, times(1)).createSavingsAccount(1L);
+            verify(fineractBatchService, times(1)).sendBatchRequest(anyList());
             verify(registrationMetrics, times(1)).incrementRegistrationRequests();
-            verify(registrationMetrics, times(1)).incrementRegistrationFailure("SAVINGS_ACCOUNT_CREATION_FAILED");
+            verify(registrationMetrics, times(1)).incrementRegistrationFailure("BATCH_REQUEST_FAILED");
             verify(registrationMetrics, never()).incrementRegistrationSuccess();
         }
     }

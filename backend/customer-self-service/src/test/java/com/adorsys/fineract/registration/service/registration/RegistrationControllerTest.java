@@ -35,7 +35,7 @@ class RegistrationControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private FineractService fineractService;
+    private RegistrationService registrationService;
 
     private RegistrationRequest validRequest;
 
@@ -102,8 +102,12 @@ class RegistrationControllerTest {
         @Test
         @WithMockUser(authorities = "ROLE_KYC_MANAGER")
         void register_success_returns201() throws Exception {
-            when(fineractService.createClient(any(RegistrationRequest.class))).thenReturn(1L);
-            when(fineractService.createSavingsAccount(anyLong())).thenReturn(2L);
+            RegistrationResponse registrationResponse = new RegistrationResponse();
+            registrationResponse.setSuccess(true);
+            registrationResponse.setStatus("success");
+            registrationResponse.setFineractClientId(1L);
+            registrationResponse.setSavingsAccountId(2L);
+            when(registrationService.register(any(RegistrationRequest.class))).thenReturn(registrationResponse);
 
             mockMvc.perform(post("/api/registration/register")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -116,7 +120,7 @@ class RegistrationControllerTest {
         @Test
         @WithMockUser(authorities = "ROLE_KYC_MANAGER")
         void register_clientCreationFails_returns500() throws Exception {
-            when(fineractService.createClient(any(RegistrationRequest.class)))
+            when(registrationService.register(any(RegistrationRequest.class)))
                     .thenThrow(new RegistrationException("Fineract client creation failed"));
 
             mockMvc.perform(post("/api/registration/register")
@@ -129,9 +133,8 @@ class RegistrationControllerTest {
         @Test
         @WithMockUser(authorities = "ROLE_KYC_MANAGER")
         void register_accountCreationFails_returns500() throws Exception {
-            when(fineractService.createClient(any(RegistrationRequest.class))).thenReturn(1L);
-            doThrow(new RegistrationException("Fineract account creation failed"))
-                    .when(fineractService).createSavingsAccount(anyLong());
+            when(registrationService.register(any(RegistrationRequest.class)))
+                    .thenThrow(new RegistrationException("Fineract account creation failed"));
 
             mockMvc.perform(post("/api/registration/register")
                             .contentType(MediaType.APPLICATION_JSON)

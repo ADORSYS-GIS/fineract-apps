@@ -22,6 +22,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RegistrationService {
 
+    private static final String CONTENT_TYPE_HEADER = "Content-Type";
+    private static final String APPLICATION_JSON = "application/json";
+
     private final FineractService fineractService;
     private final RegistrationMetrics registrationMetrics;
     private final FineractBatchService fineractBatchService;
@@ -95,7 +98,7 @@ public class RegistrationService {
         createClientRequest.setRequestId(1L);
         createClientRequest.setMethod("POST");
         createClientRequest.setRelativeUrl("clients");
-        createClientRequest.setHeaders(java.util.List.of(new BatchRequest.Header("Content-Type", "application/json")));
+        createClientRequest.setHeaders(List.of(new BatchRequest.Header(CONTENT_TYPE_HEADER, APPLICATION_JSON)));
         createClientRequest.setBody(buildClientPayload(request));
         batchRequests.add(createClientRequest);
 
@@ -104,7 +107,7 @@ public class RegistrationService {
         createSavingsAccountRequest.setRequestId(2L);
         createSavingsAccountRequest.setMethod("POST");
         createSavingsAccountRequest.setRelativeUrl("savingsaccounts");
-        createSavingsAccountRequest.setHeaders(java.util.List.of(new BatchRequest.Header("Content-Type", "application/json")));
+        createSavingsAccountRequest.setHeaders(List.of(new BatchRequest.Header(CONTENT_TYPE_HEADER, APPLICATION_JSON)));
         createSavingsAccountRequest.setBody(String.format("{'clientId':'$.1.resourceId','productId':%d,'locale':'%s','dateFormat':'%s','submittedOnDate':'%s'}",
                 fineractProperties.getDefaults().getSavingsProductId(), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat(), LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat()))));
         batchRequests.add(createSavingsAccountRequest);
@@ -114,9 +117,9 @@ public class RegistrationService {
         approveSavingsAccountRequest.setRequestId(3L);
         approveSavingsAccountRequest.setMethod("POST");
         approveSavingsAccountRequest.setRelativeUrl("savingsaccounts/$.2.resourceId?command=approve");
-        approveSavingsAccountRequest.setHeaders(java.util.List.of(new BatchRequest.Header("Content-Type", "application/json")));
+        approveSavingsAccountRequest.setHeaders(List.of(new BatchRequest.Header(CONTENT_TYPE_HEADER, APPLICATION_JSON)));
         approveSavingsAccountRequest.setBody(String.format("{'approvedOnDate':'%s','locale':'%s','dateFormat':'%s'}",
-                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat()));
+                java.time.LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat()));
         batchRequests.add(approveSavingsAccountRequest);
 
         // Activate Savings Account Request
@@ -124,19 +127,19 @@ public class RegistrationService {
         activateSavingsAccountRequest.setRequestId(4L);
         activateSavingsAccountRequest.setMethod("POST");
         activateSavingsAccountRequest.setRelativeUrl("savingsaccounts/$.2.resourceId?command=activate");
-        activateSavingsAccountRequest.setHeaders(java.util.List.of(new BatchRequest.Header("Content-Type", "application/json")));
+        activateSavingsAccountRequest.setHeaders(List.of(new BatchRequest.Header(CONTENT_TYPE_HEADER, APPLICATION_JSON)));
         activateSavingsAccountRequest.setBody(String.format("{'activatedOnDate':'%s','locale':'%s','dateFormat':'%s'}",
-                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat()));
+                LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat()));
         batchRequests.add(activateSavingsAccountRequest);
 
-        if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
-            com.adorsys.fineract.registration.dto.batch.BatchRequest depositRequest = new com.adorsys.fineract.registration.dto.batch.BatchRequest();
+        if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(BigDecimal.ZERO) > 0) {
+            BatchRequest depositRequest = new BatchRequest();
             depositRequest.setRequestId(5L);
             depositRequest.setMethod("POST");
             depositRequest.setRelativeUrl("savingsaccounts/$.2.resourceId/transactions?command=deposit");
-            depositRequest.setHeaders(java.util.List.of(new com.adorsys.fineract.registration.dto.batch.BatchRequest.Header("Content-Type", "application/json")));
+            depositRequest.setHeaders(List.of(new BatchRequest.Header(CONTENT_TYPE_HEADER, APPLICATION_JSON)));
             depositRequest.setBody(String.format("{'locale':'%s','dateFormat':'%s','transactionDate':'%s','transactionAmount':%s,'paymentTypeId':%d}",
-                    fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat(), java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), request.getDepositAmount(), fineractProperties.getDefaults().getPaymentTypeId()));
+                    fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat(),LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), request.getDepositAmount(), fineractProperties.getDefaults().getPaymentTypeId()));
             batchRequests.add(depositRequest);
         }
         
