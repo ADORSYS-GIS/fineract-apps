@@ -82,6 +82,18 @@ public class AdminScheduledPaymentController {
         return ResponseEntity.ok(scheduledPaymentService.confirmPayment(id, amountPerUnit, admin));
     }
 
+    @GetMapping("/{id}/results")
+    @Operation(summary = "Payment execution results",
+            description = "Paginated individual payment records (coupon or income) for a confirmed scheduled payment")
+    public ResponseEntity<Page<PaymentResultResponse>> results(
+            @PathVariable Long id,
+            @PageableDefault(size = 20) Pageable pageable) {
+        if (pageable.getPageSize() > 100) {
+            throw new IllegalArgumentException("Max page size is 100");
+        }
+        return ResponseEntity.ok(scheduledPaymentService.getPaymentResults(id, pageable));
+    }
+
     @PostMapping("/{id}/cancel")
     @Operation(summary = "Cancel a pending payment",
             description = "Marks the schedule as CANCELLED. No Fineract transfers are executed.")

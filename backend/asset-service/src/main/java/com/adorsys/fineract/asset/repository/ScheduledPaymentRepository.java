@@ -44,4 +44,10 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
     java.math.BigDecimal sumPaidSince(@Param("since") java.time.Instant since);
 
     long countByStatusAndConfirmedAtGreaterThanEqual(String status, java.time.Instant since);
+
+    /**
+     * Find the earliest pending scheduled payment for an asset and payment type.
+     */
+    Optional<ScheduledPayment> findFirstByAssetIdAndPaymentTypeAndStatusOrderByScheduleDateAsc(
+            String assetId, String paymentType, String status);
 }

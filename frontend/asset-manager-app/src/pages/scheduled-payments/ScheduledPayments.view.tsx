@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import { FC } from "react";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import { PaymentResultsPreview } from "@/components/PaymentResultsPreview";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { useScheduledPayments } from "./useScheduledPayments";
 
@@ -404,6 +405,19 @@ export const ScheduledPaymentsView: FC<
 													detail.confirmedAt
 														? new Date(detail.confirmedAt).toLocaleString()
 														: "\u2014"
+												}
+											/>
+										</>
+									)}
+
+									{detail.status === "CONFIRMED" && (
+										<>
+											<hr className="border-gray-200" />
+											<PaymentResultsPreview
+												paymentId={detail.id}
+												totalResults={
+													(detail.holdersPaid ?? 0) +
+													(detail.holdersFailed ?? 0)
 												}
 											/>
 										</>

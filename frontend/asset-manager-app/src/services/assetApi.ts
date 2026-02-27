@@ -279,6 +279,35 @@ export interface IncomeDistributionResponse {
 	distributionDate: string;
 }
 
+/** Compact payment history summary for asset detail page. */
+export interface PaymentSummaryResponse {
+	lastPaymentDate: string | null;
+	lastPaymentAmountPaid: number | null;
+	lastPaymentAt: string | null;
+	nextScheduledDate: string | null;
+	totalPaidToDate: number;
+	failedPaymentCount: number;
+	totalPaymentCount: number;
+}
+
+/** Unified individual payment result (coupon or income) from a scheduled payment. */
+export interface PaymentResultResponse {
+	id: number;
+	userId: number;
+	units: number;
+	amount: number;
+	status: string;
+	failureReason?: string;
+	paidAt: string;
+	// Coupon-specific (null for income)
+	faceValue?: number;
+	annualRate?: number;
+	periodMonths?: number;
+	// Income-specific (null for coupon)
+	incomeType?: string;
+	rateApplied?: number;
+}
+
 /** Income distribution forecast (matches backend IncomeForecastResponse). */
 export interface IncomeForecastResponse {
 	assetId: string;
@@ -891,6 +920,25 @@ export const assetApi = {
 		assetClient.post<ScheduledPaymentResponse>(
 			`/api/admin/scheduled-payments/${id}/cancel`,
 			data || {},
+		),
+	getScheduledPaymentResults: (
+		id: number,
+		params?: { page?: number; size?: number },
+	) =>
+		assetClient.get<{
+			content: PaymentResultResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>(`/api/admin/scheduled-payments/${id}/results`, { params }),
+
+	// Payment summaries for asset detail
+	getCouponSummary: (assetId: string) =>
+		assetClient.get<PaymentSummaryResponse>(
+			`/api/admin/assets/${assetId}/coupon-summary`,
+		),
+	getIncomeSummary: (assetId: string) =>
+		assetClient.get<PaymentSummaryResponse>(
+			`/api/admin/assets/${assetId}/income-summary`,
 		),
 
 	// Reconciliation - Admin

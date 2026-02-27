@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -11,13 +12,14 @@ import {
 
 export const useScheduledPayments = () => {
 	const queryClient = useQueryClient();
+	const search = useSearch({ from: "/scheduled-payments" });
 	const [currentPage, setCurrentPage] = useState(1);
 	const pageSize = 20;
 
-	// Filter state
+	// Filter state — initialize assetFilter from URL search param if present
 	const [statusFilter, setStatusFilter] = useState("");
 	const [typeFilter, setTypeFilter] = useState("");
-	const [assetFilter, setAssetFilter] = useState("");
+	const [assetFilter, setAssetFilter] = useState(search.assetId ?? "");
 
 	// Modal state
 	const [confirmModal, setConfirmModal] = useState<{

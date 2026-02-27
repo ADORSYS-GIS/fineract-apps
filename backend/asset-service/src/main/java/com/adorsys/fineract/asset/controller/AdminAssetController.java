@@ -15,6 +15,7 @@ import com.adorsys.fineract.asset.service.IncomeForecastService;
 import com.adorsys.fineract.asset.service.InventoryService;
 import com.adorsys.fineract.asset.service.PricingService;
 import com.adorsys.fineract.asset.service.PrincipalRedemptionService;
+import com.adorsys.fineract.asset.service.ScheduledPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -47,6 +48,7 @@ public class AdminAssetController {
     private final DelistingService delistingService;
     private final IncomeDistributionRepository incomeDistributionRepository;
     private final IncomeForecastService incomeForecastService;
+    private final ScheduledPaymentService scheduledPaymentService;
 
     @PostMapping
     @Operation(summary = "Create asset", description = "Create a new asset with Fineract provisioning")
@@ -136,6 +138,20 @@ public class AdminAssetController {
                 .findByAssetIdOrderByPaidAtDesc(id, pageable)
                 .map(this::toCouponPaymentResponse);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}/coupon-summary")
+    @Operation(summary = "Coupon payment summary",
+            description = "Compact summary of coupon payment history: last payment, next scheduled, totals")
+    public ResponseEntity<PaymentSummaryResponse> couponSummary(@PathVariable String id) {
+        return ResponseEntity.ok(scheduledPaymentService.getPaymentSummary(id, "COUPON"));
+    }
+
+    @GetMapping("/{id}/income-summary")
+    @Operation(summary = "Income distribution summary",
+            description = "Compact summary of income distribution history: last payment, next scheduled, totals")
+    public ResponseEntity<PaymentSummaryResponse> incomeSummary(@PathVariable String id) {
+        return ResponseEntity.ok(scheduledPaymentService.getPaymentSummary(id, "INCOME"));
     }
 
     @GetMapping("/{id}/coupon-forecast")

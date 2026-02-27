@@ -315,6 +315,74 @@ public class ScheduledPaymentService {
         return new ScheduledPaymentSummaryResponse(pending, confirmedThisMonth, totalPaidThisMonth);
     }
 
+    // ── Payment results & summary ──────────────────────────────────────────
+
+    /**
+     * Returns paginated individual payment records (coupon or income) produced by
+     * a confirmed scheduled payment.
+     */
+    @Transactional(readOnly = true)
+    public Page<PaymentResultResponse> getPaymentResults(Long scheduleId, Pageable pageable) {
+        ScheduledPayment schedule = scheduledPaymentRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Scheduled payment not found: " + scheduleId));
+
+        if ("COUPON".equals(schedule.getPaymentType())) {
+            return interestPaymentRepository
+                    .findByAssetIdAndCouponDateOrderByPaidAtDesc(
+                            schedule.getAssetId(), schedule.getScheduleDate(), pageable)
+                    .map(ip -> PaymentResultResponse.fromCoupon(
+                            ip.getId(), ip.getUserId(), ip.getUnits(), ip.getCashAmount(),
+                            ip.getStatus(), ip.getFailureReason(), ip.getPaidAt(),
+                            ip.getFaceValue(), ip.getAnnualRate(), ip.getPeriodMonths()));
+        } else {
+            return incomeDistributionRepository
+                    .findByAssetIdAndDistributionDateOrderByPaidAtDesc(
+                            schedule.getAssetId(), schedule.getScheduleDate(), pageable)
+                    .map(id -> PaymentResultResponse.fromIncome(
+                            id.getId(), id.getUserId(), id.getUnits(), id.getCashAmount(),
+                            id.getStatus(), id.getFailureReason(), id.getPaidAt(),
+                            id.getIncomeType(), id.getRateApplied()));
+        }
+    }
+
+    /**
+     * Returns a compact summary of payment history for an asset (coupon or income).
+     */
+    @Transactional(readOnly = true)
+    public PaymentSummaryResponse getPaymentSummary(String assetId, String paymentType) {
+        LocalDate nextScheduledDate = scheduledPaymentRepository
+                .findFirstByAssetIdAndPaymentTypeAndStatusOrderByScheduleDateAsc(
+                        assetId, paymentType, "PENDING")
+                .map(ScheduledPayment::getScheduleDate)
+                .orElse(null);
+
+        if ("COUPON".equals(paymentType)) {
+            var lastPayment = interestPaymentRepository
+                    .findFirstByAssetIdAndStatusOrderByPaidAtDesc(assetId, "SUCCESS")
+                    .orElse(null);
+            return new PaymentSummaryResponse(
+                    lastPayment != null ? lastPayment.getCouponDate() : null,
+                    lastPayment != null ? lastPayment.getCashAmount() : null,
+                    lastPayment != null ? lastPayment.getPaidAt() : null,
+                    nextScheduledDate,
+                    interestPaymentRepository.sumPaidByAsset(assetId),
+                    interestPaymentRepository.countFailedByAsset(assetId),
+                    interestPaymentRepository.countByAssetId(assetId));
+        } else {
+            var lastPayment = incomeDistributionRepository
+                    .findFirstByAssetIdAndStatusOrderByPaidAtDesc(assetId, "SUCCESS")
+                    .orElse(null);
+            return new PaymentSummaryResponse(
+                    lastPayment != null ? lastPayment.getDistributionDate() : null,
+                    lastPayment != null ? lastPayment.getCashAmount() : null,
+                    lastPayment != null ? lastPayment.getPaidAt() : null,
+                    nextScheduledDate,
+                    incomeDistributionRepository.sumPaidByAsset(assetId),
+                    incomeDistributionRepository.countFailedByAsset(assetId),
+                    incomeDistributionRepository.countByAssetId(assetId));
+        }
+    }
+
     // ── Private: pay individual holders ─────────────────────────────────────
 
     private boolean payCouponHolder(Asset bond, UserPosition holder,

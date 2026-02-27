@@ -17,12 +17,12 @@ import {
 import { FC, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CouponForecastCard } from "@/components/CouponForecastCard";
-import { CouponHistoryTable } from "@/components/CouponHistoryTable";
+import { CouponSummaryCard } from "@/components/CouponSummaryCard";
 import { DelistDialog } from "@/components/DelistDialog";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { ErrorFallback } from "@/components/ErrorFallback";
 import { IncomeForecastCard } from "@/components/IncomeForecastCard";
-import { IncomeHistoryTable } from "@/components/IncomeHistoryTable";
+import { IncomeSummaryCard } from "@/components/IncomeSummaryCard";
 import { MintSupplyDialog } from "@/components/MintSupplyDialog";
 import { RedemptionHistoryTable } from "@/components/RedemptionHistoryTable";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -446,7 +446,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				{asset.category !== "BONDS" && asset.incomeType && (
 					<>
 						<IncomeForecastCard assetId={assetId} />
-						<IncomeHistoryTable assetId={assetId} />
+						<IncomeSummaryCard assetId={assetId} />
 					</>
 				)}
 
@@ -508,8 +508,8 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				{/* Coupon Obligation Forecast */}
 				{asset.category === "BONDS" && <CouponForecastCard assetId={assetId} />}
 
-				{/* Coupon Payment History */}
-				{asset.category === "BONDS" && <CouponHistoryTable assetId={assetId} />}
+				{/* Coupon Payment Summary */}
+				{asset.category === "BONDS" && <CouponSummaryCard assetId={assetId} />}
 
 				{/* Principal Redemption History (only for matured/redeemed bonds) */}
 				{asset.category === "BONDS" &&

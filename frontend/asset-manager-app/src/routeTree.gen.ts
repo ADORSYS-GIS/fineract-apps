@@ -21,6 +21,7 @@ import { Route as CreateAssetRouteImport } from './routes/create-asset'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PricingAssetIdRouteImport } from './routes/pricing.$assetId'
+import { Route as PaymentResultsPaymentIdRouteImport } from './routes/payment-results.$paymentId'
 import { Route as AssetDetailsAssetIdRouteImport } from './routes/asset-details.$assetId'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -83,6 +84,11 @@ const PricingAssetIdRoute = PricingAssetIdRouteImport.update({
   path: '/pricing/$assetId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaymentResultsPaymentIdRoute = PaymentResultsPaymentIdRouteImport.update({
+  id: '/payment-results/$paymentId',
+  path: '/payment-results/$paymentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AssetDetailsAssetIdRoute = AssetDetailsAssetIdRouteImport.update({
   id: '/asset-details/$assetId',
   path: '/asset-details/$assetId',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
+  '/payment-results/$paymentId': typeof PaymentResultsPaymentIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
 }
 export interface FileRoutesByTo {
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
+  '/payment-results/$paymentId': typeof PaymentResultsPaymentIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
 }
 export interface FileRoutesById {
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
+  '/payment-results/$paymentId': typeof PaymentResultsPaymentIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
 }
 export interface FileRouteTypes {
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/scheduled-payments'
     | '/settings'
     | '/asset-details/$assetId'
+    | '/payment-results/$paymentId'
     | '/pricing/$assetId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/scheduled-payments'
     | '/settings'
     | '/asset-details/$assetId'
+    | '/payment-results/$paymentId'
     | '/pricing/$assetId'
   id:
     | '__root__'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/scheduled-payments'
     | '/settings'
     | '/asset-details/$assetId'
+    | '/payment-results/$paymentId'
     | '/pricing/$assetId'
   fileRoutesById: FileRoutesById
 }
@@ -196,6 +208,7 @@ export interface RootRouteChildren {
   ScheduledPaymentsRoute: typeof ScheduledPaymentsRoute
   SettingsRoute: typeof SettingsRoute
   AssetDetailsAssetIdRoute: typeof AssetDetailsAssetIdRoute
+  PaymentResultsPaymentIdRoute: typeof PaymentResultsPaymentIdRoute
   PricingAssetIdRoute: typeof PricingAssetIdRoute
 }
 
@@ -285,6 +298,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingAssetIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payment-results/$paymentId': {
+      id: '/payment-results/$paymentId'
+      path: '/payment-results/$paymentId'
+      fullPath: '/payment-results/$paymentId'
+      preLoaderRoute: typeof PaymentResultsPaymentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/asset-details/$assetId': {
       id: '/asset-details/$assetId'
       path: '/asset-details/$assetId'
@@ -308,6 +328,7 @@ const rootRouteChildren: RootRouteChildren = {
   ScheduledPaymentsRoute: ScheduledPaymentsRoute,
   SettingsRoute: SettingsRoute,
   AssetDetailsAssetIdRoute: AssetDetailsAssetIdRoute,
+  PaymentResultsPaymentIdRoute: PaymentResultsPaymentIdRoute,
   PricingAssetIdRoute: PricingAssetIdRoute,
 }
 export const routeTree = rootRouteImport
