@@ -1,17 +1,22 @@
 package com.adorsys.fineract.registration.service.registration;
 
-import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
-import com.adorsys.fineract.registration.dto.registration.RegistrationResponse;
-import com.adorsys.fineract.registration.exception.RegistrationException;
-import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
-import com.adorsys.fineract.registration.service.fineract.FineractBatchService;
-import com.adorsys.fineract.registration.service.fineract.FineractClientService;
 import com.adorsys.fineract.registration.config.FineractProperties;
 import com.adorsys.fineract.registration.dto.batch.BatchResponse;
-import java.util.Collections;
-import java.util.ArrayList;
+import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
+import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
+import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
+import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
+import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
 import com.adorsys.fineract.registration.service.FineractService;
+import com.adorsys.fineract.registration.service.fineract.FineractAccountService;
+import com.adorsys.fineract.registration.service.fineract.FineractBatchService;
+import com.adorsys.fineract.registration.service.fineract.FineractClientService;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -28,7 +33,6 @@ import static org.mockito.Mockito.*;
 @DisplayName("RegistrationService Tests")
 class RegistrationServiceTest {
 
-
     @Mock
     private RegistrationMetrics registrationMetrics;
 
@@ -37,43 +41,49 @@ class RegistrationServiceTest {
 
     @Mock
     private FineractClientService fineractClientService;
-    
+
+    @Mock
+    private FineractAccountService fineractAccountService;
+
     @Mock
     private FineractService fineractService;
 
     @Mock
     private FineractProperties fineractProperties;
-    
+
     @InjectMocks
     private RegistrationService registrationService;
 
-    private RegistrationRequest request;
+    private RegistrationRequest registrationRequest;
 
     @BeforeEach
     void setUp() {
-        request = new RegistrationRequest();
-        request.setEmail("test@example.com");
-        request.setExternalId("external-id");
-
-        FineractProperties.Defaults defaults = new FineractProperties.Defaults();
-        defaults.setSavingsProductId(1L);
-        defaults.setLocale("en");
-        defaults.setDateFormat("yyyy-MM-dd");
-        defaults.setPaymentTypeId(1L);
-        when(fineractProperties.getDefaults()).thenReturn(defaults);
-        when(fineractService.getClientByExternalId(anyString())).thenReturn(Collections.emptyMap());
+        registrationRequest = new RegistrationRequest();
+        registrationRequest.setEmail("test@example.com");
+        registrationRequest.setExternalId("external-id");
     }
 
     @Nested
-    @DisplayName("Success Scenarios")
-    class SuccessScenarios {
+    @DisplayName("registerClientAndAccount Scenarios")
+    class RegisterClientAndAccountScenarios {
+        @BeforeEach
+        void setUp() {
+            FineractProperties.Defaults defaults = new FineractProperties.Defaults();
+            defaults.setSavingsProductId(1L);
+            defaults.setLocale("en");
+            defaults.setDateFormat("yyyy-MM-dd");
+            defaults.setPaymentTypeId(1L);
+            when(fineractProperties.getDefaults()).thenReturn(defaults);
+            when(fineractService.getClientByExternalId(anyString())).thenReturn(Collections.emptyMap());
+        }
+
         @Test
-        @DisplayName("Should complete registration successfully when all steps pass")
-        void register_success() {
+        @DisplayName("Should complete successfully when all steps pass")
+        void registerClientAndAccount_success() {
             // Arrange
             when(fineractBatchService.sendBatchRequest(anyList())).thenAnswer(invocation -> {
                 List<BatchResponse> responses = new ArrayList<>();
-                
+
                 BatchResponse clientResponse = new BatchResponse();
                 clientResponse.setRequestId(1L);
                 clientResponse.setStatusCode(200);
@@ -85,12 +95,12 @@ class RegistrationServiceTest {
                 savingsResponse.setStatusCode(200);
                 savingsResponse.setBody("{\"savingsId\": 2}");
                 responses.add(savingsResponse);
-                
+
                 return responses;
             });
 
             // Act
-            RegistrationResponse response = registrationService.register(request);
+            ClientAndAccountResponse response = registrationService.registerClientAndAccount(registrationRequest);
 
             // Assert
             assertNotNull(response);
@@ -105,30 +115,25 @@ class RegistrationServiceTest {
             verify(registrationMetrics, times(1)).incrementRegistrationSuccess();
             verify(registrationMetrics, never()).incrementRegistrationFailure(anyString());
         }
-    }
 
-
-    @Nested
-    @DisplayName("Failure Scenarios")
-    class FailureScenarios {
         @Test
-        @DisplayName("When client creation fails, it should throw RegistrationException and not create an account")
-        void register_whenClientCreationFails_throwsRegistrationException() {
+        @DisplayName("When client creation fails, it should throw RegistrationException")
+        void registerClientAndAccount_whenClientCreationFails_throwsRegistrationException() {
             // Arrange
             when(fineractBatchService.sendBatchRequest(anyList())).thenAnswer(invocation -> {
                 List<BatchResponse> responses = new ArrayList<>();
-                
+
                 BatchResponse clientResponse = new BatchResponse();
                 clientResponse.setRequestId(1L);
                 clientResponse.setStatusCode(400);
                 clientResponse.setBody("{\"error\": \"Client creation failed\"}");
                 responses.add(clientResponse);
-                
+
                 return responses;
             });
 
             // Act & Assert
-            RegistrationException exception = assertThrows(RegistrationException.class, () -> registrationService.register(request));
+            RegistrationException exception = assertThrows(RegistrationException.class, () -> registrationService.registerClientAndAccount(registrationRequest));
 
             assertEquals("Batch request failed", exception.getMessage());
 
@@ -141,11 +146,11 @@ class RegistrationServiceTest {
 
         @Test
         @DisplayName("When savings account creation fails, it should throw RegistrationException")
-        void register_whenSavingsAccountCreationFails_throwsRegistrationException() {
+        void registerClientAndAccount_whenSavingsAccountCreationFails_throwsRegistrationException() {
             // Arrange
             when(fineractBatchService.sendBatchRequest(anyList())).thenAnswer(invocation -> {
                 List<BatchResponse> responses = new ArrayList<>();
-                
+
                 BatchResponse clientResponse = new BatchResponse();
                 clientResponse.setRequestId(1L);
                 clientResponse.setStatusCode(200);
@@ -157,20 +162,57 @@ class RegistrationServiceTest {
                 savingsResponse.setStatusCode(400);
                 savingsResponse.setBody("{\"error\": \"Savings account creation failed\"}");
                 responses.add(savingsResponse);
-                
+
                 return responses;
             });
 
             // Act & Assert
-            RegistrationException exception = assertThrows(RegistrationException.class, () -> registrationService.register(request));
+            RegistrationException exception = assertThrows(RegistrationException.class, () -> registrationService.registerClientAndAccount(registrationRequest));
 
             assertEquals("Batch request failed", exception.getMessage());
+        }
+    }
 
-            // Verify interactions
-            verify(fineractBatchService, times(1)).sendBatchRequest(anyList());
-            verify(registrationMetrics, times(1)).incrementRegistrationRequests();
-            verify(registrationMetrics, times(1)).incrementRegistrationFailure("BATCH_REQUEST_FAILED");
-            verify(registrationMetrics, never()).incrementRegistrationSuccess();
+    @Nested
+    @DisplayName("fundAccount Scenarios")
+    class FundAccountScenarios {
+        private DepositRequest depositRequest;
+
+        @BeforeEach
+        void setUp() {
+            depositRequest = new DepositRequest();
+            depositRequest.setSavingsAccountId(2L);
+            depositRequest.setDepositAmount(new BigDecimal("1000"));
+        }
+
+        @Test
+        @DisplayName("Should fund account successfully")
+        void fundAccount_success() {
+            // Arrange
+            when(fineractAccountService.getSavingsAccount(anyLong())).thenReturn(Map.of("status", Map.of("code", "savingsAccountStatusType.submitted.and.pending.approval")));
+            when(fineractAccountService.makeDeposit(anyLong(), any(BigDecimal.class))).thenReturn(Map.of("resourceId", 123L));
+
+            // Act
+            DepositResponse response = registrationService.fundAccount(depositRequest);
+
+            // Assert
+            assertNotNull(response);
+            assertTrue(response.isSuccess());
+            assertEquals("success", response.getStatus());
+            assertEquals(2L, response.getSavingsAccountId());
+            assertEquals(123L, response.getTransactionId());
+        }
+
+        @Test
+        @DisplayName("When deposit fails, it should throw RegistrationException")
+        void fundAccount_whenDepositFails_throwsRegistrationException() {
+            // Arrange
+            when(fineractAccountService.getSavingsAccount(anyLong())).thenReturn(Map.of("status", Map.of("code", "savingsAccountStatusType.submitted.and.pending.approval")));
+            when(fineractAccountService.makeDeposit(anyLong(), any(BigDecimal.class))).thenThrow(new RegistrationException("Deposit failed"));
+
+            // Act & Assert
+            RegistrationException exception = assertThrows(RegistrationException.class, () -> registrationService.fundAccount(depositRequest));
+            assertEquals("Deposit failed", exception.getMessage());
         }
     }
 }

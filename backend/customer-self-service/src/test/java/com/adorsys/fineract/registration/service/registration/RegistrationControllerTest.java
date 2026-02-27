@@ -1,9 +1,12 @@
 package com.adorsys.fineract.registration.service.registration;
 
+import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
+import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
+import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
-import com.adorsys.fineract.registration.dto.registration.RegistrationResponse;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -100,12 +103,12 @@ class RegistrationControllerTest {
         @Test
         @WithMockUser(authorities = "ROLE_KYC_MANAGER")
         void register_success_returns201() throws Exception {
-            RegistrationResponse registrationResponse = new RegistrationResponse();
-            registrationResponse.setSuccess(true);
-            registrationResponse.setStatus("success");
-            registrationResponse.setFineractClientId(1L);
-            registrationResponse.setSavingsAccountId(2L);
-            when(registrationService.register(any(RegistrationRequest.class))).thenReturn(registrationResponse);
+            ClientAndAccountResponse response = new ClientAndAccountResponse();
+            response.setSuccess(true);
+            response.setStatus("success");
+            response.setFineractClientId(1L);
+            response.setSavingsAccountId(2L);
+            when(registrationService.registerClientAndAccount(any(RegistrationRequest.class))).thenReturn(response);
 
             mockMvc.perform(post("/api/registration/register")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -118,7 +121,7 @@ class RegistrationControllerTest {
         @Test
         @WithMockUser(authorities = "ROLE_KYC_MANAGER")
         void register_clientCreationFails_returns500() throws Exception {
-            when(registrationService.register(any(RegistrationRequest.class)))
+            when(registrationService.registerClientAndAccount(any(RegistrationRequest.class)))
                     .thenThrow(new RegistrationException("Fineract client creation failed"));
 
             mockMvc.perform(post("/api/registration/register")
@@ -127,18 +130,49 @@ class RegistrationControllerTest {
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.message").value("Fineract client creation failed"));
         }
+    }
+
+    @Nested
+    @DisplayName("Deposit Tests")
+    class DepositTests {
+        private DepositRequest depositRequest;
+
+        @BeforeEach
+        void setUp() {
+            depositRequest = new DepositRequest();
+            depositRequest.setSavingsAccountId(1L);
+            depositRequest.setDepositAmount(new BigDecimal("100.00"));
+        }
 
         @Test
         @WithMockUser(authorities = "ROLE_KYC_MANAGER")
-        void register_accountCreationFails_returns500() throws Exception {
-            when(registrationService.register(any(RegistrationRequest.class)))
-                    .thenThrow(new RegistrationException("Fineract account creation failed"));
+        void deposit_success_returns200() throws Exception {
+            DepositResponse response = new DepositResponse();
+            response.setSuccess(true);
+            response.setStatus("success");
+            response.setSavingsAccountId(1L);
+            response.setTransactionId(123L);
+            when(registrationService.fundAccount(any(DepositRequest.class))).thenReturn(response);
 
-            mockMvc.perform(post("/api/registration/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(validRequest)))
+            mockMvc.perform(post("/api/registration/approve-and-deposit")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(depositRequest)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.savingsAccountId").value(1L))
+                    .andExpect(jsonPath("$.transactionId").value(123L));
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void deposit_serviceFails_returns500() throws Exception {
+            when(registrationService.fundAccount(any(DepositRequest.class)))
+                    .thenThrow(new RegistrationException("Funding failed"));
+
+            mockMvc.perform(post("/api/registration/approve-and-deposit")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(depositRequest)))
                     .andExpect(status().isInternalServerError())
-                    .andExpect(jsonPath("$.message").value("Fineract account creation failed"));
+                    .andExpect(jsonPath("$.message").value("Funding failed"));
         }
     }
 }

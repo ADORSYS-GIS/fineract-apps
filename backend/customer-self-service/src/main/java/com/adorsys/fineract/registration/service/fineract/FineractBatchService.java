@@ -5,6 +5,7 @@ import com.adorsys.fineract.registration.dto.batch.BatchResponse;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -22,12 +23,12 @@ public class FineractBatchService {
         log.info("Sending batch request to Fineract");
 
         try {
-            @SuppressWarnings({"unchecked", "null"})
+            @SuppressWarnings({"null"})
             List<BatchResponse> responses = fineractRestClient.post()
                     .uri("/fineract-provider/api/v1/batches?enclosingTransaction=true")
                     .body(batchRequest)
                     .retrieve()
-                    .body(List.class);
+                    .body(new ParameterizedTypeReference<List<BatchResponse>>() {});
 
             if (responses != null) {
                 for (BatchResponse response : responses) {

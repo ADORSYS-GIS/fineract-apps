@@ -14,6 +14,7 @@ public class BatchRequest {
     private String relativeUrl;
     private List<Header> headers;
     private String body;
+    private Long reference;
 
     @Data
     @NoArgsConstructor

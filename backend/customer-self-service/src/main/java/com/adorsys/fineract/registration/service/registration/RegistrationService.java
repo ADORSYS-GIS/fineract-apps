@@ -1,29 +1,33 @@
 package com.adorsys.fineract.registration.service.registration;
 
-import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
-import com.adorsys.fineract.registration.dto.registration.RegistrationResponse;
+import com.adorsys.fineract.registration.config.FineractProperties;
+import com.adorsys.fineract.registration.dto.batch.BatchRequest;
 import com.adorsys.fineract.registration.dto.batch.BatchResponse;
+import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
+import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
+import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
+import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
+import com.adorsys.fineract.registration.exception.JsonSerializationException;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
-import io.micrometer.core.annotation.Timed;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
-import com.adorsys.fineract.registration.dto.batch.BatchRequest ;
 import com.adorsys.fineract.registration.service.FineractService;
+import com.adorsys.fineract.registration.service.fineract.FineractAccountService;
 import com.adorsys.fineract.registration.service.fineract.FineractBatchService;
 import com.adorsys.fineract.registration.service.fineract.FineractClientService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
-import com.adorsys.fineract.registration.exception.JsonSerializationException;
-import com.adorsys.fineract.registration.config.FineractProperties;
+import io.micrometer.core.annotation.Timed;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -32,16 +36,19 @@ public class RegistrationService {
 
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String APPLICATION_JSON = "application/json";
+    private static final String STATUS_SUCCESS = "success";
+    private static final String SAVINGS_ACCOUNT_STATUS_PENDING_APPROVAL = "savingsAccountStatusType.submitted.and.pending.approval";
 
     private final FineractService fineractService;
     private final RegistrationMetrics registrationMetrics;
     private final FineractBatchService fineractBatchService;
     private final FineractClientService fineractClientService;
+    private final FineractAccountService fineractAccountService;
     private final FineractProperties fineractProperties;
 
-    @Timed(value = "registration.service.register", description = "Time taken to register a new customer")
+    @Timed(value = "registration.service.registerClientAndAccount", description = "Time taken to register a new customer and create an account")
     @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
-    public RegistrationResponse register(RegistrationRequest request) {
+    public ClientAndAccountResponse registerClientAndAccount(RegistrationRequest request) {
         log.info("Starting registration process for email: {}", request.getEmail());
         registrationMetrics.incrementRegistrationRequests();
 
@@ -57,16 +64,16 @@ public class RegistrationService {
             if (!savingsAccounts.isEmpty()) {
                 Long savingsAccountId = ((Number) savingsAccounts.get(0).get("id")).longValue();
                 log.info("Savings account for Fineract client ID {} already exists. Savings account ID: {}", fineractClientId, savingsAccountId);
-                RegistrationResponse response = new RegistrationResponse();
+                ClientAndAccountResponse response = new ClientAndAccountResponse();
                 response.setSuccess(true);
-                response.setStatus("success");
+                response.setStatus(STATUS_SUCCESS);
                 response.setFineractClientId(fineractClientId);
                 response.setSavingsAccountId(savingsAccountId);
                 return response;
             }
         }
 
-        List<BatchRequest> batchRequests = buildBatchRequests(request);
+        List<BatchRequest> batchRequests = buildClientAndAccountBatchRequests(request);
         List<BatchResponse> batchResponses = fineractBatchService.sendBatchRequest(batchRequests);
 
         Long fineractClientId = null;
@@ -86,9 +93,9 @@ public class RegistrationService {
             }
         }
 
-        RegistrationResponse response = new RegistrationResponse();
+        ClientAndAccountResponse response = new ClientAndAccountResponse();
         response.setSuccess(true);
-        response.setStatus("success");
+        response.setStatus(STATUS_SUCCESS);
         response.setFineractClientId(fineractClientId);
         response.setSavingsAccountId(savingsAccountId);
 
@@ -98,8 +105,8 @@ public class RegistrationService {
         return response;
     }
 
-    private List<BatchRequest> buildBatchRequests(RegistrationRequest request) {
-        java.util.List<BatchRequest> batchRequests = new java.util.ArrayList<>();
+    private List<BatchRequest> buildClientAndAccountBatchRequests(RegistrationRequest request) {
+        List<BatchRequest> batchRequests = new ArrayList<>();
 
         // Create Client Request
         BatchRequest createClientRequest = new BatchRequest();
@@ -115,41 +122,14 @@ public class RegistrationService {
         createSavingsAccountRequest.setRequestId(2L);
         createSavingsAccountRequest.setMethod("POST");
         createSavingsAccountRequest.setRelativeUrl("savingsaccounts");
+        createSavingsAccountRequest.setReference(1L);
         createSavingsAccountRequest.setHeaders(List.of(new BatchRequest.Header(CONTENT_TYPE_HEADER, APPLICATION_JSON)));
-        createSavingsAccountRequest.setBody(String.format("{'clientId':'$.1.resourceId','productId':%d,'locale':'%s','dateFormat':'%s','submittedOnDate':'%s'}",
-                fineractProperties.getDefaults().getSavingsProductId(), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat(), LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat()))));
+        createSavingsAccountRequest.setBody(String.format("{\"clientId\":\"$.resourceId\",\"productId\":%d,\"submittedOnDate\":\"%s\",\"locale\":\"%s\",\"dateFormat\":\"%s\"}",
+                fineractProperties.getDefaults().getSavingsProductId(),
+                LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())),
+                fineractProperties.getDefaults().getLocale(),
+                fineractProperties.getDefaults().getDateFormat()));
         batchRequests.add(createSavingsAccountRequest);
-        
-        // Approve Savings Account Request
-        BatchRequest approveSavingsAccountRequest = new BatchRequest();
-        approveSavingsAccountRequest.setRequestId(3L);
-        approveSavingsAccountRequest.setMethod("POST");
-        approveSavingsAccountRequest.setRelativeUrl("savingsaccounts/$.2.resourceId?command=approve");
-        approveSavingsAccountRequest.setHeaders(List.of(new BatchRequest.Header(CONTENT_TYPE_HEADER, APPLICATION_JSON)));
-        approveSavingsAccountRequest.setBody(String.format("{'approvedOnDate':'%s','locale':'%s','dateFormat':'%s'}",
-                java.time.LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat()));
-        batchRequests.add(approveSavingsAccountRequest);
-
-        // Activate Savings Account Request
-        BatchRequest activateSavingsAccountRequest = new BatchRequest();
-        activateSavingsAccountRequest.setRequestId(4L);
-        activateSavingsAccountRequest.setMethod("POST");
-        activateSavingsAccountRequest.setRelativeUrl("savingsaccounts/$.2.resourceId?command=activate");
-        activateSavingsAccountRequest.setHeaders(List.of(new BatchRequest.Header(CONTENT_TYPE_HEADER, APPLICATION_JSON)));
-        activateSavingsAccountRequest.setBody(String.format("{'activatedOnDate':'%s','locale':'%s','dateFormat':'%s'}",
-                LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat()));
-        batchRequests.add(activateSavingsAccountRequest);
-
-        if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(BigDecimal.ZERO) > 0) {
-            BatchRequest depositRequest = new BatchRequest();
-            depositRequest.setRequestId(5L);
-            depositRequest.setMethod("POST");
-            depositRequest.setRelativeUrl("savingsaccounts/$.2.resourceId/transactions?command=deposit");
-            depositRequest.setHeaders(List.of(new BatchRequest.Header(CONTENT_TYPE_HEADER, APPLICATION_JSON)));
-            depositRequest.setBody(String.format("{'locale':'%s','dateFormat':'%s','transactionDate':'%s','transactionAmount':%s,'paymentTypeId':%d}",
-                    fineractProperties.getDefaults().getLocale(), fineractProperties.getDefaults().getDateFormat(),LocalDate.now().format(DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat())), request.getDepositAmount(), fineractProperties.getDefaults().getPaymentTypeId()));
-            batchRequests.add(depositRequest);
-        }
         
         return batchRequests;
     }
@@ -160,5 +140,37 @@ public class RegistrationService {
         } catch (JsonProcessingException e) {
             throw new JsonSerializationException("Error serializing client payload", e);
         }
+    }
+
+    @Timed(value = "registration.service.fundAccount", description = "Time taken to fund a customer's account")
+    @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
+    public DepositResponse fundAccount(DepositRequest request) {
+        log.info("Starting account funding process for savings account: {}", request.getSavingsAccountId());
+
+        Map<String, Object> savingsAccount = fineractAccountService.getSavingsAccount(request.getSavingsAccountId());
+        if (savingsAccount != null && savingsAccount.get("status") instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> status = (Map<String, Object>) savingsAccount.get("status");
+            if (SAVINGS_ACCOUNT_STATUS_PENDING_APPROVAL.equals(status.get("code"))) {
+                fineractAccountService.approveSavingsAccount(request.getSavingsAccountId());
+                fineractAccountService.activateSavingsAccount(request.getSavingsAccountId());
+            }
+        }
+
+        Long transactionId = null;
+        if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(BigDecimal.ZERO) > 0) {
+            Map<String, Object> depositResponse = fineractAccountService.makeDeposit(request.getSavingsAccountId(), request.getDepositAmount());
+            transactionId = ((Number) depositResponse.get("resourceId")).longValue();
+        }
+
+        DepositResponse response = new DepositResponse();
+        response.setSuccess(true);
+        response.setStatus(STATUS_SUCCESS);
+        response.setSavingsAccountId(request.getSavingsAccountId());
+        response.setTransactionId(transactionId);
+
+        log.info("Account funding process completed successfully for savings account: {}", request.getSavingsAccountId());
+
+        return response;
     }
 }

@@ -26,7 +26,6 @@ public class FineractClientService {
      * and updating a client's profile information. By centralizing these functionalities, it simplifies
      * the interaction with the Fineract client API and improves code organization.
      */
-    private static final String CLIENT_ID = "clientId";
     private static final String PAGE_ITEMS = "pageItems";
     private static final String LOCALE = "locale";
     private static final String DATE_FORMAT = "dateFormat";

@@ -2,27 +2,24 @@ package com.adorsys.fineract.registration.service.fineract;
 
 import com.adorsys.fineract.registration.config.FineractProperties;
 import com.adorsys.fineract.registration.exception.RegistrationException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-
 @Slf4j
 @Service
 public class FineractAccountService {
-    /**
-     * This service is responsible for all account-related interactions with the Fineract API.
-     * It includes functionalities such as creating and retrieving savings accounts for a given client,
-     * fetching transaction history for a specific account, and identifying the owner of an account.
-     * This abstracts the complexities of the Fineract API into a more manageable and focused service.
-     */
     private static final String SAVINGS_ACCOUNTS = "savingsAccounts";
     private static final String TRANSACTIONS = "transactions";
     private static final String CLIENT_ID = "clientId";
+    private static final String LOCALE = "locale";
+    private static final String DATE_FORMAT = "dateFormat";
 
     private final RestClient fineractRestClient;
     private final FineractProperties fineractProperties;
@@ -97,4 +94,63 @@ public class FineractAccountService {
         return null;
     }
 
+    public void approveSavingsAccount(Long savingsAccountId) {
+        log.info("Approving savings account: {}", savingsAccountId);
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("approvedOnDate", LocalDate.now().format(dateTimeFormatter));
+            body.put(LOCALE, fineractProperties.getDefaults().getLocale());
+            body.put(DATE_FORMAT, fineractProperties.getDefaults().getDateFormat());
+
+            fineractRestClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{savingsAccountId}?command=approve", savingsAccountId)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
+            log.error("Failed to approve savings account {}: {}", savingsAccountId, e.getMessage());
+            throw new RegistrationException("Failed to approve savings account", e);
+        }
+    }
+
+    public void activateSavingsAccount(Long savingsAccountId) {
+        log.info("Activating savings account: {}", savingsAccountId);
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("activatedOnDate", LocalDate.now().format(dateTimeFormatter));
+            body.put(LOCALE, fineractProperties.getDefaults().getLocale());
+            body.put(DATE_FORMAT, fineractProperties.getDefaults().getDateFormat());
+
+            fineractRestClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{savingsAccountId}?command=activate", savingsAccountId)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
+            log.error("Failed to activate savings account {}: {}", savingsAccountId, e.getMessage());
+            throw new RegistrationException("Failed to activate savings account", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> makeDeposit(Long savingsAccountId, BigDecimal amount) {
+        log.info("Making deposit to savings account: {}", savingsAccountId);
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put(LOCALE, fineractProperties.getDefaults().getLocale());
+            body.put(DATE_FORMAT, fineractProperties.getDefaults().getDateFormat());
+            body.put("transactionDate", LocalDate.now().format(dateTimeFormatter));
+            body.put("transactionAmount", amount);
+            body.put("paymentTypeId", fineractProperties.getDefaults().getPaymentTypeId());
+
+            return fineractRestClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{savingsAccountId}/transactions?command=deposit", savingsAccountId)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception e) {
+            log.error("Failed to make deposit to savings account {}: {}", savingsAccountId, e.getMessage());
+            throw new RegistrationException("Failed to make deposit", e);
+        }
+    }
 }

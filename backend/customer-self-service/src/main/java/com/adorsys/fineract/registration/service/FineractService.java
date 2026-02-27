@@ -4,7 +4,6 @@ import com.adorsys.fineract.registration.dto.profile.AddressRequest;
 import com.adorsys.fineract.registration.dto.profile.AddressResponse;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
-import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.service.fineract.FineractAccountService;
 import com.adorsys.fineract.registration.service.fineract.FineractAddressService;
 import com.adorsys.fineract.registration.service.fineract.FineractClientService;
