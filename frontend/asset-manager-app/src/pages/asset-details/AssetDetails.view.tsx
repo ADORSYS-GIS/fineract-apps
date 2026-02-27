@@ -274,13 +274,18 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								{(price?.change24hPercent ?? 0).toFixed(2)}%
 							</span>
 						</div>
-						{(asset.bidPrice != null || asset.askPrice != null) && (
+						{(price?.bidPrice != null ||
+							price?.askPrice != null ||
+							asset.bidPrice != null ||
+							asset.askPrice != null) && (
 							<div className="flex gap-3 mt-2 text-xs">
 								<span className="text-red-600">
-									Bid: {asset.bidPrice?.toLocaleString() ?? "—"}
+									Bid:{" "}
+									{(price?.bidPrice ?? asset.bidPrice)?.toLocaleString() ?? "—"}
 								</span>
 								<span className="text-green-600">
-									Ask: {asset.askPrice?.toLocaleString() ?? "—"}
+									Ask:{" "}
+									{(price?.askPrice ?? asset.askPrice)?.toLocaleString() ?? "—"}
 								</span>
 							</div>
 						)}
