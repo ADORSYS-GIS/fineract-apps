@@ -150,6 +150,33 @@ class AdminAssetControllerTest {
     // GET /api/admin/assets/{id}/coupon-summary
     // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------------------
+    // DELETE /api/admin/assets/{id}
+    // -------------------------------------------------------------------------
+
+    @Test
+    void deleteAsset_returns200() throws Exception {
+        doNothing().when(provisioningService).deletePendingAsset("a1");
+
+        mockMvc.perform(delete("/api/admin/assets/a1"))
+                .andExpect(status().isOk());
+
+        verify(provisioningService).deletePendingAsset("a1");
+    }
+
+    @Test
+    void deleteAsset_notPending_returns400() throws Exception {
+        doThrow(new com.adorsys.fineract.asset.exception.AssetException("Only PENDING assets can be deleted"))
+                .when(provisioningService).deletePendingAsset("a1");
+
+        mockMvc.perform(delete("/api/admin/assets/a1"))
+                .andExpect(status().isBadRequest());
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /api/admin/assets/{id}/coupon-summary
+    // -------------------------------------------------------------------------
+
     @Test
     void couponSummary_returns200() throws Exception {
         PaymentSummaryResponse summary = new PaymentSummaryResponse(

@@ -34,6 +34,8 @@ class AssetProvisioningServiceTest {
 
     @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
+    @Mock private com.adorsys.fineract.asset.repository.PriceHistoryRepository priceHistoryRepository;
+    @Mock private com.adorsys.fineract.asset.repository.ScheduledPaymentRepository scheduledPaymentRepository;
     @Mock private FineractClient fineractClient;
     @Mock private AssetCatalogService assetCatalogService;
     @Mock private AssetServiceConfig assetServiceConfig;
@@ -382,6 +384,73 @@ class AssetProvisioningServiceTest {
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
     }
+
+    // -------------------------------------------------------------------------
+    // deletePendingAsset tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void deletePendingAsset_happyPath_deletesAllData() {
+        Asset pending = pendingAsset();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
+        when(fineractClient.getAccountBalance(TREASURY_ASSET_ACCOUNT)).thenReturn(new BigDecimal("1000"));
+
+        service.deletePendingAsset(ASSET_ID);
+
+        // Verify Fineract cleanup
+        verify(fineractClient).withdrawFromSavingsAccount(
+                eq(TREASURY_ASSET_ACCOUNT), eq(new BigDecimal("1000")), anyString());
+        verify(fineractClient).closeSavingsAccount(eq(TREASURY_ASSET_ACCOUNT), anyString());
+        verify(fineractClient).closeSavingsAccount(eq(TREASURY_CASH_ACCOUNT), anyString());
+        verify(fineractClient).deleteSavingsProduct(pending.getFineractProductId());
+        verify(fineractClient).deregisterCurrency("TST");
+
+        // Verify local data deleted
+        verify(scheduledPaymentRepository).deleteByAssetId(ASSET_ID);
+        verify(priceHistoryRepository).deleteByAssetId(ASSET_ID);
+        verify(assetPriceRepository).deleteByAssetId(ASSET_ID);
+        verify(assetRepository).delete(pending);
+    }
+
+    @Test
+    void deletePendingAsset_notPending_throws() {
+        Asset active = activeAsset();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(active));
+
+        AssetException ex = assertThrows(AssetException.class,
+                () -> service.deletePendingAsset(ASSET_ID));
+        assertTrue(ex.getMessage().contains("Only PENDING"));
+        verify(assetRepository, never()).delete(any());
+    }
+
+    @Test
+    void deletePendingAsset_notFound_throws() {
+        when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
+
+        AssetException ex = assertThrows(AssetException.class,
+                () -> service.deletePendingAsset("nonexistent"));
+        assertTrue(ex.getMessage().contains("Asset not found"));
+    }
+
+    @Test
+    void deletePendingAsset_fineractCleanupFails_stillDeletesLocal() {
+        Asset pending = pendingAsset();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
+        when(fineractClient.getAccountBalance(TREASURY_ASSET_ACCOUNT))
+                .thenThrow(new RuntimeException("Connection timeout"));
+
+        service.deletePendingAsset(ASSET_ID);
+
+        // Local deletes should still happen despite Fineract failure
+        verify(scheduledPaymentRepository).deleteByAssetId(ASSET_ID);
+        verify(priceHistoryRepository).deleteByAssetId(ASSET_ID);
+        verify(assetPriceRepository).deleteByAssetId(ASSET_ID);
+        verify(assetRepository).delete(pending);
+    }
+
+    // -------------------------------------------------------------------------
+    // Bond validation tests
+    // -------------------------------------------------------------------------
 
     @Test
     void createBondAsset_pastMaturityDate_throws() {

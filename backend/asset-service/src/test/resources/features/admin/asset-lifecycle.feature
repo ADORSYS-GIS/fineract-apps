@@ -33,6 +33,16 @@ Feature: Asset Lifecycle Management
     Then the response status should be 400
     And the response body should contain "must be ACTIVE"
 
+  Scenario: Delete a pending asset
+    When the admin deletes asset "asset-002"
+    Then the response status should be 200
+    And asset "asset-002" should not exist
+
+  Scenario: Deleting an active asset fails
+    When the admin deletes asset "asset-001"
+    Then the response status should be 400
+    And the response body should contain "Only PENDING"
+
   Scenario Outline: Invalid state transitions are rejected
     Given asset "<assetId>" is in status "<currentStatus>"
     When the admin performs "<action>" on asset "<assetId>"

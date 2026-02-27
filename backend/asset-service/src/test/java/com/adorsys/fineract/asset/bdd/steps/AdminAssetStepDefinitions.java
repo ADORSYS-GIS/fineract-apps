@@ -225,6 +225,14 @@ public class AdminAssetStepDefinitions {
         context.setLastResult(result);
     }
 
+    @When("the admin deletes asset {string}")
+    public void adminDeletesAsset(String assetId) throws Exception {
+        MvcResult result = mockMvc.perform(delete("/api/admin/assets/" + assetId)
+                        .with(jwt().authorities(ADMIN)))
+                .andReturn();
+        context.setLastResult(result);
+    }
+
     @When("the admin sets the price of asset {string} to {int}")
     public void adminSetsPrice(String assetId, int price) throws Exception {
         Map<String, Object> request = Map.of("price", price);
@@ -258,6 +266,13 @@ public class AdminAssetStepDefinitions {
         String body = result.getResponse().getContentAsString();
         Number supply = JsonPath.read(body, "$.totalSupply");
         assertThat(supply.intValue()).isEqualTo(expected);
+    }
+
+    @Then("asset {string} should not exist")
+    public void assetShouldNotExist(String assetId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM assets WHERE id = ?", Integer.class, assetId);
+        assertThat(count).isZero();
     }
 
     @Then("the current price of asset {string} should be {int}")
