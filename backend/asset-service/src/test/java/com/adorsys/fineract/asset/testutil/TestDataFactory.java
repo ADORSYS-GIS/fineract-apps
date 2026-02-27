@@ -204,6 +204,34 @@ public final class TestDataFactory {
                 .build();
     }
 
+    public static NotificationLog adminNotification() {
+        return NotificationLog.builder()
+                .id(1L)
+                .userId(null)
+                .eventType("TREASURY_SHORTFALL")
+                .title("Treasury shortfall")
+                .body("Asset TST has insufficient treasury balance")
+                .referenceId(ASSET_ID)
+                .referenceType("ASSET")
+                .read(false)
+                .createdAt(Instant.now())
+                .build();
+    }
+
+    public static NotificationLog userNotification(Long userId) {
+        return NotificationLog.builder()
+                .id(2L)
+                .userId(userId)
+                .eventType("TRADE_EXECUTED")
+                .title("Trade executed")
+                .body("Bought 10 units of TST at 100 XAF")
+                .referenceId(UUID.randomUUID().toString())
+                .referenceType("ORDER")
+                .read(false)
+                .createdAt(Instant.now())
+                .build();
+    }
+
     public static Asset activeBondAsset() {
         Asset bond = activeAsset();
         bond.setCategory(AssetCategory.BONDS);
