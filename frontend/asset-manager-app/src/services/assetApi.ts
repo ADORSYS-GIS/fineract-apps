@@ -70,8 +70,15 @@ assetClient.interceptors.response.use(
 /** Extract a human-readable error message from any error (axios or otherwise). */
 export function extractErrorMessage(error: unknown): string {
 	if (axios.isAxiosError(error)) {
-		const axiosErr = error as AxiosError<{ message?: string; error?: string }>;
+		const axiosErr = error as AxiosError<{
+			message?: string;
+			error?: string;
+			details?: Record<string, string>;
+		}>;
 		const data = axiosErr.response?.data;
+		if (data?.details && Object.keys(data.details).length > 0) {
+			return Object.values(data.details).join("; ");
+		}
 		if (data?.message) return data.message;
 		if (data?.error) return data.error;
 		if (axiosErr.response?.status === 403) return "Access denied";
@@ -825,6 +832,10 @@ export const assetApi = {
 		assetClient.get<{ unreadCount: number }>(
 			"/api/admin/notifications/unread-count",
 		),
+	markAdminNotificationRead: (id: number) =>
+		assetClient.post(`/api/admin/notifications/${id}/read`),
+	markAllAdminNotificationsRead: () =>
+		assetClient.post("/api/admin/notifications/read-all"),
 
 	// Prices
 	getPrice: (assetId: string) => assetClient.get(`/api/prices/${assetId}`),

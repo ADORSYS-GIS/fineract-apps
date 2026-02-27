@@ -42,10 +42,12 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 	const [imageUrl, setImageUrl] = useState(asset.imageUrl ?? "");
 	const [category, setCategory] = useState(asset.category);
 	const [tradingFeePercent, setTradingFeePercent] = useState(
-		asset.tradingFeePercent?.toString() ?? "",
+		asset.tradingFeePercent != null
+			? (asset.tradingFeePercent * 100).toString()
+			: "",
 	);
 	const [spreadPercent, setSpreadPercent] = useState(
-		asset.spreadPercent?.toString() ?? "",
+		asset.spreadPercent != null ? (asset.spreadPercent * 100).toString() : "",
 	);
 	const [maxPositionPercent, setMaxPositionPercent] = useState(
 		asset.maxPositionPercent?.toString() ?? "",
@@ -75,8 +77,16 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 			setDescription(asset.description ?? "");
 			setImageUrl(asset.imageUrl ?? "");
 			setCategory(asset.category);
-			setTradingFeePercent(asset.tradingFeePercent?.toString() ?? "");
-			setSpreadPercent(asset.spreadPercent?.toString() ?? "");
+			setTradingFeePercent(
+				asset.tradingFeePercent != null
+					? (asset.tradingFeePercent * 100).toString()
+					: "",
+			);
+			setSpreadPercent(
+				asset.spreadPercent != null
+					? (asset.spreadPercent * 100).toString()
+					: "",
+			);
 			setMaxPositionPercent(asset.maxPositionPercent?.toString() ?? "");
 			setMaxOrderSize(asset.maxOrderSize?.toString() ?? "");
 			setDailyTradeLimitXaf(asset.dailyTradeLimitXaf?.toString() ?? "");
@@ -109,12 +119,24 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 			data.description = description;
 		if (imageUrl !== (asset.imageUrl ?? "")) data.imageUrl = imageUrl;
 		if (category !== asset.category) data.category = category;
-		if (tradingFeePercent !== (asset.tradingFeePercent?.toString() ?? ""))
+		if (
+			tradingFeePercent !==
+			(asset.tradingFeePercent != null
+				? (asset.tradingFeePercent * 100).toString()
+				: "")
+		)
 			data.tradingFeePercent = tradingFeePercent
-				? Number(tradingFeePercent)
+				? Number(tradingFeePercent) / 100
 				: undefined;
-		if (spreadPercent !== (asset.spreadPercent?.toString() ?? ""))
-			data.spreadPercent = spreadPercent ? Number(spreadPercent) : undefined;
+		if (
+			spreadPercent !==
+			(asset.spreadPercent != null
+				? (asset.spreadPercent * 100).toString()
+				: "")
+		)
+			data.spreadPercent = spreadPercent
+				? Number(spreadPercent) / 100
+				: undefined;
 		if (maxPositionPercent !== (asset.maxPositionPercent?.toString() ?? ""))
 			data.maxPositionPercent = maxPositionPercent
 				? Number(maxPositionPercent)
