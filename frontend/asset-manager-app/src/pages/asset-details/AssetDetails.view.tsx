@@ -66,6 +66,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	onRedeem,
 	onDelist,
 	onCancelDelist,
+	onDelete,
 	isUpdating,
 	isActivating,
 	isHalting,
@@ -74,9 +75,16 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	isRedeeming,
 	isDelisting,
 	isCancellingDelist,
+	isDeleting,
 }) => {
 	const [confirmAction, setConfirmAction] = useState<
-		"activate" | "halt" | "resume" | "redeem" | "cancel-delist" | null
+		| "activate"
+		| "halt"
+		| "resume"
+		| "redeem"
+		| "cancel-delist"
+		| "delete"
+		| null
 	>(null);
 	const [editOpen, setEditOpen] = useState(false);
 	const [mintOpen, setMintOpen] = useState(false);
@@ -133,6 +141,17 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 									<Power className="h-4 w-4" />
 								)}
 								{isActivating ? "Activating..." : "Activate"}
+							</Button>
+						)}
+						{asset.status === "PENDING" && (
+							<Button
+								onClick={() => setConfirmAction("delete")}
+								disabled={isDeleting}
+								variant="outline"
+								className="flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50"
+							>
+								<Trash2 className="h-4 w-4" />
+								{isDeleting ? "Deleting..." : "Delete"}
 							</Button>
 						)}
 						{asset.status === "ACTIVE" && (
@@ -701,6 +720,19 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				}}
 				onCancel={() => setConfirmAction(null)}
 				isLoading={isCancellingDelist}
+			/>
+			<ConfirmDialog
+				isOpen={confirmAction === "delete"}
+				title="Delete Asset"
+				message={`Are you sure you want to permanently delete "${asset.name}"? This will also remove the associated Fineract resources (accounts, product, currency). This action cannot be undone.`}
+				confirmLabel="Delete Asset"
+				confirmClassName="bg-red-600 hover:bg-red-700"
+				onConfirm={() => {
+					onDelete();
+					setConfirmAction(null);
+				}}
+				onCancel={() => setConfirmAction(null)}
+				isLoading={isDeleting}
 			/>
 			<DelistDialog
 				isOpen={delistOpen}

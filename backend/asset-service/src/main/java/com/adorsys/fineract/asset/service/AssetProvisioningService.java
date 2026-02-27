@@ -9,6 +9,8 @@ import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.PriceHistoryRepository;
+import com.adorsys.fineract.asset.repository.ScheduledPaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,6 +36,8 @@ public class AssetProvisioningService {
 
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
+    private final PriceHistoryRepository priceHistoryRepository;
+    private final ScheduledPaymentRepository scheduledPaymentRepository;
     private final FineractClient fineractClient;
     private final AssetCatalogService assetCatalogService;
     private final AssetServiceConfig assetServiceConfig;
@@ -307,6 +311,99 @@ public class AssetProvisioningService {
         asset.setStatus(AssetStatus.ACTIVE);
         assetRepository.save(asset);
         log.info("Resumed trading for asset: id={}", assetId);
+    }
+
+    /**
+     * Delete a PENDING asset with full Fineract cleanup.
+     * Only PENDING assets can be deleted — no trades, positions, or payments exist.
+     */
+    @Transactional
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    public void deletePendingAsset(String assetId) {
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
+
+        if (asset.getStatus() != AssetStatus.PENDING) {
+            throw new AssetException("Only PENDING assets can be deleted. Current: " + asset.getStatus());
+        }
+
+        log.info("Deleting pending asset: id={}, symbol={}", assetId, asset.getSymbol());
+
+        // Best-effort Fineract cleanup (log warnings, don't block local deletion)
+        cleanupFineractResources(asset);
+
+        // Delete local data
+        scheduledPaymentRepository.deleteByAssetId(assetId);
+        priceHistoryRepository.deleteByAssetId(assetId);
+        assetPriceRepository.deleteByAssetId(assetId);
+        assetRepository.delete(asset);
+
+        log.info("Deleted pending asset: id={}, symbol={}", assetId, asset.getSymbol());
+    }
+
+    /**
+     * Best-effort cleanup of Fineract resources for a pending asset.
+     * Steps: withdraw balance → close accounts → delete product → deregister currency.
+     */
+    private void cleanupFineractResources(Asset asset) {
+        // 1. Withdraw balance from treasury asset account (holds initial supply)
+        if (asset.getTreasuryAssetAccountId() != null) {
+            try {
+                BigDecimal balance = fineractClient.getAccountBalance(asset.getTreasuryAssetAccountId());
+                if (balance != null && balance.compareTo(BigDecimal.ZERO) > 0) {
+                    fineractClient.withdrawFromSavingsAccount(
+                            asset.getTreasuryAssetAccountId(), balance,
+                            "Asset deletion: withdraw supply for " + asset.getSymbol());
+                }
+            } catch (Exception e) {
+                log.warn("Failed to withdraw from treasury asset account {} for asset {}: {}",
+                        asset.getTreasuryAssetAccountId(), asset.getSymbol(), e.getMessage());
+            }
+        }
+
+        // 2. Close treasury asset account
+        if (asset.getTreasuryAssetAccountId() != null) {
+            try {
+                fineractClient.closeSavingsAccount(
+                        asset.getTreasuryAssetAccountId(),
+                        "Asset deletion: " + asset.getSymbol());
+            } catch (Exception e) {
+                log.warn("Failed to close treasury asset account {} for asset {}: {}",
+                        asset.getTreasuryAssetAccountId(), asset.getSymbol(), e.getMessage());
+            }
+        }
+
+        // 3. Close treasury cash account
+        if (asset.getTreasuryCashAccountId() != null) {
+            try {
+                fineractClient.closeSavingsAccount(
+                        asset.getTreasuryCashAccountId(),
+                        "Asset deletion: " + asset.getSymbol());
+            } catch (Exception e) {
+                log.warn("Failed to close treasury cash account {} for asset {}: {}",
+                        asset.getTreasuryCashAccountId(), asset.getSymbol(), e.getMessage());
+            }
+        }
+
+        // 4. Delete savings product
+        if (asset.getFineractProductId() != null) {
+            try {
+                fineractClient.deleteSavingsProduct(asset.getFineractProductId());
+            } catch (Exception e) {
+                log.warn("Failed to delete savings product {} for asset {}: {}",
+                        asset.getFineractProductId(), asset.getSymbol(), e.getMessage());
+            }
+        }
+
+        // 5. Deregister currency
+        if (asset.getCurrencyCode() != null) {
+            try {
+                fineractClient.deregisterCurrency(asset.getCurrencyCode());
+            } catch (Exception e) {
+                log.warn("Failed to deregister currency {} for asset {}: {}",
+                        asset.getCurrencyCode(), asset.getSymbol(), e.getMessage());
+            }
+        }
     }
 
     /**

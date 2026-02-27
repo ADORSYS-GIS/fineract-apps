@@ -238,6 +238,14 @@ public class AdminAssetController {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete pending asset",
+            description = "Permanently deletes a PENDING asset and cleans up its Fineract resources (accounts, product, currency).")
+    public ResponseEntity<Void> deleteAsset(@PathVariable String id) {
+        provisioningService.deletePendingAsset(id);
+        return ResponseEntity.ok().build();
+    }
+
     private IncomeDistributionResponse toIncomeDistributionResponse(IncomeDistribution d) {
         return new IncomeDistributionResponse(
                 d.getId(), d.getUserId(), d.getIncomeType(), d.getUnits(),

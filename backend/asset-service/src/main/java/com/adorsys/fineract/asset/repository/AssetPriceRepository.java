@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.repository;
 
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -10,4 +11,7 @@ import java.util.List;
 public interface AssetPriceRepository extends JpaRepository<AssetPrice, String> {
 
     List<AssetPrice> findAllByAssetIdIn(List<String> assetIds);
+
+    @Modifying
+    void deleteByAssetId(String assetId);
 }

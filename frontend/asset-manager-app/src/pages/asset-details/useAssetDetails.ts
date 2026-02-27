@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 import {
 	type AssetDetailResponse,
@@ -12,6 +12,7 @@ import {
 export const useAssetDetails = () => {
 	const { assetId } = useParams({ from: "/asset-details/$assetId" });
 	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 
 	const {
 		data: asset,
@@ -132,6 +133,16 @@ export const useAssetDetails = () => {
 		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
 	});
 
+	const deleteMutation = useMutation({
+		mutationFn: () => assetApi.deleteAsset(assetId),
+		onSuccess: () => {
+			toast.success("Asset deleted");
+			queryClient.invalidateQueries({ queryKey: ["assets"] });
+			navigate({ to: "/" });
+		},
+		onError: (err: unknown) => toast.error(extractErrorMessage(err)),
+	});
+
 	return {
 		assetId,
 		asset,
@@ -148,6 +159,7 @@ export const useAssetDetails = () => {
 		onRedeem: () => redeemMutation.mutate(),
 		onDelist: (data: DelistAssetRequest) => delistMutation.mutate(data),
 		onCancelDelist: () => cancelDelistMutation.mutate(),
+		onDelete: () => deleteMutation.mutate(),
 		isUpdating: updateMutation.isPending,
 		isMinting: mintMutation.isPending,
 		isActivating: activateMutation.isPending,
@@ -157,5 +169,6 @@ export const useAssetDetails = () => {
 		isRedeeming: redeemMutation.isPending,
 		isDelisting: delistMutation.isPending,
 		isCancellingDelist: cancelDelistMutation.isPending,
+		isDeleting: deleteMutation.isPending,
 	};
 };

@@ -544,6 +544,41 @@ public class FineractClient {
     }
 
     /**
+     * Close a savings account in Fineract. The account balance must be zero
+     * before closing. Used during pending asset deletion to clean up treasury accounts.
+     */
+    public void closeSavingsAccount(Long savingsAccountId, String note) {
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("withdrawBalance", "false");
+            body.put("closedOnDate", LocalDate.now().format(DATE_FORMAT));
+            body.put("note", note);
+            body.put("locale", "en");
+            body.put("dateFormat", "dd MMMM yyyy");
+
+            webClient.post()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/" + savingsAccountId + "?command=close")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract close account error: " + b))))
+                    .toBodilessEntity()
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            log.info("Closed savings account: {}", savingsAccountId);
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to close savings account {}: {}", savingsAccountId, e.getMessage());
+            throw new AssetException("Failed to close savings account in Fineract", e);
+        }
+    }
+
+    /**
      * Create a journal entry in Fineract to post directly to GL accounts.
      * Used for fee income recognition: debit fund source, credit fee income GL account.
      *

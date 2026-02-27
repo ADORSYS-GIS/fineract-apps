@@ -845,6 +845,7 @@ export const assetApi = {
 		assetClient.post(`/api/admin/assets/${id}/delist`, data),
 	cancelDelisting: (id: string) =>
 		assetClient.post(`/api/admin/assets/${id}/cancel-delist`),
+	deleteAsset: (id: string) => assetClient.delete(`/api/admin/assets/${id}`),
 
 	// Notifications
 	getNotifications: (params?: { page?: number; size?: number }) =>
