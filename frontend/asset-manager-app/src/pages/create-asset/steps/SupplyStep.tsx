@@ -140,37 +140,6 @@ export const SupplyStep: FC<Props> = ({
 							</p>
 						)}
 					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Capital Opened (%)
-						</label>
-						<input
-							type="number"
-							aria-label="Capital opened percent"
-							className={inputClass("capital")}
-							placeholder="e.g. 44.44"
-							step="0.01"
-							min="0"
-							max="100"
-							value={formData.capitalOpenedPercent || ""}
-							onChange={(e) =>
-								updateFormData({
-									capitalOpenedPercent: Number.parseFloat(e.target.value),
-								})
-							}
-						/>
-						{fieldError("capital") ? (
-							<p className="text-xs text-red-600 mt-1">
-								{fieldError("capital")}
-							</p>
-						) : (
-							<p className="text-xs text-gray-400 mt-1">
-								Percentage of total market cap (supply × price) available for
-								public purchase. 100% = full capital open
-							</p>
-						)}
-					</div>
 				</div>
 			</div>
 

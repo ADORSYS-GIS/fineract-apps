@@ -41,6 +41,9 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 	const [description, setDescription] = useState(asset.description ?? "");
 	const [imageUrl, setImageUrl] = useState(asset.imageUrl ?? "");
 	const [category, setCategory] = useState(asset.category);
+	const [capitalOpenedPercent, setCapitalOpenedPercent] = useState(
+		asset.capitalOpenedPercent?.toString() ?? "",
+	);
 	const [tradingFeePercent, setTradingFeePercent] = useState(
 		asset.tradingFeePercent != null
 			? (asset.tradingFeePercent * 100).toString()
@@ -77,6 +80,7 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 			setDescription(asset.description ?? "");
 			setImageUrl(asset.imageUrl ?? "");
 			setCategory(asset.category);
+			setCapitalOpenedPercent(asset.capitalOpenedPercent?.toString() ?? "");
 			setTradingFeePercent(
 				asset.tradingFeePercent != null
 					? (asset.tradingFeePercent * 100).toString()
@@ -119,6 +123,10 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 			data.description = description;
 		if (imageUrl !== (asset.imageUrl ?? "")) data.imageUrl = imageUrl;
 		if (category !== asset.category) data.category = category;
+		if (capitalOpenedPercent !== (asset.capitalOpenedPercent?.toString() ?? ""))
+			data.capitalOpenedPercent = capitalOpenedPercent
+				? Number(capitalOpenedPercent)
+				: undefined;
 		if (
 			tradingFeePercent !==
 			(asset.tradingFeePercent != null
@@ -241,6 +249,20 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 							onChange={(e) => setImageUrl(e.target.value)}
 							placeholder="https://..."
 							maxLength={500}
+						/>
+					</div>
+
+					<div>
+						<label className={labelClass}>Capital Opened (%)</label>
+						<input
+							type="number"
+							className={inputClass}
+							value={capitalOpenedPercent}
+							onChange={(e) => setCapitalOpenedPercent(e.target.value)}
+							min={0}
+							max={100}
+							step={0.01}
+							placeholder="e.g. 44.44"
 						/>
 					</div>
 
