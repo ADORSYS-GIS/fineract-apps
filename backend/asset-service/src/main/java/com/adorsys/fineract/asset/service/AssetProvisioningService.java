@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -170,7 +171,7 @@ public class AssetProvisioningService {
 
         assetRepository.save(asset);
 
-        // Step 8: Initialize price row
+        // Step 8: Initialize price row with bid/ask spread
         AssetPrice price = AssetPrice.builder()
                 .assetId(assetId)
                 .currentPrice(request.initialPrice())
@@ -181,6 +182,16 @@ public class AssetProvisioningService {
                 .change24hPercent(BigDecimal.ZERO)
                 .updatedAt(Instant.now())
                 .build();
+
+        BigDecimal spread = asset.getSpreadPercent();
+        if (spread != null && spread.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal spreadAmount = request.initialPrice().multiply(spread);
+            price.setBidPrice(request.initialPrice().subtract(spreadAmount).setScale(0, RoundingMode.HALF_UP));
+            price.setAskPrice(request.initialPrice().add(spreadAmount).setScale(0, RoundingMode.HALF_UP));
+        } else {
+            price.setBidPrice(request.initialPrice());
+            price.setAskPrice(request.initialPrice());
+        }
 
         assetPriceRepository.save(price);
 
