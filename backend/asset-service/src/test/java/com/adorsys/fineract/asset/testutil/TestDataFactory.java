@@ -158,6 +158,52 @@ public final class TestDataFactory {
         );
     }
 
+    public static ScheduledPayment scheduledPayment(String assetId, String paymentType) {
+        return ScheduledPayment.builder()
+                .id(1L)
+                .assetId(assetId)
+                .paymentType(paymentType)
+                .scheduleDate(LocalDate.now())
+                .status("PENDING")
+                .estimatedRate(new BigDecimal("5.80"))
+                .estimatedAmountPerUnit(new BigDecimal("290"))
+                .estimatedTotal(new BigDecimal("2900"))
+                .holderCount(1)
+                .build();
+    }
+
+    public static InterestPayment interestPayment(String assetId, Long userId) {
+        return InterestPayment.builder()
+                .id(1L)
+                .assetId(assetId)
+                .userId(userId)
+                .units(new BigDecimal("10"))
+                .faceValue(new BigDecimal("10000"))
+                .annualRate(new BigDecimal("5.80"))
+                .periodMonths(6)
+                .cashAmount(new BigDecimal("2900"))
+                .fineractTransferId(1L)
+                .status("SUCCESS")
+                .couponDate(LocalDate.now())
+                .build();
+    }
+
+    public static IncomeDistribution incomeDistribution(String assetId, Long userId) {
+        return IncomeDistribution.builder()
+                .id(1L)
+                .assetId(assetId)
+                .userId(userId)
+                .incomeType("DIVIDEND")
+                .units(new BigDecimal("10"))
+                .rateApplied(new BigDecimal("8.00"))
+                .cashAmount(new BigDecimal("800"))
+                .fineractTransferId(1L)
+                .status("SUCCESS")
+                .distributionDate(LocalDate.now())
+                .paidAt(Instant.now())
+                .build();
+    }
+
     public static Asset activeBondAsset() {
         Asset bond = activeAsset();
         bond.setCategory(AssetCategory.BONDS);

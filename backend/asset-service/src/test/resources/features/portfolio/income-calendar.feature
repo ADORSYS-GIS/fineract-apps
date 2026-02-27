@@ -44,4 +44,4 @@ Feature: Portfolio Income Calendar
 
   Scenario: Invalid months parameter rejected
     When the user requests the income calendar for 0 months
-    Then the response status should be 500
+    Then the response status should be 400

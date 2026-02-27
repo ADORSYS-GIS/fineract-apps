@@ -77,8 +77,7 @@ class AdminOrderControllerTest {
     void getOrders_pageSizeTooLarge_returnsError() throws Exception {
         mockMvc.perform(get("/api/admin/orders")
                         .param("size", "200"))
-                .andExpect(status().isInternalServerError());
-        verifyNoInteractions(adminOrderService);
+                .andExpect(status().isBadRequest());
     }
 
     // ── GET /api/admin/orders/{id} (detail) ──

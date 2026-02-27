@@ -53,6 +53,7 @@ class AdminAssetControllerTest {
     @MockBean private com.adorsys.fineract.asset.repository.IncomeDistributionRepository incomeDistributionRepository;
     @MockBean private com.adorsys.fineract.asset.service.IncomeForecastService incomeForecastService;
     @MockBean private com.adorsys.fineract.asset.service.IncomeDistributionService incomeDistributionService;
+    @MockBean private com.adorsys.fineract.asset.service.ScheduledPaymentService scheduledPaymentService;
 
     // -------------------------------------------------------------------------
     // GET /api/admin/assets
@@ -90,11 +91,7 @@ class AdminAssetControllerTest {
         // Act & Assert: size=200 exceeds max of 100
         mockMvc.perform(get("/api/admin/assets")
                         .param("size", "200"))
-                .andExpect(status().isInternalServerError());
-        // The IllegalArgumentException is thrown before reaching the service,
-        // and GlobalExceptionHandler catches generic Exception -> 500.
-        // In either case, the service is never called.
-        verifyNoInteractions(catalogService);
+                .andExpect(status().isBadRequest());
     }
 
     // -------------------------------------------------------------------------
@@ -147,5 +144,51 @@ class AdminAssetControllerTest {
                 .andExpect(jsonPath("$.fineractProductId").value(10));
 
         verify(provisioningService).createAsset(any(CreateAssetRequest.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /api/admin/assets/{id}/coupon-summary
+    // -------------------------------------------------------------------------
+
+    @Test
+    void couponSummary_returns200() throws Exception {
+        PaymentSummaryResponse summary = new PaymentSummaryResponse(
+                LocalDate.now(), new BigDecimal("2900"), Instant.now(),
+                LocalDate.now().plusMonths(6),
+                new BigDecimal("5800"), 0, 2);
+
+        when(scheduledPaymentService.getPaymentSummary("a1", "COUPON")).thenReturn(summary);
+
+        mockMvc.perform(get("/api/admin/assets/a1/coupon-summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lastPaymentDate").isNotEmpty())
+                .andExpect(jsonPath("$.totalPaidToDate").value(5800))
+                .andExpect(jsonPath("$.failedPaymentCount").value(0))
+                .andExpect(jsonPath("$.totalPaymentCount").value(2))
+                .andExpect(jsonPath("$.nextScheduledDate").isNotEmpty());
+
+        verify(scheduledPaymentService).getPaymentSummary("a1", "COUPON");
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /api/admin/assets/{id}/income-summary
+    // -------------------------------------------------------------------------
+
+    @Test
+    void incomeSummary_returns200() throws Exception {
+        PaymentSummaryResponse summary = new PaymentSummaryResponse(
+                LocalDate.now(), new BigDecimal("800"), Instant.now(),
+                null,
+                new BigDecimal("800"), 0, 1);
+
+        when(scheduledPaymentService.getPaymentSummary("a1", "INCOME")).thenReturn(summary);
+
+        mockMvc.perform(get("/api/admin/assets/a1/income-summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPaidToDate").value(800))
+                .andExpect(jsonPath("$.totalPaymentCount").value(1))
+                .andExpect(jsonPath("$.nextScheduledDate").isEmpty());
+
+        verify(scheduledPaymentService).getPaymentSummary("a1", "INCOME");
     }
 }

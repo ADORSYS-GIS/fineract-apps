@@ -2,8 +2,10 @@ package com.adorsys.fineract.asset.bdd.steps;
 
 import com.adorsys.fineract.asset.bdd.state.ScenarioContext;
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.dto.PaymentSummaryResponse;
 import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.scheduler.MaturityScheduler;
+import com.adorsys.fineract.asset.service.ScheduledPaymentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -39,6 +41,7 @@ public class BondStepDefinitions {
     @Autowired private ScenarioContext context;
     @Autowired private MaturityScheduler maturityScheduler;
     @Autowired private InterestPaymentScheduler interestPaymentScheduler;
+    @Autowired private ScheduledPaymentService scheduledPaymentService;
 
     private static final SimpleGrantedAuthority ADMIN = new SimpleGrantedAuthority("ROLE_ASSET_MANAGER");
 
@@ -266,6 +269,41 @@ public class BondStepDefinitions {
         LocalDate nextCoupon = jdbcTemplate.queryForObject(
                 "SELECT next_coupon_date FROM assets WHERE id = ?", LocalDate.class, bondId);
         assertThat(nextCoupon).isAfter(LocalDate.now());
+    }
+
+    @Then("a pending scheduled payment should exist for bond {string}")
+    public void pendingScheduledPaymentExists(String bondId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM scheduled_payments WHERE asset_id = ? AND status = 'PENDING'",
+                Integer.class, bondId);
+        assertThat(count).isGreaterThanOrEqualTo(1);
+    }
+
+    @When("the admin confirms the scheduled payment for bond {string}")
+    public void adminConfirmsScheduledPayment(String bondId) {
+        Long scheduleId = jdbcTemplate.queryForObject(
+                "SELECT id FROM scheduled_payments WHERE asset_id = ? AND status = 'PENDING' ORDER BY schedule_date LIMIT 1",
+                Long.class, bondId);
+        assertThat(scheduleId).isNotNull();
+        scheduledPaymentService.confirmPayment(scheduleId, null, "test-admin");
+    }
+
+    @Then("the coupon summary for bond {string} should show totalPaidToDate greater than {int}")
+    public void couponSummaryTotalPaid(String bondId, int minAmount) {
+        PaymentSummaryResponse summary = scheduledPaymentService.getPaymentSummary(bondId, "COUPON");
+        assertThat(summary.totalPaidToDate()).isNotNull();
+        assertThat(summary.totalPaidToDate().intValue()).isGreaterThan(minAmount);
+    }
+
+    @Then("the scheduled payment results for bond {string} should have {int} records")
+    public void scheduledPaymentResultsCount(String bondId, int expected) {
+        Long scheduleId = jdbcTemplate.queryForObject(
+                "SELECT id FROM scheduled_payments WHERE asset_id = ? ORDER BY schedule_date LIMIT 1",
+                Long.class, bondId);
+        assertThat(scheduleId).isNotNull();
+        var results = scheduledPaymentService.getPaymentResults(scheduleId,
+                org.springframework.data.domain.PageRequest.of(0, 100));
+        assertThat(results.getTotalElements()).isEqualTo(expected);
     }
 
     // -------------------------------------------------------------------------

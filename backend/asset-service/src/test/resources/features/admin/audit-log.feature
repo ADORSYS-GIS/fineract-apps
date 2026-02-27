@@ -34,4 +34,4 @@ Feature: Persistent Audit Log
 
   Scenario: Page size over 100 is rejected
     When the admin requests the audit log with page size 200
-    Then the response status should be 500
+    Then the response status should be 400

@@ -20,6 +20,7 @@ public class DatabaseCleanupHook {
         jdbcTemplate.execute("DELETE FROM income_distributions");
         jdbcTemplate.execute("DELETE FROM reconciliation_reports");
         jdbcTemplate.execute("DELETE FROM interest_payments");
+        jdbcTemplate.execute("DELETE FROM scheduled_payments");
         jdbcTemplate.execute("DELETE FROM price_history");
         jdbcTemplate.execute("DELETE FROM trade_log");
         jdbcTemplate.execute("DELETE FROM orders");
