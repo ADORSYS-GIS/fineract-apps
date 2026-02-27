@@ -219,6 +219,25 @@ public class NotificationService {
         return notificationLogRepository.countByUserIdIsNullAndReadFalse();
     }
 
+    @Transactional
+    public void markAdminRead(Long notificationId) {
+        NotificationLog notif = notificationLogRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found: " + notificationId));
+        if (notif.getUserId() != null) {
+            throw new RuntimeException("Notification not found: " + notificationId);
+        }
+        if (!notif.isRead()) {
+            notif.setRead(true);
+            notif.setReadAt(Instant.now());
+            notificationLogRepository.save(notif);
+        }
+    }
+
+    @Transactional
+    public int markAllAdminRead() {
+        return notificationLogRepository.markAllReadByUserIdIsNull();
+    }
+
     @Transactional(readOnly = true)
     public NotificationPreferencesResponse getPreferences(Long userId) {
         NotificationPreferences prefs = preferencesRepository.findByUserId(userId)

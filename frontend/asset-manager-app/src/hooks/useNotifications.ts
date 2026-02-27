@@ -6,20 +6,22 @@ export const useNotifications = () => {
 
 	const { data: notifications, isLoading } = useQuery({
 		queryKey: ["notifications"],
-		queryFn: () => assetApi.getNotifications({ page: 0, size: 10 }),
+		queryFn: () => assetApi.getAdminNotifications({ page: 0, size: 10 }),
 		select: (res) => res.data.content,
 		refetchInterval: 30_000,
+		retry: false,
 	});
 
 	const { data: unreadCount } = useQuery({
 		queryKey: ["notifications-unread-count"],
-		queryFn: () => assetApi.getUnreadCount(),
-		select: (res) => res.data.count,
+		queryFn: () => assetApi.getAdminUnreadCount(),
+		select: (res) => res.data.unreadCount,
 		refetchInterval: 15_000,
+		retry: false,
 	});
 
 	const markReadMutation = useMutation({
-		mutationFn: (id: number) => assetApi.markNotificationRead(id),
+		mutationFn: (id: number) => assetApi.markAdminNotificationRead(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
 			queryClient.invalidateQueries({
@@ -29,7 +31,7 @@ export const useNotifications = () => {
 	});
 
 	const markAllReadMutation = useMutation({
-		mutationFn: () => assetApi.markAllNotificationsRead(),
+		mutationFn: () => assetApi.markAllAdminNotificationsRead(),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
 			queryClient.invalidateQueries({

@@ -8,7 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,5 +39,19 @@ public class AdminNotificationController {
     @Operation(summary = "Unread admin notification count")
     public Map<String, Long> getUnreadCount() {
         return Map.of("unreadCount", notificationService.getAdminUnreadCount());
+    }
+
+    @PostMapping("/{id}/read")
+    @Operation(summary = "Mark admin notification as read")
+    public ResponseEntity<Void> markRead(@PathVariable Long id) {
+        notificationService.markAdminRead(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/read-all")
+    @Operation(summary = "Mark all admin notifications as read")
+    public Map<String, Integer> markAllRead() {
+        int count = notificationService.markAllAdminRead();
+        return Map.of("marked", count);
     }
 }

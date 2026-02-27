@@ -20,4 +20,8 @@ public interface NotificationLogRepository extends JpaRepository<NotificationLog
     Page<NotificationLog> findByUserIdIsNullOrderByCreatedAtDesc(Pageable pageable);
 
     long countByUserIdIsNullAndReadFalse();
+
+    @Modifying
+    @Query(value = "UPDATE notification_log SET is_read = true, read_at = NOW() WHERE user_id IS NULL AND is_read = false", nativeQuery = true)
+    int markAllReadByUserIdIsNull();
 }
