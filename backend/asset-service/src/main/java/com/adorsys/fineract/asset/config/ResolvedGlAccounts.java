@@ -35,4 +35,7 @@ public class ResolvedGlAccounts {
 
     /** Database ID of the fund source / cash reference GL account. */
     private Long fundSourceId;
+
+    /** Database ID of the platform-wide fee collection savings account (mandatory). */
+    private Long feeCollectionAccountId;
 }

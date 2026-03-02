@@ -13,7 +13,7 @@
 | **LP Cash Account** | The LP's existing XAF savings account in Fineract. Receives the issuer-price portion of each BUY payment, pays out proceeds on SELL. Must exist before asset creation. Maps to `lpCashAccountId` in the code. |
 | **LP Asset Account** | A savings account in the asset's custom currency, created automatically during provisioning. Holds the full token supply initially; units move to investors on BUY, return on SELL. Maps to `lpAssetAccountId` in the code. |
 | **LP Spread Account** | A per-asset XAF savings account created automatically during provisioning. Collects the LP's margin (spread) on every trade. Maps to `lpSpreadAccountId` in the code. |
-| **Fee Collection Account** | A platform-wide XAF savings account that collects all trading fees. Separate from any LP's accounts. Created once by the admin and configured via `FEE_COLLECTION_ACCOUNT_ID`. |
+| **Fee Collection Account** | A platform-wide XAF savings account that collects all trading fees. Separate from any LP's accounts. Auto-resolved at startup by external ID `PLATFORM-FEE-COLLECT` (mandatory). |
 | **DTT** | "Douala Tower Token" — a fictional asset symbol used as an example throughout this doc. In practice, each asset gets its own symbol (e.g., `YMT` for "Yaounde Mall Token"). The symbol is registered as a custom currency in Fineract. |
 
 ## Account Structure
@@ -58,7 +58,8 @@ Platform-wide (shared across all assets):
 │ FEE COLLECTION ACCOUNT (XAF savings)                        │
 │                                                             │
 │  Receives trading fees from every BUY and SELL.             │
-│  Configured via FEE_COLLECTION_ACCOUNT_ID env var.          │
+│  Auto-resolved at startup by external ID                    │
+│  PLATFORM-FEE-COLLECT (mandatory).                          │
 └─────────────────────────────────────────────────────────────┘
 ```
 

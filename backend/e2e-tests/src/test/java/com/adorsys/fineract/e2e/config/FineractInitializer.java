@@ -121,7 +121,8 @@ public final class FineractInitializer {
         // 8. Create platform-wide Fee Collection savings account (owned by LP)
         feeCollectionAccountId = client.provisionSavingsAccount(
                 lpClientId, xafSavingsProductId);
-        log.info("Fee Collection account: id={}", feeCollectionAccountId);
+        client.setSavingsAccountExternalId(feeCollectionAccountId, "PLATFORM-FEE-COLLECT");
+        log.info("Fee Collection account: id={}, externalId=PLATFORM-FEE-COLLECT", feeCollectionAccountId);
 
         initialized = true;
         log.info("Fineract initialization complete.");

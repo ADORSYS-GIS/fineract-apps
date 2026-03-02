@@ -196,6 +196,16 @@ public class FineractTestClient {
         return accountId;
     }
 
+    public void setSavingsAccountExternalId(Long accountId, String externalId) {
+        Map<String, Object> body = Map.of(
+                "locale", "en",
+                "externalId", externalId
+        );
+        Response response = request().body(body)
+                .put("/fineract-provider/api/v1/savingsaccounts/" + accountId);
+        assertOk(response, "setSavingsAccountExternalId(" + accountId + ", " + externalId + ")");
+    }
+
     public Long depositToSavingsAccount(Long accountId, BigDecimal amount) {
         String today = LocalDate.now().format(DATE_FORMAT);
         Map<String, Object> body = Map.of(

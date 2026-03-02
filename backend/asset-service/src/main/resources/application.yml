@@ -91,7 +91,7 @@ asset-service:
     local-fallback-timeout-seconds: 40
   accounting:
     spread-collection-account-id: ${SPREAD_COLLECTION_ACCOUNT_ID:1}
-    fee-collection-account-id: ${FEE_COLLECTION_ACCOUNT_ID:}
+    fee-collection-account-external-id: ${FEE_COLLECTION_ACCOUNT_EXTERNAL_ID:PLATFORM-FEE-COLLECT}
   rate-limit:
     trade-limit: ${RATE_LIMIT_TRADE:10}
     trade-duration-minutes: ${RATE_LIMIT_TRADE_DURATION:1}

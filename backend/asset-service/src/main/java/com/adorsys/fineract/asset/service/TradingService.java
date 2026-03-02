@@ -545,7 +545,7 @@ public class TradingService {
     /** Execute all Fineract transfers as an atomic batch. */
     private void executeFineractBatch(TradeContext ctx, Asset lockedAsset) {
         TradeSide side = ctx.getStrategy().side();
-        Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
+        Long feeCollectionAccountId = resolvedGlAccounts.getFeeCollectionAccountId();
         List<BatchOperation> batchOps = buildBatchOperations(
                 side, lockedAsset, ctx.getUserCashAccountId(), ctx.getUserAssetAccountId(),
                 ctx.getGrossAmount(), ctx.getUnits(), ctx.getFee(), ctx.getSpreadAmount(),
@@ -627,8 +627,8 @@ public class TradingService {
                         asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
                         spreadAmount, "LP margin: BUY " + asset.getSymbol()));
             }
-            // Leg 4 (internal): LP Cash sweeps fee to Fee Collection
-            if (fee.compareTo(BigDecimal.ZERO) > 0 && feeCollectionAccountId != null) {
+            // Leg 4 (internal): LP Cash sweeps fee to Fee Collection (mandatory)
+            if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), feeCollectionAccountId,
                         fee, "Trading fee: BUY " + asset.getSymbol()));
@@ -648,8 +648,8 @@ public class TradingService {
             ops.add(new BatchTransferOp(
                     asset.getLpCashAccountId(), userCashAccountId,
                     grossAmount.subtract(fee), "Asset sale proceeds: " + asset.getSymbol()));
-            // Leg 4 (internal): LP Cash sweeps fee to Fee Collection
-            if (fee.compareTo(BigDecimal.ZERO) > 0 && feeCollectionAccountId != null) {
+            // Leg 4 (internal): LP Cash sweeps fee to Fee Collection (mandatory)
+            if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), feeCollectionAccountId,
                         fee, "Trading fee: SELL " + asset.getSymbol()));

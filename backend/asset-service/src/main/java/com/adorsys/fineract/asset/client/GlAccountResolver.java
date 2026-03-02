@@ -93,6 +93,17 @@ public class GlAccountResolver implements ApplicationRunner {
         resolvedGlAccounts.setAssetIssuancePaymentTypeId(
                 resolvePaymentType(paymentTypeNameToId, glConfig.getAssetIssuancePaymentType(), "assetIssuancePaymentType"));
 
+        // Resolve fee collection savings account by external ID (mandatory)
+        String feeExtId = assetServiceConfig.getAccounting().getFeeCollectionAccountExternalId();
+        Long feeAccountId = fineractClient.findSavingsAccountByExternalId(feeExtId);
+        if (feeAccountId == null) {
+            throw new IllegalStateException(
+                    "Fee collection savings account with external ID '" + feeExtId
+                    + "' not found in Fineract. Create it or set "
+                    + "asset-service.accounting.fee-collection-account-external-id");
+        }
+        resolvedGlAccounts.setFeeCollectionAccountId(feeAccountId);
+
         log.info("Resolved GL accounts: digitalAssetInventory={} (code {}), "
                 + "customerDigitalAssetHoldings={} (code {}), "
                 + "transfersInSuspense={} (code {}), "
@@ -100,7 +111,8 @@ public class GlAccountResolver implements ApplicationRunner {
                 + "expenseAccount={} (code {}), "
                 + "feeIncome={} (code {}), "
                 + "fundSource={} (code {}), "
-                + "assetIssuancePaymentType={} (name '{}')",
+                + "assetIssuancePaymentType={} (name '{}'), "
+                + "feeCollectionAccount={} (externalId '{}')",
                 resolvedGlAccounts.getDigitalAssetInventoryId(), glConfig.getDigitalAssetInventory(),
                 resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(), glConfig.getCustomerDigitalAssetHoldings(),
                 resolvedGlAccounts.getTransfersInSuspenseId(), glConfig.getTransfersInSuspense(),
@@ -108,7 +120,8 @@ public class GlAccountResolver implements ApplicationRunner {
                 resolvedGlAccounts.getExpenseAccountId(), glConfig.getExpenseAccount(),
                 resolvedGlAccounts.getFeeIncomeId(), glConfig.getFeeIncome(),
                 resolvedGlAccounts.getFundSourceId(), glConfig.getFundSource(),
-                resolvedGlAccounts.getAssetIssuancePaymentTypeId(), glConfig.getAssetIssuancePaymentType());
+                resolvedGlAccounts.getAssetIssuancePaymentTypeId(), glConfig.getAssetIssuancePaymentType(),
+                resolvedGlAccounts.getFeeCollectionAccountId(), feeExtId);
     }
 
     private Long resolveGlCode(Map<String, Long> codeToId, String glCode, String configName) {

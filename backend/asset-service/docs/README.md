@@ -66,7 +66,7 @@ http://localhost:8083/actuator/health
 | `KEYCLOAK_ISSUER_URI` | — | Keycloak realm issuer URI |
 | `KEYCLOAK_JWK_SET_URI` | — | Keycloak JWKS endpoint |
 | `SETTLEMENT_CURRENCY` | `XAF` | ISO 4217 settlement currency code |
-| `FEE_COLLECTION_ACCOUNT_ID` | — | Platform-wide fee collection savings account ID |
+| `FEE_COLLECTION_ACCOUNT_EXTERNAL_ID` | `PLATFORM-FEE-COLLECT` | External ID of the fee collection savings account (auto-resolved at startup) |
 | `SPREAD_COLLECTION_ACCOUNT_ID` | — | Deprecated — LP spread accounts are now per-asset (auto-created) |
 | `ARCHIVAL_RETENTION_MONTHS` | `12` | Months to retain records before archival |
 | `ARCHIVAL_BATCH_SIZE` | `1000` | Rows per archival batch |

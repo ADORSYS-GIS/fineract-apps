@@ -688,6 +688,29 @@ public class FineractClient {
     }
 
     /**
+     * Look up a Fineract savings account by its external ID.
+     *
+     * @param externalId the external ID assigned to the savings account
+     * @return the savings account database ID, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public Long findSavingsAccountByExternalId(String externalId) {
+        try {
+            Map<String, Object> resp = webClient.get()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/external-id/{externalId}", externalId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+            return resp != null ? ((Number) resp.get("id")).longValue() : null;
+        } catch (Exception e) {
+            log.debug("Savings account with external ID '{}' not found: {}", externalId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Get the display name of a Fineract client by ID.
      *
      * @param clientId the Fineract client ID

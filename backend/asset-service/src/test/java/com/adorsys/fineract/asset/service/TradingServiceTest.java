@@ -102,14 +102,14 @@ class TradingServiceTest {
                 .subscriptionEndDate(LocalDate.now().plusYears(1))
                 .build();
 
-        // Default accounting config (spread + fee collection enabled)
+        // Default accounting config (spread enabled)
         AssetServiceConfig.Accounting accounting = new AssetServiceConfig.Accounting();
         accounting.setSpreadCollectionAccountId(LP_SPREAD_ACCOUNT);
-        accounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
         lenient().when(assetServiceConfig.getAccounting()).thenReturn(accounting);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
         lenient().when(resolvedGlAccounts.getFeeIncomeId()).thenReturn(FEE_INCOME_GL_ID);
         lenient().when(resolvedGlAccounts.getFundSourceId()).thenReturn(FUND_SOURCE_GL_ID);
+        lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECTION_ACCOUNT);
     }
 
     // -------------------------------------------------------------------------

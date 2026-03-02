@@ -6,11 +6,11 @@ This guide covers all admin operations for managing the asset marketplace.
 
 Before any trading can occur, the admin must create a **platform-wide XAF savings account** that collects all trading fees.
 
-1. Create a new XAF savings account in Fineract (under a platform/admin client)
-2. Approve and activate the account
-3. Set the account ID in the environment variable `FEE_COLLECTION_ACCOUNT_ID`
+The fee collection account is **auto-resolved at startup** by the external ID `PLATFORM-FEE-COLLECT`. The `fineract-config` init creates a "Platform Fee Collector" client (`ASSET-PLATFORM`) and a VSAV savings account with this external ID. No manual env var is needed.
 
-This account is shared across all assets. All trading fees (BUY and SELL) are transferred to this account.
+If you need a custom external ID, set `FEE_COLLECTION_ACCOUNT_EXTERNAL_ID` (default: `PLATFORM-FEE-COLLECT`).
+
+This account is shared across all assets. All trading fees (BUY and SELL) are transferred to this account. **Startup fails if the account is not found** — fee collection is mandatory.
 
 ---
 
