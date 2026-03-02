@@ -39,18 +39,21 @@ public class StockTradingSteps {
 
     @Given("an active stock asset {string} with price {int} and supply {int}")
     public void activeStockAsset(String symbolRef, int price, int supply) {
-        Map<String, Object> request = Map.of(
+        BigDecimal issuerPrice = new BigDecimal(price);
+        Map<String, Object> request = new java.util.HashMap<>(Map.of(
                 "name", "Stock " + symbolRef,
                 "symbol", symbolRef,
                 "currencyCode", symbolRef,
                 "category", "STOCKS",
-                "initialPrice", price,
-                "totalSupply", supply,
-                "decimalPlaces", 0,
-                "treasuryClientId", FineractInitializer.getTreasuryClientId(),
-                "subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString(),
-                "subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString()
-        );
+                "issuerPrice", issuerPrice,
+                "lpAskPrice", issuerPrice.multiply(new BigDecimal("1.10")),
+                "lpBidPrice", issuerPrice.multiply(new BigDecimal("0.95")),
+                "totalSupply", supply
+        ));
+        request.put("decimalPlaces", 0);
+        request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
+        request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
         Response createResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)

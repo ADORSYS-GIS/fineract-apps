@@ -17,7 +17,7 @@ public record IncomeForecastResponse(
     BigDecimal currentPrice,
     BigDecimal incomePerPeriod,
     @Schema(description = "Balance of this asset's dedicated treasury cash account")
-    BigDecimal treasuryBalance,
+    BigDecimal lpCashBalance,
     BigDecimal shortfall,
     Integer periodsCoveredByBalance
 ) {}

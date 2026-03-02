@@ -122,9 +122,10 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						<p className="text-sm text-gray-500 mt-1">
 							{asset.symbol} | {asset.category} | ID: {asset.id}
 						</p>
-						{asset.treasuryClientName && (
+						{asset.lpClientName && (
 							<p className="text-xs text-gray-400 mt-0.5">
-								Managed by {asset.treasuryClientName}
+								LP: {asset.lpClientName}
+								{asset.issuerName ? ` | Issuer: ${asset.issuerName}` : ""}
 							</p>
 						)}
 					</div>
@@ -299,13 +300,27 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 							asset.askPrice != null) && (
 							<div className="flex gap-3 mt-2 text-xs">
 								<span className="text-red-600">
-									Bid:{" "}
+									LP Bid:{" "}
 									{(price?.bidPrice ?? asset.bidPrice)?.toLocaleString() ?? "—"}
 								</span>
 								<span className="text-green-600">
-									Ask:{" "}
+									LP Ask:{" "}
 									{(price?.askPrice ?? asset.askPrice)?.toLocaleString() ?? "—"}
 								</span>
+							</div>
+						)}
+						{asset.issuerPrice != null && (
+							<div className="flex gap-3 mt-1 text-xs text-gray-500">
+								<span>
+									Issuer Price: {asset.issuerPrice.toLocaleString()} XAF
+								</span>
+								{asset.lpMarginPerUnit != null && (
+									<span>
+										| LP Margin: {asset.lpMarginPerUnit.toLocaleString()} XAF
+										{asset.lpMarginPercent != null &&
+											` (${asset.lpMarginPercent.toFixed(2)}%)`}
+									</span>
+								)}
 							</div>
 						)}
 					</Card>
@@ -478,7 +493,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
 							<div>
 								<p className="text-gray-500">Issuer</p>
-								<p className="font-medium">{asset.issuer ?? "—"}</p>
+								<p className="font-medium">{asset.issuerName ?? "—"}</p>
 							</div>
 							<div>
 								<p className="text-gray-500">ISIN</p>
@@ -489,10 +504,17 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								<p className="font-medium">{asset.maturityDate ?? "—"}</p>
 							</div>
 							<div>
-								<p className="text-gray-500">Yield</p>
+								<p className="text-gray-500">Coupon Amount</p>
 								<p className="font-medium">
-									{asset.interestRate != null ? `${asset.interestRate}%` : "—"}
+									{asset.couponAmountPerUnit != null
+										? `${asset.couponAmountPerUnit.toLocaleString()} XAF/unit`
+										: "—"}
 								</p>
+								{asset.interestRate != null && (
+									<p className="text-xs text-gray-400">
+										({asset.interestRate}% p.a.)
+									</p>
+								)}
 							</div>
 							<div>
 								<p className="text-gray-500">Coupon Frequency</p>
@@ -583,53 +605,67 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 							</p>
 						</div>
 						<div>
-							<p className="text-gray-500 text-xs">Treasury Client</p>
-							<p className="font-medium">{asset.treasuryClientName ?? "—"}</p>
-							{asset.treasuryClientId ? (
+							<p className="text-gray-500 text-xs">Liquidity Partner</p>
+							<p className="font-medium">{asset.lpClientName ?? "—"}</p>
+							{asset.lpClientId ? (
 								<a
-									href={`${accountManagerUrl}/client-details/${asset.treasuryClientId}`}
+									href={`${accountManagerUrl}/client-details/${asset.lpClientId}`}
 									target="_blank"
 									rel="noopener noreferrer"
 									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
 								>
-									ID: {asset.treasuryClientId} ↗
+									ID: {asset.lpClientId} ↗
 								</a>
 							) : (
 								<p className="text-xs text-gray-400">ID: —</p>
 							)}
 						</div>
 						<div>
-							<p className="text-gray-500 text-xs">Asset Account</p>
+							<p className="text-gray-500 text-xs">LP Asset Account</p>
 							<p className="font-medium">Token Holdings</p>
-							{asset.treasuryAssetAccountId ? (
+							{asset.lpAssetAccountId ? (
 								<a
-									href={`${accountManagerUrl}/savings-account-details/${asset.treasuryAssetAccountId}`}
+									href={`${accountManagerUrl}/savings-account-details/${asset.lpAssetAccountId}`}
 									target="_blank"
 									rel="noopener noreferrer"
 									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
 								>
-									ID: {asset.treasuryAssetAccountId} ↗
+									ID: {asset.lpAssetAccountId} ↗
 								</a>
 							) : (
 								<p className="text-xs text-gray-400">ID: —</p>
 							)}
 						</div>
 						<div>
-							<p className="text-gray-500 text-xs">Cash Account</p>
+							<p className="text-gray-500 text-xs">LP Cash Account</p>
 							<p className="font-medium">Cash ({asset.currencyCode})</p>
-							{asset.treasuryCashAccountId ? (
+							{asset.lpCashAccountId ? (
 								<a
-									href={`${accountManagerUrl}/savings-account-details/${asset.treasuryCashAccountId}`}
+									href={`${accountManagerUrl}/savings-account-details/${asset.lpCashAccountId}`}
 									target="_blank"
 									rel="noopener noreferrer"
 									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
 								>
-									ID: {asset.treasuryCashAccountId} ↗
+									ID: {asset.lpCashAccountId} ↗
 								</a>
 							) : (
 								<p className="text-xs text-gray-400">ID: —</p>
 							)}
 						</div>
+						{asset.lpSpreadAccountId && (
+							<div>
+								<p className="text-gray-500 text-xs">LP Spread Account</p>
+								<p className="font-medium">Spread Revenue</p>
+								<a
+									href={`${accountManagerUrl}/savings-account-details/${asset.lpSpreadAccountId}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+								>
+									ID: {asset.lpSpreadAccountId} ↗
+								</a>
+							</div>
+						)}
 					</div>
 				</Card>
 			</main>
@@ -677,7 +713,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 			<ConfirmDialog
 				isOpen={confirmAction === "redeem"}
 				title="Redeem Bond Principal"
-				message={`This will pay the face value to all holders of "${asset.name}" and return their asset units to treasury. No fees will be charged. This action cannot be undone.`}
+				message={`This will pay the face value to all holders of "${asset.name}" and return their asset units to the LP account. No fees will be charged. This action cannot be undone.`}
 				confirmLabel="Redeem Bond"
 				confirmClassName="bg-purple-600 hover:bg-purple-700"
 				onConfirm={() => {

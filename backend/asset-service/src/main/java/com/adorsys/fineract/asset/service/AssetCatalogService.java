@@ -73,6 +73,7 @@ public class AssetCatalogService {
 
         BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
         BigDecimal available = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
+        BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(asset);
 
         return new AssetPublicDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
@@ -84,16 +85,18 @@ public class AssetCatalogService {
                 price != null ? price.getDayLow() : null,
                 price != null ? price.getDayClose() : null,
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
-                available, asset.getTradingFeePercent(), asset.getSpreadPercent(),
+                available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
                 asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
                 asset.getCapitalOpenedPercent(),
                 asset.getCreatedAt(), asset.getUpdatedAt(),
-                asset.getIssuer(), asset.getIsinCode(), asset.getMaturityDate(),
+                asset.getIssuerName(), asset.getIssuerPrice(), asset.getLpClientName(),
+                asset.getIsinCode(), asset.getMaturityDate(),
                 asset.getInterestRate(), asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
                 isSubscriptionClosed(asset.getSubscriptionEndDate()),
+                couponAmountPerUnit,
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
                 asset.getMaxPositionPercent(), asset.getMaxOrderSize(),
@@ -116,6 +119,13 @@ public class AssetCatalogService {
         BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
         BigDecimal available = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
 
+        // Compute LP margin metrics
+        BigDecimal askPrice = price != null ? price.getAskPrice() : null;
+        BigDecimal issuerPrice = asset.getIssuerPrice();
+        BigDecimal lpMarginPerUnit = computeLpMarginPerUnit(askPrice, issuerPrice);
+        BigDecimal lpMarginPercent = computeLpMarginPercent(lpMarginPerUnit, issuerPrice);
+        BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(asset);
+
         return new AssetDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
                 asset.getDescription(), asset.getImageUrl(), asset.getCategory(), asset.getStatus(),
@@ -126,25 +136,30 @@ public class AssetCatalogService {
                 price != null ? price.getDayLow() : null,
                 price != null ? price.getDayClose() : null,
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
-                available, asset.getTradingFeePercent(), asset.getSpreadPercent(),
+                available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
                 asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
                 asset.getCapitalOpenedPercent(),
-                asset.getTreasuryClientId(), asset.getTreasuryAssetAccountId(),
-                asset.getTreasuryCashAccountId(), asset.getFineractProductId(),
-                asset.getTreasuryClientName(), asset.getName() + " Token",
+                asset.getIssuerName(), asset.getIssuerPrice(),
+                asset.getLpClientId(), asset.getLpAssetAccountId(),
+                asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
+                asset.getFineractProductId(),
+                asset.getLpClientName(), asset.getName() + " Token",
+                lpMarginPerUnit, lpMarginPercent,
                 asset.getCreatedAt(), asset.getUpdatedAt(),
-                asset.getIssuer(), asset.getIsinCode(), asset.getMaturityDate(),
+                asset.getIsinCode(), asset.getMaturityDate(),
                 asset.getInterestRate(), asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
                 isSubscriptionClosed(asset.getSubscriptionEndDate()),
+                couponAmountPerUnit,
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
                 asset.getMaxPositionPercent(), asset.getMaxOrderSize(),
                 asset.getDailyTradeLimitXaf(), asset.getLockupDays(),
                 asset.getIncomeType(), asset.getIncomeRate(),
-                asset.getDistributionFrequencyMonths(), asset.getNextDistributionDate()
+                asset.getDistributionFrequencyMonths(), asset.getNextDistributionDate(),
+                asset.getDelistingDate(), asset.getDelistingRedemptionPrice()
         );
     }
 
@@ -203,6 +218,7 @@ public class AssetCatalogService {
         BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
         BigDecimal change = price != null ? price.getChange24hPercent() : null;
         BigDecimal available = a.getTotalSupply().subtract(a.getCirculatingSupply());
+        BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(a);
 
         return new AssetResponse(
                 a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
@@ -210,11 +226,50 @@ public class AssetCatalogService {
                 available, a.getTotalSupply(),
                 a.getSubscriptionStartDate(), a.getSubscriptionEndDate(),
                 a.getCapitalOpenedPercent(),
-                a.getIssuer(), a.getIsinCode(), a.getMaturityDate(),
+                a.getIssuerName(), a.getLpClientName(), couponAmountPerUnit,
+                a.getIsinCode(), a.getMaturityDate(),
                 a.getInterestRate(),
                 computeResidualDays(a.getMaturityDate()),
                 isSubscriptionClosed(a.getSubscriptionEndDate())
         );
+    }
+
+    /**
+     * Compute LP margin per unit: askPrice - issuerPrice.
+     */
+    private BigDecimal computeLpMarginPerUnit(BigDecimal askPrice, BigDecimal issuerPrice) {
+        if (askPrice == null || issuerPrice == null) return null;
+        return askPrice.subtract(issuerPrice);
+    }
+
+    /**
+     * Compute LP margin as a percentage of issuer price.
+     */
+    private BigDecimal computeLpMarginPercent(BigDecimal lpMarginPerUnit, BigDecimal issuerPrice) {
+        if (lpMarginPerUnit == null || issuerPrice == null
+                || issuerPrice.compareTo(BigDecimal.ZERO) == 0) return null;
+        return lpMarginPerUnit
+                .divide(issuerPrice, 6, java.math.RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Compute coupon amount per unit per period for bond assets.
+     * Formula: issuerPrice * (interestRate / 100) * (couponFrequencyMonths / 12)
+     * Returns null for non-bond assets or assets with incomplete config.
+     */
+    private BigDecimal computeCouponAmountPerUnit(Asset asset) {
+        if (asset.getCategory() != AssetCategory.BONDS) return null;
+        BigDecimal issuerPrice = asset.getIssuerPrice();
+        BigDecimal rate = asset.getInterestRate();
+        Integer freqMonths = asset.getCouponFrequencyMonths();
+        if (issuerPrice == null || rate == null || freqMonths == null) return null;
+        return issuerPrice
+                .multiply(rate)
+                .divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(freqMonths))
+                .divide(BigDecimal.valueOf(12), 0, java.math.RoundingMode.HALF_UP);
     }
 
     /**

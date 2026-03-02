@@ -68,8 +68,8 @@ public class AdminAssetStepDefinitions {
     public void assetWithSymbolExists(String symbol) {
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
-                manual_price, total_supply, circulating_supply, decimal_places, treasury_client_id,
-                treasury_asset_account_id, treasury_cash_account_id, fineract_product_id,
+                issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
+                lp_asset_account_id, lp_cash_account_id, fineract_product_id,
                 subscription_start_date, subscription_end_date, version, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 300, 10,
                 CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), 0, NOW(), NOW())
@@ -99,10 +99,12 @@ public class AdminAssetStepDefinitions {
         request.put("symbol", data.get("symbol"));
         request.put("currencyCode", data.get("currencyCode"));
         request.put("category", data.get("category"));
-        request.put("initialPrice", new BigDecimal(data.get("initialPrice")));
+        request.put("issuerPrice", new BigDecimal(data.get("initialPrice")));
+        request.put("lpAskPrice", new BigDecimal(data.get("initialPrice")).multiply(new BigDecimal("1.10")));
+        request.put("lpBidPrice", new BigDecimal(data.get("initialPrice")).multiply(new BigDecimal("0.95")));
         request.put("totalSupply", new BigDecimal(data.get("totalSupply")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
-        request.put("treasuryClientId", 1L);
+        request.put("lpClientId", 1L);
         request.put("subscriptionStartDate", data.getOrDefault("subscriptionStartDate",
                 java.time.LocalDate.now().minusMonths(1).toString()));
         request.put("subscriptionEndDate", data.getOrDefault("subscriptionEndDate",
@@ -120,8 +122,10 @@ public class AdminAssetStepDefinitions {
     public void adminCreatesAssetWithSymbol(String symbol) throws Exception {
         Map<String, Object> request = new HashMap<>(Map.of(
                 "name", "Test", "symbol", symbol, "currencyCode", symbol,
-                "category", "STOCKS", "initialPrice", 100, "totalSupply", 1000,
-                "decimalPlaces", 0, "treasuryClientId", 1L));
+                "category", "STOCKS", "issuerPrice", 100, "totalSupply", 1000,
+                "decimalPlaces", 0, "lpClientId", 1L));
+        request.put("lpAskPrice", 110);
+        request.put("lpBidPrice", 95);
         request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
@@ -137,8 +141,10 @@ public class AdminAssetStepDefinitions {
     public void adminCreatesAssetWithEmptyName() throws Exception {
         Map<String, Object> request = new HashMap<>(Map.of(
                 "name", "", "symbol", "X", "currencyCode", "X",
-                "category", "STOCKS", "initialPrice", 100, "totalSupply", 1000,
-                "decimalPlaces", 0, "treasuryClientId", 1L));
+                "category", "STOCKS", "issuerPrice", 100, "totalSupply", 1000,
+                "decimalPlaces", 0, "lpClientId", 1L));
+        request.put("lpAskPrice", 110);
+        request.put("lpBidPrice", 95);
         request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 

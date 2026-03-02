@@ -5,7 +5,7 @@ Feature: Order Resolution (E2E)
 
   Background:
     Given Fineract is initialized with GL accounts and payment types
-    And a treasury client exists in Fineract
+    And an LP client exists in Fineract
     And a test user exists in Fineract with external ID "e2e-recon-user"
     And the test user has an XAF account with balance 1000000
 

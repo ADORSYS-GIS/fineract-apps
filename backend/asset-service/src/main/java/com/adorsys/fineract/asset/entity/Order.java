@@ -69,9 +69,13 @@ public class Order {
     @Column(precision = 20, scale = 0)
     private BigDecimal fee;
 
-    /** Spread amount for this order, in settlement currency. Zero if spread is disabled. */
+    /** Spread amount for this order, in settlement currency. Zero if spread is disabled. Always positive (LP margin earned). */
     @Column(name = "spread_amount", precision = 20, scale = 0)
     private BigDecimal spreadAmount;
+
+    /** Buyback premium for this order. Positive when SELL bid > issuer price (funded from LP Spread). Zero otherwise. */
+    @Column(name = "buyback_premium", precision = 20, scale = 0)
+    private BigDecimal buybackPremium;
 
     /** Current order status. Defaults to PENDING. */
     @Enumerated(EnumType.STRING)
@@ -111,6 +115,7 @@ public class Order {
         if (createdAt == null) createdAt = Instant.now();
         if (status == null) status = OrderStatus.PENDING;
         if (spreadAmount == null) spreadAmount = BigDecimal.ZERO;
+        if (buybackPremium == null) buybackPremium = BigDecimal.ZERO;
     }
 
     @PreUpdate

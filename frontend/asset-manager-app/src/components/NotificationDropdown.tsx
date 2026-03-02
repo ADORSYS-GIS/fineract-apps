@@ -9,7 +9,7 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
 	ASSET_STATUS_CHANGED: "Status Change",
 	ORDER_STUCK: "Order Alert",
 	INCOME_PAID: "Income",
-	TREASURY_SHORTFALL: "Treasury",
+	LP_SHORTFALL: "LP Shortfall",
 	DELISTING_ANNOUNCED: "Delisting",
 };
 

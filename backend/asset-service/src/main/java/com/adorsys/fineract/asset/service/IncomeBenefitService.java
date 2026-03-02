@@ -17,8 +17,8 @@ import java.math.RoundingMode;
  * <p>Formula (matches IncomeDistributionService):
  * {@code incomePerPeriod = units * currentPrice * (rate/100) * (frequencyMonths/12)}</p>
  *
- * <p>Unlike bonds (fixed face value), income is based on current market price,
- * so all projections are estimates that vary with price changes.</p>
+ * <p>In the LP model, income is based on the issuer price (NAV), not the LP's
+ * marked-up ask price. Projections are still estimates that vary with NAV changes.</p>
  */
 @Slf4j
 @Service

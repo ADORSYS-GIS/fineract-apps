@@ -51,7 +51,9 @@ Response:
       "subscriptionStartDate": "2025-12-15",
       "subscriptionEndDate": "2026-03-15",
       "capitalOpenedPercent": 44.44,
-      "issuer": null,
+      "issuerName": null,
+      "lpName": "Acme Capital Partners",
+      "couponAmountPerUnit": null,
       "isinCode": null,
       "maturityDate": null,
       "interestRate": null,
@@ -73,7 +75,9 @@ For bond assets, the bond-specific fields are populated:
   "category": "BONDS",
   "status": "ACTIVE",
   "currentPrice": 10000,
-  "issuer": "Etat du Senegal",
+  "issuerName": "Etat du Senegal",
+  "lpName": "Acme Capital Partners",
+  "couponAmountPerUnit": 290,
   "isinCode": "SN0000000001",
   "maturityDate": "2028-06-30",
   "interestRate": 5.80,
@@ -81,6 +85,12 @@ For bond assets, the bond-specific fields are populated:
   "subscriptionClosed": false
 }
 ```
+
+Key fields:
+- `issuerName` — the original creator of the asset (e.g., government for bonds). Required for bonds, optional for others.
+- `lpName` — the Liquidity Partner reselling this asset on the platform.
+- `couponAmountPerUnit` — for bonds, the XAF coupon amount the investor receives per unit per period. Calculated as `issuerPrice × (interestRate / 100) × (couponFrequencyMonths / 12)`. More meaningful to investors than the raw interest rate.
+- `interestRate` — annual coupon rate (still available in API but the frontend displays `couponAmountPerUnit` instead, as a raw percentage can be misleading without context of the face value).
 
 Query parameters:
 - `page` (int, default 0)
@@ -98,7 +108,15 @@ Query parameters:
 GET /api/assets/{assetId}
 ```
 
-Response includes full detail: name, symbol, description, imageUrl, category, status, currentPrice, OHLC, totalSupply, circulatingSupply, etc.
+Response includes full detail: name, symbol, description, imageUrl, category, status, currentPrice, OHLC, totalSupply, circulatingSupply, issuerName, lpName, issuerPrice, couponAmountPerUnit, etc.
+
+Key investor-facing fields:
+- `issuerName` — who created/issued the underlying asset
+- `lpName` — the Liquidity Partner managing this asset on the platform
+- `issuerPrice` — the wholesale/face value per unit (used for coupon/income calculations)
+- `couponAmountPerUnit` — XAF amount per unit per coupon period (bonds only)
+- `currentPrice` — the LP's current reference price
+- `bidPrice` / `askPrice` — the LP's current buy/sell prices
 
 ### 2.2 Price History (for charts)
 
@@ -175,13 +193,13 @@ Response:
   "side": "BUY",
   "units": 10,
   "basePrice": 5000,
-  "executionPrice": 5050,
-  "spreadPercent": 1.00,
-  "grossAmount": 50500,
-  "fee": 252,
+  "executionPrice": 5000,
+  "lpMarginPerUnit": 1000,
+  "grossAmount": 50000,
+  "fee": 250,
   "feePercent": 0.50,
-  "spreadAmount": 500,
-  "netAmount": 50752,
+  "spreadAmount": 10000,
+  "netAmount": 50250,
   "availableBalance": 100000,
   "availableUnits": null,
   "availableSupply": 85000,
@@ -191,6 +209,9 @@ Response:
 
 - `feasible` — whether the trade can execute right now
 - `blockers` — reasons if not feasible: `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_FUNDS`, `INSUFFICIENT_INVENTORY`, `NO_POSITION`, `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_ENDED`
+- `executionPrice` — the LP's ask price (for BUY) or bid price (for SELL)
+- `lpMarginPerUnit` — the LP's markup per unit above the issuer price
+- `spreadAmount` — total LP margin: `lpMarginPerUnit × units`
 - `netAmount` — BUY: total charged (gross + fee). SELL: net proceeds (gross - fee)
 - `bondBenefit` — null for non-bond assets. For bonds (BUY side), includes:
 
@@ -206,20 +227,30 @@ Response:
     "remainingCouponPayments": 5,
     "totalCouponIncome": 145000,
     "principalAtMaturity": 100000,
-    "investmentCost": 100252,
+    "investmentCost": 100250,
     "totalProjectedReturn": 245000,
-    "netProjectedProfit": 144748,
+    "netProjectedProfit": 144750,
     "annualizedYieldPercent": 6.12,
     "daysToMaturity": 850
   }
 }
 ```
 
+Note: `faceValue` is the issuer price (not the LP selling price). Coupon income is calculated from this face value, so the investor's true yield depends on how much they paid (the LP ask price) vs what the coupons are based on (the issuer price).
+
 ---
 
 ## Flow 5: Buy Asset
 
 **Prerequisites**: User must have a savings account in the settlement currency (XAF) with sufficient balance.
+
+### How It Works
+
+When an investor buys an asset, they are purchasing from the **Liquidity Partner (LP)** who resells the asset on the platform. The investor pays the LP's **ask price** per unit. This amount is split into three parts:
+
+1. **Issuer-price portion** — sent to the LP's cash account (wholesale value of the asset)
+2. **LP margin** — sent to the LP's spread account (LP's profit per unit)
+3. **Trading fee** — sent to the platform's fee collection account
 
 ### 5.1 Check market is open
 
@@ -247,9 +278,14 @@ The backend automatically:
 - Extracts user identity from the JWT token
 - Resolves the user's XAF savings account (throws error if missing)
 - Resolves or creates the user's asset savings account on first buy
-- Calculates total cost: `units × executionPrice + fee`
-- Execution price = asset's current price + spread (buy side)
-- All transfers are executed atomically via Fineract Batch API
+- Looks up the LP's ask price for this asset
+- Calculates total cost: `units × askPrice + fee`
+- Calculates LP margin: `units × (askPrice - issuerPrice)`
+- Executes four atomic transfers via Fineract Batch API:
+  1. Investor XAF → LP Cash (issuer-price portion)
+  2. Investor XAF → LP Spread Account (LP margin)
+  3. Investor XAF → Fee Collection Account (trading fee)
+  4. LP Asset Account → Investor Asset Account (token delivery)
 
 Response:
 ```json
@@ -257,13 +293,14 @@ Response:
   "orderId": "uuid",
   "status": "FILLED",
   "units": 10,
-  "pricePerUnit": 5050,
-  "totalAmount": 50750,
+  "pricePerUnit": 5000,
+  "totalAmount": 50250,
   "fee": 250
 }
 ```
 
-- `totalAmount` = cost (units × price) + fee = 50,500 + 250 = 50,750 XAF (actual amount charged)
+- `pricePerUnit` = LP ask price (what the investor paid per unit)
+- `totalAmount` = gross (units × askPrice) + fee = 50,000 + 250 = 50,250 XAF
 
 Error responses:
 - `409` - `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_INVENTORY`
@@ -276,6 +313,10 @@ Error responses:
 ---
 
 ## Flow 6: Sell Asset
+
+### How It Works
+
+When an investor sells, the LP buys back the units at the LP's **bid price**. The proceeds are paid from the LP's cash account to the investor, minus the trading fee.
 
 ### 6.1 Execute sell
 
@@ -296,9 +337,12 @@ The backend automatically:
 - Resolves the user's XAF savings account (throws error if missing)
 - Resolves the user's asset account from their existing position (throws error if no position)
 - Validates the user holds enough units to sell
-- Calculates net proceeds: `units × executionPrice - fee`
-- Execution price = asset's current price - spread (sell side)
-- All transfers are executed atomically via Fineract Batch API
+- Looks up the LP's bid price for this asset
+- Calculates net proceeds: `units × bidPrice - fee`
+- Executes atomic transfers via Fineract Batch API:
+  1. Investor Asset Account → LP Asset Account (token return)
+  2. LP Cash → Investor XAF (net proceeds)
+  3. LP Cash → Fee Collection Account (trading fee)
 
 Response:
 ```json
@@ -306,14 +350,16 @@ Response:
   "orderId": "uuid",
   "status": "FILLED",
   "units": 5,
-  "pricePerUnit": 4950,
-  "totalAmount": 24628,
-  "fee": 122,
-  "realizedPnl": -500
+  "pricePerUnit": 4800,
+  "totalAmount": 23880,
+  "fee": 120,
+  "realizedPnl": -1250
 }
 ```
 
-- `totalAmount` = gross (units × price) - fee = 24,750 - 122 = **24,628 XAF** (net amount credited to user)
+- `pricePerUnit` = LP bid price (what the investor received per unit)
+- `totalAmount` = gross (units × bidPrice) - fee = 24,000 - 120 = **23,880 XAF** (net credited to investor)
+- `realizedPnl` = realized profit/loss vs average purchase price
 
 Error responses:
 - `400` - `NO_POSITION` (user has no holdings for this asset)

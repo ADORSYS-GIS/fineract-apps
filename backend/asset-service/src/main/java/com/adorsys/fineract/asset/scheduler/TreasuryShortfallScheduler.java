@@ -20,8 +20,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Daily scheduler that proactively detects treasury shortfalls before coupon/income payments.
- * Runs at 22:00 WAT (Africa/Douala) to give admins time to fund the treasury before
+ * Daily scheduler that proactively detects LP cash shortfalls before coupon/income payments.
+ * Runs at 22:00 WAT (Africa/Douala) to give admins time to fund the LP cash account before
  * the next morning's payment schedulers (00:15-00:45).
  */
 @Slf4j
@@ -45,13 +45,13 @@ public class TreasuryShortfallScheduler {
         try {
             checkBondShortfalls(horizon);
         } catch (Exception e) {
-            log.error("Bond treasury shortfall check failed: {}", e.getMessage(), e);
+            log.error("Bond LP cash shortfall check failed: {}", e.getMessage(), e);
         }
 
         try {
             checkIncomeShortfalls(horizon);
         } catch (Exception e) {
-            log.error("Income treasury shortfall check failed: {}", e.getMessage(), e);
+            log.error("Income LP cash shortfall check failed: {}", e.getMessage(), e);
         }
     }
 
@@ -63,13 +63,13 @@ public class TreasuryShortfallScheduler {
             return;
         }
 
-        log.info("Checking treasury for {} bond(s) with coupons due within {} days", upcomingBonds.size(), LOOKAHEAD_DAYS);
+        log.info("Checking LP cash for {} bond(s) with coupons due within {} days", upcomingBonds.size(), LOOKAHEAD_DAYS);
 
         for (Asset bond : upcomingBonds) {
             try {
                 checkBond(bond);
             } catch (Exception e) {
-                log.error("Failed to check treasury for bond {}: {}", bond.getSymbol(), e.getMessage());
+                log.error("Failed to check LP cash for bond {}: {}", bond.getSymbol(), e.getMessage());
             }
         }
     }
@@ -82,14 +82,14 @@ public class TreasuryShortfallScheduler {
             return;
         }
 
-        log.info("Checking treasury for {} non-bond asset(s) with income due within {} days",
+        log.info("Checking LP cash for {} non-bond asset(s) with income due within {} days",
                 upcomingAssets.size(), LOOKAHEAD_DAYS);
 
         for (Asset asset : upcomingAssets) {
             try {
                 checkIncomeAsset(asset);
             } catch (Exception e) {
-                log.error("Failed to check treasury for asset {}: {}", asset.getSymbol(), e.getMessage());
+                log.error("Failed to check LP cash for asset {}: {}", asset.getSymbol(), e.getMessage());
             }
         }
     }
@@ -121,19 +121,19 @@ public class TreasuryShortfallScheduler {
 
         if (totalObligation.compareTo(BigDecimal.ZERO) <= 0) return;
 
-        BigDecimal treasuryBalance;
+        BigDecimal lpCashBalance;
         try {
-            treasuryBalance = fineractClient.getAccountBalance(asset.getTreasuryCashAccountId());
+            lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
         } catch (Exception e) {
-            log.warn("Could not fetch treasury balance for asset {}: {}", asset.getSymbol(), e.getMessage());
+            log.warn("Could not fetch LP cash balance for asset {}: {}", asset.getSymbol(), e.getMessage());
             return;
         }
 
-        BigDecimal shortfall = totalObligation.subtract(treasuryBalance);
+        BigDecimal shortfall = totalObligation.subtract(lpCashBalance);
 
         if (shortfall.compareTo(BigDecimal.ZERO) > 0) {
-            log.warn("TREASURY SHORTFALL detected for asset {} ({}): treasury={} XAF, obligation={} XAF, shortfall={} XAF, due={}",
-                    asset.getSymbol(), asset.getIncomeType(), treasuryBalance, totalObligation, shortfall,
+            log.warn("LP CASH SHORTFALL detected for asset {} ({}): lpCash={} XAF, obligation={} XAF, shortfall={} XAF, due={}",
+                    asset.getSymbol(), asset.getIncomeType(), lpCashBalance, totalObligation, shortfall,
                     asset.getNextDistributionDate());
 
             assetMetrics.recordTreasuryShortfall(asset.getId(), shortfall.doubleValue());
@@ -141,11 +141,11 @@ public class TreasuryShortfallScheduler {
             eventPublisher.publishEvent(new TreasuryShortfallEvent(
                     null, // broadcast to admins
                     asset.getId(), asset.getSymbol(),
-                    treasuryBalance, totalObligation, shortfall,
+                    lpCashBalance, totalObligation, shortfall,
                     asset.getNextDistributionDate()));
         } else {
-            log.debug("Asset {} treasury OK: balance={} XAF, obligation={} XAF",
-                    asset.getSymbol(), treasuryBalance, totalObligation);
+            log.debug("Asset {} LP cash OK: balance={} XAF, obligation={} XAF",
+                    asset.getSymbol(), lpCashBalance, totalObligation);
         }
     }
 
@@ -155,7 +155,7 @@ public class TreasuryShortfallScheduler {
 
         if (holders.isEmpty()) return;
 
-        BigDecimal faceValue = bond.getManualPrice() != null ? bond.getManualPrice() : BigDecimal.ZERO;
+        BigDecimal faceValue = bond.getIssuerPrice() != null ? bond.getIssuerPrice() : BigDecimal.ZERO;
         BigDecimal rate = bond.getInterestRate();
         int periodMonths = bond.getCouponFrequencyMonths();
 
@@ -173,31 +173,31 @@ public class TreasuryShortfallScheduler {
 
         if (totalObligation.compareTo(BigDecimal.ZERO) <= 0) return;
 
-        // Fetch treasury balance
-        BigDecimal treasuryBalance;
+        // Fetch LP cash balance
+        BigDecimal lpCashBalance;
         try {
-            treasuryBalance = fineractClient.getAccountBalance(bond.getTreasuryCashAccountId());
+            lpCashBalance = fineractClient.getAccountBalance(bond.getLpCashAccountId());
         } catch (Exception e) {
-            log.warn("Could not fetch treasury balance for bond {}: {}", bond.getSymbol(), e.getMessage());
+            log.warn("Could not fetch LP cash balance for bond {}: {}", bond.getSymbol(), e.getMessage());
             return;
         }
 
-        BigDecimal shortfall = totalObligation.subtract(treasuryBalance);
+        BigDecimal shortfall = totalObligation.subtract(lpCashBalance);
 
         if (shortfall.compareTo(BigDecimal.ZERO) > 0) {
-            log.warn("TREASURY SHORTFALL detected for bond {}: treasury={} XAF, obligation={} XAF, shortfall={} XAF, due={}",
-                    bond.getSymbol(), treasuryBalance, totalObligation, shortfall, bond.getNextCouponDate());
+            log.warn("LP CASH SHORTFALL detected for bond {}: lpCash={} XAF, obligation={} XAF, shortfall={} XAF, due={}",
+                    bond.getSymbol(), lpCashBalance, totalObligation, shortfall, bond.getNextCouponDate());
 
             assetMetrics.recordTreasuryShortfall(bond.getId(), shortfall.doubleValue());
 
             eventPublisher.publishEvent(new TreasuryShortfallEvent(
                     null, // broadcast to admins
                     bond.getId(), bond.getSymbol(),
-                    treasuryBalance, totalObligation, shortfall,
+                    lpCashBalance, totalObligation, shortfall,
                     bond.getNextCouponDate()));
         } else {
-            log.debug("Bond {} treasury OK: balance={} XAF, obligation={} XAF",
-                    bond.getSymbol(), treasuryBalance, totalObligation);
+            log.debug("Bond {} LP cash OK: balance={} XAF, obligation={} XAF",
+                    bond.getSymbol(), lpCashBalance, totalObligation);
         }
     }
 }

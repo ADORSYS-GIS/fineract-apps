@@ -49,8 +49,11 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 			? (asset.tradingFeePercent * 100).toString()
 			: "",
 	);
-	const [spreadPercent, setSpreadPercent] = useState(
-		asset.spreadPercent != null ? (asset.spreadPercent * 100).toString() : "",
+	const [lpBidPrice, setLpBidPrice] = useState(
+		asset.bidPrice?.toString() ?? "",
+	);
+	const [lpAskPrice, setLpAskPrice] = useState(
+		asset.askPrice?.toString() ?? "",
 	);
 	const [maxPositionPercent, setMaxPositionPercent] = useState(
 		asset.maxPositionPercent?.toString() ?? "",
@@ -86,11 +89,8 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 					? (asset.tradingFeePercent * 100).toString()
 					: "",
 			);
-			setSpreadPercent(
-				asset.spreadPercent != null
-					? (asset.spreadPercent * 100).toString()
-					: "",
-			);
+			setLpBidPrice(asset.bidPrice?.toString() ?? "");
+			setLpAskPrice(asset.askPrice?.toString() ?? "");
 			setMaxPositionPercent(asset.maxPositionPercent?.toString() ?? "");
 			setMaxOrderSize(asset.maxOrderSize?.toString() ?? "");
 			setDailyTradeLimitXaf(asset.dailyTradeLimitXaf?.toString() ?? "");
@@ -136,15 +136,10 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 			data.tradingFeePercent = tradingFeePercent
 				? Number(tradingFeePercent) / 100
 				: undefined;
-		if (
-			spreadPercent !==
-			(asset.spreadPercent != null
-				? (asset.spreadPercent * 100).toString()
-				: "")
-		)
-			data.spreadPercent = spreadPercent
-				? Number(spreadPercent) / 100
-				: undefined;
+		if (lpBidPrice !== (asset.bidPrice?.toString() ?? ""))
+			data.lpBidPrice = lpBidPrice ? Number(lpBidPrice) : undefined;
+		if (lpAskPrice !== (asset.askPrice?.toString() ?? ""))
+			data.lpAskPrice = lpAskPrice ? Number(lpAskPrice) : undefined;
 		if (maxPositionPercent !== (asset.maxPositionPercent?.toString() ?? ""))
 			data.maxPositionPercent = maxPositionPercent
 				? Number(maxPositionPercent)
@@ -266,30 +261,47 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 						/>
 					</div>
 
+					<div>
+						<label className={labelClass}>Trading Fee %</label>
+						<input
+							type="number"
+							className={inputClass}
+							value={tradingFeePercent}
+							onChange={(e) => setTradingFeePercent(e.target.value)}
+							min={0}
+							step="0.0001"
+							placeholder="e.g. 0.005"
+						/>
+					</div>
+
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className={labelClass}>Trading Fee %</label>
+							<label className={labelClass}>LP Ask Price (XAF)</label>
 							<input
 								type="number"
 								className={inputClass}
-								value={tradingFeePercent}
-								onChange={(e) => setTradingFeePercent(e.target.value)}
+								value={lpAskPrice}
+								onChange={(e) => setLpAskPrice(e.target.value)}
 								min={0}
-								step="0.0001"
-								placeholder="e.g. 0.005"
+								placeholder="e.g. 5100"
 							/>
+							<p className="text-xs text-gray-400 mt-1">
+								What investors pay to buy
+							</p>
 						</div>
 						<div>
-							<label className={labelClass}>Spread %</label>
+							<label className={labelClass}>LP Bid Price (XAF)</label>
 							<input
 								type="number"
 								className={inputClass}
-								value={spreadPercent}
-								onChange={(e) => setSpreadPercent(e.target.value)}
+								value={lpBidPrice}
+								onChange={(e) => setLpBidPrice(e.target.value)}
 								min={0}
-								step="0.0001"
-								placeholder="e.g. 0.01"
+								placeholder="e.g. 4900"
 							/>
+							<p className="text-xs text-gray-400 mt-1">
+								What investors receive when selling
+							</p>
 						</div>
 					</div>
 

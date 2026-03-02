@@ -117,7 +117,7 @@ public class IncomeDistributionService {
             String description = String.format("%s payment: %s %s%%",
                     incomeType, asset.getSymbol(), rate);
             Long transferId = fineractClient.createAccountTransfer(
-                    asset.getTreasuryCashAccountId(), userCashAccountId,
+                    asset.getLpCashAccountId(), userCashAccountId,
                     cashAmount, description);
 
             record.fineractTransferId(transferId).status("SUCCESS");

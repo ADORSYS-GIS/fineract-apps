@@ -27,7 +27,7 @@ import java.util.List;
 
 /**
  * Automated reconciliation between asset service DB state and Fineract ledger balances.
- * Detects discrepancies in supply, positions, and treasury cash.
+ * Detects discrepancies in supply, positions, and LP cash.
  */
 @Slf4j
 @Service
@@ -93,10 +93,10 @@ public class ReconciliationService {
     public int reconcileAsset(Asset asset, LocalDate reportDate) {
         int discrepancies = 0;
 
-        // 1. Supply mismatch: circulatingSupply vs (totalSupply - treasuryAssetBalance)
+        // 1. Supply mismatch: circulatingSupply vs (totalSupply - lpAssetBalance)
         try {
-            BigDecimal treasuryAssetBalance = fineractClient.getAccountBalance(asset.getTreasuryAssetAccountId());
-            BigDecimal expectedCirculating = asset.getTotalSupply().subtract(treasuryAssetBalance);
+            BigDecimal lpAssetBalance = fineractClient.getAccountBalance(asset.getLpAssetAccountId());
+            BigDecimal expectedCirculating = asset.getTotalSupply().subtract(lpAssetBalance);
             BigDecimal actualCirculating = asset.getCirculatingSupply();
             BigDecimal supplyDiscrepancy = actualCirculating.subtract(expectedCirculating);
 
@@ -129,17 +129,17 @@ public class ReconciliationService {
             }
         }
 
-        // 3. Treasury cash balance: verify non-negative
-        if (asset.getTreasuryCashAccountId() != null) {
+        // 3. LP cash balance: verify non-negative
+        if (asset.getLpCashAccountId() != null) {
             try {
-                BigDecimal treasuryCashBalance = fineractClient.getAccountBalance(asset.getTreasuryCashAccountId());
-                if (treasuryCashBalance.compareTo(BigDecimal.ZERO) < 0) {
-                    createReport(reportDate, "TREASURY_CASH_NEGATIVE", asset.getId(), null,
-                            BigDecimal.ZERO, treasuryCashBalance, treasuryCashBalance, "CRITICAL");
+                BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+                if (lpCashBalance.compareTo(BigDecimal.ZERO) < 0) {
+                    createReport(reportDate, "LP_CASH_NEGATIVE", asset.getId(), null,
+                            BigDecimal.ZERO, lpCashBalance, lpCashBalance, "CRITICAL");
                     discrepancies++;
                 }
             } catch (Exception e) {
-                log.warn("Could not check treasury cash for asset {}: {}", asset.getSymbol(), e.getMessage());
+                log.warn("Could not check LP cash for asset {}: {}", asset.getSymbol(), e.getMessage());
             }
         }
 

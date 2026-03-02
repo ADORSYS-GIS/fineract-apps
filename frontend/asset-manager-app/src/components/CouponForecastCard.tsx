@@ -91,12 +91,12 @@ export const CouponForecastCard: FC<Props> = ({ assetId }) => {
 
 				<div>
 					<h3 className="text-sm font-medium text-gray-500 mb-2">
-						Treasury Coverage
+						LP Coverage
 					</h3>
 					<Row
-						label="Treasury balance"
-						description="Current cash available in the entity's treasury account"
-						value={`${fmt(forecast.treasuryBalance)} XAF`}
+						label="LP cash balance"
+						description="Current cash available in the LP's cash account"
+						value={`${fmt(forecast.lpCashBalance)} XAF`}
 					/>
 					<Row
 						label="Shortfall"

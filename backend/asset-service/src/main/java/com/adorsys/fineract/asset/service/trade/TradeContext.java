@@ -38,9 +38,11 @@ public class TradeContext {
     private BigDecimal effectiveSpread;
     private BigDecimal feePercent;
     private BigDecimal executionPrice;
+    private BigDecimal issuerPrice;
     private BigDecimal grossAmount;
     private BigDecimal fee;
     private BigDecimal spreadAmount;
+    private BigDecimal buybackPremium;
     private BigDecimal orderCashAmount;
 
     // -- Output --

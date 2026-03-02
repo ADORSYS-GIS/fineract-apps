@@ -28,7 +28,7 @@ public record ScheduledPaymentDetailResponse(
     BigDecimal totalAmountPaid,
     Instant executedAt,
     Instant createdAt,
-    BigDecimal treasuryBalance,
+    BigDecimal lpCashBalance,
     List<HolderBreakdown> holders
 ) {
     public record HolderBreakdown(

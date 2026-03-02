@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
@@ -21,8 +22,10 @@ public record UpdateAssetRequest(
     AssetCategory category,
     /** New trading fee percentage (e.g. 0.005 = 0.5%). Null to keep current. */
     @PositiveOrZero BigDecimal tradingFeePercent,
-    /** New spread percentage (e.g. 0.01 = 1%). Null to keep current. */
-    @PositiveOrZero BigDecimal spreadPercent,
+    /** New LP ask price (what investors pay to buy). Null to keep current. */
+    @Positive BigDecimal lpAskPrice,
+    /** New LP bid price (what investors receive when selling). Null to keep current. */
+    @Positive BigDecimal lpBidPrice,
 
     /** New subscription start date. Null to keep current. */
     @Schema(description = "New subscription start date.")

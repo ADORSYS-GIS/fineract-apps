@@ -48,7 +48,7 @@ import java.util.UUID;
  * Core trading engine. Orchestrates buy/sell operations with:
  * - Idempotency checks
  * - Market hours enforcement
- * - Single-price execution (current price +/- spread)
+ * - Single-price execution (LP bid/ask prices)
  * - JWT-based user resolution and auto account discovery
  * - Fineract Batch API for atomic transfers (cash + fee + asset legs)
  * - Portfolio updates (WAP, P&L)
@@ -206,7 +206,7 @@ public class TradingService {
         }
     }
 
-    /** Step 5: Calculate execution price, fees, and amounts. Stores results in ctx. */
+    /** Step 5: Calculate execution price, fees, and amounts. Uses LP bid/ask directly. */
     private void calculatePrice(TradeContext ctx) {
         TradeStrategy strategy = ctx.getStrategy();
         Asset asset = ctx.getAsset();
@@ -214,28 +214,57 @@ public class TradingService {
 
         CurrentPriceResponse priceData = pricingService.getCurrentPrice(ctx.getAssetId());
         BigDecimal basePrice = priceData.currentPrice();
-        BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
-        BigDecimal effectiveSpread = isSpreadEnabled() ? spread : BigDecimal.ZERO;
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
-        BigDecimal executionPrice = strategy.applySpread(basePrice, effectiveSpread);
+
+        // BUY executes at LP ask price, SELL at LP bid price
+        BigDecimal executionPrice = (strategy.side() == TradeSide.BUY)
+                ? (priceData.askPrice() != null ? priceData.askPrice() : basePrice)
+                : (priceData.bidPrice() != null ? priceData.bidPrice() : basePrice);
 
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal spreadAmount = units.multiply(basePrice.multiply(effectiveSpread))
-                .setScale(0, RoundingMode.HALF_UP);
+
+        // LP margin: directional spread (no .abs())
+        BigDecimal issuerPrice = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : basePrice;
+        BigDecimal spreadAmount;
+        BigDecimal buybackPremium;
+        if (!isSpreadEnabled(asset)) {
+            spreadAmount = BigDecimal.ZERO;
+            buybackPremium = BigDecimal.ZERO;
+        } else if (strategy.side() == TradeSide.BUY) {
+            // BUY: spread = (ask - issuer) * units, always >= 0
+            spreadAmount = executionPrice.subtract(issuerPrice).max(BigDecimal.ZERO)
+                    .multiply(units).setScale(0, RoundingMode.HALF_UP);
+            buybackPremium = BigDecimal.ZERO;
+        } else {
+            // SELL: rawSpread = issuer - bid
+            BigDecimal rawSpread = issuerPrice.subtract(executionPrice);
+            if (rawSpread.compareTo(BigDecimal.ZERO) >= 0) {
+                // bid <= issuer: LP profits, spread goes to LP Spread
+                spreadAmount = rawSpread.multiply(units).setScale(0, RoundingMode.HALF_UP);
+                buybackPremium = BigDecimal.ZERO;
+            } else {
+                // bid > issuer: LP pays premium, funded from LP Spread
+                spreadAmount = BigDecimal.ZERO;
+                buybackPremium = rawSpread.negate().multiply(units).setScale(0, RoundingMode.HALF_UP);
+            }
+        }
+
         BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee);
 
         ctx.setBasePrice(basePrice);
-        ctx.setEffectiveSpread(effectiveSpread);
+        ctx.setEffectiveSpread(BigDecimal.ZERO); // LP model: no percentage spread
         ctx.setFeePercent(feePercent);
         ctx.setExecutionPrice(executionPrice);
+        ctx.setIssuerPrice(issuerPrice);
         ctx.setGrossAmount(grossAmount);
         ctx.setFee(fee);
         ctx.setSpreadAmount(spreadAmount);
+        ctx.setBuybackPremium(buybackPremium);
         ctx.setOrderCashAmount(orderCashAmount);
     }
 
-    /** Step 6: BUY — verify sufficient treasury inventory. */
+    /** Step 6: BUY — verify sufficient LP inventory. */
     private void checkInventory(TradeContext ctx) {
         if (ctx.getStrategy().side() != TradeSide.BUY) return;
         Asset asset = ctx.getAsset();
@@ -356,12 +385,12 @@ public class TradingService {
         return markOrderFilled(ctx, lockedAsset);
     }
 
-    /** Re-fetch asset inside lock, validate treasury configuration. */
+    /** Re-fetch asset inside lock, validate LP account configuration. */
     private Asset reVerifyAsset(TradeContext ctx) {
         Asset lockedAsset = assetRepository.findById(ctx.getAssetId())
                 .orElseThrow(() -> new AssetException("Asset not found: " + ctx.getAssetId()));
-        if (lockedAsset.getTreasuryCashAccountId() == null || lockedAsset.getTreasuryAssetAccountId() == null) {
-            rejectOrder(ctx.getOrder(), "Asset treasury accounts not configured");
+        if (lockedAsset.getLpCashAccountId() == null || lockedAsset.getLpAssetAccountId() == null) {
+            rejectOrder(ctx.getOrder(), "Asset LP accounts not configured");
             throw new TradingException(
                     "Asset is not fully configured for trading. Contact admin.", "CONFIG_ERROR");
         }
@@ -390,25 +419,54 @@ public class TradingService {
         }
     }
 
-    /** Re-fetch authoritative price and recalculate all amounts inside lock. */
+    /** Re-fetch authoritative price and recalculate all amounts inside lock using LP bid/ask. */
     private void recalculatePriceInsideLock(TradeContext ctx) {
         TradeStrategy strategy = ctx.getStrategy();
+        Asset asset = ctx.getAsset();
         BigDecimal units = ctx.getUnits();
 
         CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(ctx.getAssetId());
         BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
-        BigDecimal executionPrice = strategy.applySpread(lockedBasePrice, ctx.getEffectiveSpread());
+
+        // BUY executes at LP ask price, SELL at LP bid price
+        BigDecimal executionPrice = (strategy.side() == TradeSide.BUY)
+                ? (lockedPriceData.askPrice() != null ? lockedPriceData.askPrice() : lockedBasePrice)
+                : (lockedPriceData.bidPrice() != null ? lockedPriceData.bidPrice() : lockedBasePrice);
+
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(ctx.getFeePercent()).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal spreadAmount = units.multiply(lockedBasePrice.multiply(ctx.getEffectiveSpread()))
-                .setScale(0, RoundingMode.HALF_UP);
+
+        // LP margin: directional spread (no .abs())
+        BigDecimal issuerPrice = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : lockedBasePrice;
+        BigDecimal spreadAmount;
+        BigDecimal buybackPremium;
+        if (!isSpreadEnabled(asset)) {
+            spreadAmount = BigDecimal.ZERO;
+            buybackPremium = BigDecimal.ZERO;
+        } else if (strategy.side() == TradeSide.BUY) {
+            spreadAmount = executionPrice.subtract(issuerPrice).max(BigDecimal.ZERO)
+                    .multiply(units).setScale(0, RoundingMode.HALF_UP);
+            buybackPremium = BigDecimal.ZERO;
+        } else {
+            BigDecimal rawSpread = issuerPrice.subtract(executionPrice);
+            if (rawSpread.compareTo(BigDecimal.ZERO) >= 0) {
+                spreadAmount = rawSpread.multiply(units).setScale(0, RoundingMode.HALF_UP);
+                buybackPremium = BigDecimal.ZERO;
+            } else {
+                spreadAmount = BigDecimal.ZERO;
+                buybackPremium = rawSpread.negate().multiply(units).setScale(0, RoundingMode.HALF_UP);
+            }
+        }
+
         BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee);
 
         ctx.setBasePrice(lockedBasePrice);
         ctx.setExecutionPrice(executionPrice);
+        ctx.setIssuerPrice(issuerPrice);
         ctx.setGrossAmount(grossAmount);
         ctx.setFee(fee);
         ctx.setSpreadAmount(spreadAmount);
+        ctx.setBuybackPremium(buybackPremium);
         ctx.setOrderCashAmount(orderCashAmount);
 
         // Update order with authoritative locked values
@@ -417,6 +475,7 @@ public class TradingService {
         order.setCashAmount(orderCashAmount);
         order.setFee(fee);
         order.setSpreadAmount(spreadAmount);
+        order.setBuybackPremium(buybackPremium);
         orderRepository.save(order);
     }
 
@@ -486,10 +545,11 @@ public class TradingService {
     /** Execute all Fineract transfers as an atomic batch. */
     private void executeFineractBatch(TradeContext ctx, Asset lockedAsset) {
         TradeSide side = ctx.getStrategy().side();
-        String currency = assetServiceConfig.getSettlementCurrency();
+        Long feeCollectionAccountId = assetServiceConfig.getAccounting().getFeeCollectionAccountId();
         List<BatchOperation> batchOps = buildBatchOperations(
                 side, lockedAsset, ctx.getUserCashAccountId(), ctx.getUserAssetAccountId(),
-                ctx.getGrossAmount(), ctx.getUnits(), ctx.getFee(), ctx.getSpreadAmount(), currency);
+                ctx.getGrossAmount(), ctx.getUnits(), ctx.getFee(), ctx.getSpreadAmount(),
+                ctx.getBuybackPremium(), feeCollectionAccountId);
 
         try {
             List<Map<String, Object>> batchResponses = fineractClient.executeAtomicBatch(batchOps);
@@ -535,61 +595,71 @@ public class TradingService {
     }
 
     /**
-     * Build the atomic batch operations for a trade. Includes transfers, spread sweep,
-     * fee withdrawal, and fee journal entry — all in one atomic Fineract batch.
+     * Build the atomic batch operations for a trade.
+     * <p>
+     * LP Cash is the routing hub — all money flows through it, then gets distributed internally.
+     * The investor sees at most 1 XAF transaction per trade (fee bundled, spread invisible).
+     * <p>
+     * BUY: Investor pays grossAmount + fee to LP Cash (single debit), LP Cash distributes internally.
+     * SELL: LP Cash pays grossAmount - fee to investor (single credit), LP Cash distributes internally.
+     * LP Cash net change is always ±(issuerPrice × units) when spread/premium is enabled.
      */
     private List<BatchOperation> buildBatchOperations(
             TradeSide side, Asset asset,
             Long userCashAccountId, Long userAssetAccountId,
             BigDecimal grossAmount, BigDecimal units, BigDecimal fee,
-            BigDecimal spreadAmount, String currency) {
+            BigDecimal spreadAmount, BigDecimal buybackPremium, Long feeCollectionAccountId) {
 
         List<BatchOperation> ops = new ArrayList<>();
 
         if (side == TradeSide.BUY) {
-            // Cash leg: user XAF -> treasury XAF
+            // Leg 1: Investor pays total (grossAmount + fee) to LP Cash — single XAF debit
             ops.add(new BatchTransferOp(
-                    userCashAccountId, asset.getTreasuryCashAccountId(),
-                    grossAmount, "Asset purchase: " + asset.getSymbol()));
-            // Spread leg (if applicable)
-            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
-                ops.add(new BatchTransferOp(
-                        asset.getTreasuryCashAccountId(),
-                        assetServiceConfig.getAccounting().getSpreadCollectionAccountId(),
-                        spreadAmount, "Spread: BUY " + asset.getSymbol()));
-            }
-            // Asset leg: treasury asset -> user asset
+                    userCashAccountId, asset.getLpCashAccountId(),
+                    grossAmount.add(fee), "Asset purchase: " + asset.getSymbol()));
+            // Leg 2: LP delivers tokens to investor
             ops.add(new BatchTransferOp(
-                    asset.getTreasuryAssetAccountId(), userAssetAccountId,
+                    asset.getLpAssetAccountId(), userAssetAccountId,
                     units, "Asset delivery: " + asset.getSymbol()));
-        } else {
-            // Asset return: user asset -> treasury asset
-            ops.add(new BatchTransferOp(
-                    userAssetAccountId, asset.getTreasuryAssetAccountId(),
-                    units, "Asset sell: " + asset.getSymbol()));
-            // Cash credit: treasury XAF -> user XAF (gross proceeds)
-            ops.add(new BatchTransferOp(
-                    asset.getTreasuryCashAccountId(), userCashAccountId,
-                    grossAmount, "Asset sale proceeds: " + asset.getSymbol()));
-            // Spread sweep (if applicable)
-            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0) {
+            // Leg 3 (internal): LP Cash sweeps spread to LP Spread
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
                 ops.add(new BatchTransferOp(
-                        asset.getTreasuryCashAccountId(),
-                        assetServiceConfig.getAccounting().getSpreadCollectionAccountId(),
-                        spreadAmount, "Spread: SELL " + asset.getSymbol()));
+                        asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
+                        spreadAmount, "LP margin: BUY " + asset.getSymbol()));
             }
-        }
-
-        // Fee legs (both BUY and SELL): withdrawal + journal entry in the same atomic batch
-        if (fee.compareTo(BigDecimal.ZERO) > 0) {
-            ops.add(new BatchWithdrawalOp(
-                    userCashAccountId, fee,
-                    "Trading fee: " + side + " " + asset.getSymbol()));
-            ops.add(new BatchJournalEntryOp(
-                    resolvedGlAccounts.getFundSourceId(),
-                    resolvedGlAccounts.getFeeIncomeId(),
-                    fee, currency,
-                    "Trading fee: " + side + " " + asset.getSymbol()));
+            // Leg 4 (internal): LP Cash sweeps fee to Fee Collection
+            if (fee.compareTo(BigDecimal.ZERO) > 0 && feeCollectionAccountId != null) {
+                ops.add(new BatchTransferOp(
+                        asset.getLpCashAccountId(), feeCollectionAccountId,
+                        fee, "Trading fee: BUY " + asset.getSymbol()));
+            }
+        } else {
+            // Leg 1: Investor returns tokens
+            ops.add(new BatchTransferOp(
+                    userAssetAccountId, asset.getLpAssetAccountId(),
+                    units, "Asset sell: " + asset.getSymbol()));
+            // Leg 2 (optional, internal): If bid > issuer, fund LP Cash premium from LP Spread
+            if (buybackPremium != null && buybackPremium.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
+                ops.add(new BatchTransferOp(
+                        asset.getLpSpreadAccountId(), asset.getLpCashAccountId(),
+                        buybackPremium, "Buyback premium: SELL " + asset.getSymbol()));
+            }
+            // Leg 3: LP Cash pays net proceeds to investor — single XAF credit
+            ops.add(new BatchTransferOp(
+                    asset.getLpCashAccountId(), userCashAccountId,
+                    grossAmount.subtract(fee), "Asset sale proceeds: " + asset.getSymbol()));
+            // Leg 4 (internal): LP Cash sweeps fee to Fee Collection
+            if (fee.compareTo(BigDecimal.ZERO) > 0 && feeCollectionAccountId != null) {
+                ops.add(new BatchTransferOp(
+                        asset.getLpCashAccountId(), feeCollectionAccountId,
+                        fee, "Trading fee: SELL " + asset.getSymbol()));
+            }
+            // Leg 5 (internal): LP Cash sweeps spread to LP Spread (if bid < issuer)
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
+                ops.add(new BatchTransferOp(
+                        asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
+                        spreadAmount, "LP margin: SELL " + asset.getSymbol()));
+            }
         }
 
         return ops;
@@ -652,16 +722,18 @@ public class TradingService {
             }
         }
 
-        // 3. Price calculation
+        // 3. Price calculation using LP bid/ask
         CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
         BigDecimal basePrice = priceData.currentPrice();
-        BigDecimal spread = asset.getSpreadPercent() != null ? asset.getSpreadPercent() : BigDecimal.ZERO;
-        BigDecimal effectiveSpread = isSpreadEnabled() ? spread : BigDecimal.ZERO;
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
 
         TradeStrategy previewStrategy = request.side() == TradeSide.BUY
                 ? BuyStrategy.INSTANCE : SellStrategy.INSTANCE;
-        BigDecimal executionPrice = previewStrategy.applySpread(basePrice, effectiveSpread);
+
+        // BUY executes at LP ask price, SELL at LP bid price
+        BigDecimal executionPrice = (request.side() == TradeSide.BUY)
+                ? (priceData.askPrice() != null ? priceData.askPrice() : basePrice)
+                : (priceData.bidPrice() != null ? priceData.bidPrice() : basePrice);
 
         // 3b. Amount-based conversion: compute units from XAF amount
         BigDecimal computedFromAmount = null;
@@ -691,8 +763,14 @@ public class TradingService {
 
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal spreadAmount = units.multiply(basePrice.multiply(effectiveSpread))
-                .setScale(0, RoundingMode.HALF_UP);
+
+        // LP margin: |executionPrice - issuerPrice| * units
+        BigDecimal issuerPrice = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : basePrice;
+        BigDecimal lpMarginPerUnit = executionPrice.subtract(issuerPrice).abs();
+        BigDecimal spreadAmount = isSpreadEnabled(asset)
+                ? lpMarginPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
         BigDecimal netAmount = previewStrategy.computeOrderCashAmount(grossAmount, fee);
 
         // Compute remainder for amount-based mode
@@ -769,13 +847,13 @@ public class TradingService {
         IncomeBenefitProjection incomeBenefit = null;
         if (request.side() == TradeSide.BUY) {
             incomeBenefit = incomeBenefitService.calculateForPurchase(
-                    asset, units, basePrice, netAmount);
+                    asset, units, issuerPrice, netAmount);
         }
 
         return new TradePreviewResponse(
                 blockers.isEmpty(), blockers,
                 asset.getId(), asset.getSymbol(), request.side(), units,
-                basePrice, executionPrice, spread, grossAmount, fee, feePercent, spreadAmount, netAmount,
+                basePrice, executionPrice, lpMarginPerUnit, grossAmount, fee, feePercent, spreadAmount, netAmount,
                 availableBalance, availableUnits, availableSupply,
                 bondBenefit, incomeBenefit, computedFromAmount, remainder
         );
@@ -860,8 +938,11 @@ public class TradingService {
         );
     }
 
-    private boolean isSpreadEnabled() {
-        Long id = assetServiceConfig.getAccounting().getSpreadCollectionAccountId();
-        return id != null && id > 0;
+    /**
+     * Check if LP spread collection is enabled for this asset.
+     * In the LP model, each asset has its own spread account (per-asset).
+     */
+    private boolean isSpreadEnabled(Asset asset) {
+        return asset.getLpSpreadAccountId() != null && asset.getLpSpreadAccountId() > 0;
     }
 }

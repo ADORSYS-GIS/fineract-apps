@@ -107,12 +107,14 @@ export interface AssetResponse {
 	subscriptionEndDate: string;
 	capitalOpenedPercent?: number;
 	// Bond fields (null for non-bond assets)
-	issuer?: string;
+	issuerName?: string;
 	isinCode?: string;
 	maturityDate?: string;
 	interestRate?: number;
 	residualDays?: number;
 	subscriptionClosed?: boolean;
+	lpName?: string;
+	couponAmountPerUnit?: number;
 }
 
 /** Full asset detail with Fineract IDs (matches backend AssetDetailResponse). */
@@ -138,16 +140,16 @@ export interface AssetDetailResponse {
 	circulatingSupply: number;
 	availableSupply: number;
 	tradingFeePercent?: number;
-	spreadPercent?: number;
 	decimalPlaces: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
 	capitalOpenedPercent?: number;
-	treasuryClientId: number;
-	treasuryAssetAccountId?: number;
-	treasuryCashAccountId?: number;
+	lpClientId: number;
+	lpAssetAccountId?: number;
+	lpCashAccountId?: number;
+	lpSpreadAccountId?: number;
 	fineractProductId?: number;
-	treasuryClientName?: string;
+	lpClientName?: string;
 	fineractProductName?: string;
 	createdAt: string;
 	updatedAt?: string;
@@ -166,7 +168,11 @@ export interface AssetDetailResponse {
 	delistingDate?: string;
 	delistingRedemptionPrice?: number;
 	// Bond fields (null for non-bond assets)
-	issuer?: string;
+	issuerName?: string;
+	issuerPrice?: number;
+	lpMarginPerUnit?: number;
+	lpMarginPercent?: number;
+	couponAmountPerUnit?: number;
 	isinCode?: string;
 	maturityDate?: string;
 	interestRate?: number;
@@ -183,15 +189,16 @@ export interface CreateAssetRequest {
 	description?: string;
 	imageUrl?: string;
 	category: string;
-	initialPrice: number;
+	issuerPrice: number;
+	lpBidPrice: number;
+	lpAskPrice: number;
 	tradingFeePercent?: number;
-	spreadPercent?: number;
 	totalSupply: number;
 	decimalPlaces: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
 	capitalOpenedPercent?: number;
-	treasuryClientId: number;
+	lpClientId: number;
 	// Exposure limits
 	maxPositionPercent?: number;
 	maxOrderSize?: number;
@@ -204,7 +211,7 @@ export interface CreateAssetRequest {
 	distributionFrequencyMonths?: number;
 	nextDistributionDate?: string;
 	// Bond fields (required when category is BONDS)
-	issuer?: string;
+	issuerName?: string;
 	isinCode?: string;
 	maturityDate?: string;
 	interestRate?: number;
@@ -218,7 +225,8 @@ export interface UpdateAssetRequest {
 	imageUrl?: string;
 	category?: string;
 	tradingFeePercent?: number;
-	spreadPercent?: number;
+	lpBidPrice?: number;
+	lpAskPrice?: number;
 	subscriptionStartDate?: string;
 	subscriptionEndDate?: string;
 	capitalOpenedPercent?: number;
@@ -326,7 +334,7 @@ export interface IncomeForecastResponse {
 	totalUnitsOutstanding: number;
 	currentPrice: number;
 	incomePerPeriod: number;
-	treasuryBalance: number;
+	lpCashBalance: number;
 	shortfall: number;
 	periodsCoveredByBalance: number;
 }
@@ -346,7 +354,7 @@ export interface CouponForecastResponse {
 	totalRemainingCouponObligation: number;
 	principalAtMaturity: number;
 	totalObligation: number;
-	treasuryBalance: number;
+	lpCashBalance: number;
 	shortfall: number;
 	couponsCoveredByBalance: number;
 }
@@ -494,7 +502,7 @@ export interface NotificationPreferencesResponse {
 	assetStatusChanged: boolean;
 	orderStuck: boolean;
 	incomePaid: boolean;
-	treasuryShortfall: boolean;
+	lpShortfall: boolean;
 	delistingAnnounced: boolean;
 }
 
@@ -505,7 +513,7 @@ export interface UpdateNotificationPreferencesRequest {
 	assetStatusChanged?: boolean;
 	orderStuck?: boolean;
 	incomePaid?: boolean;
-	treasuryShortfall?: boolean;
+	lpShortfall?: boolean;
 	delistingAnnounced?: boolean;
 }
 
@@ -582,7 +590,7 @@ export interface TradePreviewResponse {
 	units: number;
 	basePrice?: number;
 	executionPrice?: number;
-	spreadPercent?: number;
+	lpMarginPerUnit?: number;
 	grossAmount?: number;
 	fee?: number;
 	feePercent?: number;
@@ -648,7 +656,7 @@ export interface ScheduledPaymentResponse {
 	totalAmountPaid?: number;
 	executedAt?: string;
 	createdAt: string;
-	treasuryBalance?: number;
+	lpCashBalance?: number;
 }
 
 export interface ScheduledPaymentDetailResponse

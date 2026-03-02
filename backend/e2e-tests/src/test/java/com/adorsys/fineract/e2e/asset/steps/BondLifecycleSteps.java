@@ -55,11 +55,14 @@ public class BondLifecycleSteps {
         request.put("symbol", symbolRef);
         request.put("currencyCode", symbolRef);
         request.put("category", "BONDS");
-        request.put("initialPrice", price);
+        BigDecimal issuerPrice = new BigDecimal(price);
+        request.put("issuerPrice", issuerPrice);
+        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("1.10")));
+        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("0.95")));
         request.put("totalSupply", supply);
         request.put("decimalPlaces", 0);
-        request.put("treasuryClientId", FineractInitializer.getTreasuryClientId());
-        request.put("issuer", "E2E Test Issuer");
+        request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("issuerName", "E2E Test Issuer");
         request.put("interestRate", interestRate);
         request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().plusYears(5).toString());

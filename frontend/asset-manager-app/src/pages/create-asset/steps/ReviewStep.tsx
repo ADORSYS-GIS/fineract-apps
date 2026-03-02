@@ -24,20 +24,20 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 				</h2>
 				<p className="text-sm text-gray-500">
 					Review all details before creating the asset. This will provision a
-					currency, savings product, and treasury account in Fineract.
+					currency, savings product, and LP account in Fineract.
 				</p>
 			</div>
 
-			{/* Company */}
+			{/* Liquidity Partner */}
 			<Card className="p-4">
 				<h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
-					Treasury Company
+					Liquidity Partner
 				</h3>
 				<div className="grid grid-cols-2 gap-2 text-sm">
 					<div className="text-gray-600">Company:</div>
-					<div className="font-medium">{formData.treasuryClientName}</div>
+					<div className="font-medium">{formData.lpClientName}</div>
 					<div className="text-gray-600">Client ID:</div>
-					<div className="font-medium">{formData.treasuryClientId}</div>
+					<div className="font-medium">{formData.lpClientId}</div>
 				</div>
 			</Card>
 
@@ -72,7 +72,7 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					</h3>
 					<div className="grid grid-cols-2 gap-2 text-sm">
 						<div className="text-gray-600">Issuer:</div>
-						<div className="font-medium">{formData.issuer}</div>
+						<div className="font-medium">{formData.issuerName}</div>
 						{formData.isinCode && (
 							<>
 								<div className="text-gray-600">ISIN Code:</div>
@@ -100,14 +100,35 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					Pricing & Fees
 				</h3>
 				<div className="grid grid-cols-2 gap-2 text-sm">
-					<div className="text-gray-600">Initial Price:</div>
+					<div className="text-gray-600">Issuer Price:</div>
 					<div className="font-medium">
-						{formData.initialPrice.toLocaleString()} XAF
+						{formData.issuerPrice.toLocaleString()} XAF
+					</div>
+					<div className="text-gray-600">LP Ask Price:</div>
+					<div className="font-medium">
+						{formData.lpAskPrice.toLocaleString()} XAF
+					</div>
+					<div className="text-gray-600">LP Bid Price:</div>
+					<div className="font-medium">
+						{formData.lpBidPrice.toLocaleString()} XAF
 					</div>
 					<div className="text-gray-600">Trading Fee:</div>
 					<div className="font-medium">{formData.tradingFeePercent}%</div>
-					<div className="text-gray-600">Spread:</div>
-					<div className="font-medium">{formData.spreadPercent}%</div>
+					{formData.lpAskPrice > 0 && formData.issuerPrice > 0 && (
+						<>
+							<div className="text-gray-600">LP Margin:</div>
+							<div className="font-medium">
+								{(formData.lpAskPrice - formData.issuerPrice).toLocaleString()}{" "}
+								XAF/unit (
+								{(
+									((formData.lpAskPrice - formData.issuerPrice) /
+										formData.issuerPrice) *
+									100
+								).toFixed(2)}
+								%)
+							</div>
+						</>
+					)}
 					{formData.maxPositionPercent > 0 && (
 						<>
 							<div className="text-gray-600">Max Position:</div>
@@ -149,8 +170,7 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="font-medium">{formData.decimalPlaces}</div>
 					<div className="text-gray-600">Total Market Cap:</div>
 					<div className="font-medium">
-						{(formData.totalSupply * formData.initialPrice).toLocaleString()}{" "}
-						XAF
+						{(formData.totalSupply * formData.issuerPrice).toLocaleString()} XAF
 					</div>
 				</div>
 			</Card>
@@ -230,10 +250,10 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 								in Fineract
 							</li>
 							<li>Create a savings product for this asset</li>
-							<li>Create a treasury savings account for the company</li>
+							<li>Create an LP savings account for the company</li>
 							<li>
-								Deposit {formData.totalSupply.toLocaleString()} units into
-								treasury
+								Deposit {formData.totalSupply.toLocaleString()} units into LP
+								account
 							</li>
 							<li>Asset will be created in PENDING status</li>
 						</ol>

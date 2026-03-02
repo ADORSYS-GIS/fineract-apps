@@ -31,8 +31,8 @@ class AdminNotificationControllerTest {
     @Test
     void listNotifications_returns200WithPage() throws Exception {
         NotificationResponse notif = new NotificationResponse(
-                1L, "TREASURY_SHORTFALL", "Treasury shortfall",
-                "Asset TST has insufficient treasury balance",
+                1L, "LP_SHORTFALL", "LP cash shortfall",
+                "Asset TST has insufficient LP cash balance",
                 "asset-001", "ASSET", false, Instant.now());
         when(notificationService.getAdminNotifications(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(notif)));
@@ -43,7 +43,7 @@ class AdminNotificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content[0].id").value(1))
-                .andExpect(jsonPath("$.content[0].eventType").value("TREASURY_SHORTFALL"))
+                .andExpect(jsonPath("$.content[0].eventType").value("LP_SHORTFALL"))
                 .andExpect(jsonPath("$.content[0].read").value(false))
                 .andExpect(jsonPath("$.totalElements").value(1));
 

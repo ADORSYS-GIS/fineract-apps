@@ -10,9 +10,9 @@ import {
 } from "@/services/assetApi";
 
 export interface AssetFormData {
-	// Step 1: Select Company
-	treasuryClientId: number | null;
-	treasuryClientName: string;
+	// Step 1: Select Liquidity Partner
+	lpClientId: number | null;
+	lpClientName: string;
 	// Step 2: Asset Details
 	name: string;
 	symbol: string;
@@ -20,16 +20,17 @@ export interface AssetFormData {
 	description: string;
 	imageUrl: string;
 	// Step 2b: Bond Details (when category = BONDS)
-	issuer: string;
+	issuerName: string;
 	isinCode: string;
 	maturityDate: string;
 	interestRate: number;
 	couponFrequencyMonths: number;
 	nextCouponDate: string;
 	// Step 3: Pricing
-	initialPrice: number;
+	issuerPrice: number;
+	lpBidPrice: number;
+	lpAskPrice: number;
 	tradingFeePercent: number;
-	spreadPercent: number;
 	// Step 3 continued: Exposure limits
 	maxPositionPercent: number;
 	maxOrderSize: number;
@@ -65,22 +66,23 @@ const INCOME_TYPE_DEFAULTS: Record<
 };
 
 const initialFormData: AssetFormData = {
-	treasuryClientId: null,
-	treasuryClientName: "",
+	lpClientId: null,
+	lpClientName: "",
 	name: "",
 	symbol: "",
 	category: "REAL_ESTATE",
 	description: "",
 	imageUrl: "",
-	issuer: "",
+	issuerName: "",
 	isinCode: "",
 	maturityDate: "",
 	interestRate: 0,
 	couponFrequencyMonths: 12,
 	nextCouponDate: "",
-	initialPrice: 0,
+	issuerPrice: 0,
+	lpBidPrice: 0,
+	lpAskPrice: 0,
 	tradingFeePercent: 0.5,
-	spreadPercent: 1.0,
 	maxPositionPercent: 0,
 	maxOrderSize: 0,
 	dailyTradeLimitXaf: 0,
@@ -105,7 +107,7 @@ export const useCreateAsset = () => {
 	const isBond = formData.category === "BONDS";
 	const steps = isBond
 		? [
-				"Select Company",
+				"Select Liquidity Partner",
 				"Asset Details",
 				"Bond Details",
 				"Pricing & Fees",
@@ -113,7 +115,7 @@ export const useCreateAsset = () => {
 				"Review & Create",
 			]
 		: [
-				"Select Company",
+				"Select Liquidity Partner",
 				"Asset Details",
 				"Pricing & Fees",
 				"Supply",
@@ -154,8 +156,8 @@ export const useCreateAsset = () => {
 		// Map logical step to validation based on whether bond step is present
 		const stepName = steps[step];
 		switch (stepName) {
-			case "Select Company":
-				if (!formData.treasuryClientId) errors.push("Select a company");
+			case "Select Liquidity Partner":
+				if (!formData.lpClientId) errors.push("Select a liquidity partner");
 				break;
 			case "Asset Details":
 				if (!formData.name.trim()) errors.push("Name is required");
@@ -164,7 +166,7 @@ export const useCreateAsset = () => {
 					errors.push("Symbol must be exactly 3 uppercase letters");
 				break;
 			case "Bond Details":
-				if (!formData.issuer.trim()) errors.push("Issuer is required");
+				if (!formData.issuerName.trim()) errors.push("Issuer is required");
 				if (!formData.maturityDate) errors.push("Maturity date is required");
 				if (formData.interestRate <= 0)
 					errors.push("Interest rate must be greater than 0");
@@ -174,12 +176,20 @@ export const useCreateAsset = () => {
 					errors.push("First coupon date is required");
 				break;
 			case "Pricing & Fees":
-				if (formData.initialPrice <= 0)
-					errors.push("Initial price must be greater than 0");
+				if (formData.issuerPrice <= 0)
+					errors.push("Issuer price must be greater than 0");
 				if (formData.tradingFeePercent < 0 || formData.tradingFeePercent > 50)
 					errors.push("Trading fee must be 0-50%");
-				if (formData.spreadPercent < 0 || formData.spreadPercent > 50)
-					errors.push("Spread must be 0-50%");
+				if (formData.lpAskPrice <= 0)
+					errors.push("LP ask price must be greater than 0");
+				if (formData.lpAskPrice < formData.issuerPrice)
+					errors.push("LP ask price must be >= issuer price");
+				if (formData.lpBidPrice < 0) errors.push("LP bid price must be >= 0");
+				if (
+					formData.lpBidPrice > 0 &&
+					formData.lpBidPrice > formData.lpAskPrice
+				)
+					errors.push("LP bid price must be <= LP ask price");
 				break;
 			case "Supply":
 				if (formData.totalSupply <= 0)
@@ -248,8 +258,8 @@ export const useCreateAsset = () => {
 	};
 
 	const handleSubmit = () => {
-		if (!formData.treasuryClientId) {
-			toast.error("Please select a company");
+		if (!formData.lpClientId) {
+			toast.error("Please select a liquidity partner");
 			return;
 		}
 
@@ -260,15 +270,16 @@ export const useCreateAsset = () => {
 			description: formData.description || undefined,
 			imageUrl: formData.imageUrl || undefined,
 			category: formData.category,
-			initialPrice: formData.initialPrice,
+			issuerPrice: formData.issuerPrice,
+			lpBidPrice: formData.lpBidPrice,
+			lpAskPrice: formData.lpAskPrice,
 			tradingFeePercent: formData.tradingFeePercent / 100,
-			spreadPercent: formData.spreadPercent / 100,
 			totalSupply: formData.totalSupply,
 			decimalPlaces: formData.decimalPlaces,
 			subscriptionStartDate: formData.subscriptionStartDate,
 			subscriptionEndDate: formData.subscriptionEndDate,
 			capitalOpenedPercent: formData.capitalOpenedPercent || undefined,
-			treasuryClientId: formData.treasuryClientId,
+			lpClientId: formData.lpClientId,
 			// Exposure limits (only if set)
 			maxPositionPercent: formData.maxPositionPercent || undefined,
 			maxOrderSize: formData.maxOrderSize || undefined,
@@ -286,7 +297,7 @@ export const useCreateAsset = () => {
 				}),
 			// Bond fields (only included when category is BONDS)
 			...(formData.category === "BONDS" && {
-				issuer: formData.issuer,
+				issuerName: formData.issuerName,
 				isinCode: formData.isinCode || undefined,
 				maturityDate: formData.maturityDate,
 				interestRate: formData.interestRate,

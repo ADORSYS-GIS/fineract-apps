@@ -52,8 +52,6 @@ public record AssetDetailResponse(
     BigDecimal availableSupply,
     /** Trading fee as a percentage (e.g. 0.005 = 0.5%). */
     BigDecimal tradingFeePercent,
-    /** Bid-ask spread as a percentage (e.g. 0.01 = 1%). */
-    BigDecimal spreadPercent,
     /** Number of decimal places for fractional units (0-8). */
     Integer decimalPlaces,
     /** Start of the subscription period. */
@@ -63,20 +61,42 @@ public record AssetDetailResponse(
     /** Percentage of capital opened for subscription. */
     @Schema(nullable = true)
     BigDecimal capitalOpenedPercent,
-    /** Fineract client ID of the treasury holding this asset's reserves. */
-    Long treasuryClientId,
-    /** Fineract savings account ID for the treasury's asset units. */
-    Long treasuryAssetAccountId,
-    /** Fineract savings account ID for the treasury's cash. */
-    Long treasuryCashAccountId,
+
+    // ── Issuer info ──
+
+    /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
+    @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)
+    String issuerName,
+    /** Issuer price (face value for bonds, wholesale price for others). Used for coupon/income calculations. */
+    @Schema(description = "Issuer price used for benefit calculations.", nullable = true)
+    BigDecimal issuerPrice,
+
+    // ── Liquidity Partner info ──
+
+    /** Fineract client ID of the liquidity partner holding this asset's inventory. */
+    Long lpClientId,
+    /** Fineract savings account ID for the LP's asset units (inventory). */
+    Long lpAssetAccountId,
+    /** Fineract savings account ID for the LP's cash. */
+    Long lpCashAccountId,
+    /** Fineract savings account ID for the LP's spread income collection. */
+    @Schema(description = "LP spread collection account ID.", nullable = true)
+    Long lpSpreadAccountId,
     /** Corresponding Fineract savings product ID. */
     Integer fineractProductId,
-    /** Display name of the treasury client in Fineract. */
-    @Schema(description = "Treasury client display name from Fineract.", nullable = true)
-    String treasuryClientName,
+    /** Display name of the liquidity partner in Fineract. */
+    @Schema(description = "Liquidity partner display name from Fineract.", nullable = true)
+    String lpClientName,
     /** Derived name of the Fineract savings product (asset name + " Token"). */
     @Schema(description = "Fineract savings product name.", nullable = true)
     String fineractProductName,
+    /** LP margin per unit: askPrice - issuerPrice. */
+    @Schema(description = "LP margin per unit in settlement currency.", nullable = true)
+    BigDecimal lpMarginPerUnit,
+    /** LP margin as percentage: (askPrice - issuerPrice) / issuerPrice * 100. */
+    @Schema(description = "LP margin as percentage of issuer price.", nullable = true)
+    BigDecimal lpMarginPercent,
+
     /** Timestamp when the asset was created. */
     Instant createdAt,
     /** Timestamp of the last update. Null if never updated. */
@@ -86,9 +106,6 @@ public record AssetDetailResponse(
     // ── Bond / fixed-income fields (null for non-bond assets) ──
 
     /** Bond issuer name. Null for non-bond assets. */
-    @Schema(description = "Bond issuer name (e.g. 'Etat du Sénégal'). Null for non-bond assets.", nullable = true)
-    String issuer,
-    /** International Securities Identification Number. Null for non-bond assets. */
     @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.", nullable = true)
     String isinCode,
     /** Bond maturity date. Null for non-bond assets. */
@@ -109,14 +126,17 @@ public record AssetDetailResponse(
     /** Whether the subscription period has ended. */
     @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
     Boolean subscriptionClosed,
+    /** Coupon amount per unit per period. Computed: issuerPrice * (rate/100) * (months/12). Null for non-bonds. */
+    @Schema(description = "Coupon amount per unit per period, based on issuer price.", nullable = true)
+    BigDecimal couponAmountPerUnit,
 
     // ── Bid/Ask prices ──
 
-    /** Best price a seller receives (currentPrice - spread). */
-    @Schema(description = "Bid price: what sellers receive (mid - spread).", nullable = true)
+    /** LP bid price: what sellers receive. */
+    @Schema(description = "LP bid price: what sellers receive.", nullable = true)
     BigDecimal bidPrice,
-    /** Price a buyer pays (currentPrice + spread). */
-    @Schema(description = "Ask price: what buyers pay (mid + spread).", nullable = true)
+    /** LP ask price: what buyers pay. */
+    @Schema(description = "LP ask price: what buyers pay.", nullable = true)
     BigDecimal askPrice,
 
     // ── Exposure limits ──
@@ -150,5 +170,12 @@ public record AssetDetailResponse(
     Integer distributionFrequencyMonths,
     /** Next scheduled income distribution date. Null for non-income assets. */
     @Schema(description = "Next scheduled income distribution date.", nullable = true)
-    LocalDate nextDistributionDate
+    LocalDate nextDistributionDate,
+
+    // ── Delisting ──
+
+    @Schema(description = "Date on which delisting / forced buyback occurs.", nullable = true)
+    LocalDate delistingDate,
+    @Schema(description = "Price at which forced buyback is executed.", nullable = true)
+    BigDecimal delistingRedemptionPrice
 ) {}

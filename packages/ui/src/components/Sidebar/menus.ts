@@ -134,6 +134,12 @@ export const menuAssetManager: MenuItem[] = [
 		icon: Package,
 	},
 	{
+		name: "scheduled-payments",
+		title: "sidebar.scheduledPayments",
+		link: "/scheduled-payments",
+		icon: CalendarCheck,
+	},
+	{
 		name: "market-settings",
 		title: "sidebar.marketSettings",
 		link: "/market-settings",
@@ -144,12 +150,6 @@ export const menuAssetManager: MenuItem[] = [
 		title: "sidebar.orderResolution",
 		link: "/order-resolution",
 		icon: ClipboardCheck,
-	},
-	{
-		name: "scheduled-payments",
-		title: "sidebar.scheduledPayments",
-		link: "/scheduled-payments",
-		icon: CalendarCheck,
 	},
 	{
 		name: "reconciliation",

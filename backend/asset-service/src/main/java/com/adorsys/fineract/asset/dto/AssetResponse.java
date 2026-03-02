@@ -37,24 +37,25 @@ public record AssetResponse(
     /** Percentage of capital opened for subscription. */
     BigDecimal capitalOpenedPercent,
 
+    // ── Issuer & LP info ──
+
+    @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)
+    String issuerName,
+    @Schema(description = "Liquidity partner (reseller) name.", nullable = true)
+    String lpName,
+    @Schema(description = "Coupon amount per unit per period (bonds only). Based on issuer price.", nullable = true)
+    BigDecimal couponAmountPerUnit,
+
     // ── Bond summary fields (null for non-bond assets) ──
 
-    /** Bond issuer name. Null for non-bond assets. */
-    @Schema(description = "Bond issuer name. Null for non-bond assets.")
-    String issuer,
-    /** ISIN code. Null for non-bond assets. */
     @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.")
     String isinCode,
-    /** Bond maturity date. Null for non-bond assets. */
     @Schema(description = "Bond maturity date. Null for non-bond assets.")
     LocalDate maturityDate,
-    /** Annual coupon rate as a percentage. Null for non-bond assets. */
     @Schema(description = "Annual coupon interest rate as percentage.")
     BigDecimal interestRate,
-    /** Days remaining until maturity. Null for non-bond assets. */
     @Schema(description = "Days remaining until maturity date. Computed at query time.")
     Long residualDays,
-    /** Whether the subscription period has ended. */
     @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
     Boolean subscriptionClosed
 ) {}

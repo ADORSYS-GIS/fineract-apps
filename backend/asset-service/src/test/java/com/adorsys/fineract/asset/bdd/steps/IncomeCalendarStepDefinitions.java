@@ -45,8 +45,8 @@ public class IncomeCalendarStepDefinitions {
 
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
-                manual_price, total_supply, circulating_supply, decimal_places, treasury_client_id,
-                treasury_asset_account_id, treasury_cash_account_id, fineract_product_id,
+                issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
+                lp_asset_account_id, lp_cash_account_id, fineract_product_id,
                 income_type, income_rate, distribution_frequency_months, next_distribution_date,
                 subscription_start_date, subscription_end_date, version, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'REAL_ESTATE', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL,

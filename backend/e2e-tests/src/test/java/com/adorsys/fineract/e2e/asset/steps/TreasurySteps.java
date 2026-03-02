@@ -17,7 +17,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Step definitions for treasury balance verification across asset-service and Fineract.
+ * Step definitions for LP balance verification across asset-service and Fineract.
  */
 public class TreasurySteps {
 
@@ -47,8 +47,8 @@ public class TreasurySteps {
     // Then steps
     // ---------------------------------------------------------------
 
-    @Then("the treasury asset account balance in Fineract should match the asset-service inventory")
-    public void treasuryBalanceShouldMatchInventory() {
+    @Then("the LP asset account balance in Fineract should match the asset-service inventory")
+    public void lpBalanceShouldMatchInventory() {
         String assetId = context.getId("lastAssetId");
 
         Response assetResp = RestAssured.given()
@@ -59,25 +59,25 @@ public class TreasurySteps {
 
         Number totalSupplyNum = assetResp.jsonPath().get("totalSupply");
         Number circulatingSupplyNum = assetResp.jsonPath().get("circulatingSupply");
-        int expectedTreasuryUnits = totalSupplyNum.intValue() - circulatingSupplyNum.intValue();
+        int expectedLpUnits = totalSupplyNum.intValue() - circulatingSupplyNum.intValue();
 
-        Number treasuryAssetAccountId = assetResp.jsonPath().get("treasuryAssetAccountId");
-        if (treasuryAssetAccountId != null) {
-            BigDecimal treasuryBalance = fineractTestClient.getAccountBalance(
-                    treasuryAssetAccountId.longValue());
-            assertThat(treasuryBalance.intValue()).isEqualTo(expectedTreasuryUnits);
+        Number lpAssetAccountId = assetResp.jsonPath().get("lpAssetAccountId");
+        if (lpAssetAccountId != null) {
+            BigDecimal lpBalance = fineractTestClient.getAccountBalance(
+                    lpAssetAccountId.longValue());
+            assertThat(lpBalance.intValue()).isEqualTo(expectedLpUnits);
         }
     }
 
-    @Then("the treasury should have received XAF for {int} units at price {int}")
-    public void treasuryShouldHaveReceivedXaf(int units, int price) {
+    @Then("the LP should have received XAF for {int} units at price {int}")
+    public void lpShouldHaveReceivedXaf(int units, int price) {
         String assetId = context.getId("lastAssetId");
 
         Response assetResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .get("/api/admin/assets/" + assetId);
 
-        Number cashAccountId = assetResp.jsonPath().get("treasuryCashAccountId");
+        Number cashAccountId = assetResp.jsonPath().get("lpCashAccountId");
         if (cashAccountId != null) {
             BigDecimal cashBalance = fineractTestClient.getAccountBalance(
                     cashAccountId.longValue());
@@ -99,10 +99,10 @@ public class TreasurySteps {
         assertThat(hasXaf).isTrue();
     }
 
-    @Then("the treasury client should have savings accounts in Fineract")
-    public void treasuryClientShouldHaveSavingsAccounts() {
+    @Then("the LP client should have savings accounts in Fineract")
+    public void lpClientShouldHaveSavingsAccounts() {
         List<Map<String, Object>> accounts = fineractTestClient.getClientSavingsAccounts(
-                FineractInitializer.getTreasuryClientId());
+                FineractInitializer.getLpClientId());
 
         assertThat(accounts).isNotEmpty();
     }

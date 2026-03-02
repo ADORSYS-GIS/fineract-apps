@@ -34,7 +34,7 @@ public class BondBenefitService {
             return null;
         }
 
-        BigDecimal faceValue = asset.getManualPrice();
+        BigDecimal faceValue = asset.getIssuerPrice();
         BigDecimal rate = asset.getInterestRate();
         Integer freqMonths = asset.getCouponFrequencyMonths();
 
@@ -80,7 +80,7 @@ public class BondBenefitService {
             return null;
         }
 
-        BigDecimal faceValue = asset.getManualPrice();
+        BigDecimal faceValue = asset.getIssuerPrice();
         BigDecimal rate = asset.getInterestRate();
         Integer freqMonths = asset.getCouponFrequencyMonths();
 

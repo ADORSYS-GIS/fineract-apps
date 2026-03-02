@@ -75,6 +75,8 @@ public class AssetServiceConfig {
     public static class Accounting {
         /** Optional. If set, spread is enabled and swept to this account. If null, spread is disabled. */
         private Long spreadCollectionAccountId;
+        /** Platform-wide XAF savings account that collects all trading fees. Required for fee collection. */
+        private Long feeCollectionAccountId;
     }
 
     @Data

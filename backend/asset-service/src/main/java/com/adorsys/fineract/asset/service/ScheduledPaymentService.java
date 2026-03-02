@@ -68,7 +68,7 @@ public class ScheduledPaymentService {
 
         if ("COUPON".equals(paymentType)) {
             estimatedRate = asset.getInterestRate();
-            BigDecimal faceValue = asset.getManualPrice();
+            BigDecimal faceValue = asset.getIssuerPrice();
             if (faceValue == null) {
                 faceValue = assetPriceRepository.findById(asset.getId())
                         .map(p -> p.getCurrentPrice())
@@ -149,7 +149,7 @@ public class ScheduledPaymentService {
             actualAmountPerUnit = schedule.getEstimatedAmountPerUnit();
         }
 
-        // Pre-flight: check treasury balance covers total payout
+        // Pre-flight: check LP cash balance covers total payout
         BigDecimal totalRequired = BigDecimal.ZERO;
         for (UserPosition h : holders) {
             totalRequired = totalRequired.add(
@@ -157,11 +157,11 @@ public class ScheduledPaymentService {
                             .setScale(0, RoundingMode.HALF_UP));
         }
 
-        BigDecimal treasuryBalance = fineractClient.getAccountBalance(asset.getTreasuryCashAccountId());
-        if (treasuryBalance.compareTo(totalRequired) < 0) {
+        BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+        if (lpCashBalance.compareTo(totalRequired) < 0) {
             throw new IllegalStateException(String.format(
-                    "Insufficient treasury balance: %s available, %s required for %d holders",
-                    treasuryBalance.toPlainString(), totalRequired.toPlainString(), holders.size()));
+                    "Insufficient LP cash balance: %s available, %s required for %d holders",
+                    lpCashBalance.toPlainString(), totalRequired.toPlainString(), holders.size()));
         }
 
         int successCount = 0;
@@ -268,12 +268,12 @@ public class ScheduledPaymentService {
                         h.getTotalUnits().multiply(amountPerUnit).setScale(0, RoundingMode.HALF_UP)))
                 .toList();
 
-        BigDecimal treasuryBalance = null;
-        if (asset != null && asset.getTreasuryCashAccountId() != null) {
+        BigDecimal lpCashBalance = null;
+        if (asset != null && asset.getLpCashAccountId() != null) {
             try {
-                treasuryBalance = fineractClient.getAccountBalance(asset.getTreasuryCashAccountId());
+                lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
             } catch (Exception e) {
-                log.debug("Could not fetch treasury balance for {}: {}", asset.getSymbol(), e.getMessage());
+                log.debug("Could not fetch LP cash balance for {}: {}", asset.getSymbol(), e.getMessage());
             }
         }
 
@@ -300,7 +300,7 @@ public class ScheduledPaymentService {
                 schedule.getTotalAmountPaid(),
                 schedule.getExecutedAt(),
                 schedule.getCreatedAt(),
-                treasuryBalance,
+                lpCashBalance,
                 breakdowns
         );
     }
@@ -392,7 +392,7 @@ public class ScheduledPaymentService {
                 .assetId(bond.getId())
                 .userId(holder.getUserId())
                 .units(holder.getTotalUnits())
-                .faceValue(bond.getManualPrice())
+                .faceValue(bond.getIssuerPrice())
                 .annualRate(bond.getInterestRate())
                 .periodMonths(bond.getCouponFrequencyMonths())
                 .cashAmount(cashAmount)
@@ -408,7 +408,7 @@ public class ScheduledPaymentService {
             String description = String.format("Coupon payment: %s %s%% (%dm)",
                     bond.getSymbol(), bond.getInterestRate(), bond.getCouponFrequencyMonths());
             Long transferId = fineractClient.createAccountTransfer(
-                    bond.getTreasuryCashAccountId(), userCashAccountId, cashAmount, description);
+                    bond.getLpCashAccountId(), userCashAccountId, cashAmount, description);
 
             record.fineractTransferId(transferId).status("SUCCESS");
             assetMetrics.recordCouponPaid(cashAmount.doubleValue());
@@ -453,7 +453,7 @@ public class ScheduledPaymentService {
 
             String description = String.format("%s payment: %s", incomeType, asset.getSymbol());
             Long transferId = fineractClient.createAccountTransfer(
-                    asset.getTreasuryCashAccountId(), userCashAccountId, cashAmount, description);
+                    asset.getLpCashAccountId(), userCashAccountId, cashAmount, description);
 
             record.fineractTransferId(transferId).status("SUCCESS");
             assetMetrics.recordIncomeDistributed(asset.getId(), incomeType, cashAmount.doubleValue());
@@ -478,12 +478,12 @@ public class ScheduledPaymentService {
     // ── Mapping ─────────────────────────────────────────────────────────────
 
     private ScheduledPaymentResponse toResponse(ScheduledPayment sp, Asset asset) {
-        BigDecimal treasuryBalance = null;
-        if (asset != null && asset.getTreasuryCashAccountId() != null) {
+        BigDecimal lpCashBalance = null;
+        if (asset != null && asset.getLpCashAccountId() != null) {
             try {
-                treasuryBalance = fineractClient.getAccountBalance(asset.getTreasuryCashAccountId());
+                lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
             } catch (Exception e) {
-                log.debug("Could not fetch treasury balance for {}: {}", asset.getSymbol(), e.getMessage());
+                log.debug("Could not fetch LP cash balance for {}: {}", asset.getSymbol(), e.getMessage());
             }
         }
         return new ScheduledPaymentResponse(
@@ -509,7 +509,7 @@ public class ScheduledPaymentService {
                 sp.getTotalAmountPaid(),
                 sp.getExecutedAt(),
                 sp.getCreatedAt(),
-                treasuryBalance
+                lpCashBalance
         );
     }
 

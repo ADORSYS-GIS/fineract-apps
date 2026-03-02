@@ -195,7 +195,7 @@ export const ScheduledPaymentsView: FC<
 												Estimated Total
 											</th>
 											<th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-												Treasury
+												LP Balance
 											</th>
 											<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 												Status
@@ -235,15 +235,15 @@ export const ScheduledPaymentsView: FC<
 													{fmtAmount(s.estimatedTotal)}
 												</td>
 												<td className="px-4 py-3 whitespace-nowrap text-sm text-right">
-													{s.treasuryBalance != null ? (
+													{s.lpCashBalance != null ? (
 														<span
 															className={
-																s.treasuryBalance >= (s.estimatedTotal ?? 0)
+																s.lpCashBalance >= (s.estimatedTotal ?? 0)
 																	? "text-green-700 font-medium"
 																	: "text-red-600 font-medium"
 															}
 														>
-															{fmtAmount(s.treasuryBalance)}
+															{fmtAmount(s.lpCashBalance)}
 														</span>
 													) : (
 														"\u2014"
@@ -362,16 +362,16 @@ export const ScheduledPaymentsView: FC<
 										label="Estimated Total"
 										value={fmtAmount(detail.estimatedTotal)}
 									/>
-									{detail.treasuryBalance != null && (
-										<DetailRow label="Treasury Balance">
+									{detail.lpCashBalance != null && (
+										<DetailRow label="LP Cash Balance">
 											<span
 												className={`text-sm font-medium ${
-													detail.treasuryBalance >= (detail.estimatedTotal ?? 0)
+													detail.lpCashBalance >= (detail.estimatedTotal ?? 0)
 														? "text-green-700"
 														: "text-red-600"
 												}`}
 											>
-												{fmtAmount(detail.treasuryBalance)}
+												{fmtAmount(detail.lpCashBalance)}
 											</span>
 										</DetailRow>
 									)}
@@ -539,15 +539,15 @@ export const ScheduledPaymentsView: FC<
 							</p>
 						</div>
 
-						{confirmModal.schedule.treasuryBalance != null &&
-							confirmModal.schedule.treasuryBalance <
+						{confirmModal.schedule.lpCashBalance != null &&
+							confirmModal.schedule.lpCashBalance <
 								(confirmModal.schedule.estimatedTotal ?? 0) && (
 								<div className="mb-4 bg-red-50 border border-red-200 p-3 rounded text-sm text-red-800">
-									Treasury balance (
-									{fmtAmount(confirmModal.schedule.treasuryBalance)}) is below
-									the estimated total (
+									LP cash balance (
+									{fmtAmount(confirmModal.schedule.lpCashBalance)}) is below the
+									estimated total (
 									{fmtAmount(confirmModal.schedule.estimatedTotal)}).
-									Confirmation will fail unless the treasury is funded.
+									Confirmation will fail unless the LP account is funded.
 								</div>
 							)}
 

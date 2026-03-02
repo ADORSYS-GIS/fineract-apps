@@ -131,6 +131,8 @@ public class PricingService {
 
     /**
      * Manually set an asset's price (admin).
+     * If bid/ask prices are provided in the request, they are set directly
+     * (LP model: bid/ask are set by the liquidity partner, not calculated from spread).
      */
     @Transactional
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
@@ -166,7 +168,14 @@ public class PricingService {
             price.setDayLow(request.price());
         }
 
-        recalculateBidAsk(price, asset);
+        // LP model: set bid/ask directly if provided, otherwise leave them unchanged
+        if (request.bidPrice() != null) {
+            price.setBidPrice(request.bidPrice());
+        }
+        if (request.askPrice() != null) {
+            price.setAskPrice(request.askPrice());
+        }
+
         assetPriceRepository.save(price);
 
         // Record price change in history for charts
@@ -192,6 +201,8 @@ public class PricingService {
 
     /**
      * Update OHLC after a trade execution.
+     * Note: In the LP model, bid/ask prices are set directly by the LP and are NOT
+     * recalculated from trade prices. Only OHLC values are updated here.
      */
     @Transactional
     public void updateOhlcAfterTrade(String assetId, BigDecimal tradePrice) {
@@ -217,8 +228,7 @@ public class PricingService {
             price.setChange24hPercent(change);
         }
 
-        // Recalculate bid/ask from the asset's spread
-        assetRepository.findById(assetId).ifPresent(asset -> recalculateBidAsk(price, asset));
+        // LP model: bid/ask are NOT recalculated from trades — they are set by the LP directly
 
         assetPriceRepository.save(price);
 
@@ -257,6 +267,8 @@ public class PricingService {
 
     /**
      * Reset OHLC for a new trading day (called by scheduler at market open).
+     * Note: In the LP model, bid/ask prices are NOT recalculated at market open.
+     * They are managed directly by the liquidity partner.
      */
     @Transactional
     public void resetDailyOhlc() {
@@ -267,29 +279,26 @@ public class PricingService {
             price.setDayHigh(price.getCurrentPrice());
             price.setDayLow(price.getCurrentPrice());
             price.setDayClose(null);
-            // Recalculate bid/ask at market open
-            assetRepository.findById(price.getAssetId()).ifPresent(asset -> recalculateBidAsk(price, asset));
+            // LP model: bid/ask are NOT recalculated — they are managed by the LP
             assetPriceRepository.save(price);
         }
         log.info("Reset daily OHLC for {} assets", prices.size());
     }
 
     /**
-     * Recalculate bid and ask prices from the asset's current price and spread.
-     * bidPrice = currentPrice - (currentPrice * spreadPercent)
-     * askPrice = currentPrice + (currentPrice * spreadPercent)
+     * @deprecated In the LP model, bid/ask prices are set directly by the liquidity partner
+     * via SetPriceRequest or UpdateAssetRequest. This method is no longer called but retained
+     * for backward compatibility during migration.
      */
+    @Deprecated
+    @SuppressWarnings("unused")
     private void recalculateBidAsk(AssetPrice price, Asset asset) {
-        BigDecimal spread = asset.getSpreadPercent();
-        if (spread == null || spread.compareTo(BigDecimal.ZERO) == 0) {
-            price.setBidPrice(price.getCurrentPrice());
-            price.setAskPrice(price.getCurrentPrice());
-            assetMetrics.recordSpread(asset.getId(), BigDecimal.ZERO);
-        } else {
-            BigDecimal spreadAmount = price.getCurrentPrice().multiply(spread);
-            price.setBidPrice(price.getCurrentPrice().subtract(spreadAmount).setScale(0, RoundingMode.HALF_UP));
-            price.setAskPrice(price.getCurrentPrice().add(spreadAmount).setScale(0, RoundingMode.HALF_UP));
+        // LP model: bid/ask are set directly, not calculated from spread.
+        // This method is a no-op. Bid/ask are managed by the LP.
+        if (price.getBidPrice() != null && price.getAskPrice() != null) {
             assetMetrics.recordSpread(asset.getId(), price.getAskPrice().subtract(price.getBidPrice()));
+        } else {
+            assetMetrics.recordSpread(asset.getId(), BigDecimal.ZERO);
         }
     }
 

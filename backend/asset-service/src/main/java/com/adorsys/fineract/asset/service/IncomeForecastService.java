@@ -56,16 +56,16 @@ public class IncomeForecastService {
                 .multiply(BigDecimal.valueOf(frequencyMonths))
                 .divide(BigDecimal.valueOf(12), 0, RoundingMode.HALF_UP);
 
-        BigDecimal treasuryBalance = BigDecimal.ZERO;
+        BigDecimal lpCashBalance = BigDecimal.ZERO;
         try {
-            treasuryBalance = fineractClient.getAccountBalance(asset.getTreasuryCashAccountId());
+            lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
         } catch (Exception e) {
-            log.warn("Could not fetch treasury balance for asset {}: {}", asset.getSymbol(), e.getMessage());
+            log.warn("Could not fetch LP cash balance for asset {}: {}", asset.getSymbol(), e.getMessage());
         }
 
-        BigDecimal shortfall = incomePerPeriod.subtract(treasuryBalance);
+        BigDecimal shortfall = incomePerPeriod.subtract(lpCashBalance);
         int periodsCovered = incomePerPeriod.compareTo(BigDecimal.ZERO) > 0
-                ? treasuryBalance.divide(incomePerPeriod, 0, RoundingMode.DOWN).intValue()
+                ? lpCashBalance.divide(incomePerPeriod, 0, RoundingMode.DOWN).intValue()
                 : 0;
 
         return new IncomeForecastResponse(
@@ -78,7 +78,7 @@ public class IncomeForecastService {
                 totalUnits,
                 currentPrice,
                 incomePerPeriod,
-                treasuryBalance,
+                lpCashBalance,
                 shortfall,
                 periodsCovered
         );

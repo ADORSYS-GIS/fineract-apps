@@ -53,10 +53,9 @@ class AssetCatalogServiceTest {
                 .totalSupply(new BigDecimal("1000"))
                 .circulatingSupply(new BigDecimal("100"))
                 .tradingFeePercent(new BigDecimal("0.005"))
-                .spreadPercent(new BigDecimal("0.01"))
-                .treasuryClientId(1L)
-                .treasuryAssetAccountId(200L)
-                .treasuryCashAccountId(300L)
+                .lpClientId(1L)
+                .lpAssetAccountId(200L)
+                .lpCashAccountId(300L)
                 .fineractProductId(10)
                 .createdAt(Instant.now())
                 .build();
@@ -94,11 +93,11 @@ class AssetCatalogServiceTest {
         assertEquals(AssetStatus.ACTIVE, response.status());
         assertEquals(0, new BigDecimal("500").compareTo(response.currentPrice()));
         assertEquals(0, new BigDecimal("900").compareTo(response.availableSupply())); // 1000 - 100
-        assertEquals(200L, response.treasuryAssetAccountId());
-        assertEquals(300L, response.treasuryCashAccountId());
+        assertEquals(200L, response.lpAssetAccountId());
+        assertEquals(300L, response.lpCashAccountId());
         assertEquals(10, response.fineractProductId());
         assertEquals("Test TST Token", response.fineractProductName());
-        assertNull(response.treasuryClientName());
+        assertNull(response.lpClientName());
 
         verify(assetRepository).findById(ASSET_ID);
         verify(assetPriceRepository).findById(ASSET_ID);

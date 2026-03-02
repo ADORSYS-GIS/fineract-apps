@@ -67,8 +67,9 @@ class AdminAssetControllerTest {
                 AssetCategory.STOCKS, AssetStatus.ACTIVE,
                 new BigDecimal("500"), new BigDecimal("2.5"),
                 new BigDecimal("900"), new BigDecimal("1000"),
-                null, null, null,
-                null, null, null, null, null, null
+                null, null, null, // subscriptionStartDate, subscriptionEndDate, capitalOpenedPercent
+                null, null, null, // issuerName, lpName, couponAmountPerUnit
+                null, null, null, null, null // isinCode, maturityDate, interestRate, residualDays, subscriptionClosed
         );
         when(catalogService.listAllAssets(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(asset)));
@@ -106,7 +107,8 @@ class AdminAssetControllerTest {
                 "A test asset", null,
                 AssetCategory.STOCKS,
                 new BigDecimal("500"), new BigDecimal("1000"),
-                0, new BigDecimal("0.005"), new BigDecimal("0.01"),
+                0, new BigDecimal("0.005"),
+                new BigDecimal("550"), new BigDecimal("475"),
                 LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 1L,
                 null, null, null, null, // exposure limits
@@ -120,15 +122,18 @@ class AdminAssetControllerTest {
                 PriceMode.MANUAL, new BigDecimal("500"), null,
                 null, null, null, null,
                 new BigDecimal("1000"), BigDecimal.ZERO, new BigDecimal("1000"),
-                new BigDecimal("0.005"), new BigDecimal("0.01"),
+                new BigDecimal("0.005"),
                 0, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
-                1L, 200L, 300L, 10,
+                null, new BigDecimal("500"), // issuerName, issuerPrice
+                1L, 200L, 300L, null, 10, // lpClientId, lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, fineractProductId
                 "Test Company", "Test Asset Token",
+                null, null, // lpMarginPerUnit, lpMarginPercent
                 Instant.now(), null,
-                null, null, null, null, null, null, null, null, // bond fields + residualDays + subscriptionClosed
+                null, null, null, null, null, null, null, null, // bond fields + residualDays + subscriptionClosed + couponAmountPerUnit
                 null, null, // bidPrice, askPrice
                 null, null, null, null, // exposure limits + lockupDays
-                null, null, null, null // income distribution
+                null, null, null, null, // income distribution
+                null, null // delistingDate, delistingRedemptionPrice
         );
 
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);

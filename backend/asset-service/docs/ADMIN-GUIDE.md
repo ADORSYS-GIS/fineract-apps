@@ -16,11 +16,11 @@ This account is shared across all assets. All trading fees (BUY and SELL) are tr
 
 ## 2. Create a New Asset
 
-Creating an asset is a multi-step process that provisions resources in Fineract.
+Creating an asset is a multi-step process that provisions resources in Fineract. Assets are sold by **Liquidity Partners (LPs)** — resellers who purchase assets from the original issuer off-platform and sell them to investors on the platform.
 
 ### Prerequisites
-- A **company client** must exist in Fineract (legalForm = ENTITY)
-- The company must have an **active XAF savings account** (auto-detected during provisioning)
+- A **Liquidity Partner client** must exist in Fineract (legalForm = ENTITY)
+- The LP must have an **active XAF savings account** (auto-detected during provisioning)
 
 ### API Call — Equity/Token Asset
 
@@ -34,12 +34,13 @@ Body:
   "currencyCode": "DTT",
   "description": "Tokenized commercial real estate in Douala",
   "category": "REAL_ESTATE",
-  "initialPrice": 5000,
+  "issuerPrice": 4000,
+  "lpAskPrice": 5000,
+  "lpBidPrice": 4800,
   "tradingFeePercent": 0.50,
-  "spreadPercent": 1.00,
   "totalSupply": 100000,
   "decimalPlaces": 0,
-  "treasuryClientId": 42,
+  "lpClientId": 42,
   "subscriptionStartDate": "2025-12-15",
   "subscriptionEndDate": "2026-03-15",
   "capitalOpenedPercent": 44.44
@@ -60,15 +61,16 @@ Body:
   "currencyCode": "SEN580",
   "description": "Government bond issued by Etat du Senegal",
   "category": "BONDS",
-  "initialPrice": 10000,
+  "issuerPrice": 10000,
+  "lpAskPrice": 10000,
+  "lpBidPrice": 10000,
   "tradingFeePercent": 0.25,
-  "spreadPercent": 0,
   "totalSupply": 50000,
   "decimalPlaces": 0,
-  "treasuryClientId": 42,
+  "lpClientId": 42,
   "subscriptionStartDate": "2025-12-01",
   "subscriptionEndDate": "2026-06-30",
-  "issuer": "Etat du Senegal",
+  "issuerName": "Etat du Senegal",
   "isinCode": "SN0000000001",
   "maturityDate": "2028-06-30",
   "interestRate": 5.80,
@@ -76,14 +78,24 @@ Body:
 }
 ```
 
+### Pricing Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `issuerPrice` | Yes | The wholesale/face value per unit from the original issuer. Immutable after creation. Used for coupon and income calculations. |
+| `lpAskPrice` | Yes | The price investors pay to buy (LP's selling price). Must be >= `issuerPrice`. |
+| `lpBidPrice` | Yes | The price investors receive when selling (LP's buying price). Must be <= `lpAskPrice`. |
+
+The LP's margin per unit on BUY = `lpAskPrice - issuerPrice`. For bonds, the LP typically sets ask = bid = issuerPrice (no markup on face value).
+
 Bond-specific fields:
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `issuer` | Yes (for BONDS) | Issuer name (e.g. company or government) |
+| `issuerName` | Yes (for BONDS) | Original issuer name (e.g. company or government). Optional for non-bond assets. |
 | `isinCode` | No | International Securities Identification Number |
 | `maturityDate` | Yes (for BONDS) | Bond maturity date (must be in the future) |
-| `interestRate` | Yes (for BONDS) | Annual coupon rate as percentage (e.g. 5.80) |
+| `interestRate` | Yes (for BONDS) | Annual coupon rate as percentage (e.g. 5.80). Coupon is calculated from `issuerPrice × rate × period`. |
 | `couponFrequencyMonths` | Yes (for BONDS) | Payment frequency: 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual) |
 
 General fields (all categories):
@@ -96,14 +108,16 @@ General fields (all categories):
 
 ### What Happens on Create
 
-1. Auto-detects the company's active XAF savings account for trade settlements
+1. Auto-detects the LP's active XAF savings account for trade settlements
 2. Registers `DTT` as a custom currency in Fineract (`PUT /currencies`)
-2. Creates a savings product for DTT with cash-based accounting (GL 47 → GL 65)
-3. Creates a treasury savings account for the company client
-4. Approves and activates the treasury account
-5. Deposits 100,000 DTT units into treasury
-6. Persists the asset in PENDING status
-7. Initializes price data at 5,000 XAF
+3. Creates a savings product for DTT with cash-based accounting (GL 47 → GL 65)
+4. Creates an LP asset savings account (holds the token inventory)
+5. Approves and activates the LP asset account
+6. **Creates an LP spread savings account** (XAF, for collecting LP margin on trades)
+7. Approves and activates the LP spread account
+8. Deposits 100,000 DTT units into the LP asset account
+9. Persists the asset in PENDING status
+10. Initializes price data: current price at `lpAskPrice`, bid/ask from request
 
 The asset starts in **PENDING** status and must be explicitly activated.
 
@@ -115,7 +129,7 @@ The asset starts in **PENDING** status and must be explicitly activated.
 POST /api/admin/assets/{id}/activate
 ```
 
-Transitions the asset from PENDING to ACTIVE. Trading becomes possible immediately — users buy at current price + spread, sell at current price - spread.
+Transitions the asset from PENDING to ACTIVE. Trading becomes possible immediately — investors buy at the LP's ask price, sell at the LP's bid price.
 
 ---
 
@@ -125,15 +139,28 @@ Transitions the asset from PENDING to ACTIVE. Trading becomes possible immediate
 
 ```
 POST /api/admin/assets/{id}/set-price
-Body: { "price": 5500 }
+Body: {
+  "price": 5500,
+  "bidPrice": 5300,
+  "askPrice": 5500
+}
 ```
 
-Updates the current price immediately. Useful for initial pricing or corrections.
+Updates the current price and optionally the LP's bid/ask prices. If `bidPrice`/`askPrice` are omitted, only the reference price is updated.
 
 ### Price Modes
 
 - **MANUAL**: Price only changes via admin API calls
 - **AUTO**: Price updates based on trade execution (updated on each trade)
+
+### Editable vs Immutable Pricing
+
+| Field | Editable? | Notes |
+|-------|-----------|-------|
+| `issuerPrice` | No | Face value / wholesale price, fixed at creation |
+| `lpAskPrice` | Yes | LP adjusts via set-price or update |
+| `lpBidPrice` | Yes | LP adjusts via set-price or update |
+| `tradingFeePercent` | Yes | Platform fee, adjustable |
 
 ---
 
@@ -167,7 +194,7 @@ Body:
 }
 ```
 
-Deposits additional token units into the treasury account in Fineract, increasing the total supply. This makes more units available for customers to buy.
+Deposits additional token units into the LP's asset account in Fineract, increasing the total supply. This makes more units available for investors to buy.
 
 - Only increases are allowed (minting). Burning (decreasing supply) is not supported.
 - The asset can be in any status (PENDING, ACTIVE, HALTED).
@@ -190,16 +217,16 @@ Response:
     "totalSupply": 100000,
     "circulatingSupply": 15000,
     "availableSupply": 85000,
-    "treasuryBalance": 85000
+    "lpAssetBalance": 85000
   }
 ]
 ```
 
 Key metrics:
 - **Total Supply**: Total units ever minted
-- **Circulating Supply**: Units held by customers
-- **Available Supply**: Units remaining in treasury
-- **Treasury Balance**: Fineract savings account balance for the asset currency
+- **Circulating Supply**: Units held by investors
+- **Available Supply**: Units remaining in the LP's asset account
+- **LP Asset Balance**: Fineract savings account balance for the asset currency (should match Available Supply)
 
 ---
 
@@ -214,7 +241,8 @@ Body:
   "imageUrl": "https://new-image.jpg",
   "category": "REAL_ESTATE",
   "tradingFeePercent": 0.75,
-  "spreadPercent": 1.50,
+  "lpAskPrice": 5500,
+  "lpBidPrice": 5200,
   "subscriptionStartDate": "2026-01-01",
   "subscriptionEndDate": "2026-12-31",
   "capitalOpenedPercent": 50.00,
@@ -223,13 +251,17 @@ Body:
 }
 ```
 
-All fields are optional. Only provided fields are updated. Bond-specific fields (`interestRate`, `maturityDate`) are only meaningful for BONDS category assets.
+All fields are optional. Only provided fields are updated.
+
+**Editable fields:** name, description, imageUrl, category, tradingFeePercent, lpAskPrice, lpBidPrice, subscriptionStartDate, subscriptionEndDate, capitalOpenedPercent, maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, income config.
+
+**Immutable fields (cannot be changed after creation):** symbol, currencyCode, issuerPrice, issuerName, lpClientId, totalSupply, decimalPlaces, interestRate, couponFrequencyMonths, maturityDate (bond contractual terms).
 
 ---
 
 ## 9. View Coupon Payment History
 
-For bond assets, the system automatically pays coupons to all holders on each coupon date. View the payment history:
+For bond assets, the system automatically pays coupons to all holders on each coupon date. Coupon amounts are calculated from the **issuer price** (face value), not the LP's selling price. View the payment history:
 
 ```
 GET /api/admin/assets/{id}/coupons?page=0&size=20
@@ -259,13 +291,15 @@ Response:
 }
 ```
 
-Coupon formula: `units x faceValue x (annualRate / 100) x (periodMonths / 12)`
+Coupon formula: `units × issuerPrice × (annualRate / 100) × (periodMonths / 12)`
 
-In the example above: 100 x 10,000 x (5.80 / 100) x (6 / 12) = **29,000 XAF**
+In the example above: 100 × 10,000 × (5.80 / 100) × (6 / 12) = **29,000 XAF**
+
+Note: `faceValue` here equals the asset's `issuerPrice`. The LP's markup does not affect coupon calculations.
 
 ### Coupon Obligation Forecast
 
-View the remaining coupon obligations, principal at maturity, and treasury coverage for a bond:
+View the remaining coupon obligations, principal at maturity, and LP cash coverage for a bond:
 
 ```
 GET /api/admin/assets/{id}/coupon-forecast
@@ -288,7 +322,7 @@ Response:
   "totalRemainingCouponObligation": 7250000,
   "principalAtMaturity": 50000000,
   "totalObligation": 57250000,
-  "treasuryBalance": 60000000,
+  "lpCashBalance": 60000000,
   "shortfall": 0,
   "couponsCoveredByBalance": 5
 }
@@ -296,8 +330,9 @@ Response:
 
 Key fields:
 - `couponPerPeriod` — total coupon payment to all holders per period
-- `shortfall` — how much treasury balance is short of total obligation (0 if fully covered)
-- `couponsCoveredByBalance` — number of coupon periods the current treasury balance can cover
+- `lpCashBalance` — the LP's cash account balance available for payments
+- `shortfall` — how much the LP cash balance is short of total obligation (0 if fully covered)
+- `couponsCoveredByBalance` — number of coupon periods the current LP cash balance can cover
 
 ### Manually Trigger Coupon Payment
 
@@ -335,8 +370,8 @@ Transitions ACTIVE bonds to **MATURED** status when their `maturityDate` has pas
 
 For each ACTIVE bond where `nextCouponDate <= today`:
 1. Finds all holders with positive units
-2. Calculates coupon: `units x faceValue x (rate/100) x (months/12)`
-3. Transfers the amount from the treasury XAF account to the user's XAF account
+2. Calculates coupon: `units × issuerPrice × (rate/100) × (months/12)`
+3. Transfers the amount from the LP's cash account to the user's XAF account
 4. Records each payment in `interest_payments` (SUCCESS or FAILED)
 5. Advances `nextCouponDate` by the coupon frequency
 
@@ -431,7 +466,7 @@ A user who buys on Jan 1 cannot sell until Jan 31.
 
 ## 13. Income Distribution (Non-Bond Assets)
 
-Non-bond assets (REAL_ESTATE, AGRICULTURE, STOCKS, etc.) can pay periodic income to holders. This is the equivalent of coupons for bonds but based on **current market price** instead of face value.
+Non-bond assets (REAL_ESTATE, AGRICULTURE, STOCKS, etc.) can pay periodic income to holders. Income is calculated from the **issuer price** (the wholesale/face value), not the LP's selling price.
 
 ### Fields
 
@@ -445,17 +480,17 @@ Non-bond assets (REAL_ESTATE, AGRICULTURE, STOCKS, etc.) can pay periodic income
 ### Formula
 
 ```
-cashAmount = units × currentPrice × (incomeRate / 100) × (frequencyMonths / 12)
+cashAmount = units × issuerPrice × (incomeRate / 100) × (frequencyMonths / 12)
 ```
 
-**Important**: Unlike bond coupons (which use fixed face value), income distributions use the **current market price** at distribution time. This means actual payouts **vary with price changes** (variable income).
+Income is based on the issuer price to ensure consistent, predictable payouts regardless of the LP's current bid/ask prices.
 
 ### Scheduler (daily at 00:30 WAT)
 
 For each ACTIVE non-bond asset where `nextDistributionDate <= today` and `incomeType` is set:
 1. Finds all holders with positive units
-2. Calculates income using the formula above with current price
-3. Transfers from treasury XAF account to each holder's XAF account
+2. Calculates income using the formula above with the issuer price
+3. Transfers from the LP's cash account to each holder's XAF account
 4. Records each payment in `income_distributions` (SUCCESS or FAILED)
 5. Advances `nextDistributionDate` by the frequency
 
@@ -467,9 +502,11 @@ Body: {
   "name": "Douala Tower Token",
   "symbol": "DTT",
   "category": "REAL_ESTATE",
-  "initialPrice": 5000,
+  "issuerPrice": 4000,
+  "lpAskPrice": 5000,
+  "lpBidPrice": 4800,
   "totalSupply": 100000,
-  "treasuryClientId": 42,
+  "lpClientId": 42,
   ...,
   "incomeType": "RENT",
   "incomeRate": 8.0,
@@ -478,17 +515,19 @@ Body: {
 }
 ```
 
-A holder with 100 units at price 5,000 XAF would receive:
-`100 × 5,000 × (8/100) × (1/12) = 3,333 XAF` monthly.
+A holder with 100 units would receive:
+`100 × 4,000 × (8/100) × (1/12) = 2,667 XAF` monthly.
+
+Note: The investor paid 5,000/unit (LP ask price) but income is calculated on 4,000/unit (issuer price). This gives the investor a true yield based on the underlying asset value.
 
 ### Income Types
 
-| Type | Typical Frequency | Variability |
+| Type | Typical Frequency | Description |
 |------|-------------------|-------------|
-| `DIVIDEND` | Annual or Semi-Annual | Variable (based on market price) |
-| `RENT` | Monthly | Typically fixed (price tends to be stable) |
-| `HARVEST_YIELD` | Semi-Annual | Variable |
-| `PROFIT_SHARE` | Annual | Variable |
+| `DIVIDEND` | Annual or Semi-Annual | Company profit distributions |
+| `RENT` | Monthly | Real estate rental income |
+| `HARVEST_YIELD` | Semi-Annual | Agricultural harvest proceeds |
+| `PROFIT_SHARE` | Annual | Partnership profit sharing |
 
 ---
 
@@ -527,8 +566,8 @@ Returns the asset to **ACTIVE** status. Only possible before the delisting date.
 
 The scheduler runs daily. When `delistingDate <= today`:
 1. For each holder with positive units, executes a forced SELL at the redemption price
-2. Cash is transferred from treasury to each holder
-3. Asset units are returned to treasury
+2. Cash is transferred from the LP's cash account to each holder
+3. Asset units are returned to the LP's asset account
 4. All positions are closed
 5. Asset status transitions to **DELISTED**
 
@@ -618,9 +657,9 @@ POST /api/admin/reconciliation/trigger
 ```
 
 Scans all active/delisting/matured assets. Performs three checks per asset:
-1. **Supply mismatch** — `circulatingSupply` vs `totalSupply - treasuryAssetBalance`
+1. **Supply mismatch** — `circulatingSupply` vs `totalSupply - lpAssetBalance`
 2. **Position mismatch** — Each user's `UserPosition.totalUnits` vs Fineract savings account balance
-3. **Treasury cash negative** — Verifies treasury cash account balance is non-negative
+3. **LP cash negative** — Verifies the LP's cash account balance is non-negative
 
 Returns `{ "discrepancies": 3 }`.
 
@@ -642,16 +681,16 @@ GET /api/admin/reconciliation/reports?status=OPEN&severity=CRITICAL&page=0&size=
 
 | Type | Description |
 |------|-------------|
-| `SUPPLY_MISMATCH` | Circulating supply differs from Fineract treasury balance |
+| `SUPPLY_MISMATCH` | Circulating supply differs from Fineract LP asset balance |
 | `POSITION_MISMATCH` | User position differs from Fineract savings account balance |
-| `TREASURY_CASH_NEGATIVE` | Treasury cash account has negative balance |
+| `LP_CASH_NEGATIVE` | LP cash account has negative balance |
 
 ### Report Severity Levels
 
 | Severity | Meaning |
 |----------|---------|
 | `WARNING` | Supply mismatch (drift detected, not immediately dangerous) |
-| `CRITICAL` | Position mismatch or negative treasury cash (immediate investigation required) |
+| `CRITICAL` | Position mismatch or negative LP cash (immediate investigation required) |
 
 **Note:** CRITICAL discrepancies automatically generate admin broadcast notifications visible at `GET /api/admin/notifications`.
 
@@ -683,34 +722,34 @@ When a discrepancy is detected (either by the daily scheduler or ad-hoc trigger)
 1. **Receive alert** — CRITICAL discrepancies send an admin broadcast notification (`RECONCILIATION_CRITICAL`). Check `GET /api/admin/notifications` or the dashboard badge.
 2. **Review the report** — `GET /api/admin/reconciliation/reports?status=OPEN`. Note the `reportType`, `assetId`, `expectedValue`, `actualValue`, `discrepancy`, and `userId` (for position mismatches).
 3. **Acknowledge** — Signal that you are investigating: `PATCH /api/admin/reconciliation/reports/{id}/acknowledge?admin=<your-username>`
-4. **Follow the type-specific procedure** below (SUPPLY_MISMATCH, POSITION_MISMATCH, or TREASURY_CASH_NEGATIVE).
+4. **Follow the type-specific procedure** below (SUPPLY_MISMATCH, POSITION_MISMATCH, or LP_CASH_NEGATIVE).
 5. **Re-trigger reconciliation** — After correcting the issue: `POST /api/admin/reconciliation/trigger/{assetId}` — confirm 0 discrepancies.
 6. **Resolve the report** — `PATCH /api/admin/reconciliation/reports/{id}/resolve?admin=<your-username>&notes=<what-was-found-and-fixed>`
 
 ### Correcting a SUPPLY_MISMATCH
 
-**What it means:** The `circulatingSupply` recorded in the asset-service database differs from `totalSupply - treasuryAssetBalance` computed from Fineract. Severity: WARNING.
+**What it means:** The `circulatingSupply` recorded in the asset-service database differs from `totalSupply - lpAssetBalance` computed from Fineract. Severity: WARNING.
 
-**Step 1 — Check the treasury asset account in Fineract:**
+**Step 1 — Check the LP's asset account in Fineract:**
 
-```
--- Get the asset's treasury account ID
-SELECT id, symbol, total_supply, circulating_supply, treasury_asset_account_id
+```sql
+-- Get the asset's LP account ID
+SELECT id, symbol, total_supply, circulating_supply, lp_asset_account_id
 FROM assets WHERE id = '<assetId>';
 ```
 
-Then query Fineract for the treasury's remaining units:
+Then query Fineract for the LP's remaining units:
 
 ```
-GET /fineract-provider/api/v1/savingsaccounts/{treasuryAssetAccountId}
+GET /fineract-provider/api/v1/savingsaccounts/{lpAssetAccountId}
 ```
 
-Note `summary.availableBalance` — this is the number of units the treasury still holds.
+Note `summary.availableBalance` — this is the number of units the LP still holds.
 
 **Step 2 — Compute what circulating supply should be:**
 
 ```
-expectedCirculating = totalSupply - treasuryAvailableBalance
+expectedCirculating = totalSupply - lpAvailableBalance
 ```
 
 Compare with the `circulating_supply` value in the `assets` table.
@@ -727,12 +766,12 @@ Compare with the `circulating_supply` value in the `assets` table.
 
   ```sql
   UPDATE assets
-  SET circulating_supply = <totalSupply> - <treasuryBalance>,
+  SET circulating_supply = <totalSupply> - <lpBalance>,
       version = version + 1
   WHERE id = '<assetId>';
   ```
 
-- **If Fineract drifted** (rare — e.g., a manual Fineract adjustment was incorrect): make a manual deposit or withdrawal on the treasury asset savings account via the Fineract API to correct the balance.
+- **If Fineract drifted** (rare — e.g., a manual Fineract adjustment was incorrect): make a manual deposit or withdrawal on the LP asset savings account via the Fineract API to correct the balance.
 
 **Step 5 — Verify:** re-trigger reconciliation and confirm 0 discrepancies.
 
@@ -797,7 +836,7 @@ Look for orders that are FILLED in asset-service but whose Fineract transfers ma
   ```
   POST /fineract-provider/api/v1/savingsaccounts/{id}/transactions?command=deposit
   Body: {
-    "transactionDate": "21 February 2026",
+    "transactionDate": "02 March 2026",
     "transactionAmount": <correctionAmount>,
     "paymentTypeId": 1,
     "locale": "en",
@@ -810,45 +849,45 @@ Look for orders that are FILLED in asset-service but whose Fineract transfers ma
 
 **Step 5 — Verify:** re-trigger reconciliation and confirm 0 discrepancies.
 
-### Correcting TREASURY_CASH_NEGATIVE
+### Correcting LP_CASH_NEGATIVE
 
-**What it means:** The treasury's settlement-currency (XAF) cash account for an asset has gone negative, meaning the treasury has more cash obligations than available funds. Severity: CRITICAL.
+**What it means:** The LP's settlement-currency (XAF) cash account for an asset has gone negative, meaning the LP has more cash obligations than available funds. Severity: CRITICAL.
 
-**Step 1 — Check the treasury cash account:**
+**Step 1 — Check the LP cash account:**
 
 ```sql
-SELECT id, symbol, treasury_cash_account_id
+SELECT id, symbol, lp_cash_account_id
 FROM assets WHERE id = '<assetId>';
 ```
 
 ```
-GET /fineract-provider/api/v1/savingsaccounts/{treasuryCashAccountId}
+GET /fineract-provider/api/v1/savingsaccounts/{lpCashAccountId}
 → summary.availableBalance (should be negative)
 ```
 
 Review recent transactions to understand how it went negative:
 
 ```
-GET /fineract-provider/api/v1/savingsaccounts/{treasuryCashAccountId}?associations=transactions
+GET /fineract-provider/api/v1/savingsaccounts/{lpCashAccountId}?associations=transactions
 ```
 
 **Step 2 — Identify root cause.** Common causes:
 
-- A SELL order paid out to a user but the corresponding deposit into treasury cash failed
-- Coupon payments or income distributions exceeded available treasury cash
-- Multiple concurrent trades caused a race condition on the treasury balance
+- A SELL order paid out to a user but the corresponding deposit into LP cash failed
+- Coupon payments or income distributions exceeded available LP cash
+- Multiple concurrent trades caused a race condition on the LP cash balance
 
-**Step 3 — Correct by depositing the deficit into the treasury cash account:**
+**Step 3 — Correct by depositing the deficit into the LP cash account:**
 
 ```
-POST /fineract-provider/api/v1/savingsaccounts/{treasuryCashAccountId}/transactions?command=deposit
+POST /fineract-provider/api/v1/savingsaccounts/{lpCashAccountId}/transactions?command=deposit
 Body: {
-  "transactionDate": "21 February 2026",
+  "transactionDate": "02 March 2026",
   "transactionAmount": <deficitAmount>,
   "paymentTypeId": 1,
   "locale": "en",
   "dateFormat": "dd MMMM yyyy",
-  "note": "Treasury top-up — reconciliation correction report #<id>"
+  "note": "LP cash top-up — reconciliation correction report #<id>"
 }
 ```
 
@@ -898,7 +937,7 @@ The system generates notifications for significant events. Both users and admins
 | `REDEMPTION_COMPLETED` | Bond principal redeemed |
 | `ORDER_STUCK` | User's order stuck in EXECUTING > 30 min |
 | `ASSET_STATUS_CHANGED` | Asset transitions status (ACTIVE → HALTED, etc.) |
-| `TREASURY_SHORTFALL` | Coupon forecast shows treasury can't cover obligations |
+| `LP_SHORTFALL` | Coupon/income forecast shows LP can't cover obligations |
 | `DELISTING_ANNOUNCED` | Asset enters DELISTING status |
 
 ### Admin Broadcast Event Types
@@ -908,7 +947,7 @@ Admin broadcasts are notifications with `userId = NULL`, visible to all admins v
 | Event | Triggered When |
 |-------|---------------|
 | `ORDER_STUCK` | Order stuck in EXECUTING > 30 min (admin broadcast in addition to user notification) |
-| `RECONCILIATION_CRITICAL` | Critical discrepancy detected during reconciliation (position mismatch, negative treasury cash) |
+| `RECONCILIATION_CRITICAL` | Critical discrepancy detected during reconciliation (position mismatch, negative LP cash) |
 
 ### User Notification Endpoints
 
@@ -941,7 +980,7 @@ Body: {
   "redemptionCompleted": true,
   "assetStatusChanged": false,
   "orderStuck": true,
-  "treasuryShortfall": true,
+  "lpShortfall": true,
   "delistingAnnounced": true
 }
 ```
@@ -977,7 +1016,7 @@ Exactly one of `units` or `amount` must be provided.
 ### Amount → Units Conversion
 
 ```
-effectivePricePerUnit = executionPrice × (1 + feePercent)
+effectivePricePerUnit = askPrice × (1 + feePercent)
 units = floor(amount / effectivePricePerUnit, decimalPlaces)
 remainder = amount - netAmount
 ```
@@ -995,12 +1034,12 @@ For non-bond assets with an income type set, BUY previews include an `incomeBene
     "incomeRate": 8.0,
     "distributionFrequencyMonths": 1,
     "nextDistributionDate": "2026-04-01",
-    "incomePerPeriod": 3333,
-    "estimatedAnnualIncome": 39996,
+    "incomePerPeriod": 2667,
+    "estimatedAnnualIncome": 32004,
     "estimatedYieldPercent": 7.82,
-    "variableIncome": true
+    "variableIncome": false
   }
 }
 ```
 
-`variableIncome` is always `true` for non-bond income — payouts depend on current market price.
+Note: Income is calculated from the `issuerPrice`, not the LP's ask price. The `estimatedYieldPercent` reflects the true yield based on the issuer price.

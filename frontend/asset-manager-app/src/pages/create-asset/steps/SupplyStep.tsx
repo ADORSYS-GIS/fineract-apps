@@ -55,8 +55,9 @@ export const SupplyStep: FC<Props> = ({
 							</p>
 						) : (
 							<p className="text-xs text-gray-400 mt-1">
-								Total units created and deposited into the treasury. This is the
-								maximum that can be sold to investors (you can mint more later)
+								Total units created and deposited into the LP account. This is
+								the maximum that can be sold to investors (you can mint more
+								later)
 							</p>
 						)}
 					</div>
@@ -327,7 +328,7 @@ export const SupplyStep: FC<Props> = ({
 			)}
 
 			{/* Summary */}
-			{formData.totalSupply > 0 && formData.initialPrice > 0 && (
+			{formData.totalSupply > 0 && formData.issuerPrice > 0 && (
 				<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
 					<h3 className="text-sm font-semibold text-blue-800 mb-2">
 						Supply Summary
@@ -339,11 +340,11 @@ export const SupplyStep: FC<Props> = ({
 						</div>
 						<div className="text-gray-600">Price per Unit:</div>
 						<div className="font-medium">
-							{formData.initialPrice.toLocaleString()} XAF
+							{formData.issuerPrice.toLocaleString()} XAF
 						</div>
 						<div className="text-gray-600">Total Market Cap:</div>
 						<div className="font-medium">
-							{(formData.totalSupply * formData.initialPrice).toLocaleString()}{" "}
+							{(formData.totalSupply * formData.issuerPrice).toLocaleString()}{" "}
 							XAF
 						</div>
 					</div>

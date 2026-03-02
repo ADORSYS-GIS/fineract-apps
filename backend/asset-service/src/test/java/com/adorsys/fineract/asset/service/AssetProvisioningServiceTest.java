@@ -71,19 +71,19 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         // Look up client display name
-        when(fineractClient.getClientDisplayName(TREASURY_CLIENT_ID)).thenReturn("Test Company");
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test Company");
 
         // Fineract: find XAF savings product and provision cash account
         when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
         when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
-        when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(50), isNull(), isNull()))
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
 
         // Fineract: register currency, create product, provision account
 
         when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), eq(47L), eq(65L), eq(48L), eq(87L), eq(91L)))
                 .thenReturn(10);
-        when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
                 .thenReturn(400L);
 
         // Return value for getAssetDetailAdmin
@@ -101,9 +101,9 @@ class AssetProvisioningServiceTest {
         assertEquals(AssetStatus.PENDING, saved.getStatus());
         assertEquals(new BigDecimal("1000"), saved.getTotalSupply());
         assertEquals(BigDecimal.ZERO, saved.getCirculatingSupply());
-        assertEquals(300L, saved.getTreasuryCashAccountId());
-        assertEquals(400L, saved.getTreasuryAssetAccountId());
-        assertEquals("Test Company", saved.getTreasuryClientName());
+        assertEquals(300L, saved.getLpCashAccountId());
+        assertEquals(400L, saved.getLpAssetAccountId());
+        assertEquals("Test Company", saved.getLpClientName());
 
         // Verify price saved
         verify(assetPriceRepository).save(priceCaptor.capture());
@@ -153,7 +153,7 @@ class AssetProvisioningServiceTest {
 
         when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
         when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
-        when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(50), isNull(), isNull()))
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
 
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
@@ -176,12 +176,12 @@ class AssetProvisioningServiceTest {
 
         when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
         when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
-        when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(50), isNull(), isNull()))
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
 
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
-        when(fineractClient.provisionSavingsAccount(eq(TREASURY_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
                 .thenThrow(new RuntimeException("Batch API timeout"));
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -202,7 +202,7 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
 
         UpdateAssetRequest request = new UpdateAssetRequest(
-                "New Name", null, null, null, null, null, null, null, null,
+                "New Name", null, null, null, null, null, null, null, null, null,
                 null, null, null, null, // exposure limits
                 null, null, null, null, // income distribution
                 null, null, null); // bond fields
@@ -222,7 +222,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -286,7 +286,7 @@ class AssetProvisioningServiceTest {
         MintSupplyRequest request = new MintSupplyRequest(new BigDecimal("500"));
         service.mintSupply(ASSET_ID, request);
 
-        verify(fineractClient).depositToSavingsAccount(TREASURY_ASSET_ACCOUNT, new BigDecimal("500"), 22L);
+        verify(fineractClient).depositToSavingsAccount(LP_ASSET_ACCOUNT, new BigDecimal("500"), 22L);
         verify(assetRepository).save(assetCaptor.capture());
         assertEquals(new BigDecimal("1500"), assetCaptor.getValue().getTotalSupply());
     }
@@ -324,8 +324,9 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, null, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
-                TREASURY_CLIENT_ID,
+                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
@@ -341,8 +342,9 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, null, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
-                TREASURY_CLIENT_ID,
+                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
                 LocalDate.now().plusMonths(5),
@@ -358,8 +360,9 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Token", "TKN", "TKN", null, null, AssetCategory.STOCKS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, null, LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
-                TREASURY_CLIENT_ID,
+                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
+                LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, null, null, null, null, // bond fields
                 null, null, null, null // income fields
@@ -375,7 +378,7 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
 
         UpdateAssetRequest request = new UpdateAssetRequest(
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
                 null, null, null, null, // exposure limits
                 null, null, null, null, // income distribution
@@ -393,15 +396,15 @@ class AssetProvisioningServiceTest {
     void deletePendingAsset_happyPath_deletesAllData() {
         Asset pending = pendingAsset();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
-        when(fineractClient.getAccountBalance(TREASURY_ASSET_ACCOUNT)).thenReturn(new BigDecimal("1000"));
+        when(fineractClient.getAccountBalance(LP_ASSET_ACCOUNT)).thenReturn(new BigDecimal("1000"));
 
         service.deletePendingAsset(ASSET_ID);
 
         // Verify Fineract cleanup
         verify(fineractClient).withdrawFromSavingsAccount(
-                eq(TREASURY_ASSET_ACCOUNT), eq(new BigDecimal("1000")), anyString());
-        verify(fineractClient).closeSavingsAccount(eq(TREASURY_ASSET_ACCOUNT), anyString());
-        verify(fineractClient).closeSavingsAccount(eq(TREASURY_CASH_ACCOUNT), anyString());
+                eq(LP_ASSET_ACCOUNT), eq(new BigDecimal("1000")), anyString());
+        verify(fineractClient).closeSavingsAccount(eq(LP_ASSET_ACCOUNT), anyString());
+        verify(fineractClient).closeSavingsAccount(eq(LP_CASH_ACCOUNT), anyString());
         verify(fineractClient).deleteSavingsProduct(pending.getFineractProductId());
         verify(fineractClient).deregisterCurrency("TST");
 
@@ -436,7 +439,7 @@ class AssetProvisioningServiceTest {
     void deletePendingAsset_fineractCleanupFails_stillDeletesLocal() {
         Asset pending = pendingAsset();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
-        when(fineractClient.getAccountBalance(TREASURY_ASSET_ACCOUNT))
+        when(fineractClient.getAccountBalance(LP_ASSET_ACCOUNT))
                 .thenThrow(new RuntimeException("Connection timeout"));
 
         service.deletePendingAsset(ASSET_ID);
@@ -457,8 +460,9 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, null, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
-                TREASURY_CLIENT_ID,
+                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),

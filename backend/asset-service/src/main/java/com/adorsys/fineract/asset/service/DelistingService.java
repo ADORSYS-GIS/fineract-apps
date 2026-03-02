@@ -141,16 +141,16 @@ public class DelistingService {
                     continue;
                 }
 
-                // Return asset units to treasury
+                // Return asset units to LP
                 fineractClient.createAccountTransfer(
                         holder.getFineractSavingsAccountId(),
-                        asset.getTreasuryAssetAccountId(),
+                        asset.getLpAssetAccountId(),
                         holder.getTotalUnits(),
                         "Delisting buyback: " + asset.getSymbol());
 
                 // Pay cash to holder
                 fineractClient.createAccountTransfer(
-                        asset.getTreasuryCashAccountId(), userCashAccountId,
+                        asset.getLpCashAccountId(), userCashAccountId,
                         cashAmount,
                         "Delisting redemption: " + asset.getSymbol());
 

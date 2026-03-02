@@ -16,6 +16,15 @@ export const PricingStep: FC<Props> = ({
 		validationErrors.find((e) => e.toLowerCase().includes(keyword));
 	const inputClass = (keyword: string) =>
 		`w-full border rounded-lg px-3 py-2 focus:ring-2 ${fieldError(keyword) ? "border-red-400 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`;
+
+	// Computed LP margin
+	const lpMargin =
+		formData.lpAskPrice > 0 && formData.issuerPrice > 0
+			? formData.lpAskPrice - formData.issuerPrice
+			: 0;
+	const lpMarginPercent =
+		formData.issuerPrice > 0 ? (lpMargin / formData.issuerPrice) * 100 : 0;
+
 	return (
 		<div className="space-y-6">
 			<div>
@@ -23,32 +32,34 @@ export const PricingStep: FC<Props> = ({
 					Pricing & Fees
 				</h2>
 				<p className="text-sm text-gray-500">
-					Set the initial price and fee structure for this asset.
+					Set the issuer price, LP bid/ask prices, and fee structure for this
+					asset.
 				</p>
 			</div>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Initial Price (XAF) *
+						Issuer Price (XAF) *
 					</label>
 					<input
 						type="number"
-						aria-label="Initial price"
-						className={inputClass("price")}
+						aria-label="Issuer price"
+						className={inputClass("issuer price")}
 						placeholder="e.g. 5000"
-						value={formData.initialPrice || ""}
+						value={formData.issuerPrice || ""}
 						onChange={(e) =>
-							updateFormData({ initialPrice: Number(e.target.value) })
+							updateFormData({ issuerPrice: Number(e.target.value) })
 						}
 						min={0}
 					/>
-					{fieldError("price") ? (
-						<p className="text-xs text-red-600 mt-1">{fieldError("price")}</p>
+					{fieldError("issuer price") ? (
+						<p className="text-xs text-red-600 mt-1">
+							{fieldError("issuer price")}
+						</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Starting price per unit in XAF. For bonds, this is also the face
-							value used in coupon calculations
+							The face value (bonds) or wholesale price from the original issuer
 						</p>
 					)}
 				</div>
@@ -84,31 +95,62 @@ export const PricingStep: FC<Props> = ({
 
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Spread (%)
+						LP Ask Price (XAF) *
 					</label>
 					<input
 						type="number"
-						aria-label="Spread"
-						className={inputClass("spread")}
-						placeholder="1.00"
-						value={formData.spreadPercent}
+						aria-label="LP ask price"
+						className={inputClass("lp ask")}
+						placeholder="e.g. 5100"
+						value={formData.lpAskPrice || ""}
 						onChange={(e) =>
-							updateFormData({ spreadPercent: Number(e.target.value) })
+							updateFormData({ lpAskPrice: Number(e.target.value) })
 						}
 						min={0}
-						max={20}
-						step={0.01}
 					/>
-					{fieldError("spread") ? (
-						<p className="text-xs text-red-600 mt-1">{fieldError("spread")}</p>
+					{fieldError("lp ask") ? (
+						<p className="text-xs text-red-600 mt-1">{fieldError("lp ask")}</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Difference between buy (ask) and sell (bid) price. Ask = price +
-							spread, Bid = price - spread. Default: 1.00%
+							What investors pay to buy. Must be &ge; issuer price
+						</p>
+					)}
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						LP Bid Price (XAF)
+					</label>
+					<input
+						type="number"
+						aria-label="LP bid price"
+						className={inputClass("lp bid")}
+						placeholder="e.g. 4900"
+						value={formData.lpBidPrice || ""}
+						onChange={(e) =>
+							updateFormData({ lpBidPrice: Number(e.target.value) })
+						}
+						min={0}
+					/>
+					{fieldError("lp bid") ? (
+						<p className="text-xs text-red-600 mt-1">{fieldError("lp bid")}</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							What investors receive when selling. Must be &le; LP ask price
 						</p>
 					)}
 				</div>
 			</div>
+
+			{/* LP Margin Display */}
+			{formData.lpAskPrice > 0 && formData.issuerPrice > 0 && (
+				<div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+					<p className="text-sm text-blue-800 font-medium">
+						LP Margin: {lpMargin.toLocaleString()} XAF/unit (
+						{lpMarginPercent.toFixed(2)}%)
+					</p>
+				</div>
+			)}
 
 			{/* Exposure Limits */}
 			<div className="mt-6">

@@ -27,7 +27,7 @@ import java.util.UUID;
 
 /**
  * Orchestrates Fineract provisioning when an admin creates a new asset.
- * Steps: register currency -> create savings product -> create treasury account
+ * Steps: register currency -> create savings product -> create LP account
  * -> approve -> activate -> deposit initial supply.
  */
 @Slf4j
@@ -41,6 +41,7 @@ public class AssetProvisioningService {
     private final ScheduledPaymentRepository scheduledPaymentRepository;
     private final FineractClient fineractClient;
     private final AssetCatalogService assetCatalogService;
+    private final PricingService pricingService;
     private final AssetServiceConfig assetServiceConfig;
     private final ResolvedGlAccounts resolvedGlAccounts;
 
@@ -72,24 +73,30 @@ public class AssetProvisioningService {
         String assetId = UUID.randomUUID().toString();
         log.info("Creating asset: id={}, symbol={}, currency={}", assetId, request.symbol(), request.currencyCode());
 
-        // Look up client display name (best-effort, non-blocking)
-        String clientName = fineractClient.getClientDisplayName(request.treasuryClientId());
+        // Look up LP client display name (best-effort, non-blocking)
+        String lpClientName = fineractClient.getClientDisplayName(request.lpClientId());
 
         Integer productId = null;
-        Long treasuryAssetAccountId = null;
-        Long treasuryCashAccountId = null;
+        Long lpAssetAccountId = null;
+        Long lpCashAccountId = null;
+        Long lpSpreadAccountId = null;
 
         try {
-            // Step 1: Create a dedicated settlement currency (XAF) savings account for this asset
+            // Step 1: Create a dedicated settlement currency (XAF) savings account for the LP
             String productShortName = assetServiceConfig.getSettlementCurrencyProductShortName();
             Integer xafProductId = fineractClient.findSavingsProductByShortName(productShortName);
             if (xafProductId == null) {
                 throw new AssetException("Settlement currency savings product '" + productShortName
                         + "' not found in Fineract. Please create it before provisioning assets.");
             }
-            treasuryCashAccountId = fineractClient.provisionSavingsAccount(
-                    request.treasuryClientId(), xafProductId, null, null);
-            log.info("Created dedicated {} treasury cash account: {}", assetServiceConfig.getSettlementCurrency(), treasuryCashAccountId);
+            lpCashAccountId = fineractClient.provisionSavingsAccount(
+                    request.lpClientId(), xafProductId, null, null);
+            log.info("Created dedicated {} LP cash account: {}", assetServiceConfig.getSettlementCurrency(), lpCashAccountId);
+
+            // Step 1b: Create LP spread collection account (XAF savings account under LP client)
+            lpSpreadAccountId = fineractClient.provisionSavingsAccount(
+                    request.lpClientId(), xafProductId, null, null);
+            log.info("Created LP spread collection account: {}", lpSpreadAccountId);
 
             // Step 2: Register custom currency in Fineract
             fineractClient.registerCurrencies(List.of(request.currencyCode()));
@@ -111,12 +118,12 @@ public class AssetProvisioningService {
 
             // Step 4: Atomic account lifecycle — create, approve, activate, deposit initial supply
             // Uses Fineract Batch API (enclosingTransaction=true) so if any step fails, all are rolled back
-            treasuryAssetAccountId = fineractClient.provisionSavingsAccount(
-                    request.treasuryClientId(), productId,
+            lpAssetAccountId = fineractClient.provisionSavingsAccount(
+                    request.lpClientId(), productId,
                     request.totalSupply(), resolvedGlAccounts.getAssetIssuancePaymentTypeId()
             );
-            log.info("Provisioned treasury account atomically: accountId={}, supply={}",
-                    treasuryAssetAccountId, request.totalSupply());
+            log.info("Provisioned LP asset account atomically: accountId={}, supply={}",
+                    lpAssetAccountId, request.totalSupply());
 
         } catch (AssetException e) {
             rollbackFineractResources(productId, request.currencyCode(), assetId);
@@ -128,7 +135,7 @@ public class AssetProvisioningService {
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
         }
 
-        // Step 8: Persist asset entity
+        // Step 5: Persist asset entity
         Asset asset = Asset.builder()
                 .id(assetId)
                 .fineractProductId(productId)
@@ -140,25 +147,26 @@ public class AssetProvisioningService {
                 .category(request.category())
                 .status(AssetStatus.PENDING)
                 .priceMode(PriceMode.MANUAL)
-                .manualPrice(request.initialPrice())
+                .manualPrice(request.issuerPrice())
+                .issuerPrice(request.issuerPrice())
                 .decimalPlaces(request.decimalPlaces())
                 .totalSupply(request.totalSupply())
                 .circulatingSupply(BigDecimal.ZERO)
                 .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
-                .spreadPercent(request.spreadPercent() != null ? request.spreadPercent() : new BigDecimal("0.0100"))
                 .subscriptionStartDate(request.subscriptionStartDate())
                 .subscriptionEndDate(request.subscriptionEndDate())
                 .capitalOpenedPercent(request.capitalOpenedPercent())
-                .issuer(request.issuer())
+                .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
                 .interestRate(request.interestRate())
                 .couponFrequencyMonths(request.couponFrequencyMonths())
                 .nextCouponDate(request.nextCouponDate())
-                .treasuryClientId(request.treasuryClientId())
-                .treasuryClientName(clientName)
-                .treasuryAssetAccountId(treasuryAssetAccountId)
-                .treasuryCashAccountId(treasuryCashAccountId)
+                .lpClientId(request.lpClientId())
+                .lpClientName(lpClientName)
+                .lpAssetAccountId(lpAssetAccountId)
+                .lpCashAccountId(lpCashAccountId)
+                .lpSpreadAccountId(lpSpreadAccountId)
                 .maxPositionPercent(request.maxPositionPercent())
                 .maxOrderSize(request.maxOrderSize())
                 .dailyTradeLimitXaf(request.dailyTradeLimitXaf())
@@ -171,27 +179,19 @@ public class AssetProvisioningService {
 
         assetRepository.save(asset);
 
-        // Step 8: Initialize price row with bid/ask spread
+        // Step 6: Initialize price row with LP bid/ask prices
         AssetPrice price = AssetPrice.builder()
                 .assetId(assetId)
-                .currentPrice(request.initialPrice())
-                .dayOpen(request.initialPrice())
-                .dayHigh(request.initialPrice())
-                .dayLow(request.initialPrice())
-                .dayClose(request.initialPrice())
+                .currentPrice(request.issuerPrice())
+                .dayOpen(request.issuerPrice())
+                .dayHigh(request.issuerPrice())
+                .dayLow(request.issuerPrice())
+                .dayClose(request.issuerPrice())
+                .bidPrice(request.lpBidPrice())
+                .askPrice(request.lpAskPrice())
                 .change24hPercent(BigDecimal.ZERO)
                 .updatedAt(Instant.now())
                 .build();
-
-        BigDecimal spread = asset.getSpreadPercent();
-        if (spread != null && spread.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal spreadAmount = request.initialPrice().multiply(spread);
-            price.setBidPrice(request.initialPrice().subtract(spreadAmount).setScale(0, RoundingMode.HALF_UP));
-            price.setAskPrice(request.initialPrice().add(spreadAmount).setScale(0, RoundingMode.HALF_UP));
-        } else {
-            price.setBidPrice(request.initialPrice());
-            price.setAskPrice(request.initialPrice());
-        }
 
         assetPriceRepository.save(price);
 
@@ -221,7 +221,6 @@ public class AssetProvisioningService {
         if (request.imageUrl() != null) asset.setImageUrl(request.imageUrl());
         if (request.category() != null) asset.setCategory(request.category());
         if (request.tradingFeePercent() != null) asset.setTradingFeePercent(request.tradingFeePercent());
-        if (request.spreadPercent() != null) asset.setSpreadPercent(request.spreadPercent());
         if (request.subscriptionStartDate() != null) asset.setSubscriptionStartDate(request.subscriptionStartDate());
         if (request.subscriptionEndDate() != null) asset.setSubscriptionEndDate(request.subscriptionEndDate());
         if (request.capitalOpenedPercent() != null) asset.setCapitalOpenedPercent(request.capitalOpenedPercent());
@@ -242,6 +241,17 @@ public class AssetProvisioningService {
         if (request.nextDistributionDate() != null) asset.setNextDistributionDate(request.nextDistributionDate());
 
         assetRepository.save(asset);
+
+        // Update LP bid/ask prices if provided
+        if (request.lpBidPrice() != null || request.lpAskPrice() != null) {
+            AssetPrice price = assetPriceRepository.findById(assetId).orElse(null);
+            if (price != null) {
+                if (request.lpBidPrice() != null) price.setBidPrice(request.lpBidPrice());
+                if (request.lpAskPrice() != null) price.setAskPrice(request.lpAskPrice());
+                assetPriceRepository.save(price);
+            }
+        }
+
         log.info("Updated asset: id={}", assetId);
 
         return assetCatalogService.getAssetDetailAdmin(assetId);
@@ -284,7 +294,7 @@ public class AssetProvisioningService {
     }
 
     /**
-     * Mint additional supply for an asset (deposit more tokens into treasury).
+     * Mint additional supply for an asset (deposit more tokens into LP inventory).
      */
     @Transactional
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
@@ -292,9 +302,9 @@ public class AssetProvisioningService {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
 
-        // Deposit additional units into treasury via Fineract
+        // Deposit additional units into LP inventory via Fineract
         fineractClient.depositToSavingsAccount(
-                asset.getTreasuryAssetAccountId(),
+                asset.getLpAssetAccountId(),
                 request.additionalSupply(),
                 resolvedGlAccounts.getAssetIssuancePaymentTypeId());
 
@@ -357,42 +367,42 @@ public class AssetProvisioningService {
      * Steps: withdraw balance → close accounts → delete product → deregister currency.
      */
     private void cleanupFineractResources(Asset asset) {
-        // 1. Withdraw balance from treasury asset account (holds initial supply)
-        if (asset.getTreasuryAssetAccountId() != null) {
+        // 1. Withdraw balance from LP asset account (holds initial supply)
+        if (asset.getLpAssetAccountId() != null) {
             try {
-                BigDecimal balance = fineractClient.getAccountBalance(asset.getTreasuryAssetAccountId());
+                BigDecimal balance = fineractClient.getAccountBalance(asset.getLpAssetAccountId());
                 if (balance != null && balance.compareTo(BigDecimal.ZERO) > 0) {
                     fineractClient.withdrawFromSavingsAccount(
-                            asset.getTreasuryAssetAccountId(), balance,
+                            asset.getLpAssetAccountId(), balance,
                             "Asset deletion: withdraw supply for " + asset.getSymbol());
                 }
             } catch (Exception e) {
-                log.warn("Failed to withdraw from treasury asset account {} for asset {}: {}",
-                        asset.getTreasuryAssetAccountId(), asset.getSymbol(), e.getMessage());
+                log.warn("Failed to withdraw from LP asset account {} for asset {}: {}",
+                        asset.getLpAssetAccountId(), asset.getSymbol(), e.getMessage());
             }
         }
 
-        // 2. Close treasury asset account
-        if (asset.getTreasuryAssetAccountId() != null) {
+        // 2. Close LP asset account
+        if (asset.getLpAssetAccountId() != null) {
             try {
                 fineractClient.closeSavingsAccount(
-                        asset.getTreasuryAssetAccountId(),
+                        asset.getLpAssetAccountId(),
                         "Asset deletion: " + asset.getSymbol());
             } catch (Exception e) {
-                log.warn("Failed to close treasury asset account {} for asset {}: {}",
-                        asset.getTreasuryAssetAccountId(), asset.getSymbol(), e.getMessage());
+                log.warn("Failed to close LP asset account {} for asset {}: {}",
+                        asset.getLpAssetAccountId(), asset.getSymbol(), e.getMessage());
             }
         }
 
-        // 3. Close treasury cash account
-        if (asset.getTreasuryCashAccountId() != null) {
+        // 3. Close LP cash account
+        if (asset.getLpCashAccountId() != null) {
             try {
                 fineractClient.closeSavingsAccount(
-                        asset.getTreasuryCashAccountId(),
+                        asset.getLpCashAccountId(),
                         "Asset deletion: " + asset.getSymbol());
             } catch (Exception e) {
-                log.warn("Failed to close treasury cash account {} for asset {}: {}",
-                        asset.getTreasuryCashAccountId(), asset.getSymbol(), e.getMessage());
+                log.warn("Failed to close LP cash account {} for asset {}: {}",
+                        asset.getLpCashAccountId(), asset.getSymbol(), e.getMessage());
             }
         }
 
@@ -424,8 +434,8 @@ public class AssetProvisioningService {
      * @throws AssetException if any bond-specific validation fails
      */
     private void validateBondFields(CreateAssetRequest request) {
-        if (request.issuer() == null || request.issuer().isBlank()) {
-            throw new AssetException("Issuer is required for BONDS category");
+        if (request.issuerName() == null || request.issuerName().isBlank()) {
+            throw new AssetException("Issuer name is required for BONDS category");
         }
         if (request.maturityDate() == null) {
             throw new AssetException("Maturity date is required for BONDS category");

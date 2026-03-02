@@ -110,12 +110,12 @@ export const IncomeForecastCard: FC<Props> = ({ assetId }) => {
 
 				<div>
 					<h3 className="text-sm font-medium text-gray-500 mb-2">
-						Treasury Coverage
+						LP Coverage
 					</h3>
 					<Row
-						label="Treasury balance"
-						description="Current cash available in the treasury account"
-						value={`${fmt(forecast.treasuryBalance)} XAF`}
+						label="LP cash balance"
+						description="Current cash available in the LP's cash account"
+						value={`${fmt(forecast.lpCashBalance)} XAF`}
 					/>
 					<Row
 						label="Shortfall"
@@ -146,7 +146,7 @@ export const IncomeForecastCard: FC<Props> = ({ assetId }) => {
 			{hasShortfall && (
 				<div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
 					<p className="text-sm text-red-800">
-						The treasury needs at least{" "}
+						The LP account needs at least{" "}
 						<strong>{fmt(forecast.shortfall)} XAF</strong> more to cover the
 						next {incomeTypeLabel.toLowerCase()} distribution.
 					</p>

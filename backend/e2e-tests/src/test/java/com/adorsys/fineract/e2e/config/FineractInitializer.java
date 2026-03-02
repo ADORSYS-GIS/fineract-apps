@@ -30,9 +30,10 @@ public final class FineractInitializer {
     private static Long paymentTypeMtnId;
     private static Long paymentTypeOrangeId;
     private static Integer xafSavingsProductId;
-    private static Long treasuryClientId;
+    private static Long lpClientId;
     private static Long testUserClientId;
     private static Long testUserXafAccountId;
+    private static Long feeCollectionAccountId;
 
     /** The external ID used for the test user in Fineract (UUID format for payment-gateway compatibility). */
     public static final String TEST_USER_EXTERNAL_ID = "00000000-e2e0-4000-a000-000000000001";
@@ -99,9 +100,9 @@ public final class FineractInitializer {
         );
         log.info("Created XAF savings product: id={}", xafSavingsProductId);
 
-        // 5. Create treasury client
-        treasuryClientId = client.createClient("E2E", "Treasury", null);
-        log.info("Created treasury client: id={}", treasuryClientId);
+        // 5. Create LP client
+        lpClientId = client.createClient("E2E", "LP", null);
+        log.info("Created LP client: id={}", lpClientId);
 
         // 6. Create test user client
         testUserClientId = client.createClient(
@@ -117,12 +118,17 @@ public final class FineractInitializer {
         log.info("Test user XAF account: id={}, balance={}",
                 testUserXafAccountId, TEST_USER_INITIAL_BALANCE);
 
+        // 8. Create platform-wide Fee Collection savings account (owned by LP)
+        feeCollectionAccountId = client.provisionSavingsAccount(
+                lpClientId, xafSavingsProductId);
+        log.info("Fee Collection account: id={}", feeCollectionAccountId);
+
         initialized = true;
         log.info("Fineract initialization complete.");
     }
 
     // Accessors for use in step definitions
-    public static Long getTreasuryClientId() { return treasuryClientId; }
+    public static Long getLpClientId() { return lpClientId; }
     public static Long getTestUserClientId() { return testUserClientId; }
     public static Long getTestUserXafAccountId() { return testUserXafAccountId; }
     public static Integer getXafSavingsProductId() { return xafSavingsProductId; }
@@ -135,4 +141,5 @@ public final class FineractInitializer {
     public static Long getGlIncomeFromInterestId() { return glIncomeFromInterestId; }
     public static Long getGlExpenseAccountId() { return glExpenseAccountId; }
     public static Long getGlFundSourceId() { return glFundSourceId; }
+    public static Long getFeeCollectionAccountId() { return feeCollectionAccountId; }
 }

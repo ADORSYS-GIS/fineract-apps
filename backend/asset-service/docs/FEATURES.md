@@ -7,7 +7,7 @@ A comprehensive catalog of every capability provided by the asset service.
 ## 1. Asset Lifecycle Management
 
 ### 1.1 Asset Creation & Provisioning
-Create digital assets across six categories: **Stocks, Bonds, Commodities, Real Estate, Crypto, Agriculture**. Each asset receives a unique symbol, currency code, and treasury accounts (cash + inventory) provisioned automatically in Fineract.
+Create digital assets across six categories: **Stocks, Bonds, Commodities, Real Estate, Crypto, Agriculture**. Each asset is managed by a **Liquidity Partner (LP)** — a reseller who purchased the asset from the original issuer and sells it on the platform. During provisioning, three accounts are created automatically in Fineract: an LP asset account (token inventory), an LP spread account (margin collection), and the LP's existing cash account is linked.
 
 | Endpoint | Description |
 |---|---|
@@ -15,6 +15,7 @@ Create digital assets across six categories: **Stocks, Bonds, Commodities, Real 
 
 - Configurable decimal places (0–8) for fractional unit support
 - Automatic Fineract savings product creation with custom currency code
+- Per-asset LP spread account for margin tracking
 
 ### 1.2 Activation
 Transition an asset from PENDING to ACTIVE, enabling trading.
@@ -41,7 +42,7 @@ Update display information (name, description, image URL) without affecting fina
 | `PUT /api/admin/assets/{id}` | Update asset metadata |
 
 ### 1.5 Supply Minting
-Increase total supply by depositing additional units into the treasury inventory account.
+Increase total supply by depositing additional units into the LP's asset inventory account.
 
 | Endpoint | Description |
 |---|---|
@@ -53,46 +54,48 @@ Increase total supply by depositing additional units into the treasury inventory
 
 ## 2. Pricing
 
-### 2.1 Manual Price Setting
-Admin-controlled price override for MANUAL price mode assets. Updates current price, previous close, and OHLC data.
+### 2.1 Dual Pricing Model
+Each asset has three price references:
+- **Issuer Price** — wholesale/face value from the original issuer (immutable, used for coupon/income calculations)
+- **LP Ask Price** — what investors pay to buy (set by LP, >= issuer price)
+- **LP Bid Price** — what investors receive when selling (set by LP, <= ask price)
+
+The LP's margin per unit = `askPrice - issuerPrice`.
+
+### 2.2 Manual Price Setting
+Admin-controlled price override for MANUAL price mode assets. Can update reference price and LP bid/ask independently.
 
 | Endpoint | Description |
 |---|---|
-| `POST /api/admin/assets/{id}/set-price` | Set exact price |
+| `POST /api/admin/assets/{id}/set-price` | Set price and optionally bid/ask |
 
-### 2.2 Current Price
-Returns the latest price along with 24h change, day open/high/low/close, and bid/ask prices.
+### 2.3 Current Price
+Returns the latest price along with 24h change, day open/high/low/close, and LP bid/ask prices.
 
 | Endpoint | Description |
 |---|---|
 | `GET /api/prices/{assetId}` | Get current price + OHLC summary |
 
-### 2.3 OHLC Data
+### 2.4 OHLC Data
 Daily candlestick bars for charting.
 
 | Endpoint | Description |
 |---|---|
 | `GET /api/prices/{assetId}/ohlc` | Get OHLC candlestick data |
 
-### 2.4 Price History
+### 2.5 Price History
 Historical price time series for chart rendering. Snapshots captured hourly via cron.
 
 | Endpoint | Description |
 |---|---|
 | `GET /api/prices/{assetId}/history?period={1D\|1W\|1M\|3M\|1Y\|ALL}` | Get historical price data |
 
-### 2.5 Bid/Ask Spreads
-Two-sided pricing derived from a configurable `spread_percent` per asset.
-
-- **Ask** (buy price) = price × (1 + spread/2)
-- **Bid** (sell price) = price × (1 − spread/2)
-
 ---
 
 ## 3. Trading
 
 ### 3.1 Trade Preview (Unit-based)
-Simulate a trade before execution. Returns gross/net amounts, fees, and feasibility checks (balance, inventory, limits, lockup, market hours).
+Simulate a trade before execution. Returns gross/net amounts, fees, LP margin, and feasibility checks (balance, inventory, limits, lockup, market hours).
 
 | Endpoint | Description |
 |---|---|
@@ -108,19 +111,18 @@ Specify an XAF budget and compute the maximum purchasable units plus remainder.
 - Returns `computedFromAmount: true`, calculated units, and XAF remainder.
 
 ### 3.3 Buy Execution
-Purchase asset units via an atomic 2-leg Fineract batch transaction.
+Purchase asset units via an atomic Fineract batch transaction. The investor pays the LP's ask price.
 
 | Endpoint | Description |
 |---|---|
 | `POST /api/trades/buy` | Execute buy (requires `X-Idempotency-Key` header) |
 
-- Debits user XAF account, credits user asset account
-- Debits treasury asset account, credits treasury XAF account
-- Collects trading fee and spread
+- Debits investor XAF → LP cash (issuer-price portion), LP spread (margin), fee collection (trading fee)
+- Transfers tokens from LP asset account → investor asset account
 - Updates circulating supply and position tracking
 
 ### 3.4 Sell Execution
-Sell asset units. Calculates realized P&L using FIFO cost basis.
+Sell asset units back to the LP at the bid price. Calculates realized P&L using FIFO cost basis.
 
 | Endpoint | Description |
 |---|---|
@@ -137,7 +139,7 @@ Sell asset units. Calculates realized P&L using FIFO cost basis.
 | `GET /api/trades/orders/{id}` | Get single order detail |
 
 ### 3.6 Trading Fees
-A configurable `trading_fee_percent` (default 0.5%) is applied to the cash amount on each trade. Fee proceeds are routed to a fee income GL account.
+A configurable `trading_fee_percent` (default 0.5%) is applied to the cash amount on each trade. Fee proceeds are routed to the platform's fee collection account.
 
 ### 3.7 Idempotency
 The `X-Idempotency-Key` header prevents duplicate trade execution. Submitting the same key returns the original result.
@@ -218,17 +220,19 @@ Trading is only allowed during configured market hours.
 ### 8.1 Bond Creation
 Create fixed-income bonds with coupon schedule and maturity date.
 
-- Fields: `issuer`, `interestRate`, `couponFrequencyMonths`, `maturityDate`, `nextCouponDate`
+- Fields: `issuerName` (original issuer), `interestRate`, `couponFrequencyMonths`, `maturityDate`, `nextCouponDate`
+- `issuerName` is required for bonds (the entity that issued the bond, e.g., "Etat du Senegal")
+- Coupon amount per unit = `issuerPrice × (interestRate / 100) × (couponFrequencyMonths / 12)`
 
 ### 8.2 Coupon Payments
-Pay periodic interest to all bond holders.
+Pay periodic interest to all bond holders. Calculated from the **issuer price** (face value), not the LP's selling price.
 
 | Endpoint | Description |
 |---|---|
 | `POST /api/admin/assets/{id}/coupons/trigger` | Trigger coupon payment |
 | `GET /api/admin/assets/{id}/coupons` | View coupon payment history |
 
-- Formula: `(units × faceValue × annualRate × periodMonths) / (12 × 100)`
+- Formula: `units × issuerPrice × (annualRate / 100) × (periodMonths / 12)`
 - Auto-advances `nextCouponDate` after each payment
 - Partial failure isolation (per-holder success/fail tracking)
 
@@ -239,7 +243,7 @@ Project remaining coupon obligations until maturity.
 |---|---|
 | `GET /api/admin/assets/{id}/coupon-forecast` | Get coupon forecast |
 
-- Shows total remaining liability, principal at maturity, treasury balance, and any shortfall
+- Shows total remaining liability, principal at maturity, LP cash balance, and any shortfall
 
 ### 8.4 Bond Maturity
 Daily scheduler automatically transitions bonds to MATURED status when `maturityDate` is reached. Matured bonds cannot be traded.
@@ -252,15 +256,15 @@ Return face value to all bond holders at maturity.
 | `POST /api/admin/assets/{id}/redeem` | Redeem matured bond principal |
 | `GET /api/admin/assets/{id}/redemptions` | View redemption history |
 
-- Transfers XAF from treasury to each holder (units × faceValue)
-- Returns asset units from holder back to treasury
+- Transfers XAF from LP cash to each holder (units × issuerPrice)
+- Returns asset units from holder back to LP asset account
 - Partial failure isolation for retry
 
 ---
 
 ## 9. Income Distribution
 
-Recurring income for non-bond assets (dividends, rent, harvest yields, royalties).
+Recurring income for non-bond assets (dividends, rent, harvest yields, royalties). Calculated from the **issuer price**, not the LP's selling price.
 
 ### 9.1 Configuration
 Set income type, rate, frequency, and next distribution date per asset.
@@ -274,7 +278,7 @@ Set income type, rate, frequency, and next distribution date per asset.
 | `POST /api/admin/assets/{id}/income-distributions/trigger` | Trigger income distribution |
 | `GET /api/admin/assets/{id}/income-distributions` | View distribution history |
 
-- Iterates all holders, calculates payment, transfers XAF from treasury
+- Iterates all holders, calculates payment from issuer price, transfers XAF from LP cash
 - Auto-advances `nextDistributionDate`
 
 ### 9.3 Income Forecast
@@ -332,6 +336,7 @@ Daily scheduler executes automatic buyback at the redemption price on the delist
 
 - Category filter: STOCKS, BONDS, COMMODITIES, REAL_ESTATE, CRYPTO, AGRICULTURE
 - Text search across name and symbol
+- Asset listing includes `issuerName`, `lpName`, and `couponAmountPerUnit` (for bonds)
 
 ---
 
@@ -342,7 +347,7 @@ Daily scheduler executes automatic buyback at the redemption price on the delist
 | Endpoint | Description |
 |---|---|
 | `GET /api/admin/assets` | List all assets (all statuses) |
-| `GET /api/admin/assets/{id}` | Asset detail with internal IDs |
+| `GET /api/admin/assets/{id}` | Asset detail with LP accounts, issuer price, margin info |
 | `GET /api/admin/assets/inventory` | Supply tracking across all assets |
 
 ### 12.2 Order Management
@@ -363,7 +368,7 @@ Daily scheduler executes automatic buyback at the redemption price on the delist
 |---|---|
 | `GET /api/admin/dashboard/summary` | Platform health overview |
 
-- Asset counts by status, 24h trading volume, order health, reconciliation status, treasury balances
+- Asset counts by status, 24h trading volume, order health, reconciliation status, LP cash balances
 
 ---
 
@@ -420,7 +425,7 @@ Every admin API call is automatically logged for compliance.
 | `POST /api/notifications/{id}/read` | Mark single as read |
 | `POST /api/notifications/read-all` | Mark all as read |
 
-- Types: trade confirmations, coupon payments, income distributions, price alerts
+- Types: trade confirmations, coupon payments, income distributions, LP shortfall alerts
 
 ### 16.2 Notification Preferences
 
@@ -444,19 +449,21 @@ Every admin API call is automatically logged for compliance.
 ## 17. Fineract Integration
 
 ### 17.1 Automatic Provisioning
-On asset activation, the service creates in Fineract:
+On asset creation, the service creates in Fineract:
 - Savings product with custom currency code
-- Treasury cash account (XAF)
-- Treasury asset inventory account (asset currency)
+- LP asset inventory account (holds token supply)
+- LP spread account (XAF, collects margin on trades)
+- Links the LP's existing XAF cash account
 - GL account mappings
 
 ### 17.2 Atomic Trade Execution
-Uses the Fineract batch API for atomic 2-leg transfers. Both legs succeed or both fail. Stores `fineractBatchId` on every Order.
+Uses the Fineract batch API for atomic multi-leg transfers. All legs succeed or all fail. Stores `fineractBatchId` on every Order.
 
-### 17.3 Treasury Management
-- Treasury client holds omnibus accounts for all assets
-- Inventory account tracks available supply
-- Cash account receives trade payments and disburses benefits (coupons, income, redemptions)
+### 17.3 Liquidity Partner Management
+- LP client holds accounts for all their managed assets
+- LP asset account tracks available supply per asset
+- LP cash account receives trade payments and disburses benefits (coupons, income, redemptions)
+- LP spread account collects margin per asset
 
 ### 17.4 Circuit Breaker
 Resilience4j circuit breaker protects against Fineract outages: sliding window of 10 calls, opens at 50% failure rate, 30s recovery wait.
@@ -485,12 +492,12 @@ Scheduled job moves completed orders older than the retention period (default 12
 
 ## Data Model
 
-15 database tables managed by 15 Flyway migrations:
+18 database tables managed by 18 Flyway migrations:
 
 | Table | Purpose |
 |---|---|
-| `assets` | Asset metadata and configuration |
-| `asset_prices` | Current price + OHLC data |
+| `assets` | Asset metadata, LP accounts, issuer price, pricing config |
+| `asset_prices` | Current price + OHLC data + LP bid/ask |
 | `price_history` | Historical price snapshots |
 | `user_positions` | Portfolio holdings per user-asset |
 | `orders` | Trade orders |

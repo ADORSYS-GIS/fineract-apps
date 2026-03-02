@@ -121,20 +121,20 @@ public class NotificationService {
     @Async
     @EventListener
     public void onTreasuryShortfall(TreasuryShortfallEvent event) {
-        // Treasury shortfall is admin-targeted, userId may be null
-        String title = "Treasury shortfall: " + event.assetSymbol();
+        // LP shortfall is admin-targeted, userId may be null
+        String title = "LP cash shortfall: " + event.assetSymbol();
         String body = String.format(
-                "Treasury balance (%s XAF) is insufficient for upcoming payment of %s XAF on %s. Shortfall: %s XAF.",
+                "LP cash balance (%s XAF) is insufficient for upcoming payment of %s XAF on %s. Shortfall: %s XAF.",
                 event.treasuryBalance().toPlainString(), event.obligationAmount().toPlainString(),
                 event.paymentDueDate(), event.shortfall().toPlainString());
 
         if (event.userId() != null) {
             if (!isEnabled(event.userId(), "treasuryShortfall")) return;
-            createNotification(event.userId(), "TREASURY_SHORTFALL", title, body,
+            createNotification(event.userId(), "LP_SHORTFALL", title, body,
                     event.assetId(), "ASSET");
         } else {
             // For broadcast, just log — controller can be used to query
-            log.warn("Treasury shortfall detected for {}: shortfall={} XAF",
+            log.warn("LP cash shortfall detected for {}: shortfall={} XAF",
                     event.assetSymbol(), event.shortfall().toPlainString());
         }
     }

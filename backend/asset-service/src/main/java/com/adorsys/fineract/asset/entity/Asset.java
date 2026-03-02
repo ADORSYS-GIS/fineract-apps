@@ -88,9 +88,9 @@ public class Asset {
     @Column(name = "trading_fee_percent", precision = 5, scale = 4)
     private BigDecimal tradingFeePercent;
 
-    /** Bid-ask spread as a percentage (e.g. 0.01 = 1%). Used to adjust buy/sell execution prices. */
-    @Column(name = "spread_percent", precision = 5, scale = 4)
-    private BigDecimal spreadPercent;
+    /** Wholesale/face-value price from the original issuer. Used for coupon and income calculations. */
+    @Column(name = "issuer_price", precision = 20, scale = 8)
+    private BigDecimal issuerPrice;
 
     /** Start of the subscription period. BUY orders are rejected before this date. */
     @Column(name = "subscription_start_date", nullable = false)
@@ -134,9 +134,9 @@ public class Asset {
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──────────────
 
-    /** Bond issuer name (e.g. "Etat du Sénégal"). Null for non-bond assets. */
-    @Column(length = 255)
-    private String issuer;
+    /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
+    @Column(name = "issuer_name", length = 255)
+    private String issuerName;
 
     /** International Securities Identification Number (ISO 6166). Null for non-bond assets. */
     @Column(name = "isin_code", length = 12)
@@ -178,21 +178,25 @@ public class Asset {
 
     // ── End bond fields ────────────────────────────────────────────────────
 
-    /** Fineract client ID of the treasury that holds this asset's reserves. */
-    @Column(name = "treasury_client_id", nullable = false)
-    private Long treasuryClientId;
+    /** Fineract client ID of the liquidity partner (reseller) for this asset. */
+    @Column(name = "lp_client_id", nullable = false)
+    private Long lpClientId;
 
-    /** Display name of the treasury client in Fineract. Stored at creation time. */
-    @Column(name = "treasury_client_name", length = 200)
-    private String treasuryClientName;
+    /** Display name of the liquidity partner in Fineract. Stored at creation time. */
+    @Column(name = "lp_client_name", length = 200)
+    private String lpClientName;
 
-    /** Fineract savings account ID where the treasury holds asset units. */
-    @Column(name = "treasury_asset_account_id")
-    private Long treasuryAssetAccountId;
+    /** Fineract savings account ID where the LP holds asset units (inventory). */
+    @Column(name = "lp_asset_account_id")
+    private Long lpAssetAccountId;
 
-    /** Fineract savings account ID where the treasury holds settlement currency cash for this asset. */
-    @Column(name = "treasury_cash_account_id")
-    private Long treasuryCashAccountId;
+    /** Fineract savings account ID where the LP holds settlement currency cash. */
+    @Column(name = "lp_cash_account_id")
+    private Long lpCashAccountId;
+
+    /** Fineract savings account ID where the LP collects spread income (margin). */
+    @Column(name = "lp_spread_account_id")
+    private Long lpSpreadAccountId;
 
     /** Timestamp when this asset record was created. Set automatically, never updated. */
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -4,7 +4,7 @@ Feature: Pricing & Market Status
 
   Background:
     Given Fineract is initialized with GL accounts and payment types
-    And a treasury client exists in Fineract
+    And an LP client exists in Fineract
 
   @smoke
   Scenario: Get current price for an asset

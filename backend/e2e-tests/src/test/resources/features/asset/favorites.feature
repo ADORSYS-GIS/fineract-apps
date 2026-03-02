@@ -4,7 +4,7 @@ Feature: Favorites / Watchlist
 
   Background:
     Given Fineract is initialized with GL accounts and payment types
-    And a treasury client exists in Fineract
+    And an LP client exists in Fineract
     And a test user exists in Fineract with external ID "e2e-test-user-001"
 
   @smoke

@@ -35,10 +35,13 @@ public class IncomeDistributionSteps {
         request.put("symbol", symbol);
         request.put("currencyCode", symbol);
         request.put("category", "REAL_ESTATE");
-        request.put("initialPrice", price);
+        java.math.BigDecimal issuerPrice = new java.math.BigDecimal(price);
+        request.put("issuerPrice", issuerPrice);
+        request.put("lpAskPrice", issuerPrice.multiply(new java.math.BigDecimal("1.10")));
+        request.put("lpBidPrice", issuerPrice.multiply(new java.math.BigDecimal("0.95")));
         request.put("totalSupply", supply);
         request.put("decimalPlaces", 0);
-        request.put("treasuryClientId", FineractInitializer.getTreasuryClientId());
+        request.put("lpClientId", FineractInitializer.getLpClientId());
         request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
         request.put("incomeType", incomeType);

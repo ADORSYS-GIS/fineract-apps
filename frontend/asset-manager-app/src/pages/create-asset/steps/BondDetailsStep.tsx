@@ -46,8 +46,8 @@ export const BondDetailsStep: FC<Props> = ({
 						aria-label="Issuer"
 						className={inputClass("issuer")}
 						placeholder="e.g. Etat du Sénégal"
-						value={formData.issuer}
-						onChange={(e) => updateFormData({ issuer: e.target.value })}
+						value={formData.issuerName}
+						onChange={(e) => updateFormData({ issuerName: e.target.value })}
 						maxLength={255}
 					/>
 					{fieldError("issuer") ? (

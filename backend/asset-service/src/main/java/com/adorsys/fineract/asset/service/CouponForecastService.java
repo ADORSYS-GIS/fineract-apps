@@ -38,7 +38,7 @@ public class CouponForecastService {
                 .map(UserPosition::getTotalUnits)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal faceValue = bond.getManualPrice() != null ? bond.getManualPrice() : BigDecimal.ZERO;
+        BigDecimal faceValue = bond.getIssuerPrice() != null ? bond.getIssuerPrice() : BigDecimal.ZERO;
         BigDecimal rate = bond.getInterestRate();
         int periodMonths = bond.getCouponFrequencyMonths();
 
@@ -58,16 +58,16 @@ public class CouponForecastService {
                 .setScale(0, RoundingMode.HALF_UP);
         BigDecimal totalObligation = totalCouponObligation.add(principalAtMaturity);
 
-        BigDecimal treasuryBalance = BigDecimal.ZERO;
+        BigDecimal lpCashBalance = BigDecimal.ZERO;
         try {
-            treasuryBalance = fineractClient.getAccountBalance(bond.getTreasuryCashAccountId());
+            lpCashBalance = fineractClient.getAccountBalance(bond.getLpCashAccountId());
         } catch (Exception e) {
-            log.warn("Could not fetch treasury balance for bond {}: {}", bond.getSymbol(), e.getMessage());
+            log.warn("Could not fetch LP cash balance for bond {}: {}", bond.getSymbol(), e.getMessage());
         }
 
-        BigDecimal shortfall = totalObligation.subtract(treasuryBalance);
+        BigDecimal shortfall = totalObligation.subtract(lpCashBalance);
         int couponsCovered = couponPerPeriod.compareTo(BigDecimal.ZERO) > 0
-                ? treasuryBalance.divide(couponPerPeriod, 0, RoundingMode.DOWN).intValue()
+                ? lpCashBalance.divide(couponPerPeriod, 0, RoundingMode.DOWN).intValue()
                 : 0;
 
         return new CouponForecastResponse(
@@ -84,7 +84,7 @@ public class CouponForecastService {
                 totalCouponObligation,
                 principalAtMaturity,
                 totalObligation,
-                treasuryBalance,
+                lpCashBalance,
                 shortfall,
                 couponsCovered
         );

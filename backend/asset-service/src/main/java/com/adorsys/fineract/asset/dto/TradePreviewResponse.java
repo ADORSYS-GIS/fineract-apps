@@ -20,7 +20,8 @@ public record TradePreviewResponse(
     BigDecimal basePrice,
     /** Execution price after spread adjustment. */
     BigDecimal executionPrice,
-    BigDecimal spreadPercent,
+    /** LP margin per unit: |executionPrice - issuerPrice|. */
+    BigDecimal lpMarginPerUnit,
     /** units x executionPrice */
     BigDecimal grossAmount,
     /** grossAmount x feePercent */

@@ -8,7 +8,7 @@ import java.time.LocalDate;
  * All monetary amounts are in settlement currency. Null for non-bond assets.
  */
 public record BondBenefitProjection(
-    /** Face value per unit (same as asset's manualPrice). */
+    /** Face value per unit (same as asset's issuerPrice). */
     BigDecimal faceValue,
     /** Annual coupon rate as percentage (e.g. 5.80). */
     BigDecimal interestRate,

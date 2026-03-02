@@ -56,7 +56,7 @@ public class TradingStepDefinitions {
 
     @Given("Fineract batch transfers succeed")
     public void fineractBatchTransfersSucceed() {
-        when(fineractClient.executeBatchTransfers(anyList())).thenReturn(List.of());
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
     }
 
     @Given("user {long} holds {int} units of asset {string} at average price {int}")

@@ -72,9 +72,10 @@ class TradingServiceTest {
     private static final Long USER_ID = 42L;
     private static final Long USER_CASH_ACCOUNT = 100L;
     private static final Long USER_ASSET_ACCOUNT = 200L;
-    private static final Long TREASURY_CASH_ACCOUNT = 300L;
-    private static final Long TREASURY_ASSET_ACCOUNT = 400L;
-    private static final Long SPREAD_COLLECTION_ACCOUNT = 888L;
+    private static final Long LP_CASH_ACCOUNT = 300L;
+    private static final Long LP_ASSET_ACCOUNT = 400L;
+    private static final Long LP_SPREAD_ACCOUNT = 500L;
+    private static final Long FEE_COLLECTION_ACCOUNT = 999L;
     private static final Long FEE_INCOME_GL_ID = 87L;
     private static final Long FUND_SOURCE_GL_ID = 42L;
     private static final String IDEMPOTENCY_KEY = "idem-key-1";
@@ -91,18 +92,20 @@ class TradingServiceTest {
                 .status(AssetStatus.ACTIVE)
                 .totalSupply(new BigDecimal("1000"))
                 .circulatingSupply(BigDecimal.ZERO)
-                .spreadPercent(new BigDecimal("0.01"))
                 .tradingFeePercent(new BigDecimal("0.005"))
-                .treasuryCashAccountId(TREASURY_CASH_ACCOUNT)
-                .treasuryAssetAccountId(TREASURY_ASSET_ACCOUNT)
+                .lpCashAccountId(LP_CASH_ACCOUNT)
+                .lpAssetAccountId(LP_ASSET_ACCOUNT)
+                .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
+                .issuerPrice(new BigDecimal("100"))
                 .fineractProductId(10)
                 .subscriptionStartDate(LocalDate.now().minusMonths(1))
                 .subscriptionEndDate(LocalDate.now().plusYears(1))
                 .build();
 
-        // Default accounting config (spread enabled)
+        // Default accounting config (spread + fee collection enabled)
         AssetServiceConfig.Accounting accounting = new AssetServiceConfig.Accounting();
-        accounting.setSpreadCollectionAccountId(SPREAD_COLLECTION_ACCOUNT);
+        accounting.setSpreadCollectionAccountId(LP_SPREAD_ACCOUNT);
+        accounting.setFeeCollectionAccountId(FEE_COLLECTION_ACCOUNT);
         lenient().when(assetServiceConfig.getAccounting()).thenReturn(accounting);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
         lenient().when(resolvedGlAccounts.getFeeIncomeId()).thenReturn(FEE_INCOME_GL_ID);
@@ -115,23 +118,23 @@ class TradingServiceTest {
 
     @Test
     void executeBuy_happyPath_returnsFilled() {
-        // Arrange
+        // Arrange — LP model: askPrice=110, issuerPrice=100 (on asset), fee=0.5%
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
         BigDecimal basePrice = new BigDecimal("100");
-        BigDecimal spread = new BigDecimal("0.01");
+        BigDecimal askPrice = new BigDecimal("110");
         BigDecimal feePercent = new BigDecimal("0.005");
-        // executionPrice = 100 + 100*0.01 = 101
-        BigDecimal executionPrice = basePrice.add(basePrice.multiply(spread));
-        // actualCost = 10 * 101 = 1010
-        BigDecimal actualCost = new BigDecimal("10").multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        // fee = 1010 * 0.005 = 5 (rounded)
-        BigDecimal fee = actualCost.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
-        // spreadAmount = 10 * 100 * 0.01 = 10
-        BigDecimal spreadAmount = new BigDecimal("10").multiply(basePrice.multiply(spread))
-                .setScale(0, RoundingMode.HALF_UP);
-        // chargedAmount = 1010 + 5 = 1015
-        BigDecimal chargedAmount = actualCost.add(fee);
-        // effectiveCostPerUnit = 1015 / 10 = 101.5000
+        // executionPrice = askPrice = 110
+        BigDecimal executionPrice = askPrice;
+        // grossAmount = 10 * 110 = 1100
+        BigDecimal grossAmount = new BigDecimal("10").multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
+        // fee = 1100 * 0.005 = 6 (5.5 HALF_UP → 6)
+        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        // spreadAmount = (110 - 100) * 10 = 100
+        BigDecimal spreadAmount = executionPrice.subtract(new BigDecimal("100"))
+                .multiply(new BigDecimal("10")).setScale(0, RoundingMode.HALF_UP);
+        // chargedAmount = grossAmount + fee = 1100 + 6 = 1106 (BUY orderCashAmount)
+        BigDecimal chargedAmount = grossAmount.add(fee);
+        // effectiveCostPerUnit = 1106 / 10 = 110.6000
         BigDecimal effectiveCostPerUnit = chargedAmount.divide(new BigDecimal("10"), 4, RoundingMode.HALF_UP);
 
         // Idempotency: no existing order
@@ -143,9 +146,10 @@ class TradingServiceTest {
         // Asset found (initial + re-fetch inside lock)
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
 
-        // Price (initial + re-fetch inside lock)
+        // Price with explicit ask/bid (LP model)
         when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, new BigDecimal("5.0")));
+                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, new BigDecimal("5.0"),
+                        new BigDecimal("90"), askPrice));
 
         // JWT resolution
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
@@ -177,13 +181,12 @@ class TradingServiceTest {
         when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT))
                 .thenReturn(new BigDecimal("50000"));
 
-        // Atomic batch succeeds — return response with requestIds for batch ID tracking
+        // Atomic batch succeeds — 4 legs in LP Cash hub model
         List<Map<String, Object>> batchResponses = List.of(
                 Map.of("requestId", 1L, "statusCode", 200),
                 Map.of("requestId", 2L, "statusCode", 200),
                 Map.of("requestId", 3L, "statusCode", 200),
-                Map.of("requestId", 4L, "statusCode", 200),
-                Map.of("requestId", 5L, "statusCode", 200));
+                Map.of("requestId", 4L, "statusCode", 200));
         when(fineractClient.executeAtomicBatch(anyList())).thenReturn(batchResponses);
 
         // Circulating supply adjustment succeeds
@@ -208,37 +211,27 @@ class TradingServiceTest {
         Order finalOrder = orderCaptor.getAllValues().stream()
                 .filter(o -> o.getStatus() == OrderStatus.FILLED)
                 .findFirst().orElseThrow();
-        assertEquals("1,2,3,4,5", finalOrder.getFineractBatchId());
+        assertEquals("1,2,3,4", finalOrder.getFineractBatchId());
 
-        // Verify atomic batch was called with all legs (transfers + fee) in one batch
+        // Verify atomic batch — LP Cash hub model: 4 BatchTransferOp legs, no withdrawals/journals
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        // Should have 5 legs: cash transfer, spread transfer, asset transfer, fee withdrawal, fee journal entry
-        assertEquals(5, ops.size());
+        assertEquals(4, ops.size());
+        ops.forEach(op -> assertInstanceOf(BatchTransferOp.class, op));
 
-        // Cash leg: user XAF -> treasury XAF
-        assertTransferOp(ops.get(0), USER_CASH_ACCOUNT, TREASURY_CASH_ACCOUNT, actualCost);
+        // Leg 1: Investor pays grossAmount+fee to LP Cash (single XAF debit)
+        assertTransferOp(ops.get(0), USER_CASH_ACCOUNT, LP_CASH_ACCOUNT, chargedAmount);
 
-        // Spread leg: treasury XAF -> spread collection (internal)
-        assertTransferOp(ops.get(1), TREASURY_CASH_ACCOUNT, SPREAD_COLLECTION_ACCOUNT, spreadAmount);
+        // Leg 2: LP delivers tokens to investor
+        assertTransferOp(ops.get(1), LP_ASSET_ACCOUNT, USER_ASSET_ACCOUNT, new BigDecimal("10"));
 
-        // Asset leg: treasury asset -> user asset
-        assertTransferOp(ops.get(2), TREASURY_ASSET_ACCOUNT, USER_ASSET_ACCOUNT, new BigDecimal("10"));
+        // Leg 3 (internal): LP Cash sweeps spread to LP Spread
+        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT, spreadAmount);
 
-        // Fee withdrawal leg
-        assertInstanceOf(BatchWithdrawalOp.class, ops.get(3));
-        BatchWithdrawalOp withdrawal = (BatchWithdrawalOp) ops.get(3);
-        assertEquals(USER_CASH_ACCOUNT, withdrawal.savingsAccountId());
-        assertEquals(fee, withdrawal.amount());
+        // Leg 4 (internal): LP Cash sweeps fee to Fee Collection
+        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, fee);
 
-        // Fee journal entry leg
-        assertInstanceOf(BatchJournalEntryOp.class, ops.get(4));
-        BatchJournalEntryOp journal = (BatchJournalEntryOp) ops.get(4);
-        assertEquals(FUND_SOURCE_GL_ID, journal.debitGlAccountId());
-        assertEquals(FEE_INCOME_GL_ID, journal.creditGlAccountId());
-        assertEquals(fee, journal.amount());
-
-        // Verify no separate fee calls (everything is in the batch now)
+        // Verify no separate fee calls (everything is in the batch)
         verify(fineractClient, never()).withdrawFromSavingsAccount(anyLong(), any(), anyString());
         verify(fineractClient, never()).createJournalEntry(anyLong(), anyLong(), any(), anyString(), anyString());
 
@@ -404,10 +397,9 @@ class TradingServiceTest {
                 .status(AssetStatus.ACTIVE)
                 .totalSupply(new BigDecimal("1000"))
                 .circulatingSupply(new BigDecimal("998"))
-                .spreadPercent(new BigDecimal("0.01"))
                 .tradingFeePercent(new BigDecimal("0.005"))
-                .treasuryCashAccountId(TREASURY_CASH_ACCOUNT)
-                .treasuryAssetAccountId(TREASURY_ASSET_ACCOUNT)
+                .lpCashAccountId(LP_CASH_ACCOUNT)
+                .lpAssetAccountId(LP_ASSET_ACCOUNT)
                 .fineractProductId(10)
                 .subscriptionStartDate(LocalDate.now().minusMonths(1))
                 .subscriptionEndDate(LocalDate.now().plusYears(1))
@@ -520,23 +512,23 @@ class TradingServiceTest {
 
     @Test
     void executeSell_happyPath_returnsFilled() {
-        // Arrange
+        // Arrange — LP model: bidPrice=95, issuerPrice=100 (on asset), fee=0.5%
         SellRequest request = new SellRequest(ASSET_ID, new BigDecimal("5"));
         BigDecimal basePrice = new BigDecimal("100");
-        BigDecimal spread = new BigDecimal("0.01");
+        BigDecimal bidPrice = new BigDecimal("95");
         BigDecimal feePercent = new BigDecimal("0.005");
-        // executionPrice = 100 - 100*0.01 = 99
-        BigDecimal executionPrice = basePrice.subtract(basePrice.multiply(spread));
-        // grossAmount = 5 * 99 = 495
+        // executionPrice = bidPrice = 95
+        BigDecimal executionPrice = bidPrice;
+        // grossAmount = 5 * 95 = 475
         BigDecimal grossAmount = new BigDecimal("5").multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        // fee = 495 * 0.005 = 2 (rounded)
+        // fee = 475 * 0.005 = 2 (2.375 HALF_UP → 2)
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
-        // spreadAmount = 5 * 100 * 0.01 = 5
-        BigDecimal spreadAmount = new BigDecimal("5").multiply(basePrice.multiply(spread))
-                .setScale(0, RoundingMode.HALF_UP);
-        // netAmount = 495 - 2 = 493
+        // spreadAmount = (100 - 95) * 5 = 25 (bid < issuer → LP profits)
+        BigDecimal spreadAmount = new BigDecimal("100").subtract(bidPrice)
+                .multiply(new BigDecimal("5")).setScale(0, RoundingMode.HALF_UP);
+        // netAmount = grossAmount - fee = 475 - 2 = 473 (SELL orderCashAmount)
         BigDecimal netAmount = grossAmount.subtract(fee);
-        // netProceedsPerUnit = 493 / 5 = 98.6000
+        // netProceedsPerUnit = 473 / 5 = 94.6000
         BigDecimal netProceedsPerUnit = netAmount.divide(new BigDecimal("5"), 4, RoundingMode.HALF_UP);
 
         // Idempotency
@@ -546,9 +538,10 @@ class TradingServiceTest {
         // Asset
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
 
-        // Price (initial + re-fetch inside lock)
+        // Price with explicit bid/ask (LP model)
         when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, new BigDecimal("5.0")));
+                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, new BigDecimal("5.0"),
+                        bidPrice, new BigDecimal("110")));
 
         // JWT
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
@@ -574,17 +567,16 @@ class TradingServiceTest {
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
 
-        // Atomic batch succeeds — return response with requestIds for batch ID tracking
+        // Atomic batch succeeds — 4 legs in LP Cash hub model
         List<Map<String, Object>> batchResponses = List.of(
                 Map.of("requestId", 1L, "statusCode", 200),
                 Map.of("requestId", 2L, "statusCode", 200),
                 Map.of("requestId", 3L, "statusCode", 200),
-                Map.of("requestId", 4L, "statusCode", 200),
-                Map.of("requestId", 5L, "statusCode", 200));
+                Map.of("requestId", 4L, "statusCode", 200));
         when(fineractClient.executeAtomicBatch(anyList())).thenReturn(batchResponses);
 
         // Portfolio update returns realized P&L
-        BigDecimal realizedPnl = new BigDecimal("-7");
+        BigDecimal realizedPnl = new BigDecimal("-27");
         when(portfolioService.updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID),
                 eq(new BigDecimal("5")), eq(netProceedsPerUnit)))
                 .thenReturn(realizedPnl);
@@ -606,40 +598,30 @@ class TradingServiceTest {
         assertEquals(spreadAmount, response.spreadAmount());
         assertEquals(realizedPnl, response.realizedPnl());
 
-        // Verify atomic batch with all legs in one batch
+        // Verify atomic batch — LP Cash hub model: 4 BatchTransferOp legs
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        // Should have 5 legs: asset return, cash credit, spread sweep, fee withdrawal, fee journal
-        assertEquals(5, ops.size());
+        assertEquals(4, ops.size());
+        ops.forEach(op -> assertInstanceOf(BatchTransferOp.class, op));
 
-        // Leg 1: Asset return: user asset -> treasury asset
-        assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, TREASURY_ASSET_ACCOUNT, new BigDecimal("5"));
+        // Leg 1: Investor returns tokens
+        assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, new BigDecimal("5"));
 
-        // Leg 2: Cash credit: treasury XAF -> user XAF (gross proceeds)
-        assertTransferOp(ops.get(1), TREASURY_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount);
+        // Leg 2: LP Cash pays net proceeds to investor (single XAF credit)
+        assertTransferOp(ops.get(1), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, netAmount);
 
-        // Leg 3: Spread sweep: treasury XAF -> spread collection (internal)
-        assertTransferOp(ops.get(2), TREASURY_CASH_ACCOUNT, SPREAD_COLLECTION_ACCOUNT, spreadAmount);
+        // Leg 3 (internal): LP Cash sweeps fee to Fee Collection
+        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, fee);
 
-        // Leg 4: Fee withdrawal from user savings
-        assertInstanceOf(BatchWithdrawalOp.class, ops.get(3));
-        BatchWithdrawalOp withdrawal = (BatchWithdrawalOp) ops.get(3);
-        assertEquals(USER_CASH_ACCOUNT, withdrawal.savingsAccountId());
-        assertEquals(fee, withdrawal.amount());
-
-        // Leg 5: Fee journal entry
-        assertInstanceOf(BatchJournalEntryOp.class, ops.get(4));
-        BatchJournalEntryOp journal = (BatchJournalEntryOp) ops.get(4);
-        assertEquals(FUND_SOURCE_GL_ID, journal.debitGlAccountId());
-        assertEquals(FEE_INCOME_GL_ID, journal.creditGlAccountId());
-        assertEquals(fee, journal.amount());
+        // Leg 4 (internal): LP Cash sweeps spread to LP Spread
+        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT, spreadAmount);
 
         // Verify batch ID stored on order
         verify(orderRepository, atLeast(3)).save(orderCaptor.capture());
         Order finalSellOrder = orderCaptor.getAllValues().stream()
                 .filter(o -> o.getStatus() == OrderStatus.FILLED)
                 .findFirst().orElseThrow();
-        assertEquals("1,2,3,4,5", finalSellOrder.getFineractBatchId());
+        assertEquals("1,2,3,4", finalSellOrder.getFineractBatchId());
 
         // Verify no separate fee calls
         verify(fineractClient, never()).withdrawFromSavingsAccount(anyLong(), any(), anyString());
@@ -661,17 +643,14 @@ class TradingServiceTest {
 
     @Test
     void executeBuy_spreadDisabled_noSpreadLeg() {
-        // Arrange: spread collection account not configured → spread disabled
-        AssetServiceConfig.Accounting noSpreadAccounting = new AssetServiceConfig.Accounting();
-        noSpreadAccounting.setSpreadCollectionAccountId(null);
-        when(assetServiceConfig.getAccounting()).thenReturn(noSpreadAccounting);
+        // Arrange: spread disabled by removing lpSpreadAccountId from asset
+        activeAsset.setLpSpreadAccountId(null);
 
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
         BigDecimal basePrice = new BigDecimal("100");
-        // When spread disabled: executionPrice = basePrice (no spread markup)
-        // actualCost = 10 * 100 = 1000
-        // fee = 1000 * 0.005 = 5
-        // chargedAmount = 1000 + 5 = 1005
+        // No ask/bid → executionPrice = basePrice = 100
+        // grossAmount = 10 * 100 = 1000, fee = 1000 * 0.005 = 5
+        // chargedAmount = 1000 + 5 = 1005, spreadAmount = 0
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
         doNothing().when(marketHoursService).assertMarketOpen();
@@ -699,35 +678,33 @@ class TradingServiceTest {
         // Act
         TradeResponse response = tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY);
 
-        // Assert: execution price = base price (no spread)
+        // Assert: execution price = base price (no ask price), spread = 0
         assertEquals(basePrice, response.pricePerUnit());
         assertEquals(BigDecimal.ZERO, response.spreadAmount());
 
-        // Assert: 4 batch ops (cash, asset, fee withdrawal, fee journal — no spread)
+        // Assert: 3 batch ops (cash with fee bundled, asset, fee to fee collection — no spread leg)
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        assertEquals(4, ops.size());
-        assertInstanceOf(BatchTransferOp.class, ops.get(0)); // cash
-        assertInstanceOf(BatchTransferOp.class, ops.get(1)); // asset
-        assertInstanceOf(BatchWithdrawalOp.class, ops.get(2)); // fee withdrawal
-        assertInstanceOf(BatchJournalEntryOp.class, ops.get(3)); // fee journal
+        assertEquals(3, ops.size());
+        ops.forEach(op -> assertInstanceOf(BatchTransferOp.class, op));
+        // Leg 1: Investor pays 1005 (1000+5) to LP Cash
+        assertTransferOp(ops.get(0), USER_CASH_ACCOUNT, LP_CASH_ACCOUNT, new BigDecimal("1005"));
+        // Leg 2: LP delivers tokens
+        assertTransferOp(ops.get(1), LP_ASSET_ACCOUNT, USER_ASSET_ACCOUNT, new BigDecimal("10"));
+        // Leg 3: Fee to Fee Collection
+        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, new BigDecimal("5"));
     }
 
     @Test
     void executeSell_spreadDisabled_noSpreadLeg() {
-        // Arrange: spread disabled
-        AssetServiceConfig.Accounting noSpreadAccounting = new AssetServiceConfig.Accounting();
-        noSpreadAccounting.setSpreadCollectionAccountId(null);
-        when(assetServiceConfig.getAccounting()).thenReturn(noSpreadAccounting);
+        // Arrange: spread disabled by removing lpSpreadAccountId from asset
+        activeAsset.setLpSpreadAccountId(null);
 
         SellRequest request = new SellRequest(ASSET_ID, new BigDecimal("5"));
         BigDecimal basePrice = new BigDecimal("100");
-        // When spread disabled: executionPrice = basePrice (no spread deduction)
-        // grossAmount = 5 * 100 = 500
-        // fee = 500 * 0.005 = 3 (rounded)
-        // netAmount = 500 - 3 = 497
-        BigDecimal grossAmount = new BigDecimal("500");
-        BigDecimal fee = new BigDecimal("3");
+        // No bid/ask → executionPrice = basePrice = 100
+        // grossAmount = 5 * 100 = 500, fee = 500 * 0.005 = 3 (2.5 HALF_UP → 3)
+        // netAmount = 500 - 3 = 497, spread = 0
         BigDecimal netAmount = new BigDecimal("497");
         BigDecimal netProceedsPerUnit = netAmount.divide(new BigDecimal("5"), 4, RoundingMode.HALF_UP);
 
@@ -758,18 +735,21 @@ class TradingServiceTest {
         // Act
         TradeResponse response = tradingService.executeSell(request, jwt, IDEMPOTENCY_KEY);
 
-        // Assert: execution price = base price (no spread)
+        // Assert: execution price = base price (no bid price), spread = 0
         assertEquals(basePrice, response.pricePerUnit());
         assertEquals(BigDecimal.ZERO, response.spreadAmount());
 
-        // Assert: 4 batch ops (asset, cash, fee withdrawal, fee journal — no spread)
+        // Assert: 3 batch ops (asset return, net cash credit, fee to fee collection — no spread leg)
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        assertEquals(4, ops.size());
-        assertInstanceOf(BatchTransferOp.class, ops.get(0)); // asset return
-        assertInstanceOf(BatchTransferOp.class, ops.get(1)); // cash credit
-        assertInstanceOf(BatchWithdrawalOp.class, ops.get(2)); // fee withdrawal
-        assertInstanceOf(BatchJournalEntryOp.class, ops.get(3)); // fee journal
+        assertEquals(3, ops.size());
+        ops.forEach(op -> assertInstanceOf(BatchTransferOp.class, op));
+        // Leg 1: Investor returns tokens
+        assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, new BigDecimal("5"));
+        // Leg 2: LP Cash pays net proceeds (500-3=497) to investor
+        assertTransferOp(ops.get(1), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, netAmount);
+        // Leg 3: Fee to Fee Collection
+        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, new BigDecimal("3"));
     }
 
     @Test
@@ -847,16 +827,19 @@ class TradingServiceTest {
 
     @Test
     void executeBuy_zeroFee_noFeeLegsInBatch() {
-        // Arrange: asset with no trading fee
+        // Arrange: asset with no trading fee, askPrice=110 for spread testing
         activeAsset.setTradingFeePercent(BigDecimal.ZERO);
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
         BigDecimal basePrice = new BigDecimal("100");
+        BigDecimal askPrice = new BigDecimal("110");
+        // executionPrice = 110, grossAmount = 1100, fee = 0, spread = (110-100)*10 = 100
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
         doNothing().when(marketHoursService).assertMarketOpen();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null));
+                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null,
+                        new BigDecimal("90"), askPrice));
 
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
         when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
@@ -881,12 +864,111 @@ class TradingServiceTest {
         // Assert: no fee
         assertEquals(BigDecimal.ZERO, response.fee());
 
-        // Assert: only 3 batch ops (cash, spread, asset — no fee legs)
+        // Assert: 3 batch ops (cash, asset, spread — no fee leg)
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
         assertEquals(3, ops.size());
-        // All should be transfer ops (no withdrawal or journal entry)
         ops.forEach(op -> assertInstanceOf(BatchTransferOp.class, op));
+        // Leg 1: Investor pays 1100 (grossAmount + 0 fee) to LP Cash
+        assertTransferOp(ops.get(0), USER_CASH_ACCOUNT, LP_CASH_ACCOUNT, new BigDecimal("1100"));
+        // Leg 2: LP delivers tokens
+        assertTransferOp(ops.get(1), LP_ASSET_ACCOUNT, USER_ASSET_ACCOUNT, new BigDecimal("10"));
+        // Leg 3: Spread to LP Spread (no fee leg)
+        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT, new BigDecimal("100"));
+    }
+
+    // -------------------------------------------------------------------------
+    // Bid > Issuer tests (buyback premium funded from LP Spread)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void executeSell_bidAboveIssuer_fundsPremiumFromSpread() {
+        // Arrange — bidPrice=110 > issuerPrice=100: LP pays premium funded from LP Spread
+        SellRequest request = new SellRequest(ASSET_ID, new BigDecimal("5"));
+        BigDecimal basePrice = new BigDecimal("100");
+        BigDecimal bidPrice = new BigDecimal("110");
+        BigDecimal feePercent = new BigDecimal("0.005");
+        // executionPrice = bidPrice = 110
+        BigDecimal executionPrice = bidPrice;
+        // grossAmount = 5 * 110 = 550
+        BigDecimal grossAmount = new BigDecimal("5").multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
+        // fee = 550 * 0.005 = 3 (2.75 HALF_UP → 3)
+        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        // rawSpread = issuer - bid = 100 - 110 = -10 → buybackPremium = 10 * 5 = 50, spreadAmount = 0
+        BigDecimal buybackPremium = new BigDecimal("50");
+        // netAmount = grossAmount - fee = 550 - 3 = 547
+        BigDecimal netAmount = grossAmount.subtract(fee);
+        BigDecimal netProceedsPerUnit = netAmount.divide(new BigDecimal("5"), 4, RoundingMode.HALF_UP);
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        doNothing().when(marketHoursService).assertMarketOpen();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(pricingService.getCurrentPrice(ASSET_ID))
+                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null,
+                        bidPrice, new BigDecimal("120")));
+
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+        when(userPositionRepository.findByUserIdAndAssetId(USER_ID, ASSET_ID))
+                .thenReturn(Optional.of(UserPosition.builder()
+                        .userId(USER_ID).assetId(ASSET_ID)
+                        .fineractSavingsAccountId(USER_ASSET_ACCOUNT)
+                        .totalUnits(new BigDecimal("20")).avgPurchasePrice(new BigDecimal("100"))
+                        .totalCostBasis(new BigDecimal("2000")).realizedPnl(BigDecimal.ZERO)
+                        .lastTradeAt(Instant.now()).build()));
+
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
+
+        // Atomic batch — 4 legs: asset return, premium from LP Spread, net proceeds, fee
+        List<Map<String, Object>> batchResponses = List.of(
+                Map.of("requestId", 1L, "statusCode", 200),
+                Map.of("requestId", 2L, "statusCode", 200),
+                Map.of("requestId", 3L, "statusCode", 200),
+                Map.of("requestId", 4L, "statusCode", 200));
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(batchResponses);
+
+        when(portfolioService.updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID),
+                eq(new BigDecimal("5")), eq(netProceedsPerUnit))).thenReturn(new BigDecimal("47"));
+        when(assetRepository.adjustCirculatingSupply(ASSET_ID, new BigDecimal("5").negate())).thenReturn(1);
+
+        // Act
+        TradeResponse response = tradingService.executeSell(request, jwt, IDEMPOTENCY_KEY);
+
+        // Assert response
+        assertNotNull(response);
+        assertEquals(OrderStatus.FILLED, response.status());
+        assertEquals(executionPrice, response.pricePerUnit());
+        assertEquals(netAmount, response.totalAmount());
+        assertEquals(fee, response.fee());
+        assertEquals(BigDecimal.ZERO, response.spreadAmount()); // spread=0 when bid > issuer
+        assertEquals(new BigDecimal("47"), response.realizedPnl());
+
+        // Verify batch — LP Cash hub with buyback premium leg
+        verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
+        List<BatchOperation> ops = batchOpsCaptor.getValue();
+        assertEquals(4, ops.size());
+        ops.forEach(op -> assertInstanceOf(BatchTransferOp.class, op));
+
+        // Leg 1: Investor returns tokens
+        assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, new BigDecimal("5"));
+
+        // Leg 2 (internal): LP Spread funds LP Cash with buyback premium
+        assertTransferOp(ops.get(1), LP_SPREAD_ACCOUNT, LP_CASH_ACCOUNT, buybackPremium);
+
+        // Leg 3: LP Cash pays net proceeds to investor
+        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, netAmount);
+
+        // Leg 4 (internal): LP Cash sweeps fee to Fee Collection
+        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, fee);
+
+        // Verify buybackPremium stored on order
+        verify(orderRepository, atLeast(3)).save(orderCaptor.capture());
+        Order filledOrder = orderCaptor.getAllValues().stream()
+                .filter(o -> o.getStatus() == OrderStatus.FILLED)
+                .findFirst().orElseThrow();
+        assertEquals(buybackPremium, filledOrder.getBuybackPremium());
     }
 
     // -------------------------------------------------------------------------

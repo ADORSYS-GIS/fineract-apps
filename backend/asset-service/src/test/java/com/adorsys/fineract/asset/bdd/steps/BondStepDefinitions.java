@@ -67,8 +67,8 @@ public class BondStepDefinitions {
 
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
-                manual_price, total_supply, circulating_supply, decimal_places, treasury_client_id,
-                treasury_asset_account_id, treasury_cash_account_id, fineract_product_id, version,
+                issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
+                lp_asset_account_id, lp_cash_account_id, fineract_product_id, version,
                 interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
                 subscription_start_date, subscription_end_date,
                 created_at, updated_at)
@@ -76,7 +76,7 @@ public class BondStepDefinitions {
                 ?, ?, ?, ?,
                 CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), NOW(), NOW())
             """, bondId, bondId, bondId, "Bond " + bondId,
-                new BigDecimal(data.get("manualPrice")),
+                new BigDecimal(data.get("issuerPrice")),
                 new BigDecimal(data.get("interestRate")),
                 Integer.parseInt(data.get("couponFrequencyMonths")),
                 couponDate,
@@ -87,11 +87,11 @@ public class BondStepDefinitions {
             INSERT INTO asset_prices (asset_id, current_price, day_open, day_high, day_low,
                 day_close, change_24h_percent, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, 0, NOW())
-            """, bondId, new BigDecimal(data.get("manualPrice")),
-                new BigDecimal(data.get("manualPrice")),
-                new BigDecimal(data.get("manualPrice")),
-                new BigDecimal(data.get("manualPrice")),
-                new BigDecimal(data.get("manualPrice")));
+            """, bondId, new BigDecimal(data.get("issuerPrice")),
+                new BigDecimal(data.get("issuerPrice")),
+                new BigDecimal(data.get("issuerPrice")),
+                new BigDecimal(data.get("issuerPrice")),
+                new BigDecimal(data.get("issuerPrice")));
     }
 
     @Given("user {long} holds {int} units of bond {string}")
@@ -118,7 +118,7 @@ public class BondStepDefinitions {
     public void fineractTransferMocked() {
         when(fineractClient.createAccountTransfer(anyLong(), anyLong(), any(BigDecimal.class), anyString()))
                 .thenReturn(1L);
-        // Mock treasury balance for coupon sufficiency check
+        // Mock LP balance for coupon sufficiency check
         when(fineractClient.getAccountBalance(anyLong())).thenReturn(new BigDecimal("999999999"));
     }
 
@@ -134,11 +134,13 @@ public class BondStepDefinitions {
         request.put("symbol", data.get("symbol"));
         request.put("currencyCode", data.get("currencyCode"));
         request.put("category", data.get("category"));
-        request.put("initialPrice", new BigDecimal(data.get("initialPrice")));
+        request.put("issuerPrice", new BigDecimal(data.get("initialPrice")));
+        request.put("lpAskPrice", new BigDecimal(data.get("initialPrice")).multiply(new BigDecimal("1.10")));
+        request.put("lpBidPrice", new BigDecimal(data.get("initialPrice")).multiply(new BigDecimal("0.95")));
         request.put("totalSupply", new BigDecimal(data.get("totalSupply")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
-        request.put("treasuryClientId", 1L);
-        request.put("issuer", data.get("issuer"));
+        request.put("lpClientId", 1L);
+        request.put("issuerName", data.get("issuerName"));
         if (data.containsKey("isinCode")) request.put("isinCode", data.get("isinCode"));
         request.put("interestRate", new BigDecimal(data.get("interestRate")));
         request.put("couponFrequencyMonths", Integer.parseInt(data.get("couponFrequencyMonths")));
@@ -170,8 +172,9 @@ public class BondStepDefinitions {
     public void adminCreatesBondWithoutIssuer() throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
-        request.put("category", "BONDS"); request.put("initialPrice", 10000); request.put("totalSupply", 100);
-        request.put("decimalPlaces", 0); request.put("treasuryClientId", 1L);
+        request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
+        request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
+        request.put("lpAskPrice", 11000); request.put("lpBidPrice", 9500);
         request.put("interestRate", 5.0); request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().plusYears(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
@@ -190,9 +193,10 @@ public class BondStepDefinitions {
     public void adminCreatesBondWithPastMaturity() throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
-        request.put("category", "BONDS"); request.put("initialPrice", 10000); request.put("totalSupply", 100);
-        request.put("decimalPlaces", 0); request.put("treasuryClientId", 1L);
-        request.put("issuer", "Test Issuer"); request.put("interestRate", 5.0);
+        request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
+        request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
+        request.put("lpAskPrice", 11000); request.put("lpBidPrice", 9500);
+        request.put("issuerName", "Test Issuer"); request.put("interestRate", 5.0);
         request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().minusDays(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
@@ -211,9 +215,10 @@ public class BondStepDefinitions {
     public void adminCreatesBondWithInvalidFrequency(int frequency) throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
-        request.put("category", "BONDS"); request.put("initialPrice", 10000); request.put("totalSupply", 100);
-        request.put("decimalPlaces", 0); request.put("treasuryClientId", 1L);
-        request.put("issuer", "Test Issuer"); request.put("interestRate", 5.0);
+        request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
+        request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
+        request.put("lpAskPrice", 11000); request.put("lpBidPrice", 9500);
+        request.put("issuerName", "Test Issuer"); request.put("interestRate", 5.0);
         request.put("couponFrequencyMonths", frequency);
         request.put("maturityDate", LocalDate.now().plusYears(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
@@ -313,9 +318,9 @@ public class BondStepDefinitions {
     private void insertBondAsset(String bondId, String status, LocalDate maturityDate, LocalDate nextCouponDate) {
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
-                manual_price, total_supply, circulating_supply, decimal_places, treasury_client_id,
-                treasury_asset_account_id, treasury_cash_account_id, fineract_product_id, version,
-                issuer, interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
+                issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
+                lp_asset_account_id, lp_cash_account_id, fineract_product_id, version,
+                issuer_name, interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
                 subscription_start_date, subscription_end_date,
                 created_at, updated_at)
             VALUES (?, ?, ?, ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, NULL, 0,

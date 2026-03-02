@@ -96,6 +96,10 @@ public class AssetE2ESpringConfiguration {
         registry.add("asset-service.market-hours.timezone", () -> "UTC");
         registry.add("asset-service.market-hours.weekend-trading-enabled",
                 () -> "true");
+
+        // Fee Collection: platform-wide savings account for trading fees
+        registry.add("asset-service.accounting.fee-collection-account-id",
+                FineractInitializer::getFeeCollectionAccountId);
     }
 
     @TestConfiguration

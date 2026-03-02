@@ -12,7 +12,7 @@ Feature: Bond Coupon Payments
       | interestRate          | 5.80  |
       | couponFrequencyMonths | 6     |
       | nextCouponDate        | today |
-      | manualPrice           | 10000 |
+      | issuerPrice           | 10000 |
     And user 42 holds 10 units of bond "bond-001"
     When the interest payment scheduler runs
     Then a pending scheduled payment should exist for bond "bond-001"
@@ -25,7 +25,7 @@ Feature: Bond Coupon Payments
       | interestRate          | 5.80  |
       | couponFrequencyMonths | 6     |
       | nextCouponDate        | today |
-      | manualPrice           | 10000 |
+      | issuerPrice           | 10000 |
     And user 42 holds 10 units of bond "bond-002"
     When the interest payment scheduler runs
     And the admin confirms the scheduled payment for bond "bond-002"

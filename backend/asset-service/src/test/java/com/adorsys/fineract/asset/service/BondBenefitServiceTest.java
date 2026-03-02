@@ -27,14 +27,14 @@ class BondBenefitServiceTest {
     @Test
     void calculateForPurchase_happyPath_returnsAllFields() {
         Asset bond = activeBondAsset();
-        // manualPrice=100 (faceValue), interestRate=5.80, couponFreq=6, maturity=+5y, nextCoupon=+6m
+        // issuerPrice=100 (faceValue), interestRate=5.80, couponFreq=6, maturity=+5y, nextCoupon=+6m
         BigDecimal units = new BigDecimal("10");
         BigDecimal investmentCost = new BigDecimal("1050"); // hypothetical cost
 
         BondBenefitProjection result = service.calculateForPurchase(bond, units, investmentCost);
 
         assertNotNull(result);
-        assertEquals(bond.getManualPrice(), result.faceValue());
+        assertEquals(bond.getIssuerPrice(), result.faceValue());
         assertEquals(bond.getInterestRate(), result.interestRate());
         assertEquals(bond.getCouponFrequencyMonths(), result.couponFrequencyMonths());
         assertEquals(bond.getMaturityDate(), result.maturityDate());
@@ -129,7 +129,7 @@ class BondBenefitServiceTest {
     @Test
     void calculateForPurchase_missingFaceValue_returnsNull() {
         Asset bond = activeBondAsset();
-        bond.setManualPrice(null);
+        bond.setIssuerPrice(null);
         BigDecimal units = new BigDecimal("10");
 
         BondBenefitProjection result = service.calculateForPurchase(bond, units, new BigDecimal("1000"));

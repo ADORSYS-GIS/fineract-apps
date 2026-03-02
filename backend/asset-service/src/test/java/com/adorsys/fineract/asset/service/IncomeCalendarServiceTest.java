@@ -67,7 +67,7 @@ class IncomeCalendarServiceTest {
 
         Asset bond = Asset.builder()
                 .id("bond-1").symbol("BND").name("Test Bond").category(AssetCategory.BONDS)
-                .manualPrice(new BigDecimal("10000")).interestRate(new BigDecimal("6.00"))
+                .issuerPrice(new BigDecimal("10000")).interestRate(new BigDecimal("6.00"))
                 .couponFrequencyMonths(6)
                 .nextCouponDate(LocalDate.now().plusMonths(3))
                 .maturityDate(LocalDate.now().plusYears(2))
@@ -93,7 +93,7 @@ class IncomeCalendarServiceTest {
 
         Asset bond = Asset.builder()
                 .id("bond-2").symbol("BN2").name("Maturing Bond").category(AssetCategory.BONDS)
-                .manualPrice(new BigDecimal("10000")).interestRate(new BigDecimal("5.00"))
+                .issuerPrice(new BigDecimal("10000")).interestRate(new BigDecimal("5.00"))
                 .couponFrequencyMonths(6)
                 .nextCouponDate(LocalDate.now().plusMonths(3))
                 .maturityDate(LocalDate.now().plusMonths(6))
@@ -161,7 +161,7 @@ class IncomeCalendarServiceTest {
 
         Asset bond = Asset.builder()
                 .id("bond-3").symbol("BN3").name("Bond 3").category(AssetCategory.BONDS)
-                .manualPrice(new BigDecimal("10000")).interestRate(new BigDecimal("6.00"))
+                .issuerPrice(new BigDecimal("10000")).interestRate(new BigDecimal("6.00"))
                 .couponFrequencyMonths(6)
                 .nextCouponDate(LocalDate.now().plusMonths(3))
                 .maturityDate(LocalDate.now().plusYears(2))
@@ -185,7 +185,7 @@ class IncomeCalendarServiceTest {
 
         Asset bond = Asset.builder()
                 .id("bond-4").symbol("BN4").name("Bond 4").category(AssetCategory.BONDS)
-                .manualPrice(new BigDecimal("10000")).interestRate(new BigDecimal("5.00"))
+                .issuerPrice(new BigDecimal("10000")).interestRate(new BigDecimal("5.00"))
                 .couponFrequencyMonths(6)
                 .nextCouponDate(LocalDate.now().plusMonths(3))
                 .maturityDate(LocalDate.now().plusYears(2))

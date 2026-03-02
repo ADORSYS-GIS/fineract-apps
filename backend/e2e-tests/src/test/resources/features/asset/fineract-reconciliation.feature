@@ -6,7 +6,7 @@ Feature: Fineract Reconciliation (E2E)
 
   Background:
     Given Fineract is initialized with GL accounts and payment types
-    And a treasury client exists in Fineract
+    And an LP client exists in Fineract
     And a test user exists in Fineract with external ID "e2e-test-user-001"
     And the test user has an XAF account with balance 1000000
 
@@ -28,7 +28,7 @@ Feature: Fineract Reconciliation (E2E)
   # Asset Provisioning Creates Fineract Resources
   # -----------------------------------------------------------------
 
-  Scenario: Activated asset creates savings product and treasury accounts in Fineract
+  Scenario: Activated asset creates savings product and LP accounts in Fineract
     When the admin creates a stock asset:
       | name         | Reconciliation Stock |
       | symbol       | RCS                  |
@@ -37,7 +37,7 @@ Feature: Fineract Reconciliation (E2E)
     Then the response status should be 201
     When the admin activates asset "lastCreated"
     Then the response status should be 200
-    And the treasury should have a RCS account with balance 500 in Fineract
+    And the LP should have a RCS account with balance 500 in Fineract
 
   # -----------------------------------------------------------------
   # Single-Asset Reconciliation Trigger

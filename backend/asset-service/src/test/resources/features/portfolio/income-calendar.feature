@@ -18,7 +18,7 @@ Feature: Portfolio Income Calendar
       | interestRate          | 6.00  |
       | couponFrequencyMonths | 6     |
       | nextCouponDate        | +3m   |
-      | manualPrice           | 10000 |
+      | issuerPrice           | 10000 |
     And user 42 holds 10 units of bond "bond-cal"
     When the user requests the income calendar for 12 months
     Then the response status should be 200

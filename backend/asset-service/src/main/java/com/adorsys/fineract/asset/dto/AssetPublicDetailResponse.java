@@ -7,9 +7,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * Public asset detail response — same as AssetDetailResponse but omits internal
- * Fineract infrastructure IDs (treasury accounts, product ID) that should not
- * be exposed to end users. Includes bond-specific fields when category is BONDS.
+ * Public asset detail response — omits internal Fineract infrastructure IDs
+ * that should not be exposed to end users. Shows issuer and LP info.
  */
 public record AssetPublicDetailResponse(
     String id,
@@ -31,7 +30,6 @@ public record AssetPublicDetailResponse(
     BigDecimal circulatingSupply,
     BigDecimal availableSupply,
     BigDecimal tradingFeePercent,
-    BigDecimal spreadPercent,
     Integer decimalPlaces,
     LocalDate subscriptionStartDate,
     LocalDate subscriptionEndDate,
@@ -39,10 +37,17 @@ public record AssetPublicDetailResponse(
     Instant createdAt,
     Instant updatedAt,
 
+    // ── Issuer & LP info (visible to investors) ──
+
+    @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)
+    String issuerName,
+    @Schema(description = "Issuer price (face value for bonds, wholesale for others).", nullable = true)
+    BigDecimal issuerPrice,
+    @Schema(description = "Liquidity partner (reseller) name.", nullable = true)
+    String lpName,
+
     // ── Bond / fixed-income fields (null for non-bond assets) ──
 
-    @Schema(description = "Bond issuer name. Null for non-bond assets.")
-    String issuer,
     @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.")
     String isinCode,
     @Schema(description = "Bond maturity date. Null for non-bond assets.")
@@ -57,12 +62,14 @@ public record AssetPublicDetailResponse(
     Long residualDays,
     @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
     Boolean subscriptionClosed,
+    @Schema(description = "Coupon amount per unit per period, based on issuer price.", nullable = true)
+    BigDecimal couponAmountPerUnit,
 
     // ── Bid/Ask prices ──
 
-    @Schema(description = "Bid price: what sellers receive (mid - spread).", nullable = true)
+    @Schema(description = "LP bid price: what sellers receive.", nullable = true)
     BigDecimal bidPrice,
-    @Schema(description = "Ask price: what buyers pay (mid + spread).", nullable = true)
+    @Schema(description = "LP ask price: what buyers pay.", nullable = true)
     BigDecimal askPrice,
 
     // ── Exposure limits ──

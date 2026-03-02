@@ -43,9 +43,9 @@ public class AssetProvisioningSteps {
         // Already done in AssetE2ESpringConfiguration static block
     }
 
-    @Given("a treasury client exists in Fineract")
-    public void treasuryClientExists() {
-        assertThat(FineractInitializer.getTreasuryClientId()).isNotNull();
+    @Given("an LP client exists in Fineract")
+    public void lpClientExists() {
+        assertThat(FineractInitializer.getLpClientId()).isNotNull();
     }
 
     @Given("a test user exists in Fineract with external ID {string}")
@@ -77,10 +77,13 @@ public class AssetProvisioningSteps {
         request.put("symbol", symbol);
         request.put("currencyCode", currencyCode);
         request.put("category", data.getOrDefault("category", "STOCKS"));
-        request.put("initialPrice", new BigDecimal(data.getOrDefault("initialPrice", "5000")));
+        BigDecimal issuerPrice = new BigDecimal(data.getOrDefault("initialPrice", "5000"));
+        request.put("issuerPrice", issuerPrice);
+        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("1.10")));
+        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("0.95")));
         request.put("totalSupply", new BigDecimal(data.getOrDefault("totalSupply", "10000")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
-        request.put("treasuryClientId", FineractInitializer.getTreasuryClientId());
+        request.put("lpClientId", FineractInitializer.getLpClientId());
         request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
@@ -125,11 +128,14 @@ public class AssetProvisioningSteps {
         request.put("symbol", symbol);
         request.put("currencyCode", currencyCode);
         request.put("category", "BONDS");
-        request.put("initialPrice", new BigDecimal(data.getOrDefault("initialPrice", "10000")));
+        BigDecimal bondIssuerPrice = new BigDecimal(data.getOrDefault("initialPrice", "10000"));
+        request.put("issuerPrice", bondIssuerPrice);
+        request.put("lpAskPrice", bondIssuerPrice.multiply(new BigDecimal("1.10")));
+        request.put("lpBidPrice", bondIssuerPrice.multiply(new BigDecimal("0.95")));
         request.put("totalSupply", new BigDecimal(data.getOrDefault("totalSupply", "1000")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
-        request.put("treasuryClientId", FineractInitializer.getTreasuryClientId());
-        request.put("issuer", data.getOrDefault("issuer", "Test Issuer"));
+        request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("issuerName", data.getOrDefault("issuerName", "Test Issuer"));
         request.put("interestRate", new BigDecimal(data.getOrDefault("interestRate", "5.80")));
         request.put("couponFrequencyMonths",
                 Integer.parseInt(data.getOrDefault("couponFrequencyMonths", "6")));
@@ -233,8 +239,8 @@ public class AssetProvisioningSteps {
         assertThat(productId).isNotNull();
     }
 
-    @Then("the treasury should have a {word} account with balance {int} in Fineract")
-    public void treasuryShouldHaveAssetAccount(String currencyCode, int expectedBalance) {
+    @Then("the LP should have a {word} account with balance {int} in Fineract")
+    public void lpShouldHaveAssetAccount(String currencyCode, int expectedBalance) {
         String assetId = context.getId("lastAssetId");
 
         Response assetResp = RestAssured.given()
@@ -242,8 +248,8 @@ public class AssetProvisioningSteps {
                 .get("/api/admin/assets/" + assetId);
 
         assertThat(assetResp.statusCode()).isEqualTo(200);
-        Number accountId = assetResp.jsonPath().get("treasuryAssetAccountId");
-        assertThat(accountId).as("treasuryAssetAccountId for asset " + assetId).isNotNull();
+        Number accountId = assetResp.jsonPath().get("lpAssetAccountId");
+        assertThat(accountId).as("lpAssetAccountId for asset " + assetId).isNotNull();
 
         BigDecimal balance = fineractTestClient.getAccountBalance(accountId.longValue());
         assertThat(balance.intValue()).isEqualTo(expectedBalance);

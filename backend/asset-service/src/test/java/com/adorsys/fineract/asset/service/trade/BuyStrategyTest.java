@@ -19,9 +19,9 @@ class BuyStrategyTest {
     @Test
     void applySpread_addsSpreadToBasePrice() {
         BigDecimal basePrice = new BigDecimal("100");
-        BigDecimal spreadPercent = new BigDecimal("0.01");
+        BigDecimal spreadMultiplier = new BigDecimal("0.01");
 
-        BigDecimal result = strategy.applySpread(basePrice, spreadPercent);
+        BigDecimal result = strategy.applySpread(basePrice, spreadMultiplier);
 
         // 100 + 100 * 0.01 = 101
         assertEquals(new BigDecimal("101.00"), result);

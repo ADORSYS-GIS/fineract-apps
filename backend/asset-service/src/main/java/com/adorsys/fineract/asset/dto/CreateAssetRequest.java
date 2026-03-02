@@ -22,24 +22,26 @@ public record CreateAssetRequest(
     @Size(max = 500) String imageUrl,
     /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, or BONDS. */
     @NotNull AssetCategory category,
-    /** Starting price per unit, in settlement currency. Must be positive. Used as the initial manual price. */
-    @NotNull @Positive BigDecimal initialPrice,
+    /** Issuer price (face value for bonds, wholesale price for others). Used for coupon/income calculations. */
+    @NotNull @Positive BigDecimal issuerPrice,
     /** Maximum total units that can ever exist. Must be positive. */
     @NotNull @Positive BigDecimal totalSupply,
     /** Number of decimal places for fractional units (0 = whole units only, max 8). */
     @NotNull @Min(0) @Max(8) Integer decimalPlaces,
     /** Optional trading fee as a percentage (e.g. 0.005 = 0.5%). Null means no fee. */
     @PositiveOrZero @DecimalMax("0.50") BigDecimal tradingFeePercent,
-    /** Optional bid-ask spread as a percentage (e.g. 0.01 = 1%). Null means no spread. */
-    @PositiveOrZero @DecimalMax("0.50") BigDecimal spreadPercent,
+    /** LP's ask price (what investors pay to buy). Must be >= issuerPrice. */
+    @NotNull @Positive BigDecimal lpAskPrice,
+    /** LP's bid price (what investors receive when selling). Must be <= lpAskPrice. */
+    @NotNull @Positive BigDecimal lpBidPrice,
     /** Start of the subscription period. BUY orders rejected before this date. */
     @NotNull LocalDate subscriptionStartDate,
     /** End of the subscription period. BUY orders rejected after this date; SELL always allowed. */
     @NotNull LocalDate subscriptionEndDate,
     /** Percentage of capital opened for subscription (e.g. 44.44). */
     @PositiveOrZero @DecimalMax("100.00") BigDecimal capitalOpenedPercent,
-    /** Fineract client ID of the treasury that will hold this asset's reserves. */
-    @NotNull Long treasuryClientId,
+    /** Fineract client ID of the liquidity partner (reseller) that will hold this asset's inventory. */
+    @NotNull Long lpClientId,
 
     // ── Exposure limits (all optional) ──
 
@@ -58,9 +60,9 @@ public record CreateAssetRequest(
 
     // ── Bond / fixed-income fields (required when category = BONDS) ──
 
-    /** Bond issuer name (e.g. "Etat du Sénégal"). Required for BONDS. */
-    @Schema(description = "Bond issuer name. Required when category is BONDS.")
-    @Size(max = 255) String issuer,
+    /** Issuer name (e.g. "Etat du Sénégal"). Required for BONDS, optional for others. */
+    @Schema(description = "Asset issuer name. Required when category is BONDS.")
+    @Size(max = 255) String issuerName,
     /** ISIN code (ISO 6166). Optional, max 12 characters. */
     @Schema(description = "International Securities Identification Number (ISO 6166).")
     @Size(max = 12) String isinCode,

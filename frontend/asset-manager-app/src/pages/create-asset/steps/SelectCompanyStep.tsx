@@ -24,42 +24,42 @@ export const SelectCompanyStep: FC<Props> = ({
 	validationErrors,
 }) => {
 	const hasError = validationErrors.some((e) =>
-		e.toLowerCase().includes("company"),
+		e.toLowerCase().includes("liquidity partner"),
 	);
 	return (
 		<div className="space-y-6">
 			<div>
 				<h2 className="text-lg font-semibold text-gray-800 mb-1">
-					Select Treasury Company
+					Select Liquidity Partner
 				</h2>
 				<p className="text-sm text-gray-500">
-					Choose the company that will act as the treasury (market maker) for
-					this asset. The company's XAF cash account will be used automatically
-					for trade settlements.
+					Choose the company that will act as the liquidity partner (market
+					maker) for this asset. The company's XAF cash account will be used
+					automatically for trade settlements.
 				</p>
 			</div>
 
 			{/* Company Selection */}
 			<div>
 				<label className="block text-sm font-medium text-gray-700 mb-1">
-					Company
+					Liquidity Partner
 				</label>
 				<p className="text-xs text-gray-400 mb-2">
-					The Fineract client that will hold the treasury account for this asset
+					The Fineract client that will hold the LP account for this asset
 				</p>
 				{isLoadingClients ? (
 					<div className="animate-pulse h-10 bg-gray-200 rounded" />
 				) : (
 					<select
-						aria-label="Select company"
+						aria-label="Select liquidity partner"
 						className={`w-full border rounded-lg px-3 py-2 focus:ring-2 ${hasError ? "border-red-400 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`}
-						value={formData.treasuryClientId ?? ""}
+						value={formData.lpClientId ?? ""}
 						onChange={(e) => {
 							const clientId = Number(e.target.value);
 							const client = clients.find((c) => c.id === clientId);
 							updateFormData({
-								treasuryClientId: clientId || null,
-								treasuryClientName: client?.displayName ?? "",
+								lpClientId: clientId || null,
+								lpClientName: client?.displayName ?? "",
 							});
 						}}
 					>
@@ -74,16 +74,16 @@ export const SelectCompanyStep: FC<Props> = ({
 			</div>
 
 			{/* Selected Company Info */}
-			{formData.treasuryClientId && (
+			{formData.lpClientId && (
 				<Card className="p-4 bg-blue-50 border-blue-200">
 					<div className="flex items-center gap-3">
 						<Building2 className="h-8 w-8 text-blue-600" />
 						<div>
 							<p className="font-medium text-gray-900">
-								{formData.treasuryClientName}
+								{formData.lpClientName}
 							</p>
 							<p className="text-sm text-gray-500">
-								Client ID: {formData.treasuryClientId}
+								Client ID: {formData.lpClientId}
 							</p>
 						</div>
 					</div>

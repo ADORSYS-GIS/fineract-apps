@@ -18,11 +18,12 @@ public final class TestDataFactory {
     public static final Long USER_ID = 42L;
     public static final Long USER_CASH_ACCOUNT = 100L;
     public static final Long USER_ASSET_ACCOUNT = 200L;
-    public static final Long TREASURY_CASH_ACCOUNT = 300L;
-    public static final Long TREASURY_ASSET_ACCOUNT = 400L;
+    public static final Long LP_CASH_ACCOUNT = 300L;
+    public static final Long LP_ASSET_ACCOUNT = 400L;
+    public static final Long LP_SPREAD_ACCOUNT = 500L;
     public static final Long FEE_COLLECTION_ACCOUNT = 999L;
     public static final String IDEMPOTENCY_KEY = "idem-key-1";
-    public static final Long TREASURY_CLIENT_ID = 1L;
+    public static final Long LP_CLIENT_ID = 1L;
 
     private TestDataFactory() {}
 
@@ -35,15 +36,15 @@ public final class TestDataFactory {
                 .category(AssetCategory.STOCKS)
                 .status(AssetStatus.ACTIVE)
                 .priceMode(PriceMode.MANUAL)
-                .manualPrice(new BigDecimal("100"))
+                .issuerPrice(new BigDecimal("100"))
                 .totalSupply(new BigDecimal("1000"))
                 .circulatingSupply(BigDecimal.ZERO)
-                .spreadPercent(new BigDecimal("0.01"))
                 .tradingFeePercent(new BigDecimal("0.005"))
                 .decimalPlaces(0)
-                .treasuryClientId(TREASURY_CLIENT_ID)
-                .treasuryCashAccountId(TREASURY_CASH_ACCOUNT)
-                .treasuryAssetAccountId(TREASURY_ASSET_ACCOUNT)
+                .lpClientId(LP_CLIENT_ID)
+                .lpCashAccountId(LP_CASH_ACCOUNT)
+                .lpAssetAccountId(LP_ASSET_ACCOUNT)
+                .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
                 .fineractProductId(10)
                 .subscriptionStartDate(LocalDate.now().minusMonths(1))
                 .subscriptionEndDate(LocalDate.now().plusYears(1))
@@ -102,6 +103,7 @@ public final class TestDataFactory {
                 .cashAmount(new BigDecimal("1010"))
                 .fee(new BigDecimal("5"))
                 .spreadAmount(new BigDecimal("10"))
+                .buybackPremium(BigDecimal.ZERO)
                 .status(OrderStatus.FILLED)
                 .createdAt(Instant.now())
                 .build();
@@ -119,11 +121,12 @@ public final class TestDataFactory {
                 new BigDecimal("1000"),
                 0,
                 new BigDecimal("0.005"),
-                new BigDecimal("0.01"),
+                new BigDecimal("110"),
+                new BigDecimal("95"),
                 LocalDate.now().minusMonths(1),
                 LocalDate.now().plusYears(1),
                 null,
-                TREASURY_CLIENT_ID,
+                LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, null, null, null, null, // bond fields
                 null, null, null, null // income fields
@@ -142,11 +145,12 @@ public final class TestDataFactory {
                 new BigDecimal("500"),
                 0,
                 new BigDecimal("0.005"),
-                new BigDecimal("0.01"),
+                new BigDecimal("11000"),
+                new BigDecimal("9500"),
                 LocalDate.now().minusMonths(1),
                 LocalDate.now().plusYears(1),
                 null,
-                TREASURY_CLIENT_ID,
+                LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 "Etat du Sénégal",
                 "SN0000038741",
@@ -208,9 +212,9 @@ public final class TestDataFactory {
         return NotificationLog.builder()
                 .id(1L)
                 .userId(null)
-                .eventType("TREASURY_SHORTFALL")
-                .title("Treasury shortfall")
-                .body("Asset TST has insufficient treasury balance")
+                .eventType("LP_SHORTFALL")
+                .title("LP cash shortfall")
+                .body("Asset TST has insufficient LP cash balance")
                 .referenceId(ASSET_ID)
                 .referenceType("ASSET")
                 .read(false)
@@ -235,7 +239,7 @@ public final class TestDataFactory {
     public static Asset activeBondAsset() {
         Asset bond = activeAsset();
         bond.setCategory(AssetCategory.BONDS);
-        bond.setIssuer("Etat du Sénégal");
+        bond.setIssuerName("Etat du Sénégal");
         bond.setIsinCode("SN0000038741");
         bond.setMaturityDate(LocalDate.now().plusYears(5));
         bond.setInterestRate(new BigDecimal("5.80"));

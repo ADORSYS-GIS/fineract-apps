@@ -45,8 +45,8 @@ class NotificationServiceTest {
         assertThat(result.getContent()).hasSize(1);
         NotificationResponse dto = result.getContent().get(0);
         assertThat(dto.id()).isEqualTo(notif.getId());
-        assertThat(dto.eventType()).isEqualTo("TREASURY_SHORTFALL");
-        assertThat(dto.title()).isEqualTo("Treasury shortfall");
+        assertThat(dto.eventType()).isEqualTo("LP_SHORTFALL");
+        assertThat(dto.title()).isEqualTo("LP cash shortfall");
         assertThat(dto.read()).isFalse();
     }
 

@@ -21,7 +21,7 @@ public record CouponForecastResponse(
     BigDecimal principalAtMaturity,
     BigDecimal totalObligation,
     @Schema(description = "Balance of this asset's dedicated treasury cash account")
-    BigDecimal treasuryBalance,
+    BigDecimal lpCashBalance,
     BigDecimal shortfall,
     Integer couponsCoveredByBalance
 ) {}

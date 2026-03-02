@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  * Handles principal redemption for matured bonds.
  * <p>
  * Admin triggers redemption via POST /api/admin/assets/{id}/redeem.
- * For each holder: returns asset units to treasury and pays face value from treasury cash.
+ * For each holder: returns asset units to LP and pays face value from LP cash.
  * No fee or spread — principal is returned at par.
  */
 @Slf4j
@@ -67,11 +67,11 @@ public class PrincipalRedemptionService {
                     + "Only MATURED bonds can be redeemed.");
         }
 
-        if (bond.getTreasuryCashAccountId() == null || bond.getTreasuryAssetAccountId() == null) {
-            throw new AssetException("Bond " + bond.getSymbol() + " is missing treasury account configuration");
+        if (bond.getLpCashAccountId() == null || bond.getLpAssetAccountId() == null) {
+            throw new AssetException("Bond " + bond.getSymbol() + " is missing LP account configuration");
         }
 
-        BigDecimal faceValue = bond.getManualPrice();
+        BigDecimal faceValue = bond.getIssuerPrice();
         if (faceValue == null || faceValue.compareTo(BigDecimal.ZERO) <= 0) {
             throw new AssetException("Bond " + bond.getSymbol() + " has no face value configured");
         }
@@ -113,24 +113,24 @@ public class PrincipalRedemptionService {
                     AssetStatus.REDEEMED.name(), List.of());
         }
 
-        // 4. Pre-flight: calculate total obligation and check treasury balance
+        // 4. Pre-flight: calculate total obligation and check LP cash balance
         BigDecimal totalObligation = pendingHolders.stream()
                 .map(h -> h.getTotalUnits().multiply(faceValue).setScale(0, RoundingMode.HALF_UP))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal treasuryBalance = BigDecimal.ZERO;
+        BigDecimal lpCashBalance = BigDecimal.ZERO;
         try {
-            treasuryBalance = fineractClient.getAccountBalance(bond.getTreasuryCashAccountId());
+            lpCashBalance = fineractClient.getAccountBalance(bond.getLpCashAccountId());
         } catch (Exception e) {
-            log.warn("Could not check treasury balance for bond {}: {}", bond.getSymbol(), e.getMessage());
+            log.warn("Could not check LP cash balance for bond {}: {}", bond.getSymbol(), e.getMessage());
         }
 
-        if (treasuryBalance.compareTo(totalObligation) < 0) {
+        if (lpCashBalance.compareTo(totalObligation) < 0) {
             throw new AssetException(String.format(
-                    "Insufficient treasury balance for bond %s. "
+                    "Insufficient LP cash balance for bond %s. "
                     + "Required: %s XAF, Available: %s XAF, Shortfall: %s XAF",
-                    bond.getSymbol(), totalObligation, treasuryBalance,
-                    totalObligation.subtract(treasuryBalance)));
+                    bond.getSymbol(), totalObligation, lpCashBalance,
+                    totalObligation.subtract(lpCashBalance)));
         }
 
         log.info("Starting principal redemption for bond {}: {} pending holders (of {} total), obligation={}",
@@ -209,18 +209,18 @@ public class PrincipalRedemptionService {
                         + " account for user " + holder.getUserId());
             }
 
-            // b. Asset leg first: user asset account → treasury asset account
+            // b. Asset leg first: user asset account → LP asset account
             String assetDescription = String.format("Principal redemption — asset return: %s (%.8f units)",
                     bond.getSymbol(), units);
             Long assetTransferId = fineractClient.createAccountTransfer(
-                    holder.getFineractSavingsAccountId(), bond.getTreasuryAssetAccountId(),
+                    holder.getFineractSavingsAccountId(), bond.getLpAssetAccountId(),
                     units, assetDescription);
 
-            // c. Cash leg: treasury cash account → user XAF account
+            // c. Cash leg: LP cash account → user XAF account
             String cashDescription = String.format("Principal redemption: %s (%.8f units @ %s face value)",
                     bond.getSymbol(), units, faceValue);
             Long cashTransferId = fineractClient.createAccountTransfer(
-                    bond.getTreasuryCashAccountId(), userCashAccountId,
+                    bond.getLpCashAccountId(), userCashAccountId,
                     cashAmount, cashDescription);
 
             // d. Update position: zero out units, record realized P&L

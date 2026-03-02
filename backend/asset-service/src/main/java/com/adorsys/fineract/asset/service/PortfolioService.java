@@ -124,9 +124,9 @@ public class PortfolioService {
             Asset asset = assetMap.get(pos.getAssetId());
             if (asset != null && asset.getCategory() == AssetCategory.BONDS
                     && asset.getInterestRate() != null && asset.getCouponFrequencyMonths() != null
-                    && asset.getManualPrice() != null) {
+                    && asset.getIssuerPrice() != null) {
                 BigDecimal couponPerPeriod = pos.getTotalUnits()
-                        .multiply(asset.getManualPrice())
+                        .multiply(asset.getIssuerPrice())
                         .multiply(asset.getInterestRate())
                         .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(asset.getCouponFrequencyMonths()))

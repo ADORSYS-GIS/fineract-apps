@@ -71,7 +71,7 @@ public class IncomeCalendarService {
     private List<IncomeEvent> projectBondEvents(Asset bond, UserPosition pos, LocalDate horizon) {
         List<IncomeEvent> events = new ArrayList<>();
 
-        BigDecimal faceValue = bond.getManualPrice();
+        BigDecimal faceValue = bond.getIssuerPrice();
         BigDecimal rate = bond.getInterestRate();
         Integer freqMonths = bond.getCouponFrequencyMonths();
 

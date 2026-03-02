@@ -27,5 +27,5 @@ public record ScheduledPaymentResponse(
     BigDecimal totalAmountPaid,
     Instant executedAt,
     Instant createdAt,
-    BigDecimal treasuryBalance
+    BigDecimal lpCashBalance
 ) {}
