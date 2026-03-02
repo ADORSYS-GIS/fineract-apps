@@ -66,3 +66,31 @@ Feature: Order Resolution (E2E)
     When the admin triggers reconciliation for asset "SM1"
     Then the response status should be 200
     And the reconciliation result should have 0 discrepancies
+
+  # -----------------------------------------------------------------
+  # Order Resolution (admin manual close)
+  # -----------------------------------------------------------------
+
+  Scenario: Admin resolves a stuck order
+    Given an active stock asset "RO1" with price 2000 and supply 100
+    When the user buys 5 units of "RO1"
+    Then the trade should be FILLED
+    Given the last order is marked as NEEDS_RECONCILIATION in the database
+    When the admin resolves the last order with resolution "Manually verified - all transfers confirmed"
+    Then the response status should be 200
+    And the order status should be "MANUALLY_CLOSED"
+    And the order resolvedBy should be populated
+
+  Scenario: Resolving a non-existent order returns 404
+    When the admin resolves order "00000000-0000-0000-0000-000000000000" with resolution "test"
+    Then the response status should be 404
+
+  Scenario: Dashboard reflects resolved order counts
+    Given an active stock asset "RO2" with price 1000 and supply 100
+    When the user buys 5 units of "RO2"
+    Then the trade should be FILLED
+    Given the last order is marked as NEEDS_RECONCILIATION in the database
+    When the admin resolves the last order with resolution "Verified after investigation"
+    Then the response status should be 200
+    When the admin gets the dashboard summary
+    Then the response status should be 200

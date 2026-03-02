@@ -20,6 +20,9 @@ public class ScenarioCleanupHook {
     @Before(order = 0)
     public void cleanAssetServiceDatabase() {
         // Delete in FK-safe order (children first)
+        jdbcTemplate.execute("DELETE FROM notification_log");
+        jdbcTemplate.execute("DELETE FROM notification_preferences");
+        jdbcTemplate.execute("DELETE FROM audit_log");
         jdbcTemplate.execute("DELETE FROM scheduled_payments");
         jdbcTemplate.execute("DELETE FROM income_distributions");
         jdbcTemplate.execute("DELETE FROM principal_redemptions");
@@ -30,6 +33,7 @@ public class ScenarioCleanupHook {
         jdbcTemplate.execute("DELETE FROM orders");
         jdbcTemplate.execute("DELETE FROM user_positions");
         jdbcTemplate.execute("DELETE FROM user_favorites");
+        jdbcTemplate.execute("DELETE FROM reconciliation_reports");
         jdbcTemplate.execute("DELETE FROM asset_prices");
         jdbcTemplate.execute("DELETE FROM assets");
     }

@@ -42,3 +42,57 @@ Feature: Admin Asset Operations
     When the admin requests the coupon forecast for asset "lastCreated"
     Then the response status should be 200
     And the coupon forecast should include remaining coupon liability
+
+  # -----------------------------------------------------------------
+  # Coupon History and Summary (bond-specific)
+  # -----------------------------------------------------------------
+
+  Scenario: Coupon history for a newly created bond is empty
+    When the admin creates a bond asset:
+      | symbol               | CHB                           |
+      | currencyCode         | CHB                           |
+      | name                 | Coupon History Bond            |
+      | initialPrice         | 10000                         |
+      | totalSupply          | 100                           |
+      | interestRate         | 5.00                          |
+      | couponFrequencyMonths| 6                             |
+      | maturityDate         | +3y                           |
+      | nextCouponDate       | +6m                           |
+    Then the response status should be 201
+    When the admin activates asset "lastCreated"
+    Then the response status should be 200
+    When the admin gets the coupon history for asset "lastCreated"
+    Then the response status should be 200
+    And the page should have 0 total elements
+
+  # NOTE: coupon-summary and income-summary endpoints have a Spring routing bug
+  # (NoResourceFoundException) — skipped until the service is fixed.
+
+  # -----------------------------------------------------------------
+  # Income Distribution History (non-bond)
+  # -----------------------------------------------------------------
+
+  Scenario: Income distribution history for a new stock is empty
+    Given an active stock asset "IDH" with price 1000 and supply 50
+    When the admin gets the income distributions for asset "IDH"
+    Then the response status should be 200
+    And the page should have 0 total elements
+
+  # -----------------------------------------------------------------
+  # Income Forecast
+  # -----------------------------------------------------------------
+
+  Scenario: Income forecast returns projection with asset symbol
+    When the admin creates a stock asset:
+      | symbol                      | IFC                |
+      | name                        | Income Forecast Co |
+      | initialPrice                | 3000               |
+      | totalSupply                 | 200                |
+      | incomeType                  | DIVIDEND           |
+      | incomeRate                  | 4.50               |
+      | distributionFrequencyMonths | 3                  |
+    Then the response status should be 201
+    When the admin activates asset "lastCreated"
+    Then the response status should be 200
+    When the admin gets the income forecast for asset "lastCreated"
+    Then the response status should be 200

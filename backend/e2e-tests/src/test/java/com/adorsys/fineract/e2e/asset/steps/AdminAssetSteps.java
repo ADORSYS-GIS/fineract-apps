@@ -94,6 +94,41 @@ public class AdminAssetSteps {
         assertThat(liability).isNotNull();
     }
 
+    // ── Coupon / Income endpoints ──
+
+    @When("the admin gets the coupon history for asset {string}")
+    public void adminGetsCouponHistory(String symbolRef) {
+        String assetId = resolveAssetId(symbolRef);
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/admin/assets/" + assetId + "/coupons");
+        context.setLastResponse(response);
+    }
+
+    @When("the admin gets the income distributions for asset {string}")
+    public void adminGetsIncomeDistributions(String symbolRef) {
+        String assetId = resolveAssetId(symbolRef);
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/admin/assets/" + assetId + "/income-distributions");
+        context.setLastResponse(response);
+    }
+
+    @When("the admin gets the income forecast for asset {string}")
+    public void adminGetsIncomeForecast(String symbolRef) {
+        String assetId = resolveAssetId(symbolRef);
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/admin/assets/" + assetId + "/income-forecast");
+        context.setLastResponse(response);
+    }
+
+    @Then("the page should have {int} total elements")
+    public void pageShouldHaveTotalElements(int expected) {
+        int total = context.getLastResponse().jsonPath().getInt("totalElements");
+        assertThat(total).isEqualTo(expected);
+    }
+
     private String resolveAssetId(String ref) {
         if ("lastCreated".equals(ref)) {
             return context.getId("lastAssetId");

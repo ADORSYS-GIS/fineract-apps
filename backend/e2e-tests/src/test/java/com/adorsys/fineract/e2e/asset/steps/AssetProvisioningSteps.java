@@ -84,6 +84,18 @@ public class AssetProvisioningSteps {
         request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
+        // Optional income distribution fields
+        if (data.containsKey("incomeType")) {
+            request.put("incomeType", data.get("incomeType"));
+        }
+        if (data.containsKey("incomeRate")) {
+            request.put("incomeRate", new BigDecimal(data.get("incomeRate")));
+        }
+        if (data.containsKey("distributionFrequencyMonths")) {
+            request.put("distributionFrequencyMonths",
+                    Integer.parseInt(data.get("distributionFrequencyMonths")));
+        }
+
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)

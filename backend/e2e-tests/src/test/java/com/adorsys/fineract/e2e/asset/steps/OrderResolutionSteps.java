@@ -4,9 +4,12 @@ import com.adorsys.fineract.e2e.support.E2EScenarioContext;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
+
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -87,6 +90,47 @@ public class OrderResolutionSteps {
     public void reconciliationResultShouldHaveDiscrepancies(int expected) {
         int discrepancies = context.getLastResponse().jsonPath().getInt("discrepancies");
         assertThat(discrepancies).isEqualTo(expected);
+    }
+
+    // ── Order Resolution ──
+
+    @When("the admin resolves the last order with resolution {string}")
+    public void adminResolvesLastOrder(String resolution) {
+        String orderId = context.getValue("lastOrderId");
+        if (orderId == null) {
+            orderId = context.getLastResponse().jsonPath().getString("orderId");
+        }
+        assertThat(orderId).as("No order ID found in context").isNotNull();
+
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .body(Map.of("resolution", resolution))
+                .post("/api/admin/orders/" + orderId + "/resolve");
+        context.setLastResponse(response);
+    }
+
+    @When("the admin resolves order {string} with resolution {string}")
+    public void adminResolvesOrderById(String orderId, String resolution) {
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .body(Map.of("resolution", resolution))
+                .post("/api/admin/orders/" + orderId + "/resolve");
+        context.setLastResponse(response);
+    }
+
+    @Then("the order status should be {string}")
+    public void orderStatusShouldBe(String expectedStatus) {
+        String status = context.getLastResponse().jsonPath().getString("status");
+        assertThat(status).isEqualTo(expectedStatus);
+    }
+
+    @Then("the order resolvedBy should be populated")
+    public void orderResolvedByShouldBePopulated() {
+        String resolvedBy = context.getLastResponse().jsonPath().getString("resolvedBy");
+        assertThat(resolvedBy).isNotNull();
+        assertThat(resolvedBy).isNotBlank();
     }
 
     // ── Helpers ──
