@@ -264,6 +264,8 @@ export interface CouponPaymentResponse {
 
 export interface SetPriceRequest {
 	price: number;
+	bidPrice?: number;
+	askPrice?: number;
 }
 
 /** Inventory stats (matches backend InventoryResponse). */

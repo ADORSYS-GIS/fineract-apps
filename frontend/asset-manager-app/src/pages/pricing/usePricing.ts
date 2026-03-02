@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { assetApi, extractErrorMessage } from "@/services/assetApi";
+import {
+	assetApi,
+	extractErrorMessage,
+	type SetPriceRequest,
+} from "@/services/assetApi";
 
 export const usePricing = () => {
 	const { assetId } = useParams({ from: "/pricing/$assetId" });
@@ -29,8 +33,7 @@ export const usePricing = () => {
 	});
 
 	const setPriceMutation = useMutation({
-		mutationFn: (newPrice: number) =>
-			assetApi.setPrice(assetId, { price: newPrice }),
+		mutationFn: (req: SetPriceRequest) => assetApi.setPrice(assetId, req),
 		onSuccess: () => {
 			toast.success("Price updated");
 			queryClient.invalidateQueries({ queryKey: ["price", assetId] });
@@ -49,7 +52,7 @@ export const usePricing = () => {
 		isLoadingHistory,
 		period,
 		setPeriod,
-		onSetPrice: (p: number) => setPriceMutation.mutate(p),
+		onSetPrice: (req: SetPriceRequest) => setPriceMutation.mutate(req),
 		isSettingPrice: setPriceMutation.isPending,
 	};
 };

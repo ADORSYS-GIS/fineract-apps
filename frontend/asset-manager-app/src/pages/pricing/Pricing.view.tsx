@@ -1,6 +1,6 @@
 import { Button, Card } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { FC, useState } from "react";
 import {
 	CartesianGrid,
@@ -11,6 +11,7 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import { type SetPriceRequest } from "@/services/assetApi";
 import { usePricing } from "./usePricing";
 
 const PERIODS = ["1D", "1W", "1M", "3M", "1Y", "ALL"];
@@ -28,13 +29,38 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 	isSettingPrice,
 }) => {
 	const [manualPrice, setManualPrice] = useState("");
+	const [overrideBidAsk, setOverrideBidAsk] = useState(false);
+	const [manualBid, setManualBid] = useState("");
+	const [manualAsk, setManualAsk] = useState("");
+
+	const newPrice = Number(manualPrice);
+	const currentPrice = price?.currentPrice ?? 0;
+	const currentBid = price?.bidPrice ?? 0;
+	const currentAsk = price?.askPrice ?? 0;
+
+	// Live-preview derived bid/ask as admin types
+	const derivedBid =
+		currentPrice > 0 && Number.isFinite(newPrice) && newPrice > 0
+			? Math.round(newPrice * (currentBid / currentPrice))
+			: null;
+	const derivedAsk =
+		currentPrice > 0 && Number.isFinite(newPrice) && newPrice > 0
+			? Math.round(newPrice * (currentAsk / currentPrice))
+			: null;
 
 	const handleSetPrice = () => {
-		const p = Number(manualPrice);
-		if (Number.isFinite(p) && p > 0) {
-			onSetPrice(p);
-			setManualPrice("");
+		if (!Number.isFinite(newPrice) || newPrice <= 0) return;
+		const req: SetPriceRequest = { price: newPrice };
+		if (overrideBidAsk) {
+			const bid = Number(manualBid);
+			const ask = Number(manualAsk);
+			if (Number.isFinite(bid) && bid > 0) req.bidPrice = bid;
+			if (Number.isFinite(ask) && ask > 0) req.askPrice = ask;
 		}
+		onSetPrice(req);
+		setManualPrice("");
+		setManualBid("");
+		setManualAsk("");
 	};
 
 	return (
@@ -166,6 +192,71 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 							)}
 						</Button>
 					</div>
+
+					{/* Derived bid/ask preview */}
+					{derivedBid !== null && derivedAsk !== null && (
+						<p className="text-sm text-gray-500 mt-2">
+							Bid &rarr;{" "}
+							<span className="font-mono text-red-600">
+								{derivedBid.toLocaleString()}
+							</span>{" "}
+							XAF &nbsp;&nbsp; Ask &rarr;{" "}
+							<span className="font-mono text-green-600">
+								{derivedAsk.toLocaleString()}
+							</span>{" "}
+							XAF
+						</p>
+					)}
+					<p className="text-xs text-gray-400 mt-1">
+						Bid/ask auto-scale proportionally. Toggle override to set manually.
+					</p>
+
+					{/* Override bid/ask toggle */}
+					<button
+						type="button"
+						className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mt-3"
+						onClick={() => setOverrideBidAsk(!overrideBidAsk)}
+					>
+						{overrideBidAsk ? (
+							<ChevronDown className="h-4 w-4" />
+						) : (
+							<ChevronRight className="h-4 w-4" />
+						)}
+						Override bid/ask
+					</button>
+
+					{overrideBidAsk && (
+						<div className="grid grid-cols-2 gap-3 mt-2">
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1">
+									Bid Price (XAF)
+								</label>
+								<input
+									type="number"
+									aria-label="Bid price"
+									className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									placeholder={derivedBid?.toLocaleString() ?? "Bid..."}
+									value={manualBid}
+									onChange={(e) => setManualBid(e.target.value)}
+									min={0}
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1">
+									Ask Price (XAF)
+								</label>
+								<input
+									type="number"
+									aria-label="Ask price"
+									className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									placeholder={derivedAsk?.toLocaleString() ?? "Ask..."}
+									value={manualAsk}
+									onChange={(e) => setManualAsk(e.target.value)}
+									min={0}
+								/>
+							</div>
+						</div>
+					)}
 				</Card>
 
 				{/* Price History */}
