@@ -332,7 +332,7 @@ export interface IncomeForecastResponse {
 	distributionFrequencyMonths: number;
 	nextDistributionDate: string;
 	totalUnitsOutstanding: number;
-	currentPrice: number;
+	faceValue: number;
 	incomePerPeriod: number;
 	lpCashBalance: number;
 	shortfall: number;

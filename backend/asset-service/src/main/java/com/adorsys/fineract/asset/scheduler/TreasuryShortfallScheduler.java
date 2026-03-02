@@ -5,7 +5,7 @@ import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.event.TreasuryShortfallEvent;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
-import com.adorsys.fineract.asset.repository.AssetPriceRepository;
+
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,6 @@ import java.util.List;
 public class TreasuryShortfallScheduler {
 
     private final AssetRepository assetRepository;
-    private final AssetPriceRepository assetPriceRepository;
     private final UserPositionRepository userPositionRepository;
     private final FineractClient fineractClient;
     private final ApplicationEventPublisher eventPublisher;
@@ -100,18 +99,17 @@ public class TreasuryShortfallScheduler {
 
         if (holders.isEmpty()) return;
 
-        BigDecimal currentPrice = assetPriceRepository.findById(asset.getId())
-                .map(p -> p.getCurrentPrice())
-                .orElse(BigDecimal.ZERO);
+        BigDecimal faceValue = asset.getIssuerPrice() != null
+                ? asset.getIssuerPrice() : BigDecimal.ZERO;
 
         BigDecimal rate = asset.getIncomeRate();
         int frequencyMonths = asset.getDistributionFrequencyMonths();
 
-        // Calculate total obligation: sum of (units * currentPrice * rate/100 * freq/12) per holder
+        // Calculate total obligation: sum of (units * faceValue * rate/100 * freq/12) per holder
         BigDecimal totalObligation = BigDecimal.ZERO;
         for (UserPosition h : holders) {
             BigDecimal incomeAmount = h.getTotalUnits()
-                    .multiply(currentPrice)
+                    .multiply(faceValue)
                     .multiply(rate)
                     .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(frequencyMonths))

@@ -59,11 +59,11 @@ public class AssetPrice {
     @Column(name = "day_close", precision = 20, scale = 0)
     private BigDecimal dayClose;
 
-    /** Best price a seller receives (currentPrice - spread). Computed, not manually set. */
+    /** Best price a seller receives. Set by LP or auto-derived when reference price changes. */
     @Column(name = "bid_price", precision = 20, scale = 0)
     private BigDecimal bidPrice;
 
-    /** Price a buyer pays (currentPrice + spread). Computed, not manually set. */
+    /** Price a buyer pays. Set by LP or auto-derived when reference price changes. */
     @Column(name = "ask_price", precision = 20, scale = 0)
     private BigDecimal askPrice;
 

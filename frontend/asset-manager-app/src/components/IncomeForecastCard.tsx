@@ -102,9 +102,9 @@ export const IncomeForecastCard: FC<Props> = ({ assetId }) => {
 						value={`${forecast.incomeRate}%`}
 					/>
 					<Row
-						label="Current price"
-						description="Market price used for income calculation"
-						value={`${fmt(forecast.currentPrice)} XAF`}
+						label="Face value"
+						description="Issuer price used for income calculation"
+						value={`${fmt(forecast.faceValue)} XAF`}
 					/>
 				</div>
 

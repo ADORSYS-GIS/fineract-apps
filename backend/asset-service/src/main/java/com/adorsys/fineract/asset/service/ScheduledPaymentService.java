@@ -87,11 +87,10 @@ public class ScheduledPaymentService {
             }
         } else {
             estimatedRate = asset.getIncomeRate();
-            BigDecimal currentPrice = assetPriceRepository.findById(asset.getId())
-                    .map(p -> p.getCurrentPrice())
-                    .orElse(BigDecimal.ZERO);
+            BigDecimal faceValue = asset.getIssuerPrice() != null
+                    ? asset.getIssuerPrice() : BigDecimal.ZERO;
             int frequencyMonths = asset.getDistributionFrequencyMonths();
-            estimatedAmountPerUnit = currentPrice
+            estimatedAmountPerUnit = faceValue
                     .multiply(estimatedRate)
                     .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(frequencyMonths))

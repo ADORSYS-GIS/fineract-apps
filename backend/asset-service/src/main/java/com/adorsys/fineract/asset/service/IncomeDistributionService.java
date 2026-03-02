@@ -7,7 +7,6 @@ import com.adorsys.fineract.asset.entity.IncomeDistribution;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.event.IncomePaidEvent;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
-import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.IncomeDistributionRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
@@ -26,7 +25,7 @@ import java.util.List;
  * Processes income distributions (dividends, rent, harvest yields) for non-bond assets.
  * Follows the same pattern as InterestPaymentScheduler but for generic income types.
  *
- * Formula: cashAmount = units * currentPrice * (incomeRate / 100) * (frequencyMonths / 12)
+ * Formula: cashAmount = units * faceValue * (incomeRate / 100) * (frequencyMonths / 12)
  */
 @Slf4j
 @Service
@@ -34,7 +33,6 @@ import java.util.List;
 public class IncomeDistributionService {
 
     private final AssetRepository assetRepository;
-    private final AssetPriceRepository assetPriceRepository;
     private final UserPositionRepository userPositionRepository;
     private final IncomeDistributionRepository incomeDistributionRepository;
     private final FineractClient fineractClient;
@@ -53,25 +51,24 @@ public class IncomeDistributionService {
             return;
         }
 
-        BigDecimal currentPrice = assetPriceRepository.findById(asset.getId())
-                .map(p -> p.getCurrentPrice())
-                .orElse(BigDecimal.ZERO);
+        BigDecimal faceValue = asset.getIssuerPrice() != null
+                ? asset.getIssuerPrice() : BigDecimal.ZERO;
 
         BigDecimal rate = asset.getIncomeRate();
         int frequencyMonths = asset.getDistributionFrequencyMonths();
         String incomeType = asset.getIncomeType();
 
-        log.info("Processing {} distribution for asset {}: {} holders, rate={}%, frequency={}m, price={}",
-                incomeType, asset.getSymbol(), holders.size(), rate, frequencyMonths, currentPrice);
+        log.info("Processing {} distribution for asset {}: {} holders, rate={}%, frequency={}m, faceValue={}",
+                incomeType, asset.getSymbol(), holders.size(), rate, frequencyMonths, faceValue);
 
         int successCount = 0;
         int failCount = 0;
         BigDecimal totalPaid = BigDecimal.ZERO;
 
         for (UserPosition holder : holders) {
-            // cashAmount = units * currentPrice * (rate/100) * (frequencyMonths/12)
+            // cashAmount = units * faceValue * (rate/100) * (frequencyMonths/12)
             BigDecimal cashAmount = holder.getTotalUnits()
-                    .multiply(currentPrice)
+                    .multiply(faceValue)
                     .multiply(rate)
                     .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(frequencyMonths))

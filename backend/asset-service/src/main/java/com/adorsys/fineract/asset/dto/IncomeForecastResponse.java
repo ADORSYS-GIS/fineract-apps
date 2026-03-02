@@ -14,7 +14,8 @@ public record IncomeForecastResponse(
     Integer distributionFrequencyMonths,
     LocalDate nextDistributionDate,
     BigDecimal totalUnitsOutstanding,
-    BigDecimal currentPrice,
+    @Schema(description = "Face value (issuer price) used for income calculation")
+    BigDecimal faceValue,
     BigDecimal incomePerPeriod,
     @Schema(description = "Balance of this asset's dedicated treasury cash account")
     BigDecimal lpCashBalance,

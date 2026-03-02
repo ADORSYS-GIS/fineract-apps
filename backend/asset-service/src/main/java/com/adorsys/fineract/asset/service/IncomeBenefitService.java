@@ -29,18 +29,18 @@ public class IncomeBenefitService {
      *
      * @param asset          the asset (must have incomeType set, must NOT be BONDS)
      * @param units          number of units being purchased
-     * @param currentPrice   current market price per unit
+     * @param faceValue      face value (issuer price) per unit, used for income calculation
      * @param investmentCost total cost to buyer (grossAmount + fee), for yield calculation
      * @return projection record, or null if asset has no income or is a bond
      */
     public IncomeBenefitProjection calculateForPurchase(Asset asset, BigDecimal units,
-                                                         BigDecimal currentPrice,
+                                                         BigDecimal faceValue,
                                                          BigDecimal investmentCost) {
         if (!isIncomeAsset(asset)) {
             return null;
         }
 
-        BigDecimal incomePerPeriod = computeIncomePerPeriod(units, currentPrice,
+        BigDecimal incomePerPeriod = computeIncomePerPeriod(units, faceValue,
                 asset.getIncomeRate(), asset.getDistributionFrequencyMonths());
         BigDecimal annualIncome = computeAnnualIncome(incomePerPeriod,
                 asset.getDistributionFrequencyMonths());
@@ -54,7 +54,7 @@ public class IncomeBenefitService {
                 incomePerPeriod,
                 annualIncome,
                 yieldPercent,
-                true // always variable — based on market price
+                false // based on face value (issuer price), not market price
         );
     }
 
@@ -62,18 +62,18 @@ public class IncomeBenefitService {
      * Calculate income projections for an existing holding in a portfolio.
      * Investment cost and yield are not applicable (null).
      *
-     * @param asset        the asset
-     * @param units        number of units currently held
-     * @param currentPrice current market price per unit
+     * @param asset     the asset
+     * @param units     number of units currently held
+     * @param faceValue face value (issuer price) per unit, used for income calculation
      * @return projection record, or null if asset has no income or is a bond
      */
     public IncomeBenefitProjection calculateForHolding(Asset asset, BigDecimal units,
-                                                        BigDecimal currentPrice) {
+                                                        BigDecimal faceValue) {
         if (!isIncomeAsset(asset)) {
             return null;
         }
 
-        BigDecimal incomePerPeriod = computeIncomePerPeriod(units, currentPrice,
+        BigDecimal incomePerPeriod = computeIncomePerPeriod(units, faceValue,
                 asset.getIncomeRate(), asset.getDistributionFrequencyMonths());
         BigDecimal annualIncome = computeAnnualIncome(incomePerPeriod,
                 asset.getDistributionFrequencyMonths());
@@ -86,7 +86,7 @@ public class IncomeBenefitService {
                 incomePerPeriod,
                 annualIncome,
                 null, // no yield in portfolio context
-                true
+                false // based on face value (issuer price), not market price
         );
     }
 
@@ -107,13 +107,13 @@ public class IncomeBenefitService {
     }
 
     /**
-     * Income per period formula — matches IncomeDistributionService:72-78.
-     * {@code units * currentPrice * (rate / 100) * (frequencyMonths / 12)}
+     * Income per period formula — matches IncomeDistributionService.
+     * {@code units * faceValue * (rate / 100) * (frequencyMonths / 12)}
      */
-    BigDecimal computeIncomePerPeriod(BigDecimal units, BigDecimal currentPrice,
+    BigDecimal computeIncomePerPeriod(BigDecimal units, BigDecimal faceValue,
                                        BigDecimal rate, int frequencyMonths) {
         return units
-                .multiply(currentPrice)
+                .multiply(faceValue)
                 .multiply(rate)
                 .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(frequencyMonths))

@@ -75,11 +75,13 @@ public class PortfolioService {
             totalValue = totalValue.add(marketValue);
             totalCostBasis = totalCostBasis.add(pos.getTotalCostBasis());
 
+            BigDecimal faceValue = asset != null && asset.getIssuerPrice() != null
+                    ? asset.getIssuerPrice() : currentPrice;
             BondBenefitProjection bondBenefit = asset != null
                     ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
                     : null;
             IncomeBenefitProjection incomeBenefit = asset != null
-                    ? incomeBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
+                    ? incomeBenefitService.calculateForHolding(asset, pos.getTotalUnits(), faceValue)
                     : null;
 
             positionResponses.add(new PositionResponse(
@@ -174,11 +176,13 @@ public class PortfolioService {
                         .multiply(new BigDecimal("100"))
                 : BigDecimal.ZERO;
 
+        BigDecimal faceValue = asset != null && asset.getIssuerPrice() != null
+                ? asset.getIssuerPrice() : currentPrice;
         BondBenefitProjection bondBenefit = asset != null
                 ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
                 : null;
         IncomeBenefitProjection incomeBenefit = asset != null
-                ? incomeBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
+                ? incomeBenefitService.calculateForHolding(asset, pos.getTotalUnits(), faceValue)
                 : null;
 
         return new PositionResponse(

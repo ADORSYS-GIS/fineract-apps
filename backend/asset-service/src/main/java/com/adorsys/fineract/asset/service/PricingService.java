@@ -131,8 +131,10 @@ public class PricingService {
 
     /**
      * Manually set an asset's price (admin).
-     * If bid/ask prices are provided in the request, they are set directly
-     * (LP model: bid/ask are set by the liquidity partner, not calculated from spread).
+     * If bid/ask prices are provided in the request, they are set directly.
+     * Otherwise, bid/ask are auto-derived by scaling proportionally to maintain
+     * the existing spread structure (e.g. if ask was 2% above reference price,
+     * it stays 2% above the new reference price).
      */
     @Transactional
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
@@ -168,12 +170,22 @@ public class PricingService {
             price.setDayLow(request.price());
         }
 
-        // LP model: set bid/ask directly if provided, otherwise leave them unchanged
-        if (request.bidPrice() != null) {
-            price.setBidPrice(request.bidPrice());
-        }
-        if (request.askPrice() != null) {
-            price.setAskPrice(request.askPrice());
+        // Update bid/ask: use explicit values if provided, otherwise auto-derive
+        if (request.bidPrice() != null || request.askPrice() != null) {
+            // Explicit bid/ask provided — use directly
+            if (request.bidPrice() != null) price.setBidPrice(request.bidPrice());
+            if (request.askPrice() != null) price.setAskPrice(request.askPrice());
+        } else if (oldPrice.compareTo(BigDecimal.ZERO) > 0
+                && price.getBidPrice() != null && price.getAskPrice() != null) {
+            // Auto-derive: scale bid/ask proportionally to maintain spread structure
+            BigDecimal bidRatio = price.getBidPrice()
+                    .divide(oldPrice, 6, RoundingMode.HALF_UP);
+            BigDecimal askRatio = price.getAskPrice()
+                    .divide(oldPrice, 6, RoundingMode.HALF_UP);
+            price.setBidPrice(request.price().multiply(bidRatio)
+                    .setScale(0, RoundingMode.HALF_UP));
+            price.setAskPrice(request.price().multiply(askRatio)
+                    .setScale(0, RoundingMode.HALF_UP));
         }
 
         assetPriceRepository.save(price);
@@ -196,7 +208,8 @@ public class PricingService {
         // Invalidate cache
         redisTemplate.delete(PRICE_CACHE_PREFIX + assetId);
 
-        log.info("Set price for asset {}: {} -> {}", assetId, oldPrice, request.price());
+        log.info("Set price for asset {}: {} -> {} (bid={}, ask={})",
+                assetId, oldPrice, request.price(), price.getBidPrice(), price.getAskPrice());
     }
 
     /**
