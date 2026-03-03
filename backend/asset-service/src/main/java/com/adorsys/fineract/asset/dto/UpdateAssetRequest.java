@@ -51,6 +51,12 @@ public record UpdateAssetRequest(
     /** New lock-up period in days. Null to keep current. */
     @Schema(description = "Lock-up period in days after first purchase.")
     Integer lockupDays,
+    /** New min order size in units. Null to keep current. */
+    @Schema(description = "Minimum units per single order.")
+    @PositiveOrZero BigDecimal minOrderSize,
+    /** New min order cash amount in XAF. Null to keep current. */
+    @Schema(description = "Minimum XAF amount per single order.")
+    @PositiveOrZero BigDecimal minOrderCashAmount,
 
     // ── Income distribution ──
 

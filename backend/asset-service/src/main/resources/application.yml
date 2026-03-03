@@ -7,6 +7,11 @@ spring:
   application:
     name: asset-service
 
+  # Virtual threads (Java 21) — prevents thread exhaustion from blocking FineractClient calls
+  threads:
+    virtual:
+      enabled: true
+
   # Database configuration
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/asset_service}
@@ -124,6 +129,16 @@ resilience4j:
         recordExceptions:
           - com.adorsys.fineract.asset.exception.AssetException
           - org.springframework.web.reactive.function.client.WebClientResponseException
+  retry:
+    instances:
+      fineract:
+        maxAttempts: 3
+        waitDuration: 500ms
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException$ServiceUnavailable
+          - org.springframework.web.reactive.function.client.WebClientResponseException$GatewayTimeout
+          - java.util.concurrent.TimeoutException
   timelimiter:
     instances:
       fineract:

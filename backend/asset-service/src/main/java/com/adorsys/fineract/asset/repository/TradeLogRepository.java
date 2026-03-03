@@ -27,4 +27,21 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, String> {
     long countDistinctTradersSince(@Param("since") Instant since);
 
     long countByExecutedAtAfter(Instant since);
+
+    /** Aggregate LP performance: spread, buyback premium, fee per asset. */
+    @Query("SELECT t.assetId, " +
+           "COALESCE(SUM(t.spreadAmount), 0), " +
+           "COALESCE(SUM(t.buybackPremium), 0), " +
+           "COALESCE(SUM(t.fee), 0), " +
+           "COUNT(t) " +
+           "FROM TradeLog t GROUP BY t.assetId")
+    List<Object[]> aggregateLPPerformanceByAsset();
+
+    /** Total LP performance across all assets. */
+    @Query("SELECT COALESCE(SUM(t.spreadAmount), 0), " +
+           "COALESCE(SUM(t.buybackPremium), 0), " +
+           "COALESCE(SUM(t.fee), 0), " +
+           "COUNT(t) " +
+           "FROM TradeLog t")
+    Object[] aggregateTotalLPPerformance();
 }

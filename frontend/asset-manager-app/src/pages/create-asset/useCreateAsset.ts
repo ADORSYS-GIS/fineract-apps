@@ -35,6 +35,9 @@ export interface AssetFormData {
 	maxPositionPercent: number;
 	maxOrderSize: number;
 	dailyTradeLimitXaf: number;
+	// Step 3 continued: Min order size
+	minOrderSize: number;
+	minOrderCashAmount: number;
 	// Step 4: Supply & Subscription
 	totalSupply: number;
 	decimalPlaces: number;
@@ -86,6 +89,8 @@ const initialFormData: AssetFormData = {
 	maxPositionPercent: 0,
 	maxOrderSize: 0,
 	dailyTradeLimitXaf: 0,
+	minOrderSize: 0,
+	minOrderCashAmount: 0,
 	totalSupply: 0,
 	decimalPlaces: 0,
 	subscriptionStartDate: today(),
@@ -284,6 +289,9 @@ export const useCreateAsset = () => {
 			maxPositionPercent: formData.maxPositionPercent || undefined,
 			maxOrderSize: formData.maxOrderSize || undefined,
 			dailyTradeLimitXaf: formData.dailyTradeLimitXaf || undefined,
+			// Min order size (only if set)
+			minOrderSize: formData.minOrderSize || undefined,
+			minOrderCashAmount: formData.minOrderCashAmount || undefined,
 			// Lock-up
 			lockupDays: formData.lockupDays || undefined,
 			// Income distribution (non-bond)

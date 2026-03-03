@@ -4,7 +4,7 @@ import com.adorsys.fineract.asset.dto.TradeSide;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
@@ -14,10 +14,10 @@ import java.time.Instant;
  * Immutable record of an executed trade. Created once when an order is filled.
  * Stores the execution details and, for SELL trades, the realized P&L.
  */
-@Data
+@Getter
 @Entity
 @Builder
-@NoArgsConstructor
+@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "trade_log")
 public class TradeLog {
@@ -63,6 +63,10 @@ public class TradeLog {
     @Column(name = "spread_amount", nullable = false, precision = 20, scale = 0)
     private BigDecimal spreadAmount;
 
+    /** Buyback premium for SELL trades where bid > issuer price. Zero otherwise. */
+    @Column(name = "buyback_premium", nullable = false, precision = 20, scale = 0)
+    private BigDecimal buybackPremium;
+
     /** Realized profit/loss from this trade, in settlement currency. Only set for SELL trades: (sellPrice - avgPurchasePrice) × units. Null for BUY trades. */
     @Column(name = "realized_pnl", precision = 20, scale = 0)
     private BigDecimal realizedPnl;
@@ -84,5 +88,6 @@ public class TradeLog {
         if (executedAt == null) executedAt = Instant.now();
         if (fee == null) fee = BigDecimal.ZERO;
         if (spreadAmount == null) spreadAmount = BigDecimal.ZERO;
+        if (buybackPremium == null) buybackPremium = BigDecimal.ZERO;
     }
 }

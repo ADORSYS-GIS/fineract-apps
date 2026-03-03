@@ -4,6 +4,7 @@ import com.adorsys.fineract.asset.entity.AuditLog;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.AuditLogRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -13,6 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Instant;
 
@@ -33,7 +36,8 @@ public class AuditLogAspect {
     @Around("execution(* com.adorsys.fineract.asset.controller.AdminAssetController.*(..)) || "
           + "execution(* com.adorsys.fineract.asset.controller.AdminOrderController.*(..)) || "
           + "execution(* com.adorsys.fineract.asset.controller.AdminReconciliationController.*(..)) || "
-          + "execution(* com.adorsys.fineract.asset.controller.AdminDashboardController.*(..))")
+          + "execution(* com.adorsys.fineract.asset.controller.AdminDashboardController.*(..)) || "
+          + "execution(* com.adorsys.fineract.asset.controller.TradeController.*(..))")
     public Object auditAdminAction(ProceedingJoinPoint joinPoint) throws Throwable {
         String action = joinPoint.getSignature().getName();
         String admin = extractAdminIdentity();
@@ -71,6 +75,8 @@ public class AuditLogAspect {
                     .errorMessage(truncate(error, 500))
                     .durationMs(durationMs)
                     .requestSummary(requestSummary)
+                    .clientIp(extractClientIp())
+                    .userAgent(truncate(extractUserAgent(), 500))
                     .performedAt(Instant.now())
                     .build());
         } catch (Exception e) {
@@ -120,6 +126,31 @@ public class AuditLogAspect {
             }
         }
         return "n/a";
+    }
+
+    private String extractClientIp() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs == null) return null;
+            HttpServletRequest request = attrs.getRequest();
+            String xff = request.getHeader("X-Forwarded-For");
+            if (xff != null && !xff.isBlank()) {
+                return xff.split(",")[0].trim();
+            }
+            return request.getRemoteAddr();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String extractUserAgent() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs == null) return null;
+            return attrs.getRequest().getHeader("User-Agent");
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static String truncate(String s, int maxLen) {

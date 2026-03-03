@@ -57,6 +57,12 @@ public record CreateAssetRequest(
     /** Lock-up period in days from first purchase. Null = no lock-up. */
     @Schema(description = "Lock-up period in days after first purchase.")
     @Min(0) Integer lockupDays,
+    /** Min units per single order. Null = no minimum. */
+    @Schema(description = "Minimum units per single order.")
+    @PositiveOrZero BigDecimal minOrderSize,
+    /** Min XAF amount per single order. Null = no minimum. */
+    @Schema(description = "Minimum XAF amount per single order.")
+    @PositiveOrZero BigDecimal minOrderCashAmount,
 
     // ── Bond / fixed-income fields (required when category = BONDS) ──
 

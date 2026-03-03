@@ -9,6 +9,8 @@ CREATE TABLE audit_log (
     error_message   VARCHAR(500),
     duration_ms     BIGINT          NOT NULL DEFAULT 0,
     request_summary TEXT,
+    client_ip       VARCHAR(45),
+    user_agent      VARCHAR(500),
     performed_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 

@@ -377,6 +377,24 @@ For each ACTIVE bond where `nextCouponDate <= today`:
 
 Individual holder failures do not block other holders. Failed payments are logged and can be viewed via the coupon history endpoint.
 
+### Queued Order Processing (daily at 08:01 WAT, Mon-Fri)
+
+Processes orders submitted outside market hours:
+1. Fetches all `QUEUED` orders in FIFO order (oldest first)
+2. For each order, checks if the current price has moved > 5% from the `queuedPrice`
+3. Stale orders (price moved too much) are **REJECTED** with reason "Price moved beyond stale threshold"
+4. Non-stale orders are promoted to **PENDING** for normal execution
+
+Configuration: `asset-service.queued-orders.stale-price-threshold-percent` (default: `5`)
+
+### Accrued Interest (daily at 00:30 WAT)
+
+Daily interest accrual for bond positions:
+1. Finds all ACTIVE bonds with an interest rate set
+2. For each bond holder with positive units: `dailyAccrual = units × issuerPrice × (rate / 100) / 365`
+3. Adds the daily accrual to the position's `accruedInterest` field
+4. On coupon payment, `accruedInterest` is reset to zero
+
 ### Stale Order Cleanup (every 5 minutes)
 
 - **PENDING orders** older than 30 minutes (configurable via `asset-service.orders.stale-cleanup-minutes`) are marked as **FAILED** with a timeout reason
@@ -411,15 +429,26 @@ Control risk by setting per-asset limits on trading activity. All fields are opt
 
 | Field | Description |
 |-------|-------------|
+| `minOrderSize` | Min units per single order. `null` or `0` = no minimum. |
+| `minOrderCashAmount` | Min XAF amount per single order. `null` or `0` = no minimum. |
 | `maxPositionPercent` | Max % of totalSupply a single user can hold (e.g. `10.00` = 10%) |
 | `maxOrderSize` | Max units in a single BUY or SELL order |
 | `dailyTradeLimitXaf` | Max XAF value a user can trade per day for this asset |
 
+### Platform-Wide Limits (application.yml)
+
+| Setting | Description |
+|---------|-------------|
+| `asset-service.portfolio-exposure-limit-xaf` | Max total portfolio value (XAF) a user can hold across all assets. BUY-only check. `null` = unlimited. |
+
 ### Behavior
 
-- **Max Position %**: On BUY, the system checks `(currentHolding + orderUnits) / totalSupply * 100 <= maxPositionPercent`. Rejected with `MAX_POSITION_EXCEEDED`.
-- **Max Order Size**: On BUY or SELL, `orderUnits <= maxOrderSize`. Rejected with `MAX_ORDER_SIZE_EXCEEDED`.
-- **Daily Trade Limit**: On BUY or SELL, `todayVolume + orderXafAmount <= dailyTradeLimitXaf`. Resets at midnight WAT. Rejected with `DAILY_VOLUME_EXCEEDED`.
+- **Min Order Size**: On BUY or SELL, `orderUnits >= minOrderSize`. Rejected with `MIN_ORDER_SIZE_NOT_MET`.
+- **Min Order Cash Amount**: On BUY or SELL, `orderXafAmount >= minOrderCashAmount`. Rejected with `MIN_ORDER_CASH_NOT_MET`.
+- **Max Position %**: On BUY, the system checks `(currentHolding + orderUnits) / totalSupply * 100 <= maxPositionPercent`. Rejected with `POSITION_LIMIT_EXCEEDED`.
+- **Max Order Size**: On BUY or SELL, `orderUnits <= maxOrderSize`. Rejected with `ORDER_SIZE_LIMIT_EXCEEDED`.
+- **Daily Trade Limit**: On BUY or SELL, `todayVolume + orderXafAmount <= dailyTradeLimitXaf`. Resets at midnight WAT. Rejected with `DAILY_LIMIT_EXCEEDED`.
+- **Portfolio Exposure**: On BUY, `portfolioValue + orderXafAmount <= portfolioExposureLimitXaf`. Rejected with `PORTFOLIO_EXPOSURE_EXCEEDED`. Portfolio value is Redis-cached (1-min TTL).
 
 All limits are soft-checked in trade preview (returned as blockers) and hard-checked during execution.
 
@@ -436,22 +465,28 @@ Body: {
 
 ---
 
-## 12. Lock-up Period
+## 12. Lock-up Period (Per-Lot)
 
-Prevent early selling after purchase. Useful for preventing pump-and-dump on newly issued assets.
+Prevent early selling after purchase. Each purchase lot has its own lockup expiry.
 
 ### Field
 
 | Field | Description |
 |-------|-------------|
-| `lockupDays` | Number of days after first purchase before SELL is allowed. `null` or `0` = no lock-up. |
+| `lockupDays` | Number of days after purchase before SELL is allowed. `null` or `0` = no lock-up. |
 
 ### Behavior
 
-- Lock-up is measured from the user's **first purchase date** (`firstPurchaseDate` on `UserPosition`).
-- SELL orders are rejected with `LOCKUP_PERIOD_ACTIVE` until `firstPurchaseDate + lockupDays` has passed.
-- Trade preview shows `LOCKUP_PERIOD_ACTIVE` blocker.
+- Each BUY creates a **PurchaseLot** with `lockupExpiresAt = purchaseDate + lockupDays`
+- On SELL, the system checks how many units have expired lockup across all lots
+- If requested sell units > unlocked units, rejected with `LOCKUP_PERIOD_ACTIVE`
+- Error message includes how many units are currently unlocked
+- Legacy positions (without lots) fall back to global `firstPurchaseDate` check
 - Lock-up only applies to SELL. BUY is always allowed (subject to other limits).
+
+### LP Capital Adequacy
+
+On SELL, the system verifies the LP's cash account has sufficient balance to pay the seller. If `lpCashBalance < payoutAmount`, the order is rejected with `INSUFFICIENT_LP_FUNDS`.
 
 ### Example
 
@@ -637,10 +672,12 @@ Transitions orders in `NEEDS_RECONCILIATION` or `FAILED` status to `MANUALLY_CLO
 | Status | Meaning |
 |--------|---------|
 | `PENDING` | Created, awaiting lock acquisition |
+| `QUEUED` | Submitted outside market hours, waiting for market open |
 | `EXECUTING` | Inside the distributed lock, executing Fineract batch |
 | `FILLED` | Successfully completed |
 | `FAILED` | Fineract batch failed or timeout |
-| `REJECTED` | Validation failed (insufficient funds, inventory, etc.) |
+| `REJECTED` | Validation failed (insufficient funds, inventory, stale price, etc.) |
+| `CANCELLED` | Cancelled by the user before execution |
 | `NEEDS_RECONCILIATION` | Timed out during execution — manual verification required |
 | `MANUALLY_CLOSED` | Resolved by admin |
 
@@ -920,6 +957,45 @@ Cross-reference with [Section 15 — Order Resolution](#15-order-resolution). Wh
 1. Check the `failureReason` field for the specific Fineract error
 2. **"insufficient funds" / "account not active"** — No Fineract cleanup needed. Simply resolve with the reason.
 3. **"batch partially failed"** — Check which sub-operations in the batch succeeded and which failed. Manually reverse incomplete operations via Fineract deposit/withdrawal, then resolve with details of what was corrected.
+
+---
+
+## 16b. LP Performance
+
+Monitor LP profitability across all assets.
+
+```
+GET /api/admin/lp/performance
+Headers: Authorization: Bearer {jwt} (ASSET_MANAGER role)
+```
+
+Response:
+```json
+{
+  "totalSpreadEarned": 500000,
+  "totalBuybackPremiumPaid": 50000,
+  "totalFeeCommission": 75000,
+  "netMargin": 525000,
+  "totalTrades": 1250,
+  "perAsset": [
+    {
+      "assetId": "uuid",
+      "symbol": "DTT",
+      "spreadEarned": 300000,
+      "buybackPremiumPaid": 30000,
+      "feeCommission": 45000,
+      "netMargin": 315000,
+      "tradeCount": 750
+    }
+  ]
+}
+```
+
+Key metrics:
+- **spreadEarned** — cumulative LP spread (askPrice - issuerPrice) × units on all BUY trades
+- **buybackPremiumPaid** — cumulative buyback premium on SELL trades
+- **feeCommission** — cumulative trading fees
+- **netMargin** — `spread + fees - buybackPremium`
 
 ---
 

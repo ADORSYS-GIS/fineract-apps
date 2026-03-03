@@ -229,6 +229,55 @@ export const PricingStep: FC<Props> = ({
 						</p>
 					</div>
 				</div>
+
+				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 mt-6">
+					Minimum Order Size (Optional)
+				</h3>
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Min Order Size (units)
+						</label>
+						<input
+							type="number"
+							aria-label="Min order size"
+							className={inputClass("min order")}
+							placeholder="e.g. 1"
+							value={formData.minOrderSize || ""}
+							onChange={(e) =>
+								updateFormData({
+									minOrderSize: Number(e.target.value),
+								})
+							}
+							min={0}
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Minimum units per single order. Leave at 0 for no minimum
+						</p>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Min Order Amount (XAF)
+						</label>
+						<input
+							type="number"
+							aria-label="Min order cash amount"
+							className={inputClass("min cash")}
+							placeholder="e.g. 10000"
+							value={formData.minOrderCashAmount || ""}
+							onChange={(e) =>
+								updateFormData({
+									minOrderCashAmount: Number(e.target.value),
+								})
+							}
+							min={0}
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Minimum XAF amount per single order. Leave at 0 for no minimum
+						</p>
+					</div>
+				</div>
 			</div>
 		</div>
 	);

@@ -97,6 +97,14 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
     List<Asset> findAssetsWithDueDistributions(@Param("date") LocalDate date);
 
     /**
+     * Find ACTIVE bonds with interest rate configured (for AccruedInterestScheduler).
+     */
+    @Query("SELECT a FROM Asset a WHERE a.status = com.adorsys.fineract.asset.dto.AssetStatus.ACTIVE " +
+           "AND a.category = com.adorsys.fineract.asset.dto.AssetCategory.BONDS " +
+           "AND a.interestRate IS NOT NULL AND a.issuerPrice IS NOT NULL")
+    List<Asset> findActiveBondsWithInterestRate();
+
+    /**
      * Count assets by status (for admin dashboard).
      */
     long countByStatus(AssetStatus status);

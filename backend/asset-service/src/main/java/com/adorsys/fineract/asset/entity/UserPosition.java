@@ -65,6 +65,10 @@ public class UserPosition {
     @Column(name = "last_trade_at", nullable = false)
     private Instant lastTradeAt;
 
+    /** Accrued interest since last coupon payment, in settlement currency. Only for bond positions. */
+    @Column(name = "accrued_interest", precision = 20, scale = 0)
+    private BigDecimal accruedInterest;
+
     /** Timestamp of the first purchase. Set once on first BUY, never updated on subsequent buys. Used for lock-up period enforcement. */
     @Column(name = "first_purchase_date")
     private Instant firstPurchaseDate;
@@ -79,6 +83,7 @@ public class UserPosition {
         if (avgPurchasePrice == null) avgPurchasePrice = BigDecimal.ZERO;
         if (totalCostBasis == null) totalCostBasis = BigDecimal.ZERO;
         if (realizedPnl == null) realizedPnl = BigDecimal.ZERO;
+        if (accruedInterest == null) accruedInterest = BigDecimal.ZERO;
         if (lastTradeAt == null) lastTradeAt = Instant.now();
     }
 }

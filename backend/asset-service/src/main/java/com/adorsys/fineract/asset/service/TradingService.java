@@ -39,6 +39,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -114,26 +115,34 @@ public class TradingService {
      * Each step is a discrete method for extensibility (exposure limits, lock-ups, etc.).
      */
     private TradeResponse executeTrade(TradeContext ctx) {
-        // Pre-lock validation pipeline
-        TradeResponse idempotentResult = checkIdempotency(ctx);
-        if (idempotentResult != null) return idempotentResult;
-
-        checkMarketHours();
+        // Pre-lock validation pipeline (idempotency check moved inside lock to prevent race condition)
+        boolean marketOpen = marketHoursService.isMarketOpen();
         loadAndValidateAsset(ctx);
         checkSubscriptionPeriod(ctx);
+        resolveUser(ctx);
         calculatePrice(ctx);
         checkInventory(ctx);
-        resolveUser(ctx);
         checkExposureLimits(ctx);
         checkLockup(ctx);
-        resolveUserAccounts(ctx);
-        createPendingOrder(ctx);
 
-        // Lock-protected execution
+        // If market is closed, queue the order instead of rejecting
+        if (!marketOpen) {
+            return createQueuedOrder(ctx);
+        }
+
+        resolveUserAccounts(ctx);
+
+        // Lock-protected execution (idempotency checked atomically inside lock)
         String lockValue = tradeLockService.acquireTradeLock(ctx.getUserId(), ctx.getAssetId());
         ctx.setLockValue(lockValue);
 
         try {
+            // Check idempotency inside lock to prevent race condition where
+            // two concurrent requests both pass the check before either writes
+            TradeResponse idempotentResult = checkIdempotency(ctx);
+            if (idempotentResult != null) return idempotentResult;
+
+            createPendingOrder(ctx);
             return executeInsideLock(ctx);
         } catch (TradingException e) {
             assetMetrics.recordTradeFailure();
@@ -192,15 +201,17 @@ public class TradingService {
         ctx.setAsset(asset);
     }
 
-    /** Step 4: BUY only — verify the subscription window is open. */
+    /** Step 4: BUY only — verify the subscription window is open (uses market timezone). */
     private void checkSubscriptionPeriod(TradeContext ctx) {
         if (ctx.getStrategy().side() != TradeSide.BUY) return;
         Asset asset = ctx.getAsset();
-        if (LocalDate.now().isBefore(asset.getSubscriptionStartDate())) {
+        ZoneId marketZone = ZoneId.of(assetServiceConfig.getMarketHours().getTimezone());
+        LocalDate today = LocalDate.now(marketZone);
+        if (today.isBefore(asset.getSubscriptionStartDate())) {
             assetMetrics.incrementSubscriptionExpiredRejections();
             throw new TradingException("Subscription period has not started for this asset", "SUBSCRIPTION_NOT_STARTED");
         }
-        if (!asset.getSubscriptionEndDate().isAfter(LocalDate.now())) {
+        if (!asset.getSubscriptionEndDate().isAfter(today)) {
             assetMetrics.incrementSubscriptionExpiredRejections();
             throw new TradingException("Subscription period has ended for this asset", "SUBSCRIPTION_ENDED");
         }
@@ -281,10 +292,10 @@ public class TradingService {
                 ctx.getUnits(), ctx.getOrderCashAmount());
     }
 
-    /** Step 8: SELL only — validate lock-up period has elapsed. */
+    /** Step 8: SELL only — validate per-lot lockup allows selling requested units. */
     private void checkLockup(TradeContext ctx) {
         if (ctx.getStrategy().side() != TradeSide.SELL) return;
-        lockupService.validateLockup(ctx.getAsset(), ctx.getUserId());
+        lockupService.validateLockup(ctx.getAsset(), ctx.getUserId(), ctx.getUnits());
     }
 
     /** Step 9: Resolve Fineract user from JWT external ID. */
@@ -419,7 +430,8 @@ public class TradingService {
         }
     }
 
-    /** Re-fetch authoritative price and recalculate all amounts inside lock using LP bid/ask. */
+    /** Re-fetch authoritative price and recalculate all amounts inside lock using LP bid/ask.
+     *  Rejects the trade if the price has moved beyond the slippage tolerance (2%) since preview. */
     private void recalculatePriceInsideLock(TradeContext ctx) {
         TradeStrategy strategy = ctx.getStrategy();
         Asset asset = ctx.getAsset();
@@ -432,6 +444,22 @@ public class TradingService {
         BigDecimal executionPrice = (strategy.side() == TradeSide.BUY)
                 ? (lockedPriceData.askPrice() != null ? lockedPriceData.askPrice() : lockedBasePrice)
                 : (lockedPriceData.bidPrice() != null ? lockedPriceData.bidPrice() : lockedBasePrice);
+
+        // Slippage protection: reject if price moved more than 2% from preview
+        BigDecimal previewPrice = ctx.getExecutionPrice();
+        if (previewPrice != null && previewPrice.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal slippage = executionPrice.subtract(previewPrice).abs()
+                    .divide(previewPrice, 6, RoundingMode.HALF_UP);
+            BigDecimal maxSlippage = new BigDecimal("0.02"); // 2% tolerance
+            if (slippage.compareTo(maxSlippage) > 0) {
+                rejectOrder(ctx.getOrder(), "Price moved beyond slippage tolerance");
+                throw new TradingException(
+                        "Price changed significantly since preview. Preview: " + previewPrice
+                                + ", Current: " + executionPrice + " (slippage: "
+                                + slippage.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP) + "%)",
+                        "PRICE_CHANGED");
+            }
+        }
 
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(ctx.getFeePercent()).setScale(0, RoundingMode.HALF_UP);
@@ -479,17 +507,31 @@ public class TradingService {
         orderRepository.save(order);
     }
 
-    /** BUY only: verify user has sufficient cash balance inside lock. */
+    /** BUY: verify user cash balance. SELL: verify LP cash balance (capital adequacy). */
     private void checkBalanceInsideLock(TradeContext ctx) {
-        if (ctx.getStrategy().side() != TradeSide.BUY) return;
         String currency = assetServiceConfig.getSettlementCurrency();
-        BigDecimal availableBalance = fineractClient.getAccountBalance(ctx.getUserCashAccountId());
-        if (availableBalance.compareTo(ctx.getOrderCashAmount()) < 0) {
-            rejectOrder(ctx.getOrder(), "Insufficient " + currency + " balance");
-            throw new TradingException(
-                    "Insufficient " + currency + " balance. Required: " + ctx.getOrderCashAmount()
-                            + " " + currency + ", Available: " + availableBalance + " " + currency,
-                    "INSUFFICIENT_FUNDS");
+        if (ctx.getStrategy().side() == TradeSide.BUY) {
+            BigDecimal availableBalance = fineractClient.getAccountBalance(ctx.getUserCashAccountId());
+            if (availableBalance.compareTo(ctx.getOrderCashAmount()) < 0) {
+                rejectOrder(ctx.getOrder(), "Insufficient " + currency + " balance");
+                throw new TradingException(
+                        "Insufficient " + currency + " balance. Required: " + ctx.getOrderCashAmount()
+                                + " " + currency + ", Available: " + availableBalance + " " + currency,
+                        "INSUFFICIENT_FUNDS");
+            }
+        } else {
+            // SELL: LP must have enough cash to pay the seller
+            Asset asset = ctx.getAsset();
+            BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+            if (lpCashBalance.compareTo(ctx.getOrderCashAmount()) < 0) {
+                rejectOrder(ctx.getOrder(), "Insufficient LP funds for payout");
+                throw new TradingException(
+                        "This asset's liquidity provider currently has insufficient funds to process your sell order. "
+                                + "Required: " + ctx.getOrderCashAmount() + " " + currency
+                                + ", LP available: " + lpCashBalance + " " + currency
+                                + ". Please try again later or contact support.",
+                        "INSUFFICIENT_LP_FUNDS");
+            }
         }
     }
 
@@ -522,6 +564,7 @@ public class TradingService {
                 .totalAmount(ctx.getOrderCashAmount())
                 .fee(ctx.getFee())
                 .spreadAmount(ctx.getSpreadAmount())
+                .buybackPremium(ctx.getBuybackPremium() != null ? ctx.getBuybackPremium() : BigDecimal.ZERO)
                 .realizedPnl(ctx.getRealizedPnl())
                 .build();
         tradeLogRepository.save(tradeLog);
@@ -936,6 +979,66 @@ public class TradingService {
                 o.getSide(), o.getUnits(), o.getExecutionPrice(),
                 o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt()
         );
+    }
+
+    /**
+     * Cancel a PENDING or QUEUED order. Only the owning user can cancel.
+     */
+    @Transactional
+    public OrderResponse cancelOrder(String orderId, Long userId) {
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new AssetException("Order not found: " + orderId));
+
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.QUEUED) {
+            throw new TradingException(
+                    "Cannot cancel order with status " + order.getStatus() + ". Only PENDING or QUEUED orders can be cancelled.",
+                    "CANCEL_NOT_ALLOWED");
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setFailureReason("Cancelled by user");
+        orderRepository.save(order);
+        log.info("Order cancelled: orderId={}, userId={}", orderId, userId);
+
+        Asset orderAsset = order.getAsset();
+        return new OrderResponse(
+                order.getId(), order.getAssetId(),
+                orderAsset != null ? orderAsset.getSymbol() : null,
+                order.getSide(), order.getUnits(), order.getExecutionPrice(),
+                order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
+                order.getStatus(), order.getCreatedAt()
+        );
+    }
+
+    /**
+     * Create a queued order when the market is closed.
+     * The order will be executed at market open by QueuedOrderScheduler.
+     */
+    TradeResponse createQueuedOrder(TradeContext ctx) {
+        String orderId = UUID.randomUUID().toString();
+        Order order = Order.builder()
+                .id(orderId)
+                .idempotencyKey(ctx.getIdempotencyKey())
+                .userId(ctx.getUserId())
+                .userExternalId(ctx.getExternalId())
+                .assetId(ctx.getAssetId())
+                .side(ctx.getStrategy().side())
+                .cashAmount(ctx.getOrderCashAmount())
+                .units(ctx.getUnits())
+                .executionPrice(ctx.getExecutionPrice())
+                .fee(ctx.getFee())
+                .spreadAmount(ctx.getSpreadAmount())
+                .queuedPrice(ctx.getExecutionPrice())
+                .status(OrderStatus.QUEUED)
+                .build();
+        orderRepository.save(order);
+
+        log.info("Queued order for market open: orderId={}, side={}, assetId={}, units={}",
+                orderId, ctx.getStrategy().side(), ctx.getAssetId(), ctx.getUnits());
+
+        return new TradeResponse(orderId, OrderStatus.QUEUED, ctx.getStrategy().side(),
+                ctx.getUnits(), ctx.getExecutionPrice(), ctx.getOrderCashAmount(),
+                ctx.getFee(), ctx.getSpreadAmount(), null, Instant.now());
     }
 
     /**

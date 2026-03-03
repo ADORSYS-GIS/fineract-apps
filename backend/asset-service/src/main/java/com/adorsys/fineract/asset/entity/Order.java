@@ -98,6 +98,10 @@ public class Order {
     @Column(name = "resolved_at")
     private Instant resolvedAt;
 
+    /** Execution price at the time the order was queued (for stale-price check at market open). Null for non-queued orders. */
+    @Column(name = "queued_price", precision = 20, scale = 0)
+    private BigDecimal queuedPrice;
+
     /** Timestamp when the order was created. Set automatically, never updated. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

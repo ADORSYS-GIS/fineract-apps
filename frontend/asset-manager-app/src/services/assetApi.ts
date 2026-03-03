@@ -157,6 +157,8 @@ export interface AssetDetailResponse {
 	maxPositionPercent?: number;
 	maxOrderSize?: number;
 	dailyTradeLimitXaf?: number;
+	minOrderSize?: number;
+	minOrderCashAmount?: number;
 	// Lock-up
 	lockupDays?: number;
 	// Income distribution (non-bond)
@@ -205,6 +207,9 @@ export interface CreateAssetRequest {
 	dailyTradeLimitXaf?: number;
 	// Lock-up
 	lockupDays?: number;
+	// Min order size
+	minOrderSize?: number;
+	minOrderCashAmount?: number;
 	// Income distribution (non-bond)
 	incomeType?: string;
 	incomeRate?: number;
@@ -236,6 +241,9 @@ export interface UpdateAssetRequest {
 	dailyTradeLimitXaf?: number;
 	// Lock-up
 	lockupDays?: number;
+	// Min order size
+	minOrderSize?: number;
+	minOrderCashAmount?: number;
 	// Income distribution
 	incomeType?: string;
 	incomeRate?: number;
@@ -695,7 +703,27 @@ export interface AuditLogResponse {
 	errorMessage: string | null;
 	durationMs: number;
 	requestSummary: string | null;
+	clientIp: string | null;
+	userAgent: string | null;
 	performedAt: string;
+}
+
+/** LP performance metrics aggregated from trade log. */
+export interface LPPerformanceResponse {
+	totalSpreadEarned: number;
+	totalBuybackPremiumPaid: number;
+	totalFeeCommission: number;
+	netMargin: number;
+	totalTrades: number;
+	perAsset: {
+		assetId: string;
+		symbol: string;
+		spreadEarned: number;
+		buybackPremiumPaid: number;
+		feeCommission: number;
+		netMargin: number;
+		tradeCount: number;
+	}[];
 }
 
 // Admin Dashboard
@@ -998,4 +1026,12 @@ export const assetApi = {
 		assetClient.patch(`/api/admin/reconciliation/reports/${id}/resolve`, null, {
 			params: { admin, notes },
 		}),
+
+	// Order Cancellation
+	cancelOrder: (orderId: string) =>
+		assetClient.post(`/api/trades/orders/${orderId}/cancel`),
+
+	// LP Performance - Admin
+	getLPPerformance: () =>
+		assetClient.get<LPPerformanceResponse>("/api/admin/lp/performance"),
 };

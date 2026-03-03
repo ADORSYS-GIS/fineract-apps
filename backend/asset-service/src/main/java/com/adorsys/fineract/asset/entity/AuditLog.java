@@ -59,6 +59,14 @@ public class AuditLog {
     @Column(columnDefinition = "TEXT")
     private String requestSummary;
 
+    /** Client IP address (from X-Forwarded-For or RemoteAddr). */
+    @Column(name = "client_ip", length = 45)
+    private String clientIp;
+
+    /** User-Agent header from the HTTP request. */
+    @Column(name = "user_agent", length = 500)
+    private String userAgent;
+
     /** When the action was performed. */
     @Column(nullable = false)
     private Instant performedAt;

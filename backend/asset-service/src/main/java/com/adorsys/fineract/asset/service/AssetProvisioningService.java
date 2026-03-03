@@ -10,6 +10,7 @@ import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.PriceHistoryRepository;
+import com.adorsys.fineract.asset.repository.PurchaseLotRepository;
 import com.adorsys.fineract.asset.repository.ScheduledPaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class AssetProvisioningService {
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final PurchaseLotRepository purchaseLotRepository;
     private final ScheduledPaymentRepository scheduledPaymentRepository;
     private final FineractClient fineractClient;
     private final AssetCatalogService assetCatalogService;
@@ -63,6 +65,12 @@ public class AssetProvisioningService {
         // Validate subscription dates
         if (request.subscriptionEndDate().isBefore(request.subscriptionStartDate())) {
             throw new AssetException("Subscription end date must be on or after the start date");
+        }
+
+        // Validate bid/ask spread before provisioning Fineract resources
+        if (request.lpBidPrice().compareTo(request.lpAskPrice()) > 0) {
+            throw new AssetException("Invalid spread: bid price (" + request.lpBidPrice()
+                    + ") must not exceed ask price (" + request.lpAskPrice() + ")");
         }
 
         // Validate bond-specific fields when category is BONDS
@@ -171,6 +179,8 @@ public class AssetProvisioningService {
                 .maxOrderSize(request.maxOrderSize())
                 .dailyTradeLimitXaf(request.dailyTradeLimitXaf())
                 .lockupDays(request.lockupDays())
+                .minOrderSize(request.minOrderSize())
+                .minOrderCashAmount(request.minOrderCashAmount())
                 .incomeType(request.incomeType())
                 .incomeRate(request.incomeRate())
                 .distributionFrequencyMonths(request.distributionFrequencyMonths())
@@ -233,6 +243,8 @@ public class AssetProvisioningService {
         if (request.maxOrderSize() != null) asset.setMaxOrderSize(request.maxOrderSize());
         if (request.dailyTradeLimitXaf() != null) asset.setDailyTradeLimitXaf(request.dailyTradeLimitXaf());
         if (request.lockupDays() != null) asset.setLockupDays(request.lockupDays());
+        if (request.minOrderSize() != null) asset.setMinOrderSize(request.minOrderSize());
+        if (request.minOrderCashAmount() != null) asset.setMinOrderCashAmount(request.minOrderCashAmount());
 
         // Income distribution
         if (request.incomeType() != null) asset.setIncomeType(request.incomeType());
@@ -248,6 +260,13 @@ public class AssetProvisioningService {
             if (price != null) {
                 if (request.lpBidPrice() != null) price.setBidPrice(request.lpBidPrice());
                 if (request.lpAskPrice() != null) price.setAskPrice(request.lpAskPrice());
+                BigDecimal effectiveBid = price.getBidPrice();
+                BigDecimal effectiveAsk = price.getAskPrice();
+                if (effectiveBid != null && effectiveAsk != null
+                        && effectiveBid.compareTo(effectiveAsk) > 0) {
+                    throw new AssetException("Invalid spread: bid price (" + effectiveBid
+                            + ") must not exceed ask price (" + effectiveAsk + ")");
+                }
                 assetPriceRepository.save(price);
             }
         }
@@ -354,6 +373,7 @@ public class AssetProvisioningService {
         cleanupFineractResources(asset);
 
         // Delete local data
+        purchaseLotRepository.deleteByAssetId(assetId);
         scheduledPaymentRepository.deleteByAssetId(assetId);
         priceHistoryRepository.deleteByAssetId(assetId);
         assetPriceRepository.deleteByAssetId(assetId);

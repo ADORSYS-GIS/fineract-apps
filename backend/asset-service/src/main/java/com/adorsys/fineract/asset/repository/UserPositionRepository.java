@@ -17,6 +17,8 @@ public interface UserPositionRepository extends JpaRepository<UserPosition, Long
 
     Optional<UserPosition> findByUserIdAndAssetId(Long userId, String assetId);
 
+    List<UserPosition> findByAssetId(String assetId);
+
     /**
      * Find all holders of a specific asset with positive units (for coupon payments).
      */

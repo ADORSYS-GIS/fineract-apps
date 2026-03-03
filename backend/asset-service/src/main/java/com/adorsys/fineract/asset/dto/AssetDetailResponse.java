@@ -151,6 +151,15 @@ public record AssetDetailResponse(
     @Schema(description = "Max XAF volume per user per day.", nullable = true)
     BigDecimal dailyTradeLimitXaf,
 
+    // ── Min order size ──
+
+    /** Min units per single order. Null = no minimum. */
+    @Schema(description = "Minimum units per single order.", nullable = true)
+    BigDecimal minOrderSize,
+    /** Min XAF amount per single order. Null = no minimum. */
+    @Schema(description = "Minimum XAF amount per single order.", nullable = true)
+    BigDecimal minOrderCashAmount,
+
     // ── Lock-up ──
 
     /** Lock-up period in days from first purchase. Null = no lock-up. */

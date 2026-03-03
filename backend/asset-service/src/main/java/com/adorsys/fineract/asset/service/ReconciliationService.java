@@ -143,6 +143,20 @@ public class ReconciliationService {
             }
         }
 
+        // 4. LP spread account: verify non-negative (negative means more buyback premiums paid than spread earned)
+        if (asset.getLpSpreadAccountId() != null) {
+            try {
+                BigDecimal lpSpreadBalance = fineractClient.getAccountBalance(asset.getLpSpreadAccountId());
+                if (lpSpreadBalance.compareTo(BigDecimal.ZERO) < 0) {
+                    createReport(reportDate, "LP_SPREAD_NEGATIVE", asset.getId(), null,
+                            BigDecimal.ZERO, lpSpreadBalance, lpSpreadBalance, "WARNING");
+                    discrepancies++;
+                }
+            } catch (Exception e) {
+                log.warn("Could not check LP spread account for asset {}: {}", asset.getSymbol(), e.getMessage());
+            }
+        }
+
         return discrepancies;
     }
 

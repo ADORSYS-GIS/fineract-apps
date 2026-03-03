@@ -5,10 +5,12 @@ import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.entity.PortfolioSnapshot;
+import com.adorsys.fineract.asset.entity.PurchaseLot;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
+import com.adorsys.fineract.asset.repository.PurchaseLotRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ public class PortfolioService {
     private final UserPositionRepository userPositionRepository;
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
+    private final PurchaseLotRepository purchaseLotRepository;
     private final BondBenefitService bondBenefitService;
     private final IncomeBenefitService incomeBenefitService;
     private final PortfolioSnapshotRepository portfolioSnapshotRepository;
@@ -197,7 +200,7 @@ public class PortfolioService {
     }
 
     /**
-     * Update position after a BUY trade. Recalculates WAP.
+     * Update position after a BUY trade. Recalculates WAP and creates a FIFO purchase lot.
      */
     @Transactional
     public void updatePositionAfterBuy(Long userId, String assetId, Long fineractAccountId,
@@ -233,12 +236,32 @@ public class PortfolioService {
         }
 
         userPositionRepository.save(pos);
-        log.info("Updated position after BUY: userId={}, assetId={}, units={}, avgPrice={}",
-                userId, assetId, newTotalUnits, newAvgPrice);
+
+        // Create FIFO purchase lot with per-lot lockup
+        Asset asset = assetRepository.findById(assetId).orElse(null);
+        Instant lockupExpiresAt = null;
+        if (asset != null && asset.getLockupDays() != null && asset.getLockupDays() > 0) {
+            lockupExpiresAt = Instant.now().plus(java.time.Duration.ofDays(asset.getLockupDays()));
+        }
+
+        PurchaseLot lot = PurchaseLot.builder()
+                .userId(userId)
+                .assetId(assetId)
+                .units(units)
+                .remainingUnits(units)
+                .purchasePrice(pricePerUnit)
+                .purchasedAt(Instant.now())
+                .lockupExpiresAt(lockupExpiresAt)
+                .build();
+        purchaseLotRepository.save(lot);
+
+        log.info("Updated position after BUY: userId={}, assetId={}, units={}, avgPrice={}, lotId={}",
+                userId, assetId, newTotalUnits, newAvgPrice, lot.getId());
     }
 
     /**
-     * Update position after a SELL trade. Calculates realized P&L.
+     * Update position after a SELL trade. Consumes lots FIFO for cost basis, calculates per-lot realized P&L.
+     * Falls back to WAP-based P&L if no lots exist (legacy positions).
      */
     @Transactional
     public BigDecimal updatePositionAfterSell(Long userId, String assetId, BigDecimal units,
@@ -246,29 +269,88 @@ public class PortfolioService {
         UserPosition pos = userPositionRepository.findByUserIdAndAssetId(userId, assetId)
                 .orElseThrow(() -> new RuntimeException("No position found for sell: userId=" + userId + ", assetId=" + assetId));
 
-        // Calculate realized P&L: (sellPrice - avgPurchasePrice) * units
-        BigDecimal realizedPnl = sellPricePerUnit.subtract(pos.getAvgPurchasePrice()).multiply(units);
-
         BigDecimal newTotalUnits = pos.getTotalUnits().subtract(units);
-        // Cost basis decreases proportionally
-        BigDecimal costPerUnit = pos.getAvgPurchasePrice();
-        BigDecimal costReduction = costPerUnit.multiply(units);
-        BigDecimal newTotalCost = pos.getTotalCostBasis().subtract(costReduction);
-
         if (newTotalUnits.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalStateException(
                     "Sell would result in negative units (" + newTotalUnits + ") for userId=" + userId + ", assetId=" + assetId);
         }
+
+        // FIFO lot consumption for per-lot realized P&L
+        BigDecimal realizedPnl = consumeLotsAndCalculatePnl(userId, assetId, units, sellPricePerUnit, pos);
+
+        // Recalculate avgPurchasePrice and costBasis from remaining lots
+        List<PurchaseLot> remainingLots = purchaseLotRepository
+                .findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(userId, assetId, BigDecimal.ZERO);
+        if (!remainingLots.isEmpty()) {
+            BigDecimal totalRemainingCost = BigDecimal.ZERO;
+            BigDecimal totalRemainingUnits = BigDecimal.ZERO;
+            for (PurchaseLot lot : remainingLots) {
+                totalRemainingCost = totalRemainingCost.add(
+                        lot.getRemainingUnits().multiply(lot.getPurchasePrice()));
+                totalRemainingUnits = totalRemainingUnits.add(lot.getRemainingUnits());
+            }
+            BigDecimal newAvgPrice = totalRemainingUnits.compareTo(BigDecimal.ZERO) > 0
+                    ? totalRemainingCost.divide(totalRemainingUnits, 4, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+            pos.setAvgPurchasePrice(newAvgPrice);
+            pos.setTotalCostBasis(totalRemainingCost.setScale(0, RoundingMode.HALF_UP));
+        } else {
+            // No remaining lots — fallback proportional cost reduction
+            BigDecimal costReduction = pos.getAvgPurchasePrice().multiply(units);
+            BigDecimal newTotalCost = pos.getTotalCostBasis().subtract(costReduction);
+            pos.setTotalCostBasis(newTotalCost.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newTotalCost);
+        }
+
         pos.setTotalUnits(newTotalUnits);
-        pos.setTotalCostBasis(newTotalCost.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : newTotalCost);
         pos.setRealizedPnl(pos.getRealizedPnl().add(realizedPnl));
         pos.setLastTradeAt(Instant.now());
-        // Average price stays the same on sell
 
         userPositionRepository.save(pos);
         log.info("Updated position after SELL: userId={}, assetId={}, soldUnits={}, realizedPnl={}",
                 userId, assetId, units, realizedPnl);
         return realizedPnl;
+    }
+
+    /**
+     * Consume purchase lots in FIFO order and calculate per-lot realized P&L.
+     * Falls back to WAP-based P&L if no lots exist.
+     */
+    private BigDecimal consumeLotsAndCalculatePnl(Long userId, String assetId,
+                                                    BigDecimal sellUnits, BigDecimal sellPricePerUnit,
+                                                    UserPosition pos) {
+        List<PurchaseLot> lots = purchaseLotRepository
+                .findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(userId, assetId, BigDecimal.ZERO);
+
+        if (lots.isEmpty()) {
+            // Legacy position without lots — use WAP
+            return sellPricePerUnit.subtract(pos.getAvgPurchasePrice()).multiply(sellUnits);
+        }
+
+        BigDecimal remainingToSell = sellUnits;
+        BigDecimal totalPnl = BigDecimal.ZERO;
+
+        for (PurchaseLot lot : lots) {
+            if (remainingToSell.compareTo(BigDecimal.ZERO) <= 0) break;
+
+            BigDecimal consumable = lot.getRemainingUnits().min(remainingToSell);
+            BigDecimal lotPnl = sellPricePerUnit.subtract(lot.getPurchasePrice()).multiply(consumable);
+            totalPnl = totalPnl.add(lotPnl);
+
+            lot.setRemainingUnits(lot.getRemainingUnits().subtract(consumable));
+            purchaseLotRepository.save(lot);
+
+            remainingToSell = remainingToSell.subtract(consumable);
+        }
+
+        // Safety: if lots didn't cover all units, use WAP for remainder
+        if (remainingToSell.compareTo(BigDecimal.ZERO) > 0) {
+            log.warn("FIFO lots did not cover full sell: userId={}, assetId={}, unmatched={}",
+                    userId, assetId, remainingToSell);
+            totalPnl = totalPnl.add(
+                    sellPricePerUnit.subtract(pos.getAvgPurchasePrice()).multiply(remainingToSell));
+        }
+
+        return totalPnl;
     }
 
     /**

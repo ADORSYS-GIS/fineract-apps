@@ -58,4 +58,8 @@ public interface OrderRepository extends JpaRepository<Order, String> {
 
     @EntityGraph(attributePaths = "asset")
     Optional<Order> findWithAssetById(String id);
+
+    Optional<Order> findByIdAndUserId(String id, Long userId);
+
+    List<Order> findByStatusOrderByCreatedAtAsc(OrderStatus status);
 }

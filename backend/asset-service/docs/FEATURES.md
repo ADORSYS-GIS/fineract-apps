@@ -128,8 +128,11 @@ Sell asset units back to the LP at the bid price. Calculates realized P&L using 
 |---|---|
 | `POST /api/trades/sell` | Execute sell (requires `X-Idempotency-Key` header) |
 
-- Checks sufficient holdings and respects lockup periods
-- Updates average purchase price and realized P&L
+- Checks sufficient holdings and respects per-lot lockup periods
+- FIFO lot consumption: oldest purchase lots are sold first
+- Per-lot realized P&L: `(sellPrice - lotPurchasePrice) × lotUnits`
+- Average purchase price recalculated from remaining lots after sell
+- LP capital adequacy check: rejects if LP cash insufficient for payout (`INSUFFICIENT_LP_FUNDS`)
 
 ### 3.5 Order History & Detail
 
@@ -169,9 +172,17 @@ Time series of portfolio value for charting growth over time. Daily snapshots ca
 |---|---|
 | `GET /api/portfolio/history?period={1M\|3M\|6M\|1Y}` | Get portfolio history |
 
-### 4.4 P&L Tracking
-- **Realized P&L**: FIFO-based gain/loss calculated on every SELL
-- **Cost Basis**: Weighted average purchase price updated on every BUY
+### 4.4 FIFO Cost Basis & P&L Tracking
+- **Purchase Lots**: Each BUY creates a `PurchaseLot` tracking units, purchase price, and lockup expiry
+- **FIFO Sell**: On SELL, oldest lots are consumed first; per-lot realized P&L is calculated
+- **Realized P&L**: Sum of `(sellPrice - lotPurchasePrice) × consumedUnits` across all consumed lots
+- **Cost Basis**: Recalculated from remaining lots after each sell; falls back to WAP for legacy positions
+
+### 4.5 Bond Accrued Interest
+Daily scheduler accrues interest on bond positions:
+- Formula: `units × issuerPrice × (rate / 100) / 365` per day
+- Tracked in `accruedInterest` field on `UserPosition`
+- Reset to zero on coupon payment
 
 ---
 
@@ -181,28 +192,38 @@ Per-asset configurable limits to manage risk concentration.
 
 | Limit | Description |
 |---|---|
+| **Min Order Size (units)** | Rejects orders below a minimum number of units |
+| **Min Order Amount (XAF)** | Rejects orders below a minimum cash value |
 | **Max Order Size** | Caps the number of units in a single order |
 | **Max Position Percent** | Prevents a single user from owning more than X% of total supply |
 | **Daily Trade Limit (XAF)** | Caps total XAF volume traded per asset per day |
+| **Portfolio Exposure Limit (XAF)** | Platform-wide limit on a user's total portfolio value |
 
 - All limits are optional (null = unlimited).
 - Enforced at both preview and execution time.
-- Blocker codes: `ORDER_SIZE_LIMIT_EXCEEDED`, `POSITION_LIMIT_EXCEEDED`
+- Portfolio exposure limit is platform-wide (configured in `application.yml`), not per-asset.
+- Blocker codes: `MIN_ORDER_SIZE_NOT_MET`, `MIN_ORDER_CASH_NOT_MET`, `ORDER_SIZE_LIMIT_EXCEEDED`, `POSITION_LIMIT_EXCEEDED`, `PORTFOLIO_EXPOSURE_EXCEEDED`
 
 ---
 
 ## 6. Lock-up Periods
 
-Configurable restriction that prevents selling for a specified number of days after first purchase.
+Configurable restriction that prevents selling for a specified number of days after purchase.
 
-- Tracks `first_purchase_date` per position
-- Null `lockup_days` = no restriction
+### 6.1 Per-Lot Lockup
+Each purchase creates a **PurchaseLot** with its own lockup expiry (`lockupExpiresAt = purchaseDate + lockupDays`). Units from a lot become sellable only when its lockup expires. This means different purchase batches unlock independently.
+
+### 6.2 Legacy Fallback
+For positions without lots (pre-existing), falls back to global `firstPurchaseDate` check.
+
 - Blocker code: `LOCKUP_PERIOD_ACTIVE`
+- Error includes how many units are unlocked vs requested
 
 ---
 
-## 7. Market Hours
+## 7. Market Hours & Order Queuing
 
+### 7.1 Market Hours
 Trading is only allowed during configured market hours.
 
 | Endpoint | Description |
@@ -211,7 +232,24 @@ Trading is only allowed during configured market hours.
 
 - Default: **08:00–20:00 Africa/Douala (WAT)**, weekdays only
 - Weekend trading disabled by default
-- Trades submitted outside hours are rejected
+
+### 7.2 Out-of-Hours Order Queuing
+Orders submitted outside market hours are **queued** instead of rejected.
+
+- Order status is set to `QUEUED` with the current price stored as `queuedPrice`
+- At market open (08:01 WAT, Mon-Fri), the `QueuedOrderScheduler` processes queued orders FIFO
+- Orders where the price moved > 5% (configurable) since queue time are **rejected** as stale
+- Non-stale orders are promoted to `PENDING` for normal execution
+
+### 7.3 Order Cancellation
+Users can cancel their own `PENDING` or `QUEUED` orders.
+
+| Endpoint | Description |
+|---|---|
+| `POST /api/trades/orders/{id}/cancel` | Cancel a pending/queued order |
+
+- Only `PENDING` and `QUEUED` orders can be cancelled
+- Cancelled orders transition to `CANCELLED` status
 
 ---
 
@@ -360,7 +398,7 @@ Daily scheduler executes automatic buyback at the redemption price on the delist
 | `POST /api/admin/orders/{id}/resolve` | Resolve stuck/failed orders |
 | `GET /api/admin/orders/asset-options` | Distinct assets for filter dropdown |
 
-- Order statuses: PENDING, EXECUTING, FILLED, FAILED, NEEDS_RECONCILIATION, RESOLVED, CANCELLED
+- Order statuses: PENDING, EXECUTING, FILLED, FAILED, NEEDS_RECONCILIATION, RESOLVED, CANCELLED, QUEUED, REJECTED
 
 ### 12.3 Dashboard
 
@@ -392,13 +430,33 @@ Verify asset-service state against Fineract account balances.
 
 ## 14. Audit Log
 
-Every admin API call is automatically logged for compliance.
+Every admin and trade API call is automatically logged for compliance.
 
 | Endpoint | Description |
 |---|---|
 | `GET /api/admin/audit-log?admin=&assetId=&action=` | View audit trail (paginated, filterable) |
 
-- Fields: action, admin subject, target asset, result, error message, duration
+- Fields: action, admin subject, target asset, result, error message, duration, **client IP**, **user agent**
+- Covers all admin controllers and the TradeController
+- IP extraction supports `X-Forwarded-For` header (first entry) with `RemoteAddr` fallback
+
+---
+
+## 14b. LP Performance Tracking
+
+Aggregated metrics on LP spread earnings, buyback premiums, and fee commissions.
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/admin/lp/performance` | LP performance summary with per-asset breakdown |
+
+Response includes:
+- `totalSpreadEarned` — sum of LP spread across all trades
+- `totalBuybackPremiumPaid` — sum of buyback premiums
+- `totalFeeCommission` — sum of trading fees
+- `netMargin` — `spread + fees - buyback`
+- `totalTrades` — total trade count
+- `perAsset[]` — per-asset breakdown with symbol, spread, buyback, fee, net margin, trade count
 
 ---
 
@@ -500,8 +558,9 @@ Scheduled job moves completed orders older than the retention period (default 12
 | `asset_prices` | Current price + OHLC data + LP bid/ask |
 | `price_history` | Historical price snapshots |
 | `user_positions` | Portfolio holdings per user-asset |
-| `orders` | Trade orders |
-| `trade_log` | Executed trade details |
+| `orders` | Trade orders (includes `queued_price` for queued orders) |
+| `trade_log` | Executed trade details (includes `buyback_premium`) |
+| `purchase_lots` | FIFO cost basis lots per user-asset |
 | `user_favorites` | Watchlist |
 | `interest_payments` | Bond coupon payment history |
 | `principal_redemptions` | Bond redemption history |
@@ -516,7 +575,7 @@ Scheduled job moves completed orders older than the retention period (default 12
 
 ## E2E Test Coverage
 
-57+ scenarios across 17 feature files covering end-to-end workflows for all major features. Tests run with embedded Fineract via Testcontainers (PostgreSQL + Redis + Fineract).
+60+ scenarios across 22 feature files covering end-to-end workflows for all major features. Tests run with embedded Fineract via Testcontainers (PostgreSQL + Redis + Fineract).
 
 ---
 

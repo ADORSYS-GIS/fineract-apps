@@ -30,6 +30,10 @@ public class AssetServiceConfig {
     private GlAccounts glAccounts = new GlAccounts();
     private Archival archival = new Archival();
     private Portfolio portfolio = new Portfolio();
+    private QueuedOrders queuedOrders = new QueuedOrders();
+
+    /** Platform-wide max portfolio exposure per user in XAF. Null = unlimited. */
+    private BigDecimal portfolioExposureLimitXaf;
 
     @Data
     public static class Archival {
@@ -77,6 +81,12 @@ public class AssetServiceConfig {
         private Long spreadCollectionAccountId;
         /** External ID of the platform-wide fee collection savings account. Resolved to DB ID at startup. */
         private String feeCollectionAccountExternalId = "PLATFORM-FEE-COLLECT";
+    }
+
+    @Data
+    public static class QueuedOrders {
+        /** Max price change (%) from queue time before a queued order is rejected at market open. */
+        private BigDecimal stalePriceThresholdPercent = new BigDecimal("5.0");
     }
 
     @Data

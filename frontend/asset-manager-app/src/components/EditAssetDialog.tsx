@@ -67,6 +67,12 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 	const [lockupDays, setLockupDays] = useState(
 		asset.lockupDays?.toString() ?? "",
 	);
+	const [minOrderSize, setMinOrderSize] = useState(
+		asset.minOrderSize?.toString() ?? "",
+	);
+	const [minOrderCashAmount, setMinOrderCashAmount] = useState(
+		asset.minOrderCashAmount?.toString() ?? "",
+	);
 	const [incomeType, setIncomeType] = useState(asset.incomeType ?? "");
 	const [incomeRate, setIncomeRate] = useState(
 		asset.incomeRate?.toString() ?? "",
@@ -95,6 +101,8 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 			setMaxOrderSize(asset.maxOrderSize?.toString() ?? "");
 			setDailyTradeLimitXaf(asset.dailyTradeLimitXaf?.toString() ?? "");
 			setLockupDays(asset.lockupDays?.toString() ?? "");
+			setMinOrderSize(asset.minOrderSize?.toString() ?? "");
+			setMinOrderCashAmount(asset.minOrderCashAmount?.toString() ?? "");
 			setIncomeType(asset.incomeType ?? "");
 			setIncomeRate(asset.incomeRate?.toString() ?? "");
 			setDistributionFrequencyMonths(
@@ -152,6 +160,12 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 				: undefined;
 		if (lockupDays !== (asset.lockupDays?.toString() ?? ""))
 			data.lockupDays = lockupDays ? Number(lockupDays) : undefined;
+		if (minOrderSize !== (asset.minOrderSize?.toString() ?? ""))
+			data.minOrderSize = minOrderSize ? Number(minOrderSize) : undefined;
+		if (minOrderCashAmount !== (asset.minOrderCashAmount?.toString() ?? ""))
+			data.minOrderCashAmount = minOrderCashAmount
+				? Number(minOrderCashAmount)
+				: undefined;
 		if (incomeType !== (asset.incomeType ?? ""))
 			data.incomeType = incomeType || undefined;
 		if (incomeRate !== (asset.incomeRate?.toString() ?? ""))
@@ -329,6 +343,37 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 								min={0}
 								placeholder="e.g. 1000"
 							/>
+						</div>
+					</div>
+
+					<div className="grid grid-cols-2 gap-4">
+						<div>
+							<label className={labelClass}>Min Order Size (units)</label>
+							<input
+								type="number"
+								className={inputClass}
+								value={minOrderSize}
+								onChange={(e) => setMinOrderSize(e.target.value)}
+								min={0}
+								placeholder="e.g. 1"
+							/>
+							<p className="text-xs text-gray-400 mt-1">
+								Min units per order. 0 = no min
+							</p>
+						</div>
+						<div>
+							<label className={labelClass}>Min Order Amount (XAF)</label>
+							<input
+								type="number"
+								className={inputClass}
+								value={minOrderCashAmount}
+								onChange={(e) => setMinOrderCashAmount(e.target.value)}
+								min={0}
+								placeholder="e.g. 10000"
+							/>
+							<p className="text-xs text-gray-400 mt-1">
+								Min XAF per order. 0 = no min
+							</p>
 						</div>
 					</div>
 

@@ -15,5 +15,9 @@ public enum OrderStatus {
     /** Order stuck in EXECUTING; may need manual verification against Fineract. */
     NEEDS_RECONCILIATION,
     /** Order manually resolved by an admin after investigation. */
-    MANUALLY_CLOSED
+    MANUALLY_CLOSED,
+    /** Order placed outside market hours, waiting for market open to execute. */
+    QUEUED,
+    /** Order cancelled by user before execution. */
+    CANCELLED
 }

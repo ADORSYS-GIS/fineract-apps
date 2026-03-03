@@ -89,6 +89,19 @@ export const useOrderResolution = () => {
 		select: (res) => res.data.unreadCount,
 	});
 
+	const cancelMutation = useMutation({
+		mutationFn: (orderId: string) => assetApi.cancelOrder(orderId),
+		onSuccess: () => {
+			toast.success("Order cancelled successfully");
+			queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+			queryClient.invalidateQueries({ queryKey: ["admin-orders-summary"] });
+			queryClient.invalidateQueries({ queryKey: ["admin-order-detail"] });
+		},
+		onError: (error) => {
+			toast.error(extractErrorMessage(error));
+		},
+	});
+
 	const resolveMutation = useMutation({
 		mutationFn: ({
 			orderId,
@@ -131,6 +144,8 @@ export const useOrderResolution = () => {
 		onPageChange: setCurrentPage,
 		resolveOrder: resolveMutation.mutate,
 		isResolving: resolveMutation.isPending,
+		cancelOrder: cancelMutation.mutate,
+		isCancelling: cancelMutation.isPending,
 		// Filters
 		statusFilter,
 		setStatusFilter,

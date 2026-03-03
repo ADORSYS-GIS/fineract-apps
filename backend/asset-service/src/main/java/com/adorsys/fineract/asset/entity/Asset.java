@@ -114,6 +114,14 @@ public class Asset {
     @Column(name = "lockup_days")
     private Integer lockupDays;
 
+    /** Minimum units per single order. Null = no minimum. */
+    @Column(name = "min_order_size", precision = 20, scale = 8)
+    private BigDecimal minOrderSize;
+
+    /** Minimum XAF amount per single order. Null = no minimum. */
+    @Column(name = "min_order_cash_amount", precision = 20, scale = 0)
+    private BigDecimal minOrderCashAmount;
+
     // ── Income distribution fields (non-bond: dividends, rent, harvest yield) ──
 
     /** Type of income distribution: DIVIDEND, RENT, HARVEST_YIELD, etc. Null means no income. */

@@ -6,6 +6,7 @@ import com.adorsys.fineract.asset.entity.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 /**
@@ -127,7 +128,8 @@ public final class TestDataFactory {
                 LocalDate.now().plusYears(1),
                 null,
                 LP_CLIENT_ID,
-                null, null, null, null, // exposure limits
+                null, null, null, null, // exposure limits (maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays)
+                null, null, // min order size/cash
                 null, null, null, null, null, null, // bond fields
                 null, null, null, null // income fields
         );
@@ -152,6 +154,7 @@ public final class TestDataFactory {
                 null,
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
+                null, null, // min order size/cash
                 "Etat du Sénégal",
                 "SN0000038741",
                 LocalDate.now().plusYears(5),
@@ -233,6 +236,30 @@ public final class TestDataFactory {
                 .referenceType("ORDER")
                 .read(false)
                 .createdAt(Instant.now())
+                .build();
+    }
+
+    public static PurchaseLot purchaseLot(Long userId, String assetId, BigDecimal units, BigDecimal price) {
+        return PurchaseLot.builder()
+                .userId(userId)
+                .assetId(assetId)
+                .units(units)
+                .remainingUnits(units)
+                .purchasePrice(price)
+                .purchasedAt(Instant.now())
+                .build();
+    }
+
+    public static PurchaseLot purchaseLotWithLockup(Long userId, String assetId, BigDecimal units,
+                                                     BigDecimal price, int lockupDays) {
+        return PurchaseLot.builder()
+                .userId(userId)
+                .assetId(assetId)
+                .units(units)
+                .remainingUnits(units)
+                .purchasePrice(price)
+                .purchasedAt(Instant.now())
+                .lockupExpiresAt(Instant.now().plus(lockupDays, ChronoUnit.DAYS))
                 .build();
     }
 

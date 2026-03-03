@@ -4,11 +4,13 @@ import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.exception.TradingException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
+import com.adorsys.fineract.asset.repository.PurchaseLotRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,22 +27,37 @@ import java.util.Optional;
 public class LockupService {
 
     private final UserPositionRepository userPositionRepository;
+    private final PurchaseLotRepository purchaseLotRepository;
     private final AssetMetrics assetMetrics;
 
     /**
-     * Validate that the user's position is past the lock-up period.
-     * Called from TradingService on SELL orders only.
+     * Validate that enough unlocked units are available for a SELL of the given size.
+     * Uses per-lot lockup if lots exist, otherwise falls back to global firstPurchaseDate check.
      *
-     * @throws TradingException if the position is still within the lock-up period
+     * @throws TradingException if not enough unlocked units are available
      */
-    public void validateLockup(Asset asset, Long userId) {
+    public void validateLockup(Asset asset, Long userId, BigDecimal requestedUnits) {
         if (asset.getLockupDays() == null || asset.getLockupDays() <= 0) return;
 
+        // Per-lot lockup: check how many units have expired lockup
+        BigDecimal unlockedUnits = getUnlockedUnits(asset, userId);
+        if (unlockedUnits != null) {
+            if (requestedUnits.compareTo(unlockedUnits) > 0) {
+                assetMetrics.recordLockupRejection(asset.getId());
+                throw new TradingException(
+                        "Only " + unlockedUnits + " units are unlocked (requested: " + requestedUnits
+                                + "). Lock-up period: " + asset.getLockupDays() + " days per lot.",
+                        "LOCKUP_PERIOD_ACTIVE");
+            }
+            return;
+        }
+
+        // Fallback: global firstPurchaseDate check for legacy positions without lots
         Optional<UserPosition> position = userPositionRepository.findByUserIdAndAssetId(userId, asset.getId());
-        if (position.isEmpty()) return; // no position means no lock-up to check
+        if (position.isEmpty()) return;
 
         Instant firstPurchase = position.get().getFirstPurchaseDate();
-        if (firstPurchase == null) return; // legacy position without first_purchase_date
+        if (firstPurchase == null) return;
 
         LocalDate purchaseDate = firstPurchase.atZone(ZoneId.systemDefault()).toLocalDate();
         LocalDate unlockDate = purchaseDate.plusDays(asset.getLockupDays());
@@ -53,6 +70,19 @@ public class LockupService {
                             " days remaining). Lock-up period: " + asset.getLockupDays() + " days.",
                     "LOCKUP_PERIOD_ACTIVE");
         }
+    }
+
+    /**
+     * Get unlocked units from per-lot lockup tracking.
+     * Returns null if no lots exist (legacy position).
+     */
+    public BigDecimal getUnlockedUnits(Asset asset, Long userId) {
+        BigDecimal unlocked = purchaseLotRepository.sumUnlockedUnits(userId, asset.getId(), Instant.now());
+        // If sumUnlockedUnits returns 0 but there are no lots at all, return null to signal legacy fallback
+        long lotCount = purchaseLotRepository
+                .findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(userId, asset.getId(), BigDecimal.ZERO)
+                .size();
+        return lotCount > 0 ? unlocked : null;
     }
 
     /**

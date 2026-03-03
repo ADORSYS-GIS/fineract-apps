@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.adorsys.fineract.asset.entity.Asset;
+import org.springframework.data.domain.PageRequest;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -103,6 +105,8 @@ public class PricingService {
     /**
      * Get price history for charts.
      */
+    private static final int MAX_PRICE_HISTORY_POINTS = 1000;
+
     @Transactional(readOnly = true)
     public PriceHistoryResponse getPriceHistory(String assetId, String period) {
         Instant after = switch (period.toUpperCase()) {
@@ -115,11 +119,12 @@ public class PricingService {
             default -> Instant.now().minus(365, ChronoUnit.DAYS);
         };
 
+        PageRequest limit = PageRequest.of(0, MAX_PRICE_HISTORY_POINTS);
         List<PriceHistory> history;
         if ("ALL".equalsIgnoreCase(period)) {
-            history = priceHistoryRepository.findByAssetIdOrderByCapturedAtAsc(assetId);
+            history = priceHistoryRepository.findByAssetIdOrderByCapturedAtAsc(assetId, limit);
         } else {
-            history = priceHistoryRepository.findByAssetIdAndCapturedAtAfterOrderByCapturedAtAsc(assetId, after);
+            history = priceHistoryRepository.findByAssetIdAndCapturedAtAfterOrderByCapturedAtAsc(assetId, after, limit);
         }
 
         List<PricePointDto> points = history.stream()
@@ -175,6 +180,13 @@ public class PricingService {
             // Explicit bid/ask provided — use directly
             if (request.bidPrice() != null) price.setBidPrice(request.bidPrice());
             if (request.askPrice() != null) price.setAskPrice(request.askPrice());
+            // Validate bid <= ask to prevent inverted spreads (arbitrage risk)
+            BigDecimal effectiveBid = price.getBidPrice();
+            BigDecimal effectiveAsk = price.getAskPrice();
+            if (effectiveBid != null && effectiveAsk != null && effectiveBid.compareTo(effectiveAsk) > 0) {
+                throw new AssetException("Invalid spread: bid price (" + effectiveBid
+                        + ") must not exceed ask price (" + effectiveAsk + ")");
+            }
         } else if (oldPrice.compareTo(BigDecimal.ZERO) > 0
                 && price.getBidPrice() != null && price.getAskPrice() != null) {
             // Auto-derive: scale bid/ask proportionally to maintain spread structure

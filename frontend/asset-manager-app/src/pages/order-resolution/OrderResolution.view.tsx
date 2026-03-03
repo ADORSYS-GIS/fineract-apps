@@ -13,6 +13,8 @@ const statusColors: Record<string, string> = {
 	PENDING: "bg-blue-100 text-blue-800",
 	EXECUTING: "bg-purple-100 text-purple-800",
 	REJECTED: "bg-orange-100 text-orange-800",
+	QUEUED: "bg-indigo-100 text-indigo-800",
+	CANCELLED: "bg-gray-100 text-gray-500",
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -39,6 +41,8 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 	onPageChange,
 	resolveOrder,
 	isResolving,
+	cancelOrder,
+	isCancelling,
 	statusFilter,
 	setStatusFilter,
 	assetFilter,
@@ -129,6 +133,8 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 						<option value="FILLED">Filled</option>
 						<option value="PENDING">Pending</option>
 						<option value="EXECUTING">Executing</option>
+						<option value="QUEUED">Queued</option>
+						<option value="CANCELLED">Cancelled</option>
 					</select>
 					<select
 						className={inputClass}
@@ -272,7 +278,7 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 												<td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
 													{new Date(order.createdAt).toLocaleDateString()}
 												</td>
-												<td className="px-4 py-3 whitespace-nowrap text-center">
+												<td className="px-4 py-3 whitespace-nowrap text-center space-x-1">
 													{(order.status === "NEEDS_RECONCILIATION" ||
 														order.status === "FAILED") && (
 														<Button
@@ -287,6 +293,20 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 															className="text-xs"
 														>
 															Resolve
+														</Button>
+													)}
+													{(order.status === "PENDING" ||
+														order.status === "QUEUED") && (
+														<Button
+															variant="outline"
+															onClick={(e) => {
+																e.stopPropagation();
+																cancelOrder(order.orderId);
+															}}
+															disabled={isCancelling}
+															className="text-xs text-red-600 border-red-300 hover:bg-red-50"
+														>
+															Cancel
 														</Button>
 													)}
 												</td>
@@ -444,6 +464,22 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 												className="w-full"
 											>
 												Resolve Order
+											</Button>
+										</div>
+									)}
+									{(orderDetail.status === "PENDING" ||
+										orderDetail.status === "QUEUED") && (
+										<div className="pt-4">
+											<Button
+												variant="outline"
+												onClick={() => {
+													cancelOrder(orderDetail.orderId);
+													setSelectedOrderId(null);
+												}}
+												disabled={isCancelling}
+												className="w-full text-red-600 border-red-300 hover:bg-red-50"
+											>
+												{isCancelling ? "Cancelling..." : "Cancel Order"}
 											</Button>
 										</div>
 									)}

@@ -72,4 +72,13 @@ public class TradeController {
         Long userId = JwtUtils.extractUserId(jwt);
         return ResponseEntity.ok(tradingService.getOrder(id, userId));
     }
+
+    @PostMapping("/orders/{id}/cancel")
+    @Operation(summary = "Cancel order", description = "Cancel a PENDING or QUEUED order. Only the owning user can cancel.")
+    public ResponseEntity<OrderResponse> cancelOrder(
+            @PathVariable String id,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long userId = JwtUtils.extractUserId(jwt);
+        return ResponseEntity.ok(tradingService.cancelOrder(id, userId));
+    }
 }

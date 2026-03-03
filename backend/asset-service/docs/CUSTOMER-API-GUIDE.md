@@ -208,7 +208,7 @@ Response:
 ```
 
 - `feasible` — whether the trade can execute right now
-- `blockers` — reasons if not feasible: `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_FUNDS`, `INSUFFICIENT_INVENTORY`, `NO_POSITION`, `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_ENDED`
+- `blockers` — reasons if not feasible: `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_FUNDS`, `INSUFFICIENT_INVENTORY`, `NO_POSITION`, `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_ENDED`, `MIN_ORDER_SIZE_NOT_MET`, `MIN_ORDER_CASH_NOT_MET`, `LOCKUP_PERIOD_ACTIVE`, `PORTFOLIO_EXPOSURE_EXCEEDED`, `INSUFFICIENT_LP_FUNDS`
 - `executionPrice` — the LP's ask price (for BUY) or bid price (for SELL)
 - `lpMarginPerUnit` — the LP's markup per unit above the issuer price
 - `spreadAmount` — total LP margin: `lpMarginPerUnit × units`
@@ -302,12 +302,18 @@ Response:
 - `pricePerUnit` = LP ask price (what the investor paid per unit)
 - `totalAmount` = gross (units × askPrice) + fee = 50,000 + 250 = 50,250 XAF
 
+**Out-of-hours behavior:** If the market is closed, the order is **queued** instead of rejected. The response will have `status: "QUEUED"`. Queued orders are processed at market open (08:01 WAT, Mon-Fri). If the price moved > 5% since queue time, the order is rejected as stale.
+
 Error responses:
-- `409` - `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_INVENTORY`
+- `409` - `MARKET_CLOSED` (only if queuing is not applicable)
+- `409` - `TRADING_HALTED`, `INSUFFICIENT_INVENTORY`
 - `409` - `SUBSCRIPTION_NOT_STARTED` (subscription period has not started yet)
 - `409` - `SUBSCRIPTION_ENDED` (subscription period has passed; SELL is still allowed)
 - `429` - `TRADE_LOCKED` (another trade in progress, retry after a few seconds)
 - `400` - `NO_XAF_ACCOUNT` (user has no active settlement currency savings account)
+- `400` - `MIN_ORDER_SIZE_NOT_MET` (order below minimum unit size)
+- `400` - `MIN_ORDER_CASH_NOT_MET` (order below minimum cash amount)
+- `400` - `PORTFOLIO_EXPOSURE_EXCEEDED` (total portfolio value would exceed platform limit)
 - `400` - `TRADING_ERROR` (insufficient balance, validation errors)
 
 ---
@@ -364,6 +370,9 @@ Response:
 Error responses:
 - `400` - `NO_POSITION` (user has no holdings for this asset)
 - `400` - `INSUFFICIENT_UNITS` (trying to sell more than held)
+- `400` - `INSUFFICIENT_LP_FUNDS` (LP doesn't have enough cash for payout)
+- `400` - `LOCKUP_PERIOD_ACTIVE` (per-lot lockup not yet expired)
+- `400` - `MIN_ORDER_SIZE_NOT_MET` (order below minimum unit size)
 - `400` - `NO_XAF_ACCOUNT` (user has no active settlement currency savings account)
 
 ---
@@ -460,6 +469,33 @@ Response:
 ```
 
 Returns an empty `snapshots` array if no snapshots exist for the requested period.
+
+---
+
+## Flow 8b: Cancel an Order
+
+Users can cancel their own `PENDING` or `QUEUED` orders before execution.
+
+```
+POST /api/trades/orders/{orderId}/cancel
+Headers: Authorization: Bearer {jwt}
+```
+
+Response:
+```json
+{
+  "orderId": "uuid",
+  "status": "CANCELLED",
+  "units": 10,
+  "pricePerUnit": 5000,
+  "totalAmount": 50250,
+  "fee": 250
+}
+```
+
+Error responses:
+- `400` — Order is not in `PENDING` or `QUEUED` status (already filled, cancelled, etc.)
+- `404` — Order not found or belongs to another user
 
 ---
 

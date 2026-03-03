@@ -3,6 +3,7 @@ DELETE FROM notification_log;
 DELETE FROM audit_log;
 DELETE FROM income_distributions;
 DELETE FROM reconciliation_reports;
+DELETE FROM purchase_lots;
 DELETE FROM price_history;
 DELETE FROM trade_log;
 DELETE FROM orders;

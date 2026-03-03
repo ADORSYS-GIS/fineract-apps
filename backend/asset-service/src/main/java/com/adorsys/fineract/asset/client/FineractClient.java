@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.client;
 import com.adorsys.fineract.asset.config.FineractConfig;
 import com.adorsys.fineract.asset.exception.AssetException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
@@ -899,6 +900,7 @@ public class FineractClient {
      * @return List of batch response items from Fineract
      * @throws AssetException if the batch fails
      */
+    @Retry(name = "fineract")
     @CircuitBreaker(name = "fineract")
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> executeAtomicBatch(List<BatchOperation> operations) {

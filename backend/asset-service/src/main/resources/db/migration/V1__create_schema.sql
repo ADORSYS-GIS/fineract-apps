@@ -67,6 +67,7 @@ CREATE TABLE user_positions (
     avg_purchase_price DECIMAL(20,4) NOT NULL DEFAULT 0,
     total_cost_basis DECIMAL(20,0) NOT NULL DEFAULT 0,
     realized_pnl DECIMAL(20,0) NOT NULL DEFAULT 0,
+    accrued_interest DECIMAL(20,0) NOT NULL DEFAULT 0,
     last_trade_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     version BIGINT DEFAULT 0,
     CONSTRAINT uq_user_positions UNIQUE (user_id, asset_id)
@@ -88,6 +89,8 @@ CREATE TABLE orders (
     execution_price DECIMAL(20,0),
     fee DECIMAL(20,0),
     spread_amount DECIMAL(20,0) DEFAULT 0,
+    buyback_premium DECIMAL(20,0) DEFAULT 0,
+    queued_price DECIMAL(20,0),
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     failure_reason VARCHAR(500),
     fineract_batch_id VARCHAR(255),
@@ -119,6 +122,7 @@ CREATE TABLE trade_log (
     total_amount DECIMAL(20,0) NOT NULL,
     fee DECIMAL(20,0) NOT NULL DEFAULT 0,
     spread_amount DECIMAL(20,0) NOT NULL DEFAULT 0,
+    buyback_premium DECIMAL(20,0) NOT NULL DEFAULT 0,
     realized_pnl DECIMAL(20,0),
     fineract_cash_transfer_id BIGINT,
     fineract_asset_transfer_id BIGINT,
@@ -129,6 +133,21 @@ CREATE INDEX idx_trade_log_user ON trade_log(user_id, executed_at);
 CREATE INDEX idx_trade_log_asset ON trade_log(asset_id, executed_at DESC);
 CREATE INDEX idx_trade_log_order ON trade_log(order_id);
 CREATE INDEX idx_trade_log_user_asset ON trade_log(user_id, asset_id);
+
+-- Purchase lots for FIFO cost basis and per-lot lockup
+CREATE TABLE purchase_lots (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    asset_id VARCHAR(36) NOT NULL REFERENCES assets(id),
+    units DECIMAL(20,8) NOT NULL,
+    remaining_units DECIMAL(20,8) NOT NULL,
+    purchase_price DECIMAL(20,4) NOT NULL,
+    purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    lockup_expires_at TIMESTAMPTZ,
+    version BIGINT DEFAULT 0
+);
+
+CREATE INDEX idx_lots_user_asset ON purchase_lots(user_id, asset_id, purchased_at);
 
 -- User favorite assets
 CREATE TABLE user_favorites (
