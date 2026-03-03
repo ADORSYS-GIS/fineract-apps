@@ -67,7 +67,7 @@ class ExposureLimitServiceTest {
 
         TradingException ex = assertThrows(TradingException.class,
                 () -> exposureLimitService.validateLimits(asset, USER_ID, TradeSide.BUY, units, cash));
-        assertEquals("MIN_ORDER_SIZE_NOT_MET", ex.getCode());
+        assertEquals("MIN_ORDER_SIZE_NOT_MET", ex.getErrorCode());
     }
 
     @Test
@@ -91,7 +91,7 @@ class ExposureLimitServiceTest {
 
         TradingException ex = assertThrows(TradingException.class,
                 () -> exposureLimitService.validateLimits(asset, USER_ID, TradeSide.BUY, units, cash));
-        assertEquals("MIN_ORDER_CASH_NOT_MET", ex.getCode());
+        assertEquals("MIN_ORDER_CASH_NOT_MET", ex.getErrorCode());
     }
 
     @Test
@@ -137,7 +137,7 @@ class ExposureLimitServiceTest {
 
         TradingException ex = assertThrows(TradingException.class,
                 () -> exposureLimitService.validateLimits(asset, USER_ID, TradeSide.BUY, units, cash));
-        assertEquals("PORTFOLIO_EXPOSURE_EXCEEDED", ex.getCode());
+        assertEquals("PORTFOLIO_EXPOSURE_EXCEEDED", ex.getErrorCode());
     }
 
     @Test

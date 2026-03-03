@@ -205,7 +205,7 @@ class AssetProvisioningServiceTest {
                 "New Name", null, null, null, null, null, null, null, null, null,
                 null, null, null, null, // exposure limits
                 null, null, null, null, // income distribution
-                null, null, null); // bond fields
+                null, null, null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -222,7 +222,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -328,6 +328,7 @@ class AssetProvisioningServiceTest {
                 LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
+                null, null, // min order size/cash
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null // income fields
@@ -346,6 +347,7 @@ class AssetProvisioningServiceTest {
                 LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
+                null, null, // min order size/cash
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
                 LocalDate.now().plusMonths(5),
                 null, null, null, null // income fields
@@ -364,6 +366,7 @@ class AssetProvisioningServiceTest {
                 LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
+                null, null, // min order size/cash
                 null, null, null, null, null, null, // bond fields
                 null, null, null, null // income fields
         );
@@ -382,7 +385,7 @@ class AssetProvisioningServiceTest {
                 LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
                 null, null, null, null, // exposure limits
                 null, null, null, null, // income distribution
-                null, null, null); // bond fields
+                null, null, null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
@@ -464,6 +467,7 @@ class AssetProvisioningServiceTest {
                 LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
+                null, null, // min order size/cash
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null // income fields

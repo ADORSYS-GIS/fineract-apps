@@ -31,13 +31,13 @@ class LPPerformanceServiceTest {
         Object[] totals = new Object[]{
                 new BigDecimal("1000"), new BigDecimal("200"), new BigDecimal("300"), 50L
         };
-        when(tradeLogRepository.aggregateTotalLPPerformance()).thenReturn(totals);
+        when(tradeLogRepository.aggregateTotalLPPerformance()).thenReturn(List.<Object[]>of(totals));
 
         // Per-asset: one asset
         Object[] assetRow = new Object[]{
                 "asset-001", new BigDecimal("1000"), new BigDecimal("200"), new BigDecimal("300"), 50L
         };
-        when(tradeLogRepository.aggregateLPPerformanceByAsset()).thenReturn(List.of(assetRow));
+        when(tradeLogRepository.aggregateLPPerformanceByAsset()).thenReturn(List.<Object[]>of(assetRow));
 
         Asset asset = Asset.builder().id("asset-001").symbol("TST").build();
         when(assetRepository.findAllById(List.of("asset-001"))).thenReturn(List.of(asset));
@@ -65,9 +65,9 @@ class LPPerformanceServiceTest {
         Object[] totals = new Object[]{
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L
         };
-        when(tradeLogRepository.aggregateTotalLPPerformance()).thenReturn(totals);
-        when(tradeLogRepository.aggregateLPPerformanceByAsset()).thenReturn(List.of());
-        when(assetRepository.findAllById(List.of())).thenReturn(List.of());
+        when(tradeLogRepository.aggregateTotalLPPerformance()).thenReturn(List.<Object[]>of(totals));
+        when(tradeLogRepository.aggregateLPPerformanceByAsset()).thenReturn(List.<Object[]>of());
+        when(assetRepository.findAllById(List.<String>of())).thenReturn(List.of());
 
         LPPerformanceResponse result = lpPerformanceService.getPerformanceSummary();
 
@@ -82,12 +82,12 @@ class LPPerformanceServiceTest {
         Object[] totals = new Object[]{
                 new BigDecimal("500"), BigDecimal.ZERO, new BigDecimal("100"), 10L
         };
-        when(tradeLogRepository.aggregateTotalLPPerformance()).thenReturn(totals);
+        when(tradeLogRepository.aggregateTotalLPPerformance()).thenReturn(List.<Object[]>of(totals));
 
         Object[] assetRow = new Object[]{
                 "deleted-asset", new BigDecimal("500"), BigDecimal.ZERO, new BigDecimal("100"), 10L
         };
-        when(tradeLogRepository.aggregateLPPerformanceByAsset()).thenReturn(List.of(assetRow));
+        when(tradeLogRepository.aggregateLPPerformanceByAsset()).thenReturn(List.<Object[]>of(assetRow));
         // Asset not found
         when(assetRepository.findAllById(List.of("deleted-asset"))).thenReturn(List.of());
 

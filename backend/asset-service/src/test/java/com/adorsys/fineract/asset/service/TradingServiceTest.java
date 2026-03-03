@@ -233,7 +233,6 @@ class TradingServiceTest {
 
         // Verify no separate fee calls (everything is in the batch)
         verify(fineractClient, never()).withdrawFromSavingsAccount(anyLong(), any(), anyString());
-        verify(fineractClient, never()).createJournalEntry(anyLong(), anyLong(), any(), anyString(), anyString());
 
         // Verify portfolio updated with effective cost per unit (including fee)
         verify(portfolioService).updatePositionAfterBuy(
@@ -625,7 +624,6 @@ class TradingServiceTest {
 
         // Verify no separate fee calls
         verify(fineractClient, never()).withdrawFromSavingsAccount(anyLong(), any(), anyString());
-        verify(fineractClient, never()).createJournalEntry(anyLong(), anyLong(), any(), anyString(), anyString());
 
         // Verify circulating supply decreased
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, new BigDecimal("5").negate());

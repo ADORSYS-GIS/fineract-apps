@@ -103,36 +103,36 @@ class AdminAssetControllerTest {
     void createAsset_validRequest_returns201() throws Exception {
         // Arrange
         CreateAssetRequest request = new CreateAssetRequest(
-                "Test Asset", "TST", "TST",
-                "A test asset", null,
-                AssetCategory.STOCKS,
-                new BigDecimal("500"), new BigDecimal("1000"),
-                0, new BigDecimal("0.005"),
-                new BigDecimal("550"), new BigDecimal("475"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
-                1L,
-                null, null, null, null, // exposure limits
-                null, null, null, null, null, null, // bond fields
-                null, null, null, null // income fields
+                "Test Asset", "TST", "TST", // name, symbol, currencyCode
+                "A test asset", null, // description, imageUrl
+                AssetCategory.STOCKS, // category
+                new BigDecimal("500"), new BigDecimal("1000"), // issuerPrice, totalSupply
+                0, new BigDecimal("0.005"), // decimalPlaces, tradingFeePercent
+                new BigDecimal("550"), new BigDecimal("475"), // lpAskPrice, lpBidPrice
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null, // subscriptionStart, subscriptionEnd, capitalOpenedPercent
+                1L, // lpClientId
+                null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount
+                null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
+                null, null, null, null // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
         );
 
         AssetDetailResponse response = new AssetDetailResponse(
-                "a1", "Test Asset", "TST", "TST",
-                "A test asset", null, AssetCategory.STOCKS, AssetStatus.PENDING,
-                PriceMode.MANUAL, new BigDecimal("500"), null,
-                null, null, null, null,
-                new BigDecimal("1000"), BigDecimal.ZERO, new BigDecimal("1000"),
-                new BigDecimal("0.005"),
-                0, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                "a1", "Test Asset", "TST", "TST", // id, name, symbol, currencyCode
+                "A test asset", null, // description, imageUrl
+                AssetCategory.STOCKS, AssetStatus.PENDING, PriceMode.MANUAL, // category, status, priceMode
+                null, null, null, null, null, // change24hPercent, dayOpen, dayHigh, dayLow, dayClose
+                new BigDecimal("1000"), BigDecimal.ZERO, new BigDecimal("1000"), // totalSupply, circulatingSupply, availableSupply
+                new BigDecimal("0.005"), // tradingFeePercent
+                0, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null, // decimalPlaces, subscriptionStart, subscriptionEnd, capitalOpenedPercent
                 null, new BigDecimal("500"), // issuerName, issuerPrice
                 1L, 200L, 300L, null, 10, // lpClientId, lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, fineractProductId
-                "Test Company", "Test Asset Token",
+                "Test Company", "Test Asset Token", // lpClientName, fineractProductName
                 null, null, // lpMarginPerUnit, lpMarginPercent
-                Instant.now(), null,
-                null, null, null, null, null, null, null, null, // bond fields + residualDays + subscriptionClosed + couponAmountPerUnit
+                Instant.now(), null, // createdAt, updatedAt
+                null, null, null, null, null, null, null, null, // isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate, residualDays, subscriptionClosed, couponAmountPerUnit
                 null, null, // bidPrice, askPrice
-                null, null, null, null, // exposure limits + lockupDays
-                null, null, null, null, // income distribution
+                null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, minOrderSize, minOrderCashAmount, lockupDays
+                null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
                 null, null // delistingDate, delistingRedemptionPrice
         );
 

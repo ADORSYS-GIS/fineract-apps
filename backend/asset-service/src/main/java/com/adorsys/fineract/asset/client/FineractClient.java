@@ -51,7 +51,7 @@ public class FineractClient {
     /**
      * Sealed interface for operations that can be included in an atomic Fineract batch.
      */
-    public sealed interface BatchOperation permits BatchTransferOp, BatchWithdrawalOp, BatchJournalEntryOp {}
+    public sealed interface BatchOperation permits BatchTransferOp {}
 
     /**
      * Account transfer between two savings accounts.
@@ -60,31 +60,6 @@ public class FineractClient {
             Long fromAccountId, Long toAccountId,
             BigDecimal amount, String description
     ) implements BatchOperation {}
-
-    /**
-     * Withdrawal from a savings account (e.g. fee deduction).
-     */
-    public record BatchWithdrawalOp(
-            Long savingsAccountId, BigDecimal amount, String note
-    ) implements BatchOperation {}
-
-    /**
-     * Journal entry (debit + credit) posted directly to GL accounts.
-     */
-    public record BatchJournalEntryOp(
-            Long debitGlAccountId, Long creditGlAccountId,
-            BigDecimal amount, String currencyCode, String comments
-    ) implements BatchOperation {}
-
-    /**
-     * Legacy transfer request. Delegates to {@link BatchTransferOp}.
-     * @deprecated Use {@link BatchTransferOp} with {@link #executeAtomicBatch} instead.
-     */
-    @Deprecated
-    public record BatchTransferRequest(
-            Long fromAccountId, Long toAccountId,
-            BigDecimal amount, String description
-    ) {}
 
     /**
      * Get existing currencies registered in Fineract.
@@ -304,114 +279,6 @@ public class FineractClient {
     }
 
     /**
-     * Create a savings account for a client with a given product.
-     *
-     * @return The created account ID
-     */
-    @SuppressWarnings("unchecked")
-    public Long createSavingsAccount(Long clientId, Integer productId) {
-        try {
-            Map<String, Object> body = Map.of(
-                    "clientId", clientId,
-                    "productId", productId,
-                    "locale", "en",
-                    "dateFormat", "dd MMMM yyyy",
-                    "submittedOnDate", LocalDate.now().format(DATE_FORMAT)
-            );
-
-            Map<String, Object> response = webClient.post()
-                    .uri("/fineract-provider/api/v1/savingsaccounts")
-                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(body)
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                            resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract account API error: " + b))))
-                    .bodyToMono(Map.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                    .block();
-
-            Long accountId = ((Number) response.get("savingsId")).longValue();
-            log.info("Created savings account: clientId={}, productId={}, accountId={}", clientId, productId, accountId);
-            return accountId;
-        } catch (AssetException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to create savings account: {}", e.getMessage());
-            throw new AssetException("Failed to create savings account in Fineract", e);
-        }
-    }
-
-    /**
-     * Approve a savings account.
-     */
-    @SuppressWarnings("unchecked")
-    public void approveSavingsAccount(Long accountId) {
-        try {
-            Map<String, Object> body = Map.of(
-                    "locale", "en",
-                    "dateFormat", "dd MMMM yyyy",
-                    "approvedOnDate", LocalDate.now().format(DATE_FORMAT)
-            );
-
-            webClient.post()
-                    .uri("/fineract-provider/api/v1/savingsaccounts/{id}?command=approve", accountId)
-                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(body)
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                            resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract approve error: " + b))))
-                    .bodyToMono(Map.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                    .block();
-
-            log.info("Approved savings account: {}", accountId);
-        } catch (AssetException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to approve savings account: {}", e.getMessage());
-            throw new AssetException("Failed to approve savings account", e);
-        }
-    }
-
-    /**
-     * Activate a savings account.
-     */
-    @SuppressWarnings("unchecked")
-    public void activateSavingsAccount(Long accountId) {
-        try {
-            Map<String, Object> body = Map.of(
-                    "locale", "en",
-                    "dateFormat", "dd MMMM yyyy",
-                    "activatedOnDate", LocalDate.now().format(DATE_FORMAT)
-            );
-
-            webClient.post()
-                    .uri("/fineract-provider/api/v1/savingsaccounts/{id}?command=activate", accountId)
-                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(body)
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                            resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract activate error: " + b))))
-                    .bodyToMono(Map.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                    .block();
-
-            log.info("Activated savings account: {}", accountId);
-        } catch (AssetException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to activate savings account: {}", e.getMessage());
-            throw new AssetException("Failed to activate savings account", e);
-        }
-    }
-
-    /**
      * Deposit into a savings account (used for initial supply minting).
      *
      * @return Transaction ID
@@ -461,13 +328,15 @@ public class FineractClient {
     public Long createAccountTransfer(Long fromAccountId, Long toAccountId,
                                        BigDecimal amount, String description) {
         try {
+            // Fineract requires officeId/clientId fields but resolves the actual
+            // owner from the savings account ID. These values are placeholders.
             Map<String, Object> body = new HashMap<>();
             body.put("fromOfficeId", 1);
-            body.put("fromClientId", 1); // Will be overridden by account
+            body.put("fromClientId", 1);
             body.put("fromAccountType", 2); // Savings
             body.put("fromAccountId", fromAccountId);
             body.put("toOfficeId", 1);
-            body.put("toClientId", 1); // Will be overridden by account
+            body.put("toClientId", 1);
             body.put("toAccountType", 2); // Savings
             body.put("toAccountId", toAccountId);
             body.put("transferAmount", amount);
@@ -576,52 +445,6 @@ public class FineractClient {
         } catch (Exception e) {
             log.error("Failed to close savings account {}: {}", savingsAccountId, e.getMessage());
             throw new AssetException("Failed to close savings account in Fineract", e);
-        }
-    }
-
-    /**
-     * Create a journal entry in Fineract to post directly to GL accounts.
-     * Used for fee income recognition: debit fund source, credit fee income GL account.
-     *
-     * @return Journal entry transaction ID
-     */
-    @SuppressWarnings("unchecked")
-    public Long createJournalEntry(Long debitGlAccountId, Long creditGlAccountId,
-                                    BigDecimal amount, String currencyCode, String comments) {
-        try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("officeId", 1);
-            body.put("transactionDate", LocalDate.now().format(DATE_FORMAT));
-            body.put("referenceNumber", UUID.randomUUID().toString());
-            body.put("comments", comments);
-            body.put("currencyCode", currencyCode);
-            body.put("locale", "en");
-            body.put("dateFormat", "dd MMMM yyyy");
-            body.put("debits", List.of(Map.of("glAccountId", debitGlAccountId, "amount", amount)));
-            body.put("credits", List.of(Map.of("glAccountId", creditGlAccountId, "amount", amount)));
-
-            Map<String, Object> response = webClient.post()
-                    .uri("/fineract-provider/api/v1/journalentries")
-                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(body)
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                            resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract journal entry error: " + b))))
-                    .bodyToMono(Map.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                    .block();
-
-            String transactionId = (String) response.get("transactionId");
-            log.info("Journal entry: debitGL={}, creditGL={}, amount={} {}, txnId={}",
-                    debitGlAccountId, creditGlAccountId, amount, currencyCode, transactionId);
-            return transactionId != null ? transactionId.hashCode() & 0xFFFFFFFFL : 0L;
-        } catch (AssetException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to create journal entry: {}", e.getMessage());
-            throw new AssetException("Failed to create journal entry in Fineract", e);
         }
     }
 
@@ -874,29 +697,11 @@ public class FineractClient {
     }
 
     /**
-     * Execute multiple account transfers via Fineract Batch API atomically.
-     *
-     * @param transfers List of transfers to execute
-     * @return List of batch response items
-     * @throws AssetException if the batch fails
-     * @deprecated Use {@link #executeAtomicBatch(List)} with {@link BatchOperation} types instead.
-     */
-    @Deprecated
-    @CircuitBreaker(name = "fineract")
-    public List<Map<String, Object>> executeBatchTransfers(List<BatchTransferRequest> transfers) {
-        List<BatchOperation> ops = transfers.stream()
-                .<BatchOperation>map(t -> new BatchTransferOp(
-                        t.fromAccountId(), t.toAccountId(), t.amount(), t.description()))
-                .toList();
-        return executeAtomicBatch(ops);
-    }
-
-    /**
-     * Execute mixed operations atomically via Fineract's Batch API.
+     * Execute operations atomically via Fineract's Batch API.
      * Uses {@code POST /batches?enclosingTransaction=true} so all operations
      * succeed or all are rolled back on the Fineract side.
      *
-     * @param operations List of batch operations (transfers, withdrawals, journal entries)
+     * @param operations List of batch transfer operations
      * @return List of batch response items from Fineract
      * @throws AssetException if the batch fails
      */
@@ -918,6 +723,8 @@ public class FineractClient {
 
             switch (op) {
                 case BatchTransferOp t -> {
+                    // Fineract requires officeId/clientId fields but resolves
+                    // the actual owner from the savings account ID.
                     body = new HashMap<>();
                     body.put("fromOfficeId", 1);
                     body.put("fromClientId", 1);
@@ -933,29 +740,6 @@ public class FineractClient {
                     body.put("locale", "en");
                     body.put("dateFormat", "dd MMMM yyyy");
                     relativeUrl = "accounttransfers";
-                }
-                case BatchWithdrawalOp w -> {
-                    body = new HashMap<>();
-                    body.put("transactionDate", today);
-                    body.put("transactionAmount", w.amount());
-                    body.put("paymentTypeId", 2);
-                    body.put("note", w.note());
-                    body.put("locale", "en");
-                    body.put("dateFormat", "dd MMMM yyyy");
-                    relativeUrl = "savingsaccounts/" + w.savingsAccountId() + "/transactions?command=withdrawal";
-                }
-                case BatchJournalEntryOp j -> {
-                    body = new HashMap<>();
-                    body.put("officeId", 1);
-                    body.put("transactionDate", today);
-                    body.put("referenceNumber", UUID.randomUUID().toString());
-                    body.put("comments", j.comments());
-                    body.put("currencyCode", j.currencyCode());
-                    body.put("locale", "en");
-                    body.put("dateFormat", "dd MMMM yyyy");
-                    body.put("debits", List.of(Map.of("glAccountId", j.debitGlAccountId(), "amount", j.amount())));
-                    body.put("credits", List.of(Map.of("glAccountId", j.creditGlAccountId(), "amount", j.amount())));
-                    relativeUrl = "journalentries";
                 }
             }
 
@@ -1032,11 +816,6 @@ public class FineractClient {
             switch (op) {
                 case BatchTransferOp t -> resourceId = createAccountTransfer(
                         t.fromAccountId(), t.toAccountId(), t.amount(), t.description());
-                case BatchWithdrawalOp w -> resourceId = withdrawFromSavingsAccount(
-                        w.savingsAccountId(), w.amount(), w.note());
-                case BatchJournalEntryOp j -> resourceId = createJournalEntry(
-                        j.debitGlAccountId(), j.creditGlAccountId(),
-                        j.amount(), j.currencyCode(), j.comments());
             }
             results.add(Map.of("requestId", (long) (i + 1), "statusCode", 200,
                     "body", Map.of("resourceId", resourceId)));
