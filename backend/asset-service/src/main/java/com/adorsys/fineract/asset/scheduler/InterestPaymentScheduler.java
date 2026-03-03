@@ -1,10 +1,12 @@
 package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.service.ScheduledPaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,26 +33,43 @@ public class InterestPaymentScheduler {
 
     private final AssetRepository assetRepository;
     private final ScheduledPaymentService scheduledPaymentService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 15 0 * * *", zone = "Africa/Douala")
     public void processCouponPayments() {
-        LocalDate today = LocalDate.now();
-        List<Asset> dueBonds = assetRepository.findBondsWithDueCoupons(today);
+        try {
+            LocalDate today = LocalDate.now();
+            List<Asset> dueBonds = assetRepository.findBondsWithDueCoupons(today);
 
-        if (dueBonds.isEmpty()) {
-            log.debug("No coupon payments due today ({})", today);
-            return;
-        }
-
-        log.info("Creating pending coupon schedules for {} bond(s) on {}", dueBonds.size(), today);
-
-        for (Asset bond : dueBonds) {
-            try {
-                createPendingAndAdvance(bond);
-            } catch (Exception e) {
-                log.error("Failed to create coupon schedule for bond {}: {}",
-                        bond.getId(), e.getMessage(), e);
+            if (dueBonds.isEmpty()) {
+                log.debug("No coupon payments due today ({})", today);
+                return;
             }
+
+            log.info("Creating pending coupon schedules for {} bond(s) on {}", dueBonds.size(), today);
+            int failed = 0;
+
+            for (Asset bond : dueBonds) {
+                try {
+                    createPendingAndAdvance(bond);
+                } catch (Exception e) {
+                    failed++;
+                    log.error("Failed to create coupon schedule for bond {}: {}",
+                            bond.getId(), e.getMessage(), e);
+                }
+            }
+
+            if (failed > 0) {
+                eventPublisher.publishEvent(new AdminAlertEvent(
+                        "SCHEDULER_FAILURE", "Interest payment scheduler partial failure",
+                        String.format("%d of %d coupon schedules failed", failed, dueBonds.size()),
+                        null, "SCHEDULER"));
+            }
+        } catch (Exception e) {
+            log.error("Interest payment scheduler failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Interest payment scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
         }
     }
 

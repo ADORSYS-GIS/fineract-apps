@@ -2,10 +2,12 @@ package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.service.DelistingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -23,30 +25,47 @@ public class DelistingScheduler {
 
     private final AssetRepository assetRepository;
     private final DelistingService delistingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 45 0 * * *", zone = "Africa/Douala")
     public void processDelistings() {
-        LocalDate today = LocalDate.now();
+        try {
+            LocalDate today = LocalDate.now();
 
-        List<Asset> delistingAssets = assetRepository.findByStatusIn(List.of(AssetStatus.DELISTING));
-        List<Asset> dueAssets = delistingAssets.stream()
-                .filter(a -> a.getDelistingDate() != null && !a.getDelistingDate().isAfter(today))
-                .toList();
+            List<Asset> delistingAssets = assetRepository.findByStatusIn(List.of(AssetStatus.DELISTING));
+            List<Asset> dueAssets = delistingAssets.stream()
+                    .filter(a -> a.getDelistingDate() != null && !a.getDelistingDate().isAfter(today))
+                    .toList();
 
-        if (dueAssets.isEmpty()) {
-            log.debug("No assets due for delisting today ({})", today);
-            return;
-        }
-
-        log.info("Processing forced buyback for {} asset(s) on {}", dueAssets.size(), today);
-
-        for (Asset asset : dueAssets) {
-            try {
-                delistingService.executeForcedBuyback(asset);
-            } catch (Exception e) {
-                log.error("Failed to execute forced buyback for asset {}: {}",
-                        asset.getId(), e.getMessage(), e);
+            if (dueAssets.isEmpty()) {
+                log.debug("No assets due for delisting today ({})", today);
+                return;
             }
+
+            log.info("Processing forced buyback for {} asset(s) on {}", dueAssets.size(), today);
+            int failed = 0;
+
+            for (Asset asset : dueAssets) {
+                try {
+                    delistingService.executeForcedBuyback(asset);
+                } catch (Exception e) {
+                    failed++;
+                    log.error("Failed to execute forced buyback for asset {}: {}",
+                            asset.getId(), e.getMessage(), e);
+                }
+            }
+
+            if (failed > 0) {
+                eventPublisher.publishEvent(new AdminAlertEvent(
+                        "SCHEDULER_FAILURE", "Delisting scheduler partial failure",
+                        String.format("%d of %d forced buybacks failed", failed, dueAssets.size()),
+                        null, "SCHEDULER"));
+            }
+        } catch (Exception e) {
+            log.error("Delisting scheduler failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Delisting scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
         }
     }
 }

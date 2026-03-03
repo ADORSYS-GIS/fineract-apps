@@ -2,10 +2,12 @@ package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.UserPosition;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,30 +28,47 @@ public class AccruedInterestScheduler {
 
     private final AssetRepository assetRepository;
     private final UserPositionRepository userPositionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final BigDecimal DAYS_PER_YEAR = new BigDecimal("365");
 
     @Scheduled(cron = "0 30 0 * * *", zone = "Africa/Douala")
     public void accrueDaily() {
-        List<Asset> activeBonds = assetRepository.findActiveBondsWithInterestRate();
+        try {
+            List<Asset> activeBonds = assetRepository.findActiveBondsWithInterestRate();
 
-        if (activeBonds.isEmpty()) {
-            log.debug("No active bonds for daily accrual.");
-            return;
-        }
-
-        log.info("Running daily accrued interest for {} bond(s)", activeBonds.size());
-        int totalPositions = 0;
-
-        for (Asset bond : activeBonds) {
-            try {
-                totalPositions += accrueBond(bond);
-            } catch (Exception e) {
-                log.error("Failed to accrue interest for bond {}: {}", bond.getId(), e.getMessage(), e);
+            if (activeBonds.isEmpty()) {
+                log.debug("No active bonds for daily accrual.");
+                return;
             }
-        }
 
-        log.info("Accrued interest for {} position(s) across {} bond(s)", totalPositions, activeBonds.size());
+            log.info("Running daily accrued interest for {} bond(s)", activeBonds.size());
+            int totalPositions = 0;
+            int failed = 0;
+
+            for (Asset bond : activeBonds) {
+                try {
+                    totalPositions += accrueBond(bond);
+                } catch (Exception e) {
+                    failed++;
+                    log.error("Failed to accrue interest for bond {}: {}", bond.getId(), e.getMessage(), e);
+                }
+            }
+
+            log.info("Accrued interest for {} position(s) across {} bond(s)", totalPositions, activeBonds.size());
+
+            if (failed > 0) {
+                eventPublisher.publishEvent(new AdminAlertEvent(
+                        "SCHEDULER_FAILURE", "Accrued interest scheduler partial failure",
+                        String.format("%d of %d bond accruals failed", failed, activeBonds.size()),
+                        null, "SCHEDULER"));
+            }
+        } catch (Exception e) {
+            log.error("Accrued interest scheduler failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Accrued interest scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
+        }
     }
 
     @Transactional

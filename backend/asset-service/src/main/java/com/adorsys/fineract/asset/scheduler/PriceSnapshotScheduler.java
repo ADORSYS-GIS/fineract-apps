@@ -1,8 +1,10 @@
 package com.adorsys.fineract.asset.scheduler;
 
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.service.PricingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Component;
 public class PriceSnapshotScheduler {
 
     private final PricingService pricingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "${asset-service.pricing.snapshot-cron:0 0 * * * *}")
     public void snapshotPrices() {
@@ -24,6 +27,9 @@ public class PriceSnapshotScheduler {
             pricingService.snapshotPrices();
         } catch (Exception e) {
             log.error("Hourly price snapshot failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Price snapshot scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
         }
     }
 }

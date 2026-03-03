@@ -14,6 +14,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -30,6 +31,7 @@ class PortfolioSnapshotSchedulerTest {
     @Mock private AssetPriceRepository assetPriceRepository;
     @Mock private PortfolioSnapshotRepository portfolioSnapshotRepository;
     @Mock private AssetServiceConfig config;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PortfolioSnapshotScheduler scheduler;

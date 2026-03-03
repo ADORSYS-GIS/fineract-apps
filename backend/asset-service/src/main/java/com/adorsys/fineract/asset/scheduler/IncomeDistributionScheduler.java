@@ -1,10 +1,12 @@
 package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.service.ScheduledPaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,26 +29,43 @@ public class IncomeDistributionScheduler {
 
     private final AssetRepository assetRepository;
     private final ScheduledPaymentService scheduledPaymentService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 20 0 * * *", zone = "Africa/Douala")
     public void processDistributions() {
-        LocalDate today = LocalDate.now();
-        List<Asset> dueAssets = assetRepository.findAssetsWithDueDistributions(today);
+        try {
+            LocalDate today = LocalDate.now();
+            List<Asset> dueAssets = assetRepository.findAssetsWithDueDistributions(today);
 
-        if (dueAssets.isEmpty()) {
-            log.debug("No income distributions due today ({})", today);
-            return;
-        }
-
-        log.info("Creating pending income schedules for {} asset(s) on {}", dueAssets.size(), today);
-
-        for (Asset asset : dueAssets) {
-            try {
-                createPendingAndAdvance(asset);
-            } catch (Exception e) {
-                log.error("Failed to create income schedule for asset {}: {}",
-                        asset.getId(), e.getMessage(), e);
+            if (dueAssets.isEmpty()) {
+                log.debug("No income distributions due today ({})", today);
+                return;
             }
+
+            log.info("Creating pending income schedules for {} asset(s) on {}", dueAssets.size(), today);
+            int failed = 0;
+
+            for (Asset asset : dueAssets) {
+                try {
+                    createPendingAndAdvance(asset);
+                } catch (Exception e) {
+                    failed++;
+                    log.error("Failed to create income schedule for asset {}: {}",
+                            asset.getId(), e.getMessage(), e);
+                }
+            }
+
+            if (failed > 0) {
+                eventPublisher.publishEvent(new AdminAlertEvent(
+                        "SCHEDULER_FAILURE", "Income distribution scheduler partial failure",
+                        String.format("%d of %d income schedules failed", failed, dueAssets.size()),
+                        null, "SCHEDULER"));
+            }
+        } catch (Exception e) {
+            log.error("Income distribution scheduler failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Income distribution scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
         }
     }
 

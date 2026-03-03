@@ -11,6 +11,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -25,6 +26,7 @@ class AccruedInterestSchedulerTest {
 
     @Mock private AssetRepository assetRepository;
     @Mock private UserPositionRepository userPositionRepository;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AccruedInterestScheduler accruedInterestScheduler;

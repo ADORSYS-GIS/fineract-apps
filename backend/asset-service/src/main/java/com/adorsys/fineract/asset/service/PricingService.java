@@ -4,14 +4,19 @@ import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.entity.PriceHistory;
+import com.adorsys.fineract.asset.event.PriceChangedEvent;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.PriceHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +45,7 @@ public class PricingService {
     private final RedisTemplate<String, String> redisTemplate;
     private final AssetServiceConfig config;
     private final com.adorsys.fineract.asset.metrics.AssetMetrics assetMetrics;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final String PRICE_CACHE_PREFIX = "asset:price:";
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
@@ -147,6 +153,7 @@ public class PricingService {
                 .orElseThrow(() -> new AssetException("Price not found for asset: " + assetId));
 
         BigDecimal oldAskPrice = price.getAskPrice();
+        BigDecimal oldBidPrice = price.getBidPrice();
         price.setAskPrice(request.askPrice());
 
         if (oldAskPrice.compareTo(BigDecimal.ZERO) > 0) {
@@ -209,6 +216,20 @@ public class PricingService {
 
         log.info("Set price for asset {}: ask {} -> {} (bid={})",
                 assetId, oldAskPrice, request.askPrice(), price.getBidPrice());
+
+        // Publish price change event for admin audit trail
+        BigDecimal changePct = (oldAskPrice.compareTo(BigDecimal.ZERO) > 0)
+                ? request.askPrice().subtract(oldAskPrice)
+                    .divide(oldAskPrice, 4, RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100"))
+                : BigDecimal.ZERO;
+
+        String adminSubject = extractAdminSubject();
+        eventPublisher.publishEvent(new PriceChangedEvent(
+                assetId, asset.getSymbol(),
+                oldAskPrice, request.askPrice(),
+                oldBidPrice, price.getBidPrice(),
+                changePct, adminSubject));
     }
 
     /**
@@ -306,5 +327,13 @@ public class PricingService {
             assetPriceRepository.save(price);
         }
         log.info("Closed daily OHLC for {} assets", prices.size());
+    }
+
+    private String extractAdminSubject() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
+            return jwt.getSubject();
+        }
+        return "unknown";
     }
 }

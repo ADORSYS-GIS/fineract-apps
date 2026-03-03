@@ -1,10 +1,12 @@
 package com.adorsys.fineract.asset.scheduler;
 
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.service.MarketHoursService;
 import com.adorsys.fineract.asset.service.PricingService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +21,7 @@ public class OhlcScheduler {
 
     private final PricingService pricingService;
     private final MarketHoursService marketHoursService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private boolean wasOpen = false;
 
@@ -50,6 +53,9 @@ public class OhlcScheduler {
             wasOpen = isNowOpen;
         } catch (Exception e) {
             log.error("OHLC market transition check failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "OHLC scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
         }
     }
 }

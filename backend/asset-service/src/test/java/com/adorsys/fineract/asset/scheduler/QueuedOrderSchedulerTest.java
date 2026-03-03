@@ -15,6 +15,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,6 +30,7 @@ class QueuedOrderSchedulerTest {
     @Mock private OrderRepository orderRepository;
     @Mock private PricingService pricingService;
     @Mock private AssetServiceConfig config;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private QueuedOrderScheduler queuedOrderScheduler;

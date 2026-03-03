@@ -2,10 +2,12 @@ package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,27 +29,35 @@ public class MaturityScheduler {
 
     private final AssetRepository assetRepository;
     private final AssetMetrics assetMetrics;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 5 0 * * *", zone = "Africa/Douala")
     @Transactional
     public void matureBonds() {
-        LocalDate today = LocalDate.now();
-        List<Asset> maturedBonds = assetRepository.findByStatusAndMaturityDateLessThanEqual(
-                AssetStatus.ACTIVE, today);
+        try {
+            LocalDate today = LocalDate.now();
+            List<Asset> maturedBonds = assetRepository.findByStatusAndMaturityDateLessThanEqual(
+                    AssetStatus.ACTIVE, today);
 
-        if (maturedBonds.isEmpty()) {
-            log.debug("No bonds to mature today ({})", today);
-            return;
+            if (maturedBonds.isEmpty()) {
+                log.debug("No bonds to mature today ({})", today);
+                return;
+            }
+
+            for (Asset bond : maturedBonds) {
+                bond.setStatus(AssetStatus.MATURED);
+                assetMetrics.incrementBondMatured();
+                log.info("Bond matured: id={}, symbol={}, maturityDate={}",
+                        bond.getId(), bond.getSymbol(), bond.getMaturityDate());
+            }
+
+            assetRepository.saveAll(maturedBonds);
+            log.info("Matured {} bond(s) on {}", maturedBonds.size(), today);
+        } catch (Exception e) {
+            log.error("Maturity scheduler failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Maturity scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
         }
-
-        for (Asset bond : maturedBonds) {
-            bond.setStatus(AssetStatus.MATURED);
-            assetMetrics.incrementBondMatured();
-            log.info("Bond matured: id={}, symbol={}, maturityDate={}",
-                    bond.getId(), bond.getSymbol(), bond.getMaturityDate());
-        }
-
-        assetRepository.saveAll(maturedBonds);
-        log.info("Matured {} bond(s) on {}", maturedBonds.size(), today);
     }
 }
