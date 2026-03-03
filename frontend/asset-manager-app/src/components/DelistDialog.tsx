@@ -4,7 +4,7 @@ import { FC, useEffect, useRef, useState } from "react";
 interface DelistDialogProps {
 	isOpen: boolean;
 	assetName: string;
-	currentPrice: number;
+	askPrice: number;
 	onSubmit: (data: {
 		delistingDate: string;
 		delistingRedemptionPrice?: number;
@@ -16,7 +16,7 @@ interface DelistDialogProps {
 export const DelistDialog: FC<DelistDialogProps> = ({
 	isOpen,
 	assetName,
-	currentPrice,
+	askPrice,
 	onSubmit,
 	onCancel,
 	isLoading,
@@ -24,16 +24,16 @@ export const DelistDialog: FC<DelistDialogProps> = ({
 	const cancelRef = useRef<HTMLButtonElement>(null);
 	const [delistingDate, setDelistingDate] = useState("");
 	const [redemptionPrice, setRedemptionPrice] = useState(
-		currentPrice?.toString() ?? "",
+		askPrice?.toString() ?? "",
 	);
 
 	useEffect(() => {
 		if (isOpen) {
 			setDelistingDate("");
-			setRedemptionPrice(currentPrice?.toString() ?? "");
+			setRedemptionPrice(askPrice?.toString() ?? "");
 			cancelRef.current?.focus();
 		}
-	}, [isOpen, currentPrice]);
+	}, [isOpen, askPrice]);
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -103,7 +103,7 @@ export const DelistDialog: FC<DelistDialogProps> = ({
 							value={redemptionPrice}
 							onChange={(e) => setRedemptionPrice(e.target.value)}
 							min={0}
-							placeholder={`Default: current price (${currentPrice?.toLocaleString() ?? "—"})`}
+							placeholder={`Default: current price (${askPrice?.toLocaleString() ?? "—"})`}
 						/>
 						<p className="text-xs text-gray-400 mt-1">
 							Price paid per unit during forced buyback (defaults to last traded

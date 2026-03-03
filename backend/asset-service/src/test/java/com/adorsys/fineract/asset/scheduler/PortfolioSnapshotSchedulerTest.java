@@ -51,7 +51,8 @@ class PortfolioSnapshotSchedulerTest {
 
         AssetPrice price = new AssetPrice();
         price.setAssetId("asset-1");
-        price.setCurrentPrice(new BigDecimal("150"));
+        price.setAskPrice(new BigDecimal("150"));
+        price.setBidPrice(new BigDecimal("145"));
         when(assetPriceRepository.findAll()).thenReturn(List.of(price));
 
         UserPosition pos = UserPosition.builder()
@@ -87,7 +88,8 @@ class PortfolioSnapshotSchedulerTest {
 
         AssetPrice price = new AssetPrice();
         price.setAssetId("a");
-        price.setCurrentPrice(new BigDecimal("100"));
+        price.setAskPrice(new BigDecimal("100"));
+        price.setBidPrice(new BigDecimal("95"));
         when(assetPriceRepository.findAll()).thenReturn(List.of(price));
 
         // User 1 throws

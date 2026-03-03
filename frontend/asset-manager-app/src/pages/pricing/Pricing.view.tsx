@@ -31,36 +31,27 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 	const [manualPrice, setManualPrice] = useState("");
 	const [overrideBidAsk, setOverrideBidAsk] = useState(false);
 	const [manualBid, setManualBid] = useState("");
-	const [manualAsk, setManualAsk] = useState("");
 
-	const newPrice = Number(manualPrice);
-	const currentPrice = price?.currentPrice ?? 0;
+	const newAskPrice = Number(manualPrice);
 	const currentBid = price?.bidPrice ?? 0;
 	const currentAsk = price?.askPrice ?? 0;
 
-	// Live-preview derived bid/ask as admin types
+	// Live-preview derived bid as admin types new ask price
 	const derivedBid =
-		currentPrice > 0 && Number.isFinite(newPrice) && newPrice > 0
-			? Math.round(newPrice * (currentBid / currentPrice))
-			: null;
-	const derivedAsk =
-		currentPrice > 0 && Number.isFinite(newPrice) && newPrice > 0
-			? Math.round(newPrice * (currentAsk / currentPrice))
+		currentAsk > 0 && Number.isFinite(newAskPrice) && newAskPrice > 0
+			? Math.round(newAskPrice * (currentBid / currentAsk))
 			: null;
 
 	const handleSetPrice = () => {
-		if (!Number.isFinite(newPrice) || newPrice <= 0) return;
-		const req: SetPriceRequest = { price: newPrice };
+		if (!Number.isFinite(newAskPrice) || newAskPrice <= 0) return;
+		const req: SetPriceRequest = { askPrice: newAskPrice };
 		if (overrideBidAsk) {
 			const bid = Number(manualBid);
-			const ask = Number(manualAsk);
 			if (Number.isFinite(bid) && bid > 0) req.bidPrice = bid;
-			if (Number.isFinite(ask) && ask > 0) req.askPrice = ask;
 		}
 		onSetPrice(req);
 		setManualPrice("");
 		setManualBid("");
-		setManualAsk("");
 	};
 
 	return (
@@ -90,12 +81,6 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 					</div>
 				) : (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-						<Card className="p-4">
-							<p className="text-sm text-gray-500">Current Price</p>
-							<p className="text-2xl font-bold">
-								{price?.currentPrice?.toLocaleString() ?? "—"} XAF
-							</p>
-						</Card>
 						<Card className="p-4">
 							<p className="text-sm text-gray-500">LP Bid</p>
 							<p className="text-xl font-semibold text-red-600">
@@ -164,18 +149,18 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 				{/* Manual Price Override */}
 				<Card className="p-4 mb-6">
 					<h2 className="text-lg font-semibold text-gray-800 mb-3">
-						Set Manual Price
+						Set Ask Price
 					</h2>
 					<div className="flex gap-3 items-end">
 						<div className="flex-1">
 							<label className="block text-sm font-medium text-gray-700 mb-1">
-								New Price (XAF)
+								New Ask Price (XAF)
 							</label>
 							<input
 								type="number"
-								aria-label="New price"
+								aria-label="New ask price"
 								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								placeholder="Enter new price..."
+								placeholder="Enter new ask price..."
 								value={manualPrice}
 								onChange={(e) => setManualPrice(e.target.value)}
 								min={0}
@@ -193,25 +178,21 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 						</Button>
 					</div>
 
-					{/* Derived bid/ask preview */}
-					{derivedBid !== null && derivedAsk !== null && (
+					{/* Derived bid preview */}
+					{derivedBid !== null && (
 						<p className="text-sm text-gray-500 mt-2">
 							Bid &rarr;{" "}
 							<span className="font-mono text-red-600">
 								{derivedBid.toLocaleString()}
 							</span>{" "}
-							XAF &nbsp;&nbsp; Ask &rarr;{" "}
-							<span className="font-mono text-green-600">
-								{derivedAsk.toLocaleString()}
-							</span>{" "}
-							XAF
+							XAF (auto-derived)
 						</p>
 					)}
 					<p className="text-xs text-gray-400 mt-1">
-						Bid/ask auto-scale proportionally. Toggle override to set manually.
+						Bid auto-scales proportionally. Toggle override to set bid manually.
 					</p>
 
-					{/* Override bid/ask toggle */}
+					{/* Override bid toggle */}
 					<button
 						type="button"
 						className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mt-3"
@@ -222,39 +203,23 @@ export const PricingView: FC<ReturnType<typeof usePricing>> = ({
 						) : (
 							<ChevronRight className="h-4 w-4" />
 						)}
-						Override bid/ask
+						Override bid price
 					</button>
 
 					{overrideBidAsk && (
-						<div className="grid grid-cols-2 gap-3 mt-2">
-							<div>
-								<label className="block text-sm font-medium text-gray-700 mb-1">
-									Bid Price (XAF)
-								</label>
-								<input
-									type="number"
-									aria-label="Bid price"
-									className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-									placeholder={derivedBid?.toLocaleString() ?? "Bid..."}
-									value={manualBid}
-									onChange={(e) => setManualBid(e.target.value)}
-									min={0}
-								/>
-							</div>
-							<div>
-								<label className="block text-sm font-medium text-gray-700 mb-1">
-									Ask Price (XAF)
-								</label>
-								<input
-									type="number"
-									aria-label="Ask price"
-									className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-									placeholder={derivedAsk?.toLocaleString() ?? "Ask..."}
-									value={manualAsk}
-									onChange={(e) => setManualAsk(e.target.value)}
-									min={0}
-								/>
-							</div>
+						<div className="max-w-xs mt-2">
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Bid Price (XAF)
+							</label>
+							<input
+								type="number"
+								aria-label="Bid price"
+								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								placeholder={derivedBid?.toLocaleString() ?? "Bid..."}
+								value={manualBid}
+								onChange={(e) => setManualBid(e.target.value)}
+								min={0}
+							/>
 						</div>
 					)}
 				</Card>

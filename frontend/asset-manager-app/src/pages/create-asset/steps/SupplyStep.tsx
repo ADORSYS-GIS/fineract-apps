@@ -243,8 +243,7 @@ export const SupplyStep: FC<Props> = ({
 										</>
 									)}
 									<p className="mt-1 text-gray-500">
-										Income = units × currentPrice × (rate/100) × (months/12).
-										Payout varies with market price.
+										Income = units × issuerPrice × (rate/100) × (months/12).
 									</p>
 								</div>
 							)}

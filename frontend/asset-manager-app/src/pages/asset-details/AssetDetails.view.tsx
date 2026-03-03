@@ -271,10 +271,10 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				{/* Stats Cards */}
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 					<Card className="p-4">
-						<p className="text-sm text-gray-500">Current Price</p>
+						<p className="text-sm text-gray-500">Ask Price</p>
 						<p className="text-2xl font-bold text-gray-900">
-							{price?.currentPrice?.toLocaleString() ??
-								asset.currentPrice?.toLocaleString() ??
+							{price?.askPrice?.toLocaleString() ??
+								asset.askPrice?.toLocaleString() ??
 								"—"}{" "}
 							XAF
 						</p>
@@ -773,7 +773,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 			<DelistDialog
 				isOpen={delistOpen}
 				assetName={asset.name}
-				currentPrice={asset.currentPrice}
+				askPrice={asset.askPrice ?? 0}
 				onSubmit={(data) => {
 					onDelist(data);
 					setDelistOpen(false);

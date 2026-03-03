@@ -44,7 +44,7 @@ Response:
       "imageUrl": "https://...",
       "category": "REAL_ESTATE",
       "status": "ACTIVE",
-      "currentPrice": 5000,
+      "askPrice": 5000,
       "change24hPercent": 2.50,
       "availableSupply": 85000,
       "totalSupply": 100000,
@@ -74,7 +74,7 @@ For bond assets, the bond-specific fields are populated:
   "symbol": "SEN580",
   "category": "BONDS",
   "status": "ACTIVE",
-  "currentPrice": 10000,
+  "askPrice": 10000,
   "issuerName": "Etat du Senegal",
   "lpName": "Acme Capital Partners",
   "couponAmountPerUnit": 290,
@@ -108,15 +108,15 @@ Query parameters:
 GET /api/assets/{assetId}
 ```
 
-Response includes full detail: name, symbol, description, imageUrl, category, status, currentPrice, OHLC, totalSupply, circulatingSupply, issuerName, lpName, issuerPrice, couponAmountPerUnit, etc.
+Response includes full detail: name, symbol, description, imageUrl, category, status, askPrice, bidPrice, OHLC, totalSupply, circulatingSupply, issuerName, lpName, issuerPrice, couponAmountPerUnit, etc.
 
 Key investor-facing fields:
 - `issuerName` — who created/issued the underlying asset
 - `lpName` — the Liquidity Partner managing this asset on the platform
 - `issuerPrice` — the wholesale/face value per unit (used for coupon/income calculations)
 - `couponAmountPerUnit` — XAF amount per unit per coupon period (bonds only)
-- `currentPrice` — the LP's current reference price
-- `bidPrice` / `askPrice` — the LP's current buy/sell prices
+- `askPrice` — the price buyers pay (LP ask price)
+- `bidPrice` — the price sellers receive (LP bid price)
 
 ### 2.2 Price History (for charts)
 
@@ -400,7 +400,7 @@ Response:
       "name": "Douala Tower Token",
       "totalUnits": 10,
       "avgPurchasePrice": 5000,
-      "currentPrice": 5500,
+      "marketPrice": 5500,
       "marketValue": 55000,
       "costBasis": 50000,
       "unrealizedPnl": 5000,

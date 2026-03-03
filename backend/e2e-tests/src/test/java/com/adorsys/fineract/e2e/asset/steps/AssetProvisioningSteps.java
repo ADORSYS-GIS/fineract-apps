@@ -205,7 +205,7 @@ public class AssetProvisioningSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .body(Map.of("price", price))
+                .body(Map.of("askPrice", price))
                 .post("/api/admin/assets/" + assetId + "/set-price");
 
         context.setLastResponse(response);

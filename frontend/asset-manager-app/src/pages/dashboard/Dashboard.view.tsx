@@ -260,7 +260,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 												{asset.symbol}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-												{asset.currentPrice?.toLocaleString() ?? "—"}
+												{asset.askPrice?.toLocaleString() ?? "—"}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm">
 												<span

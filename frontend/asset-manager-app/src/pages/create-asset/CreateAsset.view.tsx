@@ -29,7 +29,7 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 	const renderStep = () => {
 		const stepName = steps[currentStep];
 		switch (stepName) {
-			case "Select Company":
+			case "Select Liquidity Partner":
 				return (
 					<SelectCompanyStep
 						formData={formData}

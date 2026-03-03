@@ -45,24 +45,22 @@ public class PricingService {
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
 
     /**
-     * Get current price for an asset. Checks Redis cache first (1-minute TTL),
-     * falls back to the asset_prices table. The returned price is the same value
-     * shown in AssetResponse and AssetDetailResponse — this method just provides
-     * a faster, cached path for the trading engine (BUY/SELL execution).
+     * Get price for an asset. Checks Redis cache first (1-minute TTL),
+     * falls back to the asset_prices table. Returns askPrice (buyer pays)
+     * and bidPrice (seller receives).
      */
     @Transactional(readOnly = true)
-    public CurrentPriceResponse getCurrentPrice(String assetId) {
-        // Try Redis cache first (format: currentPrice:change24h:bidPrice:askPrice)
+    public PriceResponse getPrice(String assetId) {
+        // Try Redis cache first (format: askPrice:bidPrice:change24h)
         try {
             String cached = redisTemplate.opsForValue().get(PRICE_CACHE_PREFIX + assetId);
             if (cached != null) {
                 try {
                     String[] parts = cached.split(":");
-                    BigDecimal currentPrice = new BigDecimal(parts[0]);
-                    BigDecimal change = parts.length > 1 && !"null".equals(parts[1]) ? new BigDecimal(parts[1]) : null;
-                    BigDecimal bid = parts.length > 2 && !"null".equals(parts[2]) ? new BigDecimal(parts[2]) : null;
-                    BigDecimal ask = parts.length > 3 && !"null".equals(parts[3]) ? new BigDecimal(parts[3]) : null;
-                    return new CurrentPriceResponse(assetId, currentPrice, change, bid, ask);
+                    BigDecimal askPrice = new BigDecimal(parts[0]);
+                    BigDecimal bidPrice = parts.length > 1 && !"null".equals(parts[1]) ? new BigDecimal(parts[1]) : null;
+                    BigDecimal change = parts.length > 2 && !"null".equals(parts[2]) ? new BigDecimal(parts[2]) : null;
+                    return new PriceResponse(assetId, askPrice, bidPrice, change);
                 } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
                     log.warn("Malformed price cache for asset {}, falling back to DB: {}", assetId, cached);
                     redisTemplate.delete(PRICE_CACHE_PREFIX + assetId);
@@ -77,17 +75,16 @@ public class PricingService {
 
         // Cache in Redis (best-effort)
         try {
-            String cacheValue = price.getCurrentPrice().toPlainString()
-                    + ":" + (price.getChange24hPercent() != null ? price.getChange24hPercent().toPlainString() : "0")
-                    + ":" + (price.getBidPrice() != null ? price.getBidPrice().toPlainString() : "null")
-                    + ":" + (price.getAskPrice() != null ? price.getAskPrice().toPlainString() : "null");
+            String cacheValue = price.getAskPrice().toPlainString()
+                    + ":" + price.getBidPrice().toPlainString()
+                    + ":" + (price.getChange24hPercent() != null ? price.getChange24hPercent().toPlainString() : "0");
             redisTemplate.opsForValue().set(PRICE_CACHE_PREFIX + assetId, cacheValue, CACHE_TTL);
         } catch (Exception e) {
             log.warn("Redis error caching price for asset {}: {}", assetId, e.getMessage());
         }
 
-        return new CurrentPriceResponse(assetId, price.getCurrentPrice(), price.getChange24hPercent(),
-                price.getBidPrice(), price.getAskPrice());
+        return new PriceResponse(assetId, price.getAskPrice(), price.getBidPrice(),
+                price.getChange24hPercent());
     }
 
     /**
@@ -136,10 +133,9 @@ public class PricingService {
 
     /**
      * Manually set an asset's price (admin).
-     * If bid/ask prices are provided in the request, they are set directly.
-     * Otherwise, bid/ask are auto-derived by scaling proportionally to maintain
-     * the existing spread structure (e.g. if ask was 2% above reference price,
-     * it stays 2% above the new reference price).
+     * The askPrice is the primary input. If bidPrice is provided, it is set directly.
+     * Otherwise, bidPrice is auto-derived by scaling proportionally to maintain
+     * the existing spread structure.
      */
     @Transactional
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
@@ -150,53 +146,44 @@ public class PricingService {
         AssetPrice price = assetPriceRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Price not found for asset: " + assetId));
 
-        BigDecimal oldPrice = price.getCurrentPrice();
-        price.setCurrentPrice(request.price());
+        BigDecimal oldAskPrice = price.getAskPrice();
+        price.setAskPrice(request.askPrice());
 
-        if (oldPrice.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal change = request.price().subtract(oldPrice)
-                    .divide(oldPrice, 4, RoundingMode.HALF_UP)
+        if (oldAskPrice.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal change = request.askPrice().subtract(oldAskPrice)
+                    .divide(oldAskPrice, 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
             price.setChange24hPercent(change);
 
             BigDecimal maxChangePercent = config.getPricing().getMaxChangePercent();
             if (maxChangePercent != null && change.abs().compareTo(maxChangePercent) > 0) {
                 log.warn("Large price change detected for asset {}: {}% (threshold: {}%). "
-                        + "Old price: {}, New price: {}",
-                        assetId, change, maxChangePercent, oldPrice, request.price());
+                        + "Old askPrice: {}, New askPrice: {}",
+                        assetId, change, maxChangePercent, oldAskPrice, request.askPrice());
             }
         }
 
-        // Update OHLC
-        if (price.getDayHigh() == null || request.price().compareTo(price.getDayHigh()) > 0) {
-            price.setDayHigh(request.price());
+        // Update OHLC based on askPrice
+        if (price.getDayHigh() == null || request.askPrice().compareTo(price.getDayHigh()) > 0) {
+            price.setDayHigh(request.askPrice());
         }
-        if (price.getDayLow() == null || request.price().compareTo(price.getDayLow()) < 0) {
-            price.setDayLow(request.price());
+        if (price.getDayLow() == null || request.askPrice().compareTo(price.getDayLow()) < 0) {
+            price.setDayLow(request.askPrice());
         }
 
-        // Update bid/ask: use explicit values if provided, otherwise auto-derive
-        if (request.bidPrice() != null || request.askPrice() != null) {
-            // Explicit bid/ask provided — use directly
-            if (request.bidPrice() != null) price.setBidPrice(request.bidPrice());
-            if (request.askPrice() != null) price.setAskPrice(request.askPrice());
-            // Validate bid <= ask to prevent inverted spreads (arbitrage risk)
-            BigDecimal effectiveBid = price.getBidPrice();
-            BigDecimal effectiveAsk = price.getAskPrice();
-            if (effectiveBid != null && effectiveAsk != null && effectiveBid.compareTo(effectiveAsk) > 0) {
-                throw new AssetException("Invalid spread: bid price (" + effectiveBid
-                        + ") must not exceed ask price (" + effectiveAsk + ")");
+        // Update bid: use explicit value if provided, otherwise auto-derive
+        if (request.bidPrice() != null) {
+            price.setBidPrice(request.bidPrice());
+            // Validate bid <= ask
+            if (request.bidPrice().compareTo(request.askPrice()) > 0) {
+                throw new AssetException("Invalid spread: bid price (" + request.bidPrice()
+                        + ") must not exceed ask price (" + request.askPrice() + ")");
             }
-        } else if (oldPrice.compareTo(BigDecimal.ZERO) > 0
-                && price.getBidPrice() != null && price.getAskPrice() != null) {
-            // Auto-derive: scale bid/ask proportionally to maintain spread structure
+        } else if (oldAskPrice.compareTo(BigDecimal.ZERO) > 0) {
+            // Auto-derive: scale bid proportionally to maintain spread ratio
             BigDecimal bidRatio = price.getBidPrice()
-                    .divide(oldPrice, 6, RoundingMode.HALF_UP);
-            BigDecimal askRatio = price.getAskPrice()
-                    .divide(oldPrice, 6, RoundingMode.HALF_UP);
-            price.setBidPrice(request.price().multiply(bidRatio)
-                    .setScale(0, RoundingMode.HALF_UP));
-            price.setAskPrice(request.price().multiply(askRatio)
+                    .divide(oldAskPrice, 6, RoundingMode.HALF_UP);
+            price.setBidPrice(request.askPrice().multiply(bidRatio)
                     .setScale(0, RoundingMode.HALF_UP));
         }
 
@@ -205,7 +192,7 @@ public class PricingService {
         // Record price change in history for charts
         PriceHistory history = PriceHistory.builder()
                 .assetId(assetId)
-                .price(request.price())
+                .price(request.askPrice())
                 .capturedAt(Instant.now())
                 .build();
         priceHistoryRepository.save(history);
@@ -213,15 +200,15 @@ public class PricingService {
         // Update price mode on asset if specified
         if (request.priceMode() != null) {
             asset.setPriceMode(request.priceMode());
-            asset.setManualPrice(request.price());
+            asset.setManualPrice(request.askPrice());
             assetRepository.save(asset);
         }
 
         // Invalidate cache
         redisTemplate.delete(PRICE_CACHE_PREFIX + assetId);
 
-        log.info("Set price for asset {}: {} -> {} (bid={}, ask={})",
-                assetId, oldPrice, request.price(), price.getBidPrice(), price.getAskPrice());
+        log.info("Set price for asset {}: ask {} -> {} (bid={})",
+                assetId, oldAskPrice, request.askPrice(), price.getBidPrice());
     }
 
     /**
@@ -234,8 +221,6 @@ public class PricingService {
         AssetPrice price = assetPriceRepository.findById(assetId).orElse(null);
         if (price == null) return;
 
-        price.setCurrentPrice(tradePrice);
-
         if (price.getDayOpen() == null) {
             price.setDayOpen(tradePrice);
         }
@@ -247,7 +232,7 @@ public class PricingService {
         }
 
         if (price.getPreviousClose() != null && price.getPreviousClose().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal change = tradePrice.subtract(price.getPreviousClose())
+            BigDecimal change = price.getAskPrice().subtract(price.getPreviousClose())
                     .divide(price.getPreviousClose(), 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
             price.setChange24hPercent(change);
@@ -275,12 +260,12 @@ public class PricingService {
         for (AssetPrice price : prices) {
             var last = priceHistoryRepository
                     .findTopByAssetIdOrderByCapturedAtDesc(price.getAssetId());
-            if (last.isPresent() && last.get().getPrice().compareTo(price.getCurrentPrice()) == 0) {
+            if (last.isPresent() && last.get().getPrice().compareTo(price.getAskPrice()) == 0) {
                 continue; // skip — price unchanged
             }
             PriceHistory history = PriceHistory.builder()
                     .assetId(price.getAssetId())
-                    .price(price.getCurrentPrice())
+                    .price(price.getAskPrice())
                     .capturedAt(Instant.now())
                     .build();
             priceHistoryRepository.save(history);
@@ -299,32 +284,15 @@ public class PricingService {
     public void resetDailyOhlc() {
         List<AssetPrice> prices = assetPriceRepository.findAll();
         for (AssetPrice price : prices) {
-            price.setPreviousClose(price.getCurrentPrice());
-            price.setDayOpen(price.getCurrentPrice());
-            price.setDayHigh(price.getCurrentPrice());
-            price.setDayLow(price.getCurrentPrice());
+            price.setPreviousClose(price.getAskPrice());
+            price.setDayOpen(price.getAskPrice());
+            price.setDayHigh(price.getAskPrice());
+            price.setDayLow(price.getAskPrice());
             price.setDayClose(null);
             // LP model: bid/ask are NOT recalculated — they are managed by the LP
             assetPriceRepository.save(price);
         }
         log.info("Reset daily OHLC for {} assets", prices.size());
-    }
-
-    /**
-     * @deprecated In the LP model, bid/ask prices are set directly by the liquidity partner
-     * via SetPriceRequest or UpdateAssetRequest. This method is no longer called but retained
-     * for backward compatibility during migration.
-     */
-    @Deprecated
-    @SuppressWarnings("unused")
-    private void recalculateBidAsk(AssetPrice price, Asset asset) {
-        // LP model: bid/ask are set directly, not calculated from spread.
-        // This method is a no-op. Bid/ask are managed by the LP.
-        if (price.getBidPrice() != null && price.getAskPrice() != null) {
-            assetMetrics.recordSpread(asset.getId(), price.getAskPrice().subtract(price.getBidPrice()));
-        } else {
-            assetMetrics.recordSpread(asset.getId(), BigDecimal.ZERO);
-        }
     }
 
     /**
@@ -334,7 +302,7 @@ public class PricingService {
     public void closeDailyOhlc() {
         List<AssetPrice> prices = assetPriceRepository.findAll();
         for (AssetPrice price : prices) {
-            price.setDayClose(price.getCurrentPrice());
+            price.setDayClose(price.getAskPrice());
             assetPriceRepository.save(price);
         }
         log.info("Closed daily OHLC for {} assets", prices.size());

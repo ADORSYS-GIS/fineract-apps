@@ -99,7 +99,7 @@ export interface AssetResponse {
 	imageUrl?: string;
 	category: string;
 	status: string;
-	currentPrice: number;
+	askPrice: number;
 	change24hPercent: number;
 	availableSupply: number;
 	totalSupply: number;
@@ -128,7 +128,6 @@ export interface AssetDetailResponse {
 	category: string;
 	status: string;
 	priceMode: string;
-	currentPrice: number;
 	bidPrice?: number;
 	askPrice?: number;
 	change24hPercent?: number;
@@ -271,9 +270,8 @@ export interface CouponPaymentResponse {
 }
 
 export interface SetPriceRequest {
-	price: number;
+	askPrice: number;
 	bidPrice?: number;
-	askPrice?: number;
 }
 
 /** Inventory stats (matches backend InventoryResponse). */
@@ -285,7 +283,7 @@ export interface InventoryItem {
 	totalSupply: number;
 	circulatingSupply: number;
 	availableSupply: number;
-	currentPrice: number;
+	askPrice: number;
 	totalValueLocked: number;
 }
 

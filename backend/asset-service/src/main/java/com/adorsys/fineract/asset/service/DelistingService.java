@@ -120,7 +120,7 @@ public class DelistingService {
         if (redemptionPrice == null) {
             // Use current price as fallback
             redemptionPrice = assetPriceRepository.findById(asset.getId())
-                    .map(p -> p.getCurrentPrice())
+                    .map(p -> p.getAskPrice())
                     .orElse(BigDecimal.ZERO);
         }
 

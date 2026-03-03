@@ -15,7 +15,7 @@ import java.math.RoundingMode;
  * PortfolioService (holding view).
  *
  * <p>Formula (matches IncomeDistributionService):
- * {@code incomePerPeriod = units * currentPrice * (rate/100) * (frequencyMonths/12)}</p>
+ * {@code incomePerPeriod = units * faceValue * (rate/100) * (frequencyMonths/12)}</p>
  *
  * <p>In the LP model, income is based on the issuer price (NAV), not the LP's
  * marked-up ask price. Projections are still estimates that vary with NAV changes.</p>

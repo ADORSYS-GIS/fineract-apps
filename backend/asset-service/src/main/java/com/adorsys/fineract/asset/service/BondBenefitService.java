@@ -71,11 +71,11 @@ public class BondBenefitService {
      *
      * @param asset        the bond asset
      * @param units        number of units currently held
-     * @param currentPrice current market price per unit (for reference, not used in projections)
+     * @param marketPrice current market price per unit (for reference, not used in projections)
      * @return projection record, or null if the asset is not a bond or has missing config
      */
     public BondBenefitProjection calculateForHolding(Asset asset, BigDecimal units,
-                                                      BigDecimal currentPrice) {
+                                                      BigDecimal marketPrice) {
         if (asset.getCategory() != AssetCategory.BONDS) {
             return null;
         }

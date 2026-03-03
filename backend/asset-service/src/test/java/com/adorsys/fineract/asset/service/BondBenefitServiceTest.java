@@ -154,9 +154,9 @@ class BondBenefitServiceTest {
     void calculateForHolding_happyPath_returnsProjectionsWithNullCostFields() {
         Asset bond = activeBondAsset();
         BigDecimal units = new BigDecimal("10");
-        BigDecimal currentPrice = new BigDecimal("105");
+        BigDecimal marketPrice = new BigDecimal("105");
 
-        BondBenefitProjection result = service.calculateForHolding(bond, units, currentPrice);
+        BondBenefitProjection result = service.calculateForHolding(bond, units, marketPrice);
 
         assertNotNull(result);
         assertEquals(new BigDecimal("29"), result.couponPerPeriod());

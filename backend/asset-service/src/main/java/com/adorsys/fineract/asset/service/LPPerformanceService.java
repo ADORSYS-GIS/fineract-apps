@@ -29,7 +29,8 @@ public class LPPerformanceService {
 
     @Transactional(readOnly = true)
     public LPPerformanceResponse getPerformanceSummary() {
-        Object[] totals = tradeLogRepository.aggregateTotalLPPerformance();
+        List<Object[]> totalRows = tradeLogRepository.aggregateTotalLPPerformance();
+        Object[] totals = totalRows.isEmpty() ? new Object[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L} : totalRows.get(0);
         BigDecimal totalSpread = (BigDecimal) totals[0];
         BigDecimal totalBuyback = (BigDecimal) totals[1];
         BigDecimal totalFee = (BigDecimal) totals[2];

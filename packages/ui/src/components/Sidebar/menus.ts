@@ -15,6 +15,7 @@ import {
 	Send,
 	Settings,
 	Shield,
+	TrendingUp,
 	Users,
 } from "lucide-react";
 import { MenuItem } from "./Sidebar.types";
@@ -126,6 +127,12 @@ export const menuAssetManager: MenuItem[] = [
 		title: "sidebar.createAsset",
 		link: "/create-asset",
 		icon: PlusCircle,
+	},
+	{
+		name: "lp-performance",
+		title: "sidebar.lpPerformance",
+		link: "/lp-performance",
+		icon: TrendingUp,
 	},
 	{
 		name: "inventory",

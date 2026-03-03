@@ -22,7 +22,8 @@
 			"marketSettings": "Paramètres du marché",
 			"orderResolution": "Résolution d'ordres",
 			"reconciliation": "Réconciliation",
-			"scheduledPayments": "Paiements programmés"
+			"scheduledPayments": "Paiements programmés",
+			"lpPerformance": "Performance LP"
 		},
 		"navbar": {
 			"onlineBank": "Banque en ligne"

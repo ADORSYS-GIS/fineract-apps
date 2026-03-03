@@ -70,9 +70,7 @@ public class ScheduledPaymentService {
             estimatedRate = asset.getInterestRate();
             BigDecimal faceValue = asset.getIssuerPrice();
             if (faceValue == null) {
-                faceValue = assetPriceRepository.findById(asset.getId())
-                        .map(p -> p.getCurrentPrice())
-                        .orElse(BigDecimal.ZERO);
+                faceValue = BigDecimal.ZERO;
             }
             int periodMonths = asset.getCouponFrequencyMonths();
             estimatedAmountPerUnit = faceValue

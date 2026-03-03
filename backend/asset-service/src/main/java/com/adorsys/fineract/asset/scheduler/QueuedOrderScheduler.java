@@ -1,7 +1,7 @@
 package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
-import com.adorsys.fineract.asset.dto.CurrentPriceResponse;
+import com.adorsys.fineract.asset.dto.PriceResponse;
 import com.adorsys.fineract.asset.dto.OrderStatus;
 import com.adorsys.fineract.asset.dto.TradeSide;
 import com.adorsys.fineract.asset.entity.Order;
@@ -70,12 +70,12 @@ public class QueuedOrderScheduler {
             return false; // No queued price to compare against
         }
 
-        CurrentPriceResponse currentPriceData = pricingService.getCurrentPrice(order.getAssetId());
-        BigDecimal currentPrice = (order.getSide() == TradeSide.BUY)
-                ? (currentPriceData.askPrice() != null ? currentPriceData.askPrice() : currentPriceData.currentPrice())
-                : (currentPriceData.bidPrice() != null ? currentPriceData.bidPrice() : currentPriceData.currentPrice());
+        PriceResponse priceData = pricingService.getPrice(order.getAssetId());
+        BigDecimal executionPrice = (order.getSide() == TradeSide.BUY)
+                ? priceData.askPrice()
+                : priceData.bidPrice();
 
-        BigDecimal priceChange = currentPrice.subtract(order.getQueuedPrice()).abs()
+        BigDecimal priceChange = executionPrice.subtract(order.getQueuedPrice()).abs()
                 .divide(order.getQueuedPrice(), 6, RoundingMode.HALF_UP)
                 .multiply(new BigDecimal("100"));
 

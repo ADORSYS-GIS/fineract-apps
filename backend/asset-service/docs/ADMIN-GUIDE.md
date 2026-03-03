@@ -140,13 +140,12 @@ Transitions the asset from PENDING to ACTIVE. Trading becomes possible immediate
 ```
 POST /api/admin/assets/{id}/set-price
 Body: {
-  "price": 5500,
-  "bidPrice": 5300,
-  "askPrice": 5500
+  "askPrice": 5500,
+  "bidPrice": 5300
 }
 ```
 
-Updates the current price and optionally the LP's bid/ask prices. If `bidPrice`/`askPrice` are omitted, only the reference price is updated.
+Updates the LP's ask price (required) and optionally the bid price. If `bidPrice` is omitted, it is auto-derived from the ask price using the existing spread ratio.
 
 ### Price Modes
 

@@ -51,7 +51,7 @@ public class FavoriteService {
                     f.getAssetId(),
                     asset != null ? asset.getSymbol() : null,
                     asset != null ? asset.getName() : null,
-                    price != null ? price.getCurrentPrice() : BigDecimal.ZERO,
+                    price != null ? price.getAskPrice() : BigDecimal.ZERO,
                     price != null ? price.getChange24hPercent() : null
             );
         }).toList();

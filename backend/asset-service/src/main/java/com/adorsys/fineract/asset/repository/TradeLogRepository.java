@@ -43,5 +43,5 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, String> {
            "COALESCE(SUM(t.fee), 0), " +
            "COUNT(t) " +
            "FROM TradeLog t")
-    Object[] aggregateTotalLPPerformance();
+    List<Object[]> aggregateTotalLPPerformance();
 }

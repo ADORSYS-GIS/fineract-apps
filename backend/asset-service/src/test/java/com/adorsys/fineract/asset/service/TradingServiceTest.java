@@ -147,9 +147,9 @@ class TradingServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
 
         // Price with explicit ask/bid (LP model)
-        when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, new BigDecimal("5.0"),
-                        new BigDecimal("90"), askPrice));
+        when(pricingService.getPrice(ASSET_ID))
+                .thenReturn(new PriceResponse(ASSET_ID, askPrice, new BigDecimal("90"),
+                        new BigDecimal("5.0")));
 
         // JWT resolution
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
@@ -416,8 +416,8 @@ class TradingServiceTest {
                 .thenReturn(Optional.of(activeAsset))  // initial check: 1000 available
                 .thenReturn(Optional.of(lowSupplyAsset)); // inside lock: only 2 available
 
-        when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, new BigDecimal("100"), null));
+        when(pricingService.getPrice(ASSET_ID))
+                .thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("100"), new BigDecimal("95"), null));
 
         // JWT resolution
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
@@ -462,8 +462,8 @@ class TradingServiceTest {
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
         doNothing().when(marketHoursService).assertMarketOpen();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
-        when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, new BigDecimal("100"), null));
+        when(pricingService.getPrice(ASSET_ID))
+                .thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("100"), new BigDecimal("95"), null));
 
         // JWT
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
@@ -539,9 +539,9 @@ class TradingServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
 
         // Price with explicit bid/ask (LP model)
-        when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, new BigDecimal("5.0"),
-                        bidPrice, new BigDecimal("110")));
+        when(pricingService.getPrice(ASSET_ID))
+                .thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("110"), bidPrice,
+                        new BigDecimal("5.0")));
 
         // JWT
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
@@ -655,8 +655,8 @@ class TradingServiceTest {
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
         doNothing().when(marketHoursService).assertMarketOpen();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
-        when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null));
+        when(pricingService.getPrice(ASSET_ID))
+                .thenReturn(new PriceResponse(ASSET_ID, basePrice, basePrice, null));
 
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
         when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
@@ -711,8 +711,8 @@ class TradingServiceTest {
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
         doNothing().when(marketHoursService).assertMarketOpen();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
-        when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null));
+        when(pricingService.getPrice(ASSET_ID))
+                .thenReturn(new PriceResponse(ASSET_ID, basePrice, basePrice, null));
 
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
         when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
@@ -760,8 +760,8 @@ class TradingServiceTest {
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
         doNothing().when(marketHoursService).assertMarketOpen();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
-        when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, new BigDecimal("100"), null));
+        when(pricingService.getPrice(ASSET_ID))
+                .thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("100"), new BigDecimal("95"), null));
 
         // JWT
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
@@ -817,7 +817,7 @@ class TradingServiceTest {
         assertEquals("SUBSCRIPTION_ENDED", ex.getErrorCode());
 
         verifyNoInteractions(tradeLockService);
-        verify(pricingService, never()).getCurrentPrice(anyString());
+        verify(pricingService, never()).getPrice(anyString());
         verify(fineractClient, never()).executeAtomicBatch(anyList());
     }
 
@@ -830,16 +830,14 @@ class TradingServiceTest {
         // Arrange: asset with no trading fee, askPrice=110 for spread testing
         activeAsset.setTradingFeePercent(BigDecimal.ZERO);
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
-        BigDecimal basePrice = new BigDecimal("100");
         BigDecimal askPrice = new BigDecimal("110");
         // executionPrice = 110, grossAmount = 1100, fee = 0, spread = (110-100)*10 = 100
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
         doNothing().when(marketHoursService).assertMarketOpen();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
-        when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null,
-                        new BigDecimal("90"), askPrice));
+        when(pricingService.getPrice(ASSET_ID))
+                .thenReturn(new PriceResponse(ASSET_ID, askPrice, new BigDecimal("90"), null));
 
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
         when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
@@ -903,9 +901,8 @@ class TradingServiceTest {
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
         doNothing().when(marketHoursService).assertMarketOpen();
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
-        when(pricingService.getCurrentPrice(ASSET_ID))
-                .thenReturn(new CurrentPriceResponse(ASSET_ID, basePrice, null,
-                        bidPrice, new BigDecimal("120")));
+        when(pricingService.getPrice(ASSET_ID))
+                .thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("120"), bidPrice, null));
 
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
         when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));

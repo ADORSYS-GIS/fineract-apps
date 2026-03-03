@@ -16,9 +16,9 @@ public record PositionResponse(
     BigDecimal totalUnits,
     /** Weighted average purchase price per unit, in settlement currency. */
     BigDecimal avgPurchasePrice,
-    /** Latest market price per unit, in settlement currency. */
-    BigDecimal currentPrice,
-    /** Current market value of the position: currentPrice × totalUnits, in settlement currency. */
+    /** Latest market price per unit (ask price), in settlement currency. */
+    BigDecimal marketPrice,
+    /** Current market value of the position: marketPrice × totalUnits, in settlement currency. */
     BigDecimal marketValue,
     /** Total amount spent to acquire this position: avgPurchasePrice × totalUnits, in settlement currency. */
     BigDecimal costBasis,

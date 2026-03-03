@@ -123,7 +123,7 @@ class IncomeCalendarServiceTest {
         when(assetRepository.findById("rent-1")).thenReturn(Optional.of(asset));
 
         AssetPrice price = AssetPrice.builder()
-                .assetId("rent-1").currentPrice(new BigDecimal("5000"))
+                .assetId("rent-1").askPrice(new BigDecimal("5000")).bidPrice(new BigDecimal("4900"))
                 .dayOpen(BigDecimal.ZERO).dayHigh(BigDecimal.ZERO).dayLow(BigDecimal.ZERO)
                 .dayClose(BigDecimal.ZERO).change24hPercent(BigDecimal.ZERO).updatedAt(Instant.now())
                 .build();
@@ -201,7 +201,7 @@ class IncomeCalendarServiceTest {
         when(assetRepository.findById("rent-2")).thenReturn(Optional.of(rental));
 
         AssetPrice price = AssetPrice.builder()
-                .assetId("rent-2").currentPrice(new BigDecimal("5000"))
+                .assetId("rent-2").askPrice(new BigDecimal("5000")).bidPrice(new BigDecimal("4900"))
                 .dayOpen(BigDecimal.ZERO).dayHigh(BigDecimal.ZERO).dayLow(BigDecimal.ZERO)
                 .dayClose(BigDecimal.ZERO).change24hPercent(BigDecimal.ZERO).updatedAt(Instant.now())
                 .build();

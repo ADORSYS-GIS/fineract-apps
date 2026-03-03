@@ -14,6 +14,7 @@ import { Route as ScheduledPaymentsRouteImport } from './routes/scheduled-paymen
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as OrderResolutionRouteImport } from './routes/order-resolution'
 import { Route as MarketSettingsRouteImport } from './routes/market-settings'
+import { Route as LpPerformanceRouteImport } from './routes/lp-performance'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as IncomeCalendarRouteImport } from './routes/income-calendar'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -47,6 +48,11 @@ const OrderResolutionRoute = OrderResolutionRouteImport.update({
 const MarketSettingsRoute = MarketSettingsRouteImport.update({
   id: '/market-settings',
   path: '/market-settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LpPerformanceRoute = LpPerformanceRouteImport.update({
+  id: '/lp-performance',
+  path: '/lp-performance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
   '/inventory': typeof InventoryRoute
+  '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
   '/reconciliation': typeof ReconciliationRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
   '/inventory': typeof InventoryRoute
+  '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
   '/reconciliation': typeof ReconciliationRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
   '/inventory': typeof InventoryRoute
+  '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
   '/reconciliation': typeof ReconciliationRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/income-calendar'
     | '/inventory'
+    | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
     | '/reconciliation'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/income-calendar'
     | '/inventory'
+    | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
     | '/reconciliation'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/income-calendar'
     | '/inventory'
+    | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
     | '/reconciliation'
@@ -202,6 +214,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   IncomeCalendarRoute: typeof IncomeCalendarRoute
   InventoryRoute: typeof InventoryRoute
+  LpPerformanceRoute: typeof LpPerformanceRoute
   MarketSettingsRoute: typeof MarketSettingsRoute
   OrderResolutionRoute: typeof OrderResolutionRoute
   ReconciliationRoute: typeof ReconciliationRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/market-settings'
       fullPath: '/market-settings'
       preLoaderRoute: typeof MarketSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lp-performance': {
+      id: '/lp-performance'
+      path: '/lp-performance'
+      fullPath: '/lp-performance'
+      preLoaderRoute: typeof LpPerformanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -322,6 +342,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   IncomeCalendarRoute: IncomeCalendarRoute,
   InventoryRoute: InventoryRoute,
+  LpPerformanceRoute: LpPerformanceRoute,
   MarketSettingsRoute: MarketSettingsRoute,
   OrderResolutionRoute: OrderResolutionRoute,
   ReconciliationRoute: ReconciliationRoute,

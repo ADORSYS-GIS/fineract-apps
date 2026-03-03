@@ -37,7 +37,8 @@ CREATE INDEX idx_assets_category ON assets(category);
 -- Current asset prices (one row per asset)
 CREATE TABLE asset_prices (
     asset_id VARCHAR(36) PRIMARY KEY REFERENCES assets(id),
-    current_price DECIMAL(20,0) NOT NULL,
+    bid_price DECIMAL(20,0) NOT NULL,
+    ask_price DECIMAL(20,0) NOT NULL,
     previous_close DECIMAL(20,0),
     change_24h_percent DECIMAL(10,4),
     day_open DECIMAL(20,0),

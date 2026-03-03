@@ -223,14 +223,14 @@ public class TradingService {
         Asset asset = ctx.getAsset();
         BigDecimal units = ctx.getUnits();
 
-        CurrentPriceResponse priceData = pricingService.getCurrentPrice(ctx.getAssetId());
-        BigDecimal basePrice = priceData.currentPrice();
+        PriceResponse priceData = pricingService.getPrice(ctx.getAssetId());
+        BigDecimal basePrice = priceData.askPrice();
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
 
         // BUY executes at LP ask price, SELL at LP bid price
         BigDecimal executionPrice = (strategy.side() == TradeSide.BUY)
-                ? (priceData.askPrice() != null ? priceData.askPrice() : basePrice)
-                : (priceData.bidPrice() != null ? priceData.bidPrice() : basePrice);
+                ? priceData.askPrice()
+                : priceData.bidPrice();
 
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
@@ -437,13 +437,13 @@ public class TradingService {
         Asset asset = ctx.getAsset();
         BigDecimal units = ctx.getUnits();
 
-        CurrentPriceResponse lockedPriceData = pricingService.getCurrentPrice(ctx.getAssetId());
-        BigDecimal lockedBasePrice = lockedPriceData.currentPrice();
+        PriceResponse lockedPriceData = pricingService.getPrice(ctx.getAssetId());
+        BigDecimal lockedBasePrice = lockedPriceData.askPrice();
 
         // BUY executes at LP ask price, SELL at LP bid price
         BigDecimal executionPrice = (strategy.side() == TradeSide.BUY)
-                ? (lockedPriceData.askPrice() != null ? lockedPriceData.askPrice() : lockedBasePrice)
-                : (lockedPriceData.bidPrice() != null ? lockedPriceData.bidPrice() : lockedBasePrice);
+                ? lockedPriceData.askPrice()
+                : lockedPriceData.bidPrice();
 
         // Slippage protection: reject if price moved more than 2% from preview
         BigDecimal previewPrice = ctx.getExecutionPrice();
@@ -766,8 +766,8 @@ public class TradingService {
         }
 
         // 3. Price calculation using LP bid/ask
-        CurrentPriceResponse priceData = pricingService.getCurrentPrice(request.assetId());
-        BigDecimal basePrice = priceData.currentPrice();
+        PriceResponse priceData = pricingService.getPrice(request.assetId());
+        BigDecimal basePrice = priceData.askPrice();
         BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
 
         TradeStrategy previewStrategy = request.side() == TradeSide.BUY
@@ -775,8 +775,8 @@ public class TradingService {
 
         // BUY executes at LP ask price, SELL at LP bid price
         BigDecimal executionPrice = (request.side() == TradeSide.BUY)
-                ? (priceData.askPrice() != null ? priceData.askPrice() : basePrice)
-                : (priceData.bidPrice() != null ? priceData.bidPrice() : basePrice);
+                ? priceData.askPrice()
+                : priceData.bidPrice();
 
         // 3b. Amount-based conversion: compute units from XAF amount
         BigDecimal computedFromAmount = null;

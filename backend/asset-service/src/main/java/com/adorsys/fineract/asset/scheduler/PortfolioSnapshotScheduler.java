@@ -49,7 +49,7 @@ public class PortfolioSnapshotScheduler {
 
         // Bulk-load all prices once
         Map<String, BigDecimal> priceMap = assetPriceRepository.findAll().stream()
-                .collect(Collectors.toMap(AssetPrice::getAssetId, AssetPrice::getCurrentPrice,
+                .collect(Collectors.toMap(AssetPrice::getAssetId, AssetPrice::getAskPrice,
                         (a, b) -> b));
 
         LocalDate today = LocalDate.now();

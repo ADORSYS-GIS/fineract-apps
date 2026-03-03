@@ -22,7 +22,8 @@
 			"marketSettings": "Market Settings",
 			"orderResolution": "Order Resolution",
 			"reconciliation": "Reconciliation",
-			"scheduledPayments": "Scheduled Payments"
+			"scheduledPayments": "Scheduled Payments",
+			"lpPerformance": "LP Performance"
 		},
 		"navbar": {
 			"onlineBank": "OnlineBank"

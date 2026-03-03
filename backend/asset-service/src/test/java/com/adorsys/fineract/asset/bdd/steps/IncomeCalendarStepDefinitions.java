@@ -59,10 +59,10 @@ public class IncomeCalendarStepDefinitions {
                 nextDist);
 
         jdbcTemplate.update("""
-            INSERT INTO asset_prices (asset_id, current_price, day_open, day_high, day_low,
+            INSERT INTO asset_prices (asset_id, bid_price, ask_price, day_open, day_high, day_low,
                 day_close, change_24h_percent, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, 0, NOW())
-            """, assetId, price, price, price, price, price);
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, NOW())
+            """, assetId, price, price, price, price, price, price);
     }
 
     // "user {long} holds {int} units of bond {string}" is in BondStepDefinitions

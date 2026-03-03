@@ -64,7 +64,8 @@ class AssetCatalogServiceTest {
     private AssetPrice buildAssetPrice(String assetId, BigDecimal price) {
         return AssetPrice.builder()
                 .assetId(assetId)
-                .currentPrice(price)
+                .askPrice(price)
+                .bidPrice(price)
                 .change24hPercent(new BigDecimal("2.5"))
                 .updatedAt(Instant.now())
                 .build();
@@ -91,7 +92,7 @@ class AssetCatalogServiceTest {
         assertEquals(ASSET_ID, response.id());
         assertEquals("TST", response.symbol());
         assertEquals(AssetStatus.ACTIVE, response.status());
-        assertEquals(0, new BigDecimal("500").compareTo(response.currentPrice()));
+        assertEquals(0, new BigDecimal("500").compareTo(response.askPrice()));
         assertEquals(0, new BigDecimal("900").compareTo(response.availableSupply())); // 1000 - 100
         assertEquals(200L, response.lpAssetAccountId());
         assertEquals(300L, response.lpCashAccountId());
@@ -144,12 +145,12 @@ class AssetCatalogServiceTest {
         // First asset has a price from the price map
         AssetResponse first = result.getContent().get(0);
         assertEquals("a1", first.id());
-        assertEquals(0, new BigDecimal("100").compareTo(first.currentPrice()));
+        assertEquals(0, new BigDecimal("100").compareTo(first.askPrice()));
 
         // Second asset has no price entry, so defaults to zero
         AssetResponse second = result.getContent().get(1);
         assertEquals("a2", second.id());
-        assertEquals(0, BigDecimal.ZERO.compareTo(second.currentPrice()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(second.askPrice()));
 
         verify(assetRepository).findAll(any(Pageable.class));
     }

@@ -7,10 +7,10 @@ Feature: Pricing Endpoints
   Background:
     Given the test database is seeded with standard data
 
-  Scenario: Get current price without authentication
+  Scenario: Get price without authentication
     When an unauthenticated user calls "GET" "/api/prices/asset-001"
     Then the response status should be 200
-    And the response body should contain field "currentPrice"
+    And the response body should contain field "askPrice"
     And the response conforms to the OpenAPI schema
 
   Scenario: Get OHLC data

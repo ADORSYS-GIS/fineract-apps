@@ -1,6 +1,6 @@
 package com.adorsys.fineract.asset.controller;
 
-import com.adorsys.fineract.asset.dto.CurrentPriceResponse;
+import com.adorsys.fineract.asset.dto.PriceResponse;
 import com.adorsys.fineract.asset.dto.OhlcResponse;
 import com.adorsys.fineract.asset.dto.PriceHistoryResponse;
 import com.adorsys.fineract.asset.service.PricingService;
@@ -23,8 +23,8 @@ public class PriceController {
 
     @GetMapping("/{assetId}")
     @Operation(summary = "Get current price + OHLC")
-    public ResponseEntity<CurrentPriceResponse> getCurrentPrice(@PathVariable String assetId) {
-        return ResponseEntity.ok(pricingService.getCurrentPrice(assetId));
+    public ResponseEntity<PriceResponse> getPrice(@PathVariable String assetId) {
+        return ResponseEntity.ok(pricingService.getPrice(assetId));
     }
 
     @GetMapping("/{assetId}/ohlc")

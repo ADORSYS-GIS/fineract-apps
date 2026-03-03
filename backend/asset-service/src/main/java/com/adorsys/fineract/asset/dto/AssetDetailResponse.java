@@ -32,8 +32,6 @@ public record AssetDetailResponse(
     AssetStatus status,
     /** How the price is determined: AUTO or MANUAL. */
     PriceMode priceMode,
-    /** Latest price per unit, in settlement currency. */
-    BigDecimal currentPrice,
     /** 24-hour price change as a percentage (e.g. 2.5 = +2.5%). */
     BigDecimal change24hPercent,
     /** Opening price for the current trading day, in settlement currency. */

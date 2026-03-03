@@ -105,7 +105,7 @@ export const useAssetDetails = () => {
 
 	const setPriceMutation = useMutation({
 		mutationFn: (newPrice: number) =>
-			assetApi.setPrice(assetId, { price: newPrice }),
+			assetApi.setPrice(assetId, { askPrice: newPrice }),
 		onSuccess: () => {
 			toast.success("Price updated");
 			queryClient.invalidateQueries({ queryKey: ["price", assetId] });

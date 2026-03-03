@@ -20,7 +20,6 @@ public record AssetPublicDetailResponse(
     AssetCategory category,
     AssetStatus status,
     PriceMode priceMode,
-    BigDecimal currentPrice,
     BigDecimal change24hPercent,
     BigDecimal dayOpen,
     BigDecimal dayHigh,

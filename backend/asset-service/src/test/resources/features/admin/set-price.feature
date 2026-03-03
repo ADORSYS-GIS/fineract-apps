@@ -12,4 +12,4 @@ Feature: Manual Price Override
     # Blocked: PricingService.setPrice() has unwrapped Redis call that fails in test env
     When the admin sets the price of asset "asset-001" to 150
     Then the response status should be 200
-    And the current price of asset "asset-001" should be 150
+    And the ask price of asset "asset-001" should be 150

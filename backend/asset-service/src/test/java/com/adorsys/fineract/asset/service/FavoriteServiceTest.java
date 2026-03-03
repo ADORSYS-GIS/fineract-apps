@@ -58,7 +58,7 @@ class FavoriteServiceTest {
         assertEquals(ASSET_ID, result.get(0).assetId());
         assertEquals("TST", result.get(0).symbol());
         assertEquals("Test Asset", result.get(0).name());
-        assertEquals(new BigDecimal("100"), result.get(0).currentPrice());
+        assertEquals(new BigDecimal("100"), result.get(0).askPrice());
     }
 
     @Test

@@ -20,8 +20,8 @@ public record InventoryResponse(
     BigDecimal circulatingSupply,
     /** Units available for purchase: totalSupply - circulatingSupply. */
     BigDecimal availableSupply,
-    /** Latest price per unit, in settlement currency. */
-    BigDecimal currentPrice,
-    /** Total value locked: circulatingSupply × currentPrice, in settlement currency. Represents the total market cap held by users. */
+    /** LP ask price: what buyers pay. */
+    BigDecimal askPrice,
+    /** Total value locked: circulatingSupply × askPrice, in settlement currency. Represents the total market cap held by users. */
     BigDecimal totalValueLocked
 ) {}

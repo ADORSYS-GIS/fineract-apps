@@ -69,9 +69,9 @@ class InventoryServiceTest {
         Page<Asset> assetPage = new PageImpl<>(List.of(asset1, asset2), pageable, 2);
 
         AssetPrice price1 = AssetPrice.builder()
-                .assetId("a1").currentPrice(new BigDecimal("200")).updatedAt(Instant.now()).build();
+                .assetId("a1").askPrice(new BigDecimal("200")).bidPrice(new BigDecimal("195")).updatedAt(Instant.now()).build();
         AssetPrice price2 = AssetPrice.builder()
-                .assetId("a2").currentPrice(new BigDecimal("5000")).updatedAt(Instant.now()).build();
+                .assetId("a2").askPrice(new BigDecimal("5000")).bidPrice(new BigDecimal("4900")).updatedAt(Instant.now()).build();
 
         when(assetRepository.findAll(any(Pageable.class))).thenReturn(assetPage);
         when(assetPriceRepository.findAllByAssetIdIn(List.of("a1", "a2")))
@@ -91,7 +91,7 @@ class InventoryServiceTest {
         assertEquals(0, new BigDecimal("1000").compareTo(inv1.totalSupply()));
         assertEquals(0, new BigDecimal("400").compareTo(inv1.circulatingSupply()));
         assertEquals(0, new BigDecimal("600").compareTo(inv1.availableSupply()));
-        assertEquals(0, new BigDecimal("200").compareTo(inv1.currentPrice()));
+        assertEquals(0, new BigDecimal("200").compareTo(inv1.askPrice()));
         assertEquals(0, new BigDecimal("80000").compareTo(inv1.totalValueLocked()));
 
         // Asset 2: totalSupply=500, circulating=100, available=400, price=5000, tvl=100*5000=500000

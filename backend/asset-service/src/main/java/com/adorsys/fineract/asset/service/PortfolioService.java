@@ -67,8 +67,8 @@ public class PortfolioService {
         for (UserPosition pos : positions) {
             Asset asset = assetMap.get(pos.getAssetId());
             AssetPrice price = priceMap.get(pos.getAssetId());
-            BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
-            BigDecimal marketValue = pos.getTotalUnits().multiply(currentPrice);
+            BigDecimal marketPrice = price != null ? price.getAskPrice() : BigDecimal.ZERO;
+            BigDecimal marketValue = pos.getTotalUnits().multiply(marketPrice);
             BigDecimal unrealizedPnl = marketValue.subtract(pos.getTotalCostBasis());
             BigDecimal unrealizedPnlPercent = pos.getTotalCostBasis().compareTo(BigDecimal.ZERO) > 0
                     ? unrealizedPnl.divide(pos.getTotalCostBasis(), 4, RoundingMode.HALF_UP)
@@ -79,9 +79,9 @@ public class PortfolioService {
             totalCostBasis = totalCostBasis.add(pos.getTotalCostBasis());
 
             BigDecimal faceValue = asset != null && asset.getIssuerPrice() != null
-                    ? asset.getIssuerPrice() : currentPrice;
+                    ? asset.getIssuerPrice() : marketPrice;
             BondBenefitProjection bondBenefit = asset != null
-                    ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
+                    ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), marketPrice)
                     : null;
             IncomeBenefitProjection incomeBenefit = asset != null
                     ? incomeBenefitService.calculateForHolding(asset, pos.getTotalUnits(), faceValue)
@@ -91,7 +91,7 @@ public class PortfolioService {
                     pos.getAssetId(),
                     asset != null ? asset.getSymbol() : null,
                     asset != null ? asset.getName() : null,
-                    pos.getTotalUnits(), pos.getAvgPurchasePrice(), currentPrice,
+                    pos.getTotalUnits(), pos.getAvgPurchasePrice(), marketPrice,
                     marketValue, pos.getTotalCostBasis(),
                     unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
                     bondBenefit, incomeBenefit
@@ -110,9 +110,9 @@ public class PortfolioService {
             Asset asset = assetMap.get(pos.getAssetId());
             String category = asset != null ? asset.getCategory().name() : "UNKNOWN";
             AssetPrice price = priceMap.get(pos.getAssetId());
-            BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
-            BigDecimal marketValue = pos.getTotalUnits().multiply(currentPrice);
-            categoryValues.merge(category, marketValue, BigDecimal::add);
+            BigDecimal marketPrice = price != null ? price.getAskPrice() : BigDecimal.ZERO;
+            BigDecimal catMarketValue = pos.getTotalUnits().multiply(marketPrice);
+            categoryValues.merge(category, catMarketValue, BigDecimal::add);
         }
         List<CategoryAllocationResponse> allocations = new ArrayList<>();
         for (Map.Entry<String, BigDecimal> entry : categoryValues.entrySet()) {
@@ -171,8 +171,8 @@ public class PortfolioService {
 
         Asset asset = assetRepository.findById(assetId).orElse(null);
         AssetPrice price = assetPriceRepository.findById(assetId).orElse(null);
-        BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
-        BigDecimal marketValue = pos.getTotalUnits().multiply(currentPrice);
+        BigDecimal marketPrice = price != null ? price.getAskPrice() : BigDecimal.ZERO;
+        BigDecimal marketValue = pos.getTotalUnits().multiply(marketPrice);
         BigDecimal unrealizedPnl = marketValue.subtract(pos.getTotalCostBasis());
         BigDecimal unrealizedPnlPercent = pos.getTotalCostBasis().compareTo(BigDecimal.ZERO) > 0
                 ? unrealizedPnl.divide(pos.getTotalCostBasis(), 4, RoundingMode.HALF_UP)
@@ -180,9 +180,9 @@ public class PortfolioService {
                 : BigDecimal.ZERO;
 
         BigDecimal faceValue = asset != null && asset.getIssuerPrice() != null
-                ? asset.getIssuerPrice() : currentPrice;
+                ? asset.getIssuerPrice() : marketPrice;
         BondBenefitProjection bondBenefit = asset != null
-                ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), currentPrice)
+                ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), marketPrice)
                 : null;
         IncomeBenefitProjection incomeBenefit = asset != null
                 ? incomeBenefitService.calculateForHolding(asset, pos.getTotalUnits(), faceValue)
@@ -192,7 +192,7 @@ public class PortfolioService {
                 assetId,
                 asset != null ? asset.getSymbol() : null,
                 asset != null ? asset.getName() : null,
-                pos.getTotalUnits(), pos.getAvgPurchasePrice(), currentPrice,
+                pos.getTotalUnits(), pos.getAvgPurchasePrice(), marketPrice,
                 marketValue, pos.getTotalCostBasis(),
                 unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
                 bondBenefit, incomeBenefit

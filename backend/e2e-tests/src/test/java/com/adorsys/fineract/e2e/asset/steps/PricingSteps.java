@@ -60,7 +60,7 @@ public class PricingSteps {
 
     @Then("the price response should include a positive price")
     public void priceShouldBePositive() {
-        Number price = context.getLastResponse().jsonPath().get("currentPrice");
+        Number price = context.getLastResponse().jsonPath().get("askPrice");
         assertThat(price.doubleValue()).isPositive();
     }
 

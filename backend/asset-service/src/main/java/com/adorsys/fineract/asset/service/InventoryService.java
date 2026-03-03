@@ -43,14 +43,14 @@ public class InventoryService {
 
         return assets.map(a -> {
             AssetPrice price = priceMap.get(a.getId());
-            BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
+            BigDecimal askPrice = price != null ? price.getAskPrice() : BigDecimal.ZERO;
             BigDecimal available = a.getTotalSupply().subtract(a.getCirculatingSupply());
-            BigDecimal tvl = a.getCirculatingSupply().multiply(currentPrice);
+            BigDecimal tvl = a.getCirculatingSupply().multiply(askPrice);
 
             return new InventoryResponse(
                     a.getId(), a.getName(), a.getSymbol(), a.getStatus(),
                     a.getTotalSupply(), a.getCirculatingSupply(), available,
-                    currentPrice, tvl
+                    askPrice, tvl
             );
         });
     }

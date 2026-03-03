@@ -71,14 +71,13 @@ public class AssetCatalogService {
 
         AssetPrice price = assetPriceRepository.findById(assetId).orElse(null);
 
-        BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
         BigDecimal available = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(asset);
 
         return new AssetPublicDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
                 asset.getDescription(), asset.getImageUrl(), asset.getCategory(), asset.getStatus(),
-                asset.getPriceMode(), currentPrice,
+                asset.getPriceMode(),
                 price != null ? price.getChange24hPercent() : null,
                 price != null ? price.getDayOpen() : null,
                 price != null ? price.getDayHigh() : null,
@@ -118,7 +117,6 @@ public class AssetCatalogService {
 
         AssetPrice price = assetPriceRepository.findById(assetId).orElse(null);
 
-        BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
         BigDecimal available = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
 
         // Compute LP margin metrics
@@ -131,7 +129,7 @@ public class AssetCatalogService {
         return new AssetDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
                 asset.getDescription(), asset.getImageUrl(), asset.getCategory(), asset.getStatus(),
-                asset.getPriceMode(), currentPrice,
+                asset.getPriceMode(),
                 price != null ? price.getChange24hPercent() : null,
                 price != null ? price.getDayOpen() : null,
                 price != null ? price.getDayHigh() : null,
@@ -219,14 +217,14 @@ public class AssetCatalogService {
     }
 
     private AssetResponse toAssetResponse(Asset a, AssetPrice price) {
-        BigDecimal currentPrice = price != null ? price.getCurrentPrice() : BigDecimal.ZERO;
+        BigDecimal askPrice = price != null ? price.getAskPrice() : BigDecimal.ZERO;
         BigDecimal change = price != null ? price.getChange24hPercent() : null;
         BigDecimal available = a.getTotalSupply().subtract(a.getCirculatingSupply());
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(a);
 
         return new AssetResponse(
                 a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
-                a.getCategory(), a.getStatus(), currentPrice, change,
+                a.getCategory(), a.getStatus(), askPrice, change,
                 available, a.getTotalSupply(),
                 a.getSubscriptionStartDate(), a.getSubscriptionEndDate(),
                 a.getCapitalOpenedPercent(),

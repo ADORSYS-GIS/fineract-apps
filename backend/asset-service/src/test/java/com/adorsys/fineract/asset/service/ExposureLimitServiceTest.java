@@ -125,7 +125,8 @@ class ExposureLimitServiceTest {
         when(assetPriceRepository.findById(ASSET_ID))
                 .thenReturn(Optional.of(AssetPrice.builder()
                         .assetId(ASSET_ID)
-                        .currentPrice(new BigDecimal("900"))
+                        .askPrice(new BigDecimal("900"))
+                        .bidPrice(new BigDecimal("890"))
                         .build()));
 
         // Redis cache miss
@@ -152,7 +153,8 @@ class ExposureLimitServiceTest {
         when(assetPriceRepository.findById(ASSET_ID))
                 .thenReturn(Optional.of(AssetPrice.builder()
                         .assetId(ASSET_ID)
-                        .currentPrice(new BigDecimal("900"))
+                        .askPrice(new BigDecimal("900"))
+                        .bidPrice(new BigDecimal("890"))
                         .build()));
 
         when(valueOperations.get(anyString())).thenReturn(null);

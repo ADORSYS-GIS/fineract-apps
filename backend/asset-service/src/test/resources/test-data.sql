@@ -35,14 +35,14 @@ VALUES ('asset-002', 'PND', 'PND', 'Pending Asset', 'COMMODITIES', 'PENDING', 'M
     1, 401, 301, 11, 0, NOW(), NOW());
 
 -- Price data for active asset
-INSERT INTO asset_prices (asset_id, current_price, day_open, day_high, day_low,
-    day_close, change_24h_percent, updated_at, bid_price, ask_price)
-VALUES ('asset-001', 100.00, 100.00, 100.00, 100.00, 100.00, 0, NOW(), 99.00, 101.00);
+INSERT INTO asset_prices (asset_id, bid_price, ask_price, day_open, day_high, day_low,
+    day_close, change_24h_percent, updated_at)
+VALUES ('asset-001', 99.00, 101.00, 100.00, 100.00, 100.00, 100.00, 0, NOW());
 
 -- Price data for pending asset
-INSERT INTO asset_prices (asset_id, current_price, day_open, day_high, day_low,
+INSERT INTO asset_prices (asset_id, bid_price, ask_price, day_open, day_high, day_low,
     day_close, change_24h_percent, updated_at)
-VALUES ('asset-002', 50.00, 50.00, 50.00, 50.00, 50.00, 0, NOW());
+VALUES ('asset-002', 49.00, 51.00, 50.00, 50.00, 50.00, 50.00, 0, NOW());
 
 -- Price history entries for history endpoint (id is auto-generated IDENTITY)
 INSERT INTO price_history (asset_id, price, captured_at)

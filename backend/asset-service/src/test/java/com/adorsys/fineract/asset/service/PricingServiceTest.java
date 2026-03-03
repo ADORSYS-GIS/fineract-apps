@@ -1,6 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
-import com.adorsys.fineract.asset.dto.CurrentPriceResponse;
+import com.adorsys.fineract.asset.dto.PriceResponse;
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
@@ -40,25 +40,27 @@ class PricingServiceTest {
     private AssetPrice buildAssetPrice(BigDecimal price, BigDecimal change) {
         return AssetPrice.builder()
                 .assetId(ASSET_ID)
-                .currentPrice(price)
+                .askPrice(price)
+                .bidPrice(price)
                 .change24hPercent(change)
                 .updatedAt(Instant.now())
                 .build();
     }
 
     @Test
-    void getCurrentPrice_cacheHit_returnsFromRedis() {
-        // Arrange: Redis has cached value "100:5.5"
+    void getPrice_cacheHit_returnsFromRedis() {
+        // Arrange: Redis has cached value "100:95:5.5" (askPrice:bidPrice:change)
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.get(CACHE_KEY)).thenReturn("100:5.5");
+        when(valueOperations.get(CACHE_KEY)).thenReturn("100:95:5.5");
 
         // Act
-        CurrentPriceResponse response = pricingService.getCurrentPrice(ASSET_ID);
+        PriceResponse response = pricingService.getPrice(ASSET_ID);
 
         // Assert
         assertNotNull(response);
         assertEquals(ASSET_ID, response.assetId());
-        assertEquals(0, new BigDecimal("100").compareTo(response.currentPrice()));
+        assertEquals(0, new BigDecimal("100").compareTo(response.askPrice()));
+        assertEquals(0, new BigDecimal("95").compareTo(response.bidPrice()));
         assertEquals(0, new BigDecimal("5.5").compareTo(response.change24hPercent()));
 
         // Verify DB was NOT queried
@@ -66,7 +68,7 @@ class PricingServiceTest {
     }
 
     @Test
-    void getCurrentPrice_cacheMiss_fetchesFromDb() {
+    void getPrice_cacheMiss_fetchesFromDb() {
         // Arrange: Redis returns null (cache miss)
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(CACHE_KEY)).thenReturn(null);
@@ -75,12 +77,12 @@ class PricingServiceTest {
         when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(dbPrice));
 
         // Act
-        CurrentPriceResponse response = pricingService.getCurrentPrice(ASSET_ID);
+        PriceResponse response = pricingService.getPrice(ASSET_ID);
 
         // Assert
         assertNotNull(response);
         assertEquals(ASSET_ID, response.assetId());
-        assertEquals(0, new BigDecimal("200").compareTo(response.currentPrice()));
+        assertEquals(0, new BigDecimal("200").compareTo(response.askPrice()));
         assertEquals(0, new BigDecimal("3.25").compareTo(response.change24hPercent()));
 
         // Verify DB was queried
@@ -91,7 +93,7 @@ class PricingServiceTest {
     }
 
     @Test
-    void getCurrentPrice_redisDown_fallsBackToDb() {
+    void getPrice_redisDown_fallsBackToDb() {
         // Arrange: Redis throws connection failure on opsForValue().get()
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(CACHE_KEY))
@@ -101,19 +103,19 @@ class PricingServiceTest {
         when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(dbPrice));
 
         // Act
-        CurrentPriceResponse response = pricingService.getCurrentPrice(ASSET_ID);
+        PriceResponse response = pricingService.getPrice(ASSET_ID);
 
         // Assert: should fall back to DB gracefully
         assertNotNull(response);
         assertEquals(ASSET_ID, response.assetId());
-        assertEquals(0, new BigDecimal("150").compareTo(response.currentPrice()));
+        assertEquals(0, new BigDecimal("150").compareTo(response.askPrice()));
         assertEquals(0, new BigDecimal("-1.0").compareTo(response.change24hPercent()));
 
         verify(assetPriceRepository).findById(ASSET_ID);
     }
 
     @Test
-    void getCurrentPrice_malformedCache_fallsBackToDb() {
+    void getPrice_malformedCache_fallsBackToDb() {
         // Arrange: Redis returns malformed value that cannot be parsed
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(CACHE_KEY)).thenReturn("invalid");
@@ -125,12 +127,12 @@ class PricingServiceTest {
         when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(dbPrice));
 
         // Act
-        CurrentPriceResponse response = pricingService.getCurrentPrice(ASSET_ID);
+        PriceResponse response = pricingService.getPrice(ASSET_ID);
 
         // Assert: should fall back to DB after malformed cache
         assertNotNull(response);
         assertEquals(ASSET_ID, response.assetId());
-        assertEquals(0, new BigDecimal("300").compareTo(response.currentPrice()));
+        assertEquals(0, new BigDecimal("300").compareTo(response.askPrice()));
         assertEquals(0, new BigDecimal("0.5").compareTo(response.change24hPercent()));
 
         // Verify the malformed cache entry was deleted

@@ -31,10 +31,6 @@ public class AssetPrice {
     @JoinColumn(name = "asset_id", insertable = false, updatable = false)
     private Asset asset;
 
-    /** Latest known price of the asset, in settlement currency (whole units, no decimals). */
-    @Column(name = "current_price", nullable = false, precision = 20, scale = 0)
-    private BigDecimal currentPrice;
-
     /** Closing price from the previous trading day, in settlement currency. Null if no previous close exists. */
     @Column(name = "previous_close", precision = 20, scale = 0)
     private BigDecimal previousClose;
@@ -60,11 +56,11 @@ public class AssetPrice {
     private BigDecimal dayClose;
 
     /** Best price a seller receives. Set by LP or auto-derived when reference price changes. */
-    @Column(name = "bid_price", precision = 20, scale = 0)
+    @Column(name = "bid_price", nullable = false, precision = 20, scale = 0)
     private BigDecimal bidPrice;
 
     /** Price a buyer pays. Set by LP or auto-derived when reference price changes. */
-    @Column(name = "ask_price", precision = 20, scale = 0)
+    @Column(name = "ask_price", nullable = false, precision = 20, scale = 0)
     private BigDecimal askPrice;
 
     /** Timestamp of the last price update. Auto-set on insert and update. */

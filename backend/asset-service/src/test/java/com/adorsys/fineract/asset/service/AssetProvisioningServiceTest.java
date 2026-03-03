@@ -108,7 +108,7 @@ class AssetProvisioningServiceTest {
         // Verify price saved
         verify(assetPriceRepository).save(priceCaptor.capture());
         AssetPrice savedPrice = priceCaptor.getValue();
-        assertEquals(new BigDecimal("100"), savedPrice.getCurrentPrice());
+        assertEquals(new BigDecimal("100"), savedPrice.getAskPrice());
     }
 
     @Test

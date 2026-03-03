@@ -68,7 +68,8 @@ public final class TestDataFactory {
     public static AssetPrice assetPrice(String assetId, BigDecimal price) {
         return AssetPrice.builder()
                 .assetId(assetId)
-                .currentPrice(price)
+                .bidPrice(price)
+                .askPrice(price)
                 .dayOpen(price)
                 .dayHigh(price)
                 .dayLow(price)

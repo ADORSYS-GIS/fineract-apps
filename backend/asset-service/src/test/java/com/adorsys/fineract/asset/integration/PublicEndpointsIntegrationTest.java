@@ -73,7 +73,7 @@ class PublicEndpointsIntegrationTest {
     void getPrice_noAuth_returns200() throws Exception {
         mockMvc.perform(get("/api/prices/asset-001"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.currentPrice").isNumber());
+                .andExpect(jsonPath("$.askPrice").isNumber());
     }
 
     @Test

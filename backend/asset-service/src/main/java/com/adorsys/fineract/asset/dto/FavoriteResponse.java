@@ -12,8 +12,8 @@ public record FavoriteResponse(
     String symbol,
     /** Human-readable asset name. */
     String name,
-    /** Latest price per unit, in settlement currency. */
-    BigDecimal currentPrice,
+    /** LP ask price: what buyers pay. */
+    BigDecimal askPrice,
     /** 24-hour price change as a percentage (e.g. 2.5 = +2.5%). */
     BigDecimal change24hPercent
 ) {}

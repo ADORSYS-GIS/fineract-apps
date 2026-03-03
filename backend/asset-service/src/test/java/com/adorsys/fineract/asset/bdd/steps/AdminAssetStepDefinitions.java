@@ -241,7 +241,7 @@ public class AdminAssetStepDefinitions {
 
     @When("the admin sets the price of asset {string} to {int}")
     public void adminSetsPrice(String assetId, int price) throws Exception {
-        Map<String, Object> request = Map.of("price", price);
+        Map<String, Object> request = Map.of("askPrice", price);
         MvcResult result = mockMvc.perform(post("/api/admin/assets/" + assetId + "/set-price")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -281,10 +281,10 @@ public class AdminAssetStepDefinitions {
         assertThat(count).isZero();
     }
 
-    @Then("the current price of asset {string} should be {int}")
-    public void currentPriceShouldBe(String assetId, int expected) {
+    @Then("the ask price of asset {string} should be {int}")
+    public void askPriceShouldBe(String assetId, int expected) {
         BigDecimal price = jdbcTemplate.queryForObject(
-                "SELECT current_price FROM asset_prices WHERE asset_id = ?",
+                "SELECT ask_price FROM asset_prices WHERE asset_id = ?",
                 BigDecimal.class, assetId);
         assertThat(price.intValue()).isEqualTo(expected);
     }

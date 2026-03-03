@@ -1,7 +1,7 @@
 package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
-import com.adorsys.fineract.asset.dto.CurrentPriceResponse;
+import com.adorsys.fineract.asset.dto.PriceResponse;
 import com.adorsys.fineract.asset.dto.OrderStatus;
 import com.adorsys.fineract.asset.dto.TradeSide;
 import com.adorsys.fineract.asset.entity.Order;
@@ -65,9 +65,9 @@ class QueuedOrderSchedulerTest {
                 .thenReturn(List.of(order));
 
         // Current price is close to queued price (within 5%)
-        CurrentPriceResponse priceResp = new CurrentPriceResponse(
-                "asset-001", new BigDecimal("102"), null, null, null);
-        when(pricingService.getCurrentPrice("asset-001")).thenReturn(priceResp);
+        PriceResponse priceResp = new PriceResponse(
+                "asset-001", new BigDecimal("102"), new BigDecimal("98"), null);
+        when(pricingService.getPrice("asset-001")).thenReturn(priceResp);
 
         queuedOrderScheduler.processQueuedOrders();
 
@@ -89,9 +89,9 @@ class QueuedOrderSchedulerTest {
                 .thenReturn(List.of(order));
 
         // Price moved 10% — beyond 5% threshold
-        CurrentPriceResponse priceResp = new CurrentPriceResponse(
-                "asset-001", new BigDecimal("110"), null, null, null);
-        when(pricingService.getCurrentPrice("asset-001")).thenReturn(priceResp);
+        PriceResponse priceResp = new PriceResponse(
+                "asset-001", new BigDecimal("110"), new BigDecimal("105"), null);
+        when(pricingService.getPrice("asset-001")).thenReturn(priceResp);
 
         queuedOrderScheduler.processQueuedOrders();
 
@@ -133,10 +133,9 @@ class QueuedOrderSchedulerTest {
                 .thenReturn(List.of(order));
 
         // Ask price is used for BUY (104 → 4% change, within 5% threshold)
-        CurrentPriceResponse priceResp = new CurrentPriceResponse(
-                "asset-001", new BigDecimal("110"), null,
-                new BigDecimal("95"), new BigDecimal("104"));
-        when(pricingService.getCurrentPrice("asset-001")).thenReturn(priceResp);
+        PriceResponse priceResp = new PriceResponse(
+                "asset-001", new BigDecimal("104"), new BigDecimal("95"), null);
+        when(pricingService.getPrice("asset-001")).thenReturn(priceResp);
 
         queuedOrderScheduler.processQueuedOrders();
 
@@ -157,10 +156,9 @@ class QueuedOrderSchedulerTest {
                 .thenReturn(List.of(order));
 
         // Bid price is used for SELL (96 → 4% change, within threshold)
-        CurrentPriceResponse priceResp = new CurrentPriceResponse(
-                "asset-001", new BigDecimal("110"), null,
-                new BigDecimal("96"), new BigDecimal("115"));
-        when(pricingService.getCurrentPrice("asset-001")).thenReturn(priceResp);
+        PriceResponse priceResp = new PriceResponse(
+                "asset-001", new BigDecimal("115"), new BigDecimal("96"), null);
+        when(pricingService.getPrice("asset-001")).thenReturn(priceResp);
 
         queuedOrderScheduler.processQueuedOrders();
 
@@ -181,7 +179,7 @@ class QueuedOrderSchedulerTest {
                 .thenReturn(List.of(order));
 
         // Price service throws
-        when(pricingService.getCurrentPrice("asset-001"))
+        when(pricingService.getPrice("asset-001"))
                 .thenThrow(new RuntimeException("Price service unavailable"));
 
         queuedOrderScheduler.processQueuedOrders();

@@ -83,15 +83,13 @@ public class BondStepDefinitions {
                 LocalDate.now().plusYears(5));
 
         // Insert price record
+        BigDecimal issuerPrice = new BigDecimal(data.get("issuerPrice"));
         jdbcTemplate.update("""
-            INSERT INTO asset_prices (asset_id, current_price, day_open, day_high, day_low,
+            INSERT INTO asset_prices (asset_id, bid_price, ask_price, day_open, day_high, day_low,
                 day_close, change_24h_percent, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, 0, NOW())
-            """, bondId, new BigDecimal(data.get("issuerPrice")),
-                new BigDecimal(data.get("issuerPrice")),
-                new BigDecimal(data.get("issuerPrice")),
-                new BigDecimal(data.get("issuerPrice")),
-                new BigDecimal(data.get("issuerPrice")));
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, NOW())
+            """, bondId, issuerPrice, issuerPrice,
+                issuerPrice, issuerPrice, issuerPrice, issuerPrice);
     }
 
     @Given("user {long} holds {int} units of bond {string}")
@@ -329,9 +327,9 @@ public class BondStepDefinitions {
             """, bondId, bondId, bondId, "Bond " + bondId, status, nextCouponDate, maturityDate);
 
         jdbcTemplate.update("""
-            INSERT INTO asset_prices (asset_id, current_price, day_open, day_high, day_low,
+            INSERT INTO asset_prices (asset_id, bid_price, ask_price, day_open, day_high, day_low,
                 day_close, change_24h_percent, updated_at)
-            VALUES (?, 10000, 10000, 10000, 10000, 10000, 0, NOW())
+            VALUES (?, 10000, 10000, 10000, 10000, 10000, 10000, 0, NOW())
             """, bondId);
     }
 

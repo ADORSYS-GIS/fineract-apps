@@ -111,13 +111,11 @@ public class IncomeCalendarService {
     private List<IncomeEvent> projectIncomeEvents(Asset asset, UserPosition pos, LocalDate horizon) {
         List<IncomeEvent> events = new ArrayList<>();
 
-        BigDecimal currentPrice = assetPriceRepository.findById(asset.getId())
-                .map(p -> p.getCurrentPrice())
-                .orElse(BigDecimal.ZERO);
+        BigDecimal faceValue = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : BigDecimal.ZERO;
 
         BigDecimal rate = asset.getIncomeRate();
         int freqMonths = asset.getDistributionFrequencyMonths();
-        BigDecimal amount = computeAmount(pos.getTotalUnits(), currentPrice, rate, freqMonths);
+        BigDecimal amount = computeAmount(pos.getTotalUnits(), faceValue, rate, freqMonths);
 
         LocalDate cursor = asset.getNextDistributionDate();
         if (cursor == null) return events;

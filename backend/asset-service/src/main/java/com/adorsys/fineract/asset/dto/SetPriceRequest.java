@@ -9,12 +9,10 @@ import java.math.BigDecimal;
  * Admin request to manually set or update an asset's price.
  */
 public record SetPriceRequest(
-    /** New reference price per unit, in settlement currency. Must be positive. */
-    @NotNull @Positive BigDecimal price,
-    /** Optional: new LP bid price (what sellers receive). Null to keep current. */
+    /** New LP ask price (what buyers pay), in settlement currency. Must be positive. */
+    @NotNull @Positive BigDecimal askPrice,
+    /** Optional: new LP bid price (what sellers receive). Null to auto-derive from ask price. */
     @Positive BigDecimal bidPrice,
-    /** Optional: new LP ask price (what buyers pay). Null to keep current. */
-    @Positive BigDecimal askPrice,
     /** Optional: switch the price mode (AUTO or MANUAL). If null, keeps current mode. */
     PriceMode priceMode
 ) {}

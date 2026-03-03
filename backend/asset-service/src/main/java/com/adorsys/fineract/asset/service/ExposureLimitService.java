@@ -203,7 +203,7 @@ public class ExposureLimitService {
         for (UserPosition pos : positions) {
             if (pos.getTotalUnits().compareTo(BigDecimal.ZERO) <= 0) continue;
             BigDecimal price = assetPriceRepository.findById(pos.getAssetId())
-                    .map(AssetPrice::getCurrentPrice)
+                    .map(AssetPrice::getAskPrice)
                     .orElse(BigDecimal.ZERO);
             totalValue = totalValue.add(pos.getTotalUnits().multiply(price));
         }

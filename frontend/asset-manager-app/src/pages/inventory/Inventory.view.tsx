@@ -20,7 +20,7 @@ function exportCsv(inventory: ReturnType<typeof useInventory>["inventory"]) {
 			item.totalSupply,
 			item.circulatingSupply,
 			item.availableSupply,
-			item.currentPrice ?? "",
+			item.askPrice ?? "",
 			item.totalValueLocked ?? "",
 			utilization,
 		].join(",");
@@ -186,7 +186,7 @@ export const InventoryView: FC<ReturnType<typeof useInventory>> = ({
 													{item.availableSupply.toLocaleString()}
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-													{item.currentPrice?.toLocaleString() ?? "—"}
+													{item.askPrice?.toLocaleString() ?? "—"}
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
 													{item.totalValueLocked?.toLocaleString() ?? "—"}
