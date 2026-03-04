@@ -47,3 +47,18 @@ Feature: Error Scenarios (E2E)
     When the user sends two identical buy orders for 1 units of "IDP"
     Then the idempotent order should return the same result
     And only one trade should be recorded in the trade log
+
+  # -----------------------------------------------------------------
+  # Quote Error Scenarios
+  # -----------------------------------------------------------------
+
+  Scenario: Cannot create quote for halted asset
+    Given an active stock asset "QHT" with price 500 and supply 100
+    And the asset "QHT" is halted
+    When the user tries to create a BUY quote for 1 units of "QHT"
+    Then the trade should be rejected
+
+  Scenario: Cannot create quote exceeding supply
+    Given an active stock asset "QSP" with price 100 and supply 5
+    When the user tries to create a BUY quote for 999999 units of "QSP"
+    Then the trade should be rejected

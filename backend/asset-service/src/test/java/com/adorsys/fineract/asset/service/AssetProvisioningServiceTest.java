@@ -35,9 +35,11 @@ class AssetProvisioningServiceTest {
     @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
     @Mock private com.adorsys.fineract.asset.repository.PriceHistoryRepository priceHistoryRepository;
+    @Mock private com.adorsys.fineract.asset.repository.PurchaseLotRepository purchaseLotRepository;
     @Mock private com.adorsys.fineract.asset.repository.ScheduledPaymentRepository scheduledPaymentRepository;
     @Mock private FineractClient fineractClient;
     @Mock private AssetCatalogService assetCatalogService;
+    @Mock private PricingService pricingService;
     @Mock private AssetServiceConfig assetServiceConfig;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
 
@@ -105,10 +107,10 @@ class AssetProvisioningServiceTest {
         assertEquals(400L, saved.getLpAssetAccountId());
         assertEquals("Test Company", saved.getLpClientName());
 
-        // Verify price saved
+        // Verify price saved (initialAskPrice from request = 110)
         verify(assetPriceRepository).save(priceCaptor.capture());
         AssetPrice savedPrice = priceCaptor.getValue();
-        assertEquals(new BigDecimal("100"), savedPrice.getAskPrice());
+        assertEquals(new BigDecimal("110"), savedPrice.getAskPrice());
     }
 
     @Test
@@ -335,7 +337,7 @@ class AssetProvisioningServiceTest {
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
-        assertTrue(ex.getMessage().contains("Issuer is required"));
+        assertTrue(ex.getMessage().contains("Issuer name is required"));
     }
 
     @Test

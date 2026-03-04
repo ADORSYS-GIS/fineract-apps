@@ -62,4 +62,11 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     Optional<Order> findByIdAndUserId(String id, Long userId);
 
     List<Order> findByStatusOrderByCreatedAtAsc(OrderStatus status);
+
+    long countByUserIdAndStatus(Long userId, OrderStatus status);
+
+    List<Order> findByStatusAndQuoteExpiresAtBefore(OrderStatus status, Instant before);
+
+    @Query("SELECT o FROM Order o WHERE o.status = :status ORDER BY o.createdAt ASC")
+    List<Order> findByStatusForExecution(@Param("status") OrderStatus status, Pageable pageable);
 }

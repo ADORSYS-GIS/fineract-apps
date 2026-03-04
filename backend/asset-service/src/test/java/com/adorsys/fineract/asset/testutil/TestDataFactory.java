@@ -264,6 +264,37 @@ public final class TestDataFactory {
                 .build();
     }
 
+    public static Order quotedOrder(String assetId, TradeSide side) {
+        Instant now = Instant.now();
+        return Order.builder()
+                .id(UUID.randomUUID().toString())
+                .idempotencyKey(UUID.randomUUID().toString())
+                .userId(USER_ID)
+                .userExternalId(EXTERNAL_ID)
+                .assetId(assetId)
+                .side(side)
+                .units(new BigDecimal("10"))
+                .executionPrice(new BigDecimal("101"))
+                .cashAmount(new BigDecimal("1015"))
+                .fee(new BigDecimal("5"))
+                .spreadAmount(new BigDecimal("10"))
+                .buybackPremium(BigDecimal.ZERO)
+                .status(OrderStatus.QUOTED)
+                .quotedAt(now)
+                .quoteExpiresAt(now.plusSeconds(30))
+                .quotedAskPrice(new BigDecimal("101"))
+                .quotedBidPrice(new BigDecimal("95"))
+                .createdAt(now)
+                .build();
+    }
+
+    public static Order expiredQuotedOrder(String assetId, TradeSide side) {
+        Order order = quotedOrder(assetId, side);
+        order.setQuotedAt(Instant.now().minusSeconds(60));
+        order.setQuoteExpiresAt(Instant.now().minusSeconds(30));
+        return order;
+    }
+
     public static Asset activeBondAsset() {
         Asset bond = activeAsset();
         bond.setCategory(AssetCategory.BONDS);

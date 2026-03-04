@@ -28,7 +28,9 @@ class PortfolioServiceTest {
     @Mock private UserPositionRepository userPositionRepository;
     @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
+    @Mock private com.adorsys.fineract.asset.repository.PurchaseLotRepository purchaseLotRepository;
     @Mock private BondBenefitService bondBenefitService;
+    @Mock private IncomeBenefitService incomeBenefitService;
     @Mock private PortfolioSnapshotRepository portfolioSnapshotRepository;
 
     @InjectMocks

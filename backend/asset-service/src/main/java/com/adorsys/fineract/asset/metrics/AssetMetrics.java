@@ -49,6 +49,13 @@ public class AssetMetrics {
     // Delisting metrics
     private final DistributionSummary delistingBuybackAmount;
 
+    // Quote metrics
+    private final Counter quotesCreatedCounter;
+    private final Counter quotesConfirmedCounter;
+    private final Counter quotesExpiredCounter;
+    private final Counter quotesUserCancelledCounter;
+    private final Timer quoteToExecutionTimer;
+
     // Archival metrics
     private final Counter tradesArchivedCounter;
     private final Counter ordersArchivedCounter;
@@ -135,6 +142,27 @@ public class AssetMetrics {
         delistingBuybackAmount = DistributionSummary.builder("asset.delisting.buyback_amount")
                 .description("Total " + config.getSettlementCurrency() + " paid in forced delisting buybacks")
                 .baseUnit(config.getSettlementCurrency())
+                .register(registry);
+
+        // Quote metrics
+        quotesCreatedCounter = Counter.builder("asset.quotes.created")
+                .description("Number of trade quotes created")
+                .register(registry);
+
+        quotesConfirmedCounter = Counter.builder("asset.quotes.confirmed")
+                .description("Number of trade quotes confirmed by user")
+                .register(registry);
+
+        quotesExpiredCounter = Counter.builder("asset.quotes.expired")
+                .description("Number of trade quotes expired (TTL)")
+                .register(registry);
+
+        quotesUserCancelledCounter = Counter.builder("asset.quotes.user_cancelled")
+                .description("Number of trade quotes explicitly cancelled by user")
+                .register(registry);
+
+        quoteToExecutionTimer = Timer.builder("asset.quotes.to_execution_duration")
+                .description("Duration from quote creation to FILLED status")
                 .register(registry);
 
         // Archival metrics
@@ -247,6 +275,13 @@ public class AssetMetrics {
                 .register(registry)
                 .increment();
     }
+
+    // Quote metrics
+    public void recordQuoteCreated() { quotesCreatedCounter.increment(); }
+    public void recordQuoteConfirmed() { quotesConfirmedCounter.increment(); }
+    public void recordQuotesExpired(int count) { quotesExpiredCounter.increment(count); }
+    public void recordQuoteUserCancelled() { quotesUserCancelledCounter.increment(); }
+    public Timer getQuoteToExecutionTimer() { return quoteToExecutionTimer; }
 
     /** Record a delisting initiated. */
     public void recordDelistingInitiated() {

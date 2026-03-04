@@ -124,6 +124,10 @@ CREATE TABLE orders (
     spread_amount     DECIMAL(20,0) DEFAULT 0,
     buyback_premium   DECIMAL(20,0) DEFAULT 0,
     queued_price      DECIMAL(20,0),
+    quoted_at         TIMESTAMPTZ,
+    quote_expires_at  TIMESTAMPTZ,
+    quoted_ask_price  DECIMAL(20,0),
+    quoted_bid_price  DECIMAL(20,0),
     status            VARCHAR(25) NOT NULL DEFAULT 'PENDING',
     failure_reason    VARCHAR(500),
     fineract_batch_id VARCHAR(255),
@@ -139,9 +143,11 @@ CREATE INDEX idx_orders_asset ON orders(asset_id, created_at);
 CREATE INDEX idx_orders_user_created ON orders(user_id, created_at DESC);
 CREATE INDEX idx_orders_user_asset ON orders(user_id, asset_id, created_at DESC);
 CREATE INDEX idx_orders_stale_cleanup ON orders(status, created_at)
-    WHERE status IN ('PENDING', 'EXECUTING', 'NEEDS_RECONCILIATION');
+    WHERE status IN ('PENDING', 'EXECUTING', 'NEEDS_RECONCILIATION', 'QUOTED');
 CREATE INDEX idx_orders_status ON orders(status)
     WHERE status IN ('NEEDS_RECONCILIATION', 'FAILED');
+CREATE INDEX idx_orders_quote_expiry ON orders(status, quote_expires_at)
+    WHERE status = 'QUOTED';
 CREATE INDEX idx_orders_asset_status ON orders(asset_id, status);
 CREATE INDEX idx_orders_user_external_id ON orders(user_external_id);
 
@@ -229,6 +235,10 @@ CREATE TABLE orders_archive (
     execution_price   DECIMAL(20,0),
     fee               DECIMAL(20,0),
     spread_amount     DECIMAL(20,0) DEFAULT 0,
+    quoted_at         TIMESTAMPTZ,
+    quote_expires_at  TIMESTAMPTZ,
+    quoted_ask_price  DECIMAL(20,0),
+    quoted_bid_price  DECIMAL(20,0),
     status            VARCHAR(25)   NOT NULL,
     failure_reason    VARCHAR(500),
     created_at        TIMESTAMPTZ   NOT NULL,

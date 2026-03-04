@@ -142,6 +142,27 @@ public class ErrorSteps {
         context.setLastResponse(second);
     }
 
+    @When("the user tries to create a BUY quote for {int} units of {string}")
+    public void userTriesToCreateBuyQuote(int units, String symbolRef) {
+        String assetId = context.getId("lastAssetId");
+
+        Map<String, Object> body = Map.of(
+                "assetId", assetId,
+                "side", "BUY",
+                "units", units
+        );
+
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .header("X-Idempotency-Key", UUID.randomUUID().toString())
+                .header("Authorization", "Bearer " + testUserJwt())
+                .body(body)
+                .post("/api/trades/quote");
+
+        context.setLastResponse(response);
+    }
+
     @When("the user buys more units than available supply of {string}")
     public void userBuysMoreThanSupply(String symbolRef) {
         String assetId = context.getId("lastAssetId");

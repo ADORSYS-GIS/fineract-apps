@@ -52,6 +52,12 @@ public class TradingStepDefinitions {
                 .thenReturn(100L);
         when(fineractClient.getAccountBalance(100L))
                 .thenReturn(new BigDecimal(balance));
+        // LP cash balance check (for SELL trades — checkBalanceInsideLock)
+        when(fineractClient.getAccountBalance(anyLong()))
+                .thenReturn(new BigDecimal("999999999"));
+        // Override with specific user balance (Mockito: last-wins for specific matchers)
+        when(fineractClient.getAccountBalance(100L))
+                .thenReturn(new BigDecimal(balance));
     }
 
     @Given("Fineract batch transfers succeed")

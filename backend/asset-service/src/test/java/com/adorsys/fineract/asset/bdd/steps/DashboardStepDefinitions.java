@@ -48,8 +48,8 @@ public class DashboardStepDefinitions {
                 """, orderId, userId, "ext-" + userId, UUID.randomUUID().toString());
             jdbcTemplate.update("""
                 INSERT INTO trade_log (id, order_id, user_id, asset_id, side, units, price_per_unit,
-                    total_amount, fee, spread_amount, executed_at)
-                VALUES (?, ?, ?, 'asset-001', 'BUY', 10, 100, 1000, 5, 0, ?)
+                    total_amount, fee, spread_amount, buyback_premium, executed_at)
+                VALUES (?, ?, ?, 'asset-001', 'BUY', 10, 100, 1000, 5, 0, 0, ?)
                 """, UUID.randomUUID().toString(), orderId, userId, Instant.now());
         }
     }

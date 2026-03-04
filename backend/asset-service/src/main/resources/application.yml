@@ -111,6 +111,10 @@ asset-service:
     asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:Asset Issuance}
     fee-income: ${GL_FEE_INCOME:87}
     fund-source: ${GL_FUND_SOURCE:42}
+  quote:
+    ttl-seconds: ${QUOTE_TTL_SECONDS:30}
+    max-active-per-user: ${QUOTE_MAX_ACTIVE_PER_USER:5}
+    expiry-cleanup-interval-ms: ${QUOTE_EXPIRY_CLEANUP_INTERVAL_MS:10000}
   archival:
     retention-months: ${ARCHIVAL_RETENTION_MONTHS:12}
     batch-size: ${ARCHIVAL_BATCH_SIZE:1000}

@@ -59,7 +59,7 @@ public class OrderManagementStepDefinitions {
 
         jdbcTemplate.update("""
             INSERT INTO orders (id, asset_id, user_id, user_external_id, side, units,
-                price_per_unit, total_amount, fee, spread_amount, status,
+                execution_price, cash_amount, fee, spread_amount, status,
                 idempotency_key, created_at, updated_at, version)
             VALUES (?, ?, ?, ?, 'BUY', 10, 100, 1000, 5, 0, ?, ?, ?, ?, 0)
             """,

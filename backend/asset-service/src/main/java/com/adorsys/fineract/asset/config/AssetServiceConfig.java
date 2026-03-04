@@ -31,6 +31,7 @@ public class AssetServiceConfig {
     private Archival archival = new Archival();
     private Portfolio portfolio = new Portfolio();
     private QueuedOrders queuedOrders = new QueuedOrders();
+    private Quote quote = new Quote();
 
     /** Platform-wide max portfolio exposure per user in XAF. Null = unlimited. */
     private BigDecimal portfolioExposureLimitXaf;
@@ -87,6 +88,16 @@ public class AssetServiceConfig {
     public static class QueuedOrders {
         /** Max price change (%) from queue time before a queued order is rejected at market open. */
         private BigDecimal stalePriceThresholdPercent = new BigDecimal("5.0");
+    }
+
+    @Data
+    public static class Quote {
+        /** How long a quote remains valid, in seconds. */
+        private int ttlSeconds = 30;
+        /** Max active quotes a single user can hold simultaneously. */
+        private int maxActivePerUser = 5;
+        /** How often to run the expired quote cleanup scheduler, in milliseconds. */
+        private long expiryCleanupIntervalMs = 10_000;
     }
 
     @Data
