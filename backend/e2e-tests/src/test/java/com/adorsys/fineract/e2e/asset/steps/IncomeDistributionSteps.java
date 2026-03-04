@@ -95,4 +95,11 @@ public class IncomeDistributionSteps {
                 .getBoolean("incomeBenefit.variableIncome");
         assertThat(variable).isTrue();
     }
+
+    @Then("the income benefit should be fixed income")
+    public void incomeBenefitShouldBeFixed() {
+        Boolean variable = context.getLastResponse().jsonPath()
+                .getBoolean("incomeBenefit.variableIncome");
+        assertThat(variable).isFalse();
+    }
 }

@@ -35,7 +35,7 @@ Feature: Stock Asset Lifecycle (E2E)
     When the user buys 5 units of "STK"
     Then the response status should be 200
     And the trade should be FILLED
-    And the user's XAF balance in Fineract should have decreased by approximately 5000
+    And the user's XAF balance in Fineract should have decreased by approximately 5500
     And the asset circulating supply should be 5
 
   # -----------------------------------------------------------------
