@@ -594,7 +594,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				{/* Fineract Integration */}
 				<Card className="p-4">
 					<h2 className="text-lg font-semibold text-gray-800 mb-3">
-						Fineract Integration
+						Integration
 					</h2>
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
 						<div>
@@ -760,7 +760,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 			<ConfirmDialog
 				isOpen={confirmAction === "delete"}
 				title="Delete Asset"
-				message={`Are you sure you want to permanently delete "${asset.name}"? This will also remove the associated Fineract resources (accounts, product, currency). This action cannot be undone.`}
+				message={`Are you sure you want to permanently delete "${asset.name}"? This will also remove the associated resources (accounts, product, currency). This action cannot be undone.`}
 				confirmLabel="Delete Asset"
 				confirmClassName="bg-red-600 hover:bg-red-700"
 				onConfirm={() => {

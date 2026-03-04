@@ -63,7 +63,8 @@ export const ReconciliationView: FC<ReturnType<typeof useReconciliation>> = ({
 					<div>
 						<h1 className="text-2xl font-bold text-gray-800">Reconciliation</h1>
 						<p className="text-sm text-gray-500 mt-1">
-							Automated discrepancy detection between asset service and Fineract
+							Automated discrepancy detection between asset service and the
+							backend
 						</p>
 					</div>
 					<Button

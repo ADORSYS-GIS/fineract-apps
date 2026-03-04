@@ -45,7 +45,7 @@ export const SelectCompanyStep: FC<Props> = ({
 					Liquidity Partner
 				</label>
 				<p className="text-xs text-gray-400 mb-2">
-					The Fineract client that will hold the LP account for this asset
+					The client that will hold the LP account for this asset
 				</p>
 				{isLoadingClients ? (
 					<div className="animate-pulse h-10 bg-gray-200 rounded" />

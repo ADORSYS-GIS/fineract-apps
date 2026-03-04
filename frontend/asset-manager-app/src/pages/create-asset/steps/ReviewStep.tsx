@@ -24,7 +24,7 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 				</h2>
 				<p className="text-sm text-gray-500">
 					Review all details before creating the asset. This will provision a
-					currency, savings product, and LP account in Fineract.
+					currency, savings product, and LP account in.
 				</p>
 			</div>
 
@@ -247,7 +247,7 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 						<ol className="list-decimal list-inside space-y-1 text-yellow-700">
 							<li>
 								Register <strong>{formData.symbol}</strong> as a custom currency
-								in Fineract
+								in
 							</li>
 							<li>Create a savings product for this asset</li>
 							<li>Create an LP savings account for the company</li>

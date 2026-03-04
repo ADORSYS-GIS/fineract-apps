@@ -418,7 +418,7 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 										mono
 									/>
 									<DetailRow
-										label="Fineract Batch ID"
+										label="Batch ID"
 										value={orderDetail.fineractBatchId ?? "—"}
 										mono
 									/>
@@ -514,7 +514,7 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 						<textarea
 							className="w-full border border-gray-300 rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 							rows={4}
-							placeholder="Describe the resolution (e.g., 'Verified in Fineract, transfer completed successfully')"
+							placeholder="Describe the resolution (e.g., 'Verified, transfer completed successfully')"
 							value={resolveModal.resolution}
 							onChange={(e) =>
 								setResolveModal({
