@@ -23,6 +23,7 @@ import com.adorsys.fineract.asset.service.trade.SellStrategy;
 import com.adorsys.fineract.asset.service.trade.TradeContext;
 import com.adorsys.fineract.asset.service.trade.TradeStrategy;
 import com.adorsys.fineract.asset.util.JwtUtils;
+import com.adorsys.fineract.asset.event.OrderStatusChangedEvent;
 import com.adorsys.fineract.asset.event.TradeExecutedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,8 +41,12 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.UUID;
 
@@ -78,6 +83,7 @@ public class TradingService {
     private final ExposureLimitService exposureLimitService;
     private final LockupService lockupService;
     private final ApplicationEventPublisher eventPublisher;
+    private final QuoteReservationService quoteReservationService;
 
     /**
      * Execute a BUY order. User identity and accounts are resolved from the JWT.
@@ -107,6 +113,384 @@ public class TradingService {
                 .strategy(SellStrategy.INSTANCE)
                 .build();
         return executeTrade(ctx);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Quote-based async trade flow
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Create a price-locked trade quote. Performs all pre-lock validations and
+     * persists a QUOTED order with locked bid/ask prices. No Redis lock, no Fineract mutations.
+     */
+    @Transactional(timeout = 15)
+    public QuoteResponse createQuote(QuoteRequest request, Jwt jwt, String idempotencyKey) {
+        List<String> warnings = new ArrayList<>();
+
+        // Idempotency: return existing quote if same key
+        var existing = orderRepository.findByIdempotencyKey(idempotencyKey);
+        if (existing.isPresent()) {
+            Order o = existing.get();
+            String requestingExternalId = JwtUtils.extractExternalId(jwt);
+            if (!o.getUserExternalId().equals(requestingExternalId)) {
+                throw new TradingException("Idempotency key already used", "IDEMPOTENCY_KEY_CONFLICT");
+            }
+            if (o.getStatus() == OrderStatus.QUOTED) {
+                return toQuoteResponse(o, warnings);
+            }
+            throw new TradingException(
+                    "Idempotency key already used for a non-quote order (status=" + o.getStatus() + ")",
+                    "IDEMPOTENCY_KEY_CONFLICT");
+        }
+
+        // Resolve user from JWT
+        String externalId = JwtUtils.extractExternalId(jwt);
+        Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
+        Long userId = ((Number) clientData.get("id")).longValue();
+
+        // Max active quotes per user
+        long activeQuotes = orderRepository.countByUserIdAndStatus(userId, OrderStatus.QUOTED);
+        if (activeQuotes >= assetServiceConfig.getQuote().getMaxActivePerUser()) {
+            throw new TradingException(
+                    "Too many active quotes (" + activeQuotes + "). Cancel existing quotes or wait for expiry.",
+                    "MAX_QUOTES_EXCEEDED");
+        }
+
+        // Determine strategy
+        TradeStrategy strategy = (request.side() == TradeSide.BUY) ? BuyStrategy.INSTANCE : SellStrategy.INSTANCE;
+
+        // Load and validate asset
+        Asset asset = assetRepository.findById(request.assetId())
+                .orElseThrow(() -> new AssetException("Asset not found: " + request.assetId()));
+        if (asset.getStatus() == AssetStatus.DELISTING && request.side() == TradeSide.BUY) {
+            throw new TradingException("Asset is being delisted. Only SELL orders are accepted.", "ASSET_DELISTING");
+        } else if (asset.getStatus() != AssetStatus.ACTIVE && asset.getStatus() != AssetStatus.DELISTING) {
+            throw new TradingHaltedException(request.assetId());
+        }
+
+        // Subscription period check (BUY only)
+        if (request.side() == TradeSide.BUY) {
+            ZoneId marketZone = ZoneId.of(assetServiceConfig.getMarketHours().getTimezone());
+            LocalDate today = LocalDate.now(marketZone);
+            if (today.isBefore(asset.getSubscriptionStartDate())) {
+                throw new TradingException("Subscription period has not started for this asset", "SUBSCRIPTION_NOT_STARTED");
+            }
+            if (!asset.getSubscriptionEndDate().isAfter(today)) {
+                throw new TradingException("Subscription period has ended for this asset", "SUBSCRIPTION_ENDED");
+            }
+        }
+
+        // Market hours (soft warning — quote can still be created, confirmed when open)
+        if (!marketHoursService.isMarketOpen()) {
+            warnings.add("MARKET_CLOSED");
+        }
+
+        // Calculate price
+        PriceResponse priceData = pricingService.getPrice(request.assetId());
+        BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
+        BigDecimal executionPrice = (request.side() == TradeSide.BUY) ? priceData.askPrice() : priceData.bidPrice();
+        BigDecimal issuerPrice = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : priceData.askPrice();
+
+        // Amount-based conversion
+        BigDecimal computedFromAmount = null;
+        BigDecimal remainder = null;
+        BigDecimal units;
+        if (request.amount() != null) {
+            computedFromAmount = request.amount();
+            int scale = asset.getDecimalPlaces() != null ? asset.getDecimalPlaces() : 0;
+            BigDecimal effectivePricePerUnit = executionPrice.multiply(BigDecimal.ONE.add(feePercent));
+            if (effectivePricePerUnit.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new TradingException("Invalid price for amount-based quote", "INVALID_PRICE");
+            }
+            units = request.amount().divide(effectivePricePerUnit, scale, RoundingMode.DOWN);
+            if (units.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new TradingException("Amount too small to purchase any units", "AMOUNT_TOO_SMALL");
+            }
+        } else {
+            units = request.units();
+        }
+
+        BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal lpMarginPerUnit = executionPrice.subtract(issuerPrice).abs();
+        BigDecimal spreadAmount = isSpreadEnabled(asset)
+                ? lpMarginPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee);
+
+        // Remainder for amount-based mode
+        if (computedFromAmount != null && units.compareTo(BigDecimal.ZERO) > 0) {
+            remainder = computedFromAmount.subtract(orderCashAmount);
+            if (remainder.compareTo(BigDecimal.ZERO) < 0) remainder = BigDecimal.ZERO;
+        }
+
+        // Check inventory (BUY) — subtract reserved units
+        if (request.side() == TradeSide.BUY) {
+            BigDecimal reserved = quoteReservationService.getReservedUnits(request.assetId());
+            BigDecimal availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply()).subtract(reserved);
+            if (units.compareTo(availableSupply) > 0) {
+                throw new InsufficientInventoryException(request.assetId(), units, availableSupply);
+            }
+        }
+
+        // Exposure limits
+        exposureLimitService.validateLimits(asset, userId, request.side(), units, orderCashAmount);
+
+        // Lockup check (SELL only)
+        if (request.side() == TradeSide.SELL) {
+            lockupService.validateLockup(asset, userId, units);
+        }
+
+        // Create QUOTED order
+        Instant now = Instant.now();
+        Instant expiresAt = now.plusSeconds(assetServiceConfig.getQuote().getTtlSeconds());
+        String orderId = UUID.randomUUID().toString();
+        Order order = Order.builder()
+                .id(orderId)
+                .idempotencyKey(idempotencyKey)
+                .userId(userId)
+                .userExternalId(externalId)
+                .assetId(request.assetId())
+                .side(request.side())
+                .cashAmount(orderCashAmount)
+                .units(units)
+                .executionPrice(executionPrice)
+                .fee(fee)
+                .spreadAmount(spreadAmount)
+                .status(OrderStatus.QUOTED)
+                .quotedAt(now)
+                .quoteExpiresAt(expiresAt)
+                .quotedAskPrice(priceData.askPrice())
+                .quotedBidPrice(priceData.bidPrice())
+                .build();
+        orderRepository.save(order);
+
+        // Soft-reserve inventory (BUY only)
+        if (request.side() == TradeSide.BUY) {
+            quoteReservationService.reserve(request.assetId(), orderId, units);
+        }
+
+        // Publish status event
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                orderId, userId, request.assetId(), asset.getSymbol(), request.side(),
+                null, OrderStatus.QUOTED, units, executionPrice, orderCashAmount, fee, null, now));
+
+        log.info("Quote created: orderId={}, side={}, asset={}, units={}, price={}, expiresAt={}",
+                orderId, request.side(), asset.getSymbol(), units, executionPrice, expiresAt);
+
+        // Resolve balances for response (soft-fail)
+        BigDecimal availableBalance = null;
+        BigDecimal availableUnits = null;
+        BigDecimal availableSupply = null;
+        try {
+            Long cashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, assetServiceConfig.getSettlementCurrency());
+            if (cashAccountId != null) availableBalance = fineractClient.getAccountBalance(cashAccountId);
+            if (request.side() == TradeSide.SELL) {
+                var position = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId());
+                if (position.isPresent()) availableUnits = position.get().getTotalUnits();
+            }
+            if (request.side() == TradeSide.BUY) {
+                availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
+            }
+        } catch (Exception e) {
+            log.debug("Could not resolve balances for quote response: {}", e.getMessage());
+        }
+
+        // Benefit projections
+        BondBenefitProjection bondBenefit = (request.side() == TradeSide.BUY)
+                ? bondBenefitService.calculateForPurchase(asset, units, orderCashAmount) : null;
+        IncomeBenefitProjection incomeBenefit = (request.side() == TradeSide.BUY)
+                ? incomeBenefitService.calculateForPurchase(asset, units, issuerPrice, orderCashAmount) : null;
+
+        return new QuoteResponse(
+                orderId, OrderStatus.QUOTED, request.assetId(), asset.getSymbol(), request.side(),
+                units, executionPrice, lpMarginPerUnit, grossAmount, fee, feePercent, spreadAmount,
+                orderCashAmount, availableBalance, availableUnits, availableSupply,
+                bondBenefit, incomeBenefit, computedFromAmount, remainder, now, expiresAt, warnings);
+    }
+
+    /**
+     * Confirm a quoted order. Promotes QUOTED → PENDING (or QUEUED if market closed).
+     * Returns immediately — execution happens asynchronously via TradeWorkerService.
+     */
+    private static final Set<OrderStatus> CONFIRMED_STATUSES = EnumSet.of(
+            OrderStatus.PENDING, OrderStatus.QUEUED, OrderStatus.EXECUTING, OrderStatus.FILLED);
+
+    @Transactional(timeout = 10)
+    public OrderResponse confirmOrder(String orderId, Long userId) {
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new AssetException("Order not found: " + orderId));
+
+        // Idempotent: if already confirmed, return current state
+        if (CONFIRMED_STATUSES.contains(order.getStatus())) {
+            log.debug("Order {} already confirmed (status={}), returning idempotent response", orderId, order.getStatus());
+            return toOrderResponse(order);
+        }
+
+        if (order.getStatus() != OrderStatus.QUOTED) {
+            throw new TradingException(
+                    "Cannot confirm order with status " + order.getStatus() + ". Only QUOTED orders can be confirmed.",
+                    "CONFIRM_NOT_ALLOWED");
+        }
+
+        // Check expiry (strict: confirmation AT the exact expiry instant is rejected)
+        if (!Instant.now().isBefore(order.getQuoteExpiresAt())) {
+            order.setStatus(OrderStatus.CANCELLED);
+            order.setFailureReason("Quote expired");
+            orderRepository.save(order);
+            // Release soft reservation
+            if (order.getSide() == TradeSide.BUY) {
+                quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
+            }
+            throw new TradingException("Quote has expired. Please request a new quote.", "QUOTE_EXPIRED");
+        }
+
+        try {
+            OrderStatus previousStatus = order.getStatus();
+
+            // If market closed, queue instead of executing
+            if (!marketHoursService.isMarketOpen()) {
+                order.setStatus(OrderStatus.QUEUED);
+                order.setQueuedPrice(order.getExecutionPrice());
+                orderRepository.save(order);
+                // Release soft reservation (queued orders don't hold reservations)
+                if (order.getSide() == TradeSide.BUY) {
+                    quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
+                }
+                eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                        orderId, userId, order.getAssetId(), null, order.getSide(),
+                        previousStatus, OrderStatus.QUEUED,
+                        order.getUnits(), order.getExecutionPrice(), order.getCashAmount(),
+                        order.getFee(), null, Instant.now()));
+                log.info("Quote confirmed but market closed, queued: orderId={}", orderId);
+                return toOrderResponse(order);
+            }
+
+            // Promote to PENDING — worker will pick it up
+            order.setStatus(OrderStatus.PENDING);
+            orderRepository.save(order);
+
+            eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                    orderId, userId, order.getAssetId(), null, order.getSide(),
+                    previousStatus, OrderStatus.PENDING,
+                    order.getUnits(), order.getExecutionPrice(), order.getCashAmount(),
+                    order.getFee(), null, Instant.now()));
+
+            log.info("Quote confirmed, pending execution: orderId={}", orderId);
+            return toOrderResponse(order);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new TradingException(
+                    "Quote was already confirmed by a concurrent request. Please check order status.",
+                    "QUOTE_ALREADY_CONFIRMED");
+        }
+    }
+
+    /**
+     * Execute a PENDING order asynchronously. Called by TradeWorkerService.
+     * Acquires lock, resolves accounts, re-verifies, executes Fineract batch.
+     */
+    @Transactional(timeout = 30)
+    public void executeOrderAsync(String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AssetException("Order not found: " + orderId));
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            log.debug("Order {} is no longer PENDING (status={}), skipping", orderId, order.getStatus());
+            return;
+        }
+
+        // Build TradeContext from persisted order
+        TradeStrategy strategy = (order.getSide() == TradeSide.BUY) ? BuyStrategy.INSTANCE : SellStrategy.INSTANCE;
+        TradeContext ctx = TradeContext.builder()
+                .assetId(order.getAssetId())
+                .units(order.getUnits())
+                .idempotencyKey(order.getIdempotencyKey())
+                .jwt(null) // No JWT for async — user already resolved
+                .strategy(strategy)
+                .build();
+        ctx.setExternalId(order.getUserExternalId());
+        ctx.setUserId(order.getUserId());
+        ctx.setOrderId(order.getId());
+        ctx.setOrder(order);
+        ctx.setExecutionPrice(order.getExecutionPrice());
+        ctx.setFee(order.getFee());
+        ctx.setSpreadAmount(order.getSpreadAmount());
+        ctx.setBuybackPremium(order.getBuybackPremium());
+        ctx.setOrderCashAmount(order.getCashAmount());
+        ctx.setFeePercent(BigDecimal.ZERO); // Will be recalculated from asset
+
+        // Load asset to get fee percent
+        Asset asset = assetRepository.findById(order.getAssetId())
+                .orElseThrow(() -> new AssetException("Asset not found: " + order.getAssetId()));
+        ctx.setAsset(asset);
+        ctx.setFeePercent(asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO);
+
+        // Resolve user accounts (Fineract calls)
+        resolveUserAccounts(ctx);
+
+        // Release soft reservation before execution (inventory will be updated atomically)
+        if (order.getSide() == TradeSide.BUY) {
+            quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
+        }
+
+        // Acquire trade lock
+        String lockValue = tradeLockService.acquireTradeLock(order.getUserId(), order.getAssetId());
+        ctx.setLockValue(lockValue);
+
+        try {
+            // Re-verify order is still PENDING (another worker may have grabbed it)
+            Order lockedOrder = orderRepository.findById(orderId).orElseThrow();
+            if (lockedOrder.getStatus() != OrderStatus.PENDING) {
+                log.debug("Order {} picked up by another worker (status={})", orderId, lockedOrder.getStatus());
+                return;
+            }
+            ctx.setOrder(lockedOrder);
+
+            // Execute inside lock (reuses full existing pipeline)
+            executeInsideLock(ctx);
+
+            // Publish terminal status event
+            eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                    orderId, order.getUserId(), order.getAssetId(),
+                    asset.getSymbol(), order.getSide(),
+                    OrderStatus.EXECUTING, OrderStatus.FILLED,
+                    order.getUnits(), ctx.getExecutionPrice(), ctx.getOrderCashAmount(),
+                    ctx.getFee(), null, Instant.now()));
+
+        } catch (TradingException e) {
+            Order failedOrder = orderRepository.findById(orderId).orElse(order);
+            eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                    orderId, order.getUserId(), order.getAssetId(),
+                    asset.getSymbol(), order.getSide(),
+                    OrderStatus.EXECUTING, failedOrder.getStatus(),
+                    order.getUnits(), order.getExecutionPrice(), order.getCashAmount(),
+                    order.getFee(), e.getMessage(), Instant.now()));
+            assetMetrics.recordTradeFailure();
+            throw e;
+        } catch (Exception e) {
+            assetMetrics.recordTradeFailure();
+            log.error("Async execution failed for order {}: {}", orderId, e.getMessage(), e);
+            throw new TradingException("Trade failed unexpectedly: " + e.getMessage(), "TRADE_FAILED");
+        } finally {
+            tradeLockService.releaseTradeLock(order.getUserId(), order.getAssetId(), lockValue);
+        }
+    }
+
+    private QuoteResponse toQuoteResponse(Order order, List<String> warnings) {
+        return new QuoteResponse(
+                order.getId(), order.getStatus(), order.getAssetId(), null,
+                order.getSide(), order.getUnits(), order.getExecutionPrice(), null,
+                null, order.getFee(), null, order.getSpreadAmount(), order.getCashAmount(),
+                null, null, null, null, null, null, null,
+                order.getQuotedAt(), order.getQuoteExpiresAt(), warnings);
+    }
+
+    private OrderResponse toOrderResponse(Order order) {
+        return new OrderResponse(
+                order.getId(), order.getAssetId(), null,
+                order.getSide(), order.getUnits(), order.getExecutionPrice(),
+                order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
+                order.getStatus(), order.getCreatedAt());
     }
 
     /**
@@ -275,11 +659,12 @@ public class TradingService {
         ctx.setOrderCashAmount(orderCashAmount);
     }
 
-    /** Step 6: BUY — verify sufficient LP inventory. */
+    /** Step 6: BUY — verify sufficient LP inventory (subtracting soft-reserved units from active quotes). */
     private void checkInventory(TradeContext ctx) {
         if (ctx.getStrategy().side() != TradeSide.BUY) return;
         Asset asset = ctx.getAsset();
-        BigDecimal availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
+        BigDecimal reserved = quoteReservationService.getReservedUnits(ctx.getAssetId());
+        BigDecimal availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply()).subtract(reserved);
         if (ctx.getUnits().compareTo(availableSupply) > 0) {
             throw new InsufficientInventoryException(ctx.getAssetId(), ctx.getUnits(), availableSupply);
         }
@@ -989,16 +1374,30 @@ public class TradingService {
         Order order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new AssetException("Order not found: " + orderId));
 
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.QUEUED) {
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.QUEUED
+                && order.getStatus() != OrderStatus.QUOTED) {
             throw new TradingException(
-                    "Cannot cancel order with status " + order.getStatus() + ". Only PENDING or QUEUED orders can be cancelled.",
+                    "Cannot cancel order with status " + order.getStatus() + ". Only QUOTED, PENDING, or QUEUED orders can be cancelled.",
                     "CANCEL_NOT_ALLOWED");
         }
 
+        OrderStatus previousStatus = order.getStatus();
         order.setStatus(OrderStatus.CANCELLED);
         order.setFailureReason("Cancelled by user");
         orderRepository.save(order);
-        log.info("Order cancelled: orderId={}, userId={}", orderId, userId);
+
+        // Release soft reservation if cancelling a QUOTED BUY order
+        if (previousStatus == OrderStatus.QUOTED && order.getSide() == TradeSide.BUY) {
+            quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
+        }
+
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                orderId, userId, order.getAssetId(), null, order.getSide(),
+                previousStatus, OrderStatus.CANCELLED,
+                order.getUnits(), order.getExecutionPrice(), order.getCashAmount(),
+                order.getFee(), "Cancelled by user", Instant.now()));
+
+        log.info("Order cancelled: orderId={}, userId={}, previousStatus={}", orderId, userId, previousStatus);
 
         Asset orderAsset = order.getAsset();
         return new OrderResponse(
