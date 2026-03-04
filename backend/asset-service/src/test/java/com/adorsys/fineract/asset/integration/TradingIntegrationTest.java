@@ -4,8 +4,8 @@ import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractTokenProvider;
 import com.adorsys.fineract.asset.client.GlAccountResolver;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.dto.QuoteRequest;
 import com.adorsys.fineract.asset.dto.TradeSide;
-import com.adorsys.fineract.asset.dto.TradePreviewRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,28 +83,28 @@ class TradingIntegrationTest {
     }
 
     // -------------------------------------------------------------------------
-    // Trade preview tests
+    // Quote tests (replaces old preview tests)
     // -------------------------------------------------------------------------
 
     @Test
     @Order(1)
-    void previewBuy_returnsQuote() throws Exception {
+    void quoteBuy_returnsQuotedOrder() throws Exception {
         setupFineractMocks();
 
-        TradePreviewRequest request = new TradePreviewRequest(
+        QuoteRequest request = new QuoteRequest(
                 "asset-001", TradeSide.BUY, new BigDecimal("5"), null);
 
-        mockMvc.perform(post("/api/trades/preview")
+        mockMvc.perform(post("/api/trades/quote")
                         .with(jwt().jwt(j -> j
                                 .subject(EXTERNAL_ID)
                                 .claim("fineract_client_id", USER_ID)))
+                        .header("X-Idempotency-Key", "idem-buy-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.feasible").value(true))
-                .andExpect(jsonPath("$.assetSymbol").value("TST"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.orderId").isNotEmpty())
+                .andExpect(jsonPath("$.status").value("QUOTED"))
                 .andExpect(jsonPath("$.side").value("BUY"))
-                .andExpect(jsonPath("$.basePrice").isNumber())
                 .andExpect(jsonPath("$.executionPrice").isNumber())
                 .andExpect(jsonPath("$.fee").isNumber())
                 .andExpect(jsonPath("$.spreadAmount").isNumber())
@@ -113,50 +113,49 @@ class TradingIntegrationTest {
 
     @Test
     @Order(2)
-    void previewBuy_insufficientInventory_returnBlocker() throws Exception {
+    void quoteBuy_insufficientInventory_returnsError() throws Exception {
         setupFineractMocks();
 
         // Request more units than total supply (1000)
-        TradePreviewRequest request = new TradePreviewRequest(
+        QuoteRequest request = new QuoteRequest(
                 "asset-001", TradeSide.BUY, new BigDecimal("9999"), null);
 
-        mockMvc.perform(post("/api/trades/preview")
+        mockMvc.perform(post("/api/trades/quote")
                         .with(jwt().jwt(j -> j
                                 .subject(EXTERNAL_ID)
                                 .claim("fineract_client_id", USER_ID)))
+                        .header("X-Idempotency-Key", "idem-buy-2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.feasible").value(false))
-                .andExpect(jsonPath("$.blockers").isArray());
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
     @Order(3)
-    void previewSell_noPosition_returnBlocker() throws Exception {
+    void quoteSell_noPosition_returnsError() throws Exception {
         setupFineractMocks();
 
-        TradePreviewRequest request = new TradePreviewRequest(
+        QuoteRequest request = new QuoteRequest(
                 "asset-001", TradeSide.SELL, new BigDecimal("5"), null);
 
-        mockMvc.perform(post("/api/trades/preview")
+        mockMvc.perform(post("/api/trades/quote")
                         .with(jwt().jwt(j -> j
                                 .subject(EXTERNAL_ID)
                                 .claim("fineract_client_id", USER_ID)))
+                        .header("X-Idempotency-Key", "idem-sell-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.feasible").value(false))
-                .andExpect(jsonPath("$.blockers[?(@=='NO_POSITION')]").exists());
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
     @Order(4)
-    void preview_noAuth_returns401() throws Exception {
-        TradePreviewRequest request = new TradePreviewRequest(
+    void quote_noAuth_returns401() throws Exception {
+        QuoteRequest request = new QuoteRequest(
                 "asset-001", TradeSide.BUY, new BigDecimal("5"), null);
 
-        mockMvc.perform(post("/api/trades/preview")
+        mockMvc.perform(post("/api/trades/quote")
+                        .header("X-Idempotency-Key", "idem-noauth")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
@@ -190,20 +189,19 @@ class TradingIntegrationTest {
 
     @Test
     @Order(7)
-    void previewBuy_assetNotFound_returnBlocker() throws Exception {
+    void quoteBuy_assetNotFound_returnsError() throws Exception {
         setupFineractMocks();
 
-        TradePreviewRequest request = new TradePreviewRequest(
+        QuoteRequest request = new QuoteRequest(
                 "nonexistent-asset", TradeSide.BUY, new BigDecimal("5"), null);
 
-        mockMvc.perform(post("/api/trades/preview")
+        mockMvc.perform(post("/api/trades/quote")
                         .with(jwt().jwt(j -> j
                                 .subject(EXTERNAL_ID)
                                 .claim("fineract_client_id", USER_ID)))
+                        .header("X-Idempotency-Key", "idem-notfound")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.feasible").value(false))
-                .andExpect(jsonPath("$.blockers[0]").value("ASSET_NOT_FOUND"));
+                .andExpect(status().is4xxClientError());
     }
 }

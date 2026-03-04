@@ -13,9 +13,7 @@ Feature: Authentication Enforcement
 
     Examples:
       | method | path                              |
-      | POST   | /api/trades/preview               |
-      | POST   | /api/trades/buy                   |
-      | POST   | /api/trades/sell                  |
+      | POST   | /api/trades/quote                 |
       | GET    | /api/trades/orders                |
       | GET    | /api/portfolio                    |
       | GET    | /api/portfolio/positions/asset-001 |

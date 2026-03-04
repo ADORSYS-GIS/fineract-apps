@@ -21,13 +21,12 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 /**
- * Step definitions for trading scenarios (buy, sell, preview, idempotency).
+ * Step definitions for trading scenarios (quote-based flow).
  */
 public class TradingStepDefinitions {
 
@@ -81,70 +80,74 @@ public class TradingStepDefinitions {
         jdbcTemplate.update("UPDATE assets SET circulating_supply = circulating_supply + ? WHERE id = ?", units, assetId);
     }
 
-    @Given("the market is currently closed")
-    public void marketIsClosed() {
-        // In test profile market is 24/7, but we can't easily override the MarketHoursService
-        // in integration context. This step is a placeholder — the market-hours feature
-        // would need a more sophisticated mock setup or config override.
-        // For now, mark scenarios using this as @wip
-    }
-
     @Given("asset {string} has a subscription end date of yesterday")
     public void assetHasExpiredSubscription(String assetId) {
         jdbcTemplate.update("UPDATE assets SET subscription_end_date = DATEADD('DAY', -1, CURRENT_DATE) WHERE id = ?", assetId);
     }
 
     // -------------------------------------------------------------------------
-    // When steps — Trading
+    // When steps — Quote-based trading flow
     // -------------------------------------------------------------------------
 
-    @When("the user submits a BUY order for {string} units of asset {string}")
-    public void userSubmitsBuyOrder(String units, String assetId) throws Exception {
+    @When("the user creates a BUY quote for {string} units of asset {string}")
+    public void userCreatesBuyQuote(String units, String assetId) throws Exception {
         String idempotencyKey = UUID.randomUUID().toString();
         context.storeValue("idempotencyKey", idempotencyKey);
 
-        Map<String, Object> body = Map.of("assetId", assetId, "units", new BigDecimal(units));
-        MvcResult result = mockMvc.perform(post("/api/trades/buy")
-                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
-                        .header("X-Idempotency-Key", idempotencyKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andReturn();
-        context.setLastResult(result);
-    }
-
-    @When("the user submits a SELL order for {string} units of asset {string}")
-    public void userSubmitsSellOrder(String units, String assetId) throws Exception {
-        String idempotencyKey = UUID.randomUUID().toString();
-        context.storeValue("idempotencyKey", idempotencyKey);
-
-        Map<String, Object> body = Map.of("assetId", assetId, "units", new BigDecimal(units));
-        MvcResult result = mockMvc.perform(post("/api/trades/sell")
-                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
-                        .header("X-Idempotency-Key", idempotencyKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andReturn();
-        context.setLastResult(result);
-    }
-
-    @When("the user previews a {string} of {string} units of asset {string}")
-    public void userPreviewsTrade(String side, String units, String assetId) throws Exception {
         Map<String, Object> body = Map.of(
-                "assetId", assetId, "side", side, "units", new BigDecimal(units));
-        MvcResult result = mockMvc.perform(post("/api/trades/preview")
+                "assetId", assetId, "side", "BUY", "units", new BigDecimal(units));
+        MvcResult result = mockMvc.perform(post("/api/trades/quote")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
+                        .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andReturn();
         context.setLastResult(result);
+
+        // Store orderId for confirm step
+        if (result.getResponse().getStatus() == 201) {
+            String orderId = JsonPath.read(result.getResponse().getContentAsString(), "$.orderId");
+            context.storeValue("lastOrderId", orderId);
+        }
     }
 
-    @When("the user resubmits the same BUY order with the same idempotency key")
-    public void userResubmitsSameBuyOrder() throws Exception {
+    @When("the user creates a SELL quote for {string} units of asset {string}")
+    public void userCreatesSellQuote(String units, String assetId) throws Exception {
+        String idempotencyKey = UUID.randomUUID().toString();
+        context.storeValue("idempotencyKey", idempotencyKey);
+
+        Map<String, Object> body = Map.of(
+                "assetId", assetId, "side", "SELL", "units", new BigDecimal(units));
+        MvcResult result = mockMvc.perform(post("/api/trades/quote")
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
+                        .header("X-Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andReturn();
+        context.setLastResult(result);
+
+        // Store orderId for confirm step
+        if (result.getResponse().getStatus() == 201) {
+            String orderId = JsonPath.read(result.getResponse().getContentAsString(), "$.orderId");
+            context.storeValue("lastOrderId", orderId);
+        }
+    }
+
+    @When("the user confirms the quoted order")
+    public void userConfirmsQuotedOrder() throws Exception {
+        String orderId = context.getValue("lastOrderId");
+        MvcResult result = mockMvc.perform(post("/api/trades/orders/" + orderId + "/confirm")
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID))))
+                .andReturn();
+        context.setLastResult(result);
+    }
+
+    @When("the user resubmits the same quote with the same idempotency key")
+    public void userResubmitsSameQuote() throws Exception {
         String idempotencyKey = context.getValue("idempotencyKey");
-        Map<String, Object> body = Map.of("assetId", "asset-001", "units", new BigDecimal("5"));
-        MvcResult result = mockMvc.perform(post("/api/trades/buy")
+        Map<String, Object> body = Map.of(
+                "assetId", "asset-001", "side", "BUY", "units", new BigDecimal("5"));
+        MvcResult result = mockMvc.perform(post("/api/trades/quote")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -153,10 +156,11 @@ public class TradingStepDefinitions {
         context.setLastResult(result);
     }
 
-    @When("the user submits a BUY order without an idempotency key for asset {string}")
-    public void userSubmitsBuyWithoutIdempotencyKey(String assetId) throws Exception {
-        Map<String, Object> body = Map.of("assetId", assetId, "units", new BigDecimal("5"));
-        MvcResult result = mockMvc.perform(post("/api/trades/buy")
+    @When("the user creates a BUY quote without an idempotency key for asset {string}")
+    public void userCreatesQuoteWithoutIdempotencyKey(String assetId) throws Exception {
+        Map<String, Object> body = Map.of(
+                "assetId", assetId, "side", "BUY", "units", new BigDecimal("5"));
+        MvcResult result = mockMvc.perform(post("/api/trades/quote")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
@@ -165,85 +169,46 @@ public class TradingStepDefinitions {
     }
 
     // -------------------------------------------------------------------------
-    // Then steps
+    // Then steps — Quote response
     // -------------------------------------------------------------------------
 
-    @Then("the trade response should have status {string}")
-    public void tradeResponseStatus(String expectedStatus) {
+    @Then("the quote response should have status {string}")
+    public void quoteResponseStatus(String expectedStatus) {
         String status = JsonPath.read(context.getLastResponseBody(), "$.status");
         assertThat(status).isEqualTo(expectedStatus);
     }
 
-    @Then("the trade response side should be {string}")
-    public void tradeResponseSide(String expectedSide) {
+    @Then("the quote response side should be {string}")
+    public void quoteResponseSide(String expectedSide) {
         String side = JsonPath.read(context.getLastResponseBody(), "$.side");
         assertThat(side).isEqualTo(expectedSide);
     }
 
-    @Then("the trade response units should be {string}")
-    public void tradeResponseUnits(String expectedUnits) {
+    @Then("the quote response units should be {string}")
+    public void quoteResponseUnits(String expectedUnits) {
         Number units = JsonPath.read(context.getLastResponseBody(), "$.units");
         assertThat(new BigDecimal(units.toString())).isEqualByComparingTo(new BigDecimal(expectedUnits));
     }
 
-    @Then("the trade response should include a non-null orderId")
-    public void tradeResponseHasOrderId() {
+    @Then("the quote response should include a non-null orderId")
+    public void quoteResponseHasOrderId() {
         String orderId = JsonPath.read(context.getLastResponseBody(), "$.orderId");
         assertThat(orderId).isNotNull().isNotBlank();
     }
 
-    @Then("the trade response should include a positive fee")
-    public void tradeResponseHasPositiveFee() {
+    @Then("the quote response should include a positive fee")
+    public void quoteResponseHasPositiveFee() {
         Number fee = JsonPath.read(context.getLastResponseBody(), "$.fee");
         assertThat(new BigDecimal(fee.toString())).isPositive();
     }
 
-    @Then("the trade response should include realizedPnl")
-    public void tradeResponseHasRealizedPnl() {
-        Object pnl = JsonPath.read(context.getLastResponseBody(), "$.realizedPnl");
-        assertThat(pnl).isNotNull();
-    }
+    // -------------------------------------------------------------------------
+    // Then steps — Order response (after confirm)
+    // -------------------------------------------------------------------------
 
-    @Then("the trade response orderId should match the original")
-    public void tradeResponseOrderIdMatches() {
-        String currentOrderId = JsonPath.read(context.getLastResponseBody(), "$.orderId");
-        String originalOrderId = context.getId("lastOrderId");
-        if (originalOrderId != null) {
-            assertThat(currentOrderId).isEqualTo(originalOrderId);
-        }
-        // Store for next comparison
-        context.storeId("lastOrderId", currentOrderId);
-    }
-
-    @Then("the preview should be feasible")
-    public void previewIsFeasible() {
-        Boolean feasible = JsonPath.read(context.getLastResponseBody(), "$.feasible");
-        assertThat(feasible).isTrue();
-    }
-
-    @Then("the preview should not be feasible with blocker {string}")
-    public void previewNotFeasibleWithBlocker(String blocker) {
-        Boolean feasible = JsonPath.read(context.getLastResponseBody(), "$.feasible");
-        assertThat(feasible).isFalse();
-        List<String> blockers = JsonPath.read(context.getLastResponseBody(), "$.blockers");
-        assertThat(blockers).contains(blocker);
-    }
-
-    @Then("the preview should include a positive executionPrice")
-    public void previewHasPositiveExecutionPrice() {
-        Number price = JsonPath.read(context.getLastResponseBody(), "$.executionPrice");
-        assertThat(new BigDecimal(price.toString())).isPositive();
-    }
-
-    @Then("the preview should include a positive fee")
-    public void previewHasPositiveFee() {
-        Number fee = JsonPath.read(context.getLastResponseBody(), "$.fee");
-        assertThat(new BigDecimal(fee.toString())).isPositive();
-    }
-
-    @Then("the preview should include a positive netAmount")
-    public void previewHasPositiveNetAmount() {
-        Number amount = JsonPath.read(context.getLastResponseBody(), "$.netAmount");
-        assertThat(new BigDecimal(amount.toString())).isPositive();
+    @Then("the order response should have status {string}")
+    public void orderResponseStatus(String expectedStatus) {
+        String status = JsonPath.read(context.getLastResponseBody(), "$.status");
+        assertThat(status).isEqualTo(expectedStatus);
     }
 }

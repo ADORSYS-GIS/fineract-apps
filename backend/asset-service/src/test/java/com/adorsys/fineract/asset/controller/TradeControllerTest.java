@@ -35,25 +35,6 @@ class TradeControllerTest {
     @MockBean private SseEmitterManager sseEmitterManager;
 
     // -------------------------------------------------------------------------
-    // POST /api/trades/buy
-    // -------------------------------------------------------------------------
-
-    @Test
-    void buy_missingIdempotencyKey_returns400() throws Exception {
-        // Arrange
-        BuyRequest request = new BuyRequest("asset-001", new BigDecimal("10"));
-
-        // Act & Assert: POST without X-Idempotency-Key header should fail validation
-        mockMvc.perform(post("/api/trades/buy")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-
-        // Verify the trading service was never called
-        verifyNoInteractions(tradingService);
-    }
-
-    // -------------------------------------------------------------------------
     // GET /api/trades/orders
     // -------------------------------------------------------------------------
 

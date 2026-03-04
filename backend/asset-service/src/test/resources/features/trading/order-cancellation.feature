@@ -13,13 +13,13 @@ Feature: Order Cancellation
     Given a PENDING order exists for user 42 on asset "asset-001"
     When the user cancels the order
     Then the response status should be 200
-    And the trade response should have status "CANCELLED"
+    And the order response should have status "CANCELLED"
 
   Scenario: Cancel a QUEUED order
     Given a QUEUED order exists for user 42 on asset "asset-001"
     When the user cancels the order
     Then the response status should be 200
-    And the trade response should have status "CANCELLED"
+    And the order response should have status "CANCELLED"
 
   Scenario: Cannot cancel a FILLED order
     Given a FILLED order exists for user 42 on asset "asset-001"

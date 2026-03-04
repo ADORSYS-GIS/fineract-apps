@@ -68,33 +68,7 @@ public class TradeController {
         return sseEmitterManager.subscribe(id);
     }
 
-    // ── Legacy synchronous flow (preserved for backward compatibility) ──
-
-    @PostMapping("/preview")
-    @Operation(summary = "Preview trade", description = "Get a price quote and feasibility check without executing.")
-    public ResponseEntity<TradePreviewResponse> preview(
-            @Valid @RequestBody TradePreviewRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(tradingService.previewTrade(request, jwt));
-    }
-
-    @PostMapping("/buy")
-    @Operation(summary = "Buy asset", description = "Buy asset units. User identity and accounts are resolved from JWT.")
-    public ResponseEntity<TradeResponse> buy(
-            @Valid @RequestBody BuyRequest request,
-            @AuthenticationPrincipal Jwt jwt,
-            @NotBlank @RequestHeader("X-Idempotency-Key") String idempotencyKey) {
-        return ResponseEntity.ok(tradingService.executeBuy(request, jwt, idempotencyKey));
-    }
-
-    @PostMapping("/sell")
-    @Operation(summary = "Sell asset", description = "Sell asset units. User identity and accounts are resolved from JWT.")
-    public ResponseEntity<TradeResponse> sell(
-            @Valid @RequestBody SellRequest request,
-            @AuthenticationPrincipal Jwt jwt,
-            @NotBlank @RequestHeader("X-Idempotency-Key") String idempotencyKey) {
-        return ResponseEntity.ok(tradingService.executeSell(request, jwt, idempotencyKey));
-    }
+    // ──────────────────────────────────────────────────────────────────────
 
     @GetMapping("/orders")
     @Operation(summary = "User's order history", description = "Paginated, filterable by asset")

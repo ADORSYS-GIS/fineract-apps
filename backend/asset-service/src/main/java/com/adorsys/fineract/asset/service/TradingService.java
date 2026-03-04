@@ -85,36 +85,6 @@ public class TradingService {
     private final ApplicationEventPublisher eventPublisher;
     private final QuoteReservationService quoteReservationService;
 
-    /**
-     * Execute a BUY order. User identity and accounts are resolved from the JWT.
-     */
-    @Transactional(timeout = 30)
-    public TradeResponse executeBuy(BuyRequest request, Jwt jwt, String idempotencyKey) {
-        TradeContext ctx = TradeContext.builder()
-                .assetId(request.assetId())
-                .units(request.units())
-                .idempotencyKey(idempotencyKey)
-                .jwt(jwt)
-                .strategy(BuyStrategy.INSTANCE)
-                .build();
-        return executeTrade(ctx);
-    }
-
-    /**
-     * Execute a SELL order. User identity and accounts are resolved from the JWT.
-     */
-    @Transactional(timeout = 30)
-    public TradeResponse executeSell(SellRequest request, Jwt jwt, String idempotencyKey) {
-        TradeContext ctx = TradeContext.builder()
-                .assetId(request.assetId())
-                .units(request.units())
-                .idempotencyKey(idempotencyKey)
-                .jwt(jwt)
-                .strategy(SellStrategy.INSTANCE)
-                .build();
-        return executeTrade(ctx);
-    }
-
     // ──────────────────────────────────────────────────────────────────────
     // Quote-based async trade flow
     // ──────────────────────────────────────────────────────────────────────
@@ -236,9 +206,32 @@ public class TradingService {
         // Exposure limits
         exposureLimitService.validateLimits(asset, userId, request.side(), units, orderCashAmount);
 
-        // Lockup check (SELL only)
+        // SELL: verify position and unit count
         if (request.side() == TradeSide.SELL) {
+            UserPosition position = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId())
+                    .orElseThrow(() -> new TradingException(
+                            "No position found for this asset. You must own units before selling.",
+                            "NO_POSITION"));
+            if (units.compareTo(position.getTotalUnits()) > 0) {
+                throw new TradingException(
+                        "Insufficient units. You hold " + position.getTotalUnits() + " but tried to sell " + units,
+                        "INSUFFICIENT_UNITS");
+            }
             lockupService.validateLockup(asset, userId, units);
+
+            // LP capital adequacy check — early rejection if LP lacks funds to pay seller
+            if (asset.getLpCashAccountId() != null) {
+                BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+                if (lpCashBalance.compareTo(orderCashAmount) < 0) {
+                    String currency = assetServiceConfig.getSettlementCurrency();
+                    throw new TradingException(
+                            "This asset's liquidity provider currently has insufficient funds to process your sell order. "
+                                    + "Required: " + orderCashAmount + " " + currency
+                                    + ", LP available: " + lpCashBalance + " " + currency
+                                    + ". Please try again later or contact support.",
+                            "INSUFFICIENT_LP_FUNDS");
+                }
+            }
         }
 
         // Create QUOTED order
@@ -493,206 +486,11 @@ public class TradingService {
                 order.getStatus(), order.getCreatedAt());
     }
 
-    /**
-     * Unified trade execution flow shared by BUY and SELL.
-     * Side-specific behavior is handled via {@link TradeStrategy}.
-     * Each step is a discrete method for extensibility (exposure limits, lock-ups, etc.).
-     */
-    private TradeResponse executeTrade(TradeContext ctx) {
-        // Pre-lock validation pipeline (idempotency check moved inside lock to prevent race condition)
-        boolean marketOpen = marketHoursService.isMarketOpen();
-        loadAndValidateAsset(ctx);
-        checkSubscriptionPeriod(ctx);
-        resolveUser(ctx);
-        calculatePrice(ctx);
-        checkInventory(ctx);
-        checkExposureLimits(ctx);
-        checkLockup(ctx);
-
-        // If market is closed, queue the order instead of rejecting
-        if (!marketOpen) {
-            return createQueuedOrder(ctx);
-        }
-
-        resolveUserAccounts(ctx);
-
-        // Lock-protected execution (idempotency checked atomically inside lock)
-        String lockValue = tradeLockService.acquireTradeLock(ctx.getUserId(), ctx.getAssetId());
-        ctx.setLockValue(lockValue);
-
-        try {
-            // Check idempotency inside lock to prevent race condition where
-            // two concurrent requests both pass the check before either writes
-            TradeResponse idempotentResult = checkIdempotency(ctx);
-            if (idempotentResult != null) return idempotentResult;
-
-            createPendingOrder(ctx);
-            return executeInsideLock(ctx);
-        } catch (TradingException e) {
-            assetMetrics.recordTradeFailure();
-            throw e;
-        } catch (Exception e) {
-            assetMetrics.recordTradeFailure();
-            log.error("Unexpected error during {} order {}: {}", ctx.getStrategy().side(), ctx.getOrderId(), e.getMessage(), e);
-            throw new TradingException("Trade failed unexpectedly: " + e.getMessage(), "TRADE_FAILED");
-        } finally {
-            tradeLockService.releaseTradeLock(ctx.getUserId(), ctx.getAssetId(), lockValue);
-        }
-    }
-
     // ──────────────────────────────────────────────────────────────────────
-    // Pre-lock validation steps
+    // Shared helpers (used by quote creation and async execution)
     // ──────────────────────────────────────────────────────────────────────
 
-    /**
-     * Step 1: Check idempotency key. Returns a cached response if this key was already used
-     * by the same user, or throws if used by a different user.
-     */
-    private TradeResponse checkIdempotency(TradeContext ctx) {
-        var existingOrder = orderRepository.findByIdempotencyKey(ctx.getIdempotencyKey());
-        if (existingOrder.isPresent()) {
-            Order o = existingOrder.get();
-            String requestingExternalId = JwtUtils.extractExternalId(ctx.getJwt());
-            if (!o.getUserExternalId().equals(requestingExternalId)) {
-                throw new TradingException("Idempotency key already used", "IDEMPOTENCY_KEY_CONFLICT");
-            }
-            log.info("Idempotency collision: key={}, returning existing orderId={}", ctx.getIdempotencyKey(), o.getId());
-            return new TradeResponse(o.getId(), o.getStatus(), o.getSide(), o.getUnits(),
-                    o.getExecutionPrice(), o.getCashAmount(), o.getFee(), o.getSpreadAmount(), null, o.getCreatedAt());
-        }
-        return null;
-    }
-
-    /** Step 2: Assert market is open. */
-    private void checkMarketHours() {
-        marketHoursService.assertMarketOpen();
-    }
-
-    /** Step 3: Load asset and validate it is in a tradable state. */
-    private void loadAndValidateAsset(TradeContext ctx) {
-        Asset asset = assetRepository.findById(ctx.getAssetId())
-                .orElseThrow(() -> new AssetException("Asset not found: " + ctx.getAssetId()));
-        if (asset.getStatus() == AssetStatus.DELISTING) {
-            // DELISTING: only SELL allowed
-            if (ctx.getStrategy().side() == TradeSide.BUY) {
-                throw new TradingException(
-                        "Asset is being delisted. Only SELL orders are accepted.",
-                        "ASSET_DELISTING");
-            }
-        } else if (asset.getStatus() != AssetStatus.ACTIVE) {
-            throw new TradingHaltedException(ctx.getAssetId());
-        }
-        ctx.setAsset(asset);
-    }
-
-    /** Step 4: BUY only — verify the subscription window is open (uses market timezone). */
-    private void checkSubscriptionPeriod(TradeContext ctx) {
-        if (ctx.getStrategy().side() != TradeSide.BUY) return;
-        Asset asset = ctx.getAsset();
-        ZoneId marketZone = ZoneId.of(assetServiceConfig.getMarketHours().getTimezone());
-        LocalDate today = LocalDate.now(marketZone);
-        if (today.isBefore(asset.getSubscriptionStartDate())) {
-            assetMetrics.incrementSubscriptionExpiredRejections();
-            throw new TradingException("Subscription period has not started for this asset", "SUBSCRIPTION_NOT_STARTED");
-        }
-        if (!asset.getSubscriptionEndDate().isAfter(today)) {
-            assetMetrics.incrementSubscriptionExpiredRejections();
-            throw new TradingException("Subscription period has ended for this asset", "SUBSCRIPTION_ENDED");
-        }
-    }
-
-    /** Step 5: Calculate execution price, fees, and amounts. Uses LP bid/ask directly. */
-    private void calculatePrice(TradeContext ctx) {
-        TradeStrategy strategy = ctx.getStrategy();
-        Asset asset = ctx.getAsset();
-        BigDecimal units = ctx.getUnits();
-
-        PriceResponse priceData = pricingService.getPrice(ctx.getAssetId());
-        BigDecimal basePrice = priceData.askPrice();
-        BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
-
-        // BUY executes at LP ask price, SELL at LP bid price
-        BigDecimal executionPrice = (strategy.side() == TradeSide.BUY)
-                ? priceData.askPrice()
-                : priceData.bidPrice();
-
-        BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
-
-        // LP margin: directional spread (no .abs())
-        BigDecimal issuerPrice = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : basePrice;
-        BigDecimal spreadAmount;
-        BigDecimal buybackPremium;
-        if (!isSpreadEnabled(asset)) {
-            spreadAmount = BigDecimal.ZERO;
-            buybackPremium = BigDecimal.ZERO;
-        } else if (strategy.side() == TradeSide.BUY) {
-            // BUY: spread = (ask - issuer) * units, always >= 0
-            spreadAmount = executionPrice.subtract(issuerPrice).max(BigDecimal.ZERO)
-                    .multiply(units).setScale(0, RoundingMode.HALF_UP);
-            buybackPremium = BigDecimal.ZERO;
-        } else {
-            // SELL: rawSpread = issuer - bid
-            BigDecimal rawSpread = issuerPrice.subtract(executionPrice);
-            if (rawSpread.compareTo(BigDecimal.ZERO) >= 0) {
-                // bid <= issuer: LP profits, spread goes to LP Spread
-                spreadAmount = rawSpread.multiply(units).setScale(0, RoundingMode.HALF_UP);
-                buybackPremium = BigDecimal.ZERO;
-            } else {
-                // bid > issuer: LP pays premium, funded from LP Spread
-                spreadAmount = BigDecimal.ZERO;
-                buybackPremium = rawSpread.negate().multiply(units).setScale(0, RoundingMode.HALF_UP);
-            }
-        }
-
-        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee);
-
-        ctx.setBasePrice(basePrice);
-        ctx.setEffectiveSpread(BigDecimal.ZERO); // LP model: no percentage spread
-        ctx.setFeePercent(feePercent);
-        ctx.setExecutionPrice(executionPrice);
-        ctx.setIssuerPrice(issuerPrice);
-        ctx.setGrossAmount(grossAmount);
-        ctx.setFee(fee);
-        ctx.setSpreadAmount(spreadAmount);
-        ctx.setBuybackPremium(buybackPremium);
-        ctx.setOrderCashAmount(orderCashAmount);
-    }
-
-    /** Step 6: BUY — verify sufficient LP inventory (subtracting soft-reserved units from active quotes). */
-    private void checkInventory(TradeContext ctx) {
-        if (ctx.getStrategy().side() != TradeSide.BUY) return;
-        Asset asset = ctx.getAsset();
-        BigDecimal reserved = quoteReservationService.getReservedUnits(ctx.getAssetId());
-        BigDecimal availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply()).subtract(reserved);
-        if (ctx.getUnits().compareTo(availableSupply) > 0) {
-            throw new InsufficientInventoryException(ctx.getAssetId(), ctx.getUnits(), availableSupply);
-        }
-    }
-
-    /** Step 7: Validate exposure limits (order size, position %, daily volume). */
-    private void checkExposureLimits(TradeContext ctx) {
-        exposureLimitService.validateLimits(
-                ctx.getAsset(), ctx.getUserId(), ctx.getStrategy().side(),
-                ctx.getUnits(), ctx.getOrderCashAmount());
-    }
-
-    /** Step 8: SELL only — validate per-lot lockup allows selling requested units. */
-    private void checkLockup(TradeContext ctx) {
-        if (ctx.getStrategy().side() != TradeSide.SELL) return;
-        lockupService.validateLockup(ctx.getAsset(), ctx.getUserId(), ctx.getUnits());
-    }
-
-    /** Step 9: Resolve Fineract user from JWT external ID. */
-    private void resolveUser(TradeContext ctx) {
-        String externalId = JwtUtils.extractExternalId(ctx.getJwt());
-        Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
-        Long userId = ((Number) clientData.get("id")).longValue();
-        ctx.setExternalId(externalId);
-        ctx.setUserId(userId);
-    }
-
-    /** Step 8–9: Resolve cash account and asset account. SELL validates unit ownership. */
+    /** Resolve cash account and asset account. SELL validates unit ownership. */
     private void resolveUserAccounts(TradeContext ctx) {
         TradeSide side = ctx.getStrategy().side();
         Long userId = ctx.getUserId();
@@ -726,28 +524,6 @@ public class TradingService {
         ctx.setUserAssetAccountId(userAssetAccountId);
     }
 
-    /** Step 10: Create the order in PENDING state. */
-    private void createPendingOrder(TradeContext ctx) {
-        String orderId = UUID.randomUUID().toString();
-        ctx.setOrderId(orderId);
-        Order order = Order.builder()
-                .id(orderId)
-                .idempotencyKey(ctx.getIdempotencyKey())
-                .userId(ctx.getUserId())
-                .userExternalId(ctx.getExternalId())
-                .assetId(ctx.getAssetId())
-                .side(ctx.getStrategy().side())
-                .cashAmount(ctx.getOrderCashAmount())
-                .units(ctx.getUnits())
-                .executionPrice(ctx.getExecutionPrice())
-                .fee(ctx.getFee())
-                .spreadAmount(ctx.getSpreadAmount())
-                .status(OrderStatus.PENDING)
-                .build();
-        orderRepository.save(order);
-        ctx.setOrder(order);
-    }
-
     // ──────────────────────────────────────────────────────────────────────
     // Lock-protected execution
     // ──────────────────────────────────────────────────────────────────────
@@ -756,7 +532,7 @@ public class TradingService {
      * Executes all steps inside the distributed lock: re-verification, portfolio update,
      * trade log, supply adjustment, OHLC update, and Fineract batch transfer.
      */
-    private TradeResponse executeInsideLock(TradeContext ctx) {
+    private void executeInsideLock(TradeContext ctx) {
         TradeStrategy strategy = ctx.getStrategy();
         TradeSide side = strategy.side();
         Order order = ctx.getOrder();
@@ -778,7 +554,7 @@ public class TradingService {
         pricingService.updateOhlcAfterTrade(ctx.getAssetId(), ctx.getExecutionPrice());
         executeFineractBatch(ctx, lockedAsset);
 
-        return markOrderFilled(ctx, lockedAsset);
+        markOrderFilled(ctx, lockedAsset);
     }
 
     /** Re-fetch asset inside lock, validate LP account configuration. */
@@ -991,8 +767,8 @@ public class TradingService {
         }
     }
 
-    /** Mark order as FILLED, log, record metrics, and return the response. */
-    private TradeResponse markOrderFilled(TradeContext ctx, Asset lockedAsset) {
+    /** Mark order as FILLED, log, and record metrics. */
+    private void markOrderFilled(TradeContext ctx, Asset lockedAsset) {
         TradeSide side = ctx.getStrategy().side();
         Order order = ctx.getOrder();
         order.setStatus(OrderStatus.FILLED);
@@ -1017,9 +793,6 @@ public class TradingService {
             assetMetrics.recordSell();
         }
 
-        return new TradeResponse(ctx.getOrderId(), OrderStatus.FILLED, side,
-                ctx.getUnits(), ctx.getExecutionPrice(), ctx.getOrderCashAmount(), ctx.getFee(),
-                ctx.getSpreadAmount(), ctx.getRealizedPnl(), Instant.now());
     }
 
     /**
@@ -1110,192 +883,6 @@ public class TradingService {
             sb.append(requestId != null ? requestId : "?");
         }
         return sb.toString();
-    }
-
-    /**
-     * Preview a trade without executing it. Returns a price quote and feasibility check.
-     * No locks, no DB writes, no Fineract mutations — purely read-only.
-     *
-     * <p>Supports two modes:
-     * <ul>
-     *   <li><b>Unit-based</b>: caller specifies {@code units} directly.</li>
-     *   <li><b>Amount-based</b>: caller specifies {@code amount} in XAF; the system computes
-     *       the maximum whole units purchasable for that amount (including fees).</li>
-     * </ul>
-     */
-    public TradePreviewResponse previewTrade(TradePreviewRequest request, Jwt jwt) {
-        List<String> blockers = new ArrayList<>();
-
-        // 1. Market hours (soft check)
-        if (!marketHoursService.isMarketOpen()) {
-            blockers.add("MARKET_CLOSED");
-        }
-
-        // 2. Load asset
-        Asset asset = assetRepository.findById(request.assetId()).orElse(null);
-        if (asset == null) {
-            return immediateReject("ASSET_NOT_FOUND", request);
-        }
-        if (asset.getStatus() != AssetStatus.ACTIVE) {
-            blockers.add("TRADING_HALTED");
-        }
-
-        // 2b. Subscription period check — BUY only
-        if (request.side() == TradeSide.BUY) {
-            if (LocalDate.now().isBefore(asset.getSubscriptionStartDate())) {
-                blockers.add("SUBSCRIPTION_NOT_STARTED");
-            }
-            if (!asset.getSubscriptionEndDate().isAfter(LocalDate.now())) {
-                blockers.add("SUBSCRIPTION_ENDED");
-            }
-        }
-
-        // 3. Price calculation using LP bid/ask
-        PriceResponse priceData = pricingService.getPrice(request.assetId());
-        BigDecimal basePrice = priceData.askPrice();
-        BigDecimal feePercent = asset.getTradingFeePercent() != null ? asset.getTradingFeePercent() : BigDecimal.ZERO;
-
-        TradeStrategy previewStrategy = request.side() == TradeSide.BUY
-                ? BuyStrategy.INSTANCE : SellStrategy.INSTANCE;
-
-        // BUY executes at LP ask price, SELL at LP bid price
-        BigDecimal executionPrice = (request.side() == TradeSide.BUY)
-                ? priceData.askPrice()
-                : priceData.bidPrice();
-
-        // 3b. Amount-based conversion: compute units from XAF amount
-        BigDecimal computedFromAmount = null;
-        BigDecimal remainder = null;
-        BigDecimal units;
-
-        if (request.amount() != null) {
-            // Amount mode: derive units from the XAF budget
-            computedFromAmount = request.amount();
-            int scale = asset.getDecimalPlaces() != null ? asset.getDecimalPlaces() : 0;
-            // effectivePricePerUnit = executionPrice * (1 + feePercent)
-            BigDecimal effectivePricePerUnit = executionPrice
-                    .multiply(BigDecimal.ONE.add(feePercent));
-            if (effectivePricePerUnit.compareTo(BigDecimal.ZERO) <= 0) {
-                return immediateReject("INVALID_PRICE", request);
-            }
-            units = request.amount()
-                    .divide(effectivePricePerUnit, scale, RoundingMode.DOWN);
-            if (units.compareTo(BigDecimal.ZERO) <= 0) {
-                blockers.add("AMOUNT_TOO_SMALL");
-                // Still return a response with zero units so the caller sees the blocker
-                units = BigDecimal.ZERO;
-            }
-        } else {
-            units = request.units();
-        }
-
-        BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
-
-        // LP margin: |executionPrice - issuerPrice| * units
-        BigDecimal issuerPrice = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : basePrice;
-        BigDecimal lpMarginPerUnit = executionPrice.subtract(issuerPrice).abs();
-        BigDecimal spreadAmount = isSpreadEnabled(asset)
-                ? lpMarginPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO;
-
-        BigDecimal netAmount = previewStrategy.computeOrderCashAmount(grossAmount, fee);
-
-        // Compute remainder for amount-based mode
-        if (computedFromAmount != null && units.compareTo(BigDecimal.ZERO) > 0) {
-            remainder = computedFromAmount.subtract(netAmount);
-            if (remainder.compareTo(BigDecimal.ZERO) < 0) {
-                remainder = BigDecimal.ZERO;
-            }
-        }
-
-        // 4. Resolve user and check balances (soft-fail)
-        BigDecimal availableBalance = null;
-        BigDecimal availableUnits = null;
-        BigDecimal availableSupply = null;
-
-        try {
-            String externalId = JwtUtils.extractExternalId(jwt);
-            Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
-            Long userId = ((Number) clientData.get("id")).longValue();
-
-            Long cashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, assetServiceConfig.getSettlementCurrency());
-            if (cashAccountId == null) {
-                blockers.add("NO_CASH_ACCOUNT");
-            } else {
-                availableBalance = fineractClient.getAccountBalance(cashAccountId);
-                if (request.side() == TradeSide.BUY && availableBalance.compareTo(netAmount) < 0) {
-                    blockers.add("INSUFFICIENT_FUNDS");
-                }
-            }
-
-            if (request.side() == TradeSide.SELL) {
-                var position = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId());
-                if (position.isEmpty()) {
-                    blockers.add("NO_POSITION");
-                } else {
-                    availableUnits = position.get().getTotalUnits();
-                    if (units.compareTo(availableUnits) > 0) {
-                        blockers.add("INSUFFICIENT_UNITS");
-                    }
-                    // Check lock-up period for SELL
-                    LocalDate unlockDate = lockupService.getUnlockDate(asset, userId);
-                    if (unlockDate != null && LocalDate.now().isBefore(unlockDate)) {
-                        blockers.add("LOCKUP_PERIOD_ACTIVE");
-                    }
-                }
-            }
-
-            // Check exposure limits (soft-fail for preview)
-            try {
-                exposureLimitService.validateLimits(asset, userId, request.side(), units, netAmount);
-            } catch (TradingException e) {
-                blockers.add(e.getErrorCode());
-            }
-        } catch (Exception e) {
-            log.warn("Failed to resolve user for trade preview: {}", e.getMessage());
-            blockers.add("USER_RESOLUTION_FAILED");
-        }
-
-        // BUY: check inventory
-        if (request.side() == TradeSide.BUY) {
-            availableSupply = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
-            if (units.compareTo(availableSupply) > 0) {
-                blockers.add("INSUFFICIENT_INVENTORY");
-            }
-        }
-
-        // 5. Bond benefit projections (BUY only, null for non-bonds)
-        BondBenefitProjection bondBenefit = null;
-        if (request.side() == TradeSide.BUY) {
-            bondBenefit = bondBenefitService.calculateForPurchase(asset, units, netAmount);
-        }
-
-        // 6. Income benefit projections (BUY only, null for bonds and non-income assets)
-        IncomeBenefitProjection incomeBenefit = null;
-        if (request.side() == TradeSide.BUY) {
-            incomeBenefit = incomeBenefitService.calculateForPurchase(
-                    asset, units, issuerPrice, netAmount);
-        }
-
-        return new TradePreviewResponse(
-                blockers.isEmpty(), blockers,
-                asset.getId(), asset.getSymbol(), request.side(), units,
-                basePrice, executionPrice, lpMarginPerUnit, grossAmount, fee, feePercent, spreadAmount, netAmount,
-                availableBalance, availableUnits, availableSupply,
-                bondBenefit, incomeBenefit, computedFromAmount, remainder
-        );
-    }
-
-    private TradePreviewResponse immediateReject(String blocker, TradePreviewRequest request) {
-        BigDecimal units = request.units() != null ? request.units() : BigDecimal.ZERO;
-        return new TradePreviewResponse(
-                false, List.of(blocker),
-                request.assetId(), null, request.side(), units,
-                null, null, null, null, null, null, null, null,
-                null, null, null, null, null,
-                request.amount(), null
-        );
     }
 
     /**
@@ -1407,37 +994,6 @@ public class TradingService {
                 order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
                 order.getStatus(), order.getCreatedAt()
         );
-    }
-
-    /**
-     * Create a queued order when the market is closed.
-     * The order will be executed at market open by QueuedOrderScheduler.
-     */
-    TradeResponse createQueuedOrder(TradeContext ctx) {
-        String orderId = UUID.randomUUID().toString();
-        Order order = Order.builder()
-                .id(orderId)
-                .idempotencyKey(ctx.getIdempotencyKey())
-                .userId(ctx.getUserId())
-                .userExternalId(ctx.getExternalId())
-                .assetId(ctx.getAssetId())
-                .side(ctx.getStrategy().side())
-                .cashAmount(ctx.getOrderCashAmount())
-                .units(ctx.getUnits())
-                .executionPrice(ctx.getExecutionPrice())
-                .fee(ctx.getFee())
-                .spreadAmount(ctx.getSpreadAmount())
-                .queuedPrice(ctx.getExecutionPrice())
-                .status(OrderStatus.QUEUED)
-                .build();
-        orderRepository.save(order);
-
-        log.info("Queued order for market open: orderId={}, side={}, assetId={}, units={}",
-                orderId, ctx.getStrategy().side(), ctx.getAssetId(), ctx.getUnits());
-
-        return new TradeResponse(orderId, OrderStatus.QUEUED, ctx.getStrategy().side(),
-                ctx.getUnits(), ctx.getExecutionPrice(), ctx.getOrderCashAmount(),
-                ctx.getFee(), ctx.getSpreadAmount(), null, Instant.now());
     }
 
     /**

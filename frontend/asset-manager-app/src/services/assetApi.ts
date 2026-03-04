@@ -548,16 +548,6 @@ export interface DelistAssetRequest {
 	delistingRedemptionPrice?: number;
 }
 
-/** Trade preview request (matches backend TradePreviewRequest). */
-export interface TradePreviewRequest {
-	assetId: string;
-	side: "BUY" | "SELL";
-	/** Number of units to trade. Exactly one of units or amount must be provided. */
-	units?: number;
-	/** XAF amount to invest. System computes max units purchasable for this amount. */
-	amount?: number;
-}
-
 /** Bond benefit projections (matches backend BondBenefitProjection). */
 export interface BondBenefitProjection {
 	faceValue: number;
@@ -586,33 +576,6 @@ export interface IncomeBenefitProjection {
 	estimatedAnnualIncome: number;
 	estimatedYieldPercent?: number;
 	variableIncome: boolean;
-}
-
-/** Trade preview response (matches backend TradePreviewResponse). */
-export interface TradePreviewResponse {
-	feasible: boolean;
-	blockers: string[];
-	assetId: string;
-	assetSymbol?: string;
-	side: "BUY" | "SELL";
-	units: number;
-	basePrice?: number;
-	executionPrice?: number;
-	lpMarginPerUnit?: number;
-	grossAmount?: number;
-	fee?: number;
-	feePercent?: number;
-	spreadAmount?: number;
-	netAmount?: number;
-	availableBalance?: number;
-	availableUnits?: number;
-	availableSupply?: number;
-	bondBenefit?: BondBenefitProjection;
-	incomeBenefit?: IncomeBenefitProjection;
-	/** Original XAF amount (only present in amount-based mode). */
-	computedFromAmount?: number;
-	/** Leftover XAF that cannot buy another unit (only present in amount-based mode). */
-	remainder?: number;
 }
 
 // Income Calendar
