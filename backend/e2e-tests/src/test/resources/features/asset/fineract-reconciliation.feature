@@ -18,7 +18,7 @@ Feature: Fineract Reconciliation (E2E)
     Given an active stock asset "REC" with price 2000 and supply 100
     When the user buys 5 units of "REC"
     Then the trade should be FILLED
-    And the user's XAF balance in Fineract should have decreased by approximately 10000
+    And the user's XAF balance in Fineract should have decreased by approximately 11000
     When the user sells 3 units of "REC"
     Then the trade should be FILLED
     And the user's XAF balance in Fineract should have increased

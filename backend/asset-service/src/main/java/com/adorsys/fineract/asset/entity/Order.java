@@ -102,6 +102,22 @@ public class Order {
     @Column(name = "queued_price", precision = 20, scale = 0)
     private BigDecimal queuedPrice;
 
+    /** Timestamp when the quote was created. Null for non-quote orders. */
+    @Column(name = "quoted_at")
+    private Instant quotedAt;
+
+    /** Timestamp when the quote expires. Orders past this time cannot be confirmed. Null for non-quote orders. */
+    @Column(name = "quote_expires_at")
+    private Instant quoteExpiresAt;
+
+    /** LP ask price at the time of quoting. Locked for the quote duration. Null for non-quote orders. */
+    @Column(name = "quoted_ask_price", precision = 20, scale = 0)
+    private BigDecimal quotedAskPrice;
+
+    /** LP bid price at the time of quoting. Locked for the quote duration. Null for non-quote orders. */
+    @Column(name = "quoted_bid_price", precision = 20, scale = 0)
+    private BigDecimal quotedBidPrice;
+
     /** Timestamp when the order was created. Set automatically, never updated. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

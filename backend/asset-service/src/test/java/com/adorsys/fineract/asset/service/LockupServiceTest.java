@@ -98,7 +98,7 @@ class LockupServiceTest {
 
         TradingException ex = assertThrows(TradingException.class,
                 () -> lockupService.validateLockup(asset, USER_ID, new BigDecimal("10")));
-        assertEquals("LOCKUP_PERIOD_ACTIVE", ex.getCode());
+        assertEquals("LOCKUP_PERIOD_ACTIVE", ex.getErrorCode());
         assertTrue(ex.getMessage().contains("Only 5 units are unlocked"));
     }
 
@@ -128,7 +128,7 @@ class LockupServiceTest {
 
         TradingException ex = assertThrows(TradingException.class,
                 () -> lockupService.validateLockup(asset, USER_ID, new BigDecimal("10")));
-        assertEquals("LOCKUP_PERIOD_ACTIVE", ex.getCode());
+        assertEquals("LOCKUP_PERIOD_ACTIVE", ex.getErrorCode());
     }
 
     @Test

@@ -5,11 +5,13 @@ import com.adorsys.fineract.asset.dto.PriceResponse;
 import com.adorsys.fineract.asset.dto.OrderStatus;
 import com.adorsys.fineract.asset.dto.TradeSide;
 import com.adorsys.fineract.asset.entity.Order;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.service.PricingService;
 import com.adorsys.fineract.asset.service.TradingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -30,39 +32,53 @@ public class QueuedOrderScheduler {
     private final OrderRepository orderRepository;
     private final PricingService pricingService;
     private final AssetServiceConfig config;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 1 8 * * MON-FRI", zone = "Africa/Douala")
     public void processQueuedOrders() {
-        List<Order> queuedOrders = orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED);
+        try {
+            List<Order> queuedOrders = orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED);
 
-        if (queuedOrders.isEmpty()) {
-            log.debug("No queued orders to process at market open.");
-            return;
-        }
-
-        log.info("Processing {} queued order(s) at market open", queuedOrders.size());
-        int processed = 0, rejected = 0;
-
-        for (Order order : queuedOrders) {
-            try {
-                if (isPriceStale(order)) {
-                    rejectQueuedOrder(order, "Price moved beyond stale threshold since order was queued");
-                    rejected++;
-                } else {
-                    // Mark as PENDING for normal processing by the trading engine
-                    order.setStatus(OrderStatus.PENDING);
-                    orderRepository.save(order);
-                    processed++;
-                    log.info("Queued order {} promoted to PENDING for execution", order.getId());
-                }
-            } catch (Exception e) {
-                log.error("Failed to process queued order {}: {}", order.getId(), e.getMessage(), e);
-                rejectQueuedOrder(order, "Processing error: " + e.getMessage());
-                rejected++;
+            if (queuedOrders.isEmpty()) {
+                log.debug("No queued orders to process at market open.");
+                return;
             }
-        }
 
-        log.info("Queued order processing complete: {} promoted, {} rejected", processed, rejected);
+            log.info("Processing {} queued order(s) at market open", queuedOrders.size());
+            int processed = 0, rejected = 0, failed = 0;
+
+            for (Order order : queuedOrders) {
+                try {
+                    if (isPriceStale(order)) {
+                        rejectQueuedOrder(order, "Price moved beyond stale threshold since order was queued");
+                        rejected++;
+                    } else {
+                        order.setStatus(OrderStatus.PENDING);
+                        orderRepository.save(order);
+                        processed++;
+                        log.info("Queued order {} promoted to PENDING for execution", order.getId());
+                    }
+                } catch (Exception e) {
+                    failed++;
+                    log.error("Failed to process queued order {}: {}", order.getId(), e.getMessage(), e);
+                    rejectQueuedOrder(order, "Processing error: " + e.getMessage());
+                }
+            }
+
+            log.info("Queued order processing complete: {} promoted, {} rejected", processed, rejected);
+
+            if (failed > 0) {
+                eventPublisher.publishEvent(new AdminAlertEvent(
+                        "SCHEDULER_FAILURE", "Queued order scheduler partial failure",
+                        String.format("%d of %d queued orders failed to process", failed, queuedOrders.size()),
+                        null, "SCHEDULER"));
+            }
+        } catch (Exception e) {
+            log.error("Queued order scheduler failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Queued order scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
+        }
     }
 
     private boolean isPriceStale(Order order) {

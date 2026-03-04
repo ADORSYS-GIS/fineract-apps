@@ -156,6 +156,36 @@ public class NotificationService {
     }
 
     @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onPriceChanged(PriceChangedEvent event) {
+        try {
+            String title = "Price changed: " + event.assetSymbol();
+            String body = String.format(
+                    "Price updated for %s: ask %s → %s (%s%%), bid %s → %s. Changed by %s.",
+                    event.assetSymbol(),
+                    event.oldAskPrice().toPlainString(), event.newAskPrice().toPlainString(),
+                    event.changePercent().toPlainString(),
+                    event.oldBidPrice().toPlainString(), event.newBidPrice().toPlainString(),
+                    event.adminSubject());
+
+            NotificationLog notif = NotificationLog.builder()
+                    .userId(null) // admin broadcast
+                    .eventType("PRICE_CHANGED")
+                    .title(title)
+                    .body(body)
+                    .referenceId(event.assetId())
+                    .referenceType("ASSET")
+                    .build();
+            notificationLogRepository.save(notif);
+            assetMetrics.recordNotificationSent("PRICE_CHANGED");
+            log.info("Price change audit: {} ask {} → {} ({}%)",
+                    event.assetSymbol(), event.oldAskPrice(), event.newAskPrice(), event.changePercent());
+        } catch (Exception e) {
+            log.error("Failed to create price change notification: {}", e.getMessage());
+        }
+    }
+
+    @Async
     @EventListener
     public void onAdminAlert(AdminAlertEvent event) {
         try {

@@ -168,9 +168,122 @@ Returns an empty array `[]` if no trades have been executed for this asset yet.
 
 ---
 
-## Flow 4: Trade Preview
+## Flow 4: Create Trade Quote
 
-Before executing a trade, the app can preview fees, net amount, and feasibility. For bond assets, the preview also includes a benefit projection showing expected coupon income and yield.
+Before executing a trade, create a **price-locked quote** that reserves the current LP price for a configurable TTL (default 30 seconds). The quote is persisted as an order with status `QUOTED`.
+
+```
+POST /api/trades/quote
+Headers:
+  Authorization: Bearer {jwt}
+  X-Idempotency-Key: {uuid}
+Body:
+{
+  "assetId": "{asset-uuid}",
+  "side": "BUY",
+  "units": 10
+}
+```
+
+Alternatively, use amount-based mode (system computes max units for the budget):
+```json
+{
+  "assetId": "{asset-uuid}",
+  "side": "BUY",
+  "amount": 50000
+}
+```
+
+Response (201 Created):
+```json
+{
+  "orderId": "uuid",
+  "status": "QUOTED",
+  "assetId": "uuid",
+  "assetSymbol": "DTT",
+  "side": "BUY",
+  "units": 10,
+  "executionPrice": 5000,
+  "lpMarginPerUnit": 1000,
+  "grossAmount": 50000,
+  "fee": 250,
+  "feePercent": 0.50,
+  "spreadAmount": 10000,
+  "netAmount": 50250,
+  "availableBalance": 100000,
+  "availableUnits": null,
+  "availableSupply": 85000,
+  "bondBenefit": null,
+  "incomeBenefit": null,
+  "computedFromAmount": null,
+  "remainder": null,
+  "quotedAt": "2026-03-04T10:00:00Z",
+  "quoteExpiresAt": "2026-03-04T10:00:30Z",
+  "warnings": []
+}
+```
+
+Key fields:
+- `orderId` — use this to confirm, cancel, or track the order
+- `executionPrice` — the LP's ask price (BUY) or bid price (SELL), locked for the quote duration
+- `quotedAt` / `quoteExpiresAt` — time window to confirm the quote
+- `warnings` — non-blocking issues (e.g. `MARKET_CLOSED` if market is closed but quote is still created)
+- `bondBenefit` — coupon/yield projections for bond assets (BUY side only, null for non-bonds)
+- `incomeBenefit` — dividend/rent/yield projections for income assets (BUY side only)
+
+Constraints:
+- Max 5 active quotes per user (configurable)
+- Quote TTL: 30 seconds (configurable)
+- BUY quotes soft-reserve inventory (auto-released on expiry/cancel)
+- Expired quotes are automatically marked `CANCELLED`
+
+Error responses:
+- `409` — `TRADING_HALTED`, `ASSET_DELISTING` (BUY only), `INSUFFICIENT_INVENTORY`
+- `409` — `MAX_QUOTES_EXCEEDED` (too many active quotes)
+- `409` — `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_ENDED`
+- `400` — `MIN_ORDER_SIZE_NOT_MET`, `PORTFOLIO_EXPOSURE_EXCEEDED`
+
+---
+
+## Flow 4b: Confirm Quote
+
+Confirm a quoted order to trigger async execution. The price is locked from the quote — no slippage within the TTL.
+
+```
+POST /api/trades/orders/{orderId}/confirm
+Headers: Authorization: Bearer {jwt}
+```
+
+Response (202 Accepted):
+```json
+{
+  "orderId": "uuid",
+  "assetId": "uuid",
+  "assetSymbol": "DTT",
+  "side": "BUY",
+  "units": 10,
+  "executionPrice": 5000,
+  "xafAmount": 50250,
+  "fee": 250,
+  "status": "PENDING",
+  "createdAt": "2026-03-04T10:00:00Z"
+}
+```
+
+The order transitions to:
+- `PENDING` — execution will happen asynchronously (typically within 1-2 seconds)
+- `QUEUED` — if the market is closed at confirmation time; will execute at market open
+
+Error responses:
+- `400` — `CONFIRM_NOT_ALLOWED` (order is not in QUOTED status)
+- `409` — `QUOTE_EXPIRED` (TTL has passed; request a new quote)
+- `404` — Order not found or belongs to another user
+
+---
+
+## Flow 4c: Trade Preview (Legacy)
+
+> **Note:** This endpoint is preserved for backward compatibility. Prefer the quote-based flow (Flow 4) for new integrations.
 
 ```
 POST /api/trades/preview
@@ -209,38 +322,14 @@ Response:
 
 - `feasible` — whether the trade can execute right now
 - `blockers` — reasons if not feasible: `MARKET_CLOSED`, `TRADING_HALTED`, `INSUFFICIENT_FUNDS`, `INSUFFICIENT_INVENTORY`, `NO_POSITION`, `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_ENDED`, `MIN_ORDER_SIZE_NOT_MET`, `MIN_ORDER_CASH_NOT_MET`, `LOCKUP_PERIOD_ACTIVE`, `PORTFOLIO_EXPOSURE_EXCEEDED`, `INSUFFICIENT_LP_FUNDS`
-- `executionPrice` — the LP's ask price (for BUY) or bid price (for SELL)
-- `lpMarginPerUnit` — the LP's markup per unit above the issuer price
-- `spreadAmount` — total LP margin: `lpMarginPerUnit × units`
-- `netAmount` — BUY: total charged (gross + fee). SELL: net proceeds (gross - fee)
-- `bondBenefit` — null for non-bond assets. For bonds (BUY side), includes:
-
-```json
-{
-  "bondBenefit": {
-    "faceValue": 10000,
-    "interestRate": 5.80,
-    "couponFrequencyMonths": 6,
-    "maturityDate": "2028-06-30",
-    "nextCouponDate": "2026-06-30",
-    "couponPerPeriod": 29000,
-    "remainingCouponPayments": 5,
-    "totalCouponIncome": 145000,
-    "principalAtMaturity": 100000,
-    "investmentCost": 100250,
-    "totalProjectedReturn": 245000,
-    "netProjectedProfit": 144750,
-    "annualizedYieldPercent": 6.12,
-    "daysToMaturity": 850
-  }
-}
-```
 
 Note: `faceValue` is the issuer price (not the LP selling price). Coupon income is calculated from this face value, so the investor's true yield depends on how much they paid (the LP ask price) vs what the coupons are based on (the issuer price).
 
 ---
 
-## Flow 5: Buy Asset
+## Flow 5: Buy Asset (Legacy — prefer Flow 4 quote-based)
+
+> **Note:** This synchronous endpoint is preserved for backward compatibility. New integrations should use the quote → confirm flow (Flows 4 and 4b) for better UX and reliability.
 
 **Prerequisites**: User must have a savings account in the settlement currency (XAF) with sufficient balance.
 
@@ -318,7 +407,56 @@ Error responses:
 
 ---
 
-## Flow 6: Sell Asset
+## Flow 5b: Order Status Stream (SSE)
+
+Subscribe to real-time order status updates via Server-Sent Events. The stream pushes an event on every status transition and auto-closes when the order reaches a terminal state.
+
+```
+GET /api/trades/orders/{orderId}/stream
+Headers:
+  Authorization: Bearer {jwt}
+  Accept: text/event-stream
+```
+
+Events:
+
+1. **`connected`** — initial event confirming the SSE connection is live:
+```
+event: connected
+data: {"orderId":"uuid"}
+```
+
+2. **`order-status`** — pushed on every status transition:
+```
+event: order-status
+data: {"orderId":"uuid","status":"FILLED","previousStatus":"EXECUTING","side":"BUY","units":10,"executionPrice":5000,"cashAmount":50250,"fee":250,"failureReason":null,"timestamp":"2026-03-04T10:00:02Z"}
+```
+
+Terminal statuses (stream auto-closes): `FILLED`, `FAILED`, `REJECTED`, `CANCELLED`
+
+**Important:** The native browser `EventSource` API does not support custom `Authorization` headers. Use a library like `@microsoft/fetch-event-source` for JWT-based SSE:
+
+```javascript
+import { fetchEventSource } from '@microsoft/fetch-event-source';
+
+fetchEventSource(`/api/trades/orders/${orderId}/stream`, {
+  headers: { 'Authorization': `Bearer ${token}` },
+  onmessage(ev) {
+    if (ev.event === 'order-status') {
+      const status = JSON.parse(ev.data);
+      // Update UI based on status.status
+    }
+  },
+});
+```
+
+**Fallback:** If SSE is unavailable, poll `GET /api/trades/orders/{orderId}` every 2 seconds until a terminal status is returned.
+
+---
+
+## Flow 6: Sell Asset (Legacy — prefer Flow 4 quote-based)
+
+> **Note:** This synchronous endpoint is preserved for backward compatibility. New integrations should use the quote → confirm flow (Flows 4 and 4b).
 
 ### How It Works
 
@@ -474,7 +612,7 @@ Returns an empty `snapshots` array if no snapshots exist for the requested perio
 
 ## Flow 8b: Cancel an Order
 
-Users can cancel their own `PENDING` or `QUEUED` orders before execution.
+Users can cancel their own `QUOTED`, `PENDING`, or `QUEUED` orders before execution.
 
 ```
 POST /api/trades/orders/{orderId}/cancel
@@ -494,8 +632,10 @@ Response:
 ```
 
 Error responses:
-- `400` — Order is not in `PENDING` or `QUEUED` status (already filled, cancelled, etc.)
+- `400` — Order is not in `QUOTED`, `PENDING`, or `QUEUED` status (already filled, cancelled, etc.)
 - `404` — Order not found or belongs to another user
+
+Cancelling a `QUOTED` BUY order immediately releases the soft-reserved inventory.
 
 ---
 

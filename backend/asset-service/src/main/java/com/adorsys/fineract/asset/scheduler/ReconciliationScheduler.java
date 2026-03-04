@@ -1,8 +1,10 @@
 package com.adorsys.fineract.asset.scheduler;
 
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.service.ReconciliationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Component;
 public class ReconciliationScheduler {
 
     private final ReconciliationService reconciliationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 30 1 * * *", zone = "Africa/Douala")
     public void runReconciliation() {
@@ -25,6 +28,9 @@ public class ReconciliationScheduler {
             log.info("Daily reconciliation complete: {} discrepancies found", discrepancies);
         } catch (Exception e) {
             log.error("Daily reconciliation failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Reconciliation scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
         }
     }
 }

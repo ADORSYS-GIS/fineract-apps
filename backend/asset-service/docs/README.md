@@ -78,7 +78,7 @@ Flyway migrations create the following tables:
 - `asset_prices` — Current price + OHLC data
 - `price_history` — Time-series for charts
 - `user_positions` — WAP tracking per user per asset
-- `orders` — Trade orders with idempotency
+- `orders` — Trade orders with idempotency (includes quote columns: quoted_at, quote_expires_at, quoted_ask_price, quoted_bid_price)
 - `trade_log` — Executed trades (immutable audit log)
 - `user_favorites` — Watchlist
 - `interest_payments` — Bond coupon payment audit log
@@ -98,6 +98,8 @@ Flyway migrations create the following tables:
 |-----|----------|---------|
 | MaturityScheduler | 00:05 WAT daily | Transitions ACTIVE bonds to MATURED when maturity date passes |
 | InterestPaymentScheduler | 00:15 WAT daily | Pays bond coupons to all holders of eligible bonds |
+| QuoteExpiryScheduler | Every 10s | Cancels expired QUOTED orders and releases soft-reserved inventory |
+| TradeWorkerService | Every 5s (fallback) | Picks up PENDING orders for async execution (also event-driven) |
 | StaleOrderCleanupScheduler | Every 5 min | Fails stale PENDING orders, flags stuck EXECUTING as NEEDS_RECONCILIATION |
 | PriceSnapshotScheduler | Hourly (configurable) | Captures price snapshots for chart history |
 | OhlcScheduler | Every 60s | Resets/closes daily OHLC candles at market open/close |

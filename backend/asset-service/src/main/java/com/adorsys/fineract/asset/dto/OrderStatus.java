@@ -2,6 +2,8 @@ package com.adorsys.fineract.asset.dto;
 
 /** Lifecycle status of a trade order. */
 public enum OrderStatus {
+    /** Price quote issued, awaiting user confirmation. Expires after configurable TTL. */
+    QUOTED,
     /** Order received, awaiting execution. */
     PENDING,
     /** Order is currently being processed (Fineract transfers in progress). */

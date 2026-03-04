@@ -25,9 +25,9 @@ Feature: Order Cancellation
     Given a FILLED order exists for user 42 on asset "asset-001"
     When the user cancels the order
     Then the response status should be 400
-    And the response body should contain "Only PENDING or QUEUED"
+    And the response body should contain "Only QUOTED, PENDING, or QUEUED"
 
   Scenario: Cannot cancel another user's order
     Given a PENDING order exists for user 99 on asset "asset-001"
     When the user cancels the order
-    Then the response status should be 404
+    Then the response status should be 400

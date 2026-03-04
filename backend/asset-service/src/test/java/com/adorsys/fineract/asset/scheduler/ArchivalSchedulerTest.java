@@ -9,6 +9,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Instant;
@@ -23,6 +24,7 @@ class ArchivalSchedulerTest {
     @Mock private JdbcTemplate jdbcTemplate;
     @Mock private AssetServiceConfig config;
     @Mock private AssetMetrics metrics;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ArchivalScheduler scheduler;

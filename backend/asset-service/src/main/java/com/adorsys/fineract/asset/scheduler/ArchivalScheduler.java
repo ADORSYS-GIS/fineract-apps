@@ -1,9 +1,11 @@
 package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -33,6 +35,7 @@ public class ArchivalScheduler {
     private final JdbcTemplate jdbcTemplate;
     private final AssetServiceConfig config;
     private final AssetMetrics metrics;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 0 3 1 * *", zone = "Africa/Douala")
     public void archiveRecords() {
@@ -51,6 +54,9 @@ public class ArchivalScheduler {
         } catch (Exception e) {
             metrics.recordArchivalFailure();
             log.error("Archival failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Archival scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
         }
     }
 

@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
+import com.adorsys.fineract.asset.service.SseEmitterManager;
 import com.adorsys.fineract.asset.service.TradingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -30,6 +32,7 @@ class TradeControllerTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockBean private TradingService tradingService;
+    @MockBean private SseEmitterManager sseEmitterManager;
 
     // -------------------------------------------------------------------------
     // POST /api/trades/buy
@@ -78,5 +81,56 @@ class TradeControllerTest {
                 .andExpect(status().isInternalServerError());
         // The 500 (not 404) confirms the route is correctly mapped.
         // The error is expected: JwtUtils.extractUserId receives null jwt.
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /api/trades/quote
+    // -------------------------------------------------------------------------
+
+    @Test
+    void quote_missingIdempotencyKey_returns400() throws Exception {
+        QuoteRequest request = new QuoteRequest("asset-001", TradeSide.BUY, new BigDecimal("10"), null);
+
+        mockMvc.perform(post("/api/trades/quote")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(tradingService);
+    }
+
+    @Test
+    void quote_routeExists_returns201() throws Exception {
+        // With addFilters=false and mocked service, the route responds 201
+        QuoteRequest request = new QuoteRequest("asset-001", TradeSide.BUY, new BigDecimal("10"), null);
+
+        mockMvc.perform(post("/api/trades/quote")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Idempotency-Key", "test-key")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /api/trades/orders/{id}/confirm
+    // -------------------------------------------------------------------------
+
+    @Test
+    void confirmOrder_routeExists_returns500WithoutJwt() throws Exception {
+        // Confirms route mapping — NPE on null JWT = 500 (not 404)
+        mockMvc.perform(post("/api/trades/orders/order-001/confirm"))
+                .andExpect(status().isInternalServerError());
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /api/trades/orders/{id}/stream
+    // -------------------------------------------------------------------------
+
+    @Test
+    void streamOrderStatus_routeExists_throwsOnNullJwt() {
+        // Confirms route mapping for SSE endpoint — NPE on null JWT (not 404)
+        assertThrows(Exception.class, () ->
+                mockMvc.perform(get("/api/trades/orders/order-001/stream")
+                        .accept(MediaType.TEXT_EVENT_STREAM)));
     }
 }

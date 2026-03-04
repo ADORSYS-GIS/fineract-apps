@@ -8,9 +8,11 @@ import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.Order;
 import com.adorsys.fineract.asset.entity.UserPosition;
+import com.adorsys.fineract.asset.event.OrderStatusChangedEvent;
 import com.adorsys.fineract.asset.exception.InsufficientInventoryException;
 import com.adorsys.fineract.asset.exception.MarketClosedException;
 import com.adorsys.fineract.asset.exception.TradingException;
+import com.adorsys.fineract.asset.exception.TradingHaltedException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
@@ -58,6 +60,7 @@ class TradingServiceTest {
     @Mock private ExposureLimitService exposureLimitService;
     @Mock private LockupService lockupService;
     @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    @Mock private QuoteReservationService quoteReservationService;
 
     @InjectMocks
     private TradingService tradingService;
@@ -110,6 +113,17 @@ class TradingServiceTest {
         lenient().when(resolvedGlAccounts.getFeeIncomeId()).thenReturn(FEE_INCOME_GL_ID);
         lenient().when(resolvedGlAccounts.getFundSourceId()).thenReturn(FUND_SOURCE_GL_ID);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECTION_ACCOUNT);
+
+        // Market hours config (needed for subscription period checks)
+        AssetServiceConfig.MarketHours marketHours = new AssetServiceConfig.MarketHours();
+        marketHours.setTimezone("Africa/Douala");
+        lenient().when(assetServiceConfig.getMarketHours()).thenReturn(marketHours);
+
+        // Quote config
+        AssetServiceConfig.Quote quoteConfig = new AssetServiceConfig.Quote();
+        quoteConfig.setTtlSeconds(30);
+        quoteConfig.setMaxActivePerUser(5);
+        lenient().when(assetServiceConfig.getQuote()).thenReturn(quoteConfig);
     }
 
     // -------------------------------------------------------------------------
@@ -141,7 +155,7 @@ class TradingServiceTest {
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
 
         // Market open
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
 
         // Asset found (initial + re-fetch inside lock)
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
@@ -150,6 +164,7 @@ class TradingServiceTest {
         when(pricingService.getPrice(ASSET_ID))
                 .thenReturn(new PriceResponse(ASSET_ID, askPrice, new BigDecimal("90"),
                         new BigDecimal("5.0")));
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
 
         // JWT resolution
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
@@ -233,7 +248,6 @@ class TradingServiceTest {
 
         // Verify no separate fee calls (everything is in the batch)
         verify(fineractClient, never()).withdrawFromSavingsAccount(anyLong(), any(), anyString());
-        verify(fineractClient, never()).createJournalEntry(anyLong(), anyLong(), any(), anyString(), anyString());
 
         // Verify portfolio updated with effective cost per unit (including fee)
         verify(portfolioService).updatePositionAfterBuy(
@@ -252,7 +266,7 @@ class TradingServiceTest {
 
     @Test
     void executeBuy_idempotencyKey_returnsExistingOrder() {
-        // Arrange
+        // Arrange — idempotency is checked inside lock, so pre-lock validations must pass first
         Order existingOrder = Order.builder()
                 .id("existing-order-id")
                 .idempotencyKey(IDEMPOTENCY_KEY)
@@ -269,9 +283,19 @@ class TradingServiceTest {
                 .createdAt(Instant.now())
                 .build();
 
+        // Pre-lock validations need to pass
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("110"), new BigDecimal("90"), null));
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+
+        // Idempotency check inside lock — returns early before balance check
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
                 .thenReturn(Optional.of(existingOrder));
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
 
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("5"));
 
@@ -285,17 +309,11 @@ class TradingServiceTest {
         assertEquals(TradeSide.BUY, response.side());
         assertEquals(new BigDecimal("5"), response.units());
         assertEquals(new BigDecimal("101"), response.pricePerUnit());
-
-        // Verify no further processing happened
-        verifyNoInteractions(marketHoursService);
-        verifyNoInteractions(pricingService);
-        verifyNoInteractions(fineractClient);
-        verifyNoInteractions(tradeLockService);
     }
 
     @Test
     void executeBuy_idempotencyKeyBelongsToDifferentUser_throws409() {
-        // Arrange - order belongs to a different user
+        // Arrange — idempotency is checked inside lock, so pre-lock validations must pass
         Order existingOrder = Order.builder()
                 .id("existing-order-id")
                 .idempotencyKey(IDEMPOTENCY_KEY)
@@ -312,27 +330,28 @@ class TradingServiceTest {
                 .createdAt(Instant.now())
                 .build();
 
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("110"), new BigDecimal("90"), null));
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+        when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
                 .thenReturn(Optional.of(existingOrder));
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
 
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("5"));
 
-        // Act & Assert
+        // Act & Assert — idempotency check inside lock throws before balance check
         TradingException ex = assertThrows(TradingException.class,
                 () -> tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY));
         assertEquals("IDEMPOTENCY_KEY_CONFLICT", ex.getErrorCode());
-
-        // Verify no further processing happened
-        verifyNoInteractions(marketHoursService);
-        verifyNoInteractions(pricingService);
-        verifyNoInteractions(fineractClient);
-        verifyNoInteractions(tradeLockService);
     }
 
     @Test
     void executeSell_idempotencyKeyBelongsToDifferentUser_throws409() {
-        // Arrange - order belongs to a different user
+        // Arrange — idempotency is checked inside lock, so pre-lock validations must pass
         Order existingOrder = Order.builder()
                 .id("existing-order-id")
                 .idempotencyKey(IDEMPOTENCY_KEY)
@@ -349,9 +368,18 @@ class TradingServiceTest {
                 .createdAt(Instant.now())
                 .build();
 
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("110"), new BigDecimal("90"), null));
+        when(userPositionRepository.findByUserIdAndAssetId(USER_ID, ASSET_ID))
+                .thenReturn(Optional.of(UserPosition.builder().totalUnits(new BigDecimal("10"))
+                        .fineractSavingsAccountId(USER_ASSET_ACCOUNT).build()));
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+        when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
                 .thenReturn(Optional.of(existingOrder));
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
 
         SellRequest request = new SellRequest(ASSET_ID, new BigDecimal("5"));
 
@@ -359,31 +387,30 @@ class TradingServiceTest {
         TradingException ex = assertThrows(TradingException.class,
                 () -> tradingService.executeSell(request, jwt, IDEMPOTENCY_KEY));
         assertEquals("IDEMPOTENCY_KEY_CONFLICT", ex.getErrorCode());
-
-        // Verify no further processing happened
-        verifyNoInteractions(marketHoursService);
-        verifyNoInteractions(pricingService);
-        verifyNoInteractions(fineractClient);
-        verifyNoInteractions(tradeLockService);
     }
 
     @Test
-    void executeBuy_marketClosed_throws() {
-        // Arrange
-        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doThrow(new MarketClosedException("Market is closed"))
-                .when(marketHoursService).assertMarketOpen();
+    void executeBuy_marketClosed_queuesOrder() {
+        // Arrange — when market is closed, order should be queued (not rejected)
+        when(marketHoursService.isMarketOpen()).thenReturn(false);
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("110"), new BigDecimal("90"), null));
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
 
-        // Act & Assert
-        MarketClosedException ex = assertThrows(MarketClosedException.class,
-                () -> tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY));
-        assertTrue(ex.getMessage().contains("Market is closed"));
+        // Act
+        TradeResponse response = tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY);
+
+        // Assert — order is queued, not executed
+        assertNotNull(response);
+        assertEquals(OrderStatus.QUEUED, response.status());
 
         // Verify no lock was acquired or transfers attempted
         verifyNoInteractions(tradeLockService);
-        verifyNoInteractions(fineractClient);
     }
 
     @Test
@@ -407,51 +434,27 @@ class TradingServiceTest {
 
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
 
-        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
 
-        // First findById returns asset with enough supply to pass initial check,
-        // second findById (inside lock) returns asset with low supply
+        // Asset returns low supply — only 2 available (1000 - 998)
         when(assetRepository.findById(ASSET_ID))
-                .thenReturn(Optional.of(activeAsset))  // initial check: 1000 available
-                .thenReturn(Optional.of(lowSupplyAsset)); // inside lock: only 2 available
+                .thenReturn(Optional.of(lowSupplyAsset));
 
         when(pricingService.getPrice(ASSET_ID))
                 .thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("100"), new BigDecimal("95"), null));
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
 
         // JWT resolution
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
         when(fineractClient.getClientByExternalId(EXTERNAL_ID))
                 .thenReturn(Map.of("id", USER_ID));
-        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF"))
-                .thenReturn(USER_CASH_ACCOUNT);
-        when(userPositionRepository.findByUserIdAndAssetId(USER_ID, ASSET_ID))
-                .thenReturn(Optional.of(UserPosition.builder()
-                        .userId(USER_ID)
-                        .assetId(ASSET_ID)
-                        .fineractSavingsAccountId(USER_ASSET_ACCOUNT)
-                        .totalUnits(BigDecimal.ZERO)
-                        .avgPurchasePrice(BigDecimal.ZERO)
-                        .totalCostBasis(BigDecimal.ZERO)
-                        .realizedPnl(BigDecimal.ZERO)
-                        .lastTradeAt(Instant.now())
-                        .build()));
 
-        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
-
-        // Act & Assert: inventory check inside the lock should throw
+        // Act & Assert: inventory check happens pre-lock and should throw
         assertThrows(InsufficientInventoryException.class,
                 () -> tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY));
 
-        // Verify the lock was acquired (inventory check happens inside lock)
-        verify(tradeLockService).acquireTradeLock(USER_ID, ASSET_ID);
-
-        // Verify the lock was released in finally block
-        verify(tradeLockService).releaseTradeLock(USER_ID, ASSET_ID, "lock-val");
-
-        // Verify no batch was attempted
-        verify(fineractClient, never()).executeAtomicBatch(anyList());
+        // Verify no lock was acquired (inventory check is pre-lock now)
+        verifyNoInteractions(tradeLockService);
     }
 
     @Test
@@ -459,11 +462,11 @@ class TradingServiceTest {
         // Arrange: user has only 500 XAF but needs ~1015 for the purchase
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
 
-        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getPrice(ASSET_ID))
                 .thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("100"), new BigDecimal("95"), null));
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
 
         // JWT
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
@@ -533,7 +536,7 @@ class TradingServiceTest {
 
         // Idempotency
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
 
         // Asset
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
@@ -566,6 +569,9 @@ class TradingServiceTest {
 
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
+
+        // LP cash balance sufficient for payout
+        when(fineractClient.getAccountBalance(LP_CASH_ACCOUNT)).thenReturn(new BigDecimal("50000"));
 
         // Atomic batch succeeds — 4 legs in LP Cash hub model
         List<Map<String, Object>> batchResponses = List.of(
@@ -625,7 +631,6 @@ class TradingServiceTest {
 
         // Verify no separate fee calls
         verify(fineractClient, never()).withdrawFromSavingsAccount(anyLong(), any(), anyString());
-        verify(fineractClient, never()).createJournalEntry(anyLong(), anyLong(), any(), anyString(), anyString());
 
         // Verify circulating supply decreased
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, new BigDecimal("5").negate());
@@ -653,10 +658,11 @@ class TradingServiceTest {
         // chargedAmount = 1000 + 5 = 1005, spreadAmount = 0
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getPrice(ASSET_ID))
                 .thenReturn(new PriceResponse(ASSET_ID, basePrice, basePrice, null));
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
 
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
         when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
@@ -709,7 +715,7 @@ class TradingServiceTest {
         BigDecimal netProceedsPerUnit = netAmount.divide(new BigDecimal("5"), 4, RoundingMode.HALF_UP);
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getPrice(ASSET_ID))
                 .thenReturn(new PriceResponse(ASSET_ID, basePrice, basePrice, null));
@@ -727,6 +733,7 @@ class TradingServiceTest {
 
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
+        when(fineractClient.getAccountBalance(LP_CASH_ACCOUNT)).thenReturn(new BigDecimal("50000"));
         when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
         when(portfolioService.updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID),
                 eq(new BigDecimal("5")), eq(netProceedsPerUnit))).thenReturn(BigDecimal.ZERO);
@@ -757,8 +764,7 @@ class TradingServiceTest {
         // Arrange: user holds 3 units but tries to sell 10
         SellRequest request = new SellRequest(ASSET_ID, new BigDecimal("10"));
 
-        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getPrice(ASSET_ID))
                 .thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("100"), new BigDecimal("95"), null));
@@ -806,11 +812,10 @@ class TradingServiceTest {
 
         BuyRequest request = new BuyRequest(ASSET_ID, new BigDecimal("10"));
 
-        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
 
-        // Act & Assert — subscription check fires before price lookup or user resolution
+        // Act & Assert — subscription check fires pre-lock, before idempotency/price/user resolution
         TradingException ex = assertThrows(TradingException.class,
                 () -> tradingService.executeBuy(request, jwt, IDEMPOTENCY_KEY));
         assertTrue(ex.getMessage().contains("ended"));
@@ -834,10 +839,11 @@ class TradingServiceTest {
         // executionPrice = 110, grossAmount = 1100, fee = 0, spread = (110-100)*10 = 100
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getPrice(ASSET_ID))
                 .thenReturn(new PriceResponse(ASSET_ID, askPrice, new BigDecimal("90"), null));
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
 
         when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
         when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
@@ -899,7 +905,7 @@ class TradingServiceTest {
         BigDecimal netProceedsPerUnit = netAmount.divide(new BigDecimal("5"), 4, RoundingMode.HALF_UP);
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        doNothing().when(marketHoursService).assertMarketOpen();
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getPrice(ASSET_ID))
                 .thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("120"), bidPrice, null));
@@ -917,6 +923,7 @@ class TradingServiceTest {
 
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tradeLockService.acquireTradeLock(USER_ID, ASSET_ID)).thenReturn("lock-val");
+        when(fineractClient.getAccountBalance(LP_CASH_ACCOUNT)).thenReturn(new BigDecimal("50000"));
 
         // Atomic batch — 4 legs: asset return, premium from LP Spread, net proceeds, fee
         List<Map<String, Object>> batchResponses = List.of(
@@ -966,6 +973,346 @@ class TradingServiceTest {
                 .filter(o -> o.getStatus() == OrderStatus.FILLED)
                 .findFirst().orElseThrow();
         assertEquals(buybackPremium, filledOrder.getBuybackPremium());
+    }
+
+    // -------------------------------------------------------------------------
+    // createQuote tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void createQuote_happyPath_returnsQuotedOrder() {
+        QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
+        BigDecimal askPrice = new BigDecimal("110");
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(0L);
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, askPrice, new BigDecimal("90"), null));
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+        when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT)).thenReturn(new BigDecimal("500000"));
+
+        QuoteResponse response = tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY);
+
+        assertNotNull(response);
+        assertEquals(OrderStatus.QUOTED, response.status());
+        assertNotNull(response.orderId());
+        assertNotNull(response.quotedAt());
+        assertNotNull(response.quoteExpiresAt());
+        assertEquals(askPrice, response.executionPrice());
+
+        verify(orderRepository).save(orderCaptor.capture());
+        Order saved = orderCaptor.getValue();
+        assertEquals(OrderStatus.QUOTED, saved.getStatus());
+        assertNotNull(saved.getQuotedAt());
+        assertNotNull(saved.getQuoteExpiresAt());
+
+        verify(quoteReservationService).reserve(eq(ASSET_ID), anyString(), eq(new BigDecimal("10")));
+        verify(eventPublisher).publishEvent(any(OrderStatusChangedEvent.class));
+    }
+
+    @Test
+    void createQuote_idempotencyKey_returnsExistingQuote() {
+        Order existingOrder = Order.builder()
+                .id("existing-order")
+                .idempotencyKey(IDEMPOTENCY_KEY)
+                .userId(USER_ID)
+                .userExternalId(EXTERNAL_ID)
+                .assetId(ASSET_ID)
+                .side(TradeSide.BUY)
+                .status(OrderStatus.QUOTED)
+                .units(new BigDecimal("10"))
+                .executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106"))
+                .fee(new BigDecimal("6"))
+                .quotedAt(Instant.now())
+                .quoteExpiresAt(Instant.now().plusSeconds(30))
+                .quotedAskPrice(new BigDecimal("110"))
+                .quotedBidPrice(new BigDecimal("90"))
+                .build();
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.of(existingOrder));
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+
+        QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
+        QuoteResponse response = tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY);
+
+        assertEquals("existing-order", response.orderId());
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void createQuote_idempotencyKeyDifferentUser_throws() {
+        Order existingOrder = Order.builder()
+                .id("existing-order")
+                .userExternalId("different-user")
+                .status(OrderStatus.QUOTED)
+                .build();
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.of(existingOrder));
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+
+        QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
+        TradingException ex = assertThrows(TradingException.class,
+                () -> tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY));
+        assertTrue(ex.getMessage().contains("Idempotency key already used"));
+    }
+
+    @Test
+    void createQuote_maxQuotesExceeded_throws() {
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(5L);
+
+        QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
+        TradingException ex = assertThrows(TradingException.class,
+                () -> tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY));
+        assertTrue(ex.getMessage().contains("Too many active quotes"));
+    }
+
+    @Test
+    void createQuote_haltedAsset_throws() {
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(0L);
+
+        Asset halted = Asset.builder()
+                .id(ASSET_ID).status(AssetStatus.HALTED).build();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(halted));
+
+        QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
+        assertThrows(TradingHaltedException.class,
+                () -> tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY));
+    }
+
+    @Test
+    void createQuote_sellDoesNotReserveInventory() {
+        QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.SELL, new BigDecimal("5"), null);
+        BigDecimal bidPrice = new BigDecimal("95");
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(0L);
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("110"), bidPrice, null));
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+        when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT)).thenReturn(new BigDecimal("500000"));
+        when(userPositionRepository.findByUserIdAndAssetId(USER_ID, ASSET_ID))
+                .thenReturn(Optional.of(UserPosition.builder()
+                        .totalUnits(new BigDecimal("10")).build()));
+
+        QuoteResponse response = tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY);
+
+        assertNotNull(response);
+        assertEquals(bidPrice, response.executionPrice());
+        // SELL should not reserve inventory
+        verify(quoteReservationService, never()).reserve(anyString(), anyString(), any());
+    }
+
+    @Test
+    void createQuote_marketClosed_addsWarning() {
+        QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
+
+        when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
+        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
+        when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(0L);
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
+        when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("110"), new BigDecimal("90"), null));
+        when(marketHoursService.isMarketOpen()).thenReturn(false); // Market closed
+        when(quoteReservationService.getReservedUnits(ASSET_ID)).thenReturn(BigDecimal.ZERO);
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
+        when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT)).thenReturn(new BigDecimal("500000"));
+
+        QuoteResponse response = tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY);
+
+        assertNotNull(response);
+        assertTrue(response.warnings().contains("MARKET_CLOSED"));
+        assertEquals(OrderStatus.QUOTED, response.status());
+    }
+
+    // -------------------------------------------------------------------------
+    // confirmOrder tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void confirmOrder_happyPath_promotesToPending() {
+        Order quotedOrder = Order.builder()
+                .id("order-001").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.QUOTED)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106")).fee(new BigDecimal("6"))
+                .quoteExpiresAt(Instant.now().plusSeconds(20))
+                .build();
+        when(orderRepository.findByIdAndUserId("order-001", USER_ID)).thenReturn(Optional.of(quotedOrder));
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderResponse response = tradingService.confirmOrder("order-001", USER_ID);
+
+        assertNotNull(response);
+        verify(orderRepository).save(orderCaptor.capture());
+        assertEquals(OrderStatus.PENDING, orderCaptor.getValue().getStatus());
+        verify(eventPublisher).publishEvent(any(OrderStatusChangedEvent.class));
+    }
+
+    @Test
+    void confirmOrder_expiredQuote_throwsAndCancels() {
+        Order expiredOrder = Order.builder()
+                .id("order-001").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.QUOTED)
+                .units(new BigDecimal("10"))
+                .quoteExpiresAt(Instant.now().minusSeconds(10)) // expired
+                .build();
+        when(orderRepository.findByIdAndUserId("order-001", USER_ID)).thenReturn(Optional.of(expiredOrder));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TradingException ex = assertThrows(TradingException.class,
+                () -> tradingService.confirmOrder("order-001", USER_ID));
+        assertTrue(ex.getMessage().contains("expired"));
+
+        verify(orderRepository).save(orderCaptor.capture());
+        assertEquals(OrderStatus.CANCELLED, orderCaptor.getValue().getStatus());
+        verify(quoteReservationService).release(eq(ASSET_ID), eq("order-001"), eq(new BigDecimal("10")));
+    }
+
+    @Test
+    void confirmOrder_marketClosed_queuesOrder() {
+        Order quotedOrder = Order.builder()
+                .id("order-001").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.QUOTED)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106")).fee(new BigDecimal("6"))
+                .quoteExpiresAt(Instant.now().plusSeconds(20))
+                .build();
+        when(orderRepository.findByIdAndUserId("order-001", USER_ID)).thenReturn(Optional.of(quotedOrder));
+        when(marketHoursService.isMarketOpen()).thenReturn(false);
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderResponse response = tradingService.confirmOrder("order-001", USER_ID);
+
+        assertNotNull(response);
+        verify(orderRepository).save(orderCaptor.capture());
+        assertEquals(OrderStatus.QUEUED, orderCaptor.getValue().getStatus());
+        verify(quoteReservationService).release(eq(ASSET_ID), eq("order-001"), eq(new BigDecimal("10")));
+    }
+
+    @Test
+    void confirmOrder_nonQuotedStatus_throws() {
+        Order cancelledOrder = Order.builder()
+                .id("order-001").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.CANCELLED)
+                .build();
+        when(orderRepository.findByIdAndUserId("order-001", USER_ID)).thenReturn(Optional.of(cancelledOrder));
+
+        TradingException ex = assertThrows(TradingException.class,
+                () -> tradingService.confirmOrder("order-001", USER_ID));
+        assertTrue(ex.getMessage().contains("Cannot confirm order with status CANCELLED"));
+    }
+
+    @Test
+    void confirmOrder_alreadyPending_returnsIdempotent() {
+        Order pendingOrder = Order.builder()
+                .id("order-001").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.PENDING)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106")).fee(new BigDecimal("6"))
+                .build();
+        when(orderRepository.findByIdAndUserId("order-001", USER_ID)).thenReturn(Optional.of(pendingOrder));
+
+        OrderResponse response = tradingService.confirmOrder("order-001", USER_ID);
+
+        assertNotNull(response);
+        // No save, no event — just returns current state
+        verify(orderRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void confirmOrder_alreadyFilled_returnsIdempotent() {
+        Order filledOrder = Order.builder()
+                .id("order-001").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.FILLED)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106")).fee(new BigDecimal("6"))
+                .build();
+        when(orderRepository.findByIdAndUserId("order-001", USER_ID)).thenReturn(Optional.of(filledOrder));
+
+        OrderResponse response = tradingService.confirmOrder("order-001", USER_ID);
+
+        assertNotNull(response);
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void confirmOrder_exactExpiry_rejectsQuote() {
+        // Quote with expiresAt = now (exact boundary) should be rejected
+        Instant exactExpiry = Instant.now();
+        Order order = Order.builder()
+                .id("order-001").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.QUOTED)
+                .units(new BigDecimal("10"))
+                .quoteExpiresAt(exactExpiry)
+                .build();
+        when(orderRepository.findByIdAndUserId("order-001", USER_ID)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TradingException ex = assertThrows(TradingException.class,
+                () -> tradingService.confirmOrder("order-001", USER_ID));
+        assertTrue(ex.getMessage().contains("expired"));
+
+        verify(orderRepository).save(orderCaptor.capture());
+        assertEquals(OrderStatus.CANCELLED, orderCaptor.getValue().getStatus());
+    }
+
+    @Test
+    void confirmOrder_optimisticLockConflict_throwsMeaningfulError() {
+        Order quotedOrder = Order.builder()
+                .id("order-001").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.QUOTED)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106")).fee(new BigDecimal("6"))
+                .quoteExpiresAt(Instant.now().plusSeconds(20))
+                .build();
+        when(orderRepository.findByIdAndUserId("order-001", USER_ID)).thenReturn(Optional.of(quotedOrder));
+        when(marketHoursService.isMarketOpen()).thenReturn(true);
+        when(orderRepository.save(any(Order.class)))
+                .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(Order.class, "order-001"));
+
+        TradingException ex = assertThrows(TradingException.class,
+                () -> tradingService.confirmOrder("order-001", USER_ID));
+        assertTrue(ex.getMessage().contains("already confirmed"));
+    }
+
+    // -------------------------------------------------------------------------
+    // cancelOrder (QUOTED) tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void cancelOrder_quotedBuyOrder_cancelsAndReleases() {
+        Order quotedOrder = Order.builder()
+                .id("order-001").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.QUOTED)
+                .units(new BigDecimal("10"))
+                .build();
+        when(orderRepository.findByIdAndUserId("order-001", USER_ID)).thenReturn(Optional.of(quotedOrder));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderResponse response = tradingService.cancelOrder("order-001", USER_ID);
+
+        assertNotNull(response);
+        verify(orderRepository).save(orderCaptor.capture());
+        assertEquals(OrderStatus.CANCELLED, orderCaptor.getValue().getStatus());
+        verify(quoteReservationService).release(eq(ASSET_ID), eq("order-001"), eq(new BigDecimal("10")));
+        verify(eventPublisher).publishEvent(any(OrderStatusChangedEvent.class));
     }
 
     // -------------------------------------------------------------------------

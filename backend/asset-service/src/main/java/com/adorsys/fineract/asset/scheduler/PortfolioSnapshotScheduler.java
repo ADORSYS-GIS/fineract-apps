@@ -4,11 +4,13 @@ import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.entity.PortfolioSnapshot;
 import com.adorsys.fineract.asset.entity.UserPosition;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -35,39 +37,54 @@ public class PortfolioSnapshotScheduler {
     private final AssetPriceRepository assetPriceRepository;
     private final PortfolioSnapshotRepository portfolioSnapshotRepository;
     private final AssetServiceConfig config;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "${asset-service.portfolio.snapshot-cron:0 30 20 * * *}",
                zone = "Africa/Douala")
     public void takeSnapshots() {
-        log.info("Portfolio snapshot scheduler started");
+        try {
+            log.info("Portfolio snapshot scheduler started");
 
-        List<Long> userIds = userPositionRepository.findDistinctUserIdsWithPositions();
-        if (userIds.isEmpty()) {
-            log.info("No users with positions — skipping snapshots");
-            return;
-        }
-
-        // Bulk-load all prices once
-        Map<String, BigDecimal> priceMap = assetPriceRepository.findAll().stream()
-                .collect(Collectors.toMap(AssetPrice::getAssetId, AssetPrice::getAskPrice,
-                        (a, b) -> b));
-
-        LocalDate today = LocalDate.now();
-        int success = 0;
-        int failed = 0;
-
-        for (Long userId : userIds) {
-            try {
-                snapshotUser(userId, today, priceMap);
-                success++;
-            } catch (Exception e) {
-                failed++;
-                log.error("Failed to snapshot portfolio for userId={}: {}", userId, e.getMessage());
+            List<Long> userIds = userPositionRepository.findDistinctUserIdsWithPositions();
+            if (userIds.isEmpty()) {
+                log.info("No users with positions — skipping snapshots");
+                return;
             }
-        }
 
-        log.info("Portfolio snapshot scheduler completed: {} success, {} failed out of {} users",
-                success, failed, userIds.size());
+            // Bulk-load all prices once
+            Map<String, BigDecimal> priceMap = assetPriceRepository.findAll().stream()
+                    .collect(Collectors.toMap(AssetPrice::getAssetId, AssetPrice::getAskPrice,
+                            (a, b) -> b));
+
+            LocalDate today = LocalDate.now();
+            int success = 0;
+            int failed = 0;
+
+            for (Long userId : userIds) {
+                try {
+                    snapshotUser(userId, today, priceMap);
+                    success++;
+                } catch (Exception e) {
+                    failed++;
+                    log.error("Failed to snapshot portfolio for userId={}: {}", userId, e.getMessage());
+                }
+            }
+
+            log.info("Portfolio snapshot scheduler completed: {} success, {} failed out of {} users",
+                    success, failed, userIds.size());
+
+            if (failed > 0) {
+                eventPublisher.publishEvent(new AdminAlertEvent(
+                        "SCHEDULER_FAILURE", "Portfolio snapshot scheduler partial failure",
+                        String.format("%d of %d user snapshots failed", failed, userIds.size()),
+                        null, "SCHEDULER"));
+            }
+        } catch (Exception e) {
+            log.error("Portfolio snapshot scheduler failed: {}", e.getMessage(), e);
+            eventPublisher.publishEvent(new AdminAlertEvent(
+                    "SCHEDULER_FAILURE", "Portfolio snapshot scheduler failed",
+                    e.getMessage(), null, "SCHEDULER"));
+        }
     }
 
     private void snapshotUser(Long userId, LocalDate date, Map<String, BigDecimal> priceMap) {

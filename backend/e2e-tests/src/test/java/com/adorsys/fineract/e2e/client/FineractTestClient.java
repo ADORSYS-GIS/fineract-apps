@@ -155,16 +155,23 @@ public class FineractTestClient {
     }
 
     public Long provisionSavingsAccount(Long clientId, Integer productId) {
+        return provisionSavingsAccount(clientId, productId, null);
+    }
+
+    public Long provisionSavingsAccount(Long clientId, Integer productId, String externalId) {
         String today = LocalDate.now().format(DATE_FORMAT);
 
         // Create
-        Map<String, Object> createBody = Map.of(
+        Map<String, Object> createBody = new java.util.HashMap<>(Map.of(
                 "clientId", clientId,
                 "productId", productId,
                 "locale", "en",
                 "dateFormat", "dd MMMM yyyy",
                 "submittedOnDate", today
-        );
+        ));
+        if (externalId != null) {
+            createBody.put("externalId", externalId);
+        }
         Response createResp = request()
                 .body(createBody)
                 .post("/fineract-provider/api/v1/savingsaccounts");

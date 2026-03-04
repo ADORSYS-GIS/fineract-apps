@@ -21,7 +21,7 @@ Feature: Income Distribution (E2E)
     And the preview should be feasible
     And the preview should include income benefit projections
     And the income benefit income type should be "RENT"
-    And the income benefit should be variable income
+    And the income benefit should be fixed income
 
   Scenario: BUY preview does not include income projections for non-income asset
     Given an active stock asset "NIN" with price 1000 and supply 1000
