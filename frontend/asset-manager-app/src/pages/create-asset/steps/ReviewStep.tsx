@@ -24,7 +24,7 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 				</h2>
 				<p className="text-sm text-gray-500">
 					Review all details before creating the asset. This will provision a
-					currency, savings product, and LP account in.
+					currency, savings product, and LP account in the backend.
 				</p>
 			</div>
 
@@ -247,7 +247,7 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 						<ol className="list-decimal list-inside space-y-1 text-yellow-700">
 							<li>
 								Register <strong>{formData.symbol}</strong> as a custom currency
-								in
+								in the backend
 							</li>
 							<li>Create a savings product for this asset</li>
 							<li>Create an LP savings account for the company</li>

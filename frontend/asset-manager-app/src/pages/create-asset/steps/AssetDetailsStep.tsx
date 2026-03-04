@@ -70,7 +70,7 @@ export const AssetDetailsStep: FC<Props> = ({
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
 							3-letter ticker code (e.g. DTT). Also registered as a currency
-							code
+							code in the backend
 						</p>
 					)}
 				</div>
