@@ -131,7 +131,7 @@ export TOKEN=$(curl -s --location --request POST "http://localhost:9000/realms/f
 --data-urlencode "grant_type=password" | jq -r '.access_token')
 ```
 
-### 7.2. Test Suite: Two-Stage Registration
+### 7.2. Test Suite: Success Scenarios
 
 #### Test Case 1, Step 1: Register Client and Account (SUCCESS)
 **Objective:** Create the client and the savings account.
@@ -190,6 +190,102 @@ curl --location --request POST 'http://localhost:8081/api/registration/approve-a
   "savingsAccountId": 26,
   "transactionId": 512
 }
+```
+
+#### Test Case 2: Approve and Activate Only (SUCCESS)
+**Objective:** Activate an account without an initial deposit.
+**Instructions:** Use a `savingsAccountId` from a new registration to avoid conflicts with previous tests.
+**Expected Result:** `200 OK`
+
+```bash
+# First, register a new user to get a new savingsAccountId (e.g., with external-id-002)
+# ... (run registration curl) ...
+# Then, set the new SAVINGS_ACCOUNT_ID
+export SAVINGS_ACCOUNT_ID=<new_id>
+export IDEMPOTENCY_KEY=$(uuidgen)
+
+curl --location --request POST 'http://localhost:8081/api/registration/approve-and-deposit' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--header "X-Idempotency-Key: $IDEMPOTENCY_KEY" \
+--data-raw "{
+    \"savingsAccountId\": $SAVINGS_ACCOUNT_ID,
+    \"depositAmount\": 0,
+    \"paymentType\": \"Cash\" 
+}"
+```
+*Note: `paymentType` is still required, but the `depositAmount` of 0 means no transaction will be posted. The response will not contain a `transactionId`.*
+
+
+### 7.3. Test Suite: Failure Scenarios
+
+#### Test Case 3: Attempt to Re-register with Same `externalId` (FAILURE)
+**Objective:** Verify that the registration endpoint is idempotent based on `externalId`.
+**Expected Result:** `409 Conflict` (or similar error indicating a duplicate)
+
+```bash
+# This uses the same externalId as Test Case 1
+curl --location --request POST 'http://localhost:8081/api/registration/register' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "firstName": "Brenda",
+    "lastName": "Biya",
+    "email": "brenda.biya@example.cm",
+    "phone": "+237691111111",
+    "externalId": "external-id-001"
+}'
+```
+
+#### Test Case 4: Missing Required Field (FAILURE)
+**Objective:** Verify server-side validation.
+**Expected Result:** `400 Bad Request`
+
+```bash
+# Missing "lastName"
+curl --location --request POST 'http://localhost:8081/api/registration/register' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "firstName": "John",
+    "email": "john.doe@example.cm",
+    "phone": "+237692222222",
+    "externalId": "external-id-003"
+}'
+```
+
+#### Test Case 5: Invalid `paymentType` (FAILURE)
+**Objective:** Verify that the `approve-and-deposit` endpoint validates the `paymentType`.
+**Expected Result:** `400 Bad Request`
+
+```bash
+# Assumes SAVINGS_ACCOUNT_ID is set from a successful registration
+export IDEMPOTENCY_KEY=$(uuidgen)
+curl --location --request POST 'http://localhost:8081/api/registration/approve-and-deposit' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--header "X-Idempotency-Key: $IDEMPOTENCY_KEY" \
+--data-raw "{
+    \"savingsAccountId\": $SAVINGS_ACCOUNT_ID,
+    \"depositAmount\": 500,
+    \"paymentType\": \"Invalid Payment Type\"
+}"
+```
+
+#### Test Case 6: Missing Idempotency Key (FAILURE)
+**Objective:** Verify that the `X-Idempotency-Key` header is enforced.
+**Expected Result:** `400 Bad Request`
+
+```bash
+# Assumes SAVINGS_ACCOUNT_ID is set from a successful registration
+curl --location --request POST 'http://localhost:8081/api/registration/approve-and-deposit' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw "{
+    \"savingsAccountId\": $SAVINGS_ACCOUNT_ID,
+    \"depositAmount\": 500,
+    \"paymentType\": \"Cash\"
+}"
 ```
 
 ## 8. Post-Registration State
