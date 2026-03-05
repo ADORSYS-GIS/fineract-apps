@@ -275,15 +275,28 @@ public class FineractAccountService {
         if (idempotencyKey == null || response == null) {
             return;
         }
-        try {
-            log.info("Caching successful response for idempotency key: {}", idempotencyKey);
-            redisTemplate.opsForValue().set(idempotencyKey, response, 24, TimeUnit.HOURS);
-        } catch (Exception e) {
-            log.error("Redis error while storing idempotency key: {}. This may lead to duplicate transactions.", e.getMessage());
-            // This is a critical failure. The transaction succeeded but the idempotency key was not stored.
-            // A real-world application should have a more robust mechanism here, 
-            // like a fallback data store or a monitoring alert.
-            throw new RegistrationException("Failed to cache response for idempotency key", e);
+
+        int maxRetries = 3;
+        long delayMs = 100; // 100 milliseconds
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                log.info("Attempt {} of {}: Caching successful response for idempotency key: {}", attempt, maxRetries, idempotencyKey);
+                redisTemplate.opsForValue().set(idempotencyKey, response, 24, TimeUnit.HOURS);
+                return; // Success, exit the method
+            } catch (Exception e) {
+                log.warn("Attempt {} of {} failed to cache response for idempotency key: {}. Retrying in {}ms.", attempt, maxRetries, e.getMessage(), delayMs);
+                if (attempt == maxRetries) {
+                    log.error("Redis error after {} attempts while storing idempotency key: {}. This may lead to duplicate transactions.", maxRetries, e.getMessage());
+                    throw new RegistrationException("Failed to cache response for idempotency key after " + maxRetries + " attempts", e);
+                }
+                try {
+                    Thread.sleep(delayMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RegistrationException("Thread interrupted during retry delay for caching", ie);
+                }
+            }
         }
     }
 }
