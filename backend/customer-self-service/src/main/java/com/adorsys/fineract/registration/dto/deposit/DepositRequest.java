@@ -1,5 +1,6 @@
 package com.adorsys.fineract.registration.dto.deposit;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import java.math.BigDecimal;
 
@@ -7,4 +8,6 @@ import java.math.BigDecimal;
 public class DepositRequest {
     private Long savingsAccountId;
     private BigDecimal depositAmount;
+    @NotBlank(message = "Payment type is required")
+    private String paymentType;
 }

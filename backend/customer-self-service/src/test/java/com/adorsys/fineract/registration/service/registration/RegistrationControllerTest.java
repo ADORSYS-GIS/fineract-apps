@@ -142,6 +142,7 @@ class RegistrationControllerTest {
             depositRequest = new DepositRequest();
             depositRequest.setSavingsAccountId(1L);
             depositRequest.setDepositAmount(new BigDecimal("100.00"));
+            depositRequest.setPaymentType("Money Transfer");
         }
 
         @Test
@@ -152,9 +153,10 @@ class RegistrationControllerTest {
             response.setStatus("success");
             response.setSavingsAccountId(1L);
             response.setTransactionId(123L);
-            when(registrationService.fundAccount(any(DepositRequest.class))).thenReturn(response);
+            when(registrationService.fundAccount(any(DepositRequest.class), any())).thenReturn(response);
 
             mockMvc.perform(post("/api/registration/approve-and-deposit")
+                    .header("X-Idempotency-Key", "test-key")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(depositRequest)))
                     .andExpect(status().isOk())
@@ -165,10 +167,11 @@ class RegistrationControllerTest {
         @Test
         @WithMockUser(authorities = "ROLE_KYC_MANAGER")
         void deposit_serviceFails_returns500() throws Exception {
-            when(registrationService.fundAccount(any(DepositRequest.class)))
+            when(registrationService.fundAccount(any(DepositRequest.class), any()))
                     .thenThrow(new RegistrationException("Funding failed"));
 
             mockMvc.perform(post("/api/registration/approve-and-deposit")
+                    .header("X-Idempotency-Key", "test-key")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(depositRequest)))
                     .andExpect(status().isInternalServerError())

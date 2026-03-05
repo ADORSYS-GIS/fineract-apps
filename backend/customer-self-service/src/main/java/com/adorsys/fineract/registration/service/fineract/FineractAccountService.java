@@ -8,9 +8,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import java.util.concurrent.ConcurrentHashMap;
+
 
 @Slf4j
 @Service
@@ -24,11 +29,13 @@ public class FineractAccountService {
     private final RestClient fineractRestClient;
     private final FineractProperties fineractProperties;
     private final DateTimeFormatter dateTimeFormatter;
+    private final RedisTemplate<String, Object> redisTemplate;
 
-    public FineractAccountService(RestClient fineractRestClient, FineractProperties fineractProperties) {
+    public FineractAccountService(RestClient fineractRestClient, FineractProperties fineractProperties, RedisTemplate<String, Object> redisTemplate) {
         this.fineractRestClient = fineractRestClient;
         this.fineractProperties = fineractProperties;
         this.dateTimeFormatter = DateTimeFormatter.ofPattern(fineractProperties.getDefaults().getDateFormat());
+        this.redisTemplate = redisTemplate;
     }
 
     @SuppressWarnings("unchecked")
@@ -39,7 +46,7 @@ public class FineractAccountService {
             Map<String, Object> response = fineractRestClient.get()
                     .uri("/fineract-provider/api/v1/clients/{clientId}/accounts", clientId)
                     .retrieve()
-                    .body(Map.class);
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
             if (response != null && response.containsKey(SAVINGS_ACCOUNTS)) {
                 return (List<Map<String, Object>>) response.get(SAVINGS_ACCOUNTS);
@@ -51,7 +58,6 @@ public class FineractAccountService {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> getSavingsAccount(Long accountId) {
         log.info("Getting savings account: {}", accountId);
 
@@ -59,7 +65,7 @@ public class FineractAccountService {
             return fineractRestClient.get()
                     .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}", accountId)
                     .retrieve()
-                    .body(Map.class);
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             log.error("Failed to get savings account {}: {}", accountId, e.getMessage());
             return Map.of();
@@ -74,7 +80,7 @@ public class FineractAccountService {
             Map<String, Object> response = fineractRestClient.get()
                     .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}?associations=transactions", accountId)
                     .retrieve()
-                    .body(Map.class);
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
             if (response != null && response.containsKey(TRANSACTIONS)) {
                 return (List<Map<String, Object>>) response.get(TRANSACTIONS);
@@ -132,8 +138,62 @@ public class FineractAccountService {
         }
     }
 
+    public Map<String, Object> makeDeposit(Long savingsAccountId, BigDecimal amount, String paymentType) {
+        return makeDeposit(savingsAccountId, amount, paymentType, null);
+    }
+
     @SuppressWarnings("unchecked")
-    public Map<String, Object> makeDeposit(Long savingsAccountId, BigDecimal amount) {
+    public Map<String, Object> makeDeposit(Long savingsAccountId, BigDecimal amount, String paymentType, String idempotencyKey) {
+        if (idempotencyKey == null) {
+            log.info("No idempotency key provided. Proceeding with standard deposit.");
+            return performDeposit(savingsAccountId, amount, paymentType);
+        }
+        log.info("Idempotency key provided: {}. Starting idempotent deposit flow.", idempotencyKey);
+
+        String lockKey = idempotencyKey + ":lock";
+        Boolean lockAcquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "true", 1, TimeUnit.MINUTES);
+
+        if (Boolean.TRUE.equals(lockAcquired)) {
+            log.info("Successfully acquired lock for idempotency key: {}", idempotencyKey);
+            try {
+                Object cachedResponse = getCachedResponse(idempotencyKey);
+                if (cachedResponse != null) {
+                    log.info("Returning cached response for idempotency key: {}", idempotencyKey);
+                    return (Map<String, Object>) cachedResponse;
+                }
+
+                log.info("No cached response found. Proceeding with new deposit for idempotency key: {}", idempotencyKey);
+                Map<String, Object> response = performDeposit(savingsAccountId, amount, paymentType);
+                cacheResponse(idempotencyKey, response);
+                return response;
+            } finally {
+                log.debug("Releasing lock for idempotency key: {}", idempotencyKey);
+                redisTemplate.delete(lockKey);
+            }
+        } else {
+            log.warn("Failed to acquire lock for idempotency key: {}. Another request may be in progress.", idempotencyKey);
+            // If lock is not acquired, another request is in progress.
+            // Wait a bit and check for the cached response.
+            try {
+                log.info("Waiting for a short period for other request to complete...");
+                Thread.sleep(500); // Wait for 500ms
+                Object cachedResponse = getCachedResponse(idempotencyKey);
+                if (cachedResponse != null) {
+                    log.info("Found cached response after waiting for idempotency key: {}", idempotencyKey);
+                    return (Map<String, Object>) cachedResponse;
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RegistrationException("Thread interrupted while waiting for idempotency key", e);
+            }
+            log.error("Could not acquire lock and no cached response found after waiting for idempotency key: {}", idempotencyKey);
+            throw new RegistrationException("Another request with the same idempotency key is already being processed.");
+        }
+    }
+
+    private final Map<String, Long> paymentTypeCache = new ConcurrentHashMap<>();
+
+    private Map<String, Object> performDeposit(Long savingsAccountId, BigDecimal amount, String paymentType) {
         log.info("Making deposit to savings account: {}", savingsAccountId);
         try {
             Map<String, Object> body = new HashMap<>();
@@ -141,16 +201,89 @@ public class FineractAccountService {
             body.put(DATE_FORMAT, fineractProperties.getDefaults().getDateFormat());
             body.put("transactionDate", LocalDate.now().format(dateTimeFormatter));
             body.put("transactionAmount", amount);
-            body.put("paymentTypeId", fineractProperties.getDefaults().getPaymentTypeId());
 
-            return fineractRestClient.post()
+            Long paymentTypeId = getPaymentTypeIdByName(paymentType);
+            body.put("paymentTypeId", paymentTypeId);
+
+            Map<String, Object> response = fineractRestClient.post()
                     .uri("/fineract-provider/api/v1/savingsaccounts/{savingsAccountId}/transactions?command=deposit", savingsAccountId)
                     .body(body)
                     .retrieve()
-                    .body(Map.class);
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+            log.debug("Successfully made deposit. Fineract response: {}", response);
+            return response;
         } catch (Exception e) {
             log.error("Failed to make deposit to savings account {}: {}", savingsAccountId, e.getMessage());
             throw new RegistrationException("Failed to make deposit", e);
+        }
+    }
+
+    private Long getPaymentTypeIdByName(String paymentTypeName) {
+        // Check cache first
+        if (paymentTypeCache.containsKey(paymentTypeName)) {
+            log.info("Payment type cache hit for '{}'.", paymentTypeName);
+            return paymentTypeCache.get(paymentTypeName);
+        }
+
+        // If not in cache, fetch from API
+        log.info("Payment type cache miss for '{}'. Fetching all payment types from API.", paymentTypeName);
+        List<Map<String, Object>> paymentTypes = fineractRestClient.get()
+                .uri("/fineract-provider/api/v1/paymenttypes")
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+
+        if (paymentTypes != null) {
+            // Populate cache
+            log.debug("Populating payment type cache with {} entries.", paymentTypes.size());
+            for (Map<String, Object> pt : paymentTypes) {
+                String name = (String) pt.get("name");
+                Long id = ((Number) pt.get("id")).longValue();
+                paymentTypeCache.put(name, id);
+            }
+        }
+
+        // Check cache again
+        if (paymentTypeCache.containsKey(paymentTypeName)) {
+            return paymentTypeCache.get(paymentTypeName);
+        }
+
+        log.error("Payment type '{}' not found after fetching from API.", paymentTypeName);
+        throw new RegistrationException("Payment type not found: " + paymentTypeName);
+    }
+
+
+    private Object getCachedResponse(String idempotencyKey) {
+        if (idempotencyKey == null) {
+            return null;
+        }
+        try {
+            Object cachedValue = redisTemplate.opsForValue().get(idempotencyKey);
+            if (cachedValue != null) {
+                log.debug("Idempotency cache hit for key: {}", idempotencyKey);
+            } else {
+                log.debug("Idempotency cache miss for key: {}", idempotencyKey);
+            }
+            return cachedValue;
+        } catch (Exception e) {
+            log.error("Redis error while checking idempotency key: {}", e.getMessage());
+            // Fail closed
+            throw new RegistrationException("Failed to check idempotency key", e);
+        }
+    }
+
+    private void cacheResponse(String idempotencyKey, Map<String, Object> response) {
+        if (idempotencyKey == null || response == null) {
+            return;
+        }
+        try {
+            log.info("Caching successful response for idempotency key: {}", idempotencyKey);
+            redisTemplate.opsForValue().set(idempotencyKey, response, 24, TimeUnit.HOURS);
+        } catch (Exception e) {
+            log.error("Redis error while storing idempotency key: {}. This may lead to duplicate transactions.", e.getMessage());
+            // This is a critical failure. The transaction succeeded but the idempotency key was not stored.
+            // A real-world application should have a more robust mechanism here, 
+            // like a fallback data store or a monitoring alert.
+            throw new RegistrationException("Failed to cache response for idempotency key", e);
         }
     }
 }

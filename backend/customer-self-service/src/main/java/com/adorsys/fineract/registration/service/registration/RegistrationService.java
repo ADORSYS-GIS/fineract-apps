@@ -144,7 +144,7 @@ public class RegistrationService {
 
     @Timed(value = "registration.service.fundAccount", description = "Time taken to fund a customer's account")
     @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
-    public DepositResponse fundAccount(DepositRequest request) {
+    public DepositResponse fundAccount(DepositRequest request, String idempotencyKey) {
         log.info("Starting account funding process for savings account: {}", request.getSavingsAccountId());
 
         Map<String, Object> savingsAccount = fineractAccountService.getSavingsAccount(request.getSavingsAccountId());
@@ -159,7 +159,7 @@ public class RegistrationService {
 
         Long transactionId = null;
         if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(BigDecimal.ZERO) > 0) {
-            Map<String, Object> depositResponse = fineractAccountService.makeDeposit(request.getSavingsAccountId(), request.getDepositAmount());
+            Map<String, Object> depositResponse = fineractAccountService.makeDeposit(request.getSavingsAccountId(), request.getDepositAmount(), request.getPaymentType(), idempotencyKey);
             transactionId = ((Number) depositResponse.get("resourceId")).longValue();
         }
 

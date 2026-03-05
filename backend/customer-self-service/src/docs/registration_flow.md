@@ -10,7 +10,7 @@ The Customer Registration Service is a microservice responsible for orchestratin
 This endpoint initiates the first stage of a new customer registration: creating the client and a savings account in a pending state.
 
 ### `POST /api/registration/approve-and-deposit`
-This endpoint initiates the second stage: approving, activating, and (optionally) making an initial deposit into the newly created savings account.
+This endpoint initiates the second stage: approving, activating, and (optionally) making an initial deposit into the newly created savings account. This endpoint is idempotent. See the "Idempotency" section for more details.
 
 ## 3. Security Model
 
@@ -19,9 +19,27 @@ Security is managed declaratively by the Spring Security framework.
 -   **Authentication:** Both endpoints require a valid JWT `Bearer` token.
 -   **Authorization:** Access is restricted by method-level security. Both the `registerClientAndAccount` and `fundAccount` methods are annotated with `@PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")`, ensuring only authorized callers can use these endpoints.
 
-## 4. Payloads and Responses
+## 4. Idempotency
 
-### 4.1. Stage 1: Registration
+### Concept
+In the context of APIs, idempotency means that making the same request multiple times will produce the same result as making it once. This doesn't mean the server will re-process the request each time; it means the server will guarantee the same outcome.
+
+### Importance
+For financial operations like making a deposit, idempotency is critical. Without it, a client-side retry (e.g., due to a temporary network failure) could result in a customer being charged multiple times for the same transaction. The `approve-and-deposit` endpoint is designed to be idempotent to prevent such issues.
+
+### Implementation
+Idempotency is achieved by requiring clients to send a unique `X-Idempotency-Key` in the request header.
+- The service uses Redis to lock and cache the response for each unique idempotency key. When a request comes in, the service first checks if the key has been processed before.
+- If the key is new, the service processes the transaction and stores the result in the Redis cache.
+- If a request is received with an idempotency key that is already in the cache, the service returns the cached response without re-processing the transaction.
+- The idempotency key is stored for 24 hours.
+
+### Client-side Usage
+Clients must generate a unique key (e.g., a UUID) for each distinct transaction. If a client needs to retry a request, it must use the *same* idempotency key as the original request. This allows the server to identify it as a retry and safely return the original result.
+
+## 5. Payloads and Responses
+
+### 5.1. Stage 1: Registration
 
 #### Request Payload (`/api/registration/register`)
 
@@ -48,7 +66,12 @@ A successful registration returns the Fineract Client ID and the new (but not ye
 }
 ```
 
-### 4.2. Stage 2: Deposit and Activation
+### 5.2. Stage 2: Deposit and Activation
+
+#### Request Headers (`/api/registration/approve-and-deposit`)
+| Header | Required | Description |
+|---|---|---|
+| `X-Idempotency-Key` | **Yes** | A unique key (e.g., UUID) to ensure idempotency. |
 
 #### Request Payload (`/api/registration/approve-and-deposit`)
 
@@ -56,6 +79,8 @@ A successful registration returns the Fineract Client ID and the new (but not ye
 |---|---|---|---|
 | `savingsAccountId` | `Long` | **Yes** | The ID of the savings account obtained from the registration step. |
 | `depositAmount` | `BigDecimal` | No | The amount to deposit. If not provided or zero, the account will only be approved and activated. |
+| `paymentType` | `String` | **Yes** | The name of the payment type for the deposit. This must match a payment type configured in Fineract. The service fetches the list of available payment types from the Fineract API (`/api/v1/paymenttypes`) and caches them. Example: "Cash". |
+
 
 #### Success Response (`200 OK`)
 
@@ -70,7 +95,7 @@ A successful deposit and activation returns the transaction ID for the deposit.
 }
 ```
 
-## 5. Registration Workflow
+## 6. Registration Workflow
 
 The process is now split into two distinct, idempotent, and transactional stages.
 
@@ -83,16 +108,16 @@ The process is now split into two distinct, idempotent, and transactional stages
     d. The service returns a `201 Created` response containing the new `fineractClientId` and `savingsAccountId`.
 
 2.  **Stage 2: Fund Account**
-    a. The client application takes the `savingsAccountId` from the Stage 1 response and sends a `POST` request to `/api/registration/approve-and-deposit`.
+    a. The client application takes the `savingsAccountId` from the Stage 1 response, generates a unique `X-Idempotency-Key`, and sends a `POST` request to `/api/registration/approve-and-deposit` with the key in the header.
     b. The service now makes **three sequential API calls** to Fineract to:
         i. Approve the savings account.
         ii. Activate the savings account.
         iii. (If `depositAmount` > 0) Post a deposit transaction to the account.
     c. The service returns a `200 OK` response confirming the activation and providing the `transactionId` if a deposit was made.
 
-## 6. Local Testing via cURL
+## 7. Local Testing via cURL
 
-### 6.1. Obtain an Access Token
+### 7.1. Obtain an Access Token
 
 First, obtain a token from Keycloak.
 
@@ -106,7 +131,7 @@ export TOKEN=$(curl -s --location --request POST "http://localhost:9000/realms/f
 --data-urlencode "grant_type=password" | jq -r '.access_token')
 ```
 
-### 6.2. Test Suite: Two-Stage Registration
+### 7.2. Test Suite: Two-Stage Registration
 
 #### Test Case 1, Step 1: Register Client and Account (SUCCESS)
 **Objective:** Create the client and the savings account.
@@ -144,13 +169,16 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
 ```bash
 # IMPORTANT: Replace 26 with the actual savingsAccountId from the previous response
 export SAVINGS_ACCOUNT_ID=26
+export IDEMPOTENCY_KEY=$(uuidgen)
 
 curl --location --request POST 'http://localhost:8081/api/registration/approve-and-deposit' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
+--header "X-Idempotency-Key: $IDEMPOTENCY_KEY" \
 --data-raw "{
     \"savingsAccountId\": $SAVINGS_ACCOUNT_ID,
-    \"depositAmount\": 1000
+    \"depositAmount\": 1000,
+    \"paymentType\": \"Cash\"
 }"
 ```
 
@@ -164,7 +192,7 @@ curl --location --request POST 'http://localhost:8081/api/registration/approve-a
 }
 ```
 
-## 7. Post-Registration State
+## 8. Post-Registration State
 
 -   **After Stage 1:** A **Client** exists and is active. A **Savings Account** exists but is in a "Submitted and pending approval" state. It cannot be transacted upon yet.
 -   **After Stage 2:** The **Savings Account** is now **Approved** and **Activated**, making it ready for transactions. The initial deposit has been credited.

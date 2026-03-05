@@ -58,9 +58,11 @@ public class RegistrationController {
     })
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<DepositResponse> approveAndDeposit(
+            @RequestHeader(value = "X-Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody DepositRequest request) {
         log.info("Received deposit request for savings account: {}", request.getSavingsAccountId());
-        DepositResponse response = registrationService.fundAccount(request);
+        log.debug("Deposit request payload: {}", request);
+        DepositResponse response = registrationService.fundAccount(request, idempotencyKey);
         return ResponseEntity.ok(response);
     }
 }

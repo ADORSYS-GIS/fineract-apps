@@ -183,6 +183,7 @@ class RegistrationServiceTest {
             depositRequest = new DepositRequest();
             depositRequest.setSavingsAccountId(2L);
             depositRequest.setDepositAmount(new BigDecimal("1000"));
+            depositRequest.setPaymentType("Money Transfer");
         }
 
         @Test
@@ -190,10 +191,10 @@ class RegistrationServiceTest {
         void fundAccount_success() {
             // Arrange
             when(fineractAccountService.getSavingsAccount(anyLong())).thenReturn(Map.of("status", Map.of("code", "savingsAccountStatusType.submitted.and.pending.approval")));
-            when(fineractAccountService.makeDeposit(anyLong(), any(BigDecimal.class))).thenReturn(Map.of("resourceId", 123L));
+            when(fineractAccountService.makeDeposit(anyLong(), any(BigDecimal.class), anyString(), anyString())).thenReturn(Map.of("resourceId", 123L));
 
             // Act
-            DepositResponse response = registrationService.fundAccount(depositRequest);
+            DepositResponse response = registrationService.fundAccount(depositRequest, "idempotency-key");
 
             // Assert
             assertNotNull(response);
@@ -208,10 +209,10 @@ class RegistrationServiceTest {
         void fundAccount_whenDepositFails_throwsRegistrationException() {
             // Arrange
             when(fineractAccountService.getSavingsAccount(anyLong())).thenReturn(Map.of("status", Map.of("code", "savingsAccountStatusType.submitted.and.pending.approval")));
-            when(fineractAccountService.makeDeposit(anyLong(), any(BigDecimal.class))).thenThrow(new RegistrationException("Deposit failed"));
+            when(fineractAccountService.makeDeposit(anyLong(), any(BigDecimal.class), anyString(), anyString())).thenThrow(new RegistrationException("Deposit failed"));
 
             // Act & Assert
-            RegistrationException exception = assertThrows(RegistrationException.class, () -> registrationService.fundAccount(depositRequest));
+            RegistrationException exception = assertThrows(RegistrationException.class, () -> registrationService.fundAccount(depositRequest, "idempotency-key"));
             assertEquals("Deposit failed", exception.getMessage());
         }
     }
