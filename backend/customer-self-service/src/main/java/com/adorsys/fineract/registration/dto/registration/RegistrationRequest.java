@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 
 @Data
 @Builder
@@ -44,5 +45,5 @@ public class RegistrationRequest {
     private String stateProvince;
     private String country;
     private String postalCode;
-
+    private BigDecimal depositAmount;
 }

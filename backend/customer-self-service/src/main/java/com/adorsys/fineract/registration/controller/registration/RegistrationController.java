@@ -1,7 +1,9 @@
 package com.adorsys.fineract.registration.controller.registration;
 
+import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
+import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
+import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
-import com.adorsys.fineract.registration.dto.registration.RegistrationResponse;
 import com.adorsys.fineract.registration.service.registration.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,21 +31,38 @@ public class RegistrationController {
     private final RegistrationService registrationService;
 
     @PostMapping("/register")
-    @Operation(summary = "Register a new customer",
-            description = "Creates a client in Fineract for self-service customer")
+    @Operation(summary = "Register a new customer and create a savings account",
+            description = "Creates a client and a savings account in Fineract for self-service customer")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Registration successful",
-                    content = @Content(schema = @Schema(implementation = RegistrationResponse.class))),
+                    content = @Content(schema = @Schema(implementation = ClientAndAccountResponse.class))),
             @ApiResponse(responseCode = "400", description = "Validation error or email already exists"),
             @ApiResponse(responseCode = "500", description = "Registration failed")
     })
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RegistrationResponse> register(
+    public ResponseEntity<ClientAndAccountResponse> register(
             @Valid @RequestBody RegistrationRequest request) {
         log.info("Received registration request for email: {}", request.getEmail());
-        RegistrationResponse response = registrationService.register(request);
+        ClientAndAccountResponse response = registrationService.registerClientAndAccount(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-
+    @PostMapping("/approve-and-deposit")
+    @Operation(summary = "Fund a customer's savings account",
+            description = "Approves, activates, and deposits funds into a customer's savings account")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Deposit successful",
+                    content = @Content(schema = @Schema(implementation = DepositResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Validation error"),
+            @ApiResponse(responseCode = "500", description = "Deposit failed")
+    })
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<DepositResponse> approveAndDeposit(
+            @RequestHeader(value = "X-Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody DepositRequest request) {
+        log.info("Received deposit request for savings account: {}", request.getSavingsAccountId());
+        log.debug("Deposit request payload: {}", request);
+        DepositResponse response = registrationService.fundAccount(request, idempotencyKey);
+        return ResponseEntity.ok(response);
+    }
 }

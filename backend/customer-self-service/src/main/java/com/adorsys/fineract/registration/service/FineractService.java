@@ -4,7 +4,6 @@ import com.adorsys.fineract.registration.dto.profile.AddressRequest;
 import com.adorsys.fineract.registration.dto.profile.AddressResponse;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
-import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.service.fineract.FineractAccountService;
 import com.adorsys.fineract.registration.service.fineract.FineractAddressService;
 import com.adorsys.fineract.registration.service.fineract.FineractClientService;
@@ -33,9 +32,6 @@ public class FineractService {
         this.fineractAddressService = fineractAddressService;
     }
 
-    public Long createClient(RegistrationRequest request) {
-        return fineractClientService.createClient(request);
-    }
 
     public Map<String, Object> getClientByExternalId(String externalId) {
         return fineractClientService.getClientByExternalId(externalId);
@@ -65,9 +61,6 @@ public class FineractService {
         return fineractClientService.updateClient(clientId, request);
     }
 
-    public Long createSavingsAccount(Long clientId) {
-        return fineractAccountService.createSavingsAccount(clientId);
-    }
 
     public AddressResponse createClientAddress(Long clientId, AddressRequest addressRequest) {
         return fineractAddressService.createClientAddress(clientId, addressRequest);

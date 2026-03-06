@@ -50,14 +50,15 @@ public class FineractProperties {
 
     @Data
     public static class Defaults {
-        private int officeId;
-        private int savingsProductId;
-        private int genderId;
-        private int legalFormId;
+        private Long officeId;
+        private Long savingsProductId;
+        private Long genderId;
+        private Long legalFormId;
         @NotBlank
         private String locale;
         @NotBlank
         private String dateFormat;
         private String postalCode;
+        private Long paymentTypeId;
     }
 }

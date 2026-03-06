@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: customer-registration-service
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:your-password}
   security:
     oauth2:
       resourceserver:

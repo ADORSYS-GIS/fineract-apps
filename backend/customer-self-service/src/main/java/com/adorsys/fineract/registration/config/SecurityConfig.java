@@ -46,7 +46,7 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers(HttpMethod.POST, "/api/registration/register").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/registration/register").hasAuthority("ROLE_KYC_MANAGER")
                 .requestMatchers("/api/registration/health/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()

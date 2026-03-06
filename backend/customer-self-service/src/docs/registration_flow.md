@@ -2,117 +2,60 @@
 
 ## 1. Overview
 
-The Customer Registration Service is a microservice responsible for orchestrating the creation of new customers. It exposes a single API endpoint that accepts customer details, validates the request, and creates a corresponding "Client" entity and a savings account in the Fineract core banking platform. The service is designed to be the primary entry point for all self-service customer onboarding processes.
+The Customer Registration Service is a microservice responsible for orchestrating the creation of new customers in a robust, two-stage process. It exposes API endpoints that first create a "Client" entity and a savings account in the Fineract core banking platform, and then separately handle the funding and activation of that account.
 
-## 2. API Endpoint
+## 2. API Endpoints
 
 ### `POST /api/registration/register`
+This endpoint initiates the first stage of a new customer registration: creating the client and a savings account in a pending state.
 
-This is the sole endpoint for initiating a new customer registration.
+### `POST /api/registration/approve-and-deposit`
+This endpoint initiates the second stage: approving, activating, and (optionally) making an initial deposit into the newly created savings account. This endpoint is idempotent. See the "Idempotency" section for more details.
 
 ## 3. Security Model
 
-Security is managed declaratively by the Spring Security framework, ensuring that authentication and authorization are handled before any business logic is executed.
+Security is managed declaratively by the Spring Security framework.
 
--   **Authentication:** The service is configured as an OAuth2 Resource Server. It requires a valid JWT `Bearer` token in the `Authorization` header for all requests to the registration endpoint. The token's signature and expiration are automatically validated using the JWK Set URI configured in the environment. The endpoint requires an authenticated user, as configured in `SecurityConfig`.
--   **Authorization:** Access to the registration logic is restricted by method-level security within the `RegistrationService`. The `register` method is annotated with `@PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")`. This ensures that only a caller with a valid JWT containing the `KYC_MANAGER` role can successfully invoke the registration process. Requests from authenticated users without this role will be rejected with a `403 Forbidden` error.
+-   **Authentication:** Both endpoints require a valid JWT `Bearer` token.
+-   **Authorization:** Access is restricted by method-level security. Both the `registerClientAndAccount` and `fundAccount` methods are annotated with `@PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")`, ensuring only authorized callers can use these endpoints.
 
-## 4. Request Payload
+## 4. Idempotency
 
-The endpoint expects a `Content-Type: application/json` body with the following structure:
+### Concept
+In the context of APIs, idempotency means that making the same request multiple times will produce the same result as making it once. This doesn't mean the server will re-process the request each time; it means the server will guarantee the same outcome.
+
+### Importance
+For financial operations like making a deposit, idempotency is critical. Without it, a client-side retry (e.g., due to a temporary network failure) could result in a customer being charged multiple times for the same transaction. The `approve-and-deposit` endpoint is designed to be idempotent to prevent such issues.
+
+### Implementation
+Idempotency is achieved by requiring clients to send a unique `X-Idempotency-Key` in the request header.
+- The service uses Redis to lock and cache the response for each unique idempotency key. When a request comes in, the service first checks if the key has been processed before.
+- If the key is new, the service processes the transaction and stores the result in the Redis cache.
+- If a request is received with an idempotency key that is already in the cache, the service returns the cached response without re-processing the transaction.
+- The idempotency key is stored for 24 hours.
+
+### Client-side Usage
+Clients must generate a unique key (e.g., a UUID) for each distinct transaction. If a client needs to retry a request, it must use the *same* idempotency key as the original request. This allows the server to identify it as a retry and safely return the original result.
+
+## 5. Payloads and Responses
+
+### 5.1. Stage 1: Registration
+
+#### Request Payload (`/api/registration/register`)
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `firstName` | `String` | **Yes** | The customer's first name. |
 | `lastName` | `String` | **Yes** | The customer's last name. |
-| `email` | `String` | **NO** | The customer's email address. Must be unique. |
+| `email` | `String` | No | The customer's email address. |
 | `phone` | `String` | **Yes** | The customer's mobile phone number. |
-| `externalId`| `String` | **Yes** | A unique identifier from the external identity system (e.g., Keycloak user ID). |
-| `dateOfBirth`| `LocalDate` | No | The customer's date of birth (Format: `YYYY-MM-DD`). |
-| `gender` | `String` | No | The customer's gender. |
-| `addressType`| `String`| Conditionally Yes | The type of address. Required if any other address field is provided. |
-| `addressLine1`| `String`| No | The customer's primary address line. |
-| `addressLine2`| `String`| No | The customer's second address line. Can be used to store latitude. |
-| `addressLine3`| `String`| No | The customer's third address line. Can be used to store longitude. |
-| `city`| `String`| No | The city of the customer's address. |
-| `stateProvince`| `String`| Conditionally Yes | The state or province. Required if any other address field is provided. |
-| `country`| `String`| Conditionally Yes | The country. Required if any other address field is provided. |
-| `postalCode`| `String`| No | The postal code. Defaults to `0000` if not provided. |
+| `externalId`| `String` | **Yes** | A unique identifier from the external identity system. |
+| `dateOfBirth`| `LocalDate` | No | Format: `YYYY-MM-DD`. |
+| ... | ... | ... | (Other address fields as before) |
 
-### Sample Request
+#### Success Response (`201 Created`)
 
-```json
-{
-  "firstName": "Fatima",
-  "lastName": "Diallo",
-  "email": "fatima.diallo@example.cm",
-  "phone": "+237699887766",
-  "externalId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-  "dateOfBirth": "1990-01-15",
-  "addressType": "Residential",
-  "addressLine1": "Rue Drouot",
-  "city": "Douala",
-  "stateProvince": "Littoral",
-  "country": "Cameroon",
-  "postalCode": "00237"
-}
-```
-
-## 5. Registration Workflow
-
-The registration process is designed to be **idempotent**. If a registration request is sent multiple times, the outcome will be the same as if it were sent only once. This prevents the creation of duplicate clients and ensures that every client has a savings account, even if the process is interrupted.
-
-1.  A client application sends a `POST` request to `/api/registration/register` with a valid JWT and the customer's data.
-2.  The Spring Security filter chain intercepts the request and validates the JWT.
-3.  The `RegistrationController` receives the request and passes it to the `RegistrationService`.
-4.  The `RegistrationService`'s `register` method is invoked. Spring Security verifies that the caller has the `ROLE_KYC_MANAGER` authority.
-5.  The `RegistrationService` invokes the `FineractService` to check if a client with the provided `externalId` already exists.
-6.  **If the client exists:**
-    a. The service checks if the client already has a savings account.
-    b. **If a savings account exists:** The registration is considered complete. A success response is returned with the existing client and savings account IDs.
-    c. **If no savings account exists:** The service proceeds to create, approve, and activate a new savings account for the existing client.
-7.  **If the client does not exist:**
-    a. The service creates a new client in Fineract.
-    b. Upon successful client creation, the service proceeds to create, approve, and activate a new savings account for the new client.
-8.  Upon successful creation of both entities in Fineract, the `RegistrationService` forms a success response.
-9.  The `RegistrationController` returns a `201 Created` HTTP status to the original caller, including the Fineract Client ID and Savings Account ID in the response body.
-
-## 6. Fineract Payload Mapping
-
-The service does not send all request fields to Fineract. The following tables detail the exact mapping.
-
-### 6.1. Fields Mapped from the Request
-
-| Request Field | Fineract Payload Field | Sent to Fineract? | Notes |
-|---|---|---|---|
-| `firstName` | `firstname` | **Yes** | Direct mapping. |
-| `lastName` | `lastname` | **Yes** | Direct mapping. |
-| `email` | `emailAddress` | **Yes** | Direct mapping. |
-| `phone` | `mobileNo` | **Yes** | Direct mapping. |
-| `dateOfBirth` | `dateOfBirth` | **Yes** | Sent only if provided. Formatted as "dd MMMM yyyy". |
-| `externalId` | `externalId` | **Yes** | Direct mapping. |
-| `gender` | `genderId` | **Yes** | Mapped to `genderId` by dynamically looking up the ID from Fineract's `/api/v1/codes/name/Gender/codevalues` endpoint. |
-| `addressLine1`, `city`, `stateProvince`, `country`, `postalCode` | `address` | **Yes** | These fields are mapped to a nested `address` object in the Fineract payload. |
-| `addressLine2` | `addressLine2` | **Yes** | Mapped to the `addressLine2` field within the `address` object. Can be used for latitude. |
-| `addressLine3` | `addressLine3` | **Yes** | Mapped to the `addressLine3` field within the `address` object. Can be used for longitude. |
-
-### 6.2. Hardcoded & Default Fields
-
-The service systematically adds the following fields to every Fineract "Create Client" request:
-
-| Fineract Payload Field | Value | Notes |
-|---|---|---|
-| `officeId` | `1` (default) | Configurable via `fineract.default-office-id` in `application.yml`. |
-| `active` | `true` | All new clients are created in an active state. |
-| `activationDate` | Current Date | The date the client is activated, formatted as "dd MMMM yyyy". |
-| `submittedOnDate` | Current Date | The date the client registration is submitted, formatted as "dd MMMM yyyy". |
-| `legalFormId` | `1` | This value is hardcoded to represent the "Person" legal form in Fineract. |
-| `locale` | `"en"` | Hardcoded to English. |
-| `dateFormat`| `"dd MMMM yyyy"` | The date format required by the Fineract API. |
-
-## 7. API Responses
-
-### Success Response (`201 Created`)
+A successful registration returns the Fineract Client ID and the new (but not yet active) Savings Account ID.
 
 ```json
 {
@@ -123,30 +66,60 @@ The service systematically adds the following fields to every Fineract "Create C
 }
 ```
 
-### Error Response (`400 Bad Request`)
+### 5.2. Stage 2: Deposit and Activation
 
-This is an example for a validation error. Other `4xx` or `5xx` errors follow a similar structure.
+#### Request Headers (`/api/registration/approve-and-deposit`)
+| Header | Required | Description |
+|---|---|---|
+| `X-Idempotency-Key` | **Yes** | A unique key (e.g., UUID) to ensure idempotency. |
+
+#### Request Payload (`/api/registration/approve-and-deposit`)
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `savingsAccountId` | `Long` | **Yes** | The ID of the savings account obtained from the registration step. |
+| `depositAmount` | `BigDecimal` | No | The amount to deposit. If not provided or zero, the account will only be approved and activated. |
+| `paymentType` | `String` | **Yes** | The name of the payment type for the deposit. This must match a payment type configured in Fineract. The service fetches the list of available payment types from the Fineract API (`/api/v1/paymenttypes`) and caches them. Example: "Cash". |
+
+
+#### Success Response (`200 OK`)
+
+A successful deposit and activation returns the transaction ID for the deposit.
 
 ```json
 {
-  "error": "VALIDATION_ERROR",
-  "message": "First name is required",
-  "field": "firstName",
-  "correlationId": "c7a8b9d0-e1f2-3456-7890-123456abcdef",
-  "timestamp": "2023-10-27T10:00:00Z",
-  "validationErrors": {
-    "firstName": "First name is required"
-  }
+  "success": true,
+  "status": "success",
+  "savingsAccountId": 205,
+  "transactionId": 512
 }
 ```
 
-## 8. Local Testing via cURL
+## 6. Registration Workflow
 
-To thoroughly test the service logic, use the following `curl` commands. These cover various success and failure scenarios based on the implemented validation rules.
+The process is now split into two distinct, idempotent, and transactional stages.
 
-### 8.1. Obtain an Access Token
+1.  **Stage 1: Register Client and Account**
+    a. A client application sends a `POST` request to `/api/registration/register`.
+    b. The service checks if a client with the `externalId` already exists.
+    c. If not, it builds and executes a **transactional batch request** to Fineract to:
+        i. Create the client.
+        ii. Create the savings account (in a "Submitted and pending approval" state).
+    d. The service returns a `201 Created` response containing the new `fineractClientId` and `savingsAccountId`.
 
-First, obtain a token from Keycloak. This token is required in the `Authorization` header for all subsequent requests.
+2.  **Stage 2: Fund Account**
+    a. The client application takes the `savingsAccountId` from the Stage 1 response, generates a unique `X-Idempotency-Key`, and sends a `POST` request to `/api/registration/approve-and-deposit` with the key in the header.
+    b. The service now makes **three sequential API calls** to Fineract to:
+        i. Approve the savings account.
+        ii. Activate the savings account.
+        iii. (If `depositAmount` > 0) Post a deposit transaction to the account.
+    c. The service returns a `200 OK` response confirming the activation and providing the `transactionId` if a deposit was made.
+
+## 7. Local Testing via cURL
+
+### 7.1. Obtain an Access Token
+
+First, obtain a token from Keycloak.
 
 ```bash
 export TOKEN=$(curl -s --location --request POST "http://localhost:9000/realms/fineract/protocol/openid-connect/token" \
@@ -158,10 +131,10 @@ export TOKEN=$(curl -s --location --request POST "http://localhost:9000/realms/f
 --data-urlencode "grant_type=password" | jq -r '.access_token')
 ```
 
-### 8.2. Test Suite: Registration Scenarios
+### 7.2. Test Suite: Success Scenarios
 
-#### Test Case 1: Minimalistic Success (SUCCESS)
-**Objective:** Verify that a client can be created with only the absolute minimum required fields.
+#### Test Case 1, Step 1: Register Client and Account (SUCCESS)
+**Objective:** Create the client and the savings account.
 **Expected Result:** `201 Created`
 
 ```bash
@@ -176,121 +149,9 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "externalId": "external-id-001"
 }'
 ```
+**Note:** The `depositAmount` is no longer part of this request.
 
-#### Test Case 2: Full Address Success (SUCCESS)
-**Objective:** Verify a successful registration with a complete address, including a custom postal code.
-**Expected Result:** `201 Created`
-
-```bash
-curl --location --request POST 'http://localhost:8081/api/registration/register' \
---header 'Content-Type: application/json' \
---header "Authorization: Bearer $TOKEN" \
---data-raw '{
-    "firstName": "Nathalie",
-    "lastName": "Koah",
-    "email": "nathalie.koah@example.cm",
-    "phone": "+237692222222",
-    "externalId": "external-id-002",
-    "dateOfBirth": "1987-01-15",
-    "gender": "Female",
-    "addressType": "Residential",
-    "addressLine1": "Bastos",
-    "addressLine2": "4.1585",
-    "addressLine3": "9.2435",
-    "city": "Yaoundé",
-    "stateProvince": "Centre",
-    "country": "Cameroon",
-    "postalCode": "54321"
-}'
-```
-
-#### Test Case 3: Default Postal Code (SUCCESS)
-**Objective:** Verify the postal code defaulting logic. No postal code is sent, so the service should apply the default `0000`.
-**Expected Result:** `201 Created`
-
-```bash
-curl --location --request POST 'http://localhost:8081/api/registration/register' \
---header 'Content-Type: application/json' \
---header "Authorization: Bearer $TOKEN" \
---data-raw '{
-    "firstName": "Francis",
-    "lastName": "Ngannou",
-    "email": "francis.ngannou@example.cm",
-    "phone": "+237693333333",
-    "externalId": "external-id-003",
-    "addressType": "Business",
-    "addressLine1": "MMA Factory",
-    "city": "Batié",
-    "stateProvince": "West",
-    "country": "Cameroon"
-}'
-```
-
-#### Test Case 4: Geolocation Only (SUCCESS)
-**Objective:** Verify that a client can be created with only the mandatory address fields plus geolocation.
-**Expected Result:** `201 Created`
-
-```bash
-curl --location --request POST 'http://localhost:8081/api/registration/register' \
---header 'Content-Type: application/json' \
---header "Authorization: Bearer $TOKEN" \
---data-raw '{
-    "firstName": "Stanley",
-    "lastName": "Enow",
-    "email": "stanley.enow@example.cm",
-    "phone": "+237694444444",
-    "externalId": "external-id-004",
-    "addressType": "Other",
-    "stateProvince": "South-West",
-    "country": "Cameroon",
-    "addressLine2": "4.1585",
-    "addressLine3": "9.2435"
-}'
-```
-
-#### Test Case 5: Missing `stateProvince` (FAILURE)
-**Objective:** Verify that the backend validation rejects a request with address info but missing the mandatory `stateProvince`.
-**Expected Result:** `400 Bad Request`
-
-```bash
-curl --location --request POST 'http://localhost:8081/api/registration/register' \
---header 'Content-Type: application/json' \
---header "Authorization: Bearer $TOKEN" \
---data-raw '{
-    "firstName": "Charlotte",
-    "lastName": "Dipanda",
-    "email": "charlotte.dipanda@example.cm",
-    "phone": "+237695555555",
-    "externalId": "external-id-005",
-    "addressType": "Residential",
-    "city": "Ebolowa",
-    "country": "Cameroon"
-}'
-```
-
-#### Test Case 6: Missing `addressType` (FAILURE)
-**Objective:** Verify that the backend validation rejects a request with address info but missing the mandatory `addressType`.
-**Expected Result:** `400 Bad Request`
-
-```bash
-curl --location --request POST 'http://localhost:8081/api/registration/register' \
---header 'Content-Type: application/json' \
---header "Authorization: Bearer $TOKEN" \
---data-raw '{
-    "firstName": "Salatiel",
-    "lastName": "Livenja",
-    "email": "salatiel.livenja@example.cm",
-    "phone": "+237696666666",
-    "externalId": "external-id-006",
-    "stateProvince": "North-West",
-    "country": "Cameroon"
-}'
-```
-
-### Successful Response
-
-A successful registration will return a `201 Created` status with a JSON body similar to the following, indicating the new Fineract Client ID and Savings Account ID.
-
+**Sample Response:**
 ```json
 {
   "success": true,
@@ -300,6 +161,134 @@ A successful registration will return a `201 Created` status with a JSON body si
 }
 ```
 
-## 9. Post-Registration State
+#### Test Case 1, Step 2: Approve, Activate, and Deposit (SUCCESS)
+**Objective:** Activate the account created in the previous step and make a deposit.
+**Instructions:** Manually replace `SAVINGS_ACCOUNT_ID` in the command below with the `savingsAccountId` you received from the previous step's response.
+**Expected Result:** `200 OK`
 
-Upon successful registration, the immediate result is the creation of a **Client** record in Fineract with its `active` status set to `true`, and a new **Savings Account** associated with that client. The savings account is also **approved** and **activated**, making it ready for transactions.
+```bash
+# IMPORTANT: Replace 26 with the actual savingsAccountId from the previous response
+export SAVINGS_ACCOUNT_ID=26
+export IDEMPOTENCY_KEY=$(uuidgen)
+
+curl --location --request POST 'http://localhost:8081/api/registration/approve-and-deposit' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--header "X-Idempotency-Key: $IDEMPOTENCY_KEY" \
+--data-raw "{
+    \"savingsAccountId\": $SAVINGS_ACCOUNT_ID,
+    \"depositAmount\": 1000,
+    \"paymentType\": \"Cash\"
+}"
+```
+
+**Sample Response:**
+```json
+{
+  "success": true,
+  "status": "success",
+  "savingsAccountId": 26,
+  "transactionId": 512
+}
+```
+
+#### Test Case 2: Approve and Activate Only (SUCCESS)
+**Objective:** Activate an account without an initial deposit.
+**Instructions:** Use a `savingsAccountId` from a new registration to avoid conflicts with previous tests.
+**Expected Result:** `200 OK`
+
+```bash
+# First, register a new user to get a new savingsAccountId (e.g., with external-id-002)
+# ... (run registration curl) ...
+# Then, set the new SAVINGS_ACCOUNT_ID
+export SAVINGS_ACCOUNT_ID=<new_id>
+export IDEMPOTENCY_KEY=$(uuidgen)
+
+curl --location --request POST 'http://localhost:8081/api/registration/approve-and-deposit' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--header "X-Idempotency-Key: $IDEMPOTENCY_KEY" \
+--data-raw "{
+    \"savingsAccountId\": $SAVINGS_ACCOUNT_ID,
+    \"depositAmount\": 0,
+    \"paymentType\": \"Cash\" 
+}"
+```
+*Note: `paymentType` is still required, but the `depositAmount` of 0 means no transaction will be posted. The response will not contain a `transactionId`.*
+
+
+### 7.3. Test Suite: Failure Scenarios
+
+#### Test Case 3: Attempt to Re-register with Same `externalId` (FAILURE)
+**Objective:** Verify that the registration endpoint is idempotent based on `externalId`.
+**Expected Result:** `409 Conflict` (or similar error indicating a duplicate)
+
+```bash
+# This uses the same externalId as Test Case 1
+curl --location --request POST 'http://localhost:8081/api/registration/register' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "firstName": "Brenda",
+    "lastName": "Biya",
+    "email": "brenda.biya@example.cm",
+    "phone": "+237691111111",
+    "externalId": "external-id-001"
+}'
+```
+
+#### Test Case 4: Missing Required Field (FAILURE)
+**Objective:** Verify server-side validation.
+**Expected Result:** `400 Bad Request`
+
+```bash
+# Missing "lastName"
+curl --location --request POST 'http://localhost:8081/api/registration/register' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "firstName": "John",
+    "email": "john.doe@example.cm",
+    "phone": "+237692222222",
+    "externalId": "external-id-003"
+}'
+```
+
+#### Test Case 5: Invalid `paymentType` (FAILURE)
+**Objective:** Verify that the `approve-and-deposit` endpoint validates the `paymentType`.
+**Expected Result:** `400 Bad Request`
+
+```bash
+# Assumes SAVINGS_ACCOUNT_ID is set from a successful registration
+export IDEMPOTENCY_KEY=$(uuidgen)
+curl --location --request POST 'http://localhost:8081/api/registration/approve-and-deposit' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--header "X-Idempotency-Key: $IDEMPOTENCY_KEY" \
+--data-raw "{
+    \"savingsAccountId\": $SAVINGS_ACCOUNT_ID,
+    \"depositAmount\": 500,
+    \"paymentType\": \"Invalid Payment Type\"
+}"
+```
+
+#### Test Case 6: Missing Idempotency Key (FAILURE)
+**Objective:** Verify that the `X-Idempotency-Key` header is enforced.
+**Expected Result:** `400 Bad Request`
+
+```bash
+# Assumes SAVINGS_ACCOUNT_ID is set from a successful registration
+curl --location --request POST 'http://localhost:8081/api/registration/approve-and-deposit' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw "{
+    \"savingsAccountId\": $SAVINGS_ACCOUNT_ID,
+    \"depositAmount\": 500,
+    \"paymentType\": \"Cash\"
+}"
+```
+
+## 8. Post-Registration State
+
+-   **After Stage 1:** A **Client** exists and is active. A **Savings Account** exists but is in a "Submitted and pending approval" state. It cannot be transacted upon yet.
+-   **After Stage 2:** The **Savings Account** is now **Approved** and **Activated**, making it ready for transactions. The initial deposit has been credited.
