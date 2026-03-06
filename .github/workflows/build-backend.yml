@@ -35,8 +35,8 @@ jobs:
       - name: Build asset-service
         run: mvn -B package --file backend/asset-service/pom.xml
 
-      - name: Build customer-registration-service
-        run: mvn -B package --file backend/customer-registration-service/pom.xml
+      - name: Build customer-self-service
+        run: mvn -B package --file backend/customer-self-service/pom.xml
 
       - name: Build payment-gateway-service
         run: mvn -B package --file backend/payment-gateway-service/pom.xml
