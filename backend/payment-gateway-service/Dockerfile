@@ -24,7 +24,7 @@ RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
 # Copy the built JAR from builder stage
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/target/*-exec.jar app.jar
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
