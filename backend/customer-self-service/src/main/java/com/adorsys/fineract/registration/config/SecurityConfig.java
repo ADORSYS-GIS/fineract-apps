@@ -28,7 +28,7 @@ import java.util.Arrays;
 public class SecurityConfig {
 
 
-    @Value("${app.cors.allowed-origins:*}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String[] allowedOrigins;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")

@@ -1,0 +1,28 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+# GL codes (same as production - GlAccountResolver resolves them from Fineract at startup)
+asset-service:
+  settlement-currency: XAF
+  settlement-currency-product-short-name: VSAV
+  gl-accounts:
+    digital-asset-inventory: "47"
+    customer-digital-asset-holdings: "65"
+    transfers-in-suspense: "48"
+    income-from-interest: "87"
+    expense-account: "91"
+    asset-issuance-payment-type: "Asset Issuance"
+    fee-income: "87"
+    fund-source: "42"
+
+logging:
+  level:
+    com.adorsys.fineract: DEBUG
+    org.testcontainers: INFO
+    io.cucumber: INFO

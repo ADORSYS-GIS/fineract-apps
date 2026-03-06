@@ -5,7 +5,7 @@
     <springProperty scope="context" name="appVersion" source="spring.application.version" defaultValue="1.0.0"/>
 
     <!-- Console pattern for development -->
-    <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] [%X{traceId:-},%X{spanId:-}] %cyan(%logger{36}) - %msg%n"/>
+    <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] [%X{correlationId:-}] [%X{traceId:-},%X{spanId:-}] %cyan(%logger{36}) - %msg%n"/>
 
     <!-- Console appender -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -18,7 +18,7 @@
     <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <layout class="ch.qos.logback.classic.PatternLayout">
-                <pattern>{"@timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","version":"${appVersion}","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","thread":"%thread","logger":"%logger{36}","message":"%msg","exception":"%ex{full}"}%n</pattern>
+                <pattern>{"@timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","level":"%level","service":"${appName}","version":"${appVersion}","correlationId":"%X{correlationId:-}","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","thread":"%thread","logger":"%logger{36}","message":"%msg","exception":"%ex{full}"}%n</pattern>
             </layout>
         </encoder>
     </appender>

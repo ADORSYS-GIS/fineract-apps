@@ -42,20 +42,12 @@ export const useAuth = () => {
 		}
 	}, [fineractUser, keycloakUser]);
 	const onLogout = () => {
-		const base = import.meta.env.BASE_URL || "/account/";
-		const appBase = base.endsWith("/") ? base : `${base}/`;
-		const redirectTo = `${window.location.origin}${appBase}`;
-
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
-			window.location.href = appBase;
+			window.location.href = "/home/";
 		} else {
-			// OAuth mode: Use OAuth2 Proxy global logout
-			// This terminates the Keycloak session across ALL devices
 			localStorage.clear();
 			sessionStorage.clear();
-			window.location.href = `/oauth2/sign_out?rd=${encodeURIComponent(
-				redirectTo,
-			)}`;
+			window.location.href = "/oauth2/sign_out?rd=/logout";
 		}
 	};
 	const isLoading =

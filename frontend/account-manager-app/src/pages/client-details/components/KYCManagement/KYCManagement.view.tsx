@@ -107,7 +107,7 @@ export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 	);
 
 	if (isLoading) {
-		return <div>{t("clientDetails.loading")}</div>;
+		return <div>{t("accountManagerClientDetails.loading")}</div>;
 	}
 
 	return (
@@ -134,13 +134,13 @@ export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 							<div>
 								<p className="font-semibold text-gray-800">
 									<span className="font-normal text-gray-500">
-										{t("kycManagement.documentType")}{" "}
+										{t("addIdentityDocument.documentType.label")}:{" "}
 									</span>
 									{identity.documentType?.name}
 								</p>
 								<p className="text-sm text-gray-500">
 									<span className="font-normal">
-										{t("kycManagement.documentKey")}{" "}
+										{t("addIdentityDocument.documentKey.label")}:{" "}
 									</span>
 									{identity.documentKey}
 								</p>
@@ -152,7 +152,7 @@ export const KYCManagement: FC<{ onAddIdentity: () => void }> = ({
 									}`}
 								>
 									<span className="font-normal text-gray-500">
-										{t("kycManagement.status")}{" "}
+										{t("addIdentityDocument.status.label")}:{" "}
 									</span>
 									{formatStatus(identity.status)}
 								</p>

@@ -9,7 +9,9 @@
 			"!**/dist",
 			"!packages/fineract-api/**",
 			"!**/routeTree.gen.ts",
-			"!**/coverage/**"
+			"!**/coverage/**",
+			"!**/target/**",
+			"!.claude/**"
 		]
 	},
 	"formatter": { "enabled": true, "indentStyle": "tab" },

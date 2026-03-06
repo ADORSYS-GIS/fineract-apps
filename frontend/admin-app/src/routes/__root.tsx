@@ -31,9 +31,7 @@ function RootLayout() {
 
 	const handleLogout = () => {
 		if (import.meta.env.VITE_AUTH_MODE === "basic") {
-			const base = import.meta.env.BASE_URL || "/";
-			const appBase = base.endsWith("/") ? base : `${base}/`;
-			window.location.href = appBase;
+			window.location.href = "/home/";
 		} else {
 			logout();
 		}

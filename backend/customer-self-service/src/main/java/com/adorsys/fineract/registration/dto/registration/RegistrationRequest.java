@@ -1,8 +1,7 @@
 package com.adorsys.fineract.registration.dto.registration;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,12 +17,15 @@ import java.math.BigDecimal;
 public class RegistrationRequest {
 
     @NotBlank(message = "First name is required")
+    @Size(max = 100, message = "First name must not exceed 100 characters")
     private String firstName;
 
     @NotBlank(message = "Last name is required")
+    @Size(max = 100, message = "Last name must not exceed 100 characters")
     private String lastName;
 
     @Email(message = "Invalid email format")
+    @Size(max = 254, message = "Email must not exceed 254 characters")
     private String email;
 
     @NotBlank(message = "Phone number is required")
@@ -32,6 +34,7 @@ public class RegistrationRequest {
 
     private LocalDate dateOfBirth;
 
+    @Pattern(regexp = "^(MALE|FEMALE|OTHER)?$", message = "Gender must be MALE, FEMALE, or OTHER")
     private String gender;
 
     @NotBlank(message = "External ID is compulsory")
