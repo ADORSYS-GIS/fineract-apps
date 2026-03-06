@@ -48,6 +48,17 @@ export const SavingsAccountDetailsView = (
 
 	const isBlocked = account?.subStatus?.block || false;
 
+	const getTransactionDetails = (
+		tx: SavingsAccountTransactionData,
+	): string | null => {
+		if (tx.note) return tx.note;
+		if (tx.transfer?.transferDescription)
+			return tx.transfer.transferDescription;
+		if (tx.paymentDetailData?.paymentType?.name)
+			return tx.paymentDetailData.paymentType.name;
+		return null;
+	};
+
 	const header = (
 		<div>
 			<div className="flex justify-between items-center">
@@ -193,6 +204,11 @@ export const SavingsAccountDetailsView = (
 											{transaction.runningBalance}
 										</span>
 									</div>
+									{getTransactionDetails(transaction) && (
+										<div className="text-xs text-gray-400 mt-1 truncate">
+											{getTransactionDetails(transaction)}
+										</div>
+									)}
 								</div>
 							);
 						})}
@@ -216,6 +232,9 @@ export const SavingsAccountDetailsView = (
 									</th>
 									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 										{t("savingsAccountDetails.balanceHeader")}
+									</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+										{t("details")}
 									</th>
 								</tr>
 							</thead>
@@ -254,6 +273,12 @@ export const SavingsAccountDetailsView = (
 												</td>
 												<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 													{transaction.runningBalance}
+												</td>
+												<td
+													className="px-6 py-4 text-sm text-gray-400 max-w-xs truncate"
+													title={getTransactionDetails(transaction) ?? ""}
+												>
+													{getTransactionDetails(transaction) ?? "—"}
 												</td>
 											</tr>
 										);

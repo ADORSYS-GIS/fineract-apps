@@ -22,6 +22,8 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RestClient;
 
+import jakarta.annotation.PostConstruct;
+
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -53,6 +55,13 @@ public class FineractConfig {
 
     public boolean isOAuthEnabled() {
         return "oauth".equalsIgnoreCase(authType);
+    }
+
+    @PostConstruct
+    void warnIfSslDisabled() {
+        if (!verifySsl) {
+            log.warn("SSL verification is DISABLED for Fineract connections. This should ONLY be used in development environments.");
+        }
     }
 
     @Bean
@@ -94,19 +103,19 @@ public class FineractConfig {
     private ClientHttpRequestInterceptor loggingInterceptor() {
         return (request, body, execution) -> {
             log.info("Sending request to Fineract: {} {}", request.getMethod(), request.getURI());
-            log.debug("Request headers: {}", request.getHeaders());
             if (body.length > 0) {
-                log.debug("Request body: {}", new String(body, StandardCharsets.UTF_8));
+                String bodyStr = new String(body, StandardCharsets.UTF_8);
+                log.debug("Request body: {}", bodyStr.length() > 500 ? bodyStr.substring(0, 500) + "...[truncated]" : bodyStr);
             }
 
             ClientHttpResponse response = execution.execute(request, body);
 
             log.info("Received response from Fineract: {}", response.getStatusCode());
-            log.debug("Response headers: {}", response.getHeaders());
 
             byte[] responseBodyBytes = StreamUtils.copyToByteArray(response.getBody());
             if (responseBodyBytes.length > 0) {
-                log.debug("Response body: {}", new String(responseBodyBytes, StandardCharsets.UTF_8));
+                String responseStr = new String(responseBodyBytes, StandardCharsets.UTF_8);
+                log.debug("Response body: {}", responseStr.length() > 500 ? responseStr.substring(0, 500) + "...[truncated]" : responseStr);
             }
 
             return new BufferingClientHttpResponseWrapper(response, responseBodyBytes);

@@ -16,6 +16,7 @@ public class KycStatusResponse {
 
     private Integer kycTier;
     private String kycStatus;
+    private String infoRequestMessage; // Populated when kycStatus is "more_info_required"
     private List<DocumentStatus> documents;
     private List<String> requiredDocuments;
     private List<String> missingDocuments;

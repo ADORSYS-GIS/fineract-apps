@@ -17,13 +17,8 @@ import java.util.Map;
 @AllArgsConstructor
 public class TransactionResponse {
 
-    /**
-     * List of transactions for the account.
-     */
     private List<Map<String, Object>> transactions;
-
-    /**
-     * Total number of records (for pagination).
-     */
-    private Integer totalFilteredRecords;
+    private Integer total;
+    private Integer page;
+    private Integer pageSize;
 }

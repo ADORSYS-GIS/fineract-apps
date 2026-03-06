@@ -300,6 +300,37 @@ public class FineractService {
     }
 
 
+    /**
+     * Store customer address in Fineract.
+     */
+    public void createClientAddress(Long clientId, RegistrationRequest.AddressDto address) {
+        if (address == null) return;
+
+        log.info("Creating address for client: {}", clientId);
+        try {
+            Map<String, Object> addressPayload = new HashMap<>();
+            addressPayload.put("street", address.getStreet());
+            addressPayload.put("city", address.getCity());
+            addressPayload.put("postalCode", address.getPostalCode());
+            addressPayload.put("countryId", 1); // Default country
+            addressPayload.put("addressTypeId", 1); // Residential
+            if (address.getCountry() != null) {
+                addressPayload.put("countryName", address.getCountry());
+            }
+
+            fineractRestClient.post()
+                    .uri("/fineract-provider/api/v1/clients/{clientId}/addresses?type=1", clientId)
+                    .body(addressPayload)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            log.info("Created address for client: {}", clientId);
+        } catch (Exception e) {
+            log.warn("Failed to create address for client {}: {}", clientId, e.getMessage());
+            // Don't fail registration if address creation fails
+        }
+    }
+
     private Map<String, Object> buildClientPayload(RegistrationRequest request, String externalId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("officeId", fineractConfig.getDefaultOfficeId());

@@ -86,17 +86,30 @@ public class AccountController {
                description = "Returns transaction history for a savings account after verifying ownership")
     public ResponseEntity<TransactionResponse> getTransactions(
             @PathVariable Long accountId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal Jwt jwt) {
 
-        log.info("Getting transactions for account: {}", accountId);
+        log.info("Getting transactions for account: {} (page={}, limit={})", accountId, page, limit);
 
         // Verify ownership first
         accountSecurityService.verifySavingsAccountOwnership(accountId, jwt);
 
-        List<Map<String, Object>> transactions = fineractService.getSavingsAccountTransactions(accountId);
+        List<Map<String, Object>> allTransactions = fineractService.getSavingsAccountTransactions(accountId);
+
+        // Apply pagination
+        int total = allTransactions.size();
+        int start = Math.max(0, (page - 1) * limit);
+        int end = Math.min(start + limit, total);
+        List<Map<String, Object>> paginatedTransactions = start < total
+                ? allTransactions.subList(start, end)
+                : List.of();
 
         return ResponseEntity.ok(TransactionResponse.builder()
-                .transactions(transactions)
+                .transactions(paginatedTransactions)
+                .total(total)
+                .page(page)
+                .pageSize(limit)
                 .build());
     }
 }

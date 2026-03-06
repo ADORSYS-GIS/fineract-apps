@@ -43,17 +43,13 @@ public class KycDocumentController {
     })
     public ResponseEntity<KycDocumentUploadResponse> uploadDocument(
             @AuthenticationPrincipal Jwt jwt,
-            @Parameter(description = "Customer external ID (for local testing)", required = false)
-            @RequestHeader(value = "X-External-Id", required = false) String externalIdHeader,
             @Parameter(description = "Document type: id_front, id_back, or selfie_with_id", required = true)
             @RequestParam("documentType") String documentType,
             @Parameter(description = "Document image file (JPEG, PNG, WebP, max 10MB)", required = true)
             @RequestParam("file") MultipartFile file) {
 
-        // Extract external ID from header or JWT token
-        String externalId = (externalIdHeader != null && !externalIdHeader.isBlank())
-                ? externalIdHeader
-                : extractExternalId(jwt);
+        // Always extract external ID from JWT token - never trust external headers
+        String externalId = extractExternalId(jwt);
 
         log.info("Received KYC document upload request: type={}, file={}, externalId={}",
                 documentType, file.getOriginalFilename(), externalId);

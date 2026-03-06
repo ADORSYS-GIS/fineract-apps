@@ -3,6 +3,7 @@ export {
 	menuAccounting,
 	menuAccountManager,
 	menuAdmin,
+	menuAssetManager,
 	menuBranchManager,
 	menuCashier,
 	menuReporting,

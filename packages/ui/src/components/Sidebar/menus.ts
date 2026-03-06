@@ -1,16 +1,21 @@
 import {
 	BarChart3,
 	BookOpen,
+	CalendarCheck,
 	CheckCircle,
 	ClipboardCheck,
 	FileText,
 	History,
 	Home,
+	LineChart,
 	Lock,
+	Package,
 	PlusCircle,
+	Scale,
 	Send,
 	Settings,
 	Shield,
+	TrendingUp,
 	Users,
 } from "lucide-react";
 import { MenuItem } from "./Sidebar.types";
@@ -108,6 +113,63 @@ export const menuReporting: MenuItem[] = [
 		icon: History,
 	},
 	{ name: "audit", title: "sidebar.audit", link: "/audit", icon: Shield },
+];
+
+export const menuAssetManager: MenuItem[] = [
+	{
+		name: "dashboard",
+		title: "sidebar.dashboard",
+		link: "/dashboard",
+		icon: Home,
+	},
+	{
+		name: "create-asset",
+		title: "sidebar.createAsset",
+		link: "/create-asset",
+		icon: PlusCircle,
+	},
+	{
+		name: "lp-performance",
+		title: "sidebar.lpPerformance",
+		link: "/lp-performance",
+		icon: TrendingUp,
+	},
+	{
+		name: "inventory",
+		title: "sidebar.inventory",
+		link: "/inventory",
+		icon: Package,
+	},
+	{
+		name: "scheduled-payments",
+		title: "sidebar.scheduledPayments",
+		link: "/scheduled-payments",
+		icon: CalendarCheck,
+	},
+	{
+		name: "market-settings",
+		title: "sidebar.marketSettings",
+		link: "/market-settings",
+		icon: LineChart,
+	},
+	{
+		name: "order-resolution",
+		title: "sidebar.orderResolution",
+		link: "/order-resolution",
+		icon: ClipboardCheck,
+	},
+	{
+		name: "reconciliation",
+		title: "sidebar.reconciliation",
+		link: "/reconciliation",
+		icon: Scale,
+	},
+	{
+		name: "settings",
+		title: "sidebar.settings",
+		link: "/settings",
+		icon: Settings,
+	},
 ];
 
 export const menuAccounting: MenuItem[] = [

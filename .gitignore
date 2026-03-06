@@ -2,6 +2,12 @@ node_modules
 dist
 tsconfig.tsbuildinfo
 .idea
+
+# Eclipse / Spring Tool Suite
+.classpath
+.project
+.factorypath
+.settings/
 coverage
 # TanStack Router
 .tanstack/
@@ -23,3 +29,6 @@ user-sync-service/.env.local
 **/target/
 *.class
 *.jar
+
+# Spec files
+backend/asset-service/spec.md

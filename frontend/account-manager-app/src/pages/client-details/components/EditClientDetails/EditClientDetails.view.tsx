@@ -47,7 +47,7 @@ export const EditClientDetails: FC<{
 					/>
 					<Input
 						name="mobileNo"
-						label={t("clientDetails.phone")}
+						label={t("accountManagerClientDetails.phone")}
 						type="text"
 						placeholder={t("createClient.mobileNumber.placeholder")}
 					/>
