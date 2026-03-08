@@ -33,10 +33,6 @@ public record UpdateAssetRequest(
     /** New subscription end date. Null to keep current. */
     @Schema(description = "New subscription end date.")
     LocalDate subscriptionEndDate,
-    /** New capital opened percentage. Null to keep current. */
-    @Schema(description = "New capital opened percentage.")
-    @PositiveOrZero BigDecimal capitalOpenedPercent,
-
     // ── Exposure limits ──
 
     /** New max position percent. Null to keep current. */

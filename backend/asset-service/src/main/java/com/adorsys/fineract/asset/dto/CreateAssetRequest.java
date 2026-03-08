@@ -38,8 +38,6 @@ public record CreateAssetRequest(
     @NotNull LocalDate subscriptionStartDate,
     /** End of the subscription period. BUY orders rejected after this date; SELL always allowed. */
     @NotNull LocalDate subscriptionEndDate,
-    /** Percentage of capital opened for subscription (e.g. 44.44). */
-    @PositiveOrZero @DecimalMax("100.00") BigDecimal capitalOpenedPercent,
     /** Fineract client ID of the liquidity partner (reseller) that will hold this asset's inventory. */
     @NotNull Long lpClientId,
 

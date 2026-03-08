@@ -56,10 +56,6 @@ public record AssetDetailResponse(
     LocalDate subscriptionStartDate,
     /** End of the subscription period. */
     LocalDate subscriptionEndDate,
-    /** Percentage of capital opened for subscription. */
-    @Schema(nullable = true)
-    BigDecimal capitalOpenedPercent,
-
     // ── Issuer info ──
 
     /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */

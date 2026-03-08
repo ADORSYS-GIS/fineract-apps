@@ -170,10 +170,6 @@ public class Asset {
     @Column(name = "subscription_end_date", nullable = false)
     private LocalDate subscriptionEndDate;
 
-    /** Percentage of capital opened for subscription (e.g. 44.44). Null if not applicable. */
-    @Column(name = "capital_opened_percent", precision = 5, scale = 2)
-    private BigDecimal capitalOpenedPercent;
-
     // ── Delisting fields ─────────────────────────────────────────────────────
 
     /** Date on which forced buyback will occur. Set when delisting is initiated. */

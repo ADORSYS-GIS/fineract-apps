@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { FC } from "react";
 import { AssetDetailsStep } from "./steps/AssetDetailsStep";
 import { BondDetailsStep } from "./steps/BondDetailsStep";
+import { IncomeDistributionStep } from "./steps/IncomeDistributionStep";
 import { PricingStep } from "./steps/PricingStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { SelectCompanyStep } from "./steps/SelectCompanyStep";
@@ -66,6 +67,14 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 			case "Supply":
 				return (
 					<SupplyStep
+						formData={formData}
+						updateFormData={updateFormData}
+						validationErrors={validationErrors}
+					/>
+				);
+			case "Income Distribution":
+				return (
+					<IncomeDistributionStep
 						formData={formData}
 						updateFormData={updateFormData}
 						validationErrors={validationErrors}

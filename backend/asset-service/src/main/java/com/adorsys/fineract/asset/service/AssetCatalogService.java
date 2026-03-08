@@ -7,6 +7,7 @@ import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
+import com.adorsys.fineract.asset.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,6 +36,7 @@ public class AssetCatalogService {
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
     private final TradeLogRepository tradeLogRepository;
+    private final FileStorageService fileStorageService;
 
     /**
      * List active assets with optional category filter and search.
@@ -76,7 +78,7 @@ public class AssetCatalogService {
 
         return new AssetPublicDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
-                asset.getDescription(), asset.getImageUrl(), asset.getCategory(), asset.getStatus(),
+                asset.getDescription(), resolveImageUrl(asset.getImageUrl()), asset.getCategory(), asset.getStatus(),
                 asset.getPriceMode(),
                 price != null ? price.getChange24hPercent() : null,
                 price != null ? price.getDayOpen() : null,
@@ -87,7 +89,6 @@ public class AssetCatalogService {
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
                 asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
-                asset.getCapitalOpenedPercent(),
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIssuerName(), asset.getIssuerPrice(), asset.getLpClientName(),
                 asset.getIsinCode(), asset.getMaturityDate(),
@@ -128,7 +129,7 @@ public class AssetCatalogService {
 
         return new AssetDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
-                asset.getDescription(), asset.getImageUrl(), asset.getCategory(), asset.getStatus(),
+                asset.getDescription(), resolveImageUrl(asset.getImageUrl()), asset.getCategory(), asset.getStatus(),
                 asset.getPriceMode(),
                 price != null ? price.getChange24hPercent() : null,
                 price != null ? price.getDayOpen() : null,
@@ -139,7 +140,6 @@ public class AssetCatalogService {
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
                 asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
-                asset.getCapitalOpenedPercent(),
                 asset.getIssuerName(), asset.getIssuerPrice(),
                 asset.getLpClientId(), asset.getLpAssetAccountId(),
                 asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
@@ -178,7 +178,7 @@ public class AssetCatalogService {
                 daysUntilSubscription = ChronoUnit.DAYS.between(LocalDate.now(), a.getSubscriptionStartDate());
             }
             return new DiscoverAssetResponse(
-                    a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
+                    a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
                     a.getCategory(), a.getStatus(), a.getSubscriptionStartDate(), daysUntilSubscription
             );
         });
@@ -223,11 +223,10 @@ public class AssetCatalogService {
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(a);
 
         return new AssetResponse(
-                a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
+                a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
                 a.getCategory(), a.getStatus(), askPrice, change,
                 available, a.getTotalSupply(),
                 a.getSubscriptionStartDate(), a.getSubscriptionEndDate(),
-                a.getCapitalOpenedPercent(),
                 a.getIssuerName(), a.getLpClientName(), couponAmountPerUnit,
                 a.getIsinCode(), a.getMaturityDate(),
                 a.getInterestRate(),
@@ -295,5 +294,16 @@ public class AssetCatalogService {
     private Boolean isSubscriptionClosed(LocalDate subscriptionEndDate) {
         if (subscriptionEndDate == null) return null;
         return !subscriptionEndDate.isAfter(LocalDate.now());
+    }
+
+    /**
+     * Resolves an imageUrl field to a full public URL.
+     * Storage keys (not starting with http) are resolved via FileStorageService.
+     * Legacy full URLs and nulls are returned as-is.
+     */
+    String resolveImageUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) return null;
+        if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) return imageUrl;
+        return fileStorageService.getPublicUrl(imageUrl);
     }
 }

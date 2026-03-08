@@ -12,6 +12,12 @@ spring:
     virtual:
       enabled: true
 
+  # Multipart file upload
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
   # Database configuration
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/asset_service}
@@ -121,6 +127,17 @@ asset-service:
   portfolio:
     snapshot-cron: "0 30 20 * * *"
 
+# File Storage (S3/MinIO)
+storage:
+  bucket: ${STORAGE_BUCKET:fineract-assets}
+  region: ${STORAGE_REGION:us-east-1}
+  endpoint: ${STORAGE_ENDPOINT:http://localhost:9000}
+  access-key: ${STORAGE_ACCESS_KEY:minioadmin}
+  secret-key: ${STORAGE_SECRET_KEY:minioadmin}
+  public-base-url: ${STORAGE_PUBLIC_BASE_URL:http://localhost:9000/fineract-assets}
+  max-file-size: ${STORAGE_MAX_FILE_SIZE:5242880}
+  allowed-content-types: image/jpeg,image/png,image/webp,image/svg+xml
+
 # Resilience4j Circuit Breaker
 resilience4j:
   circuitbreaker:
@@ -201,6 +218,12 @@ spring:
 fineract:
   url: http://fineract.fineract.svc.cluster.local:8443/fineract-provider
   token-url: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/token
+
+storage:
+  endpoint: ${STORAGE_ENDPOINT:}
+  access-key: ${STORAGE_ACCESS_KEY:}
+  secret-key: ${STORAGE_SECRET_KEY:}
+  public-base-url: ${STORAGE_PUBLIC_BASE_URL:}
 
 logging:
   level:

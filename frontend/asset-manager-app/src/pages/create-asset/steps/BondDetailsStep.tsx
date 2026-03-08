@@ -1,12 +1,6 @@
 import { FC } from "react";
+import { FREQUENCY_OPTIONS } from "@/constants/frequencies";
 import type { AssetFormData } from "../useCreateAsset";
-
-const COUPON_FREQUENCIES = [
-	{ value: 1, label: "Monthly" },
-	{ value: 3, label: "Quarterly" },
-	{ value: 6, label: "Semi-Annual" },
-	{ value: 12, label: "Annual" },
-];
 
 interface Props {
 	formData: AssetFormData;
@@ -36,6 +30,10 @@ export const BondDetailsStep: FC<Props> = ({
 				</p>
 			</div>
 
+			{/* Identity */}
+			<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+				Bond Identity
+			</h3>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div className="md:col-span-2">
 					<label className="block text-sm font-medium text-gray-700 mb-1">
@@ -110,7 +108,13 @@ export const BondDetailsStep: FC<Props> = ({
 						</p>
 					)}
 				</div>
+			</div>
 
+			{/* Payment Schedule */}
+			<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 mt-6">
+				Payment Schedule
+			</h3>
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">
 						Maturity Date *
@@ -136,37 +140,6 @@ export const BondDetailsStep: FC<Props> = ({
 
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Coupon Frequency *
-					</label>
-					<select
-						aria-label="Coupon frequency"
-						className={inputClass("coupon frequency")}
-						value={formData.couponFrequencyMonths}
-						onChange={(e) =>
-							updateFormData({
-								couponFrequencyMonths: Number.parseInt(e.target.value),
-							})
-						}
-					>
-						{COUPON_FREQUENCIES.map((f) => (
-							<option key={f.value} value={f.value}>
-								{f.label}
-							</option>
-						))}
-					</select>
-					{fieldError("coupon frequency") ? (
-						<p className="text-xs text-red-600 mt-1">
-							{fieldError("coupon frequency")}
-						</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							How often coupon payments are distributed to holders
-						</p>
-					)}
-				</div>
-
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
 						First Coupon Date *
 					</label>
 					<input
@@ -184,6 +157,37 @@ export const BondDetailsStep: FC<Props> = ({
 						<p className="text-xs text-gray-400 mt-1">
 							The system automatically advances to the next coupon date after
 							each payment
+						</p>
+					)}
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Coupon Frequency *
+					</label>
+					<select
+						aria-label="Coupon frequency"
+						className={inputClass("coupon frequency")}
+						value={formData.couponFrequencyMonths}
+						onChange={(e) =>
+							updateFormData({
+								couponFrequencyMonths: Number.parseInt(e.target.value),
+							})
+						}
+					>
+						{FREQUENCY_OPTIONS.map((f) => (
+							<option key={f.value} value={f.value}>
+								{f.label}
+							</option>
+						))}
+					</select>
+					{fieldError("coupon frequency") ? (
+						<p className="text-xs text-red-600 mt-1">
+							{fieldError("coupon frequency")}
+						</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							How often coupon payments are distributed to holders
 						</p>
 					)}
 				</div>

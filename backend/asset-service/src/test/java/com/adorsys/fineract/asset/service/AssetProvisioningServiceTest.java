@@ -42,6 +42,7 @@ class AssetProvisioningServiceTest {
     @Mock private PricingService pricingService;
     @Mock private AssetServiceConfig assetServiceConfig;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
+    @Mock private com.adorsys.fineract.asset.storage.FileStorageService fileStorageService;
 
     @InjectMocks
     private AssetProvisioningService service;

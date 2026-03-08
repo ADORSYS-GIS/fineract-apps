@@ -32,7 +32,6 @@ public record AssetPublicDetailResponse(
     Integer decimalPlaces,
     LocalDate subscriptionStartDate,
     LocalDate subscriptionEndDate,
-    BigDecimal capitalOpenedPercent,
     Instant createdAt,
     Instant updatedAt,
 

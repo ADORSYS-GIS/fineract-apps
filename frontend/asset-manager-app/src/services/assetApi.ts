@@ -105,7 +105,6 @@ export interface AssetResponse {
 	totalSupply: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
-	capitalOpenedPercent?: number;
 	// Bond fields (null for non-bond assets)
 	issuerName?: string;
 	isinCode?: string;
@@ -142,7 +141,7 @@ export interface AssetDetailResponse {
 	decimalPlaces: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
-	capitalOpenedPercent?: number;
+
 	lpClientId: number;
 	lpAssetAccountId?: number;
 	lpCashAccountId?: number;
@@ -198,7 +197,7 @@ export interface CreateAssetRequest {
 	decimalPlaces: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
-	capitalOpenedPercent?: number;
+
 	lpClientId: number;
 	// Exposure limits
 	maxPositionPercent?: number;
@@ -233,7 +232,7 @@ export interface UpdateAssetRequest {
 	lpAskPrice?: number;
 	subscriptionStartDate?: string;
 	subscriptionEndDate?: string;
-	capitalOpenedPercent?: number;
+
 	// Exposure limits
 	maxPositionPercent?: number;
 	maxOrderSize?: number;
@@ -720,6 +719,18 @@ export interface AdminDashboardResponse {
 // --- API ---
 
 export const assetApi = {
+	// File Upload
+	uploadFile: (file: File, folder = "assets/icons") => {
+		const formData = new FormData();
+		formData.append("file", file);
+		formData.append("folder", folder);
+		return assetClient.post<{ key: string; url: string }>(
+			"/api/admin/files/upload",
+			formData,
+			{ headers: { "Content-Type": "multipart/form-data" } },
+		);
+	},
+
 	// Assets - Public
 	listAssets: (params?: {
 		page?: number;

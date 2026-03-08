@@ -26,30 +26,12 @@ import { IncomeSummaryCard } from "@/components/IncomeSummaryCard";
 import { MintSupplyDialog } from "@/components/MintSupplyDialog";
 import { RedemptionHistoryTable } from "@/components/RedemptionHistoryTable";
 import { StatusBadge } from "@/components/StatusBadge";
+import { FREQUENCY_LABELS } from "@/constants/frequencies";
+import {
+	INCOME_TYPE_LABELS,
+	INCOME_VARIABILITY,
+} from "@/constants/incomeTypes";
 import { useAssetDetails } from "./useAssetDetails";
-
-const INCOME_TYPE_LABELS: Record<string, string> = {
-	DIVIDEND: "Dividend",
-	RENT: "Rental Income",
-	HARVEST_YIELD: "Harvest Yield",
-	PROFIT_SHARE: "Profit Share",
-};
-
-/** Whether the income type is variable (based on market price) or typically fixed. */
-const INCOME_VARIABILITY: Record<string, { label: string; variable: boolean }> =
-	{
-		DIVIDEND: { label: "Variable", variable: true },
-		RENT: { label: "Typically Fixed", variable: false },
-		HARVEST_YIELD: { label: "Variable", variable: true },
-		PROFIT_SHARE: { label: "Variable", variable: true },
-	};
-
-const FREQ_LABELS: Record<number, string> = {
-	1: "Monthly",
-	3: "Quarterly",
-	6: "Semi-Annual",
-	12: "Annual",
-};
 
 export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 	assetId,
@@ -294,35 +276,12 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								{(price?.change24hPercent ?? 0).toFixed(2)}%
 							</span>
 						</div>
-						{(price?.bidPrice != null ||
-							price?.askPrice != null ||
-							asset.bidPrice != null ||
-							asset.askPrice != null) && (
-							<div className="flex gap-3 mt-2 text-xs">
-								<span className="text-red-600">
-									LP Bid:{" "}
-									{(price?.bidPrice ?? asset.bidPrice)?.toLocaleString() ?? "—"}
-								</span>
-								<span className="text-green-600">
-									LP Ask:{" "}
-									{(price?.askPrice ?? asset.askPrice)?.toLocaleString() ?? "—"}
-								</span>
-							</div>
-						)}
-						{asset.issuerPrice != null && (
-							<div className="flex gap-3 mt-1 text-xs text-gray-500">
-								<span>
-									Issuer Price: {asset.issuerPrice.toLocaleString()} XAF
-								</span>
-								{asset.lpMarginPerUnit != null && (
-									<span>
-										| LP Margin: {asset.lpMarginPerUnit.toLocaleString()} XAF
-										{asset.lpMarginPercent != null &&
-											` (${asset.lpMarginPercent.toFixed(2)}%)`}
-									</span>
-								)}
-							</div>
-						)}
+					</Card>
+					<Card className="p-4">
+						<p className="text-sm text-gray-500">Bid Price</p>
+						<p className="text-2xl font-bold text-gray-900">
+							{(price?.bidPrice ?? asset.bidPrice)?.toLocaleString() ?? "—"} XAF
+						</p>
 					</Card>
 					<Card className="p-4">
 						<p className="text-sm text-gray-500">Total Supply</p>
@@ -343,6 +302,83 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						</p>
 					</Card>
 				</div>
+
+				{/* Image + Description Banner */}
+				{(asset.imageUrl || asset.description) && (
+					<Card className="p-4 mb-6">
+						<div className="flex items-start gap-4">
+							{asset.imageUrl && (
+								<img
+									src={asset.imageUrl}
+									alt={asset.name}
+									className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+								/>
+							)}
+							{asset.description && (
+								<div>
+									<p className="text-sm text-gray-500 mb-1">Description</p>
+									<p className="text-sm text-gray-700">{asset.description}</p>
+								</div>
+							)}
+						</div>
+					</Card>
+				)}
+
+				{/* Bond Information (bonds only — shown early for quick reference) */}
+				{asset.category === "BONDS" && (
+					<Card className="p-4 mb-6">
+						<h2 className="text-lg font-semibold text-gray-800 mb-3">
+							Bond Information
+						</h2>
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+							<div>
+								<p className="text-gray-500">Issuer</p>
+								<p className="font-medium">{asset.issuerName ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">ISIN</p>
+								<p className="font-medium font-mono">{asset.isinCode ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Maturity Date</p>
+								<p className="font-medium">{asset.maturityDate ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Coupon Amount</p>
+								<p className="font-medium">
+									{asset.couponAmountPerUnit != null
+										? `${asset.couponAmountPerUnit.toLocaleString()} XAF/unit`
+										: "—"}
+								</p>
+								{asset.interestRate != null && (
+									<p className="text-xs text-gray-400">
+										({asset.interestRate}% p.a.)
+									</p>
+								)}
+							</div>
+							<div>
+								<p className="text-gray-500">Coupon Frequency</p>
+								<p className="font-medium">
+									{asset.couponFrequencyMonths
+										? (FREQUENCY_LABELS[asset.couponFrequencyMonths] ?? "—")
+										: "—"}
+								</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Next Coupon</p>
+								<p className="font-medium">{asset.nextCouponDate ?? "—"}</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Residual Days</p>
+								<p className="font-medium">
+									{asset.residualDays != null
+										? `${asset.residualDays} days`
+										: "—"}
+								</p>
+							</div>
+						</div>
+					</Card>
+				)}
 
 				{/* Subscription Period (all categories) */}
 				<Card className="p-4 mb-6">
@@ -367,58 +403,89 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								)}
 							</p>
 						</div>
-						{asset.capitalOpenedPercent != null && (
+					</div>
+				</Card>
+
+				{/* Pricing & Limits */}
+				<Card className="p-4 mb-6">
+					<h2 className="text-lg font-semibold text-gray-800 mb-3">
+						Pricing & Limits
+					</h2>
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+						{asset.issuerPrice != null && (
 							<div>
-								<p className="text-gray-500">Capital Opened</p>
-								<p className="font-medium">{asset.capitalOpenedPercent}%</p>
+								<p className="text-gray-500">Issuer Price</p>
+								<p className="font-medium">
+									{asset.issuerPrice.toLocaleString()} XAF
+								</p>
+							</div>
+						)}
+						{asset.tradingFeePercent != null && (
+							<div>
+								<p className="text-gray-500">Trading Fee</p>
+								<p className="font-medium">
+									{(asset.tradingFeePercent * 100).toFixed(2)}%
+								</p>
+							</div>
+						)}
+						{asset.lpMarginPerUnit != null && (
+							<div>
+								<p className="text-gray-500">Spread</p>
+								<p className="font-medium">
+									{asset.lpMarginPerUnit.toLocaleString()} XAF
+									{asset.lpMarginPercent != null &&
+										` (${asset.lpMarginPercent.toFixed(2)}%)`}
+								</p>
+							</div>
+						)}
+						{asset.maxPositionPercent != null && (
+							<div>
+								<p className="text-gray-500">Max Position</p>
+								<p className="font-medium">
+									{asset.maxPositionPercent}% of supply
+								</p>
+							</div>
+						)}
+						{asset.maxOrderSize != null && (
+							<div>
+								<p className="text-gray-500">Max Order Size</p>
+								<p className="font-medium">
+									{asset.maxOrderSize.toLocaleString()} units
+								</p>
+							</div>
+						)}
+						{asset.dailyTradeLimitXaf != null && (
+							<div>
+								<p className="text-gray-500">Daily Trade Limit</p>
+								<p className="font-medium">
+									{asset.dailyTradeLimitXaf.toLocaleString()} XAF
+								</p>
+							</div>
+						)}
+						{asset.minOrderSize != null && (
+							<div>
+								<p className="text-gray-500">Min Order Size</p>
+								<p className="font-medium">
+									{asset.minOrderSize.toLocaleString()} units
+								</p>
+							</div>
+						)}
+						{asset.minOrderCashAmount != null && (
+							<div>
+								<p className="text-gray-500">Min Order Amount</p>
+								<p className="font-medium">
+									{asset.minOrderCashAmount.toLocaleString()} XAF
+								</p>
+							</div>
+						)}
+						{asset.lockupDays != null && (
+							<div>
+								<p className="text-gray-500">Lock-up Period</p>
+								<p className="font-medium">{asset.lockupDays} days</p>
 							</div>
 						)}
 					</div>
 				</Card>
-
-				{/* Trading Limits & Lock-up */}
-				{(asset.maxPositionPercent != null ||
-					asset.maxOrderSize != null ||
-					asset.dailyTradeLimitXaf != null ||
-					asset.lockupDays != null) && (
-					<Card className="p-4 mb-6">
-						<h2 className="text-lg font-semibold text-gray-800 mb-3">
-							Trading Limits
-						</h2>
-						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-							{asset.maxPositionPercent != null && (
-								<div>
-									<p className="text-gray-500">Max Position</p>
-									<p className="font-medium">
-										{asset.maxPositionPercent}% of supply
-									</p>
-								</div>
-							)}
-							{asset.maxOrderSize != null && (
-								<div>
-									<p className="text-gray-500">Max Order Size</p>
-									<p className="font-medium">
-										{asset.maxOrderSize.toLocaleString()} units
-									</p>
-								</div>
-							)}
-							{asset.dailyTradeLimitXaf != null && (
-								<div>
-									<p className="text-gray-500">Daily Trade Limit</p>
-									<p className="font-medium">
-										{asset.dailyTradeLimitXaf.toLocaleString()} XAF
-									</p>
-								</div>
-							)}
-							{asset.lockupDays != null && (
-								<div>
-									<p className="text-gray-500">Lock-up Period</p>
-									<p className="font-medium">{asset.lockupDays} days</p>
-								</div>
-							)}
-						</div>
-					</Card>
-				)}
 
 				{/* Income Distribution (non-bond assets) */}
 				{asset.category !== "BONDS" && (
@@ -455,7 +522,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 									<div>
 										<p className="text-gray-500">Frequency</p>
 										<p className="font-medium">
-											{FREQ_LABELS[asset.distributionFrequencyMonths] ??
+											{FREQUENCY_LABELS[asset.distributionFrequencyMonths] ??
 												`Every ${asset.distributionFrequencyMonths} months`}
 										</p>
 									</div>
@@ -482,68 +549,6 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						<IncomeForecastCard assetId={assetId} />
 						<IncomeSummaryCard assetId={assetId} />
 					</>
-				)}
-
-				{/* Bond Information */}
-				{asset.category === "BONDS" && (
-					<Card className="p-4 mb-6">
-						<h2 className="text-lg font-semibold text-gray-800 mb-3">
-							Bond Information
-						</h2>
-						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-							<div>
-								<p className="text-gray-500">Issuer</p>
-								<p className="font-medium">{asset.issuerName ?? "—"}</p>
-							</div>
-							<div>
-								<p className="text-gray-500">ISIN</p>
-								<p className="font-medium font-mono">{asset.isinCode ?? "—"}</p>
-							</div>
-							<div>
-								<p className="text-gray-500">Maturity Date</p>
-								<p className="font-medium">{asset.maturityDate ?? "—"}</p>
-							</div>
-							<div>
-								<p className="text-gray-500">Coupon Amount</p>
-								<p className="font-medium">
-									{asset.couponAmountPerUnit != null
-										? `${asset.couponAmountPerUnit.toLocaleString()} XAF/unit`
-										: "—"}
-								</p>
-								{asset.interestRate != null && (
-									<p className="text-xs text-gray-400">
-										({asset.interestRate}% p.a.)
-									</p>
-								)}
-							</div>
-							<div>
-								<p className="text-gray-500">Coupon Frequency</p>
-								<p className="font-medium">
-									{asset.couponFrequencyMonths === 1
-										? "Monthly"
-										: asset.couponFrequencyMonths === 3
-											? "Quarterly"
-											: asset.couponFrequencyMonths === 6
-												? "Semi-Annual"
-												: asset.couponFrequencyMonths === 12
-													? "Annual"
-													: "—"}
-								</p>
-							</div>
-							<div>
-								<p className="text-gray-500">Next Coupon</p>
-								<p className="font-medium">{asset.nextCouponDate ?? "—"}</p>
-							</div>
-							<div>
-								<p className="text-gray-500">Residual Days</p>
-								<p className="font-medium">
-									{asset.residualDays != null
-										? `${asset.residualDays} days`
-										: "—"}
-								</p>
-							</div>
-						</div>
-					</Card>
 				)}
 
 				{/* Coupon Obligation Forecast */}
@@ -582,12 +587,6 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								{new Date(asset.createdAt).toLocaleDateString()}
 							</span>
 						</div>
-						{asset.description && (
-							<div className="md:col-span-2">
-								<span className="text-gray-500">Description:</span>{" "}
-								<span className="font-medium">{asset.description}</span>
-							</div>
-						)}
 					</div>
 				</Card>
 

@@ -34,6 +34,7 @@ class AssetCatalogServiceTest {
     @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
     @Mock private TradeLogRepository tradeLogRepository;
+    @Mock private com.adorsys.fineract.asset.storage.FileStorageService fileStorageService;
 
     @InjectMocks
     private AssetCatalogService assetCatalogService;

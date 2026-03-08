@@ -34,9 +34,6 @@ public record AssetResponse(
     LocalDate subscriptionStartDate,
     /** End of the subscription period. */
     LocalDate subscriptionEndDate,
-    /** Percentage of capital opened for subscription. */
-    BigDecimal capitalOpenedPercent,
-
     // ── Issuer & LP info ──
 
     @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)

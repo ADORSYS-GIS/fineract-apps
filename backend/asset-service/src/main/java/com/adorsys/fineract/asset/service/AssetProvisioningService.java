@@ -12,6 +12,7 @@ import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.PriceHistoryRepository;
 import com.adorsys.fineract.asset.repository.PurchaseLotRepository;
 import com.adorsys.fineract.asset.repository.ScheduledPaymentRepository;
+import com.adorsys.fineract.asset.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,6 +47,7 @@ public class AssetProvisioningService {
     private final PricingService pricingService;
     private final AssetServiceConfig assetServiceConfig;
     private final ResolvedGlAccounts resolvedGlAccounts;
+    private final FileStorageService fileStorageService;
 
     /**
      * Create a new asset with full Fineract provisioning.
@@ -163,7 +165,6 @@ public class AssetProvisioningService {
                 .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
                 .subscriptionStartDate(request.subscriptionStartDate())
                 .subscriptionEndDate(request.subscriptionEndDate())
-                .capitalOpenedPercent(request.capitalOpenedPercent())
                 .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
@@ -227,12 +228,14 @@ public class AssetProvisioningService {
 
         if (request.name() != null) asset.setName(request.name());
         if (request.description() != null) asset.setDescription(request.description());
-        if (request.imageUrl() != null) asset.setImageUrl(request.imageUrl());
+        if (request.imageUrl() != null) {
+            deleteStoredFileIfKey(asset.getImageUrl());
+            asset.setImageUrl(request.imageUrl());
+        }
         if (request.category() != null) asset.setCategory(request.category());
         if (request.tradingFeePercent() != null) asset.setTradingFeePercent(request.tradingFeePercent());
         if (request.subscriptionStartDate() != null) asset.setSubscriptionStartDate(request.subscriptionStartDate());
         if (request.subscriptionEndDate() != null) asset.setSubscriptionEndDate(request.subscriptionEndDate());
-        if (request.capitalOpenedPercent() != null) asset.setCapitalOpenedPercent(request.capitalOpenedPercent());
         if (request.interestRate() != null) asset.setInterestRate(request.interestRate());
         if (request.maturityDate() != null) asset.setMaturityDate(request.maturityDate());
         if (request.nextCouponDate() != null) asset.setNextCouponDate(request.nextCouponDate());
@@ -371,6 +374,9 @@ public class AssetProvisioningService {
         // Best-effort Fineract cleanup (log warnings, don't block local deletion)
         cleanupFineractResources(asset);
 
+        // Clean up stored image file
+        deleteStoredFileIfKey(asset.getImageUrl());
+
         // Delete local data
         purchaseLotRepository.deleteByAssetId(assetId);
         scheduledPaymentRepository.deleteByAssetId(assetId);
@@ -490,6 +496,16 @@ public class AssetProvisioningService {
         }
         if (currencyCode != null) {
             fineractClient.deregisterCurrency(currencyCode);
+        }
+    }
+
+    /**
+     * Deletes a file from storage if the value is a storage key (not a legacy URL).
+     */
+    private void deleteStoredFileIfKey(String imageUrl) {
+        if (imageUrl != null && !imageUrl.isBlank()
+                && !imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+            fileStorageService.delete(imageUrl);
         }
     }
 }

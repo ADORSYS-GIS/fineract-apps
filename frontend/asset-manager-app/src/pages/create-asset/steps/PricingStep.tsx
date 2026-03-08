@@ -155,7 +155,7 @@ export const PricingStep: FC<Props> = ({
 			{/* Exposure Limits */}
 			<div className="mt-6">
 				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-					Trading Limits (Optional)
+					Trading Limits
 				</h3>
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<div>
@@ -231,7 +231,7 @@ export const PricingStep: FC<Props> = ({
 				</div>
 
 				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 mt-6">
-					Minimum Order Size (Optional)
+					Minimum Order Size
 				</h3>
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>

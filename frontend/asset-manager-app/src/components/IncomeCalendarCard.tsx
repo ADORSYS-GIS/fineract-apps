@@ -1,6 +1,7 @@
 import { Card } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
 import { FC } from "react";
+import { INCOME_TYPE_LABELS as BASE_INCOME_LABELS } from "@/constants/incomeTypes";
 import {
 	assetApi,
 	type IncomeEvent,
@@ -15,10 +16,7 @@ const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
 
 const INCOME_TYPE_LABELS: Record<string, string> = {
 	COUPON: "Coupon",
-	DIVIDEND: "Dividend",
-	RENT: "Rent",
-	HARVEST_YIELD: "Harvest Yield",
-	PROFIT_SHARE: "Profit Share",
+	...BASE_INCOME_LABELS,
 	PRINCIPAL_REDEMPTION: "Principal Redemption",
 };
 

@@ -43,7 +43,6 @@ export interface AssetFormData {
 	decimalPlaces: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
-	capitalOpenedPercent: number;
 	lockupDays: number;
 	// Income distribution (non-bond)
 	incomeType: string;
@@ -95,7 +94,6 @@ const initialFormData: AssetFormData = {
 	decimalPlaces: 0,
 	subscriptionStartDate: today(),
 	subscriptionEndDate: daysFromNow(90),
-	capitalOpenedPercent: 100,
 	lockupDays: 0,
 	incomeType: "",
 	incomeRate: 0,
@@ -124,6 +122,7 @@ export const useCreateAsset = () => {
 				"Asset Details",
 				"Pricing & Fees",
 				"Supply",
+				"Income Distribution",
 				"Review & Create",
 			];
 
@@ -212,11 +211,9 @@ export const useCreateAsset = () => {
 					errors.push(
 						"Subscription end date must be on or after the start date",
 					);
-				if (
-					formData.capitalOpenedPercent < 0 ||
-					formData.capitalOpenedPercent > 100
-				)
-					errors.push("Capital opened must be between 0% and 100%");
+				break;
+			case "Income Distribution":
+				// All income fields are optional
 				break;
 		}
 		return errors;
@@ -284,7 +281,6 @@ export const useCreateAsset = () => {
 			decimalPlaces: formData.decimalPlaces,
 			subscriptionStartDate: formData.subscriptionStartDate,
 			subscriptionEndDate: formData.subscriptionEndDate,
-			capitalOpenedPercent: formData.capitalOpenedPercent || undefined,
 			lpClientId: formData.lpClientId,
 			// Exposure limits (only if set)
 			maxPositionPercent: formData.maxPositionPercent || undefined,

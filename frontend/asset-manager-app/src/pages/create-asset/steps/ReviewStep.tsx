@@ -2,18 +2,12 @@ import { Card } from "@fineract-apps/ui";
 import { CheckCircle } from "lucide-react";
 import { FC } from "react";
 import { ASSET_CATEGORY_LABELS } from "@/constants/categories";
+import { FREQUENCY_LABELS } from "@/constants/frequencies";
 import type { AssetFormData } from "../useCreateAsset";
 
 interface Props {
 	formData: AssetFormData;
 }
-
-const FREQUENCY_LABELS: Record<number, string> = {
-	1: "Monthly",
-	3: "Quarterly",
-	6: "Semi-Annual",
-	12: "Annual",
-};
 
 export const ReviewStep: FC<Props> = ({ formData }) => {
 	return (
@@ -185,14 +179,6 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="font-medium">{formData.subscriptionStartDate}</div>
 					<div className="text-gray-600">Subscription End:</div>
 					<div className="font-medium">{formData.subscriptionEndDate}</div>
-					{formData.capitalOpenedPercent > 0 && (
-						<>
-							<div className="text-gray-600">Capital Opened:</div>
-							<div className="font-medium">
-								{formData.capitalOpenedPercent}%
-							</div>
-						</>
-					)}
 					{formData.lockupDays > 0 && (
 						<>
 							<div className="text-gray-600">Lock-up Period:</div>
