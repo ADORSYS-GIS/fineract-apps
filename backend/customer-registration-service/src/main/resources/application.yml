@@ -60,7 +60,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,threaddump,heapdump
   endpoint:
     health:
       show-details: when_authorized
@@ -71,6 +71,17 @@ management:
       enabled: true
     readinessState:
       enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1}
+    propagation:
+      type: b3
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 # Logging
 logging:
@@ -78,6 +89,8 @@ logging:
     root: INFO
     com.adorsys.fineract.registration: ${LOGGING_LEVEL_COM_ADORSYS:TRACE}
     org.keycloak: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{traceId:-},%X{spanId:-}] %-5level %logger{36} - %msg%n"
 
 # OpenAPI/Swagger
 springdoc:
