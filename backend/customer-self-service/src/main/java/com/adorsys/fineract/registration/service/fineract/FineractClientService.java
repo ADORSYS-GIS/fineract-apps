@@ -131,8 +131,8 @@ public class FineractClientService {
                 request.getPostalCode() != null;
 
         if (hasAddressInfo) {
-            if (request.getAddressType() == null || request.getStateProvince() == null || request.getCountry() == null) {
-                throw new RegistrationException("AddressType, State/Province, and Country are required if any address information is provided.");
+            if (request.getAddressType() == null || request.getCountry() == null) {
+                throw new RegistrationException("AddressType and Country are required if any address information is provided.");
             }
             payload.put("address", List.of(fineractAddressService.buildAddressPayload(request)));
         }
