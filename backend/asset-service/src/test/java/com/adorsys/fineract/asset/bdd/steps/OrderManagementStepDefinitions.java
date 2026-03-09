@@ -70,7 +70,7 @@ public class OrderManagementStepDefinitions {
     @When("the user cancels the order")
     public void userCancelsOrder() throws Exception {
         String orderId = context.getId("targetOrderId");
-        MvcResult result = mockMvc.perform(post("/api/trades/orders/" + orderId + "/cancel")
+        MvcResult result = mockMvc.perform(post("/trades/orders/" + orderId + "/cancel")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andReturn();

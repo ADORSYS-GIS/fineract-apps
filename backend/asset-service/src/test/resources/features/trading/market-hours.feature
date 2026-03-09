@@ -8,6 +8,6 @@ Feature: Market Hours Enforcement
     Given the test database is seeded with standard data
 
   Scenario: Market status endpoint returns current state
-    When an unauthenticated user calls "GET" "/api/market/status"
+    When an unauthenticated user calls "GET" "/market/status"
     Then the response status should be 200
     And the response body should contain field "isOpen" with value "true"

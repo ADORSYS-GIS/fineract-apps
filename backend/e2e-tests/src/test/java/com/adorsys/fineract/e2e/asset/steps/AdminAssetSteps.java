@@ -17,8 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for admin asset operations.
- * Exercises: GET /api/admin/assets, PUT /api/admin/assets/{id}, POST /api/admin/assets/{id}/mint,
- *            GET /api/admin/assets/{id}/coupon-forecast
+ * Exercises: GET /api/v1/admin/assets, PUT /api/v1/admin/assets/{id}, POST /api/v1/admin/assets/{id}/mint,
+ *            GET /api/v1/admin/assets/{id}/coupon-forecast
  */
 public class AdminAssetSteps {
 
@@ -32,7 +32,7 @@ public class AdminAssetSteps {
     public void adminListsAllAssets() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets");
+                .get("/api/v1/admin/assets");
         context.setLastResponse(response);
     }
 
@@ -47,7 +47,7 @@ public class AdminAssetSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .put("/api/admin/assets/" + assetId);
+                .put("/api/v1/admin/assets/" + assetId);
         context.setLastResponse(response);
     }
 
@@ -58,7 +58,7 @@ public class AdminAssetSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(Map.of("additionalSupply", additionalSupply))
-                .post("/api/admin/assets/" + assetId + "/mint");
+                .post("/api/v1/admin/assets/" + assetId + "/mint");
         context.setLastResponse(response);
     }
 
@@ -67,7 +67,7 @@ public class AdminAssetSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId + "/coupon-forecast");
+                .get("/api/v1/admin/assets/" + assetId + "/coupon-forecast");
         context.setLastResponse(response);
     }
 
@@ -82,7 +82,7 @@ public class AdminAssetSteps {
         String assetId = context.getId("lastAssetId");
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
+                .get("/api/v1/admin/assets/" + assetId);
         assertThat(response.statusCode()).isEqualTo(200);
         Number totalSupply = response.jsonPath().get("totalSupply");
         assertThat(totalSupply.intValue()).isEqualTo(expectedSupply);
@@ -101,7 +101,7 @@ public class AdminAssetSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId + "/coupons");
+                .get("/api/v1/admin/assets/" + assetId + "/coupons");
         context.setLastResponse(response);
     }
 
@@ -110,7 +110,7 @@ public class AdminAssetSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId + "/income-distributions");
+                .get("/api/v1/admin/assets/" + assetId + "/income-distributions");
         context.setLastResponse(response);
     }
 
@@ -119,7 +119,7 @@ public class AdminAssetSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId + "/income-forecast");
+                .get("/api/v1/admin/assets/" + assetId + "/income-forecast");
         context.setLastResponse(response);
     }
 

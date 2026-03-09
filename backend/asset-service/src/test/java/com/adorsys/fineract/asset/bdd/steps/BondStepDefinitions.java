@@ -158,7 +158,7 @@ public class BondStepDefinitions {
             request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
         }
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -179,7 +179,7 @@ public class BondStepDefinitions {
         request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -201,7 +201,7 @@ public class BondStepDefinitions {
         request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -223,7 +223,7 @@ public class BondStepDefinitions {
         request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))

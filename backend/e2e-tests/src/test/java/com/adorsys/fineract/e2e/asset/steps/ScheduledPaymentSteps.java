@@ -76,7 +76,7 @@ public class ScheduledPaymentSteps {
                     .header("X-Idempotency-Key", UUID.randomUUID().toString())
                     .header("Authorization", "Bearer " + testUserJwt())
                     .body(quoteBody)
-                    .post("/api/trades/quote");
+                    .post("/api/v1/trades/quote");
 
             assertThat(quoteResp.statusCode())
                     .as("Create quote for unit %d of %s: %s", i + 1, symbolRef, quoteResp.body().asString())
@@ -89,7 +89,7 @@ public class ScheduledPaymentSteps {
                     .baseUri("http://localhost:" + port)
                     .contentType(ContentType.JSON)
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .post("/api/trades/orders/" + orderId + "/confirm");
+                    .post("/api/v1/trades/orders/" + orderId + "/confirm");
 
             assertThat(confirmResp.statusCode())
                     .as("Confirm quote for unit %d of %s: %s", i + 1, symbolRef, confirmResp.body().asString())
@@ -109,7 +109,7 @@ public class ScheduledPaymentSteps {
             Response pollResp = RestAssured.given()
                     .baseUri("http://localhost:" + port)
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .get("/api/trades/orders/" + orderId);
+                    .get("/api/v1/trades/orders/" + orderId);
 
             String status = pollResp.jsonPath().getString("status");
             if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
@@ -129,7 +129,7 @@ public class ScheduledPaymentSteps {
         Response finalResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders/" + orderId);
+                .get("/api/v1/trades/orders/" + orderId);
         assertThat(finalResp.jsonPath().getString("status"))
                 .as("Buy unit %d of %s did not reach FILLED within timeout", unitNumber, symbolRef)
                 .isEqualTo("FILLED");
@@ -190,7 +190,7 @@ public class ScheduledPaymentSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/scheduled-payments/" + scheduleId + "/confirm");
+                .post("/api/v1/admin/scheduled-payments/" + scheduleId + "/confirm");
 
         context.setLastResponse(response);
         assertThat(response.statusCode())
@@ -208,7 +208,7 @@ public class ScheduledPaymentSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .post("/api/admin/scheduled-payments/" + scheduleId + "/confirm");
+                .post("/api/v1/admin/scheduled-payments/" + scheduleId + "/confirm");
 
         context.setLastResponse(response);
         assertThat(response.statusCode())
@@ -226,7 +226,7 @@ public class ScheduledPaymentSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .post("/api/admin/scheduled-payments/" + scheduleId + "/cancel");
+                .post("/api/v1/admin/scheduled-payments/" + scheduleId + "/cancel");
 
         context.setLastResponse(response);
         assertThat(response.statusCode())
@@ -239,7 +239,7 @@ public class ScheduledPaymentSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .queryParam("status", status)
-                .get("/api/admin/scheduled-payments");
+                .get("/api/v1/admin/scheduled-payments");
 
         context.setLastResponse(response);
         assertThat(response.statusCode()).isEqualTo(200);
@@ -250,7 +250,7 @@ public class ScheduledPaymentSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .queryParam("type", type)
-                .get("/api/admin/scheduled-payments");
+                .get("/api/v1/admin/scheduled-payments");
 
         context.setLastResponse(response);
         assertThat(response.statusCode()).isEqualTo(200);
@@ -267,7 +267,7 @@ public class ScheduledPaymentSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/scheduled-payments/" + scheduleId);
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.jsonPath().getString("status")).isEqualTo("PENDING");
@@ -280,7 +280,7 @@ public class ScheduledPaymentSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/scheduled-payments/" + scheduleId);
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
 
         Number estimatedAmountPerUnit = response.jsonPath().get("estimatedAmountPerUnit");
         assertThat(estimatedAmountPerUnit.doubleValue()).isGreaterThan(min);
@@ -292,7 +292,7 @@ public class ScheduledPaymentSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/scheduled-payments/" + scheduleId);
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
 
         Number holderCount = response.jsonPath().get("holderCount");
         assertThat(holderCount.intValue()).isEqualTo(expected);
@@ -341,7 +341,7 @@ public class ScheduledPaymentSteps {
                 .queryParam("assetId", assetId)
                 .queryParam("type", paymentType)
                 .queryParam("status", "PENDING")
-                .get("/api/admin/scheduled-payments");
+                .get("/api/v1/admin/scheduled-payments");
 
         assertThat(response.statusCode()).isEqualTo(200);
         List<Map<String, Object>> content = response.jsonPath().getList("content");

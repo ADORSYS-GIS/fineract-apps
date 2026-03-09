@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for amount-based trade preview.
- * Now uses POST /api/trades/quote with 'amount' field instead of removed /api/trades/preview.
+ * Now uses POST /api/v1/trades/quote with 'amount' field instead of removed /api/v1/trades/preview.
  */
 public class AmountPreviewSteps {
 
@@ -38,7 +38,7 @@ public class AmountPreviewSteps {
                 .header("Authorization", "Bearer " + testUserJwt())
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .body(Map.of("assetId", assetId, "side", "BUY", "amount", amount))
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
         context.setLastResponse(response);
         // Cancel quote if created to avoid side effects
         if (response.statusCode() == 201) {
@@ -47,7 +47,7 @@ public class AmountPreviewSteps {
                 RestAssured.given()
                         .baseUri("http://localhost:" + port)
                         .header("Authorization", "Bearer " + testUserJwt())
-                        .post("/api/trades/orders/" + orderId + "/cancel");
+                        .post("/api/v1/trades/orders/" + orderId + "/cancel");
             }
         }
     }

@@ -37,7 +37,7 @@ class AdminNotificationControllerTest {
         when(notificationService.getAdminNotifications(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(notif)));
 
-        mockMvc.perform(get("/api/admin/notifications")
+        mockMvc.perform(get("/admin/notifications")
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
@@ -54,7 +54,7 @@ class AdminNotificationControllerTest {
     void getUnreadCount_returns200WithCount() throws Exception {
         when(notificationService.getAdminUnreadCount()).thenReturn(7L);
 
-        mockMvc.perform(get("/api/admin/notifications/unread-count"))
+        mockMvc.perform(get("/admin/notifications/unread-count"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unreadCount").value(7));
     }
@@ -63,7 +63,7 @@ class AdminNotificationControllerTest {
     void markRead_returns200() throws Exception {
         doNothing().when(notificationService).markAdminRead(1L);
 
-        mockMvc.perform(post("/api/admin/notifications/1/read"))
+        mockMvc.perform(post("/admin/notifications/1/read"))
                 .andExpect(status().isOk());
 
         verify(notificationService).markAdminRead(1L);
@@ -74,7 +74,7 @@ class AdminNotificationControllerTest {
         doThrow(new RuntimeException("Notification not found: 99"))
                 .when(notificationService).markAdminRead(99L);
 
-        mockMvc.perform(post("/api/admin/notifications/99/read"))
+        mockMvc.perform(post("/admin/notifications/99/read"))
                 .andExpect(status().isInternalServerError());
     }
 
@@ -82,7 +82,7 @@ class AdminNotificationControllerTest {
     void markAllRead_returns200WithCount() throws Exception {
         when(notificationService.markAllAdminRead()).thenReturn(5);
 
-        mockMvc.perform(post("/api/admin/notifications/read-all"))
+        mockMvc.perform(post("/admin/notifications/read-all"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.marked").value(5));
 

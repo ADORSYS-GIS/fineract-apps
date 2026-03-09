@@ -29,7 +29,7 @@ public class DashboardStepDefinitions {
 
     @When("the admin requests the dashboard summary")
     public void adminRequestsDashboardSummary() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/admin/dashboard/summary")
+        MvcResult result = mockMvc.perform(get("/admin/dashboard/summary")
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
         context.setLastResult(result);

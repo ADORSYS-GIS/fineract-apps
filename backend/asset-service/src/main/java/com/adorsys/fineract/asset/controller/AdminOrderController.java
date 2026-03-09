@@ -22,7 +22,7 @@ import java.util.List;
  * Admin endpoints for viewing and resolving orders that need manual intervention.
  */
 @RestController
-@RequestMapping("/api/admin/orders")
+@RequestMapping("/admin/orders")
 @RequiredArgsConstructor
 @Tag(name = "Admin - Order Resolution", description = "View and resolve orders requiring manual intervention")
 public class AdminOrderController {

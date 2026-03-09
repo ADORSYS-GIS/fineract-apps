@@ -75,7 +75,7 @@ class AdminAssetControllerTest {
                 .thenReturn(new PageImpl<>(List.of(asset)));
 
         // Act & Assert
-        mockMvc.perform(get("/api/admin/assets")
+        mockMvc.perform(get("/admin/assets")
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
@@ -90,7 +90,7 @@ class AdminAssetControllerTest {
     @Test
     void listAllAssets_pageSizeTooLarge_returns400() throws Exception {
         // Act & Assert: size=200 exceeds max of 100
-        mockMvc.perform(get("/api/admin/assets")
+        mockMvc.perform(get("/admin/assets")
                         .param("size", "200"))
                 .andExpect(status().isBadRequest());
     }
@@ -139,7 +139,7 @@ class AdminAssetControllerTest {
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(post("/api/admin/assets")
+        mockMvc.perform(post("/admin/assets")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -163,7 +163,7 @@ class AdminAssetControllerTest {
     void deleteAsset_returns200() throws Exception {
         doNothing().when(provisioningService).deletePendingAsset("a1");
 
-        mockMvc.perform(delete("/api/admin/assets/a1"))
+        mockMvc.perform(delete("/admin/assets/a1"))
                 .andExpect(status().isOk());
 
         verify(provisioningService).deletePendingAsset("a1");
@@ -174,7 +174,7 @@ class AdminAssetControllerTest {
         doThrow(new com.adorsys.fineract.asset.exception.AssetException("Only PENDING assets can be deleted"))
                 .when(provisioningService).deletePendingAsset("a1");
 
-        mockMvc.perform(delete("/api/admin/assets/a1"))
+        mockMvc.perform(delete("/admin/assets/a1"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -191,7 +191,7 @@ class AdminAssetControllerTest {
 
         when(scheduledPaymentService.getPaymentSummary("a1", "COUPON")).thenReturn(summary);
 
-        mockMvc.perform(get("/api/admin/assets/a1/coupon-summary"))
+        mockMvc.perform(get("/admin/assets/a1/coupon-summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lastPaymentDate").isNotEmpty())
                 .andExpect(jsonPath("$.totalPaidToDate").value(5800))
@@ -215,7 +215,7 @@ class AdminAssetControllerTest {
 
         when(scheduledPaymentService.getPaymentSummary("a1", "INCOME")).thenReturn(summary);
 
-        mockMvc.perform(get("/api/admin/assets/a1/income-summary"))
+        mockMvc.perform(get("/admin/assets/a1/income-summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalPaidToDate").value(800))
                 .andExpect(jsonPath("$.totalPaymentCount").value(1))

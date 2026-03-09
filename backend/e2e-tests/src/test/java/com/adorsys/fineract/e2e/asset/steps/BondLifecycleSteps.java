@@ -74,7 +74,7 @@ public class BondLifecycleSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(request)
-                .post("/api/admin/assets");
+                .post("/api/v1/admin/assets");
 
         assertThat(createResp.statusCode())
                 .as("Create bond %s: %s", symbolRef, createResp.body().asString())
@@ -87,7 +87,7 @@ public class BondLifecycleSteps {
         Response activateResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/activate");
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
 
         assertThat(activateResp.statusCode()).isEqualTo(200);
     }
@@ -110,7 +110,7 @@ public class BondLifecycleSteps {
                     .header("X-Idempotency-Key", UUID.randomUUID().toString())
                     .header("Authorization", "Bearer " + testUserJwt())
                     .body(quoteBody)
-                    .post("/api/trades/quote");
+                    .post("/api/v1/trades/quote");
 
             assertThat(quoteResp.statusCode())
                     .as("Create quote for bond unit %d: %s", i + 1, quoteResp.body().asString())
@@ -123,7 +123,7 @@ public class BondLifecycleSteps {
                     .baseUri("http://localhost:" + port)
                     .contentType(ContentType.JSON)
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .post("/api/trades/orders/" + orderId + "/confirm");
+                    .post("/api/v1/trades/orders/" + orderId + "/confirm");
 
             assertThat(confirmResp.statusCode())
                     .as("Confirm quote for bond unit %d: %s", i + 1, confirmResp.body().asString())
@@ -145,7 +145,7 @@ public class BondLifecycleSteps {
             Response pollResp = RestAssured.given()
                     .baseUri("http://localhost:" + port)
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .get("/api/trades/orders/" + orderId);
+                    .get("/api/v1/trades/orders/" + orderId);
 
             String status = pollResp.jsonPath().getString("status");
             if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
@@ -165,7 +165,7 @@ public class BondLifecycleSteps {
         Response finalResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders/" + orderId);
+                .get("/api/v1/trades/orders/" + orderId);
         assertThat(finalResp.jsonPath().getString("status"))
                 .as("Order %s did not reach FILLED within timeout", orderId)
                 .isEqualTo("FILLED");
@@ -196,7 +196,7 @@ public class BondLifecycleSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/redeem");
+                .post("/api/v1/admin/assets/" + assetId + "/redeem");
 
         context.setLastResponse(response);
     }
@@ -220,7 +220,7 @@ public class BondLifecycleSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId + "/coupons");
+                .get("/api/v1/admin/assets/" + assetId + "/coupons");
 
         assertThat(response.statusCode()).isEqualTo(200);
         int totalElements = response.jsonPath().getInt("totalElements");
@@ -233,7 +233,7 @@ public class BondLifecycleSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
+                .get("/api/v1/admin/assets/" + assetId);
 
         String status = response.jsonPath().getString("status");
         assertThat(status).isEqualTo("MATURED");
@@ -265,7 +265,7 @@ public class BondLifecycleSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
+                .get("/api/v1/admin/assets/" + assetId);
 
         Number circulatingSupply = response.jsonPath().get("circulatingSupply");
         assertThat(circulatingSupply.intValue()).isEqualTo(0);
@@ -277,7 +277,7 @@ public class BondLifecycleSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId + "/redemptions");
+                .get("/api/v1/admin/assets/" + assetId + "/redemptions");
 
         assertThat(response.statusCode()).isEqualTo(200);
         int totalElements = response.jsonPath().getInt("totalElements");

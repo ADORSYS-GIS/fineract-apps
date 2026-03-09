@@ -51,14 +51,14 @@ public class SecurityConfig {
                     .requestMatchers("/actuator/**").permitAll()
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                     // Public catalog and market endpoints
-                    .requestMatchers("/api/assets/**").permitAll()
-                    .requestMatchers("/api/prices/**").permitAll()
-                    .requestMatchers("/api/market/**").permitAll();
+                    .requestMatchers("/assets/**").permitAll()
+                    .requestMatchers("/prices/**").permitAll()
+                    .requestMatchers("/market/**").permitAll();
                 // Admin endpoints: permitAll in dev mode, require ASSET_MANAGER role otherwise
                 if (permitAllAdmin) {
-                    authz.requestMatchers("/api/admin/**").permitAll();
+                    authz.requestMatchers("/admin/**").permitAll();
                 } else {
-                    authz.requestMatchers("/api/admin/**").hasRole("ASSET_MANAGER");
+                    authz.requestMatchers("/admin/**").hasRole("ASSET_MANAGER");
                 }
                 // All other endpoints require JWT
                 authz.anyRequest().authenticated();

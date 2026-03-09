@@ -56,7 +56,7 @@ class TradeControllerTest {
         // The controller calls JwtUtils.extractUserId(jwt) which will NPE.
         // This verifies the endpoint is mapped; the NPE becomes a 500 from the
         // GlobalExceptionHandler's generic handler, proving the route exists.
-        mockMvc.perform(get("/api/trades/orders")
+        mockMvc.perform(get("/trades/orders")
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isInternalServerError());
@@ -72,7 +72,7 @@ class TradeControllerTest {
     void quote_missingIdempotencyKey_returns400() throws Exception {
         QuoteRequest request = new QuoteRequest("asset-001", TradeSide.BUY, new BigDecimal("10"), null);
 
-        mockMvc.perform(post("/api/trades/quote")
+        mockMvc.perform(post("/trades/quote")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -85,7 +85,7 @@ class TradeControllerTest {
         // With addFilters=false and mocked service, the route responds 201
         QuoteRequest request = new QuoteRequest("asset-001", TradeSide.BUY, new BigDecimal("10"), null);
 
-        mockMvc.perform(post("/api/trades/quote")
+        mockMvc.perform(post("/trades/quote")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Idempotency-Key", "test-key")
                         .content(objectMapper.writeValueAsString(request)))
@@ -99,7 +99,7 @@ class TradeControllerTest {
     @Test
     void confirmOrder_routeExists_returns500WithoutJwt() throws Exception {
         // Confirms route mapping — NPE on null JWT = 500 (not 404)
-        mockMvc.perform(post("/api/trades/orders/order-001/confirm"))
+        mockMvc.perform(post("/trades/orders/order-001/confirm"))
                 .andExpect(status().isInternalServerError());
     }
 
@@ -111,7 +111,7 @@ class TradeControllerTest {
     void streamOrderStatus_routeExists_throwsOnNullJwt() {
         // Confirms route mapping for SSE endpoint — NPE on null JWT (not 404)
         assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/api/trades/orders/order-001/stream")
+                mockMvc.perform(get("/trades/orders/order-001/stream")
                         .accept(MediaType.TEXT_EVENT_STREAM)));
     }
 }

@@ -1,7 +1,7 @@
 server:
   port: 8083
   servlet:
-    context-path: /
+    context-path: /api/v1
 
 spring:
   application:
@@ -167,18 +167,28 @@ resilience4j:
 
 # Actuator Configuration
 management:
+  server:
+    port: 8084
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,threaddump,heapdump
   endpoint:
     health:
       show-details: when-authorized
       probes:
         enabled: true
+    heapdump:
+      enabled: ${MANAGEMENT_ENDPOINT_HEAPDUMP_ENABLED:true}
+    threaddump:
+      enabled: ${MANAGEMENT_ENDPOINT_THREADDUMP_ENABLED:true}
   metrics:
     tags:
       application: ${spring.application.name}
+  tracing:
+    enabled: ${MANAGEMENT_TRACING_ENABLED:true}
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
 
 # Logging Configuration
 logging:
@@ -187,7 +197,7 @@ logging:
     com.adorsys.fineract.asset: DEBUG
     org.springframework.security: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
 
 # OpenAPI Configuration
 springdoc:

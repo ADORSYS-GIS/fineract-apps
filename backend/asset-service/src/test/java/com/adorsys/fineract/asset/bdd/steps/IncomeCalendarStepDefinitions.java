@@ -76,7 +76,7 @@ public class IncomeCalendarStepDefinitions {
 
     @When("the user requests the income calendar for {int} months")
     public void userRequestsIncomeCalendar(int months) throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/portfolio/income-calendar")
+        MvcResult result = mockMvc.perform(get("/portfolio/income-calendar")
                         .param("months", String.valueOf(months))
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID))))
                 .andReturn();

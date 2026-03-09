@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for trade preview and order history.
- * Preview is now done via POST /api/trades/quote (quote == preview with price lock).
+ * Preview is now done via POST /api/v1/trades/quote (quote == preview with price lock).
  * Feasible = 201 (quote created). Infeasible = 4xx with error code.
  */
 public class TradePreviewSteps {
@@ -39,7 +39,7 @@ public class TradePreviewSteps {
                 .header("Authorization", "Bearer " + testUserJwt())
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .body(Map.of("assetId", assetId, "side", "BUY", "units", units))
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
         context.setLastResponse(response);
         // If quote was created, cancel it to avoid side effects
         if (response.statusCode() == 201) {
@@ -48,7 +48,7 @@ public class TradePreviewSteps {
                 RestAssured.given()
                         .baseUri("http://localhost:" + port)
                         .header("Authorization", "Bearer " + testUserJwt())
-                        .post("/api/trades/orders/" + orderId + "/cancel");
+                        .post("/api/v1/trades/orders/" + orderId + "/cancel");
             }
         }
     }
@@ -62,7 +62,7 @@ public class TradePreviewSteps {
                 .header("Authorization", "Bearer " + testUserJwt())
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .body(Map.of("assetId", assetId, "side", "SELL", "units", units))
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
         context.setLastResponse(response);
         if (response.statusCode() == 201) {
             String orderId = response.jsonPath().getString("orderId");
@@ -70,7 +70,7 @@ public class TradePreviewSteps {
                 RestAssured.given()
                         .baseUri("http://localhost:" + port)
                         .header("Authorization", "Bearer " + testUserJwt())
-                        .post("/api/trades/orders/" + orderId + "/cancel");
+                        .post("/api/v1/trades/orders/" + orderId + "/cancel");
             }
         }
     }
@@ -80,7 +80,7 @@ public class TradePreviewSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders");
+                .get("/api/v1/trades/orders");
         context.setLastResponse(response);
     }
 
@@ -91,7 +91,7 @@ public class TradePreviewSteps {
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .queryParam("assetId", assetId)
-                .get("/api/trades/orders");
+                .get("/api/v1/trades/orders");
         context.setLastResponse(response);
     }
 
@@ -102,7 +102,7 @@ public class TradePreviewSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders/" + orderId);
+                .get("/api/v1/trades/orders/" + orderId);
         context.setLastResponse(response);
     }
 

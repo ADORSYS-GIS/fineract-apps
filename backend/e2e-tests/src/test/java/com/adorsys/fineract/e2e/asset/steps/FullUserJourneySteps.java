@@ -107,7 +107,7 @@ public class FullUserJourneySteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + jwt)
                 .body(quoteBody)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         assertThat(quoteResponse.statusCode())
                 .as("Create quote: %s", quoteResponse.body().asString())
@@ -120,7 +120,7 @@ public class FullUserJourneySteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + jwt)
-                .post("/api/trades/orders/" + orderId + "/confirm");
+                .post("/api/v1/trades/orders/" + orderId + "/confirm");
 
         assertThat(confirmResponse.statusCode())
                 .as("Confirm order: %s", confirmResponse.body().asString())
@@ -132,7 +132,7 @@ public class FullUserJourneySteps {
             Response statusResponse = RestAssured.given()
                     .baseUri("http://localhost:" + port)
                     .header("Authorization", "Bearer " + jwt)
-                    .get("/api/trades/orders/" + orderId);
+                    .get("/api/v1/trades/orders/" + orderId);
 
             String status = statusResponse.jsonPath().getString("status");
             if ("FILLED".equals(status)) {
@@ -156,7 +156,7 @@ public class FullUserJourneySteps {
         Response finalResponse = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + jwt)
-                .get("/api/trades/orders/" + orderId);
+                .get("/api/v1/trades/orders/" + orderId);
         context.setLastResponse(finalResponse);
         assertThat(finalResponse.jsonPath().getString("status"))
                 .as("Order did not reach FILLED within timeout")
@@ -176,7 +176,7 @@ public class FullUserJourneySteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + jwt)
-                .get("/api/portfolio");
+                .get("/api/v1/portfolio");
 
         assertThat(response.statusCode()).isEqualTo(200);
 
@@ -207,7 +207,7 @@ public class FullUserJourneySteps {
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + jwt)
                 .queryParam("months", months)
-                .get("/api/portfolio/income-calendar");
+                .get("/api/v1/portfolio/income-calendar");
         context.setLastResponse(response);
     }
 

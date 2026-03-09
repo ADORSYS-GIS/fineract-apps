@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
  * Authenticated endpoints for portfolio positions and Profit&Loss.
  */
 @RestController
-@RequestMapping("/api/portfolio")
+@RequestMapping("/portfolio")
 @RequiredArgsConstructor
 @Tag(name = "Portfolio", description = "User positions and Profit&Loss")
 public class PortfolioController {

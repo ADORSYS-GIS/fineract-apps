@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for pricing and market status endpoints.
- * Exercises: GET /api/prices/{id}, /api/prices/{id}/ohlc, /api/prices/{id}/history, /api/market/status
+ * Exercises: GET /api/v1/prices/{id}, /api/v1/prices/{id}/ohlc, /api/v1/prices/{id}/history, /api/v1/market/status
  */
 public class PricingSteps {
 
@@ -27,7 +27,7 @@ public class PricingSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/prices/" + assetId);
+                .get("/api/v1/prices/" + assetId);
         context.setLastResponse(response);
     }
 
@@ -36,7 +36,7 @@ public class PricingSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/prices/" + assetId + "/ohlc");
+                .get("/api/v1/prices/" + assetId + "/ohlc");
         context.setLastResponse(response);
     }
 
@@ -46,7 +46,7 @@ public class PricingSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .queryParam("period", period)
-                .get("/api/prices/" + assetId + "/history");
+                .get("/api/v1/prices/" + assetId + "/history");
         context.setLastResponse(response);
     }
 
@@ -54,7 +54,7 @@ public class PricingSteps {
     public void requestMarketStatus() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/market/status");
+                .get("/api/v1/market/status");
         context.setLastResponse(response);
     }
 

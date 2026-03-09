@@ -31,7 +31,7 @@ public class AuditLogStepDefinitions {
 
     @When("the admin requests the audit log")
     public void adminRequestsAuditLog() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/admin/audit-log")
+        MvcResult result = mockMvc.perform(get("/admin/audit-log")
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
         context.setLastResult(result);
@@ -39,7 +39,7 @@ public class AuditLogStepDefinitions {
 
     @When("the admin requests the audit log filtered by action {string}")
     public void adminRequestsAuditLogFilteredByAction(String action) throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/admin/audit-log")
+        MvcResult result = mockMvc.perform(get("/admin/audit-log")
                         .param("action", action)
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
@@ -48,7 +48,7 @@ public class AuditLogStepDefinitions {
 
     @When("the admin requests the audit log with page size {int}")
     public void adminRequestsAuditLogWithPageSize(int size) throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/admin/audit-log")
+        MvcResult result = mockMvc.perform(get("/admin/audit-log")
                         .param("size", String.valueOf(size))
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();

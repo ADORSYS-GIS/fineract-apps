@@ -94,7 +94,7 @@ class TradingIntegrationTest {
         QuoteRequest request = new QuoteRequest(
                 "asset-001", TradeSide.BUY, new BigDecimal("5"), null);
 
-        mockMvc.perform(post("/api/trades/quote")
+        mockMvc.perform(post("/trades/quote")
                         .with(jwt().jwt(j -> j
                                 .subject(EXTERNAL_ID)
                                 .claim("fineract_client_id", USER_ID)))
@@ -120,7 +120,7 @@ class TradingIntegrationTest {
         QuoteRequest request = new QuoteRequest(
                 "asset-001", TradeSide.BUY, new BigDecimal("9999"), null);
 
-        mockMvc.perform(post("/api/trades/quote")
+        mockMvc.perform(post("/trades/quote")
                         .with(jwt().jwt(j -> j
                                 .subject(EXTERNAL_ID)
                                 .claim("fineract_client_id", USER_ID)))
@@ -138,7 +138,7 @@ class TradingIntegrationTest {
         QuoteRequest request = new QuoteRequest(
                 "asset-001", TradeSide.SELL, new BigDecimal("5"), null);
 
-        mockMvc.perform(post("/api/trades/quote")
+        mockMvc.perform(post("/trades/quote")
                         .with(jwt().jwt(j -> j
                                 .subject(EXTERNAL_ID)
                                 .claim("fineract_client_id", USER_ID)))
@@ -154,7 +154,7 @@ class TradingIntegrationTest {
         QuoteRequest request = new QuoteRequest(
                 "asset-001", TradeSide.BUY, new BigDecimal("5"), null);
 
-        mockMvc.perform(post("/api/trades/quote")
+        mockMvc.perform(post("/trades/quote")
                         .header("X-Idempotency-Key", "idem-noauth")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -168,7 +168,7 @@ class TradingIntegrationTest {
     @Test
     @Order(5)
     void getOrders_authenticated_returns200() throws Exception {
-        mockMvc.perform(get("/api/trades/orders")
+        mockMvc.perform(get("/trades/orders")
                         .with(jwt().jwt(j -> j
                                 .subject(EXTERNAL_ID)
                                 .claim("fineract_client_id", USER_ID))))
@@ -179,7 +179,7 @@ class TradingIntegrationTest {
     @Test
     @Order(6)
     void getOrders_noAuth_returns401() throws Exception {
-        mockMvc.perform(get("/api/trades/orders"))
+        mockMvc.perform(get("/trades/orders"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -195,7 +195,7 @@ class TradingIntegrationTest {
         QuoteRequest request = new QuoteRequest(
                 "nonexistent-asset", TradeSide.BUY, new BigDecimal("5"), null);
 
-        mockMvc.perform(post("/api/trades/quote")
+        mockMvc.perform(post("/trades/quote")
                         .with(jwt().jwt(j -> j
                                 .subject(EXTERNAL_ID)
                                 .claim("fineract_client_id", USER_ID)))

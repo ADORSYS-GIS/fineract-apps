@@ -42,7 +42,7 @@ class AssetCatalogControllerTest {
         when(assetCatalogService.getRecentTrades("asset-001")).thenReturn(trades);
 
         // Act & Assert
-        mockMvc.perform(get("/api/assets/asset-001/recent-trades"))
+        mockMvc.perform(get("/assets/asset-001/recent-trades"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].price").value(500))
@@ -60,7 +60,7 @@ class AssetCatalogControllerTest {
         when(assetCatalogService.getRecentTrades("asset-002")).thenReturn(Collections.emptyList());
 
         // Act & Assert
-        mockMvc.perform(get("/api/assets/asset-002/recent-trades"))
+        mockMvc.perform(get("/assets/asset-002/recent-trades"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 

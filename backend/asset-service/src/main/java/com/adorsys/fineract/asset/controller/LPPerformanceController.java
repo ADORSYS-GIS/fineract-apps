@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Admin endpoint for LP performance metrics.
  */
 @RestController
-@RequestMapping("/api/admin/lp")
+@RequestMapping("/admin/lp")
 @RequiredArgsConstructor
 @Tag(name = "LP Performance", description = "Liquidity partner performance metrics")
 public class LPPerformanceController {

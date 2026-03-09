@@ -41,7 +41,7 @@ public class SecurityHeadersConfig {
             response.setHeader("Permissions-Policy",
                     "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
 
-            if (request.getRequestURI().startsWith("/api/")) {
+            if (request.getRequestURI().startsWith("/api/v1/")) {
                 response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
                 response.setHeader("Pragma", "no-cache");
                 response.setHeader("Expires", "0");

@@ -56,7 +56,7 @@ public class AdminNotificationSteps {
     public void adminListsNotifications() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/notifications");
+                .get("/api/v1/admin/notifications");
         context.setLastResponse(response);
     }
 
@@ -65,7 +65,7 @@ public class AdminNotificationSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .param("page", page)
-                .get("/api/admin/notifications");
+                .get("/api/v1/admin/notifications");
         context.setLastResponse(response);
     }
 
@@ -73,7 +73,7 @@ public class AdminNotificationSteps {
     public void adminGetsUnreadCount() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/notifications/unread-count");
+                .get("/api/v1/admin/notifications/unread-count");
         context.setLastResponse(response);
     }
 
@@ -83,13 +83,13 @@ public class AdminNotificationSteps {
     public void adminMarksFirstAsRead() {
         Response listResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/notifications");
+                .get("/api/v1/admin/notifications");
         List<Integer> ids = listResp.jsonPath().getList("content.id");
         assertThat(ids).as("Admin notification list should not be empty").isNotEmpty();
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .post("/api/admin/notifications/" + ids.get(0) + "/read");
+                .post("/api/v1/admin/notifications/" + ids.get(0) + "/read");
         context.setLastResponse(response);
     }
 
@@ -97,7 +97,7 @@ public class AdminNotificationSteps {
     public void adminMarksAllAsRead() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .post("/api/admin/notifications/read-all");
+                .post("/api/v1/admin/notifications/read-all");
         context.setLastResponse(response);
     }
 

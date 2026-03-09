@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Step definitions for error scenarios: insufficient funds, halted trading,
  * idempotency, and invalid operations.
- * Uses the quote-based API: POST /api/trades/quote with side field.
+ * Uses the quote-based API: POST /api/v1/trades/quote with side field.
  */
 public class ErrorSteps {
 
@@ -41,7 +41,7 @@ public class ErrorSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/halt");
+                .post("/api/v1/admin/assets/" + assetId + "/halt");
 
         assertThat(response.statusCode()).isEqualTo(200);
     }
@@ -66,7 +66,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         context.setLastResponse(response);
     }
@@ -87,7 +87,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         context.setLastResponse(response);
     }
@@ -108,7 +108,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         context.setLastResponse(response);
     }
@@ -131,7 +131,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", idempotencyKey)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         context.storeValue("firstOrderStatus", first.statusCode());
         String orderId = first.jsonPath().getString("orderId");
@@ -143,7 +143,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", idempotencyKey)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         context.setLastResponse(second);
 
@@ -153,7 +153,7 @@ public class ErrorSteps {
                     .baseUri("http://localhost:" + port)
                     .contentType(ContentType.JSON)
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .post("/api/trades/orders/" + orderId + "/confirm");
+                    .post("/api/v1/trades/orders/" + orderId + "/confirm");
 
             if (confirmResp.statusCode() == 202) {
                 // Poll for FILLED
@@ -162,7 +162,7 @@ public class ErrorSteps {
                     Response pollResp = RestAssured.given()
                             .baseUri("http://localhost:" + port)
                             .header("Authorization", "Bearer " + testUserJwt())
-                            .get("/api/trades/orders/" + orderId);
+                            .get("/api/v1/trades/orders/" + orderId);
                     String status = pollResp.jsonPath().getString("status");
                     if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
                         break;
@@ -191,7 +191,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         context.setLastResponse(response);
     }
@@ -212,7 +212,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         context.setLastResponse(response);
     }
@@ -241,7 +241,7 @@ public class ErrorSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
+                .get("/api/v1/admin/assets/" + assetId);
 
         Number circulatingSupply = response.jsonPath().get("circulatingSupply");
         assertThat(circulatingSupply.intValue()).isEqualTo(1);

@@ -40,7 +40,7 @@ class AdminOrderControllerTest {
         when(adminOrderService.getFilteredOrders(isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(order)));
 
-        mockMvc.perform(get("/api/admin/orders")
+        mockMvc.perform(get("/admin/orders")
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
@@ -55,7 +55,7 @@ class AdminOrderControllerTest {
         when(adminOrderService.getFilteredOrders(eq(OrderStatus.FAILED), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        mockMvc.perform(get("/api/admin/orders").param("status", "FAILED"))
+        mockMvc.perform(get("/admin/orders").param("status", "FAILED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isEmpty());
 
@@ -68,14 +68,14 @@ class AdminOrderControllerTest {
         when(adminOrderService.getFilteredOrders(isNull(), isNull(), eq("user-ext"), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(order)));
 
-        mockMvc.perform(get("/api/admin/orders").param("search", "user-ext"))
+        mockMvc.perform(get("/admin/orders").param("search", "user-ext"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].userExternalId").value("user-ext-1"));
     }
 
     @Test
     void getOrders_pageSizeTooLarge_returnsError() throws Exception {
-        mockMvc.perform(get("/api/admin/orders")
+        mockMvc.perform(get("/admin/orders")
                         .param("size", "200"))
                 .andExpect(status().isBadRequest());
     }
@@ -95,7 +95,7 @@ class AdminOrderControllerTest {
         );
         when(adminOrderService.getOrderDetail("o1")).thenReturn(detail);
 
-        mockMvc.perform(get("/api/admin/orders/o1"))
+        mockMvc.perform(get("/admin/orders/o1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderId").value("o1"))
                 .andExpect(jsonPath("$.assetName").value("Test Asset"))
@@ -108,7 +108,7 @@ class AdminOrderControllerTest {
         when(adminOrderService.getOrderDetail("missing"))
                 .thenThrow(new AssetNotFoundException("Order not found: missing"));
 
-        mockMvc.perform(get("/api/admin/orders/missing"))
+        mockMvc.perform(get("/admin/orders/missing"))
                 .andExpect(status().isNotFound());
     }
 
@@ -119,7 +119,7 @@ class AdminOrderControllerTest {
         when(adminOrderService.getOrderAssetOptions())
                 .thenReturn(List.of(new AssetOptionResponse("asset-1", "TST", "Test Asset")));
 
-        mockMvc.perform(get("/api/admin/orders/asset-options"))
+        mockMvc.perform(get("/admin/orders/asset-options"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].assetId").value("asset-1"))
@@ -133,7 +133,7 @@ class AdminOrderControllerTest {
         when(adminOrderService.getOrderSummary())
                 .thenReturn(new OrderSummaryResponse(3, 5, 2));
 
-        mockMvc.perform(get("/api/admin/orders/summary"))
+        mockMvc.perform(get("/admin/orders/summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.needsReconciliation").value(3))
                 .andExpect(jsonPath("$.failed").value(5))
@@ -156,7 +156,7 @@ class AdminOrderControllerTest {
 
         ResolveOrderRequest request = new ResolveOrderRequest("Verified");
 
-        mockMvc.perform(post("/api/admin/orders/o1/resolve")
+        mockMvc.perform(post("/admin/orders/o1/resolve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -172,7 +172,7 @@ class AdminOrderControllerTest {
 
         ResolveOrderRequest request = new ResolveOrderRequest("test resolution");
 
-        mockMvc.perform(post("/api/admin/orders/missing/resolve")
+        mockMvc.perform(post("/admin/orders/missing/resolve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
@@ -182,7 +182,7 @@ class AdminOrderControllerTest {
     void resolveOrder_blankResolution_returns400() throws Exception {
         ResolveOrderRequest request = new ResolveOrderRequest("");
 
-        mockMvc.perform(post("/api/admin/orders/o1/resolve")
+        mockMvc.perform(post("/admin/orders/o1/resolve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());

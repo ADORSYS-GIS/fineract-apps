@@ -14,9 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for extended admin operations:
- * DELETE /api/admin/assets/{id}, GET /api/admin/lp/performance,
- * GET /api/admin/assets/inventory, GET /api/admin/orders/summary,
- * GET /api/admin/assets/{id}/income-summary, GET /api/admin/assets/{id}/redemptions
+ * DELETE /api/v1/admin/assets/{id}, GET /api/v1/admin/lp/performance,
+ * GET /api/v1/admin/assets/inventory, GET /api/v1/admin/orders/summary,
+ * GET /api/v1/admin/assets/{id}/income-summary, GET /api/v1/admin/assets/{id}/redemptions
  */
 public class AdminExtendedSteps {
 
@@ -46,7 +46,7 @@ public class AdminExtendedSteps {
     private void deleteAsset(String assetId) {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .delete("/api/admin/assets/" + assetId);
+                .delete("/api/v1/admin/assets/" + assetId);
         context.setLastResponse(response);
     }
 
@@ -58,7 +58,7 @@ public class AdminExtendedSteps {
     public void adminRequestsLpPerformance() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/lp/performance");
+                .get("/api/v1/admin/lp/performance");
         context.setLastResponse(response);
     }
 
@@ -70,7 +70,7 @@ public class AdminExtendedSteps {
     public void adminRequestsInventory() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/inventory");
+                .get("/api/v1/admin/assets/inventory");
         context.setLastResponse(response);
     }
 
@@ -89,7 +89,7 @@ public class AdminExtendedSteps {
     public void adminRequestsOrderSummary() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/orders/summary");
+                .get("/api/v1/admin/orders/summary");
         context.setLastResponse(response);
     }
 
@@ -102,7 +102,7 @@ public class AdminExtendedSteps {
         String assetId = resolveAssetId(ref);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId + "/income-summary");
+                .get("/api/v1/admin/assets/" + assetId + "/income-summary");
         context.setLastResponse(response);
     }
 
@@ -115,7 +115,7 @@ public class AdminExtendedSteps {
         String assetId = resolveAssetId(ref);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId + "/redemptions");
+                .get("/api/v1/admin/assets/" + assetId + "/redemptions");
         context.setLastResponse(response);
     }
 

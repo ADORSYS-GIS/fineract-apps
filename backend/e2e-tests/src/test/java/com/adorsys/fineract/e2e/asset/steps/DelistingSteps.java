@@ -31,7 +31,7 @@ public class DelistingSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(Map.of("delistingDate", delistingDate))
-                .post("/api/admin/assets/" + assetId + "/delist");
+                .post("/api/v1/admin/assets/" + assetId + "/delist");
         context.setLastResponse(response);
     }
 
@@ -42,7 +42,7 @@ public class DelistingSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/cancel-delist");
+                .post("/api/v1/admin/assets/" + assetId + "/cancel-delist");
         context.setLastResponse(response);
     }
 

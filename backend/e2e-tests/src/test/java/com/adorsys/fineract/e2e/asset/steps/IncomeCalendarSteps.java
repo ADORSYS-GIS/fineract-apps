@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for the income calendar endpoint.
- * Exercises: GET /api/portfolio/income-calendar
+ * Exercises: GET /api/v1/portfolio/income-calendar
  */
 public class IncomeCalendarSteps {
 
@@ -33,7 +33,7 @@ public class IncomeCalendarSteps {
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .queryParam("months", months)
-                .get("/api/portfolio/income-calendar");
+                .get("/api/v1/portfolio/income-calendar");
         context.setLastResponse(response);
     }
 

@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for asset catalog browsing and discovery.
- * Exercises: GET /api/assets, /api/assets/{id}, /api/assets/{id}/recent-trades, /api/assets/discover
+ * Exercises: GET /api/v1/assets, /api/v1/assets/{id}, /api/v1/assets/{id}/recent-trades, /api/v1/assets/discover
  */
 public class CatalogSteps {
 
@@ -28,7 +28,7 @@ public class CatalogSteps {
     public void requestAssetCatalog() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/assets");
+                .get("/api/v1/assets");
         context.setLastResponse(response);
     }
 
@@ -37,7 +37,7 @@ public class CatalogSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .queryParam("category", category)
-                .get("/api/assets");
+                .get("/api/v1/assets");
         context.setLastResponse(response);
     }
 
@@ -46,7 +46,7 @@ public class CatalogSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .queryParam("search", keyword)
-                .get("/api/assets");
+                .get("/api/v1/assets");
         context.setLastResponse(response);
     }
 
@@ -55,7 +55,7 @@ public class CatalogSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/assets/" + assetId);
+                .get("/api/v1/assets/" + assetId);
         context.setLastResponse(response);
     }
 
@@ -64,7 +64,7 @@ public class CatalogSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/assets/" + assetId + "/recent-trades");
+                .get("/api/v1/assets/" + assetId + "/recent-trades");
         context.setLastResponse(response);
     }
 
@@ -106,7 +106,7 @@ public class CatalogSteps {
     public void requestDiscoverPage() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/assets/discover");
+                .get("/api/v1/assets/discover");
         context.setLastResponse(response);
     }
 

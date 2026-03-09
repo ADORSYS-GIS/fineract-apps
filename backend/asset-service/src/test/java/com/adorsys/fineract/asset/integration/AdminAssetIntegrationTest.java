@@ -56,14 +56,14 @@
 //     @Test
 //     @Order(1)
 //     void getAssets_noAuth_returns401() throws Exception {
-//         mockMvc.perform(get("/api/admin/assets"))
+//         mockMvc.perform(get("/admin/assets"))
 //                 .andExpect(status().isUnauthorized());
 //     }
 
 //     @Test
 //     @Order(2)
 //     void getAssets_withoutAdminRole_returns403() throws Exception {
-//         mockMvc.perform(get("/api/admin/assets")
+//         mockMvc.perform(get("/admin/assets")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
 //                 .andExpect(status().isForbidden());
 //     }
@@ -71,7 +71,7 @@
 //     @Test
 //     @Order(3)
 //     void getAssets_withAdminRole_returns200() throws Exception {
-//         mockMvc.perform(get("/api/admin/assets")
+//         mockMvc.perform(get("/admin/assets")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER"))))
 //                 .andExpect(status().isOk())
 //                 .andExpect(jsonPath("$.content").isArray());
@@ -84,7 +84,7 @@
 //     @Test
 //     @Order(4)
 //     void getAsset_returns200() throws Exception {
-//         mockMvc.perform(get("/api/admin/assets/asset-001")
+//         mockMvc.perform(get("/admin/assets/asset-001")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER"))))
 //                 .andExpect(status().isOk())
 //                 .andExpect(jsonPath("$.id").value("asset-001"))
@@ -99,12 +99,12 @@
 //     @Test
 //     @Order(5)
 //     void activateAsset_pendingToActive_returns200() throws Exception {
-//         mockMvc.perform(post("/api/admin/assets/asset-002/activate")
+//         mockMvc.perform(post("/admin/assets/asset-002/activate")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER"))))
 //                 .andExpect(status().isOk());
 
 //         // Verify it's now ACTIVE
-//         mockMvc.perform(get("/api/admin/assets/asset-002")
+//         mockMvc.perform(get("/admin/assets/asset-002")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER"))))
 //                 .andExpect(jsonPath("$.status").value("ACTIVE"));
 //     }
@@ -112,7 +112,7 @@
 //     @Test
 //     @Order(6)
 //     void haltAsset_activeToHalted_returns200() throws Exception {
-//         mockMvc.perform(post("/api/admin/assets/asset-001/halt")
+//         mockMvc.perform(post("/admin/assets/asset-001/halt")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER"))))
 //                 .andExpect(status().isOk());
 //     }
@@ -121,12 +121,12 @@
 //     @Order(7)
 //     void resumeAsset_haltedToActive_returns200() throws Exception {
 //         // First halt
-//         mockMvc.perform(post("/api/admin/assets/asset-001/halt")
+//         mockMvc.perform(post("/admin/assets/asset-001/halt")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER"))))
 //                 .andExpect(status().isOk());
 
 //         // Then resume
-//         mockMvc.perform(post("/api/admin/assets/asset-001/resume")
+//         mockMvc.perform(post("/admin/assets/asset-001/resume")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER"))))
 //                 .andExpect(status().isOk());
 //     }
@@ -141,7 +141,7 @@
 //         UpdateAssetRequest update = new UpdateAssetRequest(
 //                 "Updated Test Asset", null, null, null, null, null, null, null, null);
 
-//         mockMvc.perform(put("/api/admin/assets/asset-001")
+//         mockMvc.perform(put("/admin/assets/asset-001")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER")))
 //                         .contentType(MediaType.APPLICATION_JSON)
 //                         .content(objectMapper.writeValueAsString(update)))
@@ -158,7 +158,7 @@
 
 //         MintSupplyRequest mint = new MintSupplyRequest(new BigDecimal("500"));
 
-//         mockMvc.perform(post("/api/admin/assets/asset-001/mint")
+//         mockMvc.perform(post("/admin/assets/asset-001/mint")
 //                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ASSET_MANAGER")))
 //                         .contentType(MediaType.APPLICATION_JSON)
 //                         .content(objectMapper.writeValueAsString(mint)))

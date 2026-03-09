@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for stock trading (buy/sell) with Fineract balance verification.
- * Uses the quote-confirm async flow: POST /api/trades/quote → POST /api/trades/orders/{id}/confirm → poll GET.
+ * Uses the quote-confirm async flow: POST /api/v1/trades/quote → POST /api/v1/trades/orders/{id}/confirm → poll GET.
  */
 public class StockTradingSteps {
 
@@ -60,7 +60,7 @@ public class StockTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(request)
-                .post("/api/admin/assets");
+                .post("/api/v1/admin/assets");
 
         assertThat(createResp.statusCode())
                 .as("Create asset %s: %s", symbolRef, createResp.body().asString())
@@ -74,7 +74,7 @@ public class StockTradingSteps {
         Response activateResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/activate");
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
 
         assertThat(activateResp.statusCode()).isEqualTo(200);
     }
@@ -153,7 +153,7 @@ public class StockTradingSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
+                .get("/api/v1/admin/assets/" + assetId);
 
         Number circulatingSupply = response.jsonPath().get("circulatingSupply");
         assertThat(circulatingSupply.intValue()).isEqualTo(expected);
@@ -181,7 +181,7 @@ public class StockTradingSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(quoteBody)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         assertThat(quoteResp.statusCode())
                 .as("Create quote: %s", quoteResp.body().asString())
@@ -195,7 +195,7 @@ public class StockTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .post("/api/trades/orders/" + orderId + "/confirm");
+                .post("/api/v1/trades/orders/" + orderId + "/confirm");
 
         assertThat(confirmResp.statusCode())
                 .as("Confirm quote: %s", confirmResp.body().asString())
@@ -207,7 +207,7 @@ public class StockTradingSteps {
             Response pollResp = RestAssured.given()
                     .baseUri("http://localhost:" + port)
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .get("/api/trades/orders/" + orderId);
+                    .get("/api/v1/trades/orders/" + orderId);
 
             String status = pollResp.jsonPath().getString("status");
             if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
@@ -225,7 +225,7 @@ public class StockTradingSteps {
         Response finalResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders/" + orderId);
+                .get("/api/v1/trades/orders/" + orderId);
         context.setLastResponse(finalResp);
     }
 

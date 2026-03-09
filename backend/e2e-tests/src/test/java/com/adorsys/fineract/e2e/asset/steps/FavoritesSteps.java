@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for favorites/watchlist operations.
- * Exercises: GET/POST/DELETE /api/favorites
+ * Exercises: GET/POST/DELETE /api/v1/favorites
  */
 public class FavoritesSteps {
 
@@ -32,7 +32,7 @@ public class FavoritesSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .post("/api/favorites/" + assetId);
+                .post("/api/v1/favorites/" + assetId);
         context.setLastResponse(response);
     }
 
@@ -41,7 +41,7 @@ public class FavoritesSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/favorites");
+                .get("/api/v1/favorites");
         context.setLastResponse(response);
     }
 
@@ -51,7 +51,7 @@ public class FavoritesSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .delete("/api/favorites/" + assetId);
+                .delete("/api/v1/favorites/" + assetId);
         context.setLastResponse(response);
     }
 

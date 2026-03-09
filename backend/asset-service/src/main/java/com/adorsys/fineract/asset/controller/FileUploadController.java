@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin/files")
+@RequestMapping("/admin/files")
 @RequiredArgsConstructor
 @Tag(name = "Admin - File Upload", description = "Upload files to object storage")
 public class FileUploadController {
