@@ -136,10 +136,16 @@ export const useCreateAsset = () => {
 				sortOrder: "ASC",
 			}),
 		select: (res) =>
-			(res.pageItems ?? []).filter(
-				(c) =>
-					(c as unknown as { legalForm?: { id?: number } }).legalForm?.id === 2,
-			),
+			(res.pageItems ?? []).filter((c) => {
+				const client = c as unknown as {
+					legalForm?: { id?: number };
+					displayName?: string;
+				};
+				return (
+					client.legalForm?.id === 2 &&
+					!client.displayName?.toLowerCase().includes("platform fee collector")
+				);
+			}),
 	});
 
 	const createMutation = useMutation({
