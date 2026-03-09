@@ -38,6 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import io.micrometer.core.instrument.Timer;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -295,6 +297,8 @@ public class TradingService {
         IncomeBenefitProjection incomeBenefit = (request.side() == TradeSide.BUY)
                 ? incomeBenefitService.calculateForPurchase(asset, units, issuerPrice, orderCashAmount) : null;
 
+        assetMetrics.recordQuoteCreated();
+
         return new QuoteResponse(
                 orderId, OrderStatus.QUOTED, request.assetId(), asset.getSymbol(), request.side(),
                 units, executionPrice, lpMarginPerUnit, grossAmount, fee, feePercent, spreadAmount,
@@ -355,6 +359,7 @@ public class TradingService {
                         previousStatus, OrderStatus.QUEUED,
                         order.getUnits(), order.getExecutionPrice(), order.getCashAmount(),
                         order.getFee(), null, Instant.now()));
+                assetMetrics.recordQuoteConfirmed();
                 log.info("Quote confirmed but market closed, queued: orderId={}", orderId);
                 return toOrderResponse(order);
             }
@@ -369,6 +374,7 @@ public class TradingService {
                     order.getUnits(), order.getExecutionPrice(), order.getCashAmount(),
                     order.getFee(), null, Instant.now()));
 
+            assetMetrics.recordQuoteConfirmed();
             log.info("Quote confirmed, pending execution: orderId={}", orderId);
             return toOrderResponse(order);
         } catch (ObjectOptimisticLockingFailureException e) {
@@ -439,8 +445,10 @@ public class TradingService {
             }
             ctx.setOrder(lockedOrder);
 
-            // Execute inside lock (reuses full existing pipeline)
-            executeInsideLock(ctx);
+            // Execute inside lock (reuses full existing pipeline), timed by side
+            Timer executionTimer = (order.getSide() == TradeSide.BUY)
+                    ? assetMetrics.getBuyTimer() : assetMetrics.getSellTimer();
+            executionTimer.record(() -> executeInsideLock(ctx));
 
             // Publish terminal status event
             eventPublisher.publishEvent(new OrderStatusChangedEvent(
@@ -793,6 +801,12 @@ public class TradingService {
             assetMetrics.recordSell();
         }
 
+        // Record quote-to-fill duration (from quote creation to FILLED)
+        if (order.getCreatedAt() != null) {
+            Duration quoteToFill = Duration.between(order.getCreatedAt(), Instant.now());
+            assetMetrics.getQuoteToExecutionTimer().record(quoteToFill);
+        }
+
     }
 
     /**
@@ -976,6 +990,9 @@ public class TradingService {
         // Release soft reservation if cancelling a QUOTED BUY order
         if (previousStatus == OrderStatus.QUOTED && order.getSide() == TradeSide.BUY) {
             quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
+        }
+        if (previousStatus == OrderStatus.QUOTED) {
+            assetMetrics.recordQuoteUserCancelled();
         }
 
         eventPublisher.publishEvent(new OrderStatusChangedEvent(
