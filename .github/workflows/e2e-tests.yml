@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [asset-service, payment-gateway]
+        suite: [asset, payment]
 
     steps:
       - name: Checkout code
