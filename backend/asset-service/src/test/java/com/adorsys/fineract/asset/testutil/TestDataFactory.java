@@ -127,7 +127,6 @@ public final class TestDataFactory {
                 new BigDecimal("95"),
                 LocalDate.now().minusMonths(1),
                 LocalDate.now().plusYears(1),
-                null,
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits (maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays)
                 null, null, // min order size/cash
@@ -152,7 +151,6 @@ public final class TestDataFactory {
                 new BigDecimal("9500"),
                 LocalDate.now().minusMonths(1),
                 LocalDate.now().plusYears(1),
-                null,
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash

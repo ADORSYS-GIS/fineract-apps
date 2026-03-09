@@ -13,12 +13,13 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for amount-based trade preview.
- * Tests the new XAF amount → units conversion in trade preview.
+ * Now uses POST /api/trades/quote with 'amount' field instead of removed /api/trades/preview.
  */
 public class AmountPreviewSteps {
 
@@ -35,9 +36,20 @@ public class AmountPreviewSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
+                .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .body(Map.of("assetId", assetId, "side", "BUY", "amount", amount))
-                .post("/api/trades/preview");
+                .post("/api/trades/quote");
         context.setLastResponse(response);
+        // Cancel quote if created to avoid side effects
+        if (response.statusCode() == 201) {
+            String orderId = response.jsonPath().getString("orderId");
+            if (orderId != null) {
+                RestAssured.given()
+                        .baseUri("http://localhost:" + port)
+                        .header("Authorization", "Bearer " + testUserJwt())
+                        .post("/api/trades/orders/" + orderId + "/cancel");
+            }
+        }
     }
 
     @Then("the preview units should be greater than {int}")
@@ -83,8 +95,12 @@ public class AmountPreviewSteps {
 
     @Then("the preview blockers should contain {string}")
     public void previewBlockersShouldContain(String expectedBlocker) {
-        List<String> blockers = context.getLastResponse().jsonPath().getList("blockers");
-        assertThat(blockers).contains(expectedBlocker);
+        // With the new quote API, blockers are returned as error codes in the error response
+        String errorCode = context.getLastResponse().jsonPath().getString("code");
+        if (errorCode == null) {
+            errorCode = context.getLastResponse().jsonPath().getString("error");
+        }
+        assertThat(errorCode).isEqualTo(expectedBlocker);
     }
 
     private String testUserJwt() {

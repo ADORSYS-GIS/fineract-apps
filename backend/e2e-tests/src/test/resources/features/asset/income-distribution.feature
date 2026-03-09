@@ -17,8 +17,7 @@ Feature: Income Distribution (E2E)
   Scenario: BUY preview includes income benefit projections for income asset
     Given an active income asset "RNT" with price 5000, supply 1000, income type "RENT", rate 8.0, frequency 1
     When the user previews a BUY of 10 units of "RNT"
-    Then the response status should be 200
-    And the preview should be feasible
+    Then the preview should be feasible
     And the preview should include income benefit projections
     And the income benefit income type should be "RENT"
     And the income benefit should be fixed income
@@ -26,6 +25,5 @@ Feature: Income Distribution (E2E)
   Scenario: BUY preview does not include income projections for non-income asset
     Given an active stock asset "NIN" with price 1000 and supply 1000
     When the user previews a BUY of 10 units of "NIN"
-    Then the response status should be 200
-    And the preview should be feasible
+    Then the preview should be feasible
     And the preview should not include income benefit projections

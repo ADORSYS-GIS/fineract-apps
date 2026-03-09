@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Step definitions for error scenarios: insufficient funds, halted trading,
  * idempotency, and invalid operations.
+ * Uses the quote-based API: POST /api/trades/quote with side field.
  */
 public class ErrorSteps {
 
@@ -55,6 +56,7 @@ public class ErrorSteps {
 
         Map<String, Object> body = Map.of(
                 "assetId", assetId,
+                "side", "BUY",
                 "units", units
         );
 
@@ -64,7 +66,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/buy");
+                .post("/api/trades/quote");
 
         context.setLastResponse(response);
     }
@@ -75,6 +77,7 @@ public class ErrorSteps {
 
         Map<String, Object> body = Map.of(
                 "assetId", assetId,
+                "side", "SELL",
                 "units", units
         );
 
@@ -84,7 +87,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/sell");
+                .post("/api/trades/quote");
 
         context.setLastResponse(response);
     }
@@ -95,6 +98,7 @@ public class ErrorSteps {
 
         Map<String, Object> body = Map.of(
                 "assetId", assetId,
+                "side", "BUY",
                 "units", units
         );
 
@@ -104,7 +108,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/buy");
+                .post("/api/trades/quote");
 
         context.setLastResponse(response);
     }
@@ -116,30 +120,59 @@ public class ErrorSteps {
 
         Map<String, Object> body = Map.of(
                 "assetId", assetId,
+                "side", "BUY",
                 "units", units
         );
 
-        // First order
+        // First quote request
         Response first = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", idempotencyKey)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/buy");
+                .post("/api/trades/quote");
 
         context.storeValue("firstOrderStatus", first.statusCode());
+        String orderId = first.jsonPath().getString("orderId");
 
-        // Second order with same idempotency key
+        // Second quote request with same idempotency key — should return same quote
         Response second = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", idempotencyKey)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/buy");
+                .post("/api/trades/quote");
 
         context.setLastResponse(second);
+
+        // Confirm and execute the single quote so we can verify only 1 trade is recorded
+        if (orderId != null) {
+            Response confirmResp = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .contentType(ContentType.JSON)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .post("/api/trades/orders/" + orderId + "/confirm");
+
+            if (confirmResp.statusCode() == 202) {
+                // Poll for FILLED
+                long deadline = System.currentTimeMillis() + 15_000;
+                while (System.currentTimeMillis() < deadline) {
+                    Response pollResp = RestAssured.given()
+                            .baseUri("http://localhost:" + port)
+                            .header("Authorization", "Bearer " + testUserJwt())
+                            .get("/api/trades/orders/" + orderId);
+                    String status = pollResp.jsonPath().getString("status");
+                    if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
+                        break;
+                    }
+                    try { Thread.sleep(500); } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt(); break;
+                    }
+                }
+            }
+        }
     }
 
     @When("the user tries to create a BUY quote for {int} units of {string}")
@@ -169,6 +202,7 @@ public class ErrorSteps {
 
         Map<String, Object> body = Map.of(
                 "assetId", assetId,
+                "side", "BUY",
                 "units", 999999
         );
 
@@ -178,7 +212,7 @@ public class ErrorSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/buy");
+                .post("/api/trades/quote");
 
         context.setLastResponse(response);
     }

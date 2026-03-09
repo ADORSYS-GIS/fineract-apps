@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for stock trading (buy/sell) with Fineract balance verification.
+ * Uses the quote-confirm async flow: POST /api/trades/quote → POST /api/trades/orders/{id}/confirm → poll GET.
  */
 public class StockTradingSteps {
 
@@ -90,20 +91,7 @@ public class StockTradingSteps {
                 FineractInitializer.getTestUserXafAccountId());
         context.storeValue("xafBalanceBefore", balanceBefore);
 
-        Map<String, Object> body = Map.of(
-                "assetId", assetId,
-                "units", units
-        );
-
-        Response response = RestAssured.given()
-                .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                .header("Authorization", "Bearer " + testUserJwt())
-                .body(body)
-                .post("/api/trades/buy");
-
-        context.setLastResponse(response);
+        quoteConfirmAndPoll(assetId, "BUY", units);
     }
 
     @When("the user sells {int} units of {string}")
@@ -114,20 +102,7 @@ public class StockTradingSteps {
                 FineractInitializer.getTestUserXafAccountId());
         context.storeValue("xafBalanceBefore", balanceBefore);
 
-        Map<String, Object> body = Map.of(
-                "assetId", assetId,
-                "units", units
-        );
-
-        Response response = RestAssured.given()
-                .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                .header("Authorization", "Bearer " + testUserJwt())
-                .body(body)
-                .post("/api/trades/sell");
-
-        context.setLastResponse(response);
+        quoteConfirmAndPoll(assetId, "SELL", units);
     }
 
     @When("the user tries to buy {int} unit of {string}")
@@ -187,6 +162,72 @@ public class StockTradingSteps {
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
+
+    /**
+     * Executes the full quote → confirm → poll-for-FILLED flow.
+     * Sets the last response to the final polled order response (status 200, status=FILLED).
+     */
+    private void quoteConfirmAndPoll(String assetId, String side, int units) {
+        // 1. Create quote
+        Map<String, Object> quoteBody = Map.of(
+                "assetId", assetId,
+                "side", side,
+                "units", units
+        );
+
+        Response quoteResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .header("X-Idempotency-Key", UUID.randomUUID().toString())
+                .header("Authorization", "Bearer " + testUserJwt())
+                .body(quoteBody)
+                .post("/api/trades/quote");
+
+        assertThat(quoteResp.statusCode())
+                .as("Create quote: %s", quoteResp.body().asString())
+                .isEqualTo(201);
+
+        String orderId = quoteResp.jsonPath().getString("orderId");
+        assertThat(orderId).as("Quote should return orderId").isNotNull();
+
+        // 2. Confirm quote
+        Response confirmResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .post("/api/trades/orders/" + orderId + "/confirm");
+
+        assertThat(confirmResp.statusCode())
+                .as("Confirm quote: %s", confirmResp.body().asString())
+                .isEqualTo(202);
+
+        // 3. Poll for FILLED (up to 15s)
+        long deadline = System.currentTimeMillis() + 15_000;
+        while (System.currentTimeMillis() < deadline) {
+            Response pollResp = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .get("/api/trades/orders/" + orderId);
+
+            String status = pollResp.jsonPath().getString("status");
+            if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
+                context.setLastResponse(pollResp);
+                return;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        // Final poll
+        Response finalResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .get("/api/trades/orders/" + orderId);
+        context.setLastResponse(finalResp);
+    }
 
     private String testUserJwt() {
         return JwtTokenFactory.generateToken(

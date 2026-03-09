@@ -97,23 +97,78 @@ public class BondLifecycleSteps {
         String assetId = context.getId("lastAssetId");
 
         for (int i = 0; i < units; i++) {
-            Map<String, Object> body = Map.of(
+            // 1. Create quote
+            Map<String, Object> quoteBody = Map.of(
                     "assetId", assetId,
+                    "side", "BUY",
                     "units", 1
             );
 
-            Response response = RestAssured.given()
+            Response quoteResp = RestAssured.given()
                     .baseUri("http://localhost:" + port)
                     .contentType(ContentType.JSON)
                     .header("X-Idempotency-Key", UUID.randomUUID().toString())
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .body(body)
-                    .post("/api/trades/buy");
+                    .body(quoteBody)
+                    .post("/api/trades/quote");
 
-            assertThat(response.statusCode()).isIn(200, 201);
+            assertThat(quoteResp.statusCode())
+                    .as("Create quote for bond unit %d: %s", i + 1, quoteResp.body().asString())
+                    .isEqualTo(201);
+
+            String orderId = quoteResp.jsonPath().getString("orderId");
+
+            // 2. Confirm quote
+            Response confirmResp = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .contentType(ContentType.JSON)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .post("/api/trades/orders/" + orderId + "/confirm");
+
+            assertThat(confirmResp.statusCode())
+                    .as("Confirm quote for bond unit %d: %s", i + 1, confirmResp.body().asString())
+                    .isEqualTo(202);
+
+            // 3. Poll for FILLED (up to 15s)
+            pollUntilTerminal(orderId);
         }
 
         context.storeValue("bondUnitsHeld", units);
+    }
+
+    /**
+     * Polls the order status until it reaches a terminal state (FILLED, FAILED, REJECTED).
+     */
+    private void pollUntilTerminal(String orderId) {
+        long deadline = System.currentTimeMillis() + 15_000;
+        while (System.currentTimeMillis() < deadline) {
+            Response pollResp = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .get("/api/trades/orders/" + orderId);
+
+            String status = pollResp.jsonPath().getString("status");
+            if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
+                assertThat(status)
+                        .as("Order %s ended with: %s", orderId, pollResp.body().asString())
+                        .isEqualTo("FILLED");
+                return;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        // Final check
+        Response finalResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .get("/api/trades/orders/" + orderId);
+        assertThat(finalResp.jsonPath().getString("status"))
+                .as("Order %s did not reach FILLED within timeout", orderId)
+                .isEqualTo("FILLED");
     }
 
     // ---------------------------------------------------------------

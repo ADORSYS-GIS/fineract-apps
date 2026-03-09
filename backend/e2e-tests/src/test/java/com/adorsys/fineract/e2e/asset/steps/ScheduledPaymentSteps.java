@@ -63,23 +63,76 @@ public class ScheduledPaymentSteps {
         String assetId = context.getId("lastAssetId");
 
         for (int i = 0; i < units; i++) {
-            Map<String, Object> body = Map.of(
+            // 1. Create quote
+            Map<String, Object> quoteBody = Map.of(
                     "assetId", assetId,
+                    "side", "BUY",
                     "units", 1
             );
 
-            Response response = RestAssured.given()
+            Response quoteResp = RestAssured.given()
                     .baseUri("http://localhost:" + port)
                     .contentType(ContentType.JSON)
                     .header("X-Idempotency-Key", UUID.randomUUID().toString())
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .body(body)
-                    .post("/api/trades/buy");
+                    .body(quoteBody)
+                    .post("/api/trades/quote");
 
-            assertThat(response.statusCode())
-                    .as("Buy unit %d of %s: %s", i + 1, symbolRef, response.body().asString())
-                    .isIn(200, 201);
+            assertThat(quoteResp.statusCode())
+                    .as("Create quote for unit %d of %s: %s", i + 1, symbolRef, quoteResp.body().asString())
+                    .isEqualTo(201);
+
+            String orderId = quoteResp.jsonPath().getString("orderId");
+
+            // 2. Confirm quote
+            Response confirmResp = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .contentType(ContentType.JSON)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .post("/api/trades/orders/" + orderId + "/confirm");
+
+            assertThat(confirmResp.statusCode())
+                    .as("Confirm quote for unit %d of %s: %s", i + 1, symbolRef, confirmResp.body().asString())
+                    .isEqualTo(202);
+
+            // 3. Poll for FILLED (up to 15s)
+            pollUntilFilled(orderId, i + 1, symbolRef);
         }
+    }
+
+    /**
+     * Polls the order status until it reaches FILLED (or terminal failure).
+     */
+    private void pollUntilFilled(String orderId, int unitNumber, String symbolRef) {
+        long deadline = System.currentTimeMillis() + 15_000;
+        while (System.currentTimeMillis() < deadline) {
+            Response pollResp = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .get("/api/trades/orders/" + orderId);
+
+            String status = pollResp.jsonPath().getString("status");
+            if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
+                assertThat(status)
+                        .as("Buy unit %d of %s order %s: %s", unitNumber, symbolRef, orderId, pollResp.body().asString())
+                        .isEqualTo("FILLED");
+                return;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        // Final check
+        Response finalResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .get("/api/trades/orders/" + orderId);
+        assertThat(finalResp.jsonPath().getString("status"))
+                .as("Buy unit %d of %s did not reach FILLED within timeout", unitNumber, symbolRef)
+                .isEqualTo("FILLED");
     }
 
     // ---------------------------------------------------------------

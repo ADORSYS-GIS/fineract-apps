@@ -205,10 +205,11 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
 
         UpdateAssetRequest request = new UpdateAssetRequest(
-                "New Name", null, null, null, null, null, null, null, null, null,
+                "New Name", null, null, null, null, null, null, null, null,
                 null, null, null, null, // exposure limits
+                null, null, // min order size/cash
                 null, null, null, null, // income distribution
-                null, null, null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -225,7 +226,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -328,7 +329,7 @@ class AssetProvisioningServiceTest {
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
@@ -347,7 +348,7 @@ class AssetProvisioningServiceTest {
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
@@ -366,7 +367,7 @@ class AssetProvisioningServiceTest {
                 "Token", "TKN", "TKN", null, null, AssetCategory.STOCKS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
+                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
@@ -385,10 +386,11 @@ class AssetProvisioningServiceTest {
 
         UpdateAssetRequest request = new UpdateAssetRequest(
                 null, null, null, null, null, null, null,
-                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
+                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1),
                 null, null, null, null, // exposure limits
+                null, null, // min order size/cash
                 null, null, null, null, // income distribution
-                null, null, null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
@@ -467,7 +469,7 @@ class AssetProvisioningServiceTest {
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash

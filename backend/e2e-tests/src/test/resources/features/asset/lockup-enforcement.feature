@@ -19,8 +19,7 @@ Feature: Lock-up Period Enforcement (E2E)
     When the user buys 5 units of "LCK"
     Then the trade should be FILLED
     When the user previews a SELL of 5 units of "LCK"
-    Then the response status should be 200
-    And the preview should not be feasible
+    Then the preview should not be feasible
     And the preview blockers should contain "LOCKUP_PERIOD_ACTIVE"
 
   # -----------------------------------------------------------------
@@ -32,5 +31,4 @@ Feature: Lock-up Period Enforcement (E2E)
     When the user buys 5 units of "NLK"
     Then the trade should be FILLED
     When the user previews a SELL of 5 units of "NLK"
-    Then the response status should be 200
-    And the preview should be feasible
+    Then the preview should be feasible
