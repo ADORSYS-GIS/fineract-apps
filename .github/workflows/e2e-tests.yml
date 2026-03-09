@@ -43,7 +43,11 @@ jobs:
           mvn -B install -DskipTests --file backend/customer-self-service/pom.xml
 
       - name: Run E2E Tests for ${{ matrix.suite }}
-        run: mvn -B test -f backend/e2e-tests/pom.xml -Pe2e-${{ matrix.suite }}
+        run: >
+          mvn -B test
+          -f backend/e2e-tests/pom.xml
+          -Pe2e-${{ matrix.suite }}
+          -Dfineract.image=ghcr.io/adorsys-gis/fineract:95500212e
 
       - name: Upload Test Reports
         if: always()
