@@ -98,6 +98,32 @@ public class CatalogSteps {
         assertThat(trades).isNotEmpty();
     }
 
+    // ---------------------------------------------------------------
+    // Discover endpoints
+    // ---------------------------------------------------------------
+
+    @When("I request the discover page")
+    public void requestDiscoverPage() {
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/assets/discover");
+        context.setLastResponse(response);
+    }
+
+    @Then("the discover results should contain asset {string}")
+    public void discoverResultsShouldContainAsset(String symbol) {
+        List<String> symbols = context.getLastResponse().jsonPath().getList("content.symbol");
+        assertThat(symbols).contains(symbol);
+    }
+
+    @Then("the discover results should not contain asset {string}")
+    public void discoverResultsShouldNotContainAsset(String symbol) {
+        List<String> symbols = context.getLastResponse().jsonPath().getList("content.symbol");
+        if (symbols != null) {
+            assertThat(symbols).doesNotContain(symbol);
+        }
+    }
+
     private String resolveAssetId(String ref) {
         String stored = context.getId("lastAssetId");
         String lastSymbol = context.getValue("lastSymbol");

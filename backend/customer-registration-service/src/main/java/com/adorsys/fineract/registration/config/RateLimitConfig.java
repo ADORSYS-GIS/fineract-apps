@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Configuration
+@org.springframework.context.annotation.Profile("!e2e")
 public class RateLimitConfig {
 
     // Rate limit: 10 requests per minute per IP for registration

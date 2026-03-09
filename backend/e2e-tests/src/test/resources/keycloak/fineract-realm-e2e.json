@@ -1,0 +1,67 @@
+{
+	"realm": "fineract",
+	"enabled": true,
+	"registrationAllowed": false,
+	"loginWithEmailAllowed": true,
+	"duplicateEmailsAllowed": false,
+	"verifyEmail": false,
+	"roles": {
+		"realm": [
+			{
+				"name": "self-service-customer",
+				"description": "Self-service customer role"
+			},
+			{
+				"name": "kyc-reviewer",
+				"description": "KYC reviewer staff role"
+			},
+			{
+				"name": "admin",
+				"description": "Admin role"
+			}
+		]
+	},
+	"groups": [
+		{
+			"name": "self-service-customers",
+			"path": "/self-service-customers",
+			"realmRoles": ["self-service-customer"]
+		}
+	],
+	"clients": [
+		{
+			"clientId": "setup-app-client",
+			"enabled": true,
+			"protocol": "openid-connect",
+			"publicClient": false,
+			"secret": "e2e-secret",
+			"serviceAccountsEnabled": true,
+			"directAccessGrantsEnabled": true,
+			"standardFlowEnabled": false,
+			"implicitFlowEnabled": false
+		}
+	],
+	"users": [
+		{
+			"username": "service-account-setup-app-client",
+			"enabled": true,
+			"serviceAccountClientId": "setup-app-client",
+			"realmRoles": ["admin"]
+		}
+	],
+	"attributes": {
+		"userProfileEnabled": "true"
+	},
+	"components": {
+		"org.keycloak.userprofile.UserProfileProvider": [
+			{
+				"providerId": "declarative-user-profile",
+				"config": {
+					"kc.user.profile.config": [
+						"{\"attributes\":[{\"name\":\"username\",\"displayName\":\"Username\",\"validations\":{\"length\":{\"min\":3,\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"email\",\"displayName\":\"Email\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"firstName\",\"displayName\":\"First name\",\"validations\":{\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"lastName\",\"displayName\":\"Last name\",\"validations\":{\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"fineract_external_id\",\"displayName\":\"Fineract External ID\",\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]}},{\"name\":\"fineract_client_id\",\"displayName\":\"Fineract Client ID\",\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]}},{\"name\":\"kyc_tier\",\"displayName\":\"KYC Tier\",\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]}},{\"name\":\"kyc_status\",\"displayName\":\"KYC Status\",\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]}},{\"name\":\"phone\",\"displayName\":\"Phone\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"kyc_info_request\",\"displayName\":\"KYC Info Request\",\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]}}]}"
+					]
+				}
+			}
+		]
+	}
+}

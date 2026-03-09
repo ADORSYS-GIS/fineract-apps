@@ -65,6 +65,27 @@ public final class TestcontainersConfig {
                     .withNetwork(SHARED_NETWORK)
                     .withNetworkAliases("redis");
 
+    /** Keycloak for customer-registration-service (admin client API). */
+    @SuppressWarnings("resource")
+    public static final GenericContainer<?> KEYCLOAK =
+            new GenericContainer<>(DockerImageName.parse("quay.io/keycloak/keycloak:26.5.2"))
+                    .withExposedPorts(9000)
+                    .withNetwork(SHARED_NETWORK)
+                    .withNetworkAliases("keycloak")
+                    .withEnv("KEYCLOAK_ADMIN", "admin")
+                    .withEnv("KEYCLOAK_ADMIN_PASSWORD", "admin")
+                    .withEnv("KC_HTTP_PORT", "9000")
+                    .withClasspathResourceMapping(
+                            "keycloak/fineract-realm-e2e.json",
+                            "/opt/keycloak/data/import/fineract-realm-e2e.json",
+                            org.testcontainers.containers.BindMode.READ_ONLY)
+                    .withCommand("start-dev", "--import-realm")
+                    .waitingFor(org.testcontainers.containers.wait.strategy
+                            .Wait.forHttp("/realms/fineract")
+                            .forPort(9000)
+                            .forStatusCode(200)
+                            .withStartupTimeout(Duration.ofMinutes(3)));
+
     /** Apache Fineract with basic auth enabled and custom currency plugin. */
     @SuppressWarnings("resource")
     public static final GenericContainer<?> FINERACT =
@@ -115,11 +136,29 @@ public final class TestcontainersConfig {
                     .waitingFor(new FineractWaitStrategy())
                     .withStartupTimeout(Duration.ofMinutes(5));
 
+    private static volatile boolean keycloakStarted = false;
+
     static {
         // Start Postgres + Redis first (Fineract depends on fineractPostgres)
         Startables.deepStart(ASSET_SERVICE_POSTGRES, PAYMENT_GATEWAY_POSTGRES, FINERACT_POSTGRES, REDIS).join();
         // Then start Fineract (needs fineractPostgres via shared network)
         FINERACT.start();
+    }
+
+    /**
+     * Start the Keycloak container lazily (only needed by registration-service tests).
+     * Safe to call multiple times — only starts once.
+     */
+    public static synchronized void ensureKeycloakStarted() {
+        if (!keycloakStarted) {
+            KEYCLOAK.start();
+            keycloakStarted = true;
+        }
+    }
+
+    /** Get the Keycloak base URL accessible from the host. */
+    public static String getKeycloakBaseUrl() {
+        return "http://" + KEYCLOAK.getHost() + ":" + KEYCLOAK.getMappedPort(9000);
     }
 
     /** Get the Fineract base URL accessible from the host (for REST-Assured and FineractClient). */
