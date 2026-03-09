@@ -1,0 +1,53 @@
+name: Build and E2E Test Backend
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/e2e-tests.yml"
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/e2e-tests.yml"
+
+jobs:
+  test:
+    name: E2E Tests (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [asset-service, payment-gateway]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Build and Install Services
+        run: |
+          mvn -B install -DskipTests --file backend/asset-service/pom.xml
+          mvn -B install -DskipTests --file backend/payment-gateway-service/pom.xml
+          mvn -B install -DskipTests --file backend/customer-self-service/pom.xml
+
+      - name: Run E2E Tests for ${{ matrix.suite }}
+        run: mvn -B test -f backend/e2e-tests/pom.xml -Pe2e-${{ matrix.suite }}
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-${{ matrix.suite }}
+          path: backend/e2e-tests/target/surefire-reports/
