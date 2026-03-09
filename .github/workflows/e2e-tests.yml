@@ -16,15 +16,14 @@ on:
       - "backend/**"
       - ".github/workflows/e2e-tests.yml"
 
-jobs:
-  test:
-    name: E2E Tests (${{ matrix.suite }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        suite: [asset, payment]
+concurrency:
+  group: e2e-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
+jobs:
+  build:
+    name: Build Services
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,6 +40,38 @@ jobs:
           mvn -B install -DskipTests --file backend/asset-service/pom.xml
           mvn -B install -DskipTests --file backend/payment-gateway-service/pom.xml
           mvn -B install -DskipTests --file backend/customer-self-service/pom.xml
+
+      - name: Upload Maven Repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-maven-repo
+          path: ~/.m2/repository
+
+  test:
+    name: E2E Tests (${{ matrix.suite }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [asset, payment]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Download Maven Repository
+        uses: actions/download-artifact@v4
+        with:
+          name: local-maven-repo
+          path: ~/.m2/repository
 
       - name: Run E2E Tests for ${{ matrix.suite }}
         run: >
