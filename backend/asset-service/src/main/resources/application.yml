@@ -104,6 +104,7 @@ asset-service:
     spread-collection-account-id: ${SPREAD_COLLECTION_ACCOUNT_ID:1}
     fee-collection-account-external-id: ${FEE_COLLECTION_ACCOUNT_EXTERNAL_ID:PLATFORM-FEE-COLLECT}
   rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
     trade-limit: ${RATE_LIMIT_TRADE:10}
     trade-duration-minutes: ${RATE_LIMIT_TRADE_DURATION:1}
     general-limit: ${RATE_LIMIT_GENERAL:100}
