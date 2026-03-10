@@ -90,20 +90,30 @@ public class StockTradingSteps {
                 FineractInitializer.getTestUserXafAccountId());
         context.storeValue("xafBalanceBefore", balanceBefore);
 
-        Map<String, Object> body = Map.of(
+        Map<String, Object> body = new java.util.HashMap<>(Map.of(
                 "assetId", assetId,
-                "units", units
-        );
+                "units", units,
+                "side", "BUY"
+        ));
 
-        Response response = RestAssured.given()
+        Response quoteResponse = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/buy");
+                .post("/api/trades/quote");
 
-        context.setLastResponse(response);
+        assertThat(quoteResponse.statusCode()).isEqualTo(201);
+        String orderId = quoteResponse.jsonPath().getString("orderId");
+
+        Response confirmResponse = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .post("/api/trades/orders/" + orderId + "/confirm");
+
+        context.setLastResponse(confirmResponse);
     }
 
     @When("the user sells {int} units of {string}")
@@ -114,20 +124,30 @@ public class StockTradingSteps {
                 FineractInitializer.getTestUserXafAccountId());
         context.storeValue("xafBalanceBefore", balanceBefore);
 
-        Map<String, Object> body = Map.of(
+        Map<String, Object> body = new java.util.HashMap<>(Map.of(
                 "assetId", assetId,
-                "units", units
-        );
+                "units", units,
+                "side", "SELL"
+        ));
 
-        Response response = RestAssured.given()
+        Response quoteResponse = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/sell");
+                .post("/api/trades/quote");
 
-        context.setLastResponse(response);
+        assertThat(quoteResponse.statusCode()).isEqualTo(201);
+        String orderId = quoteResponse.jsonPath().getString("orderId");
+
+        Response confirmResponse = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .post("/api/trades/orders/" + orderId + "/confirm");
+
+        context.setLastResponse(confirmResponse);
     }
 
     @When("the user tries to buy {int} unit of {string}")
@@ -140,7 +160,26 @@ public class StockTradingSteps {
     // ---------------------------------------------------------------
 
     @Then("the trade should be FILLED")
-    public void tradeShouldBeFilled() {
+    public void tradeShouldBeFilled() throws InterruptedException {
+        String orderId = context.jsonPath("id");
+        if (orderId == null) {
+            orderId = context.jsonPath("orderId");
+        }
+
+        for (int i = 0; i < 10; i++) {
+            Response response = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .get("/api/trades/orders/" + orderId);
+
+            String status = response.jsonPath().getString("status");
+            if ("FILLED".equals(status)) {
+                context.setLastResponse(response);
+                return;
+            }
+            Thread.sleep(1000);
+        }
+
         String status = context.jsonPath("status");
         assertThat(status).isEqualTo("FILLED");
     }
