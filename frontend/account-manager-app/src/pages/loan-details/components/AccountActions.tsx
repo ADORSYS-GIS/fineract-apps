@@ -1,0 +1,116 @@
+import {
+	GetLoansLoanIdResponse,
+	PostLoansLoanIdRequest,
+} from "@fineract-apps/fineract-api";
+import { Button } from "@fineract-apps/ui";
+import { MoreVertical } from "lucide-react";
+import { FC, useState } from "react";
+import toast from "react-hot-toast";
+import { useDetectOutsideClick } from "@/hooks/useDetectOutsideClick";
+import { LoanDataWithLinkedAccount } from "@/pages/loan/create-loan-account/CreateLoanAccount.types";
+import { useDisburseLoan } from "../hooks/useDisburseLoan";
+import { useDisburseToSavings } from "../hooks/useDisburseToSavings";
+import { DisbursementModal } from "./DisbursementModal";
+
+interface AccountActionsProps {
+	loan: GetLoansLoanIdResponse;
+}
+
+export const AccountActions: FC<AccountActionsProps> = ({ loan }) => {
+	const [modalVariant, setModalVariant] = useState<
+		"disburse" | "disburseToSavings" | null
+	>(null);
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const menuRef = useDetectOutsideClick(() => setIsMenuOpen(false));
+
+	const {
+		template: disburseTemplate,
+		isTemplateLoading: isDisburseTemplateLoading,
+		disburseLoan,
+		isDisbursing,
+	} = useDisburseLoan(loan.id ?? 0, loan.externalId);
+	const {
+		template: disburseToSavingsTemplate,
+		isTemplateLoading: isDisburseToSavingsTemplateLoading,
+		disburseToSavings,
+		isDisbursing: isDisbursingToSavings,
+	} = useDisburseToSavings(loan.id ?? 0, loan.externalId);
+
+	const canDisburse = loan.status?.code === "loanStatusType.approved";
+
+	if (!loan.id) return null;
+
+	const handleDisburseSubmit = (data: PostLoansLoanIdRequest) => {
+		disburseLoan(data, {
+			onSuccess: () => setModalVariant(null),
+		});
+	};
+
+	const handleDisburseToSavingsSubmit = (data: PostLoansLoanIdRequest) => {
+		disburseToSavings(data, {
+			onSuccess: () => setModalVariant(null),
+		});
+	};
+
+	return (
+		<div className="relative" ref={menuRef}>
+			{canDisburse && (
+				<Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+					<MoreVertical className="h-6 w-6" />
+				</Button>
+			)}
+			{isMenuOpen && (
+				<div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+					<div className="py-1">
+						<button
+							onClick={() => {
+								setModalVariant("disburse");
+								setIsMenuOpen(false);
+							}}
+							className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+							disabled={isDisburseTemplateLoading}
+						>
+							{isDisburseTemplateLoading ? "Loading..." : "Disburse"}
+						</button>
+						<button
+							onClick={() => {
+								if (!(loan as LoanDataWithLinkedAccount).linkedAccount?.id) {
+									toast.error("No savings account linked to this loan.");
+									return;
+								}
+								setModalVariant("disburseToSavings");
+								setIsMenuOpen(false);
+							}}
+							className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+							disabled={isDisburseToSavingsTemplateLoading}
+						>
+							{isDisburseToSavingsTemplateLoading
+								? "Loading..."
+								: "Disburse to Savings"}
+						</button>
+					</div>
+				</div>
+			)}
+			{modalVariant && (
+				<DisbursementModal
+					isOpen={!!modalVariant}
+					onClose={() => setModalVariant(null)}
+					onSubmit={
+						modalVariant === "disburse"
+							? handleDisburseSubmit
+							: handleDisburseToSavingsSubmit
+					}
+					template={
+						modalVariant === "disburse"
+							? disburseTemplate
+							: disburseToSavingsTemplate
+					}
+					isSubmitting={
+						modalVariant === "disburse" ? isDisbursing : isDisbursingToSavings
+					}
+					variant={modalVariant}
+				/>
+			)}
+		</div>
+	);
+};

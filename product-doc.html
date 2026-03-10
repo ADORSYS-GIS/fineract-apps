@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online Banking System – Demo & Process Guide</title>
+
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f8f9fa;
+        color: #333;
+        padding: 20px;
+    }
+    .container {
+        max-width: 900px;
+        margin: auto;
+        background: #fff;
+        padding: 60px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1, h2, h3, h4 {
+        color: #2c5aa0;
+    }
+    .header {
+        text-align: center;
+        border-bottom: 3px solid #2c5aa0;
+        padding-bottom: 30px;
+        margin-bottom: 40px;
+    }
+    .section {
+        background: #f8f9fa;
+        padding: 25px;
+        margin-bottom: 35px;
+        border-left: 5px solid #2c5aa0;
+        border-radius: 6px;
+    }
+    .goal {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 12px;
+        margin: 15px 0;
+    }
+    ul {
+        padding-left: 20px;
+    }
+    li {
+        margin-bottom: 8px;
+    }
+    .badge {
+        background: #2c5aa0;
+        color: white;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 600;
+    }
+    .key {
+        background: #d4edda;
+        border-left: 4px solid #28a745;
+        padding: 15px;
+        margin-top: 15px;
+    }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="header">
+    <h1>🏦 Online Banking System</h1>
+    <p><em>End-to-End Digital Banking for Microfinance Institutions</em></p>
+</div>
+
+<section class="section">
+<h2>🎯 Objective</h2>
+<p>
+Demonstrate how multiple coordinated applications support the complete lifecycle
+of microfinance operations — from onboarding and daily transactions to loans,
+accounting, reporting, and regulatory compliance.
+</p>
+</section>
+
+<section class="section">
+<h2>🧩 Banking Applications Overview</h2>
+<ul>
+<li><strong>System Administration</strong> – user access, roles, and security controls</li>
+<li><strong>Account Management</strong> – clients, accounts, and loans</li>
+<li><strong>Cashier Operations</strong> – deposits, withdrawals, repayments</li>
+<li><strong>Branch Management</strong> – approvals, cash oversight, branch supervision</li>
+<li><strong>Accounting App</strong> – journals, audits, and financial governance</li>
+<li><strong>Reporting App</strong> – operational, financial, and regulatory reports</li>
+</ul>
+</section>
+
+<section class="section">
+<h2>👥 User Roles & Responsibilities</h2>
+
+<h4>System Administrator</h4>
+<ul>
+<li>Create and manage staff users</li>
+<li>Assign roles and permissions</li>
+<li>Enforce password resets in case of suspected security breaches</li>
+</ul>
+
+<h4>Account Manager / Loan Officer</h4>
+<ul>
+<li>Create and manage client profiles (KYC & COBAC compliant)</li>
+<li>Open and activate client accounts</li>
+<li>Create loan applications including charges, collateral, and interest</li>
+<li><strong>Disburse approved loans to clients’ main accounts</strong></li>
+<li>Monitor loan performance and follow up with clients</li>
+<li>Mark loans as fully repaid, written off, or classified as loss</li>
+<li>Generate client reports (statements, loan status)</li>
+</ul>
+
+<h4>Branch Manager</h4>
+<ul>
+<li>Manage branch staff and teller assignments</li>
+<li>Approve or reject client accounts and loan applications</li>
+<li>Allocate and settle cashier cash</li>
+<li>Access branch performance and operational reports</li>
+</ul>
+
+<h4>Cashier (Teller)</h4>
+<ul>
+<li>Process deposits and withdrawals</li>
+<li>Process loan repayments (full or installment)</li>
+<li>Print transaction receipts and reports</li>
+</ul>
+
+<h4>Accountant</h4>
+<ul>
+<li>View audits, closures, and general ledger accounts</li>
+<li>Create journal entries</li>
+<li>Generate financial reports (trial balance, balance sheet)</li>
+</ul>
+
+<h4>Supervisor Accountant</h4>
+<ul>
+<li>Review pending journal entries</li>
+<li>Approve or reject journal entries</li>
+<li>Ensure financial integrity through dual control</li>
+</ul>
+
+<div class="key">
+<strong>Four-Eyes Principle:</strong>  
+Critical financial operations require review and approval by separate roles,
+reducing fraud risk and enforcing strong internal controls.
+</div>
+</section>
+
+<section class="section">
+<h2>💳 Loan Lifecycle</h2>
+
+<div class="goal"><strong>Goal:</strong> Demonstrate structured and controlled loan processing</div>
+
+<ul>
+<li>Client requests a loan and meets the Account Manager / Loan Officer</li>
+<li>Account Manager creates a loan application with all required details</li>
+<li>Loan application is submitted and marked as <strong>Pending</strong></li>
+<li>Branch Manager and Loan Committee receive alerts and review the application</li>
+<li>Loan is approved or rejected based on institutional policies</li>
+<li><strong>Account Manager disburses the approved loan to the client’s main account</strong></li>
+<li>Client withdraws funds through the Cashier as needed</li>
+<li>Client repays the loan either in full or through installments</li>
+<li>Loan Officer monitors loan performance over time</li>
+<li>Loan is marked as fully repaid, written off, or classified as a loss</li>
+</ul>
+
+<div class="key">
+<strong>Key Value:</strong>  
+Clear accountability, controlled approvals, and full traceability throughout the loan lifecycle.
+</div>
+</section>
+
+<section class="section">
+<h2>📊 Accounting Operations</h2>
+<ul>
+<li>Accountants create journal entries</li>
+<li>Journal entries remain pending until reviewed</li>
+<li>Supervisor Accountant approves or rejects journal entries</li>
+<li>All accounting actions are auditable and traceable</li>
+</ul>
+
+<div class="key">
+<strong>Key Value:</strong>  
+Strong financial governance aligned with best banking practices.
+</div>
+</section>
+
+<section class="section">
+<h2>🕵🏽 System Audits & Traceability</h2>
+<ul>
+<li>All actions performed in the system are automatically recorded</li>
+<li>Activities such as logins, data changes, approvals, and transactions are tracked</li>
+<li>Audit logs capture who performed the action, when, and what was affected</li>
+<li>Audit records are available to authorized roles for review</li>
+</ul>
+
+<div class="key">
+<strong>Key Value:</strong>  
+Full transparency, accountability, and regulatory readiness across the system.
+</div>
+</section>
+
+<section class="section">
+<h2>📑 Reporting & Compliance</h2>
+<ul>
+<li><strong>Branch Managers:</strong> branch performance and client listings</li>
+<li><strong>Account Managers:</strong> client statements and account activity reports</li>
+<li><strong>Accountants:</strong> financial statements and audit reports</li>
+<li><strong>Regulatory Reports:</strong> compliance and supervisory reporting</li>
+</ul>
+
+<div class="key">
+<strong>Key Value:</strong>  
+Instant access to accurate reports for operations, management, and regulators.
+</div>
+</section>
+
+<section class="section">
+<h2>✅ Key Benefits</h2>
+<ul>
+<li>COBAC-compliant operations</li>
+<li>Clear separation of duties</li>
+<li>Four-eyes approval mechanisms</li>
+<li>Complete system-wide audit trails</li>
+<li>Easy onboarding and staff training</li>
+<li>Scalable for growing institutions</li>
+</ul>
+</section>
+
+<section class="section" style="text-align:center;">
+<h2>🚀 Conclusion</h2>
+<p>
+The Online Banking System provides a complete, secure, and compliant solution
+for microfinance institutions to manage clients, loans, finances, and reporting
+with confidence.
+</p>
+</section>
+
+</div>
+</body>
+</html>

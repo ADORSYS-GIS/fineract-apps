@@ -1,0 +1,85 @@
+import { LogOut } from "lucide-react";
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { SidebarProps } from "./Sidebar.types";
+
+type SidebarViewProps = SidebarProps & {
+	activeLink: string | null;
+	handleClick: (link: string) => void;
+};
+
+export const SidebarView: React.FC<SidebarViewProps> = ({
+	logo,
+	menuItems = [],
+	onLogout,
+	className,
+	activeLink,
+	handleClick,
+	onNavigate,
+	activePath,
+}) => {
+	const { t } = useTranslation();
+
+	return (
+		<aside
+			className={`h-screen w-64 bg-white shadow-lg flex flex-col justify-between ${className}`}
+		>
+			{/* Logo */}
+			<div className="p-4">
+				{logo ?? (
+					<div className="text-2xl font-bold text-blue-600">
+						{t("navbar.onlineBank")}
+					</div>
+				)}
+			</div>
+
+			{/* Menu */}
+			<nav className="flex-1 px-2 space-y-2">
+				{menuItems.map((item) => {
+					const Icon = item.icon;
+
+					// If the app passed an explicit `activePath`, prefer it for active
+					// highlighting; otherwise use the context `activeLink`.
+					const pathToCheck =
+						typeof activePath === "string" ? activePath : activeLink;
+
+					const isActive =
+						pathToCheck === item.link ||
+						(pathToCheck?.startsWith(item.link) ?? false);
+
+					return (
+						<a
+							key={item.link}
+							href={item.link}
+							onClick={(e) => {
+								if (onNavigate) {
+									e.preventDefault();
+									onNavigate(item.link);
+								}
+
+								handleClick(item.link);
+							}}
+							className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition ${
+								isActive ? "bg-blue-50 text-gray-900" : ""
+							}`}
+						>
+							{Icon && <Icon className="w-5 h-5" />}
+							<span>{t(item.title ?? item.name)}</span>
+						</a>
+					);
+				})}
+			</nav>
+
+			{/* Logout */}
+			<div className="p-4">
+				<button
+					onClick={onLogout}
+					className="w-full flex items-center gap-2 border rounded-lg p-2 hover:bg-gray-100"
+				>
+					<LogOut className="w-5 h-5" />
+					{t("logout")}
+				</button>
+			</div>
+		</aside>
+	);
+};

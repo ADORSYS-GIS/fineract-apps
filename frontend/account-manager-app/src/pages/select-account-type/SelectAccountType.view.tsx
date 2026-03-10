@@ -1,0 +1,101 @@
+import { Button, Card } from "@fineract-apps/ui";
+import { Link, useParams } from "@tanstack/react-router";
+import {
+	AreaChart,
+	ArrowLeft,
+	Landmark,
+	Lock,
+	PiggyBank,
+	Repeat,
+} from "lucide-react";
+import { FC, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+
+export const SelectAccountTypeView: FC = () => {
+	const { clientId } = useParams({ from: "/select-account-type/$clientId" });
+	const { t } = useTranslation();
+
+	const accountTypes: {
+		label: string;
+		type: string;
+		icon: ReactNode;
+		description: string;
+	}[] = [
+		{
+			label: t("selectAccountType.savingsAccount.label"),
+			type: "savings",
+			icon: <PiggyBank className="h-8 w-8 text-green-500" />,
+			description: t("selectAccountType.savingsAccount.description"),
+		},
+		{
+			label: t("selectAccountType.shareAccount.label"),
+			type: "shares",
+			icon: <AreaChart className="h-8 w-8 text-purple-500" />,
+			description: t("selectAccountType.shareAccount.description"),
+		},
+		{
+			label: t("selectAccountType.recurringDepositAccount.label"),
+			type: "recurring",
+			icon: <Repeat className="h-8 w-8 text-yellow-500" />,
+			description: t("selectAccountType.recurringDepositAccount.description"),
+		},
+		{
+			label: t("selectAccountType.fixedDepositsAccount.label"),
+			type: "fixed",
+			icon: <Lock className="h-8 w-8 text-red-500" />,
+			description: t("selectAccountType.fixedDepositsAccount.description"),
+		},
+		{
+			label: t("selectAccountType.loanAccount.label"),
+			type: "loan",
+			icon: <Landmark className="h-8 w-8 text-blue-500" />,
+			description: t("selectAccountType.loanAccount.description"),
+		},
+	];
+
+	return (
+		<div className="bg-gray-50 min-h-screen">
+			<header className="p-4 flex items-center border-b bg-white">
+				<Link
+					to="/client-details/$clientId"
+					params={{ clientId: String(clientId) }}
+				>
+					<Button variant="ghost">
+						<ArrowLeft className="h-6 w-6" />
+					</Button>
+				</Link>
+				<h1 className="text-lg font-semibold ml-4">
+					{t("selectAccountType.title")}
+				</h1>
+			</header>
+
+			<main className="p-6 ">
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+					{accountTypes.map((account) => (
+						<Link
+							key={account.type}
+							to={
+								account.type === "loan"
+									? "/loan/create-loan-account/$clientId"
+									: "/open-account/$clientId"
+							}
+							params={{ clientId: String(clientId) }}
+							search={{ accountType: account.type }}
+							className="block"
+						>
+							<Card className="p-6 flex items-start space-x-4 hover:shadow-lg transition-shadow">
+								<div className="flex-shrink-0">{account.icon}</div>
+								<div>
+									<h2 className="text-lg font-semibold">{t(account.label)}</h2>
+									<p className="text-sm text-gray-500">
+										{t(account.description)}
+									</p>
+								</div>
+							</Card>
+						</Link>
+					))}
+				</div>
+			</main>
+		</div>
+	);
+};

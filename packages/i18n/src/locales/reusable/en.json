@@ -1,0 +1,36 @@
+{
+	"translation": {
+		"sidebar": {
+			"dashboard": "Dashboard",
+			"settings": "Settings",
+			"staff": "Staff",
+			"tellersCashiers": "Tellers/Cashiers",
+			"pending": "Pending",
+			"loanRepayment": "Loan Repayment",
+			"reports": "Reports",
+			"transactions": "Transactions",
+			"audit": "Audit",
+			"glAccounts": "GL Accounts",
+			"journalEntries": "Journal Entries",
+			"createEntry": "Create Entry",
+			"approvalQueue": "Approval Queue",
+			"closures": "Closures",
+			"kycReviews": "KYC Reviews",
+			"logout": "Logout",
+			"createAsset": "Create Asset",
+			"inventory": "Inventory",
+			"marketSettings": "Market Settings",
+			"orderResolution": "Order Resolution",
+			"reconciliation": "Reconciliation",
+			"scheduledPayments": "Scheduled Payments",
+			"lpPerformance": "LP Performance"
+		},
+		"navbar": {
+			"onlineBank": "OnlineBank"
+		},
+		"reusable": {
+			"print": "Print",
+			"download": "Download"
+		}
+	}
+}

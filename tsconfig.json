@@ -1,0 +1,8 @@
+{
+	"files": [],
+	"references": [
+		{ "path": "frontend/account-manager-app" },
+		{ "path": "frontend/branchmanager-app" },
+		{ "path": "frontend/cashier-app" }
+	]
+}

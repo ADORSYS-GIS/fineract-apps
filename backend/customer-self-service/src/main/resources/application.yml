@@ -1,0 +1,112 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: customer-registration-service
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:your-password}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://localhost:8080/realms/fineract/protocol/openid-connect/certs}
+
+# CORS Configuration
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+
+# Fineract Configuration
+fineract:
+  url: ${FINERACT_URL:https://localhost:443}
+  tenant: ${FINERACT_TENANT:default}
+  verifySsl: ${FINERACT_VERIFY_SSL:false}
+  auth:
+    # Authentication type: oauth (default) or basic
+    type: ${FINERACT_AUTH_TYPE_1:oauth}
+    # OAuth settings (used when auth-type=oauth)
+    token-url: ${FINERACT_TOKEN_URL:http://fineract:8080/fineract-provider/oauth/token}
+    client-id: ${FINERACT_CLIENT_ID:setup-app-client}
+    client-secret: ${FINERACT_CLIENT_SECRET:**********}
+    # OAuth grant type: client_credentials (default) or password
+    grant-type: ${FINERACT_OAUTH_GRANT_TYPE:password}
+    # OAuth credentials (used when grant-type=password)
+    oauth-username: ${FINERACT_OAUTH_USERNAME:mifos}
+    oauth-password: ${FINERACT_OAUTH_PASSWORD:password}
+    # Basic auth settings (used when auth-type=basic)
+    username: ${FINERACT_USERNAME:mifos}
+    password: ${FINERACT_PASSWORD:password}
+  # Fineract defaults
+  defaults:
+    office-id: ${DEFAULT_OFFICE_ID:1}
+    savings-product-id: ${DEFAULT_SAVINGS_PRODUCT_ID:1}
+    legal-form-id: ${DEFAULT_LEGAL_FORM_ID:1}
+    locale: ${DEFAULT_LOCALE:en}
+    date-format: ${DEFAULT_DATE_FORMAT:dd MMMM yyyy}
+    postal-code: ${DEFAULT_POSTAL_CODE:0000}
+  codes:
+    ADDRESS_TYPE: 29
+    COUNTRY: 28
+    STATE: 27
+    Gender: 4
+
+# Actuator Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.adorsys.fineract.registration: ${LOGGING_LEVEL_COM_ADORSYS:TRACE}
+
+# OpenAPI/Swagger
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+---
+# Kubernetes Profile
+spring:
+  config:
+    activate:
+      on-profile: kubernetes
+
+# In Kubernetes, use service discovery
+
+fineract:
+  url: https://fineract-service:8443
+  auth:
+    token-url: http://fineract-service:8443/fineract-provider/oauth/token
+
+# Enable OTLP tracing
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+
+# Security properties

@@ -1,0 +1,25 @@
+package com.adorsys.fineract.asset.dto;
+
+/** Lifecycle status of a trade order. */
+public enum OrderStatus {
+    /** Price quote issued, awaiting user confirmation. Expires after configurable TTL. */
+    QUOTED,
+    /** Order received, awaiting execution. */
+    PENDING,
+    /** Order is currently being processed (Fineract transfers in progress). */
+    EXECUTING,
+    /** Order successfully executed. All transfers completed. */
+    FILLED,
+    /** Order failed during execution (e.g. insufficient funds). */
+    FAILED,
+    /** Order rejected before execution (e.g. market closed, asset halted). */
+    REJECTED,
+    /** Order stuck in EXECUTING; may need manual verification against Fineract. */
+    NEEDS_RECONCILIATION,
+    /** Order manually resolved by an admin after investigation. */
+    MANUALLY_CLOSED,
+    /** Order placed outside market hours, waiting for market open to execute. */
+    QUEUED,
+    /** Order cancelled by user before execution. */
+    CANCELLED
+}

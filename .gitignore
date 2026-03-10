@@ -1,0 +1,34 @@
+node_modules
+dist
+tsconfig.tsbuildinfo
+.idea
+
+# Eclipse / Spring Tool Suite
+.classpath
+.project
+.factorypath
+.settings/
+coverage
+# TanStack Router
+.tanstack/
+
+# Fineract API
+packages/fineract-api/src/generated
+.roo_lessons.md
+
+# Local environment overrides (contain secrets)
+.env.local
+.env.*.local
+*/.env.local
+**/.env.local
+
+# User sync service secrets
+user-sync-service/.env.local
+
+# Java build artifacts
+**/target/
+*.class
+*.jar
+
+# Spec files
+backend/asset-service/spec.md

@@ -1,0 +1,133 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.6/schema.json",
+	"vcs": { "enabled": false, "clientKind": "git", "useIgnoreFile": false },
+	"files": {
+		"ignoreUnknown": false,
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!**/dist",
+			"!packages/fineract-api/**",
+			"!**/routeTree.gen.ts",
+			"!**/coverage/**",
+			"!**/target/**",
+			"!.claude/**"
+		]
+	},
+	"formatter": { "enabled": true, "indentStyle": "tab" },
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"rules": { "recommended": false }
+	},
+	"javascript": {
+		"formatter": { "quoteStyle": "double" },
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
+		},
+		"globals": [
+			"describe",
+			"it",
+			"test",
+			"expect",
+			"jest",
+			"beforeEach",
+			"afterEach",
+			"beforeAll",
+			"afterAll",
+			"render",
+			"screen",
+			"fireEvent"
+		]
+	},
+	"overrides": [
+		{
+			"includes": ["**/*.{ts,tsx}"],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noAdjacentSpacesInRegex": "error",
+						"noExtraBooleanCast": "error",
+						"noUselessCatch": "error",
+						"noUselessEscapeInRegex": "error"
+					},
+					"correctness": {
+						"noConstAssign": "error",
+						"noConstantCondition": "error",
+						"noEmptyCharacterClassInRegex": "error",
+						"noEmptyPattern": "error",
+						"noGlobalObjectCalls": "error",
+						"noInvalidBuiltinInstantiation": "error",
+						"noInvalidConstructorSuper": "error",
+						"noNonoctalDecimalEscape": "error",
+						"noPrecisionLoss": "error",
+						"noSelfAssign": "error",
+						"noSetterReturn": "error",
+						"noSwitchDeclarations": "error",
+						"noUndeclaredVariables": "error",
+						"noUnreachable": "error",
+						"noUnreachableSuper": "error",
+						"noUnsafeFinally": "error",
+						"noUnsafeOptionalChaining": "error",
+						"noUnusedLabels": "error",
+						"noUnusedPrivateClassMembers": "error",
+						"noUnusedVariables": "error",
+						"useIsNan": "error",
+						"useValidForDirection": "error",
+						"useYield": "error"
+					},
+					"style": {
+						"noNamespace": "error",
+						"useSelfClosingElements": "error",
+						"useShorthandAssign": "error"
+					},
+					"suspicious": {
+						"noArrayIndexKey": "error",
+						"noAssignInExpressions": "error",
+						"noAsyncPromiseExecutor": "error",
+						"noCatchAssign": "error",
+						"noClassAssign": "error",
+						"noCommentText": "error",
+						"noCompareNegZero": "error",
+						"noConstEnum": "error",
+						"noControlCharactersInRegex": "error",
+						"noDebugger": "error",
+						"noDuplicateCase": "error",
+						"noDuplicateClassMembers": "error",
+						"noDuplicateJsxProps": "error",
+						"noDuplicateObjectKeys": "error",
+						"noDuplicateParameters": "error",
+						"noEmptyBlockStatements": "error",
+						"noEmptyInterface": "error",
+						"noExplicitAny": "warn",
+						"noExtraNonNullAssertion": "error",
+						"noFallthroughSwitchClause": "error",
+						"noFunctionAssign": "error",
+						"noGlobalIsFinite": "error",
+						"noGlobalIsNan": "error",
+						"noImportAssign": "error",
+						"noLabelVar": "error",
+						"noMisleadingCharacterClass": "error",
+						"noMisrefactoredShorthandAssign": "error",
+						"noPrototypeBuiltins": "error",
+						"noRedeclare": "error",
+						"noRedundantUseStrict": "error",
+						"noSelfCompare": "error",
+						"noShadowRestrictedNames": "error",
+						"noUnsafeNegation": "error",
+						"useIsArray": "error",
+						"useNamespaceKeyword": "error"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["*.json"],
+			"linter": { "rules": {} }
+		}
+	]
+}
