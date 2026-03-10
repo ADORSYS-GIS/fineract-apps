@@ -44,6 +44,12 @@ public class AssetE2ESpringConfiguration {
     static {
         // TestcontainersConfig.FINERACT is started in its static block
         // Now initialize Fineract with GL accounts, clients, etc.
+        try {
+            // Add a delay to give Fineract more time to initialize
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         FineractInitializer.initialize(
                 new FineractTestClient(TestcontainersConfig.getFineractBaseUrl()));
     }
