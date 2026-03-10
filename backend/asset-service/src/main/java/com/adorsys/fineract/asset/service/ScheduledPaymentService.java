@@ -42,6 +42,7 @@ public class ScheduledPaymentService {
     private final AssetServiceConfig assetServiceConfig;
     private final AssetMetrics assetMetrics;
     private final ApplicationEventPublisher eventPublisher;
+    private final TaxService taxService;
 
     // ── Create pending schedule ─────────────────────────────────────────────
 
@@ -385,6 +386,12 @@ public class ScheduledPaymentService {
     private boolean payCouponHolder(Asset bond, UserPosition holder,
                                      BigDecimal cashAmount, LocalDate couponDate) {
         String currency = assetServiceConfig.getSettlementCurrency();
+
+        // IRCM withholding tax calculation
+        BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
+        BigDecimal ircmAmount = taxService.calculateIrcm(bond, cashAmount);
+        BigDecimal netPayment = cashAmount.subtract(ircmAmount);
+
         InterestPayment.InterestPaymentBuilder record = InterestPayment.builder()
                 .assetId(bond.getId())
                 .userId(holder.getUserId())
@@ -392,7 +399,7 @@ public class ScheduledPaymentService {
                 .faceValue(bond.getIssuerPrice())
                 .annualRate(bond.getInterestRate())
                 .periodMonths(bond.getCouponFrequencyMonths())
-                .cashAmount(cashAmount)
+                .cashAmount(netPayment)
                 .couponDate(couponDate);
 
         try {
@@ -402,17 +409,31 @@ public class ScheduledPaymentService {
                 throw new RuntimeException("No active " + currency + " account for user " + holder.getUserId());
             }
 
-            String description = String.format("Coupon payment: %s %s%% (%dm)",
+            // Pay net amount (after IRCM) to investor
+            String description = String.format("Coupon payment: %s %s%% (%dm) [net after IRCM]",
                     bond.getSymbol(), bond.getInterestRate(), bond.getCouponFrequencyMonths());
             Long transferId = fineractClient.createAccountTransfer(
-                    bond.getLpCashAccountId(), userCashAccountId, cashAmount, description);
+                    bond.getLpCashAccountId(), userCashAccountId, netPayment, description);
+
+            // Transfer IRCM to tax authority account
+            if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
+                String ircmDesc = String.format("IRCM withholding: %s coupon (%s%%)",
+                        bond.getSymbol(), ircmRate.multiply(new BigDecimal("100")));
+                fineractClient.createAccountTransfer(
+                        bond.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc);
+
+                taxService.recordTaxTransaction(null, null, holder.getUserId(), bond.getId(),
+                        "IRCM", cashAmount, ircmRate, ircmAmount, null);
+                log.debug("IRCM withheld: bond={}, user={}, gross={}, ircm={}, net={}",
+                        bond.getSymbol(), holder.getUserId(), cashAmount, ircmAmount, netPayment);
+            }
 
             record.fineractTransferId(transferId).status("SUCCESS");
-            assetMetrics.recordCouponPaid(cashAmount.doubleValue());
+            assetMetrics.recordCouponPaid(netPayment.doubleValue());
 
             eventPublisher.publishEvent(new CouponPaidEvent(
                     holder.getUserId(), bond.getId(), bond.getSymbol(),
-                    cashAmount, bond.getInterestRate(), couponDate));
+                    netPayment, bond.getInterestRate(), couponDate));
 
             interestPaymentRepository.save(record.build());
             return true;
@@ -432,13 +453,19 @@ public class ScheduledPaymentService {
                                      LocalDate distributionDate) {
         String currency = assetServiceConfig.getSettlementCurrency();
         String incomeType = asset.getIncomeType();
+
+        // IRCM withholding tax calculation
+        BigDecimal ircmRate = taxService.getEffectiveIrcmRate(asset);
+        BigDecimal ircmAmount = taxService.calculateIrcm(asset, cashAmount);
+        BigDecimal netPayment = cashAmount.subtract(ircmAmount);
+
         IncomeDistribution.IncomeDistributionBuilder record = IncomeDistribution.builder()
                 .assetId(asset.getId())
                 .userId(holder.getUserId())
                 .incomeType(incomeType)
                 .units(holder.getTotalUnits())
                 .rateApplied(rateApplied)
-                .cashAmount(cashAmount)
+                .cashAmount(netPayment)
                 .distributionDate(distributionDate);
 
         try {
@@ -448,16 +475,30 @@ public class ScheduledPaymentService {
                 throw new RuntimeException("No active " + currency + " account for user " + holder.getUserId());
             }
 
-            String description = String.format("%s payment: %s", incomeType, asset.getSymbol());
+            // Pay net amount (after IRCM) to investor
+            String description = String.format("%s payment: %s [net after IRCM]", incomeType, asset.getSymbol());
             Long transferId = fineractClient.createAccountTransfer(
-                    asset.getLpCashAccountId(), userCashAccountId, cashAmount, description);
+                    asset.getLpCashAccountId(), userCashAccountId, netPayment, description);
+
+            // Transfer IRCM to tax authority account
+            if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
+                String ircmDesc = String.format("IRCM withholding: %s %s (%s%%)",
+                        asset.getSymbol(), incomeType, ircmRate.multiply(new BigDecimal("100")));
+                fineractClient.createAccountTransfer(
+                        asset.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc);
+
+                taxService.recordTaxTransaction(null, null, holder.getUserId(), asset.getId(),
+                        "IRCM", cashAmount, ircmRate, ircmAmount, null);
+                log.debug("IRCM withheld: asset={}, user={}, gross={}, ircm={}, net={}",
+                        asset.getSymbol(), holder.getUserId(), cashAmount, ircmAmount, netPayment);
+            }
 
             record.fineractTransferId(transferId).status("SUCCESS");
-            assetMetrics.recordIncomeDistributed(asset.getId(), incomeType, cashAmount.doubleValue());
+            assetMetrics.recordIncomeDistributed(asset.getId(), incomeType, netPayment.doubleValue());
 
             eventPublisher.publishEvent(new IncomePaidEvent(
                     holder.getUserId(), asset.getId(), asset.getSymbol(),
-                    incomeType, cashAmount, distributionDate));
+                    incomeType, netPayment, distributionDate));
 
             incomeDistributionRepository.save(record.build());
             return true;

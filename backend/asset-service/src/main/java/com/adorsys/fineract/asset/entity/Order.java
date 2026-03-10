@@ -77,6 +77,14 @@ public class Order {
     @Column(name = "buyback_premium", precision = 20, scale = 0)
     private BigDecimal buybackPremium;
 
+    /** Registration duty (droit d'enregistrement) charged for this order. Null for pre-tax orders. */
+    @Column(name = "registration_duty_amount", precision = 20, scale = 0)
+    private BigDecimal registrationDutyAmount;
+
+    /** Capital gains tax charged for this SELL order. Null for BUY or pre-tax orders. */
+    @Column(name = "capital_gains_tax_amount", precision = 20, scale = 0)
+    private BigDecimal capitalGainsTaxAmount;
+
     /** Current order status. Defaults to PENDING. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 25)

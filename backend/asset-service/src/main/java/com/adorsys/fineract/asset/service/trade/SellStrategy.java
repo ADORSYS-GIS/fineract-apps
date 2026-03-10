@@ -24,8 +24,8 @@ public final class SellStrategy implements TradeStrategy {
     }
 
     @Override
-    public BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee) {
-        return grossAmount.subtract(fee);
+    public BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee, BigDecimal totalTax) {
+        return grossAmount.subtract(fee).subtract(totalTax);
     }
 
     @Override

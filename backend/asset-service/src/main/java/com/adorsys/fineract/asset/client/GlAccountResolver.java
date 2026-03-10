@@ -2,6 +2,8 @@ package com.adorsys.fineract.asset.client;
 
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
+import com.adorsys.fineract.asset.config.TaxConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -33,6 +35,8 @@ public class GlAccountResolver implements ApplicationRunner {
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
     private final ResolvedGlAccounts resolvedGlAccounts;
+    private final TaxConfig taxConfig;
+    private final ResolvedTaxAccounts resolvedTaxAccounts;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -104,6 +108,19 @@ public class GlAccountResolver implements ApplicationRunner {
         }
         resolvedGlAccounts.setFeeCollectionAccountId(feeAccountId);
 
+        // Resolve tax collection savings accounts by external ID
+        resolveTaxAccount(taxConfig.getRegDutyAccountExternalId(), "TAX-REG-DUTY",
+                resolvedTaxAccounts::setRegistrationDutyAccountId);
+        resolveTaxAccount(taxConfig.getIrcmAccountExternalId(), "TAX-IRCM",
+                resolvedTaxAccounts::setIrcmAccountId);
+        resolveTaxAccount(taxConfig.getCapGainsAccountExternalId(), "TAX-CAP-GAINS",
+                resolvedTaxAccounts::setCapitalGainsAccountId);
+
+        log.info("Resolved tax accounts: regDuty={} ({}), ircm={} ({}), capGains={} ({})",
+                resolvedTaxAccounts.getRegistrationDutyAccountId(), taxConfig.getRegDutyAccountExternalId(),
+                resolvedTaxAccounts.getIrcmAccountId(), taxConfig.getIrcmAccountExternalId(),
+                resolvedTaxAccounts.getCapitalGainsAccountId(), taxConfig.getCapGainsAccountExternalId());
+
         log.info("Resolved GL accounts: digitalAssetInventory={} (code {}), "
                 + "customerDigitalAssetHoldings={} (code {}), "
                 + "transfersInSuspense={} (code {}), "
@@ -133,6 +150,16 @@ public class GlAccountResolver implements ApplicationRunner {
                     + "Available GL codes: " + codeToId.keySet());
         }
         return id;
+    }
+
+    private void resolveTaxAccount(String externalId, String label, java.util.function.Consumer<Long> setter) {
+        Long accountId = fineractClient.findSavingsAccountByExternalId(externalId);
+        if (accountId == null) {
+            throw new IllegalStateException(
+                    "Tax collection savings account with external ID '" + externalId
+                    + "' not found in Fineract. Create the DGI Tax Authority client and savings accounts.");
+        }
+        setter.accept(accountId);
     }
 
     private Long resolvePaymentType(Map<String, Long> nameToId, String paymentTypeName, String configName) {

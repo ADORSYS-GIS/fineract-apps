@@ -17,8 +17,13 @@ public sealed interface TradeStrategy permits BuyStrategy, SellStrategy {
     /** Apply spread to base price. BUY adds spread, SELL subtracts. */
     BigDecimal applySpread(BigDecimal basePrice, BigDecimal spreadMultiplier);
 
-    /** Compute the order's final cash amount. BUY: grossCost + fee, SELL: grossProceeds - fee. */
-    BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee);
+    /** Compute the order's final cash amount. BUY: grossCost + fee + tax, SELL: grossProceeds - fee - tax. */
+    BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee, BigDecimal totalTax);
+
+    /** @deprecated Use {@link #computeOrderCashAmount(BigDecimal, BigDecimal, BigDecimal)} */
+    default BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee) {
+        return computeOrderCashAmount(grossAmount, fee, BigDecimal.ZERO);
+    }
 
     /** The circulating supply adjustment direction. BUY: +units, SELL: -units. */
     BigDecimal supplyAdjustment(BigDecimal units);

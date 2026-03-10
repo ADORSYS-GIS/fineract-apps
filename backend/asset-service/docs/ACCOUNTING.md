@@ -227,26 +227,36 @@ LP Spread balance = **+2,000 XAF** = net LP profit from bid-ask spread.
 
 All trades use the **LP Cash hub model** — money flows through LP Cash, then gets distributed internally. The investor sees at most **1 XAF transaction** per trade (fee bundled, spread invisible).
 
-### BUY (3-4 legs)
+### BUY (3-6 legs)
 
-1. Investor XAF → LP Cash: `grossAmount + fee` (single investor debit)
+1. Investor XAF → LP Cash: `grossAmount + fee + registrationDuty` (single investor debit)
 2. LP Asset → Investor Asset: `units` (token delivery)
 3. LP Cash → LP Spread: `spreadAmount` (internal, if > 0)
 4. LP Cash → Fee Collection: `fee` (internal, if > 0)
+5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 
-### SELL, bid ≤ issuer (3-4 legs)
+### SELL, bid ≤ issuer (3-7 legs)
 
 1. Investor Asset → LP Asset: `units` (token return)
-2. LP Cash → Investor XAF: `grossAmount - fee` (single investor credit)
+2. LP Cash → Investor XAF: `grossAmount - fee - registrationDuty - capitalGainsTax` (single investor credit)
 3. LP Cash → Fee Collection: `fee` (internal, if > 0)
 4. LP Cash → LP Spread: `spreadAmount` (internal, if > 0)
+5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
+6. LP Cash → TAX-CAP-GAINS: `capitalGainsTax` (tax, if gain > 0 and above exemption)
 
-### SELL, bid > issuer (3-4 legs)
+### SELL, bid > issuer (3-7 legs)
 
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Spread → LP Cash: `buybackPremium` (internal, funds the premium)
-3. LP Cash → Investor XAF: `grossAmount - fee` (single investor credit)
+3. LP Cash → Investor XAF: `grossAmount - fee - registrationDuty - capitalGainsTax` (single investor credit)
 4. LP Cash → Fee Collection: `fee` (internal, if > 0)
+5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
+6. LP Cash → TAX-CAP-GAINS: `capitalGainsTax` (tax, if gain > 0 and above exemption)
+
+### Coupon/Income Payment (2-3 legs)
+
+1. LP Cash → Investor XAF: `grossIncome - ircmAmount` (net payment)
+2. LP Cash → TAX-IRCM: `ircmAmount` (withholding tax, if > 0)
 
 All legs execute atomically via the Fineract Batch API — if any fails, all are reversed.
 
@@ -270,6 +280,10 @@ Period margin report: `net margin = SUM(spreadAmount) - SUM(buybackPremium)`
 | 65 | Customer Digital Asset Holdings | Liability | Obligation to customers who hold asset units |
 | 73 | Company Asset Capital | Equity | Origin of minted asset units |
 | 87 | Asset Trading Fee Income | Income | Revenue from trading fees |
+| 141 | Tax Payable - WHT | Liability | Withholding tax payable (legacy) |
+| 142 | Tax Payable - Registration Duty | Liability | Registration duty (droit d'enregistrement) payable to DGI |
+| 143 | Tax Payable - IRCM | Liability | IRCM withholding tax on investment income payable to DGI |
+| 144 | Tax Payable - Capital Gains | Liability | Capital gains tax payable to DGI |
 
 ## Savings Product Accounting Mapping
 
@@ -359,9 +373,17 @@ Single Fineract account transfer:
 |----------|------|----|--------|
 | Coupon payment | LP Cash | Investor XAF | 29,000 XAF |
 
-No fee is charged on coupon payments. This is a savings-to-savings XAF transfer with no GL impact on the asset side (only XAF accounts are affected).
+IRCM withholding tax is deducted from the gross coupon before payment to the investor:
+- Effective IRCM rate depends on asset configuration (govt bond → 0%, BVMAC-listed → 11%, bond 5yr+ → 5.5%, default → 16.5%)
+- Net payment = gross coupon - IRCM amount
+- IRCM is transferred to the TAX-IRCM savings account
 
-Each payment is recorded in the `interest_payments` table with status SUCCESS or FAILED. Failed payments (e.g. LP insufficient cash) do not block other holders.
+| Transfer | From | To | Amount |
+|----------|------|----|--------|
+| Coupon payment | LP Cash | Investor XAF | 29,000 - IRCM |
+| IRCM collection | LP Cash | TAX-IRCM | IRCM amount |
+
+Each payment is recorded in the `interest_payments` table with status SUCCESS or FAILED. Failed payments (e.g. LP insufficient cash) do not block other holders. Tax is recorded in `tax_transactions` table.
 
 ### 5. Income Distribution (Non-Bond Assets)
 
@@ -404,4 +426,7 @@ To verify asset accounting is correct:
 3. **GL 47 + GL 65** should equal the total supply of all assets (units minted via GL 73)
 4. **Fee collection account balance** should match the sum of all `fee` values in both `orders` and `trade_log_archive` tables
 5. **LP Spread account balance** per asset should equal `SUM(spreadAmount) - SUM(buybackPremium)` across all orders for that asset
-6. **LP Cash account balance** per asset should reflect `SUM(issuerPrice × units)` for BUY minus `SUM(issuerPrice × units)` for SELL, adjusted for coupon/income payouts
+6. **LP Cash account balance** per asset should reflect `SUM(issuerPrice × units)` for BUY minus `SUM(issuerPrice × units)` for SELL, adjusted for coupon/income payouts and tax disbursements
+7. **TAX-REG-DUTY account balance** should match `SUM(registration_duty_amount)` across all filled orders
+8. **TAX-IRCM account balance** should match `SUM(tax_amount)` from `tax_transactions` where `tax_type = 'IRCM'`
+9. **TAX-CAP-GAINS account balance** should match `SUM(capital_gains_tax_amount)` across all filled sell orders with profit

@@ -186,6 +186,16 @@ public class AssetProvisioningService {
                 .incomeRate(request.incomeRate())
                 .distributionFrequencyMonths(request.distributionFrequencyMonths())
                 .nextDistributionDate(request.nextDistributionDate())
+                // Tax configuration (defaults applied by @Builder.Default on entity)
+                .registrationDutyEnabled(request.registrationDutyEnabled() != null ? request.registrationDutyEnabled() : true)
+                .registrationDutyRate(request.registrationDutyRate())
+                .ircmEnabled(request.ircmEnabled() != null ? request.ircmEnabled() : true)
+                .ircmRateOverride(request.ircmRateOverride())
+                .ircmExempt(request.ircmExempt() != null ? request.ircmExempt() : false)
+                .capitalGainsTaxEnabled(request.capitalGainsTaxEnabled() != null ? request.capitalGainsTaxEnabled() : true)
+                .capitalGainsRate(request.capitalGainsRate())
+                .isBvmacListed(request.isBvmacListed() != null ? request.isBvmacListed() : false)
+                .isGovernmentBond(request.isGovernmentBond() != null ? request.isGovernmentBond() : false)
                 .build();
 
         assetRepository.save(asset);
@@ -253,6 +263,17 @@ public class AssetProvisioningService {
         if (request.incomeRate() != null) asset.setIncomeRate(request.incomeRate());
         if (request.distributionFrequencyMonths() != null) asset.setDistributionFrequencyMonths(request.distributionFrequencyMonths());
         if (request.nextDistributionDate() != null) asset.setNextDistributionDate(request.nextDistributionDate());
+
+        // Tax configuration
+        if (request.registrationDutyEnabled() != null) asset.setRegistrationDutyEnabled(request.registrationDutyEnabled());
+        if (request.registrationDutyRate() != null) asset.setRegistrationDutyRate(request.registrationDutyRate());
+        if (request.ircmEnabled() != null) asset.setIrcmEnabled(request.ircmEnabled());
+        if (request.ircmRateOverride() != null) asset.setIrcmRateOverride(request.ircmRateOverride());
+        if (request.ircmExempt() != null) asset.setIrcmExempt(request.ircmExempt());
+        if (request.capitalGainsTaxEnabled() != null) asset.setCapitalGainsTaxEnabled(request.capitalGainsTaxEnabled());
+        if (request.capitalGainsRate() != null) asset.setCapitalGainsRate(request.capitalGainsRate());
+        if (request.isBvmacListed() != null) asset.setIsBvmacListed(request.isBvmacListed());
+        if (request.isGovernmentBond() != null) asset.setIsGovernmentBond(request.isGovernmentBond());
 
         assetRepository.save(asset);
 

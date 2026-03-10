@@ -79,5 +79,35 @@ public record UpdateAssetRequest(
     LocalDate maturityDate,
     /** New next coupon date. Null to keep current. */
     @Schema(description = "Next scheduled coupon payment date.")
-    LocalDate nextCouponDate
+    LocalDate nextCouponDate,
+
+    // ── Tax configuration (Cameroon/CEMAC) ──
+
+    /** Enable/disable registration duty. Null to keep current. */
+    @Schema(description = "Enable registration duty on trades.")
+    Boolean registrationDutyEnabled,
+    /** Registration duty rate override. Null to keep current. */
+    @Schema(description = "Registration duty rate (e.g. 0.02 = 2%).")
+    @PositiveOrZero BigDecimal registrationDutyRate,
+    /** Enable/disable IRCM. Null to keep current. */
+    @Schema(description = "Enable IRCM withholding on income distributions.")
+    Boolean ircmEnabled,
+    /** IRCM rate override. Null to keep current. */
+    @Schema(description = "IRCM rate override.")
+    @PositiveOrZero BigDecimal ircmRateOverride,
+    /** IRCM exemption flag. Null to keep current. */
+    @Schema(description = "Exempt from IRCM.")
+    Boolean ircmExempt,
+    /** Enable/disable capital gains tax. Null to keep current. */
+    @Schema(description = "Enable capital gains tax on sales.")
+    Boolean capitalGainsTaxEnabled,
+    /** Capital gains rate override. Null to keep current. */
+    @Schema(description = "Capital gains tax rate.")
+    @PositiveOrZero BigDecimal capitalGainsRate,
+    /** BVMAC listing flag. Null to keep current. */
+    @Schema(description = "Listed on BVMAC.")
+    Boolean isBvmacListed,
+    /** Government bond flag. Null to keep current. */
+    @Schema(description = "Government bond.")
+    Boolean isGovernmentBond
 ) {}

@@ -86,6 +86,7 @@ public class TradingService {
     private final LockupService lockupService;
     private final ApplicationEventPublisher eventPublisher;
     private final QuoteReservationService quoteReservationService;
+    private final TaxService taxService;
 
     // ──────────────────────────────────────────────────────────────────────
     // Quote-based async trade flow
@@ -188,7 +189,23 @@ public class TradingService {
         BigDecimal spreadAmount = isSpreadEnabled(asset)
                 ? lpMarginPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
-        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee);
+
+        // Tax calculation
+        BigDecimal registrationDuty = taxService.calculateRegistrationDuty(asset, grossAmount);
+        BigDecimal capitalGainsTax = BigDecimal.ZERO;
+        BigDecimal estimatedRealizedGain = BigDecimal.ZERO;
+        if (request.side() == TradeSide.SELL) {
+            // Estimate realized gain from current position's average cost
+            var position = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId());
+            if (position.isPresent() && position.get().getAvgPurchasePrice() != null) {
+                BigDecimal avgCost = position.get().getAvgPurchasePrice();
+                estimatedRealizedGain = executionPrice.subtract(avgCost).multiply(units).setScale(0, RoundingMode.HALF_UP);
+                capitalGainsTax = taxService.calculateCapitalGainsTax(asset, userId, estimatedRealizedGain);
+            }
+        }
+        BigDecimal totalTax = registrationDuty.add(capitalGainsTax);
+        TaxBreakdown taxBreakdown = taxService.buildTaxBreakdown(asset, userId, grossAmount, estimatedRealizedGain, request.side() == TradeSide.SELL);
+        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee, totalTax);
 
         // Remainder for amount-based mode
         if (computedFromAmount != null && units.compareTo(BigDecimal.ZERO) > 0) {
@@ -252,6 +269,8 @@ public class TradingService {
                 .executionPrice(executionPrice)
                 .fee(fee)
                 .spreadAmount(spreadAmount)
+                .registrationDutyAmount(registrationDuty)
+                .capitalGainsTaxAmount(capitalGainsTax)
                 .status(OrderStatus.QUOTED)
                 .quotedAt(now)
                 .quoteExpiresAt(expiresAt)
@@ -303,7 +322,8 @@ public class TradingService {
                 orderId, OrderStatus.QUOTED, request.assetId(), asset.getSymbol(), request.side(),
                 units, executionPrice, lpMarginPerUnit, grossAmount, fee, feePercent, spreadAmount,
                 orderCashAmount, availableBalance, availableUnits, availableSupply,
-                bondBenefit, incomeBenefit, computedFromAmount, remainder, now, expiresAt, warnings);
+                bondBenefit, incomeBenefit, computedFromAmount, remainder, now, expiresAt, warnings,
+                taxBreakdown);
     }
 
     /**
@@ -483,7 +503,7 @@ public class TradingService {
                 order.getSide(), order.getUnits(), order.getExecutionPrice(), null,
                 null, order.getFee(), null, order.getSpreadAmount(), order.getCashAmount(),
                 null, null, null, null, null, null, null,
-                order.getQuotedAt(), order.getQuoteExpiresAt(), warnings);
+                order.getQuotedAt(), order.getQuoteExpiresAt(), warnings, null);
     }
 
     private OrderResponse toOrderResponse(Order order) {
@@ -655,7 +675,16 @@ public class TradingService {
             }
         }
 
-        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee);
+        // Recalculate taxes with locked prices
+        BigDecimal registrationDuty = taxService.calculateRegistrationDuty(asset, grossAmount);
+        BigDecimal capitalGainsTax = BigDecimal.ZERO;
+        if (strategy.side() == TradeSide.SELL) {
+            // Use the order's quoted CGT — actual P&L will be computed after portfolio update
+            capitalGainsTax = ctx.getOrder().getCapitalGainsTaxAmount() != null
+                    ? ctx.getOrder().getCapitalGainsTaxAmount() : BigDecimal.ZERO;
+        }
+        BigDecimal totalTax = registrationDuty.add(capitalGainsTax);
+        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee, totalTax);
 
         ctx.setBasePrice(lockedBasePrice);
         ctx.setExecutionPrice(executionPrice);
@@ -665,6 +694,8 @@ public class TradingService {
         ctx.setSpreadAmount(spreadAmount);
         ctx.setBuybackPremium(buybackPremium);
         ctx.setOrderCashAmount(orderCashAmount);
+        ctx.setRegistrationDutyAmount(registrationDuty);
+        ctx.setCapitalGainsTaxAmount(capitalGainsTax);
 
         // Update order with authoritative locked values
         Order order = ctx.getOrder();
@@ -673,6 +704,8 @@ public class TradingService {
         order.setFee(fee);
         order.setSpreadAmount(spreadAmount);
         order.setBuybackPremium(buybackPremium);
+        order.setRegistrationDutyAmount(registrationDuty);
+        order.setCapitalGainsTaxAmount(capitalGainsTax);
         orderRepository.save(order);
     }
 
@@ -758,14 +791,32 @@ public class TradingService {
     private void executeFineractBatch(TradeContext ctx, Asset lockedAsset) {
         TradeSide side = ctx.getStrategy().side();
         Long feeCollectionAccountId = resolvedGlAccounts.getFeeCollectionAccountId();
+        BigDecimal registrationDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
+        BigDecimal capitalGainsTax = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
+
         List<BatchOperation> batchOps = buildBatchOperations(
                 side, lockedAsset, ctx.getUserCashAccountId(), ctx.getUserAssetAccountId(),
                 ctx.getGrossAmount(), ctx.getUnits(), ctx.getFee(), ctx.getSpreadAmount(),
-                ctx.getBuybackPremium(), feeCollectionAccountId);
+                ctx.getBuybackPremium(), feeCollectionAccountId,
+                registrationDuty, capitalGainsTax);
 
         try {
             List<Map<String, Object>> batchResponses = fineractClient.executeAtomicBatch(batchOps);
             ctx.getOrder().setFineractBatchId(extractBatchId(batchResponses));
+
+            // Record tax transactions in the audit trail
+            if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
+                taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
+                        "REGISTRATION_DUTY", ctx.getGrossAmount(),
+                        taxService.getRegistrationDutyRate(lockedAsset), registrationDuty, null);
+            }
+            if (capitalGainsTax.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal cgtRate = lockedAsset.getCapitalGainsRate() != null
+                        ? lockedAsset.getCapitalGainsRate() : new BigDecimal("0.165");
+                taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
+                        "CAPITAL_GAINS", ctx.getRealizedPnl() != null ? ctx.getRealizedPnl() : BigDecimal.ZERO,
+                        cgtRate, capitalGainsTax, null);
+            }
         } catch (Exception batchError) {
             log.error("Batch transfer failed for {} order {}: {}", side, ctx.getOrderId(), batchError.getMessage());
             ctx.getOrder().setStatus(OrderStatus.FAILED);
@@ -823,15 +874,17 @@ public class TradingService {
             TradeSide side, Asset asset,
             Long userCashAccountId, Long userAssetAccountId,
             BigDecimal grossAmount, BigDecimal units, BigDecimal fee,
-            BigDecimal spreadAmount, BigDecimal buybackPremium, Long feeCollectionAccountId) {
+            BigDecimal spreadAmount, BigDecimal buybackPremium, Long feeCollectionAccountId,
+            BigDecimal registrationDuty, BigDecimal capitalGainsTax) {
 
         List<BatchOperation> ops = new ArrayList<>();
+        BigDecimal totalTax = registrationDuty.add(capitalGainsTax);
 
         if (side == TradeSide.BUY) {
-            // Leg 1: Investor pays total (grossAmount + fee) to LP Cash — single XAF debit
+            // Leg 1: Investor pays total (grossAmount + fee + tax) to LP Cash — single XAF debit
             ops.add(new BatchTransferOp(
                     userCashAccountId, asset.getLpCashAccountId(),
-                    grossAmount.add(fee), "Asset purchase: " + asset.getSymbol()));
+                    grossAmount.add(fee).add(totalTax), "Asset purchase: " + asset.getSymbol()));
             // Leg 2: LP delivers tokens to investor
             ops.add(new BatchTransferOp(
                     asset.getLpAssetAccountId(), userAssetAccountId,
@@ -848,6 +901,12 @@ public class TradingService {
                         asset.getLpCashAccountId(), feeCollectionAccountId,
                         fee, "Trading fee: BUY " + asset.getSymbol()));
             }
+            // Leg 5 (tax): LP Cash sweeps registration duty to Tax Authority
+            if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchTransferOp(
+                        asset.getLpCashAccountId(), taxService.getRegistrationDutyAccountId(),
+                        registrationDuty, "Registration duty: BUY " + asset.getSymbol()));
+            }
         } else {
             // Leg 1: Investor returns tokens
             ops.add(new BatchTransferOp(
@@ -859,10 +918,10 @@ public class TradingService {
                         asset.getLpSpreadAccountId(), asset.getLpCashAccountId(),
                         buybackPremium, "Buyback premium: SELL " + asset.getSymbol()));
             }
-            // Leg 3: LP Cash pays net proceeds to investor — single XAF credit
+            // Leg 3: LP Cash pays net proceeds to investor (gross - fee - tax) — single XAF credit
             ops.add(new BatchTransferOp(
                     asset.getLpCashAccountId(), userCashAccountId,
-                    grossAmount.subtract(fee), "Asset sale proceeds: " + asset.getSymbol()));
+                    grossAmount.subtract(fee).subtract(totalTax), "Asset sale proceeds: " + asset.getSymbol()));
             // Leg 4 (internal): LP Cash sweeps fee to Fee Collection (mandatory)
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
@@ -874,6 +933,18 @@ public class TradingService {
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
                         spreadAmount, "LP margin: SELL " + asset.getSymbol()));
+            }
+            // Leg 6 (tax): LP Cash sweeps registration duty to Tax Authority
+            if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchTransferOp(
+                        asset.getLpCashAccountId(), taxService.getRegistrationDutyAccountId(),
+                        registrationDuty, "Registration duty: SELL " + asset.getSymbol()));
+            }
+            // Leg 7 (tax): LP Cash sweeps capital gains tax to Tax Authority
+            if (capitalGainsTax.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchTransferOp(
+                        asset.getLpCashAccountId(), taxService.getCapitalGainsAccountId(),
+                        capitalGainsTax, "Capital gains tax: SELL " + asset.getSymbol()));
             }
         }
 

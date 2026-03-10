@@ -64,6 +64,8 @@ public class BondStepDefinitions {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         String nextCoupon = data.get("nextCouponDate");
         LocalDate couponDate = resolveDateToLocalDate(nextCoupon);
+        boolean isGovBond = Boolean.parseBoolean(data.getOrDefault("isGovernmentBond", "false"));
+        boolean ircmExempt = Boolean.parseBoolean(data.getOrDefault("ircmExempt", "false"));
 
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
@@ -71,16 +73,20 @@ public class BondStepDefinitions {
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id, version,
                 interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
                 subscription_start_date, subscription_end_date,
+                is_government_bond, ircm_exempt,
                 created_at, updated_at)
             VALUES (?, ?, ?, ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL, 0,
                 ?, ?, ?, ?,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), NOW(), NOW())
+                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
+                ?, ?,
+                NOW(), NOW())
             """, bondId, bondId, bondId, "Bond " + bondId,
                 new BigDecimal(data.get("issuerPrice")),
                 new BigDecimal(data.get("interestRate")),
                 Integer.parseInt(data.get("couponFrequencyMonths")),
                 couponDate,
-                LocalDate.now().plusYears(5));
+                LocalDate.now().plusYears(5),
+                isGovBond, ircmExempt);
 
         // Insert price record
         BigDecimal issuerPrice = new BigDecimal(data.get("issuerPrice"));
@@ -354,5 +360,23 @@ public class BondStepDefinitions {
             };
         }
         return LocalDate.parse(expr);
+    }
+
+    // ── Tax verification steps ──────────────────────────────────────
+
+    @Then("the IRCM withholding for bond {string} should be {int}")
+    public void ircmWithholdingShouldBe(String bondId, int expectedAmount) {
+        BigDecimal totalIrcm = jdbcTemplate.queryForObject(
+                "SELECT COALESCE(SUM(tax_amount), 0) FROM tax_transactions WHERE asset_id = ? AND tax_type = 'IRCM'",
+                BigDecimal.class, bondId);
+        assertThat(totalIrcm).isEqualByComparingTo(new BigDecimal(expectedAmount));
+    }
+
+    @Then("the IRCM withholding for bond {string} should be greater than {int}")
+    public void ircmWithholdingShouldBeGreaterThan(String bondId, int threshold) {
+        BigDecimal totalIrcm = jdbcTemplate.queryForObject(
+                "SELECT COALESCE(SUM(tax_amount), 0) FROM tax_transactions WHERE asset_id = ? AND tax_type = 'IRCM'",
+                BigDecimal.class, bondId);
+        assertThat(totalIrcm).isGreaterThan(new BigDecimal(threshold));
     }
 }

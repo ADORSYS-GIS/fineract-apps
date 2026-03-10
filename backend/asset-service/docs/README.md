@@ -70,6 +70,19 @@ http://localhost:8083/actuator/health
 | `SPREAD_COLLECTION_ACCOUNT_ID` | — | Deprecated — LP spread accounts are now per-asset (auto-created) |
 | `ARCHIVAL_RETENTION_MONTHS` | `12` | Months to retain records before archival |
 | `ARCHIVAL_BATCH_SIZE` | `1000` | Rows per archival batch |
+| `GL_TAX_REGISTRATION_DUTY` | `142` | GL code for registration duty tax payable |
+| `GL_TAX_IRCM` | `143` | GL code for IRCM withholding tax payable |
+| `GL_TAX_CAPITAL_GAINS` | `144` | GL code for capital gains tax payable |
+| `TAX_AUTHORITY_EXTERNAL_ID` | `TAX-AUTHORITY` | External ID of DGI Tax Authority client |
+| `TAX_REG_DUTY_ACCOUNT_EXTERNAL_ID` | `TAX-REG-DUTY` | External ID of registration duty collection account |
+| `TAX_IRCM_ACCOUNT_EXTERNAL_ID` | `TAX-IRCM` | External ID of IRCM collection account |
+| `TAX_CAP_GAINS_ACCOUNT_EXTERNAL_ID` | `TAX-CAP-GAINS` | External ID of capital gains collection account |
+| `TAX_DEFAULT_REGISTRATION_DUTY_RATE` | `0.02` | Default registration duty rate (2%) |
+| `TAX_DEFAULT_IRCM_DIVIDEND_RATE` | `0.165` | Default IRCM rate for dividends (16.5%) |
+| `TAX_DEFAULT_IRCM_BVMAC_RATE` | `0.11` | IRCM rate for BVMAC-listed securities (11%) |
+| `TAX_DEFAULT_IRCM_BOND_RATE` | `0.055` | IRCM rate for bonds with maturity ≥ 5yr (5.5%) |
+| `TAX_DEFAULT_CAPITAL_GAINS_RATE` | `0.165` | Default capital gains tax rate (16.5%) |
+| `TAX_CAPITAL_GAINS_ANNUAL_EXEMPTION` | `500000` | Annual capital gains exemption in XAF |
 
 ## Database
 
@@ -85,6 +98,7 @@ Flyway migrations create the following tables:
 - `portfolio_snapshots` — Daily portfolio value snapshots for performance charting
 - `orders_archive` — Archived old orders (moved by ArchivalScheduler)
 - `trade_log_archive` — Archived old trade logs (moved by ArchivalScheduler)
+- `tax_transactions` — Tax calculation and collection audit trail (registration duty, IRCM, capital gains)
 
 ## API Documentation
 

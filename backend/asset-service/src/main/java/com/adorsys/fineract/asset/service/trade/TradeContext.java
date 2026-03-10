@@ -45,6 +45,10 @@ public class TradeContext {
     private BigDecimal buybackPremium;
     private BigDecimal orderCashAmount;
 
+    // -- Tax --
+    private BigDecimal registrationDutyAmount;
+    private BigDecimal capitalGainsTaxAmount;
+
     // -- Output --
     private BigDecimal realizedPnl;
 }

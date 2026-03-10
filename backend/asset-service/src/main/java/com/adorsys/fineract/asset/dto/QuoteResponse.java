@@ -49,5 +49,7 @@ public record QuoteResponse(
     /** When this quote expires. Confirm before this time. */
     Instant quoteExpiresAt,
     /** Warning codes (e.g. MARKET_CLOSED). Empty if no warnings. */
-    List<String> warnings
+    List<String> warnings,
+    /** Tax breakdown: registration duty, capital gains, total. Null if taxes disabled. */
+    TaxBreakdown taxBreakdown
 ) {}

@@ -211,4 +211,31 @@ public class TradingStepDefinitions {
         String status = JsonPath.read(context.getLastResponseBody(), "$.status");
         assertThat(status).isEqualTo(expectedStatus);
     }
+
+    // -------------------------------------------------------------------------
+    // Tax-related steps
+    // -------------------------------------------------------------------------
+
+    @Then("the quote response should include a tax breakdown")
+    public void quoteResponseIncludesTaxBreakdown() {
+        Object taxBreakdown = JsonPath.read(context.getLastResponseBody(), "$.taxBreakdown");
+        assertThat(taxBreakdown).isNotNull();
+    }
+
+    @Then("the tax breakdown registration duty should be greater than 0")
+    public void taxBreakdownRegDutyPositive() {
+        Number amount = JsonPath.read(context.getLastResponseBody(), "$.taxBreakdown.registrationDutyAmount");
+        assertThat(new BigDecimal(amount.toString())).isPositive();
+    }
+
+    @Then("the tax breakdown registration duty amount should be 0")
+    public void taxBreakdownRegDutyZero() {
+        Number amount = JsonPath.read(context.getLastResponseBody(), "$.taxBreakdown.registrationDutyAmount");
+        assertThat(new BigDecimal(amount.toString())).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Given("asset {string} has registration duty disabled")
+    public void assetHasRegistrationDutyDisabled(String assetId) {
+        jdbcTemplate.update("UPDATE assets SET registration_duty_enabled = false WHERE id = ?", assetId);
+    }
 }
