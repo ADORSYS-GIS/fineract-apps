@@ -49,6 +49,14 @@ export interface AssetFormData {
 	incomeRate: number;
 	distributionFrequencyMonths: number;
 	nextDistributionDate: string;
+	// Tax configuration (Cameroon/CEMAC)
+	registrationDutyEnabled: boolean;
+	registrationDutyRate: number;
+	ircmEnabled: boolean;
+	ircmRateOverride: number;
+	ircmExempt: boolean;
+	capitalGainsTaxEnabled: boolean;
+	capitalGainsRate: number;
 }
 
 const toDateStr = (d: Date) => d.toISOString().split("T")[0];
@@ -99,6 +107,13 @@ const initialFormData: AssetFormData = {
 	incomeRate: 0,
 	distributionFrequencyMonths: 12,
 	nextDistributionDate: "",
+	registrationDutyEnabled: true,
+	registrationDutyRate: 2,
+	ircmEnabled: true,
+	ircmRateOverride: 0,
+	ircmExempt: false,
+	capitalGainsTaxEnabled: true,
+	capitalGainsRate: 0,
 };
 
 export const useCreateAsset = () => {
@@ -115,6 +130,7 @@ export const useCreateAsset = () => {
 				"Bond Details",
 				"Pricing & Fees",
 				"Supply",
+				"Tax Configuration",
 				"Review & Create",
 			]
 		: [
@@ -123,6 +139,7 @@ export const useCreateAsset = () => {
 				"Pricing & Fees",
 				"Supply",
 				"Income Distribution",
+				"Tax Configuration",
 				"Review & Create",
 			];
 
@@ -315,6 +332,20 @@ export const useCreateAsset = () => {
 				couponFrequencyMonths: formData.couponFrequencyMonths,
 				nextCouponDate: formData.nextCouponDate,
 			}),
+			// Tax configuration
+			registrationDutyEnabled: formData.registrationDutyEnabled,
+			registrationDutyRate: formData.registrationDutyRate
+				? formData.registrationDutyRate / 100
+				: undefined,
+			ircmEnabled: formData.ircmEnabled,
+			ircmRateOverride: formData.ircmRateOverride
+				? formData.ircmRateOverride / 100
+				: undefined,
+			ircmExempt: formData.ircmExempt,
+			capitalGainsTaxEnabled: formData.capitalGainsTaxEnabled,
+			capitalGainsRate: formData.capitalGainsRate
+				? formData.capitalGainsRate / 100
+				: undefined,
 		};
 
 		createMutation.mutate(request);

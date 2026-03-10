@@ -224,6 +224,14 @@ export interface CreateAssetRequest {
 	interestRate?: number;
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
+	// Tax configuration (Cameroon/CEMAC)
+	registrationDutyEnabled?: boolean;
+	registrationDutyRate?: number;
+	ircmEnabled?: boolean;
+	ircmRateOverride?: number;
+	ircmExempt?: boolean;
+	capitalGainsTaxEnabled?: boolean;
+	capitalGainsRate?: number;
 }
 
 export interface UpdateAssetRequest {

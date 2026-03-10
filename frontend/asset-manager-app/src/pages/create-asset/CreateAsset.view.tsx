@@ -8,6 +8,7 @@ import { PricingStep } from "./steps/PricingStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { SelectCompanyStep } from "./steps/SelectCompanyStep";
 import { SupplyStep } from "./steps/SupplyStep";
+import { TaxConfigurationStep } from "./steps/TaxConfigurationStep";
 import { useCreateAsset } from "./useCreateAsset";
 
 export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
@@ -75,6 +76,14 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 			case "Income Distribution":
 				return (
 					<IncomeDistributionStep
+						formData={formData}
+						updateFormData={updateFormData}
+						validationErrors={validationErrors}
+					/>
+				);
+			case "Tax Configuration":
+				return (
+					<TaxConfigurationStep
 						formData={formData}
 						updateFormData={updateFormData}
 						validationErrors={validationErrors}
