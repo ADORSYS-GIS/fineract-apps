@@ -556,6 +556,47 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 					</Card>
 				)}
 
+				{/* Tax Configuration */}
+				<Card className="p-4 mb-6">
+					<h2 className="text-lg font-semibold text-gray-800 mb-3">
+						Tax Configuration
+					</h2>
+					<div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+						<div>
+							<p className="text-gray-500">Registration Duty</p>
+							<p className="font-medium">
+								{asset.registrationDutyEnabled === false
+									? "Disabled"
+									: asset.registrationDutyRate != null
+										? `${(asset.registrationDutyRate * 100).toFixed(1)}%`
+										: "Enabled (default 2%)"}
+							</p>
+						</div>
+						<div>
+							<p className="text-gray-500">IRCM Withholding</p>
+							<p className="font-medium">
+								{asset.ircmEnabled === false
+									? "Disabled"
+									: asset.ircmExempt
+										? "Exempt"
+										: asset.ircmRateOverride != null
+											? `${(asset.ircmRateOverride * 100).toFixed(1)}%`
+											: "Enabled (auto rate)"}
+							</p>
+						</div>
+						<div>
+							<p className="text-gray-500">Capital Gains Tax</p>
+							<p className="font-medium">
+								{asset.capitalGainsTaxEnabled === false
+									? "Disabled"
+									: asset.capitalGainsRate != null
+										? `${(asset.capitalGainsRate * 100).toFixed(1)}%`
+										: "Enabled (default 16.5%)"}
+							</p>
+						</div>
+					</div>
+				</Card>
+
 				{/* Income Forecast & History (non-bond assets with income) */}
 				{asset.category !== "BONDS" && asset.incomeType && (
 					<>

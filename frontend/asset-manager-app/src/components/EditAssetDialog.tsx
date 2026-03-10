@@ -29,6 +29,14 @@ interface EditFormValues {
 	incomeRate: string;
 	distributionFrequencyMonths: string;
 	nextDistributionDate: string;
+	// Tax configuration
+	registrationDutyEnabled: boolean;
+	registrationDutyRate: string;
+	ircmEnabled: boolean;
+	ircmRateOverride: string;
+	ircmExempt: boolean;
+	capitalGainsTaxEnabled: boolean;
+	capitalGainsRate: string;
 }
 
 function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
@@ -54,6 +62,22 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 		distributionFrequencyMonths:
 			asset.distributionFrequencyMonths?.toString() ?? "",
 		nextDistributionDate: asset.nextDistributionDate ?? "",
+		registrationDutyEnabled: asset.registrationDutyEnabled !== false,
+		registrationDutyRate:
+			asset.registrationDutyRate != null
+				? (asset.registrationDutyRate * 100).toString()
+				: "",
+		ircmEnabled: asset.ircmEnabled !== false,
+		ircmRateOverride:
+			asset.ircmRateOverride != null
+				? (asset.ircmRateOverride * 100).toString()
+				: "",
+		ircmExempt: asset.ircmExempt ?? false,
+		capitalGainsTaxEnabled: asset.capitalGainsTaxEnabled !== false,
+		capitalGainsRate:
+			asset.capitalGainsRate != null
+				? (asset.capitalGainsRate * 100).toString()
+				: "",
 	};
 }
 
@@ -99,6 +123,27 @@ function buildUpdateRequest(
 		data.distributionFrequencyMonths = num(values.distributionFrequencyMonths);
 	if (values.nextDistributionDate !== initial.nextDistributionDate)
 		data.nextDistributionDate = values.nextDistributionDate || undefined;
+	// Tax configuration
+	if (values.registrationDutyEnabled !== initial.registrationDutyEnabled)
+		data.registrationDutyEnabled = values.registrationDutyEnabled;
+	if (values.registrationDutyRate !== initial.registrationDutyRate)
+		data.registrationDutyRate = values.registrationDutyRate
+			? Number(values.registrationDutyRate) / 100
+			: undefined;
+	if (values.ircmEnabled !== initial.ircmEnabled)
+		data.ircmEnabled = values.ircmEnabled;
+	if (values.ircmRateOverride !== initial.ircmRateOverride)
+		data.ircmRateOverride = values.ircmRateOverride
+			? Number(values.ircmRateOverride) / 100
+			: undefined;
+	if (values.ircmExempt !== initial.ircmExempt)
+		data.ircmExempt = values.ircmExempt;
+	if (values.capitalGainsTaxEnabled !== initial.capitalGainsTaxEnabled)
+		data.capitalGainsTaxEnabled = values.capitalGainsTaxEnabled;
+	if (values.capitalGainsRate !== initial.capitalGainsRate)
+		data.capitalGainsRate = values.capitalGainsRate
+			? Number(values.capitalGainsRate) / 100
+			: undefined;
 
 	return Object.keys(data).length > 0 ? data : null;
 }
@@ -404,6 +449,140 @@ const IncomeSection: FC<{ incomeType: string }> = ({ incomeType }) => {
 	);
 };
 
+const TaxSection: FC<{
+	registrationDutyEnabled: boolean;
+	ircmEnabled: boolean;
+	ircmExempt: boolean;
+	capitalGainsTaxEnabled: boolean;
+	setFieldValue: (field: string, value: boolean | string) => void;
+}> = ({
+	registrationDutyEnabled,
+	ircmEnabled,
+	ircmExempt,
+	capitalGainsTaxEnabled,
+	setFieldValue,
+}) => (
+	<>
+		<hr className="border-gray-200 dark:border-gray-600" />
+		<p className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+			Tax Configuration
+		</p>
+		{/* Registration Duty */}
+		<div className="flex items-center justify-between">
+			<div>
+				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+					Registration Duty
+				</p>
+				<p className="text-xs text-gray-400">Transfer tax on transactions</p>
+			</div>
+			<input
+				type="checkbox"
+				checked={registrationDutyEnabled}
+				onChange={(e) =>
+					setFieldValue("registrationDutyEnabled", e.target.checked)
+				}
+				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+			/>
+		</div>
+		{registrationDutyEnabled && (
+			<div>
+				<label className={LABEL_CLASS}>Rate (%)</label>
+				<Field
+					name="registrationDutyRate"
+					type="number"
+					className={INPUT_CLASS}
+					min={0}
+					max={100}
+					step="0.1"
+					placeholder="Default: 2%"
+				/>
+			</div>
+		)}
+		{/* IRCM Withholding */}
+		<div className="flex items-center justify-between">
+			<div>
+				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+					IRCM Withholding Tax
+				</p>
+				<p className="text-xs text-gray-400">
+					Withholding on income distributions
+				</p>
+			</div>
+			<input
+				type="checkbox"
+				checked={ircmEnabled}
+				onChange={(e) => setFieldValue("ircmEnabled", e.target.checked)}
+				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+			/>
+		</div>
+		{ircmEnabled && (
+			<>
+				<div className="flex items-center gap-3">
+					<input
+						type="checkbox"
+						checked={ircmExempt}
+						onChange={(e) => setFieldValue("ircmExempt", e.target.checked)}
+						className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+					/>
+					<span className="text-sm text-gray-700 dark:text-gray-300">
+						IRCM Exempt (e.g. government bonds)
+					</span>
+				</div>
+				{!ircmExempt && (
+					<div>
+						<label className={LABEL_CLASS}>Rate Override (%)</label>
+						<Field
+							name="ircmRateOverride"
+							type="number"
+							className={INPUT_CLASS}
+							min={0}
+							max={100}
+							step="0.1"
+							placeholder="Leave empty for auto rate"
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Auto: dividends 16.5%, bonds {"\u2265"}5yr 5.5%, BVMAC-listed 11%
+						</p>
+					</div>
+				)}
+			</>
+		)}
+		{/* Capital Gains Tax */}
+		<div className="flex items-center justify-between">
+			<div>
+				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+					Capital Gains Tax
+				</p>
+				<p className="text-xs text-gray-400">
+					Tax on profitable sales (500,000 XAF exemption)
+				</p>
+			</div>
+			<input
+				type="checkbox"
+				checked={capitalGainsTaxEnabled}
+				onChange={(e) =>
+					setFieldValue("capitalGainsTaxEnabled", e.target.checked)
+				}
+				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+			/>
+		</div>
+		{capitalGainsTaxEnabled && (
+			<div>
+				<label className={LABEL_CLASS}>Rate Override (%)</label>
+				<Field
+					name="capitalGainsRate"
+					type="number"
+					className={INPUT_CLASS}
+					min={0}
+					max={100}
+					step="0.1"
+					placeholder="Default: 16.5%"
+				/>
+			</div>
+		)}
+	</>
+);
+
 export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 	isOpen,
 	asset,
@@ -557,6 +736,15 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 								{asset.category !== "BONDS" && (
 									<IncomeSection incomeType={formik.values.incomeType} />
 								)}
+								<TaxSection
+									registrationDutyEnabled={
+										formik.values.registrationDutyEnabled
+									}
+									ircmEnabled={formik.values.ircmEnabled}
+									ircmExempt={formik.values.ircmExempt}
+									capitalGainsTaxEnabled={formik.values.capitalGainsTaxEnabled}
+									setFieldValue={formik.setFieldValue}
+								/>
 							</div>
 
 							<div className="flex justify-end gap-3 mt-6">
