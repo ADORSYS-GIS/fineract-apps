@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -183,6 +184,72 @@ class AssetCatalogServiceTest {
         // Verify the correct repository method was called (status = ACTIVE)
         verify(assetRepository).findByStatus(eq(AssetStatus.ACTIVE), any(Pageable.class));
         verify(assetRepository, never()).findAll(any(Pageable.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // currentYield computation tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getAssetDetailAdmin_bondAsset_returnsCurrentYield() {
+        // Arrange: bond with issuerPrice=10000, interestRate=5.80, askPrice=11000
+        Asset bond = buildAsset(ASSET_ID, "BND", AssetStatus.ACTIVE);
+        bond.setCategory(AssetCategory.BONDS);
+        bond.setIssuerPrice(new BigDecimal("10000"));
+        bond.setInterestRate(new BigDecimal("5.80"));
+        bond.setIssuerName("Test Issuer");
+        bond.setCouponFrequencyMonths(6);
+        bond.setMaturityDate(LocalDate.now().plusYears(5));
+        bond.setNextCouponDate(LocalDate.now().plusMonths(6));
+
+        AssetPrice price = buildAssetPrice(ASSET_ID, new BigDecimal("11000"));
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(bond));
+        when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(price));
+
+        // Act
+        AssetDetailResponse response = assetCatalogService.getAssetDetailAdmin(ASSET_ID);
+
+        // Assert: currentYield = 10000 * 5.80 / 11000 = 5.27 (rounded to 2dp)
+        assertNotNull(response.currentYield());
+        assertEquals(0, new BigDecimal("5.27").compareTo(response.currentYield()));
+        // interestRate should still be present (admin view shows both)
+        assertEquals(0, new BigDecimal("5.80").compareTo(response.interestRate()));
+    }
+
+    @Test
+    void getAssetDetailAdmin_nonBondAsset_currentYieldIsNull() {
+        Asset stock = buildAsset(ASSET_ID, "STK", AssetStatus.ACTIVE);
+        AssetPrice price = buildAssetPrice(ASSET_ID, new BigDecimal("500"));
+
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(stock));
+        when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(price));
+
+        AssetDetailResponse response = assetCatalogService.getAssetDetailAdmin(ASSET_ID);
+
+        assertNull(response.currentYield());
+    }
+
+    @Test
+    void listAllAssets_bondAsset_includesCurrentYield() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Asset bond = buildAsset("b1", "BND", AssetStatus.ACTIVE);
+        bond.setCategory(AssetCategory.BONDS);
+        bond.setIssuerPrice(new BigDecimal("10000"));
+        bond.setInterestRate(new BigDecimal("5.80"));
+        bond.setIssuerName("Test Issuer");
+        bond.setCouponFrequencyMonths(6);
+
+        Page<Asset> assetPage = new PageImpl<>(List.of(bond), pageable, 1);
+        when(assetRepository.findAll(any(Pageable.class))).thenReturn(assetPage);
+        when(assetPriceRepository.findAllByAssetIdIn(List.of("b1")))
+                .thenReturn(List.of(buildAssetPrice("b1", new BigDecimal("10000"))));
+
+        Page<AssetResponse> result = assetCatalogService.listAllAssets(pageable);
+
+        AssetResponse resp = result.getContent().get(0);
+        assertNotNull(resp.currentYield());
+        // askPrice == issuerPrice → currentYield == interestRate
+        assertEquals(0, new BigDecimal("5.80").compareTo(resp.currentYield()));
     }
 
     // -------------------------------------------------------------------------

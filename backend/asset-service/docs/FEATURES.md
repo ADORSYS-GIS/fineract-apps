@@ -258,9 +258,10 @@ Users can cancel their own `PENDING` or `QUEUED` orders.
 ### 8.1 Bond Creation
 Create fixed-income bonds with coupon schedule and maturity date.
 
-- Fields: `issuerName` (original issuer), `interestRate`, `couponFrequencyMonths`, `maturityDate`, `nextCouponDate`
+- Fields: `issuerName` (original issuer), `interestRate`, `currentYield`, `couponFrequencyMonths`, `maturityDate`, `nextCouponDate`
 - `issuerName` is required for bonds (the entity that issued the bond, e.g., "Etat du Senegal")
 - Coupon amount per unit = `issuerPrice × (interestRate / 100) × (couponFrequencyMonths / 12)`
+- `currentYield` = `issuerPrice × interestRate / askPrice` — the effective annual return based on the LP ask price (what the buyer actually pays). Computed server-side, returned in all asset responses.
 
 ### 8.2 Coupon Payments
 Pay periodic interest to all bond holders. Calculated from the **issuer price** (face value), not the LP's selling price.
@@ -570,6 +571,82 @@ Scheduled job moves completed orders older than the retention period (default 12
 | `audit_log` | Admin action trail |
 | `notification_log` | User notifications |
 | `notification_preferences` | User notification settings |
+
+---
+
+## 19. Tax Collection (Cameroon/CEMAC Compliance)
+
+### 19.1 Registration Duty (Droit d'enregistrement)
+A percentage-based tax applied to every buy and sell trade. Configurable per asset with enable/disable toggle and rate override.
+
+- Default rate: **2%** of gross transaction value
+- Collected via Fineract savings transfer to TAX-REG-DUTY account
+- GL account: **142** (Tax Payable - Registration Duty)
+- Included in trade quote response as `taxBreakdown.registrationDutyAmount`
+
+### 19.2 IRCM (Impôt sur les Revenus des Capitaux Mobiliers)
+Withholding tax on investment income (coupons, dividends, rent, harvest yield). Rate determination follows CEMAC harmonization rules:
+
+| Condition | IRCM Rate |
+|---|---|
+| Government bond (`isGovernmentBond = true`) | **0%** (exempt) |
+| IRCM exempt flag (`ircmExempt = true`) | **0%** |
+| Per-asset rate override (`ircmRateOverride` set) | Override value |
+| Bond with maturity ≥ 5 years | **5.5%** |
+| BVMAC-listed security (`isBvmacListed = true`) | **11%** |
+| Default (dividends, rent, etc.) | **16.5%** |
+
+- Deducted from gross income before payment to investor (net = gross - IRCM)
+- Collected via Fineract savings transfer to TAX-IRCM account
+- GL account: **143** (Tax Payable - IRCM)
+
+### 19.3 Capital Gains Tax (Impôt sur les Plus-Values)
+Tax on realized profit from selling assets at a gain. Includes an annual exemption threshold.
+
+- Default rate: **16.5%** of realized gain
+- Annual exemption: **500,000 XAF** per investor per fiscal year
+- Partial exemption: only the portion of gains exceeding the threshold is taxed
+- Collected via Fineract savings transfer to TAX-CAP-GAINS account
+- GL account: **144** (Tax Payable - Capital Gains)
+
+### 19.4 Per-Asset Tax Configuration
+Each asset can independently configure tax settings:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `registrationDutyEnabled` | Boolean | true | Enable/disable registration duty |
+| `registrationDutyRate` | Decimal | 0.02 | Rate override (null = use global default) |
+| `ircmEnabled` | Boolean | true | Enable/disable IRCM withholding |
+| `ircmRateOverride` | Decimal | null | IRCM rate override (null = auto-determine) |
+| `ircmExempt` | Boolean | false | Exempt from IRCM |
+| `capitalGainsTaxEnabled` | Boolean | true | Enable/disable capital gains tax |
+| `capitalGainsRate` | Decimal | 0.165 | Capital gains rate override |
+| `isBvmacListed` | Boolean | false | BVMAC-listed (triggers 11% IRCM) |
+| `isGovernmentBond` | Boolean | false | Government bond (IRCM exempt) |
+
+### 19.5 Tax Reporting
+Tax data is available through:
+- **Fineract GL reports**: Filter by GL accounts 142, 143, 144 for tax collected by type and period
+- **Fineract savings account statements**: TAX-REG-DUTY, TAX-IRCM, TAX-CAP-GAINS deposit trail
+- **`tax_transactions` table**: Internal audit trail with fiscal year/month indexing
+
+### 19.6 Database Tables
+
+| Table | Purpose |
+|---|---|
+| `tax_transactions` | Audit trail for all tax calculations and collections |
+
+| Column (assets table) | Purpose |
+|---|---|
+| `registration_duty_enabled` | Enable/disable registration duty |
+| `registration_duty_rate` | Per-asset rate override |
+| `ircm_enabled` | Enable/disable IRCM |
+| `ircm_rate_override` | Per-asset IRCM rate override |
+| `ircm_exempt` | IRCM exemption flag |
+| `capital_gains_tax_enabled` | Enable/disable capital gains tax |
+| `capital_gains_rate` | Per-asset capital gains rate override |
+| `is_bvmac_listed` | BVMAC listing flag |
+| `is_government_bond` | Government bond flag |
 
 ---
 

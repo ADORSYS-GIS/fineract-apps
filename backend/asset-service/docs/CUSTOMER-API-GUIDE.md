@@ -57,6 +57,7 @@ Response:
       "isinCode": null,
       "maturityDate": null,
       "interestRate": null,
+      "currentYield": null,
       "residualDays": null,
       "subscriptionClosed": false
     }
@@ -81,6 +82,7 @@ For bond assets, the bond-specific fields are populated:
   "isinCode": "SN0000000001",
   "maturityDate": "2028-06-30",
   "interestRate": 5.80,
+  "currentYield": 5.27,
   "residualDays": 850,
   "subscriptionClosed": false
 }
@@ -90,7 +92,8 @@ Key fields:
 - `issuerName` — the original creator of the asset (e.g., government for bonds). Required for bonds, optional for others.
 - `lpName` — the Liquidity Partner reselling this asset on the platform.
 - `couponAmountPerUnit` — for bonds, the XAF coupon amount the investor receives per unit per period. Calculated as `issuerPrice × (interestRate / 100) × (couponFrequencyMonths / 12)`. More meaningful to investors than the raw interest rate.
-- `interestRate` — annual coupon rate (still available in API but the frontend displays `couponAmountPerUnit` instead, as a raw percentage can be misleading without context of the face value).
+- `interestRate` — annual coupon rate based on the issuer/face value.
+- `currentYield` — effective annual return based on the current ask price: `issuerPrice × interestRate / askPrice`. This is what the buyer actually earns relative to what they pay. When askPrice > issuerPrice (LP markup), currentYield < interestRate.
 
 Query parameters:
 - `page` (int, default 0)

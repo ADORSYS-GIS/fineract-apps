@@ -75,6 +75,8 @@ public class AssetCatalogService {
 
         BigDecimal available = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(asset);
+        BigDecimal askPrice = price != null ? price.getAskPrice() : null;
+        BigDecimal currentYield = computeCurrentYield(asset, askPrice);
 
         return new AssetPublicDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
@@ -92,7 +94,7 @@ public class AssetCatalogService {
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIssuerName(), asset.getIssuerPrice(), asset.getLpClientName(),
                 asset.getIsinCode(), asset.getMaturityDate(),
-                asset.getInterestRate(), asset.getCouponFrequencyMonths(),
+                asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
                 isSubscriptionClosed(asset.getSubscriptionEndDate()),
@@ -126,6 +128,7 @@ public class AssetCatalogService {
         BigDecimal lpMarginPerUnit = computeLpMarginPerUnit(askPrice, issuerPrice);
         BigDecimal lpMarginPercent = computeLpMarginPercent(lpMarginPerUnit, issuerPrice);
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(asset);
+        BigDecimal currentYield = computeCurrentYield(asset, askPrice);
 
         return new AssetDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
@@ -148,7 +151,7 @@ public class AssetCatalogService {
                 lpMarginPerUnit, lpMarginPercent,
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIsinCode(), asset.getMaturityDate(),
-                asset.getInterestRate(), asset.getCouponFrequencyMonths(),
+                asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
                 isSubscriptionClosed(asset.getSubscriptionEndDate()),
@@ -161,7 +164,11 @@ public class AssetCatalogService {
                 asset.getLockupDays(),
                 asset.getIncomeType(), asset.getIncomeRate(),
                 asset.getDistributionFrequencyMonths(), asset.getNextDistributionDate(),
-                asset.getDelistingDate(), asset.getDelistingRedemptionPrice()
+                asset.getDelistingDate(), asset.getDelistingRedemptionPrice(),
+                asset.getRegistrationDutyEnabled(), asset.getRegistrationDutyRate(),
+                asset.getIrcmEnabled(), asset.getIrcmRateOverride(), asset.getIrcmExempt(),
+                asset.getCapitalGainsTaxEnabled(), asset.getCapitalGainsRate(),
+                asset.getIsBvmacListed(), asset.getIsGovernmentBond()
         );
     }
 
@@ -221,6 +228,7 @@ public class AssetCatalogService {
         BigDecimal change = price != null ? price.getChange24hPercent() : null;
         BigDecimal available = a.getTotalSupply().subtract(a.getCirculatingSupply());
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(a);
+        BigDecimal currentYield = computeCurrentYield(a, askPrice);
 
         return new AssetResponse(
                 a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
@@ -229,10 +237,26 @@ public class AssetCatalogService {
                 a.getSubscriptionStartDate(), a.getSubscriptionEndDate(),
                 a.getIssuerName(), a.getLpClientName(), couponAmountPerUnit,
                 a.getIsinCode(), a.getMaturityDate(),
-                a.getInterestRate(),
+                a.getInterestRate(), currentYield,
                 computeResidualDays(a.getMaturityDate()),
                 isSubscriptionClosed(a.getSubscriptionEndDate())
         );
+    }
+
+    /**
+     * Compute the current yield for bond assets.
+     * Formula: issuerPrice * interestRate / askPrice
+     * Returns null for non-bond assets or when askPrice is zero/null.
+     */
+    private BigDecimal computeCurrentYield(Asset asset, BigDecimal askPrice) {
+        if (asset.getCategory() != AssetCategory.BONDS) return null;
+        BigDecimal issuerPrice = asset.getIssuerPrice();
+        BigDecimal rate = asset.getInterestRate();
+        if (issuerPrice == null || rate == null || askPrice == null
+                || askPrice.compareTo(BigDecimal.ZERO) == 0) return null;
+        return issuerPrice
+                .multiply(rate)
+                .divide(askPrice, 2, java.math.RoundingMode.HALF_UP);
     }
 
     /**

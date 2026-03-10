@@ -209,7 +209,8 @@ class AssetProvisioningServiceTest {
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 null, null, null, null, // income distribution
-                null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null, null, null, null, null, null, null); // tax config
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -226,7 +227,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -335,7 +336,8 @@ class AssetProvisioningServiceTest {
                 null, null, // min order size/cash
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, null // tax config
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -354,7 +356,8 @@ class AssetProvisioningServiceTest {
                 null, null, // min order size/cash
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
                 LocalDate.now().plusMonths(5),
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, null // tax config
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -372,7 +375,8 @@ class AssetProvisioningServiceTest {
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 null, null, null, null, null, null, // bond fields
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, null // tax config
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -390,7 +394,8 @@ class AssetProvisioningServiceTest {
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 null, null, null, null, // income distribution
-                null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null, null, null, null, null, null, null); // tax config
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
@@ -475,7 +480,8 @@ class AssetProvisioningServiceTest {
                 null, null, // min order size/cash
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, null // tax config
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));

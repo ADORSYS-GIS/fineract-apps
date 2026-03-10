@@ -112,6 +112,7 @@ export interface AssetResponse {
 	isinCode?: string;
 	maturityDate?: string;
 	interestRate?: number;
+	currentYield?: number;
 	residualDays?: number;
 	subscriptionClosed?: boolean;
 	lpName?: string;
@@ -178,6 +179,7 @@ export interface AssetDetailResponse {
 	isinCode?: string;
 	maturityDate?: string;
 	interestRate?: number;
+	currentYield?: number;
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
 	residualDays?: number;

@@ -51,6 +51,8 @@ public record AssetResponse(
     LocalDate maturityDate,
     @Schema(description = "Annual coupon interest rate as percentage.")
     BigDecimal interestRate,
+    @Schema(description = "Current yield: effective annual return based on ask price. Bonds only.", nullable = true)
+    BigDecimal currentYield,
     @Schema(description = "Days remaining until maturity date. Computed at query time.")
     Long residualDays,
     @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")

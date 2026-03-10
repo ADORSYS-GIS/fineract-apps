@@ -357,6 +357,19 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 								)}
 							</div>
 							<div>
+								<p className="text-gray-500">Current Yield</p>
+								<p className="font-medium">
+									{asset.currentYield != null
+										? `${asset.currentYield.toFixed(2)}%`
+										: "—"}
+								</p>
+								{asset.interestRate != null && asset.currentYield != null && (
+									<p className="text-xs text-gray-400">
+										Coupon: {asset.interestRate}% p.a.
+									</p>
+								)}
+							</div>
+							<div>
 								<p className="text-gray-500">Coupon Frequency</p>
 								<p className="font-medium">
 									{asset.couponFrequencyMonths

@@ -108,6 +108,8 @@ public record AssetDetailResponse(
     /** Annual coupon rate as a percentage. Null for non-bond assets. */
     @Schema(description = "Annual coupon interest rate as percentage (e.g. 5.80).", nullable = true)
     BigDecimal interestRate,
+    @Schema(description = "Current yield: effective annual return based on ask price. Bonds only.", nullable = true)
+    BigDecimal currentYield,
     /** Coupon payment frequency in months. Null for non-bond assets. */
     @Schema(description = "Coupon frequency in months: 1, 3, 6, or 12.", nullable = true)
     Integer couponFrequencyMonths,
@@ -180,5 +182,26 @@ public record AssetDetailResponse(
     @Schema(description = "Date on which delisting / forced buyback occurs.", nullable = true)
     LocalDate delistingDate,
     @Schema(description = "Price at which forced buyback is executed.", nullable = true)
-    BigDecimal delistingRedemptionPrice
+    BigDecimal delistingRedemptionPrice,
+
+    // ── Tax configuration (Cameroon/CEMAC) ──
+
+    @Schema(description = "Registration duty enabled for trades of this asset.")
+    Boolean registrationDutyEnabled,
+    @Schema(description = "Registration duty rate (e.g. 0.02 = 2%).", nullable = true)
+    BigDecimal registrationDutyRate,
+    @Schema(description = "IRCM withholding enabled for income distributions.")
+    Boolean ircmEnabled,
+    @Schema(description = "IRCM rate override.", nullable = true)
+    BigDecimal ircmRateOverride,
+    @Schema(description = "Exempt from IRCM (e.g. government bonds).")
+    Boolean ircmExempt,
+    @Schema(description = "Capital gains tax enabled for profitable sales.")
+    Boolean capitalGainsTaxEnabled,
+    @Schema(description = "Capital gains tax rate.", nullable = true)
+    BigDecimal capitalGainsRate,
+    @Schema(description = "Listed on BVMAC.")
+    Boolean isBvmacListed,
+    @Schema(description = "Government bond (IRCM exempt).")
+    Boolean isGovernmentBond
 ) {}
