@@ -51,7 +51,14 @@ Clients must generate a unique key (e.g., a UUID) for each distinct transaction.
 | `phone` | `String` | **Yes** | The customer's mobile phone number. |
 | `externalId`| `String` | **Yes** | A unique identifier from the external identity system. |
 | `dateOfBirth`| `LocalDate` | No | Format: `YYYY-MM-DD`. |
-| ... | ... | ... | (Other address fields as before) |
+| `addressType`| `String` | No | The type of address (e.g., Home, Work). |
+| `addressLine1`| `String` | No | The first line of the address. |
+| `addressLine2`| `String` | No | The second line of the address. |
+| `addressLine3`| `String` | No | The third line of the address. |
+| `city`| `String` | No | The city of the address. |
+| `stateProvince`| `String` | No | The state or province of the address. |
+| `country`| `String` | No | The country of the address. Can be used for nationality. |
+| `postalCode`| `String` | No | The postal code of the address. |
 
 #### Success Response (`201 Created`)
 
@@ -137,6 +144,9 @@ export TOKEN=$(curl -s --location --request POST "http://localhost:9000/realms/f
 **Objective:** Create the client and the savings account.
 **Expected Result:** `201 Created`
 
+**Note on Address Validation:** If you provide any address information, you must provide at least `addressType` and `country`.
+
+**Example 1: Registration without Address**
 ```bash
 curl --location --request POST 'http://localhost:8081/api/registration/register' \
 --header 'Content-Type: application/json' \
@@ -146,7 +156,25 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "lastName": "Biya",
     "email": "brenda.biya@example.cm",
     "phone": "+237691111111",
-    "externalId": "external-id-001"
+    "externalId": "external-id-001",
+    "dateOfBirth": "1997-01-01"
+}'
+```
+
+**Example 2: Registration with a Minimal Address**
+```bash
+curl --location --request POST 'http://localhost:8081/api/registration/register' \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $TOKEN" \
+--data-raw '{
+    "firstName": "Brenda",
+    "lastName": "Biya",
+    "email": "brenda.biya@example.cm",
+    "phone": "+237691111111",
+    "externalId": "external-id-002",
+    "dateOfBirth": "1997-01-01",
+    "addressType": "Residential",
+    "country": "Cameroon"
 }'
 ```
 **Note:** The `depositAmount` is no longer part of this request.
@@ -233,7 +261,14 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
     "lastName": "Biya",
     "email": "brenda.biya@example.cm",
     "phone": "+237691111111",
-    "externalId": "external-id-001"
+    "externalId": "external-id-001",
+    "dateOfBirth": "1997-01-01",
+    "addressType": "Residential",
+    "addressLine1": "123 Main St",
+    "city": "Douala",
+    "stateProvince": "Centre",
+    "country": "Cameroon",
+    "postalCode": "12345"
 }'
 ```
 
