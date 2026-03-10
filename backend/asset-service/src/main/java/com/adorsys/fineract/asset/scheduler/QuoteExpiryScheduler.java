@@ -32,7 +32,7 @@ public class QuoteExpiryScheduler {
     private final AssetMetrics assetMetrics;
     private final QuoteReservationService quoteReservationService;
 
-    @Scheduled(fixedRateString = "${asset-service.quote.expiry-cleanup-interval-ms:10000}")
+    @Scheduled(fixedRateString = "${asset-service.quote.expiry-cleanup-interval-ms:30000}")
     public void expireQuotes() {
         List<Order> expired = orderRepository.findByStatusAndQuoteExpiresAtBefore(
                 OrderStatus.QUOTED, Instant.now());

@@ -18,4 +18,12 @@ public interface TaxTransactionRepository extends JpaRepository<TaxTransaction, 
            "AND t.taxType = 'CAPITAL_GAINS' AND t.status = 'SUCCESS'")
     BigDecimal sumCapitalGainsByUserAndYear(@Param("userId") Long userId,
                                             @Param("fiscalYear") int fiscalYear);
+
+    /**
+     * Sum of all successful tax amounts collected for a given tax type.
+     * Used by reconciliation to compare against Fineract tax account balances.
+     */
+    @Query("SELECT COALESCE(SUM(t.taxAmount), 0) FROM TaxTransaction t " +
+           "WHERE t.taxType = :taxType AND t.status = 'SUCCESS'")
+    BigDecimal sumCollectedByTaxType(@Param("taxType") String taxType);
 }

@@ -93,11 +93,11 @@ public class AssetServiceConfig {
     @Data
     public static class Quote {
         /** How long a quote remains valid, in seconds. */
-        private int ttlSeconds = 30;
+        private int ttlSeconds = 60;
         /** Max active quotes a single user can hold simultaneously. */
         private int maxActivePerUser = 5;
         /** How often to run the expired quote cleanup scheduler, in milliseconds. */
-        private long expiryCleanupIntervalMs = 10_000;
+        private long expiryCleanupIntervalMs = 30_000;
     }
 
     @Data
