@@ -20,8 +20,8 @@ Feature: Asset Delisting (E2E)
     Then the response status should be 200
     And the asset should be in DELISTING status
     When the user previews a BUY of 5 units of "DLS"
-    Then the preview should not be feasible
-    And the preview blockers should contain "TRADING_HALTED"
+    Then the quote should not be feasible
+    And the response error code should be "ASSET_DELISTING"
 
   Scenario: Cancel delisting returns asset to ACTIVE
     Given an active stock asset "DCL" with price 1000 and supply 1000

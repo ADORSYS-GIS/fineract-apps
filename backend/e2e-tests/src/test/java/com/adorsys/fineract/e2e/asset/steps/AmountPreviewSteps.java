@@ -14,6 +14,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import java.util.List;
 import java.util.Map;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -35,8 +37,9 @@ public class AmountPreviewSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
+                .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .body(Map.of("assetId", assetId, "side", "BUY", "amount", amount))
-                .post("/api/trades/preview");
+                .post("/api/trades/quote");
         context.setLastResponse(response);
     }
 

@@ -17,8 +17,8 @@ Feature: Amount-Based Trade Preview (E2E)
   Scenario: Preview BUY with XAF amount computes units and remainder
     Given an active stock asset "AMT" with price 1000 and supply 10000
     When the user previews a BUY with amount 50000 XAF for asset "AMT"
-    Then the response status should be 200
-    And the preview should be feasible
+    Then the response status should be 201
+    And the quote should be feasible
     And the preview units should be greater than 0
     And the preview should include computedFromAmount equal to 50000
     And the preview should include a non-negative remainder
@@ -27,9 +27,8 @@ Feature: Amount-Based Trade Preview (E2E)
   Scenario: Preview BUY with amount too small for 1 unit
     Given an active stock asset "BIG" with price 999999 and supply 100
     When the user previews a BUY with amount 100 XAF for asset "BIG"
-    Then the response status should be 200
-    And the preview should not be feasible
-    And the preview blockers should contain "AMOUNT_TOO_SMALL"
+    Then the response status should be 400
+    And the response error code should be "AMOUNT_TOO_SMALL"
 
   # -----------------------------------------------------------------
   # Unit-based preview still works
@@ -38,6 +37,6 @@ Feature: Amount-Based Trade Preview (E2E)
   Scenario: Preview BUY with units still works as before
     Given an active stock asset "UNT" with price 1000 and supply 10000
     When the user previews a BUY of 10 units of "UNT"
-    Then the response status should be 200
-    And the preview should be feasible
+    Then the response status should be 201
+    And the quote should be feasible
     And the preview should not include computedFromAmount

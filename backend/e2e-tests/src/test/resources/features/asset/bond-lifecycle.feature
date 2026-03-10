@@ -37,7 +37,7 @@ Feature: Bond Asset Lifecycle (E2E)
   Scenario: Buy bond units
     Given an active bond asset "BND" priced at 10000 with supply 100 and interest rate 5.80
     When the user buys 2 units of "BND"
-    Then the response status should be 200
+    Then the response status should be 202
     And the trade should be FILLED
     And the user's XAF balance in Fineract should have decreased by approximately 22000
     And the asset circulating supply should be 2

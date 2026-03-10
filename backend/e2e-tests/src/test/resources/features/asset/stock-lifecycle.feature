@@ -33,7 +33,7 @@ Feature: Stock Asset Lifecycle (E2E)
   Scenario: Buy stock and verify Fineract balances
     Given an active stock asset "STK" with price 1000 and supply 100
     When the user buys 5 units of "STK"
-    Then the response status should be 200
+    Then the response status should be 202
     And the trade should be FILLED
     And the user's XAF balance in Fineract should have decreased by approximately 5500
     And the asset circulating supply should be 5

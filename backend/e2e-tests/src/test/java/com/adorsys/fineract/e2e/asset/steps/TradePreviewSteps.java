@@ -14,6 +14,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import java.util.List;
 import java.util.Map;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -35,8 +37,9 @@ public class TradePreviewSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
+                .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .body(Map.of("assetId", assetId, "side", "BUY", "units", units))
-                .post("/api/trades/preview");
+                .post("/api/trades/quote");
         context.setLastResponse(response);
     }
 
@@ -47,8 +50,9 @@ public class TradePreviewSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
+                .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .body(Map.of("assetId", assetId, "side", "SELL", "units", units))
-                .post("/api/trades/preview");
+                .post("/api/trades/quote");
         context.setLastResponse(response);
     }
 
@@ -83,16 +87,16 @@ public class TradePreviewSteps {
         context.setLastResponse(response);
     }
 
-    @Then("the preview should be feasible")
+    @Then("the quote should be feasible")
     public void previewShouldBeFeasible() {
-        Boolean feasible = context.getLastResponse().jsonPath().getBoolean("feasible");
-        assertThat(feasible).isTrue();
+        // A feasible quote returns 201
+        assertThat(context.getLastResponse().statusCode()).isEqualTo(201);
     }
 
-    @Then("the preview should not be feasible")
+    @Then("the quote should not be feasible")
     public void previewShouldNotBeFeasible() {
-        Boolean feasible = context.getLastResponse().jsonPath().getBoolean("feasible");
-        assertThat(feasible).isFalse();
+        // An infeasible quote returns a 4xx or 5xx error
+        assertThat(context.getLastResponse().statusCode()).isBetween(400, 599);
     }
 
     @Then("the preview should show side {string}")
