@@ -74,6 +74,10 @@ jobs:
           path: ~/.m2/repository
 
       - name: Run E2E Tests for ${{ matrix.suite }}
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          RATE_LIMIT_TRADE: 10000
+          RATE_LIMIT_GENERAL: 10000
         run: >
           mvn -B test
           -f backend/e2e-tests/pom.xml
