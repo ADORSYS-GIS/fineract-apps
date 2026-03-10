@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - main
+      - feature/asset-service
     paths:
       - 'frontend/**'
       - 'packages/**'
@@ -35,7 +36,10 @@ jobs:
       - name: Set apps matrix
         id: set-apps
         run: |
-          if [ "${{ github.event.inputs.apps }}" == "all" ] || [ "${{ github.event.inputs.apps }}" == "" ]; then
+          BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          if [ "$BRANCH" == "feature/asset-service" ]; then
+            echo 'apps=["asset-manager"]' >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.apps }}" == "all" ] || [ "${{ github.event.inputs.apps }}" == "" ]; then
             echo 'apps=["admin","account-manager","branch-manager","cashier","reporting","accounting","asset-manager","self-service"]' >> $GITHUB_OUTPUT
           else
             APPS=$(echo "${{ github.event.inputs.apps }}" | jq -R 'split(",") | map(. | gsub(" "; ""))')
