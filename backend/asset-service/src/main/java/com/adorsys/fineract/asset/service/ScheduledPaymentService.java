@@ -1,6 +1,8 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
+import com.adorsys.fineract.asset.client.FineractClient.BatchTransferOp;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.*;
@@ -22,7 +24,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Manages scheduled payment lifecycle: create pending → confirm (execute) or cancel.
@@ -409,19 +413,26 @@ public class ScheduledPaymentService {
                 throw new RuntimeException("No active " + currency + " account for user " + holder.getUserId());
             }
 
-            // Pay net amount (after IRCM) to investor
+            // Build atomic batch: net payment + IRCM transfer
             String description = String.format("Coupon payment: %s %s%% (%dm) [net after IRCM]",
                     bond.getSymbol(), bond.getInterestRate(), bond.getCouponFrequencyMonths());
-            Long transferId = fineractClient.createAccountTransfer(
-                    bond.getLpCashAccountId(), userCashAccountId, netPayment, description);
 
-            // Transfer IRCM to tax authority account
+            List<BatchOperation> ops = new ArrayList<>();
+            ops.add(new BatchTransferOp(bond.getLpCashAccountId(), userCashAccountId, netPayment, description));
+
             if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
                 String ircmDesc = String.format("IRCM withholding: %s coupon (%s%%)",
                         bond.getSymbol(), ircmRate.multiply(new BigDecimal("100")));
-                fineractClient.createAccountTransfer(
-                        bond.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc);
+                ops.add(new BatchTransferOp(bond.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+            }
 
+            List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
+
+            // Extract transferId from first batch response (net payment)
+            Long transferId = results.isEmpty() ? null :
+                    ((Number) results.get(0).getOrDefault("resourceId", 0L)).longValue();
+
+            if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
                 taxService.recordTaxTransaction(null, null, holder.getUserId(), bond.getId(),
                         "IRCM", cashAmount, ircmRate, ircmAmount, null);
                 log.debug("IRCM withheld: bond={}, user={}, gross={}, ircm={}, net={}",
@@ -475,18 +486,25 @@ public class ScheduledPaymentService {
                 throw new RuntimeException("No active " + currency + " account for user " + holder.getUserId());
             }
 
-            // Pay net amount (after IRCM) to investor
+            // Build atomic batch: net payment + IRCM transfer
             String description = String.format("%s payment: %s [net after IRCM]", incomeType, asset.getSymbol());
-            Long transferId = fineractClient.createAccountTransfer(
-                    asset.getLpCashAccountId(), userCashAccountId, netPayment, description);
 
-            // Transfer IRCM to tax authority account
+            List<BatchOperation> ops = new ArrayList<>();
+            ops.add(new BatchTransferOp(asset.getLpCashAccountId(), userCashAccountId, netPayment, description));
+
             if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
                 String ircmDesc = String.format("IRCM withholding: %s %s (%s%%)",
                         asset.getSymbol(), incomeType, ircmRate.multiply(new BigDecimal("100")));
-                fineractClient.createAccountTransfer(
-                        asset.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc);
+                ops.add(new BatchTransferOp(asset.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+            }
 
+            List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
+
+            // Extract transferId from first batch response (net payment)
+            Long transferId = results.isEmpty() ? null :
+                    ((Number) results.get(0).getOrDefault("resourceId", 0L)).longValue();
+
+            if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
                 taxService.recordTaxTransaction(null, null, holder.getUserId(), asset.getId(),
                         "IRCM", cashAmount, ircmRate, ircmAmount, null);
                 log.debug("IRCM withheld: asset={}, user={}, gross={}, ircm={}, net={}",

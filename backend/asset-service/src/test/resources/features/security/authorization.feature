@@ -21,9 +21,9 @@ Feature: Role-Based Access Control
 
     Examples:
       | method | path                                 |
-      | GET    | /api/admin/assets                    |
-      | GET    | /api/admin/assets/asset-001          |
-      | POST   | /api/admin/assets/asset-001/activate |
-      | POST   | /api/admin/assets/asset-001/halt     |
-      | POST   | /api/admin/assets/asset-001/resume   |
-      | GET    | /api/admin/inventory                 |
+      | GET    | /admin/assets                    |
+      | GET    | /admin/assets/asset-001          |
+      | POST   | /admin/assets/asset-001/activate |
+      | POST   | /admin/assets/asset-001/halt     |
+      | POST   | /admin/assets/asset-001/resume   |
+      | GET    | /admin/inventory                 |

@@ -47,8 +47,10 @@ public class QuoteReservationService {
                 public List<Object> execute(RedisOperations operations) throws DataAccessException {
                     operations.multi();
                     operations.opsForValue().set(key, units.toPlainString(), Duration.ofSeconds(ttl));
-                    operations.opsForValue().increment(totalKey, units.longValue());
-                    operations.expire(totalKey, Duration.ofMinutes(10));
+                    // Read current total, add units, write back (handles fractional correctly)
+                    String current = (String) redisTemplate.opsForValue().get(totalKey);
+                    BigDecimal newTotal = (current != null ? new BigDecimal(current) : BigDecimal.ZERO).add(units);
+                    operations.opsForValue().set(totalKey, newTotal.toPlainString(), Duration.ofMinutes(10));
                     return operations.exec();
                 }
             });
@@ -70,7 +72,13 @@ public class QuoteReservationService {
         try {
             Boolean deleted = redisTemplate.delete(key);
             if (Boolean.TRUE.equals(deleted)) {
-                redisTemplate.opsForValue().decrement(totalKey, units.longValue());
+                String current = redisTemplate.opsForValue().get(totalKey);
+                BigDecimal newTotal = (current != null ? new BigDecimal(current) : BigDecimal.ZERO).subtract(units);
+                if (newTotal.compareTo(BigDecimal.ZERO) <= 0) {
+                    redisTemplate.delete(totalKey);
+                } else {
+                    redisTemplate.opsForValue().set(totalKey, newTotal.toPlainString(), Duration.ofMinutes(10));
+                }
             }
         } catch (RedisConnectionFailureException e) {
             log.warn("Redis unavailable, skipping release for quote {} asset {}", orderId, assetId);
@@ -87,8 +95,8 @@ public class QuoteReservationService {
         try {
             String val = redisTemplate.opsForValue().get(TOTAL_KEY_PREFIX + assetId);
             if (val != null) {
-                long parsed = Long.parseLong(val);
-                return parsed > 0 ? BigDecimal.valueOf(parsed) : BigDecimal.ZERO;
+                BigDecimal parsed = new BigDecimal(val);
+                return parsed.compareTo(BigDecimal.ZERO) > 0 ? parsed : BigDecimal.ZERO;
             }
             return BigDecimal.ZERO;
         } catch (Exception e) {

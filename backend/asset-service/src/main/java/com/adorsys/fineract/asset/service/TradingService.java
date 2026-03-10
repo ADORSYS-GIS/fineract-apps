@@ -171,7 +171,14 @@ public class TradingService {
         if (request.amount() != null) {
             computedFromAmount = request.amount();
             int scale = asset.getDecimalPlaces() != null ? asset.getDecimalPlaces() : 0;
-            BigDecimal effectivePricePerUnit = executionPrice.multiply(BigDecimal.ONE.add(feePercent));
+            // Include registration duty rate for BUY so units fit within budget
+            BigDecimal taxRate = BigDecimal.ZERO;
+            if (request.side() == TradeSide.BUY && Boolean.TRUE.equals(asset.getRegistrationDutyEnabled())) {
+                taxRate = asset.getRegistrationDutyRate() != null
+                        ? asset.getRegistrationDutyRate()
+                        : taxService.getTaxConfig().getDefaultRegistrationDutyRate();
+            }
+            BigDecimal effectivePricePerUnit = executionPrice.multiply(BigDecimal.ONE.add(feePercent).add(taxRate));
             if (effectivePricePerUnit.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new TradingException("Invalid price for amount-based quote", "INVALID_PRICE");
             }
@@ -238,14 +245,14 @@ public class TradingService {
             }
             lockupService.validateLockup(asset, userId, units);
 
-            // LP capital adequacy check — early rejection if LP lacks funds to pay seller
+            // LP capital adequacy check — LP Cash must cover all outflows (investor payout + fee + tax)
             if (asset.getLpCashAccountId() != null) {
                 BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
-                if (lpCashBalance.compareTo(orderCashAmount) < 0) {
+                if (lpCashBalance.compareTo(grossAmount) < 0) {
                     String currency = assetServiceConfig.getSettlementCurrency();
                     throw new TradingException(
                             "This asset's liquidity provider currently has insufficient funds to process your sell order. "
-                                    + "Required: " + orderCashAmount + " " + currency
+                                    + "Required: " + grossAmount + " " + currency
                                     + ", LP available: " + lpCashBalance + " " + currency
                                     + ". Please try again later or contact support.",
                             "INSUFFICIENT_LP_FUNDS");
@@ -679,9 +686,14 @@ public class TradingService {
         BigDecimal registrationDuty = taxService.calculateRegistrationDuty(asset, grossAmount);
         BigDecimal capitalGainsTax = BigDecimal.ZERO;
         if (strategy.side() == TradeSide.SELL) {
-            // Use the order's quoted CGT — actual P&L will be computed after portfolio update
-            capitalGainsTax = ctx.getOrder().getCapitalGainsTaxAmount() != null
-                    ? ctx.getOrder().getCapitalGainsTaxAmount() : BigDecimal.ZERO;
+            // Recalculate CGT with locked execution price (not stale quote-time amount)
+            var position = userPositionRepository.findByUserIdAndAssetId(ctx.getUserId(), ctx.getAssetId());
+            if (position.isPresent() && position.get().getAvgPurchasePrice() != null) {
+                BigDecimal avgCost = position.get().getAvgPurchasePrice();
+                BigDecimal estimatedGain = executionPrice.subtract(avgCost).multiply(units)
+                        .setScale(0, RoundingMode.HALF_UP);
+                capitalGainsTax = taxService.calculateCapitalGainsTax(asset, ctx.getUserId(), estimatedGain);
+            }
         }
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax);
         BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee, totalTax);
@@ -722,14 +734,14 @@ public class TradingService {
                         "INSUFFICIENT_FUNDS");
             }
         } else {
-            // SELL: LP must have enough cash to pay the seller
+            // SELL: LP must have enough cash to cover all outflows (investor payout + fee + tax)
             Asset asset = ctx.getAsset();
             BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
-            if (lpCashBalance.compareTo(ctx.getOrderCashAmount()) < 0) {
+            if (lpCashBalance.compareTo(ctx.getGrossAmount()) < 0) {
                 rejectOrder(ctx.getOrder(), "Insufficient LP funds for payout");
                 throw new TradingException(
                         "This asset's liquidity provider currently has insufficient funds to process your sell order. "
-                                + "Required: " + ctx.getOrderCashAmount() + " " + currency
+                                + "Required: " + ctx.getGrossAmount() + " " + currency
                                 + ", LP available: " + lpCashBalance + " " + currency
                                 + ". Please try again later or contact support.",
                         "INSUFFICIENT_LP_FUNDS");
@@ -810,12 +822,15 @@ public class TradingService {
                         "REGISTRATION_DUTY", ctx.getGrossAmount(),
                         taxService.getRegistrationDutyRate(lockedAsset), registrationDuty, null);
             }
-            if (capitalGainsTax.compareTo(BigDecimal.ZERO) > 0) {
+            // Always record CAPITAL_GAINS tax_transaction when there's a realized gain,
+            // even if tax amount is 0 (exemption applied). This ensures sumCapitalGainsByUserAndYear
+            // correctly tracks cumulative gains for the annual exemption threshold.
+            BigDecimal realizedPnl = ctx.getRealizedPnl() != null ? ctx.getRealizedPnl() : BigDecimal.ZERO;
+            if (side == TradeSide.SELL && realizedPnl.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal cgtRate = lockedAsset.getCapitalGainsRate() != null
                         ? lockedAsset.getCapitalGainsRate() : new BigDecimal("0.165");
                 taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
-                        "CAPITAL_GAINS", ctx.getRealizedPnl() != null ? ctx.getRealizedPnl() : BigDecimal.ZERO,
-                        cgtRate, capitalGainsTax, null);
+                        "CAPITAL_GAINS", realizedPnl, cgtRate, capitalGainsTax, null);
             }
         } catch (Exception batchError) {
             log.error("Batch transfer failed for {} order {}: {}", side, ctx.getOrderId(), batchError.getMessage());

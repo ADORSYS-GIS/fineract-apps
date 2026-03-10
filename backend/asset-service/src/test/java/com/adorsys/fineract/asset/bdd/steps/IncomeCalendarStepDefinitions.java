@@ -48,10 +48,15 @@ public class IncomeCalendarStepDefinitions {
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id,
                 income_type, income_rate, distribution_frequency_months, next_distribution_date,
-                subscription_start_date, subscription_end_date, version, created_at, updated_at)
+                subscription_start_date, subscription_end_date,
+                registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
+                is_bvmac_listed, is_government_bond, ircm_exempt,
+                version, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'REAL_ESTATE', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL,
                 ?, ?, ?, ?,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), 0, NOW(), NOW())
+                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
+                true, true, true, false, false, false,
+                0, NOW(), NOW())
             """, assetId, assetId, assetId, "Income " + assetId, price,
                 data.get("incomeType"),
                 new BigDecimal(data.get("incomeRate")),

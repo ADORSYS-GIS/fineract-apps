@@ -126,10 +126,13 @@ public class DelistingService {
 
         String currency = assetServiceConfig.getSettlementCurrency();
         int successCount = 0;
+        int failCount = 0;
         BigDecimal totalCashPaid = BigDecimal.ZERO;
+        BigDecimal totalUnitsReturned = BigDecimal.ZERO;
 
         for (UserPosition holder : holders) {
-            BigDecimal cashAmount = holder.getTotalUnits().multiply(redemptionPrice)
+            BigDecimal holderUnits = holder.getTotalUnits();
+            BigDecimal cashAmount = holderUnits.multiply(redemptionPrice)
                     .setScale(0, RoundingMode.HALF_UP);
 
             try {
@@ -138,6 +141,7 @@ public class DelistingService {
                 if (userCashAccountId == null) {
                     log.error("No cash account for user {} during delisting buyback of {}",
                             holder.getUserId(), asset.getSymbol());
+                    failCount++;
                     continue;
                 }
 
@@ -145,7 +149,7 @@ public class DelistingService {
                 fineractClient.createAccountTransfer(
                         holder.getFineractSavingsAccountId(),
                         asset.getLpAssetAccountId(),
-                        holder.getTotalUnits(),
+                        holderUnits,
                         "Delisting buyback: " + asset.getSymbol());
 
                 // Pay cash to holder
@@ -161,23 +165,30 @@ public class DelistingService {
 
                 successCount++;
                 totalCashPaid = totalCashPaid.add(cashAmount);
+                totalUnitsReturned = totalUnitsReturned.add(holderUnits);
 
             } catch (Exception e) {
+                failCount++;
                 log.error("Forced buyback failed for user {} on asset {}: {}",
                         holder.getUserId(), asset.getSymbol(), e.getMessage());
             }
         }
 
-        // Adjust circulating supply back to zero
-        asset.setCirculatingSupply(BigDecimal.ZERO);
-        asset.setStatus(AssetStatus.DELISTED);
+        // Only subtract actually returned units (not unconditionally zero)
+        asset.setCirculatingSupply(asset.getCirculatingSupply().subtract(totalUnitsReturned));
+        if (failCount == 0) {
+            asset.setStatus(AssetStatus.DELISTED);
+        } else {
+            log.warn("Partial delisting buyback for {}: {} holders failed, circulatingSupply={}",
+                    asset.getSymbol(), failCount, asset.getCirculatingSupply());
+        }
         assetRepository.save(asset);
 
         assetMetrics.recordDelistingCompleted();
         if (totalCashPaid.compareTo(BigDecimal.ZERO) > 0) {
             assetMetrics.recordDelistingBuybackAmount(totalCashPaid.doubleValue());
         }
-        log.info("Forced buyback complete for asset {}: {} holders paid, total={} {}",
-                asset.getSymbol(), successCount, totalCashPaid, currency);
+        log.info("Forced buyback complete for asset {}: {}/{} holders paid, total={} {}",
+                asset.getSymbol(), successCount, holders.size(), totalCashPaid, currency);
     }
 }

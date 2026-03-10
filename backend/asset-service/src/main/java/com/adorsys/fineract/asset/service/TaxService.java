@@ -29,6 +29,10 @@ public class TaxService {
     private final ResolvedTaxAccounts resolvedTaxAccounts;
     private final TaxTransactionRepository taxTransactionRepository;
 
+    public TaxConfig getTaxConfig() {
+        return taxConfig;
+    }
+
     /**
      * Calculate registration duty for a trade.
      * @return duty amount (0 if disabled on this asset)
@@ -68,14 +72,17 @@ public class TaxService {
         if (asset.getIrcmRateOverride() != null) {
             return asset.getIrcmRateOverride();
         }
-        // Bond with maturity >= 5 years: 5.5%
-        if (asset.getCategory() == AssetCategory.BONDS && asset.getMaturityDate() != null) {
-            LocalDate fiveYearsFromNow = LocalDate.now().minusYears(5);
-            if (asset.getMaturityDate().isAfter(LocalDate.now().plusYears(5).minusDays(1))) {
+        // Bond-specific rates
+        if (asset.getCategory() == AssetCategory.BONDS) {
+            // Bond with maturity >= 5 years: 5.5%
+            if (asset.getMaturityDate() != null
+                    && asset.getMaturityDate().isAfter(LocalDate.now().plusYears(5).minusDays(1))) {
                 return taxConfig.getDefaultIrcmBondRate();
             }
+            // Bonds with maturity < 5 years get the default rate (16.5%), not BVMAC rate
+            return taxConfig.getDefaultIrcmDividendRate();
         }
-        // BVMAC-listed: 11%
+        // BVMAC-listed equities/stocks: 11%
         if (Boolean.TRUE.equals(asset.getIsBvmacListed())) {
             return taxConfig.getDefaultIrcmBvmacRate();
         }
@@ -135,18 +142,6 @@ public class TaxService {
     }
 
     /**
-     * Check if capital gains exemption was applied for this trade.
-     */
-    public boolean isCapitalGainsExemptionApplied(Asset asset, Long userId, BigDecimal realizedGain) {
-        if (realizedGain.compareTo(BigDecimal.ZERO) <= 0) {
-            return false;
-        }
-        int fiscalYear = LocalDate.now(ZoneId.of("Africa/Douala")).getYear();
-        BigDecimal cumulativeGains = taxTransactionRepository.sumCapitalGainsByUserAndYear(userId, fiscalYear);
-        return cumulativeGains.add(realizedGain).compareTo(taxConfig.getCapitalGainsAnnualExemption()) <= 0;
-    }
-
-    /**
      * Build a tax breakdown for a trade quote response.
      */
     public TaxBreakdown buildTaxBreakdown(Asset asset, Long userId, BigDecimal grossAmount,
@@ -163,7 +158,8 @@ public class TaxService {
                     ? asset.getCapitalGainsRate()
                     : taxConfig.getDefaultCapitalGainsRate();
             cgtAmount = calculateCapitalGainsTax(asset, userId, realizedGain);
-            cgtExemptionApplied = isCapitalGainsExemptionApplied(asset, userId, realizedGain);
+            // Exemption applied if tax amount is zero despite positive realized gain
+            cgtExemptionApplied = cgtAmount.compareTo(BigDecimal.ZERO) == 0;
         }
 
         BigDecimal totalTax = regDutyAmount.add(cgtAmount);

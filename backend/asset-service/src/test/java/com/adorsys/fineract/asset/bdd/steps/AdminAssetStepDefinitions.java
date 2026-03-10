@@ -70,9 +70,14 @@ public class AdminAssetStepDefinitions {
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id,
-                subscription_start_date, subscription_end_date, version, created_at, updated_at)
+                subscription_start_date, subscription_end_date,
+                registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
+                is_bvmac_listed, is_government_bond, ircm_exempt,
+                version, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 300, 10,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), 0, NOW(), NOW())
+                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
+                true, true, true, false, false, false,
+                0, NOW(), NOW())
             """, "dup-" + symbol, symbol, symbol, "Duplicate " + symbol);
     }
 

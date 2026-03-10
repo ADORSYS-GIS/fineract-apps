@@ -185,6 +185,17 @@ class TaxServiceTest {
         }
 
         @Test
+        void getEffectiveIrcmRate_bvmacListedBond_getsDefaultNotBvmacRate() {
+            // BVMAC rate (11%) is for equities, not bonds. Bonds with < 5yr maturity get default 16.5%
+            Asset asset = activeBondAsset();
+            asset.setIrcmEnabled(true);
+            asset.setIsBvmacListed(true);
+            asset.setMaturityDate(LocalDate.now().plusYears(2)); // < 5yr
+
+            assertEquals(new BigDecimal("0.165"), taxService.getEffectiveIrcmRate(asset));
+        }
+
+        @Test
         void ircmPriority_overrideBeatsMaturity() {
             Asset asset = activeBondAsset();
             asset.setIrcmEnabled(true);
@@ -315,27 +326,14 @@ class TaxServiceTest {
         }
 
         @Test
-        void isCapitalGainsExemptionApplied_belowThreshold_true() {
+        void calculateCapitalGainsTax_exactThreshold_returnsZero() {
             Asset asset = activeAsset();
             asset.setCapitalGainsTaxEnabled(true);
+            // cumulative = 0, gain = exactly 500,000 → at threshold, exempt
 
-            assertTrue(taxService.isCapitalGainsExemptionApplied(asset, USER_ID, new BigDecimal("300000")));
-        }
+            BigDecimal tax = taxService.calculateCapitalGainsTax(asset, USER_ID, new BigDecimal("500000"));
 
-        @Test
-        void isCapitalGainsExemptionApplied_aboveThreshold_false() {
-            Asset asset = activeAsset();
-            asset.setCapitalGainsTaxEnabled(true);
-
-            assertFalse(taxService.isCapitalGainsExemptionApplied(asset, USER_ID, new BigDecimal("700000")));
-        }
-
-        @Test
-        void isCapitalGainsExemptionApplied_noProfit_false() {
-            Asset asset = activeAsset();
-            asset.setCapitalGainsTaxEnabled(true);
-
-            assertFalse(taxService.isCapitalGainsExemptionApplied(asset, USER_ID, BigDecimal.ZERO));
+            assertEquals(BigDecimal.ZERO, tax);
         }
     }
 

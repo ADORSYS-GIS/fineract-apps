@@ -13,13 +13,13 @@ Feature: Authentication Enforcement
 
     Examples:
       | method | path                              |
-      | POST   | /api/trades/quote                 |
-      | GET    | /api/trades/orders                |
-      | GET    | /api/portfolio                    |
-      | GET    | /api/portfolio/positions/asset-001 |
-      | GET    | /api/favorites                    |
-      | POST   | /api/favorites/asset-001          |
-      | DELETE | /api/favorites/asset-001          |
+      | POST   | /trades/quote                 |
+      | GET    | /trades/orders                |
+      | GET    | /portfolio                    |
+      | GET    | /portfolio/positions/asset-001 |
+      | GET    | /favorites                    |
+      | POST   | /favorites/asset-001          |
+      | DELETE | /favorites/asset-001          |
 
   Scenario Outline: Public endpoints return 200 without JWT
     When an unauthenticated user calls "GET" "<path>"
@@ -27,7 +27,7 @@ Feature: Authentication Enforcement
 
     Examples:
       | path                      |
-      | /api/assets               |
-      | /api/assets/asset-001     |
-      | /api/prices/asset-001     |
-      | /api/market/status        |
+      | /assets               |
+      | /assets/asset-001     |
+      | /prices/asset-001     |
+      | /market/status        |

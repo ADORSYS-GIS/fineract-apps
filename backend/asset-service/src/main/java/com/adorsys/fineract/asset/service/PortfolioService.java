@@ -108,7 +108,7 @@ public class PortfolioService {
         Map<String, BigDecimal> categoryValues = new LinkedHashMap<>();
         for (UserPosition pos : positions) {
             Asset asset = assetMap.get(pos.getAssetId());
-            String category = asset != null ? asset.getCategory().name() : "UNKNOWN";
+            String category = asset != null && asset.getCategory() != null ? asset.getCategory().name() : "UNKNOWN";
             AssetPrice price = priceMap.get(pos.getAssetId());
             BigDecimal marketPrice = price != null ? price.getAskPrice() : BigDecimal.ZERO;
             BigDecimal catMarketValue = pos.getTotalUnits().multiply(marketPrice);
