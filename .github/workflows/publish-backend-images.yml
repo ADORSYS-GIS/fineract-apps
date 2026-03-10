@@ -73,9 +73,10 @@ jobs:
       - name: Extract metadata
         id: meta
         run: |
-          # Extract branch name
+          # Extract branch name and sanitize for Docker tag
           BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          echo "branch=$SAFE_BRANCH" >> $GITHUB_OUTPUT
 
           # Extract git hashes
           SHORT_SHA=$(git rev-parse --short HEAD)
@@ -89,7 +90,6 @@ jobs:
           elif [ "$BRANCH" == "main" ]; then
             TAGS="main,$SHORT_SHA,$LONG_SHA"
           else
-            SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
             TAGS="$SAFE_BRANCH,$SHORT_SHA"
           fi
 
