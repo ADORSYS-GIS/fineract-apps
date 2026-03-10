@@ -78,7 +78,7 @@ jobs:
           mvn -B test
           -f backend/e2e-tests/pom.xml
           -Pe2e-${{ matrix.suite }}
-          -Dfineract.image=ghcr.io/adorsys-gis/fineract:95500212e
+          -Dfineract.image=ghcr.io/adorsys-gis/fineract:latest
 
       - name: Upload Test Reports
         if: always()
