@@ -8,7 +8,7 @@ COPY src src
 RUN mvn package -Dmaven.test.skip=true -B
 
 # Runtime stage
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-alpine-3.23
 WORKDIR /app
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
 COPY --from=builder /app/target/*-exec.jar app.jar
