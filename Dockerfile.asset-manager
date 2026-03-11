@@ -1,4 +1,8 @@
 FROM node:22-alpine AS builder
+ARG COMMIT_SHA=unknown
+ARG BUILD_TAG=unknown
+ENV COMMIT_SHA=$COMMIT_SHA
+ENV BUILD_TAG=$BUILD_TAG
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./

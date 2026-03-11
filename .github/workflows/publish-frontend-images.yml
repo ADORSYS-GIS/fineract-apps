@@ -111,6 +111,9 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ steps.meta.outputs.long_sha }}
             org.opencontainers.image.created=${{ github.event.repository.updated_at }}
+          build-args: |
+            COMMIT_SHA=${{ steps.meta.outputs.short_sha }}
+            BUILD_TAG=${{ steps.meta.outputs.branch }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

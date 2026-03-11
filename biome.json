@@ -41,7 +41,9 @@
 			"afterAll",
 			"render",
 			"screen",
-			"fireEvent"
+			"fireEvent",
+			"__COMMIT_SHA__",
+			"__BUILD_TAG__"
 		]
 	},
 	"overrides": [

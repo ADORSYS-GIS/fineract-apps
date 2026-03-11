@@ -174,6 +174,9 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus,threaddump,heapdump
+  info:
+    git:
+      mode: simple
   endpoint:
     health:
       show-details: when-authorized

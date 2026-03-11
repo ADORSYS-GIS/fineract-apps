@@ -11,6 +11,10 @@ export default defineConfig({
 	...baseViteConfig,
 	base: "/asset-manager/",
 	publicDir: "../../public",
+	define: {
+		__COMMIT_SHA__: JSON.stringify(process.env.COMMIT_SHA || "dev"),
+		__BUILD_TAG__: JSON.stringify(process.env.BUILD_TAG || "local"),
+	},
 	plugins: [
 		tanstackRouter({
 			target: "react",
