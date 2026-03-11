@@ -1,5 +1,4 @@
-package com.adorsys.fineract.e2e.registration;
-
+package com.adorsys.fineract.e2e.customerselfservice;
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.config.TestcontainersConfig;
@@ -74,7 +73,7 @@ public class RegistrationE2ESpringConfiguration {
 
         // Fineract (basic auth, pointing at the container)
         registry.add("fineract.url", TestcontainersConfig::getFineractBaseUrl);
-        registry.add("fineract.auth-type", () -> "basic");
+        registry.add("fineract.auth.type", () -> "basic");
         registry.add("fineract.username", () -> "mifos");
         registry.add("fineract.password", () -> "password");
         registry.add("fineract.tenant", () -> "default");
@@ -90,7 +89,7 @@ public class RegistrationE2ESpringConfiguration {
     }
 
     @TestConfiguration
-    @ComponentScan({"com.adorsys.fineract.e2e.registration", "com.adorsys.fineract.e2e.support", "com.adorsys.fineract.e2e.client"})
+    @ComponentScan({"com.adorsys.fineract.e2e.customerselfservice.steps", "com.adorsys.fineract.e2e.support", "com.adorsys.fineract.e2e.client"})
     static class E2EBeans {
 
         @Bean
