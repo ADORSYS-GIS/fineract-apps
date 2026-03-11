@@ -26,7 +26,12 @@ import java.util.List;
  * Follows the same pattern as InterestPaymentScheduler but for generic income types.
  *
  * Formula: cashAmount = units * faceValue * (incomeRate / 100) * (frequencyMonths / 12)
+ *
+ * @deprecated Superseded by {@link ScheduledPaymentService#payIncomeHolder} which
+ * applies IRCM tax withholding. This class is not referenced by any scheduler or
+ * controller and will be removed in a future release.
  */
+@Deprecated(forRemoval = true)
 @Slf4j
 @Service
 @RequiredArgsConstructor

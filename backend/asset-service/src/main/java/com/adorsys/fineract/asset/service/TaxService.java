@@ -10,6 +10,7 @@ import com.adorsys.fineract.asset.repository.TaxTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -105,6 +106,7 @@ public class TaxService {
      * @param realizedGain the profit from this SELL (can be <= 0)
      * @return tax amount (0 if no profit, exempt, or disabled)
      */
+    @Transactional
     public BigDecimal calculateCapitalGainsTax(Asset asset, Long userId, BigDecimal realizedGain) {
         if (!Boolean.TRUE.equals(asset.getCapitalGainsTaxEnabled())) {
             return BigDecimal.ZERO;

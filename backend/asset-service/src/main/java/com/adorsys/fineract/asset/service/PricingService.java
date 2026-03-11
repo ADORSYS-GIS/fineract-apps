@@ -277,23 +277,27 @@ public class PricingService {
     @Transactional
     public void snapshotPrices() {
         List<AssetPrice> prices = assetPriceRepository.findAll();
-        int snapshotted = 0;
+        Instant now = Instant.now();
+        List<PriceHistory> toSave = new java.util.ArrayList<>();
+
         for (AssetPrice price : prices) {
             var last = priceHistoryRepository
                     .findTopByAssetIdOrderByCapturedAtDesc(price.getAssetId());
             if (last.isPresent() && last.get().getPrice().compareTo(price.getAskPrice()) == 0) {
                 continue; // skip — price unchanged
             }
-            PriceHistory history = PriceHistory.builder()
+            toSave.add(PriceHistory.builder()
                     .assetId(price.getAssetId())
                     .price(price.getAskPrice())
-                    .capturedAt(Instant.now())
-                    .build();
-            priceHistoryRepository.save(history);
-            snapshotted++;
+                    .capturedAt(now)
+                    .build());
+        }
+
+        if (!toSave.isEmpty()) {
+            priceHistoryRepository.saveAll(toSave);
         }
         log.info("Snapshotted {} prices to history ({} unchanged, skipped)",
-                snapshotted, prices.size() - snapshotted);
+                toSave.size(), prices.size() - toSave.size());
     }
 
     /**
@@ -310,9 +314,8 @@ public class PricingService {
             price.setDayHigh(price.getAskPrice());
             price.setDayLow(price.getAskPrice());
             price.setDayClose(null);
-            // LP model: bid/ask are NOT recalculated — they are managed by the LP
-            assetPriceRepository.save(price);
         }
+        assetPriceRepository.saveAll(prices);
         log.info("Reset daily OHLC for {} assets", prices.size());
     }
 
@@ -324,8 +327,8 @@ public class PricingService {
         List<AssetPrice> prices = assetPriceRepository.findAll();
         for (AssetPrice price : prices) {
             price.setDayClose(price.getAskPrice());
-            assetPriceRepository.save(price);
         }
+        assetPriceRepository.saveAll(prices);
         log.info("Closed daily OHLC for {} assets", prices.size());
     }
 

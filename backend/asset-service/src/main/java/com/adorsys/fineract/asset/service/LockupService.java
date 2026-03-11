@@ -59,7 +59,7 @@ public class LockupService {
         Instant firstPurchase = position.get().getFirstPurchaseDate();
         if (firstPurchase == null) return;
 
-        LocalDate purchaseDate = firstPurchase.atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate purchaseDate = firstPurchase.atZone(ZoneId.of("Africa/Douala")).toLocalDate();
         LocalDate unlockDate = purchaseDate.plusDays(asset.getLockupDays());
 
         if (LocalDate.now().isBefore(unlockDate)) {
@@ -97,6 +97,6 @@ public class LockupService {
         Instant firstPurchase = position.get().getFirstPurchaseDate();
         if (firstPurchase == null) return null;
 
-        return firstPurchase.atZone(ZoneId.systemDefault()).toLocalDate().plusDays(asset.getLockupDays());
+        return firstPurchase.atZone(ZoneId.of("Africa/Douala")).toLocalDate().plusDays(asset.getLockupDays());
     }
 }
