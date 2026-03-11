@@ -1,7 +1,9 @@
 import axios, { type AxiosError } from "axios";
 
 const assetClient = axios.create({
-	baseURL: import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083",
+	baseURL:
+		(import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083") +
+		"/api/v1",
 	timeout: 30000,
 });
 
@@ -105,12 +107,12 @@ export interface AssetResponse {
 	totalSupply: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
-	capitalOpenedPercent?: number;
 	// Bond fields (null for non-bond assets)
 	issuerName?: string;
 	isinCode?: string;
 	maturityDate?: string;
 	interestRate?: number;
+	currentYield?: number;
 	residualDays?: number;
 	subscriptionClosed?: boolean;
 	lpName?: string;
@@ -142,7 +144,7 @@ export interface AssetDetailResponse {
 	decimalPlaces: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
-	capitalOpenedPercent?: number;
+
 	lpClientId: number;
 	lpAssetAccountId?: number;
 	lpCashAccountId?: number;
@@ -177,10 +179,19 @@ export interface AssetDetailResponse {
 	isinCode?: string;
 	maturityDate?: string;
 	interestRate?: number;
+	currentYield?: number;
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
 	residualDays?: number;
 	subscriptionClosed?: boolean;
+	// Tax configuration (Cameroon/CEMAC)
+	registrationDutyEnabled?: boolean;
+	registrationDutyRate?: number;
+	ircmEnabled?: boolean;
+	ircmRateOverride?: number;
+	ircmExempt?: boolean;
+	capitalGainsTaxEnabled?: boolean;
+	capitalGainsRate?: number;
 }
 
 export interface CreateAssetRequest {
@@ -198,7 +209,7 @@ export interface CreateAssetRequest {
 	decimalPlaces: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
-	capitalOpenedPercent?: number;
+
 	lpClientId: number;
 	// Exposure limits
 	maxPositionPercent?: number;
@@ -221,6 +232,14 @@ export interface CreateAssetRequest {
 	interestRate?: number;
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
+	// Tax configuration (Cameroon/CEMAC)
+	registrationDutyEnabled?: boolean;
+	registrationDutyRate?: number;
+	ircmEnabled?: boolean;
+	ircmRateOverride?: number;
+	ircmExempt?: boolean;
+	capitalGainsTaxEnabled?: boolean;
+	capitalGainsRate?: number;
 }
 
 export interface UpdateAssetRequest {
@@ -233,7 +252,7 @@ export interface UpdateAssetRequest {
 	lpAskPrice?: number;
 	subscriptionStartDate?: string;
 	subscriptionEndDate?: string;
-	capitalOpenedPercent?: number;
+
 	// Exposure limits
 	maxPositionPercent?: number;
 	maxOrderSize?: number;
@@ -251,6 +270,14 @@ export interface UpdateAssetRequest {
 	// Bond-specific updatable fields
 	interestRate?: number;
 	maturityDate?: string;
+	// Tax configuration (Cameroon/CEMAC)
+	registrationDutyEnabled?: boolean;
+	registrationDutyRate?: number;
+	ircmEnabled?: boolean;
+	ircmRateOverride?: number;
+	ircmExempt?: boolean;
+	capitalGainsTaxEnabled?: boolean;
+	capitalGainsRate?: number;
 }
 
 /** Coupon payment audit record (matches backend CouponPaymentResponse). */
@@ -720,6 +747,18 @@ export interface AdminDashboardResponse {
 // --- API ---
 
 export const assetApi = {
+	// File Upload
+	uploadFile: (file: File, folder = "assets/icons") => {
+		const formData = new FormData();
+		formData.append("file", file);
+		formData.append("folder", folder);
+		return assetClient.post<{ key: string; url: string }>(
+			"/admin/files/upload",
+			formData,
+			{ headers: { "Content-Type": "multipart/form-data" } },
+		);
+	},
+
 	// Assets - Public
 	listAssets: (params?: {
 		page?: number;
@@ -728,37 +767,36 @@ export const assetApi = {
 		search?: string;
 	}) =>
 		assetClient.get<{ content: AssetResponse[]; totalPages: number }>(
-			"/api/assets",
+			"/assets",
 			{ params },
 		),
-	getAsset: (id: string) => assetClient.get<AssetResponse>(`/api/assets/${id}`),
+	getAsset: (id: string) => assetClient.get<AssetResponse>(`/assets/${id}`),
 	discoverAssets: (params?: { page?: number; size?: number }) =>
-		assetClient.get("/api/assets/discover", { params }),
+		assetClient.get("/assets/discover", { params }),
 
 	// Assets - Admin
 	listAllAssets: (params?: { page?: number; size?: number }) =>
 		assetClient.get<{ content: AssetResponse[]; totalPages: number }>(
-			"/api/admin/assets",
+			"/admin/assets",
 			{ params },
 		),
 	getAssetAdmin: (id: string) =>
-		assetClient.get<AssetDetailResponse>(`/api/admin/assets/${id}`),
+		assetClient.get<AssetDetailResponse>(`/admin/assets/${id}`),
 	createAsset: (data: CreateAssetRequest) =>
-		assetClient.post<AssetDetailResponse>("/api/admin/assets", data),
+		assetClient.post<AssetDetailResponse>("/admin/assets", data),
 	updateAsset: (id: string, data: UpdateAssetRequest) =>
-		assetClient.put<AssetDetailResponse>(`/api/admin/assets/${id}`, data),
+		assetClient.put<AssetDetailResponse>(`/admin/assets/${id}`, data),
 	activateAsset: (id: string) =>
-		assetClient.post(`/api/admin/assets/${id}/activate`),
-	haltAsset: (id: string) => assetClient.post(`/api/admin/assets/${id}/halt`),
-	resumeAsset: (id: string) =>
-		assetClient.post(`/api/admin/assets/${id}/resume`),
+		assetClient.post(`/admin/assets/${id}/activate`),
+	haltAsset: (id: string) => assetClient.post(`/admin/assets/${id}/halt`),
+	resumeAsset: (id: string) => assetClient.post(`/admin/assets/${id}/resume`),
 	setPrice: (id: string, data: SetPriceRequest) =>
-		assetClient.post(`/api/admin/assets/${id}/set-price`, data),
+		assetClient.post(`/admin/assets/${id}/set-price`, data),
 	mintSupply: (id: string, data: { additionalSupply: number }) =>
-		assetClient.post(`/api/admin/assets/${id}/mint`, data),
+		assetClient.post(`/admin/assets/${id}/mint`, data),
 	getInventory: (params?: { page?: number; size?: number }) =>
 		assetClient.get<{ content: InventoryItem[]; totalPages: number }>(
-			"/api/admin/assets/inventory",
+			"/admin/assets/inventory",
 			{ params },
 		),
 	getCouponHistory: (
@@ -769,14 +807,14 @@ export const assetApi = {
 			content: CouponPaymentResponse[];
 			totalPages: number;
 			totalElements: number;
-		}>(`/api/admin/assets/${assetId}/coupons`, { params }),
+		}>(`/admin/assets/${assetId}/coupons`, { params }),
 	getCouponForecast: (assetId: string) =>
 		assetClient.get<CouponForecastResponse>(
-			`/api/admin/assets/${assetId}/coupon-forecast`,
+			`/admin/assets/${assetId}/coupon-forecast`,
 		),
 	redeemBond: (assetId: string) =>
 		assetClient.post<RedemptionTriggerResponse>(
-			`/api/admin/assets/${assetId}/redeem`,
+			`/admin/assets/${assetId}/redeem`,
 		),
 	getRedemptionHistory: (
 		assetId: string,
@@ -786,7 +824,7 @@ export const assetApi = {
 			content: RedemptionHistoryResponse[];
 			totalPages: number;
 			totalElements: number;
-		}>(`/api/admin/assets/${assetId}/redemptions`, { params }),
+		}>(`/admin/assets/${assetId}/redemptions`, { params }),
 
 	// Income distributions (non-bond)
 	getIncomeHistory: (
@@ -797,10 +835,10 @@ export const assetApi = {
 			content: IncomeDistributionResponse[];
 			totalPages: number;
 			totalElements: number;
-		}>(`/api/admin/assets/${assetId}/income-distributions`, { params }),
+		}>(`/admin/assets/${assetId}/income-distributions`, { params }),
 	getIncomeForecast: (assetId: string) =>
 		assetClient.get<IncomeForecastResponse>(
-			`/api/admin/assets/${assetId}/income-forecast`,
+			`/admin/assets/${assetId}/income-forecast`,
 		),
 	// Orders - Admin
 	getAdminOrders: (
@@ -810,15 +848,14 @@ export const assetApi = {
 			content: AdminOrder[];
 			totalPages: number;
 			totalElements: number;
-		}>("/api/admin/orders", { params }),
-	getOrderSummary: () =>
-		assetClient.get<OrderSummary>("/api/admin/orders/summary"),
+		}>("/admin/orders", { params }),
+	getOrderSummary: () => assetClient.get<OrderSummary>("/admin/orders/summary"),
 	getOrderAssetOptions: () =>
-		assetClient.get<AssetOption[]>("/api/admin/orders/asset-options"),
+		assetClient.get<AssetOption[]>("/admin/orders/asset-options"),
 	getOrderDetail: (id: string) =>
-		assetClient.get<OrderDetail>(`/api/admin/orders/${id}`),
+		assetClient.get<OrderDetail>(`/admin/orders/${id}`),
 	resolveOrder: (id: string, data: ResolveOrderRequest) =>
-		assetClient.post<AdminOrder>(`/api/admin/orders/${id}/resolve`, data),
+		assetClient.post<AdminOrder>(`/admin/orders/${id}/resolve`, data),
 
 	// Admin Notifications
 	getAdminNotifications: (params?: { page?: number; size?: number }) =>
@@ -826,21 +863,21 @@ export const assetApi = {
 			content: NotificationResponse[];
 			totalPages: number;
 			totalElements: number;
-		}>("/api/admin/notifications", { params }),
+		}>("/admin/notifications", { params }),
 	getAdminUnreadCount: () =>
 		assetClient.get<{ unreadCount: number }>(
-			"/api/admin/notifications/unread-count",
+			"/admin/notifications/unread-count",
 		),
 	markAdminNotificationRead: (id: number) =>
-		assetClient.post(`/api/admin/notifications/${id}/read`),
+		assetClient.post(`/admin/notifications/${id}/read`),
 	markAllAdminNotificationsRead: () =>
-		assetClient.post("/api/admin/notifications/read-all"),
+		assetClient.post("/admin/notifications/read-all"),
 
 	// Prices
-	getPrice: (assetId: string) => assetClient.get(`/api/prices/${assetId}`),
+	getPrice: (assetId: string) => assetClient.get(`/prices/${assetId}`),
 	getPriceHistory: (assetId: string, period: string) =>
 		assetClient.get<{ points: PriceHistoryPoint[] }>(
-			`/api/prices/${assetId}/history`,
+			`/prices/${assetId}/history`,
 			{
 				params: { period },
 			},
@@ -848,14 +885,14 @@ export const assetApi = {
 
 	// Market
 	getMarketStatus: () =>
-		assetClient.get<MarketStatusResponse>("/api/market/status"),
+		assetClient.get<MarketStatusResponse>("/market/status"),
 
 	// Delisting - Admin
 	delistAsset: (id: string, data: DelistAssetRequest) =>
-		assetClient.post(`/api/admin/assets/${id}/delist`, data),
+		assetClient.post(`/admin/assets/${id}/delist`, data),
 	cancelDelisting: (id: string) =>
-		assetClient.post(`/api/admin/assets/${id}/cancel-delist`),
-	deleteAsset: (id: string) => assetClient.delete(`/api/admin/assets/${id}`),
+		assetClient.post(`/admin/assets/${id}/cancel-delist`),
+	deleteAsset: (id: string) => assetClient.delete(`/admin/assets/${id}`),
 
 	// Notifications
 	getNotifications: (params?: { page?: number; size?: number }) =>
@@ -863,29 +900,28 @@ export const assetApi = {
 			content: NotificationResponse[];
 			totalPages: number;
 			totalElements: number;
-		}>("/api/notifications", { params }),
+		}>("/notifications", { params }),
 	getUnreadCount: () =>
-		assetClient.get<{ count: number }>("/api/notifications/unread-count"),
+		assetClient.get<{ count: number }>("/notifications/unread-count"),
 	markNotificationRead: (id: number) =>
-		assetClient.post(`/api/notifications/${id}/read`),
-	markAllNotificationsRead: () =>
-		assetClient.post("/api/notifications/read-all"),
+		assetClient.post(`/notifications/${id}/read`),
+	markAllNotificationsRead: () => assetClient.post("/notifications/read-all"),
 	getNotificationPreferences: () =>
 		assetClient.get<NotificationPreferencesResponse>(
-			"/api/notifications/preferences",
+			"/notifications/preferences",
 		),
 	updateNotificationPreferences: (data: UpdateNotificationPreferencesRequest) =>
-		assetClient.put("/api/notifications/preferences", data),
+		assetClient.put("/notifications/preferences", data),
 
 	// Portfolio - Income Calendar
 	getIncomeCalendar: (months = 12) =>
-		assetClient.get<IncomeCalendarResponse>("/api/portfolio/income-calendar", {
+		assetClient.get<IncomeCalendarResponse>("/portfolio/income-calendar", {
 			params: { months },
 		}),
 
 	// Dashboard - Admin
 	getDashboardSummary: () =>
-		assetClient.get<AdminDashboardResponse>("/api/admin/dashboard/summary"),
+		assetClient.get<AdminDashboardResponse>("/admin/dashboard/summary"),
 
 	// Audit Log - Admin
 	getAuditLog: (params?: {
@@ -899,7 +935,7 @@ export const assetApi = {
 			content: AuditLogResponse[];
 			totalPages: number;
 			totalElements: number;
-		}>("/api/admin/audit-log", { params }),
+		}>("/admin/audit-log", { params }),
 
 	// Scheduled Payments - Admin
 	getScheduledPayments: (params?: {
@@ -913,23 +949,23 @@ export const assetApi = {
 			content: ScheduledPaymentResponse[];
 			totalPages: number;
 			totalElements: number;
-		}>("/api/admin/scheduled-payments", { params }),
+		}>("/admin/scheduled-payments", { params }),
 	getScheduledPaymentSummary: () =>
 		assetClient.get<ScheduledPaymentSummary>(
-			"/api/admin/scheduled-payments/summary",
+			"/admin/scheduled-payments/summary",
 		),
 	getScheduledPaymentDetail: (id: number) =>
 		assetClient.get<ScheduledPaymentDetailResponse>(
-			`/api/admin/scheduled-payments/${id}`,
+			`/admin/scheduled-payments/${id}`,
 		),
 	confirmScheduledPayment: (id: number, data?: ConfirmPaymentRequest) =>
 		assetClient.post<ScheduledPaymentResponse>(
-			`/api/admin/scheduled-payments/${id}/confirm`,
+			`/admin/scheduled-payments/${id}/confirm`,
 			data || {},
 		),
 	cancelScheduledPayment: (id: number, data?: CancelPaymentRequest) =>
 		assetClient.post<ScheduledPaymentResponse>(
-			`/api/admin/scheduled-payments/${id}/cancel`,
+			`/admin/scheduled-payments/${id}/cancel`,
 			data || {},
 		),
 	getScheduledPaymentResults: (
@@ -940,16 +976,16 @@ export const assetApi = {
 			content: PaymentResultResponse[];
 			totalPages: number;
 			totalElements: number;
-		}>(`/api/admin/scheduled-payments/${id}/results`, { params }),
+		}>(`/admin/scheduled-payments/${id}/results`, { params }),
 
 	// Payment summaries for asset detail
 	getCouponSummary: (assetId: string) =>
 		assetClient.get<PaymentSummaryResponse>(
-			`/api/admin/assets/${assetId}/coupon-summary`,
+			`/admin/assets/${assetId}/coupon-summary`,
 		),
 	getIncomeSummary: (assetId: string) =>
 		assetClient.get<PaymentSummaryResponse>(
-			`/api/admin/assets/${assetId}/income-summary`,
+			`/admin/assets/${assetId}/income-summary`,
 		),
 
 	// Reconciliation - Admin
@@ -964,35 +1000,31 @@ export const assetApi = {
 			content: ReconciliationReportResponse[];
 			totalPages: number;
 			totalElements: number;
-		}>("/api/admin/reconciliation/reports", { params }),
+		}>("/admin/reconciliation/reports", { params }),
 	getReconciliationSummary: () =>
-		assetClient.get<{ openReports: number }>(
-			"/api/admin/reconciliation/summary",
-		),
+		assetClient.get<{ openReports: number }>("/admin/reconciliation/summary"),
 	triggerReconciliation: () =>
 		assetClient.post<{ discrepancies: number }>(
-			"/api/admin/reconciliation/trigger",
+			"/admin/reconciliation/trigger",
 		),
 	triggerAssetReconciliation: (assetId: string) =>
 		assetClient.post<{ discrepancies: number }>(
-			`/api/admin/reconciliation/trigger/${assetId}`,
+			`/admin/reconciliation/trigger/${assetId}`,
 		),
 	acknowledgeReport: (id: number, admin?: string) =>
-		assetClient.patch(
-			`/api/admin/reconciliation/reports/${id}/acknowledge`,
-			null,
-			{ params: { admin } },
-		),
+		assetClient.patch(`/admin/reconciliation/reports/${id}/acknowledge`, null, {
+			params: { admin },
+		}),
 	resolveReport: (id: number, admin?: string, notes?: string) =>
-		assetClient.patch(`/api/admin/reconciliation/reports/${id}/resolve`, null, {
+		assetClient.patch(`/admin/reconciliation/reports/${id}/resolve`, null, {
 			params: { admin, notes },
 		}),
 
 	// Order Cancellation
 	cancelOrder: (orderId: string) =>
-		assetClient.post(`/api/trades/orders/${orderId}/cancel`),
+		assetClient.post(`/trades/orders/${orderId}/cancel`),
 
 	// LP Performance - Admin
 	getLPPerformance: () =>
-		assetClient.get<LPPerformanceResponse>("/api/admin/lp/performance"),
+		assetClient.get<LPPerformanceResponse>("/admin/lp/performance"),
 };

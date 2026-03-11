@@ -7,6 +7,7 @@ import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
+import com.adorsys.fineract.asset.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,6 +36,7 @@ public class AssetCatalogService {
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
     private final TradeLogRepository tradeLogRepository;
+    private final FileStorageService fileStorageService;
 
     /**
      * List active assets with optional category filter and search.
@@ -73,10 +75,12 @@ public class AssetCatalogService {
 
         BigDecimal available = asset.getTotalSupply().subtract(asset.getCirculatingSupply());
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(asset);
+        BigDecimal askPrice = price != null ? price.getAskPrice() : null;
+        BigDecimal currentYield = computeCurrentYield(asset, askPrice);
 
         return new AssetPublicDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
-                asset.getDescription(), asset.getImageUrl(), asset.getCategory(), asset.getStatus(),
+                asset.getDescription(), resolveImageUrl(asset.getImageUrl()), asset.getCategory(), asset.getStatus(),
                 asset.getPriceMode(),
                 price != null ? price.getChange24hPercent() : null,
                 price != null ? price.getDayOpen() : null,
@@ -87,11 +91,10 @@ public class AssetCatalogService {
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
                 asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
-                asset.getCapitalOpenedPercent(),
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIssuerName(), asset.getIssuerPrice(), asset.getLpClientName(),
                 asset.getIsinCode(), asset.getMaturityDate(),
-                asset.getInterestRate(), asset.getCouponFrequencyMonths(),
+                asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
                 isSubscriptionClosed(asset.getSubscriptionEndDate()),
@@ -125,10 +128,11 @@ public class AssetCatalogService {
         BigDecimal lpMarginPerUnit = computeLpMarginPerUnit(askPrice, issuerPrice);
         BigDecimal lpMarginPercent = computeLpMarginPercent(lpMarginPerUnit, issuerPrice);
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(asset);
+        BigDecimal currentYield = computeCurrentYield(asset, askPrice);
 
         return new AssetDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
-                asset.getDescription(), asset.getImageUrl(), asset.getCategory(), asset.getStatus(),
+                asset.getDescription(), resolveImageUrl(asset.getImageUrl()), asset.getCategory(), asset.getStatus(),
                 asset.getPriceMode(),
                 price != null ? price.getChange24hPercent() : null,
                 price != null ? price.getDayOpen() : null,
@@ -139,7 +143,6 @@ public class AssetCatalogService {
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
                 asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
-                asset.getCapitalOpenedPercent(),
                 asset.getIssuerName(), asset.getIssuerPrice(),
                 asset.getLpClientId(), asset.getLpAssetAccountId(),
                 asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
@@ -148,7 +151,7 @@ public class AssetCatalogService {
                 lpMarginPerUnit, lpMarginPercent,
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIsinCode(), asset.getMaturityDate(),
-                asset.getInterestRate(), asset.getCouponFrequencyMonths(),
+                asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
                 isSubscriptionClosed(asset.getSubscriptionEndDate()),
@@ -161,7 +164,11 @@ public class AssetCatalogService {
                 asset.getLockupDays(),
                 asset.getIncomeType(), asset.getIncomeRate(),
                 asset.getDistributionFrequencyMonths(), asset.getNextDistributionDate(),
-                asset.getDelistingDate(), asset.getDelistingRedemptionPrice()
+                asset.getDelistingDate(), asset.getDelistingRedemptionPrice(),
+                asset.getRegistrationDutyEnabled(), asset.getRegistrationDutyRate(),
+                asset.getIrcmEnabled(), asset.getIrcmRateOverride(), asset.getIrcmExempt(),
+                asset.getCapitalGainsTaxEnabled(), asset.getCapitalGainsRate(),
+                asset.getIsBvmacListed(), asset.getIsGovernmentBond()
         );
     }
 
@@ -178,7 +185,7 @@ public class AssetCatalogService {
                 daysUntilSubscription = ChronoUnit.DAYS.between(LocalDate.now(), a.getSubscriptionStartDate());
             }
             return new DiscoverAssetResponse(
-                    a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
+                    a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
                     a.getCategory(), a.getStatus(), a.getSubscriptionStartDate(), daysUntilSubscription
             );
         });
@@ -221,19 +228,35 @@ public class AssetCatalogService {
         BigDecimal change = price != null ? price.getChange24hPercent() : null;
         BigDecimal available = a.getTotalSupply().subtract(a.getCirculatingSupply());
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(a);
+        BigDecimal currentYield = computeCurrentYield(a, askPrice);
 
         return new AssetResponse(
-                a.getId(), a.getName(), a.getSymbol(), a.getImageUrl(),
+                a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
                 a.getCategory(), a.getStatus(), askPrice, change,
                 available, a.getTotalSupply(),
                 a.getSubscriptionStartDate(), a.getSubscriptionEndDate(),
-                a.getCapitalOpenedPercent(),
                 a.getIssuerName(), a.getLpClientName(), couponAmountPerUnit,
                 a.getIsinCode(), a.getMaturityDate(),
-                a.getInterestRate(),
+                a.getInterestRate(), currentYield,
                 computeResidualDays(a.getMaturityDate()),
                 isSubscriptionClosed(a.getSubscriptionEndDate())
         );
+    }
+
+    /**
+     * Compute the current yield for bond assets.
+     * Formula: issuerPrice * interestRate / askPrice
+     * Returns null for non-bond assets or when askPrice is zero/null.
+     */
+    private BigDecimal computeCurrentYield(Asset asset, BigDecimal askPrice) {
+        if (asset.getCategory() != AssetCategory.BONDS) return null;
+        BigDecimal issuerPrice = asset.getIssuerPrice();
+        BigDecimal rate = asset.getInterestRate();
+        if (issuerPrice == null || rate == null || askPrice == null
+                || askPrice.compareTo(BigDecimal.ZERO) == 0) return null;
+        return issuerPrice
+                .multiply(rate)
+                .divide(askPrice, 2, java.math.RoundingMode.HALF_UP);
     }
 
     /**
@@ -295,5 +318,16 @@ public class AssetCatalogService {
     private Boolean isSubscriptionClosed(LocalDate subscriptionEndDate) {
         if (subscriptionEndDate == null) return null;
         return !subscriptionEndDate.isAfter(LocalDate.now());
+    }
+
+    /**
+     * Resolves an imageUrl field to a full public URL.
+     * Storage keys (not starting with http) are resolved via FileStorageService.
+     * Legacy full URLs and nulls are returned as-is.
+     */
+    String resolveImageUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) return null;
+        if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) return imageUrl;
+        return fileStorageService.getPublicUrl(imageUrl);
     }
 }

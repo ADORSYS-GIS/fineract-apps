@@ -17,7 +17,7 @@ import java.util.Map;
  * Admin endpoints for viewing and managing reconciliation reports.
  */
 @RestController
-@RequestMapping("/api/admin/reconciliation")
+@RequestMapping("/admin/reconciliation")
 @RequiredArgsConstructor
 @Tag(name = "Admin - Reconciliation", description = "View and manage reconciliation reports")
 public class AdminReconciliationController {

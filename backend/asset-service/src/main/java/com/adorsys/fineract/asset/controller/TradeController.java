@@ -24,7 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * Authenticated endpoints for trading operations.
  */
 @RestController
-@RequestMapping("/api/trades")
+@RequestMapping("/trades")
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Trading", description = "Buy and sell assets")

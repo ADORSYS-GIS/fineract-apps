@@ -27,6 +27,7 @@ Feature: Bond Asset Creation
     Then the response status should be 201
     And the response body should contain field "category" with value "BONDS"
     And the response body should contain field "issuerName" with value "Etat du Senegal"
+    And the response body should contain field "currentYield" with value "5.27"
 
   Scenario: Bond creation fails without issuer
     When the admin creates a bond asset without an issuer

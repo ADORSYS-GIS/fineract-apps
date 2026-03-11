@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
  * Public endpoints for asset pricing data.
  */
 @RestController
-@RequestMapping("/api/prices")
+@RequestMapping("/prices")
 @RequiredArgsConstructor
 @Tag(name = "Prices", description = "Current prices, OHLC, and price history")
 public class PriceController {

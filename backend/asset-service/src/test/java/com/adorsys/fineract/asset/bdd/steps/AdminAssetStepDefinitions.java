@@ -70,15 +70,20 @@ public class AdminAssetStepDefinitions {
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id,
-                subscription_start_date, subscription_end_date, version, created_at, updated_at)
+                subscription_start_date, subscription_end_date,
+                registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
+                is_bvmac_listed, is_government_bond, ircm_exempt,
+                version, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 300, 10,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), 0, NOW(), NOW())
+                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
+                true, true, true, false, false, false,
+                0, NOW(), NOW())
             """, "dup-" + symbol, symbol, symbol, "Duplicate " + symbol);
     }
 
     @Given("asset {string} has been halted by an admin")
     public void assetHalted(String assetId) throws Exception {
-        mockMvc.perform(post("/api/admin/assets/" + assetId + "/halt")
+        mockMvc.perform(post("/admin/assets/" + assetId + "/halt")
                 .with(jwt().authorities(ADMIN)));
     }
 
@@ -110,7 +115,7 @@ public class AdminAssetStepDefinitions {
         request.put("subscriptionEndDate", data.getOrDefault("subscriptionEndDate",
                 java.time.LocalDate.now().plusYears(1).toString()));
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -129,7 +134,7 @@ public class AdminAssetStepDefinitions {
         request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -148,7 +153,7 @@ public class AdminAssetStepDefinitions {
         request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -162,7 +167,7 @@ public class AdminAssetStepDefinitions {
 
     @When("the admin activates asset {string}")
     public void adminActivatesAsset(String assetId) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/admin/assets/" + assetId + "/activate")
+        MvcResult result = mockMvc.perform(post("/admin/assets/" + assetId + "/activate")
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
         context.setLastResult(result);
@@ -170,7 +175,7 @@ public class AdminAssetStepDefinitions {
 
     @When("the admin halts asset {string}")
     public void adminHaltsAsset(String assetId) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/admin/assets/" + assetId + "/halt")
+        MvcResult result = mockMvc.perform(post("/admin/assets/" + assetId + "/halt")
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
         context.setLastResult(result);
@@ -178,7 +183,7 @@ public class AdminAssetStepDefinitions {
 
     @When("the admin resumes asset {string}")
     public void adminResumesAsset(String assetId) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/admin/assets/" + assetId + "/resume")
+        MvcResult result = mockMvc.perform(post("/admin/assets/" + assetId + "/resume")
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
         context.setLastResult(result);
@@ -186,7 +191,7 @@ public class AdminAssetStepDefinitions {
 
     @When("the admin performs {string} on asset {string}")
     public void adminPerformsAction(String action, String assetId) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/admin/assets/" + assetId + "/" + action)
+        MvcResult result = mockMvc.perform(post("/admin/assets/" + assetId + "/" + action)
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
         context.setLastResult(result);
@@ -200,7 +205,7 @@ public class AdminAssetStepDefinitions {
     public void adminUpdatesName(String assetId, String name) throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("name", name);
-        MvcResult result = mockMvc.perform(put("/api/admin/assets/" + assetId)
+        MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -212,7 +217,7 @@ public class AdminAssetStepDefinitions {
     public void adminUpdatesTradingFee(String assetId, String fee) throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("tradingFeePercent", new BigDecimal(fee));
-        MvcResult result = mockMvc.perform(put("/api/admin/assets/" + assetId)
+        MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -223,7 +228,7 @@ public class AdminAssetStepDefinitions {
     @When("the admin mints {int} additional units for asset {string}")
     public void adminMintsSupply(int amount, String assetId) throws Exception {
         Map<String, Object> request = Map.of("additionalSupply", amount);
-        MvcResult result = mockMvc.perform(post("/api/admin/assets/" + assetId + "/mint")
+        MvcResult result = mockMvc.perform(post("/admin/assets/" + assetId + "/mint")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -233,7 +238,7 @@ public class AdminAssetStepDefinitions {
 
     @When("the admin deletes asset {string}")
     public void adminDeletesAsset(String assetId) throws Exception {
-        MvcResult result = mockMvc.perform(delete("/api/admin/assets/" + assetId)
+        MvcResult result = mockMvc.perform(delete("/admin/assets/" + assetId)
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
         context.setLastResult(result);
@@ -242,7 +247,7 @@ public class AdminAssetStepDefinitions {
     @When("the admin sets the price of asset {string} to {int}")
     public void adminSetsPrice(String assetId, int price) throws Exception {
         Map<String, Object> request = Map.of("askPrice", price);
-        MvcResult result = mockMvc.perform(post("/api/admin/assets/" + assetId + "/set-price")
+        MvcResult result = mockMvc.perform(post("/admin/assets/" + assetId + "/set-price")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -256,7 +261,7 @@ public class AdminAssetStepDefinitions {
 
     @Then("asset {string} should have status {string}")
     public void assetShouldHaveStatus(String assetId, String expectedStatus) throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/admin/assets/" + assetId)
+        MvcResult result = mockMvc.perform(get("/admin/assets/" + assetId)
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
         String body = result.getResponse().getContentAsString();
@@ -266,7 +271,7 @@ public class AdminAssetStepDefinitions {
 
     @Then("asset {string} total supply should be {int}")
     public void assetTotalSupplyShouldBe(String assetId, int expected) throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/admin/assets/" + assetId)
+        MvcResult result = mockMvc.perform(get("/admin/assets/" + assetId)
                         .with(jwt().authorities(ADMIN)))
                 .andReturn();
         String body = result.getResponse().getContentAsString();

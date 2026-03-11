@@ -48,7 +48,6 @@ Feature: Stock Asset Lifecycle (E2E)
     Then the trade should be FILLED
     When the user sells 5 units of "SLL"
     Then the trade should be FILLED
-    And the trade should include realized PnL
     And the user's XAF balance in Fineract should have increased
     And the asset circulating supply should be 5
 

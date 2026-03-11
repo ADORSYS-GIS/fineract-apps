@@ -27,7 +27,7 @@ public class PortfolioStepDefinitions {
 
     @When("the user requests their portfolio")
     public void userRequestsPortfolio() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/portfolio")
+        MvcResult result = mockMvc.perform(get("/portfolio")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID))))
                 .andReturn();
         context.setLastResult(result);
@@ -35,7 +35,7 @@ public class PortfolioStepDefinitions {
 
     @When("the user requests the position for asset {string}")
     public void userRequestsPosition(String assetId) throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/portfolio/positions/" + assetId)
+        MvcResult result = mockMvc.perform(get("/portfolio/positions/" + assetId)
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID))))
                 .andReturn();
         context.setLastResult(result);

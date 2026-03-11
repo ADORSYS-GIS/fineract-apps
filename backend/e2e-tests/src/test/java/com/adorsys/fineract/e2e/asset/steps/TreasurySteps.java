@@ -38,7 +38,7 @@ public class TreasurySteps {
     public void adminChecksInventory() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/inventory");
+                .get("/api/v1/admin/assets/inventory");
 
         context.setLastResponse(response);
     }
@@ -53,7 +53,7 @@ public class TreasurySteps {
 
         Response assetResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
+                .get("/api/v1/admin/assets/" + assetId);
 
         assertThat(assetResp.statusCode()).isEqualTo(200);
 
@@ -75,7 +75,7 @@ public class TreasurySteps {
 
         Response assetResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
+                .get("/api/v1/admin/assets/" + assetId);
 
         Number cashAccountId = assetResp.jsonPath().get("lpCashAccountId");
         if (cashAccountId != null) {

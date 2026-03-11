@@ -20,6 +20,9 @@ public interface PurchaseLotRepository extends JpaRepository<PurchaseLot, Long> 
     List<PurchaseLot> findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(
             Long userId, String assetId, BigDecimal zero);
 
+    /** Count of lots with remaining units > 0. */
+    long countByUserIdAndAssetIdAndRemainingUnitsGreaterThan(Long userId, String assetId, BigDecimal zero);
+
     /** Sum of unlocked units (lockup expired or no lockup). */
     @Query("SELECT COALESCE(SUM(p.remainingUnits), 0) FROM PurchaseLot p " +
            "WHERE p.userId = :userId AND p.assetId = :assetId " +

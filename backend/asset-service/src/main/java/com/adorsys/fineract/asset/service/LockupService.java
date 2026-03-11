@@ -78,10 +78,9 @@ public class LockupService {
      */
     public BigDecimal getUnlockedUnits(Asset asset, Long userId) {
         BigDecimal unlocked = purchaseLotRepository.sumUnlockedUnits(userId, asset.getId(), Instant.now());
-        // If sumUnlockedUnits returns 0 but there are no lots at all, return null to signal legacy fallback
+        // If no lots exist at all, return null to signal legacy fallback
         long lotCount = purchaseLotRepository
-                .findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(userId, asset.getId(), BigDecimal.ZERO)
-                .size();
+                .countByUserIdAndAssetIdAndRemainingUnitsGreaterThan(userId, asset.getId(), BigDecimal.ZERO);
         return lotCount > 0 ? unlocked : null;
     }
 

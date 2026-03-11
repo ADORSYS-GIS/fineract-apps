@@ -63,23 +63,76 @@ public class ScheduledPaymentSteps {
         String assetId = context.getId("lastAssetId");
 
         for (int i = 0; i < units; i++) {
-            Map<String, Object> body = Map.of(
+            // 1. Create quote
+            Map<String, Object> quoteBody = Map.of(
                     "assetId", assetId,
+                    "side", "BUY",
                     "units", 1
             );
 
-            Response response = RestAssured.given()
+            Response quoteResp = RestAssured.given()
                     .baseUri("http://localhost:" + port)
                     .contentType(ContentType.JSON)
                     .header("X-Idempotency-Key", UUID.randomUUID().toString())
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .body(body)
-                    .post("/api/trades/buy");
+                    .body(quoteBody)
+                    .post("/api/v1/trades/quote");
 
-            assertThat(response.statusCode())
-                    .as("Buy unit %d of %s: %s", i + 1, symbolRef, response.body().asString())
-                    .isIn(200, 201);
+            assertThat(quoteResp.statusCode())
+                    .as("Create quote for unit %d of %s: %s", i + 1, symbolRef, quoteResp.body().asString())
+                    .isEqualTo(201);
+
+            String orderId = quoteResp.jsonPath().getString("orderId");
+
+            // 2. Confirm quote
+            Response confirmResp = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .contentType(ContentType.JSON)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .post("/api/v1/trades/orders/" + orderId + "/confirm");
+
+            assertThat(confirmResp.statusCode())
+                    .as("Confirm quote for unit %d of %s: %s", i + 1, symbolRef, confirmResp.body().asString())
+                    .isEqualTo(202);
+
+            // 3. Poll for FILLED (up to 15s)
+            pollUntilFilled(orderId, i + 1, symbolRef);
         }
+    }
+
+    /**
+     * Polls the order status until it reaches FILLED (or terminal failure).
+     */
+    private void pollUntilFilled(String orderId, int unitNumber, String symbolRef) {
+        long deadline = System.currentTimeMillis() + 15_000;
+        while (System.currentTimeMillis() < deadline) {
+            Response pollResp = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .get("/api/v1/trades/orders/" + orderId);
+
+            String status = pollResp.jsonPath().getString("status");
+            if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
+                assertThat(status)
+                        .as("Buy unit %d of %s order %s: %s", unitNumber, symbolRef, orderId, pollResp.body().asString())
+                        .isEqualTo("FILLED");
+                return;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        // Final check
+        Response finalResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .get("/api/v1/trades/orders/" + orderId);
+        assertThat(finalResp.jsonPath().getString("status"))
+                .as("Buy unit %d of %s did not reach FILLED within timeout", unitNumber, symbolRef)
+                .isEqualTo("FILLED");
     }
 
     // ---------------------------------------------------------------
@@ -137,7 +190,7 @@ public class ScheduledPaymentSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/scheduled-payments/" + scheduleId + "/confirm");
+                .post("/api/v1/admin/scheduled-payments/" + scheduleId + "/confirm");
 
         context.setLastResponse(response);
         assertThat(response.statusCode())
@@ -155,7 +208,7 @@ public class ScheduledPaymentSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .post("/api/admin/scheduled-payments/" + scheduleId + "/confirm");
+                .post("/api/v1/admin/scheduled-payments/" + scheduleId + "/confirm");
 
         context.setLastResponse(response);
         assertThat(response.statusCode())
@@ -173,7 +226,7 @@ public class ScheduledPaymentSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(body)
-                .post("/api/admin/scheduled-payments/" + scheduleId + "/cancel");
+                .post("/api/v1/admin/scheduled-payments/" + scheduleId + "/cancel");
 
         context.setLastResponse(response);
         assertThat(response.statusCode())
@@ -186,7 +239,7 @@ public class ScheduledPaymentSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .queryParam("status", status)
-                .get("/api/admin/scheduled-payments");
+                .get("/api/v1/admin/scheduled-payments");
 
         context.setLastResponse(response);
         assertThat(response.statusCode()).isEqualTo(200);
@@ -197,7 +250,7 @@ public class ScheduledPaymentSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .queryParam("type", type)
-                .get("/api/admin/scheduled-payments");
+                .get("/api/v1/admin/scheduled-payments");
 
         context.setLastResponse(response);
         assertThat(response.statusCode()).isEqualTo(200);
@@ -214,7 +267,7 @@ public class ScheduledPaymentSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/scheduled-payments/" + scheduleId);
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.jsonPath().getString("status")).isEqualTo("PENDING");
@@ -227,7 +280,7 @@ public class ScheduledPaymentSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/scheduled-payments/" + scheduleId);
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
 
         Number estimatedAmountPerUnit = response.jsonPath().get("estimatedAmountPerUnit");
         assertThat(estimatedAmountPerUnit.doubleValue()).isGreaterThan(min);
@@ -239,7 +292,7 @@ public class ScheduledPaymentSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/scheduled-payments/" + scheduleId);
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
 
         Number holderCount = response.jsonPath().get("holderCount");
         assertThat(holderCount.intValue()).isEqualTo(expected);
@@ -288,7 +341,7 @@ public class ScheduledPaymentSteps {
                 .queryParam("assetId", assetId)
                 .queryParam("type", paymentType)
                 .queryParam("status", "PENDING")
-                .get("/api/admin/scheduled-payments");
+                .get("/api/v1/admin/scheduled-payments");
 
         assertThat(response.statusCode()).isEqualTo(200);
         List<Map<String, Object>> content = response.jsonPath().getList("content");

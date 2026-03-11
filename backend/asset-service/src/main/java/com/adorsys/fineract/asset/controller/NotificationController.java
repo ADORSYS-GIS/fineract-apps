@@ -20,7 +20,7 @@ import java.util.Map;
  * REST endpoints for user notifications and preferences.
  */
 @RestController
-@RequestMapping("/api/notifications")
+@RequestMapping("/notifications")
 @RequiredArgsConstructor
 @Tag(name = "Notifications", description = "User notifications and preferences")
 public class NotificationController {

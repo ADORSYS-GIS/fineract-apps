@@ -32,7 +32,6 @@ public record AssetPublicDetailResponse(
     Integer decimalPlaces,
     LocalDate subscriptionStartDate,
     LocalDate subscriptionEndDate,
-    BigDecimal capitalOpenedPercent,
     Instant createdAt,
     Instant updatedAt,
 
@@ -53,6 +52,8 @@ public record AssetPublicDetailResponse(
     LocalDate maturityDate,
     @Schema(description = "Annual coupon interest rate as percentage.")
     BigDecimal interestRate,
+    @Schema(description = "Current yield: effective annual return based on ask price. Bonds only.", nullable = true)
+    BigDecimal currentYield,
     @Schema(description = "Coupon frequency in months: 1, 3, 6, or 12.")
     Integer couponFrequencyMonths,
     @Schema(description = "Next scheduled coupon payment date.")

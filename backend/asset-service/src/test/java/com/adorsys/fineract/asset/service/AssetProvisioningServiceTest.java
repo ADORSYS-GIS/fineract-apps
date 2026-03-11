@@ -42,6 +42,7 @@ class AssetProvisioningServiceTest {
     @Mock private PricingService pricingService;
     @Mock private AssetServiceConfig assetServiceConfig;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
+    @Mock private com.adorsys.fineract.asset.storage.FileStorageService fileStorageService;
 
     @InjectMocks
     private AssetProvisioningService service;
@@ -204,10 +205,12 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
 
         UpdateAssetRequest request = new UpdateAssetRequest(
-                "New Name", null, null, null, null, null, null, null, null, null,
+                "New Name", null, null, null, null, null, null, null, null,
                 null, null, null, null, // exposure limits
+                null, null, // min order size/cash
                 null, null, null, null, // income distribution
-                null, null, null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null, null, null, null, null, null, null); // tax config
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -224,7 +227,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     // -------------------------------------------------------------------------
@@ -327,13 +330,14 @@ class AssetProvisioningServiceTest {
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, null // tax config
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -346,13 +350,14 @@ class AssetProvisioningServiceTest {
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
                 LocalDate.now().plusMonths(5),
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, null // tax config
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -365,12 +370,13 @@ class AssetProvisioningServiceTest {
                 "Token", "TKN", "TKN", null, null, AssetCategory.STOCKS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
+                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 null, null, null, null, null, null, // bond fields
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, null // tax config
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -384,10 +390,12 @@ class AssetProvisioningServiceTest {
 
         UpdateAssetRequest request = new UpdateAssetRequest(
                 null, null, null, null, null, null, null,
-                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1), null,
+                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1),
                 null, null, null, null, // exposure limits
+                null, null, // min order size/cash
                 null, null, null, null, // income distribution
-                null, null, null, null, null); // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
+                null, null, null, null, null, null, null, null, null); // tax config
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
@@ -466,13 +474,14 @@ class AssetProvisioningServiceTest {
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null,
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, null // tax config
         );
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));

@@ -136,8 +136,9 @@ public class ExposureLimitService {
     public void recordTradeVolume(Long userId, String assetId, BigDecimal cashAmount) {
         String key = dailyVolumeKey(userId, assetId);
         try {
-            redisTemplate.opsForValue().increment(key, cashAmount.doubleValue());
-            redisTemplate.expire(key, DAILY_VOLUME_TTL);
+            String current = redisTemplate.opsForValue().get(key);
+            BigDecimal newTotal = (current != null ? new BigDecimal(current) : BigDecimal.ZERO).add(cashAmount);
+            redisTemplate.opsForValue().set(key, newTotal.toPlainString(), DAILY_VOLUME_TTL);
         } catch (Exception e) {
             log.warn("Failed to record daily trade volume for user {} asset {}: {}", userId, assetId, e.getMessage());
         }

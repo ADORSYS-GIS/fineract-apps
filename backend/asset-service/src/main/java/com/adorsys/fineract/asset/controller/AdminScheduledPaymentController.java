@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
  * Admin endpoints for managing scheduled coupon and income payments.
  */
 @RestController
-@RequestMapping("/api/admin/scheduled-payments")
+@RequestMapping("/admin/scheduled-payments")
 @RequiredArgsConstructor
 @Tag(name = "Admin - Scheduled Payments", description = "Review, confirm, or cancel pending payment schedules")
 public class AdminScheduledPaymentController {

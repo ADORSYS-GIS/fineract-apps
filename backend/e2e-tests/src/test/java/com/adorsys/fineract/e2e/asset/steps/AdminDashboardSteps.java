@@ -51,7 +51,7 @@ public class AdminDashboardSteps {
     public void adminGetsDashboardSummary() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/dashboard/summary");
+                .get("/api/v1/admin/dashboard/summary");
         context.setLastResponse(response);
     }
 
@@ -97,7 +97,7 @@ public class AdminDashboardSteps {
     public void adminGetsAuditLog() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/audit-log");
+                .get("/api/v1/admin/audit-log");
         context.setLastResponse(response);
     }
 
@@ -106,7 +106,7 @@ public class AdminDashboardSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .param("action", action)
-                .get("/api/admin/audit-log");
+                .get("/api/v1/admin/audit-log");
         context.setLastResponse(response);
     }
 
@@ -116,7 +116,7 @@ public class AdminDashboardSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .param("assetId", assetId)
-                .get("/api/admin/audit-log");
+                .get("/api/v1/admin/audit-log");
         context.setLastResponse(response);
     }
 

@@ -18,7 +18,7 @@ import java.util.List;
  * Authenticated endpoints for user favorites/watchlist.
  */
 @RestController
-@RequestMapping("/api/favorites")
+@RequestMapping("/favorites")
 @RequiredArgsConstructor
 @Tag(name = "Favorites", description = "Manage user watchlist")
 public class FavoriteController {

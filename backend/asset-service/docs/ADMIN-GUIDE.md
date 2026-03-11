@@ -98,6 +98,8 @@ Bond-specific fields:
 | `interestRate` | Yes (for BONDS) | Annual coupon rate as percentage (e.g. 5.80). Coupon is calculated from `issuerPrice × rate × period`. |
 | `couponFrequencyMonths` | Yes (for BONDS) | Payment frequency: 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual) |
 
+The API response includes a computed `currentYield` field for bonds: `issuerPrice × interestRate / askPrice`. This is the buyer's effective annual return based on the LP ask price. When askPrice > issuerPrice (LP markup), currentYield < interestRate.
+
 General fields (all categories):
 
 | Field | Required | Description |

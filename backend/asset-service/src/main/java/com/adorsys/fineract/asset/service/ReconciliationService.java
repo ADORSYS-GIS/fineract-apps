@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.dto.ReconciliationReportResponse;
 import com.adorsys.fineract.asset.entity.Asset;
@@ -11,6 +12,7 @@ import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.ReconciliationReportRepository;
+import com.adorsys.fineract.asset.repository.TaxTransactionRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +39,9 @@ public class ReconciliationService {
     private final AssetRepository assetRepository;
     private final UserPositionRepository userPositionRepository;
     private final ReconciliationReportRepository reportRepository;
+    private final TaxTransactionRepository taxTransactionRepository;
     private final FineractClient fineractClient;
+    private final ResolvedTaxAccounts resolvedTaxAccounts;
     private final AssetMetrics assetMetrics;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -62,6 +66,9 @@ public class ReconciliationService {
                     log.error("Reconciliation failed for asset {}: {}", asset.getId(), e.getMessage());
                 }
             }
+
+            // 5. Tax account reconciliation (global, not per-asset)
+            totalDiscrepancies += reconcileTaxAccounts(today);
 
             // Update the open reports gauge
             assetMetrics.setReconciliationOpenReports(reportRepository.countByStatus("OPEN"));
@@ -160,6 +167,49 @@ public class ReconciliationService {
         return discrepancies;
     }
 
+    /**
+     * Reconcile tax collection accounts: compare sum of successful tax_transactions
+     * against actual Fineract tax account balances. Detects missing or extra tax entries
+     * (e.g. from a crash between Fineract batch success and tax_transaction write).
+     */
+    private int reconcileTaxAccounts(LocalDate reportDate) {
+        int discrepancies = 0;
+
+        discrepancies += reconcileSingleTaxAccount(reportDate, "REGISTRATION_DUTY",
+                resolvedTaxAccounts.getRegistrationDutyAccountId());
+        discrepancies += reconcileSingleTaxAccount(reportDate, "IRCM",
+                resolvedTaxAccounts.getIrcmAccountId());
+        discrepancies += reconcileSingleTaxAccount(reportDate, "CAPITAL_GAINS",
+                resolvedTaxAccounts.getCapitalGainsAccountId());
+
+        return discrepancies;
+    }
+
+    private int reconcileSingleTaxAccount(LocalDate reportDate, String taxType, Long fineractAccountId) {
+        if (fineractAccountId == null) {
+            log.warn("Tax account not configured for {}, skipping reconciliation", taxType);
+            return 0;
+        }
+
+        try {
+            BigDecimal expectedBalance = taxTransactionRepository.sumCollectedByTaxType(taxType);
+            BigDecimal actualBalance = fineractClient.getAccountBalance(fineractAccountId);
+            BigDecimal discrepancy = expectedBalance.subtract(actualBalance);
+
+            if (discrepancy.abs().compareTo(POSITION_THRESHOLD) > 0) {
+                createReport(reportDate, "TAX_ACCOUNT_MISMATCH", null, null,
+                        expectedBalance, actualBalance, discrepancy, "CRITICAL");
+                log.error("Tax account mismatch for {}: expected={}, actual={}, discrepancy={}",
+                        taxType, expectedBalance, actualBalance, discrepancy);
+                return 1;
+            }
+        } catch (Exception e) {
+            log.warn("Could not reconcile tax account for {}: {}", taxType, e.getMessage());
+        }
+
+        return 0;
+    }
+
     // ── Query and management ──
 
     @Transactional(readOnly = true)
@@ -226,11 +276,15 @@ public class ReconciliationService {
                 reportType, assetId, userId, expected, actual, discrepancy, severity);
 
         if ("CRITICAL".equals(severity)) {
+            String alertDetail = assetId != null
+                    ? String.format("Asset %s: expected=%s, actual=%s, discrepancy=%s",
+                            assetId, expected, actual, discrepancy)
+                    : String.format("expected=%s, actual=%s, discrepancy=%s",
+                            expected, actual, discrepancy);
             eventPublisher.publishEvent(new AdminAlertEvent(
                     "RECONCILIATION_CRITICAL",
                     "Critical discrepancy: " + reportType,
-                    String.format("Asset %s: expected=%s, actual=%s, discrepancy=%s",
-                            assetId, expected, actual, discrepancy),
+                    alertDetail,
                     assetId, "ASSET"
             ));
         }

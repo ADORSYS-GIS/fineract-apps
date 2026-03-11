@@ -1,6 +1,8 @@
 import { Card } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
 import { FC } from "react";
+import { FREQUENCY_LABELS } from "@/constants/frequencies";
+import { INCOME_TYPE_LABELS } from "@/constants/incomeTypes";
 import { assetApi } from "@/services/assetApi";
 
 interface Props {
@@ -8,20 +10,6 @@ interface Props {
 }
 
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
-
-const FREQ_LABELS: Record<number, string> = {
-	1: "Monthly",
-	3: "Quarterly",
-	6: "Semi-Annual",
-	12: "Annual",
-};
-
-const INCOME_TYPE_LABELS: Record<string, string> = {
-	DIVIDEND: "Dividend",
-	RENT: "Rent",
-	HARVEST_YIELD: "Harvest Yield",
-	PROFIT_SHARE: "Profit Share",
-};
 
 const Row: FC<{
 	label: string;
@@ -67,7 +55,7 @@ export const IncomeForecastCard: FC<Props> = ({ assetId }) => {
 	const incomeTypeLabel =
 		INCOME_TYPE_LABELS[forecast.incomeType] ?? forecast.incomeType;
 	const freqLabel =
-		FREQ_LABELS[forecast.distributionFrequencyMonths] ??
+		FREQUENCY_LABELS[forecast.distributionFrequencyMonths] ??
 		`Every ${forecast.distributionFrequencyMonths} months`;
 
 	return (

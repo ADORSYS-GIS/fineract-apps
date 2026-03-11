@@ -13,12 +13,14 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for trade preview and order history.
- * Exercises: POST /api/trades/preview, GET /api/trades/orders, /api/trades/orders/{id}
+ * Preview is now done via POST /api/v1/trades/quote (quote == preview with price lock).
+ * Feasible = 201 (quote created). Infeasible = 4xx with error code.
  */
 public class TradePreviewSteps {
 
@@ -35,9 +37,20 @@ public class TradePreviewSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
+                .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .body(Map.of("assetId", assetId, "side", "BUY", "units", units))
-                .post("/api/trades/preview");
+                .post("/api/v1/trades/quote");
         context.setLastResponse(response);
+        // If quote was created, cancel it to avoid side effects
+        if (response.statusCode() == 201) {
+            String orderId = response.jsonPath().getString("orderId");
+            if (orderId != null) {
+                RestAssured.given()
+                        .baseUri("http://localhost:" + port)
+                        .header("Authorization", "Bearer " + testUserJwt())
+                        .post("/api/v1/trades/orders/" + orderId + "/cancel");
+            }
+        }
     }
 
     @When("the user previews a SELL of {int} units of {string}")
@@ -47,9 +60,19 @@ public class TradePreviewSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
+                .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .body(Map.of("assetId", assetId, "side", "SELL", "units", units))
-                .post("/api/trades/preview");
+                .post("/api/v1/trades/quote");
         context.setLastResponse(response);
+        if (response.statusCode() == 201) {
+            String orderId = response.jsonPath().getString("orderId");
+            if (orderId != null) {
+                RestAssured.given()
+                        .baseUri("http://localhost:" + port)
+                        .header("Authorization", "Bearer " + testUserJwt())
+                        .post("/api/v1/trades/orders/" + orderId + "/cancel");
+            }
+        }
     }
 
     @When("the user requests their order history")
@@ -57,7 +80,7 @@ public class TradePreviewSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders");
+                .get("/api/v1/trades/orders");
         context.setLastResponse(response);
     }
 
@@ -68,7 +91,7 @@ public class TradePreviewSteps {
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .queryParam("assetId", assetId)
-                .get("/api/trades/orders");
+                .get("/api/v1/trades/orders");
         context.setLastResponse(response);
     }
 
@@ -79,20 +102,25 @@ public class TradePreviewSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders/" + orderId);
+                .get("/api/v1/trades/orders/" + orderId);
         context.setLastResponse(response);
     }
 
     @Then("the preview should be feasible")
     public void previewShouldBeFeasible() {
-        Boolean feasible = context.getLastResponse().jsonPath().getBoolean("feasible");
-        assertThat(feasible).isTrue();
+        // A feasible preview = quote created successfully (201)
+        assertThat(context.getLastResponse().statusCode())
+                .as("Feasible preview should return 201 (quote created)")
+                .isEqualTo(201);
     }
 
     @Then("the preview should not be feasible")
     public void previewShouldNotBeFeasible() {
-        Boolean feasible = context.getLastResponse().jsonPath().getBoolean("feasible");
-        assertThat(feasible).isFalse();
+        // Infeasible preview = quote rejected with 4xx
+        int status = context.getLastResponse().statusCode();
+        assertThat(status)
+                .as("Infeasible preview should return 4xx error")
+                .isBetween(400, 499);
     }
 
     @Then("the preview should show side {string}")

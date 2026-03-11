@@ -96,7 +96,7 @@ public class TradingStepDefinitions {
 
         Map<String, Object> body = Map.of(
                 "assetId", assetId, "side", "BUY", "units", new BigDecimal(units));
-        MvcResult result = mockMvc.perform(post("/api/trades/quote")
+        MvcResult result = mockMvc.perform(post("/trades/quote")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -118,7 +118,7 @@ public class TradingStepDefinitions {
 
         Map<String, Object> body = Map.of(
                 "assetId", assetId, "side", "SELL", "units", new BigDecimal(units));
-        MvcResult result = mockMvc.perform(post("/api/trades/quote")
+        MvcResult result = mockMvc.perform(post("/trades/quote")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -136,7 +136,7 @@ public class TradingStepDefinitions {
     @When("the user confirms the quoted order")
     public void userConfirmsQuotedOrder() throws Exception {
         String orderId = context.getValue("lastOrderId");
-        MvcResult result = mockMvc.perform(post("/api/trades/orders/" + orderId + "/confirm")
+        MvcResult result = mockMvc.perform(post("/trades/orders/" + orderId + "/confirm")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID))))
                 .andReturn();
         context.setLastResult(result);
@@ -147,7 +147,7 @@ public class TradingStepDefinitions {
         String idempotencyKey = context.getValue("idempotencyKey");
         Map<String, Object> body = Map.of(
                 "assetId", "asset-001", "side", "BUY", "units", new BigDecimal("5"));
-        MvcResult result = mockMvc.perform(post("/api/trades/quote")
+        MvcResult result = mockMvc.perform(post("/trades/quote")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -160,7 +160,7 @@ public class TradingStepDefinitions {
     public void userCreatesQuoteWithoutIdempotencyKey(String assetId) throws Exception {
         Map<String, Object> body = Map.of(
                 "assetId", assetId, "side", "BUY", "units", new BigDecimal("5"));
-        MvcResult result = mockMvc.perform(post("/api/trades/quote")
+        MvcResult result = mockMvc.perform(post("/trades/quote")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID).claim("fineract_client_id", USER_ID)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
@@ -210,5 +210,32 @@ public class TradingStepDefinitions {
     public void orderResponseStatus(String expectedStatus) {
         String status = JsonPath.read(context.getLastResponseBody(), "$.status");
         assertThat(status).isEqualTo(expectedStatus);
+    }
+
+    // -------------------------------------------------------------------------
+    // Tax-related steps
+    // -------------------------------------------------------------------------
+
+    @Then("the quote response should include a tax breakdown")
+    public void quoteResponseIncludesTaxBreakdown() {
+        Object taxBreakdown = JsonPath.read(context.getLastResponseBody(), "$.taxBreakdown");
+        assertThat(taxBreakdown).isNotNull();
+    }
+
+    @Then("the tax breakdown registration duty should be greater than 0")
+    public void taxBreakdownRegDutyPositive() {
+        Number amount = JsonPath.read(context.getLastResponseBody(), "$.taxBreakdown.registrationDutyAmount");
+        assertThat(new BigDecimal(amount.toString())).isPositive();
+    }
+
+    @Then("the tax breakdown registration duty amount should be 0")
+    public void taxBreakdownRegDutyZero() {
+        Number amount = JsonPath.read(context.getLastResponseBody(), "$.taxBreakdown.registrationDutyAmount");
+        assertThat(new BigDecimal(amount.toString())).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Given("asset {string} has registration duty disabled")
+    public void assetHasRegistrationDutyDisabled(String assetId) {
+        jdbcTemplate.update("UPDATE assets SET registration_duty_enabled = false WHERE id = ?", assetId);
     }
 }

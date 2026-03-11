@@ -85,6 +85,7 @@ public class AdminOrderService {
                 ? previousReason + " | Resolution: " + resolution
                 : "Resolution: " + resolution;
 
+        OrderStatus previousStatus = order.getStatus();
         order.setStatus(OrderStatus.MANUALLY_CLOSED);
         order.setFailureReason(updatedReason);
         order.setResolvedBy(adminUsername);
@@ -94,7 +95,7 @@ public class AdminOrderService {
         assetMetrics.recordOrderResolved();
 
         log.info("Order {} resolved by admin {}. Previous status: {}, resolution: {}",
-                orderId, adminUsername, order.getStatus(), resolution);
+                orderId, adminUsername, previousStatus, resolution);
 
         return toAdminOrderResponse(saved);
     }

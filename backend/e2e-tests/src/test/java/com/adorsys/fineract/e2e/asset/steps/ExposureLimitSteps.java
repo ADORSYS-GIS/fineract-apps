@@ -67,7 +67,7 @@ public class ExposureLimitSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(request)
-                .post("/api/admin/assets");
+                .post("/api/v1/admin/assets");
 
         assertThat(createResp.statusCode())
                 .as("Create asset %s: %s", symbol, createResp.body().asString())
@@ -79,7 +79,7 @@ public class ExposureLimitSteps {
         Response activateResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/activate");
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
         assertThat(activateResp.statusCode()).isEqualTo(200);
     }
 }

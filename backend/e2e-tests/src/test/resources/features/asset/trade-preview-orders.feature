@@ -12,16 +12,14 @@ Feature: Trade Preview & Order History
   Scenario: Preview a BUY trade
     Given an active stock asset "TP1" with price 2000 and supply 100
     When the user previews a BUY of 5 units of "TP1"
-    Then the response status should be 200
-    And the preview should be feasible
+    Then the preview should be feasible
     And the preview should show side "BUY"
     And the preview should show a positive gross amount
 
   Scenario: Preview a SELL trade without holdings returns infeasible
     Given an active stock asset "TP2" with price 2000 and supply 100
     When the user previews a SELL of 5 units of "TP2"
-    Then the response status should be 200
-    And the preview should not be feasible
+    Then the preview should not be feasible
 
   Scenario: List order history after a buy
     Given an active stock asset "TP3" with price 2000 and supply 100

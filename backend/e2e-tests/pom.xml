@@ -38,6 +38,11 @@
             <artifactId>payment-gateway-service</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>com.adorsys.fineract</groupId>
+            <artifactId>customer-self-service</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
 
         <!-- Spring Boot Test -->
         <dependency>
@@ -201,6 +206,20 @@
                                     </classpathDependencyExcludes>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>registration-e2e</id>
+                                <goals><goal>test</goal></goals>
+                                <configuration>
+                                    <skipTests>false</skipTests>
+                                    <includes>
+                                        <include>**/RunRegistrationE2ETests.java</include>
+                                    </includes>
+                                    <classpathDependencyExcludes>
+                                        <classpathDependencyExclude>com.adorsys.fineract:asset-service</classpathDependencyExclude>
+                                        <classpathDependencyExclude>com.adorsys.fineract:payment-gateway-service</classpathDependencyExclude>
+                                    </classpathDependencyExcludes>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
                 </plugins>
@@ -248,6 +267,31 @@
                             <!-- Exclude asset-service JAR to avoid Flyway migration conflicts -->
                             <classpathDependencyExcludes>
                                 <classpathDependencyExclude>com.adorsys.fineract:asset-service</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <!-- Run only customer-registration E2E -->
+        <profile>
+            <id>e2e-registration</id>
+            <properties>
+                <skipTests>false</skipTests>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>**/RunRegistrationE2ETests.java</include>
+                            </includes>
+                            <!-- Exclude asset-service and payment-gateway to avoid Flyway conflicts -->
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>com.adorsys.fineract:asset-service</classpathDependencyExclude>
+                                <classpathDependencyExclude>com.adorsys.fineract:payment-gateway-service</classpathDependencyExclude>
                             </classpathDependencyExcludes>
                         </configuration>
                     </plugin>

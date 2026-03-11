@@ -56,14 +56,14 @@ class PublicEndpointsIntegrationTest {
 
     @Test
     void listAssets_noAuth_returns200() throws Exception {
-        mockMvc.perform(get("/api/assets"))
+        mockMvc.perform(get("/assets"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
     void getAssetDetail_noAuth_returns200() throws Exception {
-        mockMvc.perform(get("/api/assets/asset-001"))
+        mockMvc.perform(get("/assets/asset-001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.symbol").value("TST"))
                 .andExpect(jsonPath("$.name").value("Test Asset"));
@@ -71,21 +71,21 @@ class PublicEndpointsIntegrationTest {
 
     @Test
     void getPrice_noAuth_returns200() throws Exception {
-        mockMvc.perform(get("/api/prices/asset-001"))
+        mockMvc.perform(get("/prices/asset-001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.askPrice").isNumber());
     }
 
     @Test
     void getMarketStatus_noAuth_returns200() throws Exception {
-        mockMvc.perform(get("/api/market/status"))
+        mockMvc.perform(get("/market/status"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isOpen").isBoolean());
     }
 
     @Test
     void getPriceHistory_noAuth_returns200() throws Exception {
-        mockMvc.perform(get("/api/prices/asset-001/history")
+        mockMvc.perform(get("/prices/asset-001/history")
                         .param("period", "1Y"))
                 .andExpect(status().isOk());
     }

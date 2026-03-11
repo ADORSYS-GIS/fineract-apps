@@ -38,8 +38,6 @@ public record CreateAssetRequest(
     @NotNull LocalDate subscriptionStartDate,
     /** End of the subscription period. BUY orders rejected after this date; SELL always allowed. */
     @NotNull LocalDate subscriptionEndDate,
-    /** Percentage of capital opened for subscription (e.g. 44.44). */
-    @PositiveOrZero @DecimalMax("100.00") BigDecimal capitalOpenedPercent,
     /** Fineract client ID of the liquidity partner (reseller) that will hold this asset's inventory. */
     @NotNull Long lpClientId,
 
@@ -95,5 +93,35 @@ public record CreateAssetRequest(
     /** Distribution frequency in months (1, 3, 6, or 12). */
     @Min(1) Integer distributionFrequencyMonths,
     /** First scheduled distribution date. */
-    LocalDate nextDistributionDate
+    LocalDate nextDistributionDate,
+
+    // ── Tax configuration (Cameroon/CEMAC) ──
+
+    /** Whether registration duty applies to trades. Default: true. */
+    @Schema(description = "Enable registration duty (2%) on trades of this asset.")
+    Boolean registrationDutyEnabled,
+    /** Registration duty rate override. Null uses global default (0.02). */
+    @Schema(description = "Registration duty rate override (e.g. 0.02 = 2%).")
+    @PositiveOrZero BigDecimal registrationDutyRate,
+    /** Whether IRCM withholding applies to income distributions. Default: true. */
+    @Schema(description = "Enable IRCM withholding on income distributions.")
+    Boolean ircmEnabled,
+    /** IRCM rate override. Null uses auto-determination. */
+    @Schema(description = "IRCM rate override (e.g. 0.165 = 16.5%).")
+    @PositiveOrZero BigDecimal ircmRateOverride,
+    /** Whether this asset is IRCM-exempt (e.g. government bonds). */
+    @Schema(description = "Exempt from IRCM (e.g. government bonds).")
+    Boolean ircmExempt,
+    /** Whether capital gains tax applies to profitable sales. Default: true. */
+    @Schema(description = "Enable capital gains tax on profitable sales.")
+    Boolean capitalGainsTaxEnabled,
+    /** Capital gains tax rate override. Null uses global default (0.165). */
+    @Schema(description = "Capital gains tax rate override (e.g. 0.165 = 16.5%).")
+    @PositiveOrZero BigDecimal capitalGainsRate,
+    /** Whether this asset is listed on the BVMAC (triggers reduced 11% IRCM). */
+    @Schema(description = "Listed on BVMAC (triggers reduced 11% IRCM rate).")
+    Boolean isBvmacListed,
+    /** Whether this is a government bond (triggers IRCM exemption). */
+    @Schema(description = "Government bond (triggers IRCM exemption).")
+    Boolean isGovernmentBond
 ) {}

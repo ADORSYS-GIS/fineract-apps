@@ -33,5 +33,5 @@ Feature: Admin Dashboard Summary
     And the response body should contain field "orders.failed" with value "1"
 
   Scenario: Unauthenticated user cannot access dashboard
-    When an unauthenticated user calls "GET" "/api/admin/dashboard/summary"
+    When an unauthenticated user calls "GET" "/admin/dashboard/summary"
     Then the response status should be 401

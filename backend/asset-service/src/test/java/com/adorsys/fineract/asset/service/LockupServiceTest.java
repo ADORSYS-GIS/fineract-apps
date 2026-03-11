@@ -1,7 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.entity.Asset;
-import com.adorsys.fineract.asset.entity.PurchaseLot;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.exception.TradingException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
@@ -16,8 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -66,14 +63,9 @@ class LockupServiceTest {
                 .thenReturn(new BigDecimal("15"));
 
         // Lots exist
-        PurchaseLot lot = PurchaseLot.builder()
-                .userId(USER_ID).assetId(ASSET_ID)
-                .units(new BigDecimal("20")).remainingUnits(new BigDecimal("15"))
-                .purchasedAt(Instant.now().minus(60, ChronoUnit.DAYS))
-                .build();
-        when(purchaseLotRepository.findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(
+        when(purchaseLotRepository.countByUserIdAndAssetIdAndRemainingUnitsGreaterThan(
                 eq(USER_ID), eq(ASSET_ID), any(BigDecimal.class)))
-                .thenReturn(List.of(lot));
+                .thenReturn(1L);
 
         assertDoesNotThrow(
                 () -> lockupService.validateLockup(asset, USER_ID, new BigDecimal("10")));
@@ -87,14 +79,9 @@ class LockupServiceTest {
         when(purchaseLotRepository.sumUnlockedUnits(eq(USER_ID), eq(ASSET_ID), any(Instant.class)))
                 .thenReturn(new BigDecimal("5"));
 
-        PurchaseLot lot = PurchaseLot.builder()
-                .userId(USER_ID).assetId(ASSET_ID)
-                .units(new BigDecimal("20")).remainingUnits(new BigDecimal("20"))
-                .purchasedAt(Instant.now().minus(10, ChronoUnit.DAYS))
-                .build();
-        when(purchaseLotRepository.findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(
+        when(purchaseLotRepository.countByUserIdAndAssetIdAndRemainingUnitsGreaterThan(
                 eq(USER_ID), eq(ASSET_ID), any(BigDecimal.class)))
-                .thenReturn(List.of(lot));
+                .thenReturn(1L);
 
         TradingException ex = assertThrows(TradingException.class,
                 () -> lockupService.validateLockup(asset, USER_ID, new BigDecimal("10")));
@@ -113,9 +100,9 @@ class LockupServiceTest {
         // No lots exist
         when(purchaseLotRepository.sumUnlockedUnits(eq(USER_ID), eq(ASSET_ID), any(Instant.class)))
                 .thenReturn(BigDecimal.ZERO);
-        when(purchaseLotRepository.findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(
+        when(purchaseLotRepository.countByUserIdAndAssetIdAndRemainingUnitsGreaterThan(
                 eq(USER_ID), eq(ASSET_ID), any(BigDecimal.class)))
-                .thenReturn(Collections.emptyList());
+                .thenReturn(0L);
 
         // Position exists with recent purchase
         UserPosition pos = UserPosition.builder()
@@ -138,9 +125,9 @@ class LockupServiceTest {
         // No lots exist
         when(purchaseLotRepository.sumUnlockedUnits(eq(USER_ID), eq(ASSET_ID), any(Instant.class)))
                 .thenReturn(BigDecimal.ZERO);
-        when(purchaseLotRepository.findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(
+        when(purchaseLotRepository.countByUserIdAndAssetIdAndRemainingUnitsGreaterThan(
                 eq(USER_ID), eq(ASSET_ID), any(BigDecimal.class)))
-                .thenReturn(Collections.emptyList());
+                .thenReturn(0L);
 
         // Position exists with old purchase (beyond lockup)
         UserPosition pos = UserPosition.builder()
@@ -166,11 +153,9 @@ class LockupServiceTest {
         when(purchaseLotRepository.sumUnlockedUnits(eq(USER_ID), eq(ASSET_ID), any(Instant.class)))
                 .thenReturn(new BigDecimal("25"));
 
-        PurchaseLot lot = PurchaseLot.builder()
-                .userId(USER_ID).assetId(ASSET_ID).remainingUnits(new BigDecimal("25")).build();
-        when(purchaseLotRepository.findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(
+        when(purchaseLotRepository.countByUserIdAndAssetIdAndRemainingUnitsGreaterThan(
                 eq(USER_ID), eq(ASSET_ID), any(BigDecimal.class)))
-                .thenReturn(List.of(lot));
+                .thenReturn(1L);
 
         BigDecimal result = lockupService.getUnlockedUnits(asset, USER_ID);
         assertNotNull(result);
@@ -183,9 +168,9 @@ class LockupServiceTest {
 
         when(purchaseLotRepository.sumUnlockedUnits(eq(USER_ID), eq(ASSET_ID), any(Instant.class)))
                 .thenReturn(BigDecimal.ZERO);
-        when(purchaseLotRepository.findByUserIdAndAssetIdAndRemainingUnitsGreaterThanOrderByPurchasedAtAsc(
+        when(purchaseLotRepository.countByUserIdAndAssetIdAndRemainingUnitsGreaterThan(
                 eq(USER_ID), eq(ASSET_ID), any(BigDecimal.class)))
-                .thenReturn(Collections.emptyList());
+                .thenReturn(0L);
 
         BigDecimal result = lockupService.getUnlockedUnits(asset, USER_ID);
         assertNull(result);

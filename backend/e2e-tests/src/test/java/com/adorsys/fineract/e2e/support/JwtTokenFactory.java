@@ -169,6 +169,69 @@ public class JwtTokenFactory {
     }
 
     /**
+     * Generate a signed JWT for customer-registration-service.
+     * Registration-service reads {@code fineract_external_id} (or falls back to {@code sub}).
+     * Account endpoints require {@code self-service-customer} role.
+     *
+     * @param externalId       Fineract external ID for the customer
+     * @param fineractClientId Fineract client ID for the customer
+     * @return signed JWT string with self-service-customer role
+     */
+    public static String generateRegistrationToken(String externalId, Long fineractClientId) {
+        try {
+            Instant now = Instant.now();
+            JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                    .subject(externalId)
+                    .issuer("e2e-test-issuer")
+                    .issueTime(Date.from(now))
+                    .expirationTime(Date.from(now.plusSeconds(3600)))
+                    .claim("fineract_external_id", externalId)
+                    .claim("fineract_client_id", fineractClientId)
+                    .claim("realm_access", Map.of("roles", List.of("self-service-customer")))
+                    .build();
+
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                    .keyID(KEY_ID)
+                    .build();
+            SignedJWT signedJWT = new SignedJWT(header, claims);
+            signedJWT.sign(SIGNER);
+            return signedJWT.serialize();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate E2E registration JWT", e);
+        }
+    }
+
+    /**
+     * Generate a signed JWT for KYC reviewer staff.
+     *
+     * @param staffId staff identifier
+     * @param roles   Keycloak realm roles (e.g., "kyc-reviewer", "admin")
+     * @return signed JWT string with staff roles and preferred_username
+     */
+    public static String generateStaffToken(String staffId, List<String> roles) {
+        try {
+            Instant now = Instant.now();
+            JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                    .subject(staffId)
+                    .issuer("e2e-test-issuer")
+                    .issueTime(Date.from(now))
+                    .expirationTime(Date.from(now.plusSeconds(3600)))
+                    .claim("preferred_username", staffId)
+                    .claim("realm_access", Map.of("roles", roles))
+                    .build();
+
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                    .keyID(KEY_ID)
+                    .build();
+            SignedJWT signedJWT = new SignedJWT(header, claims);
+            signedJWT.sign(SIGNER);
+            return signedJWT.serialize();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate E2E staff JWT", e);
+        }
+    }
+
+    /**
      * Generate an expired JWT for testing 401 responses.
      *
      * @return signed JWT string that is already expired

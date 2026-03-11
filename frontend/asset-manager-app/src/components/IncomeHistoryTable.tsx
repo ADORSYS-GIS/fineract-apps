@@ -1,18 +1,12 @@
 import { Card } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
 import { FC, useState } from "react";
+import { INCOME_TYPE_LABELS } from "@/constants/incomeTypes";
 import { assetApi, type IncomeDistributionResponse } from "@/services/assetApi";
 
 interface Props {
 	assetId: string;
 }
-
-const INCOME_TYPE_LABELS: Record<string, string> = {
-	DIVIDEND: "Dividend",
-	RENT: "Rent",
-	HARVEST_YIELD: "Harvest Yield",
-	PROFIT_SHARE: "Profit Share",
-};
 
 export const IncomeHistoryTable: FC<Props> = ({ assetId }) => {
 	const [page, setPage] = useState(0);

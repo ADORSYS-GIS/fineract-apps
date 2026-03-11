@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.*;
  * Admin endpoints for asset management.
  */
 @RestController
-@RequestMapping("/api/admin/assets")
+@RequestMapping("/admin/assets")
 @RequiredArgsConstructor
 @Tag(name = "Admin - Asset Management", description = "Create, manage, and configure assets")
 public class AdminAssetController {

@@ -42,7 +42,7 @@ class AdminScheduledPaymentControllerTest {
         when(scheduledPaymentService.getPaymentResults(eq(1L), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(result)));
 
-        mockMvc.perform(get("/api/admin/scheduled-payments/1/results")
+        mockMvc.perform(get("/admin/scheduled-payments/1/results")
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
@@ -57,7 +57,7 @@ class AdminScheduledPaymentControllerTest {
 
     @Test
     void results_pageSizeTooLarge_returns400() throws Exception {
-        mockMvc.perform(get("/api/admin/scheduled-payments/1/results")
+        mockMvc.perform(get("/admin/scheduled-payments/1/results")
                         .param("size", "200"))
                 .andExpect(status().isBadRequest());
     }

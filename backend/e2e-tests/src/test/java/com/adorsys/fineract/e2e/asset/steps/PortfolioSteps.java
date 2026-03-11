@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for portfolio endpoints.
- * Exercises: GET /api/portfolio, /api/portfolio/positions/{assetId}, /api/portfolio/history
+ * Exercises: GET /api/v1/portfolio, /api/v1/portfolio/positions/{assetId}, /api/v1/portfolio/history
  */
 public class PortfolioSteps {
 
@@ -31,7 +31,7 @@ public class PortfolioSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/portfolio");
+                .get("/api/v1/portfolio");
         context.setLastResponse(response);
     }
 
@@ -41,7 +41,7 @@ public class PortfolioSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/portfolio/positions/" + assetId);
+                .get("/api/v1/portfolio/positions/" + assetId);
         context.setLastResponse(response);
     }
 
@@ -51,7 +51,7 @@ public class PortfolioSteps {
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .queryParam("period", period)
-                .get("/api/portfolio/history");
+                .get("/api/v1/portfolio/history");
         context.setLastResponse(response);
     }
 

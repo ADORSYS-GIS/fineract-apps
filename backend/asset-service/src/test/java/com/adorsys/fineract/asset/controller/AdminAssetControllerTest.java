@@ -67,15 +67,15 @@ class AdminAssetControllerTest {
                 AssetCategory.STOCKS, AssetStatus.ACTIVE,
                 new BigDecimal("500"), new BigDecimal("2.5"),
                 new BigDecimal("900"), new BigDecimal("1000"),
-                null, null, null, // subscriptionStartDate, subscriptionEndDate, capitalOpenedPercent
+                null, null, // subscriptionStartDate, subscriptionEndDate
                 null, null, null, // issuerName, lpName, couponAmountPerUnit
-                null, null, null, null, null // isinCode, maturityDate, interestRate, residualDays, subscriptionClosed
+                null, null, null, null, null, null // isinCode, maturityDate, interestRate, currentYield, residualDays, subscriptionClosed
         );
         when(catalogService.listAllAssets(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(asset)));
 
         // Act & Assert
-        mockMvc.perform(get("/api/admin/assets")
+        mockMvc.perform(get("/admin/assets")
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
@@ -90,7 +90,7 @@ class AdminAssetControllerTest {
     @Test
     void listAllAssets_pageSizeTooLarge_returns400() throws Exception {
         // Act & Assert: size=200 exceeds max of 100
-        mockMvc.perform(get("/api/admin/assets")
+        mockMvc.perform(get("/admin/assets")
                         .param("size", "200"))
                 .andExpect(status().isBadRequest());
     }
@@ -109,11 +109,12 @@ class AdminAssetControllerTest {
                 new BigDecimal("500"), new BigDecimal("1000"), // issuerPrice, totalSupply
                 0, new BigDecimal("0.005"), // decimalPlaces, tradingFeePercent
                 new BigDecimal("550"), new BigDecimal("475"), // lpAskPrice, lpBidPrice
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null, // subscriptionStart, subscriptionEnd, capitalOpenedPercent
+                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), // subscriptionStart, subscriptionEnd
                 1L, // lpClientId
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount
                 null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
-                null, null, null, null // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
+                null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
+                null, null, null, null, null, null, null, null, null // tax config
         );
 
         AssetDetailResponse response = new AssetDetailResponse(
@@ -123,23 +124,24 @@ class AdminAssetControllerTest {
                 null, null, null, null, null, // change24hPercent, dayOpen, dayHigh, dayLow, dayClose
                 new BigDecimal("1000"), BigDecimal.ZERO, new BigDecimal("1000"), // totalSupply, circulatingSupply, availableSupply
                 new BigDecimal("0.005"), // tradingFeePercent
-                0, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), null, // decimalPlaces, subscriptionStart, subscriptionEnd, capitalOpenedPercent
+                0, LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1), // decimalPlaces, subscriptionStart, subscriptionEnd
                 null, new BigDecimal("500"), // issuerName, issuerPrice
                 1L, 200L, 300L, null, 10, // lpClientId, lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, fineractProductId
                 "Test Company", "Test Asset Token", // lpClientName, fineractProductName
                 null, null, // lpMarginPerUnit, lpMarginPercent
                 Instant.now(), null, // createdAt, updatedAt
-                null, null, null, null, null, null, null, null, // isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate, residualDays, subscriptionClosed, couponAmountPerUnit
+                null, null, null, null, null, null, null, null, null, // isinCode, maturityDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, subscriptionClosed, couponAmountPerUnit
                 null, null, // bidPrice, askPrice
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, minOrderSize, minOrderCashAmount, lockupDays
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
-                null, null // delistingDate, delistingRedemptionPrice
+                null, null, // delistingDate, delistingRedemptionPrice
+                null, null, null, null, null, null, null, null, null // tax config fields
         );
 
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);
 
         // Act & Assert
-        mockMvc.perform(post("/api/admin/assets")
+        mockMvc.perform(post("/admin/assets")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -163,7 +165,7 @@ class AdminAssetControllerTest {
     void deleteAsset_returns200() throws Exception {
         doNothing().when(provisioningService).deletePendingAsset("a1");
 
-        mockMvc.perform(delete("/api/admin/assets/a1"))
+        mockMvc.perform(delete("/admin/assets/a1"))
                 .andExpect(status().isOk());
 
         verify(provisioningService).deletePendingAsset("a1");
@@ -174,7 +176,7 @@ class AdminAssetControllerTest {
         doThrow(new com.adorsys.fineract.asset.exception.AssetException("Only PENDING assets can be deleted"))
                 .when(provisioningService).deletePendingAsset("a1");
 
-        mockMvc.perform(delete("/api/admin/assets/a1"))
+        mockMvc.perform(delete("/admin/assets/a1"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -191,7 +193,7 @@ class AdminAssetControllerTest {
 
         when(scheduledPaymentService.getPaymentSummary("a1", "COUPON")).thenReturn(summary);
 
-        mockMvc.perform(get("/api/admin/assets/a1/coupon-summary"))
+        mockMvc.perform(get("/admin/assets/a1/coupon-summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lastPaymentDate").isNotEmpty())
                 .andExpect(jsonPath("$.totalPaidToDate").value(5800))
@@ -215,7 +217,7 @@ class AdminAssetControllerTest {
 
         when(scheduledPaymentService.getPaymentSummary("a1", "INCOME")).thenReturn(summary);
 
-        mockMvc.perform(get("/api/admin/assets/a1/income-summary"))
+        mockMvc.perform(get("/admin/assets/a1/income-summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalPaidToDate").value(800))
                 .andExpect(jsonPath("$.totalPaymentCount").value(1))

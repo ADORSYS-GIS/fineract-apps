@@ -2,18 +2,12 @@ import { Card } from "@fineract-apps/ui";
 import { CheckCircle } from "lucide-react";
 import { FC } from "react";
 import { ASSET_CATEGORY_LABELS } from "@/constants/categories";
+import { FREQUENCY_LABELS } from "@/constants/frequencies";
 import type { AssetFormData } from "../useCreateAsset";
 
 interface Props {
 	formData: AssetFormData;
 }
-
-const FREQUENCY_LABELS: Record<number, string> = {
-	1: "Monthly",
-	3: "Quarterly",
-	6: "Semi-Annual",
-	12: "Annual",
-};
 
 export const ReviewStep: FC<Props> = ({ formData }) => {
 	return (
@@ -185,14 +179,6 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="font-medium">{formData.subscriptionStartDate}</div>
 					<div className="text-gray-600">Subscription End:</div>
 					<div className="font-medium">{formData.subscriptionEndDate}</div>
-					{formData.capitalOpenedPercent > 0 && (
-						<>
-							<div className="text-gray-600">Capital Opened:</div>
-							<div className="font-medium">
-								{formData.capitalOpenedPercent}%
-							</div>
-						</>
-					)}
 					{formData.lockupDays > 0 && (
 						<>
 							<div className="text-gray-600">Lock-up Period:</div>
@@ -237,6 +223,41 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					</div>
 				</Card>
 			)}
+
+			{/* Tax Configuration */}
+			<Card className="p-4">
+				<h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
+					Tax Configuration
+				</h3>
+				<div className="grid grid-cols-2 gap-2 text-sm">
+					<div className="text-gray-600">Registration Duty:</div>
+					<div className="font-medium">
+						{formData.registrationDutyEnabled
+							? formData.registrationDutyRate
+								? `${formData.registrationDutyRate}%`
+								: "Enabled (default 2%)"
+							: "Disabled"}
+					</div>
+					<div className="text-gray-600">IRCM Withholding:</div>
+					<div className="font-medium">
+						{formData.ircmEnabled
+							? formData.ircmExempt
+								? "Exempt"
+								: formData.ircmRateOverride
+									? `${formData.ircmRateOverride}%`
+									: "Enabled (auto rate)"
+							: "Disabled"}
+					</div>
+					<div className="text-gray-600">Capital Gains Tax:</div>
+					<div className="font-medium">
+						{formData.capitalGainsTaxEnabled
+							? formData.capitalGainsRate
+								? `${formData.capitalGainsRate}%`
+								: "Enabled (default 16.5%)"
+							: "Disabled"}
+					</div>
+				</div>
+			</Card>
 
 			{/* Provisioning Note */}
 			<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

@@ -34,7 +34,7 @@ public class UserNotificationSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/notifications");
+                .get("/api/v1/notifications");
         context.setLastResponse(response);
     }
 
@@ -43,7 +43,7 @@ public class UserNotificationSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/notifications/unread-count");
+                .get("/api/v1/notifications/unread-count");
         context.setLastResponse(response);
     }
 
@@ -54,14 +54,14 @@ public class UserNotificationSteps {
         Response listResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/notifications");
+                .get("/api/v1/notifications");
         List<Integer> ids = listResp.jsonPath().getList("content.id");
         assertThat(ids).as("Notification list should not be empty").isNotEmpty();
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .post("/api/notifications/" + ids.get(0) + "/read");
+                .post("/api/v1/notifications/" + ids.get(0) + "/read");
         context.setLastResponse(response);
         context.storeValue("markedNotificationId", ids.get(0));
     }
@@ -71,7 +71,7 @@ public class UserNotificationSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .post("/api/notifications/read-all");
+                .post("/api/v1/notifications/read-all");
         context.setLastResponse(response);
     }
 
@@ -82,7 +82,7 @@ public class UserNotificationSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/notifications/preferences");
+                .get("/api/v1/notifications/preferences");
         context.setLastResponse(response);
     }
 
@@ -93,7 +93,7 @@ public class UserNotificationSteps {
                 .header("Authorization", "Bearer " + testUserJwt())
                 .contentType(ContentType.JSON)
                 .body(Map.of("tradeExecuted", false))
-                .put("/api/notifications/preferences");
+                .put("/api/v1/notifications/preferences");
         context.setLastResponse(response);
     }
 
@@ -104,7 +104,7 @@ public class UserNotificationSteps {
                 .header("Authorization", "Bearer " + testUserJwt())
                 .contentType(ContentType.JSON)
                 .body(Map.of("tradeExecuted", true))
-                .put("/api/notifications/preferences");
+                .put("/api/v1/notifications/preferences");
         context.setLastResponse(response);
     }
 

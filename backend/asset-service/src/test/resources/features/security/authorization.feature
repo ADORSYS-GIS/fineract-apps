@@ -8,11 +8,11 @@ Feature: Role-Based Access Control
     Given the test database is seeded with standard data
 
   Scenario: Regular user cannot access admin list endpoint
-    When a user with role "ROLE_USER" calls "GET" "/api/admin/assets"
+    When a user with role "ROLE_USER" calls "GET" "/admin/assets"
     Then the response status should be 403
 
   Scenario: Asset manager can access admin list endpoint
-    When a user with role "ROLE_ASSET_MANAGER" calls "GET" "/api/admin/assets"
+    When a user with role "ROLE_ASSET_MANAGER" calls "GET" "/admin/assets"
     Then the response status should be 200
 
   Scenario Outline: Admin endpoints require ASSET_MANAGER role
@@ -21,9 +21,9 @@ Feature: Role-Based Access Control
 
     Examples:
       | method | path                                 |
-      | GET    | /api/admin/assets                    |
-      | GET    | /api/admin/assets/asset-001          |
-      | POST   | /api/admin/assets/asset-001/activate |
-      | POST   | /api/admin/assets/asset-001/halt     |
-      | POST   | /api/admin/assets/asset-001/resume   |
-      | GET    | /api/admin/inventory                 |
+      | GET    | /admin/assets                    |
+      | GET    | /admin/assets/asset-001          |
+      | POST   | /admin/assets/asset-001/activate |
+      | POST   | /admin/assets/asset-001/halt     |
+      | POST   | /admin/assets/asset-001/resume   |
+      | GET    | /admin/inventory                 |

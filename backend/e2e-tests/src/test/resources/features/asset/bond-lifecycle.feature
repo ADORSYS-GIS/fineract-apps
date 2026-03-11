@@ -26,6 +26,8 @@ Feature: Bond Asset Lifecycle (E2E)
       | maturityDate          | +5y           |
       | nextCouponDate        | +6m           |
     Then the response status should be 201
+    And the response body should contain "currentYield"
+    And the response body should contain "5.27"
     When the admin activates asset "lastCreated"
     Then the response status should be 200
     And the asset should be in ACTIVE status

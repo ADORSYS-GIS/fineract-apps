@@ -6,11 +6,54 @@ import sys
 import logging
 import secrets
 import string
+import time
 from typing import Dict, List, Optional
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from keycloak import KeycloakAdmin, KeycloakError
 from dotenv import load_dotenv
 load_dotenv()
+
+# Prometheus metrics
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+
+REQUEST_COUNT = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'endpoint', 'status']
+)
+REQUEST_DURATION = Histogram(
+    'http_request_duration_seconds',
+    'HTTP request duration in seconds',
+    ['method', 'endpoint']
+)
+
+# OpenTelemetry tracing (reads OTEL_* env vars set in K8s deployment)
+otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+if otel_endpoint:
+    try:
+        from opentelemetry import trace
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.instrumentation.flask import FlaskInstrumentor
+        from opentelemetry.instrumentation.requests import RequestsInstrumentor
+
+        resource = Resource.create({
+            "service.name": os.getenv("OTEL_SERVICE_NAME", "user-sync-service")
+        })
+        provider = TracerProvider(resource=resource)
+        processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otel_endpoint, insecure=True))
+        provider.add_span_processor(processor)
+        trace.set_tracer_provider(provider)
+
+        RequestsInstrumentor().instrument()
+        _otel_enabled = True
+    except Exception as e:
+        _otel_enabled = False
+        logging.getLogger(__name__).warning(f"OTEL tracing init failed: {e}")
+else:
+    _otel_enabled = False
 
 # Configure logging
 logging.basicConfig(
@@ -21,6 +64,24 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Instrument Flask for tracing (after app creation)
+if _otel_enabled:
+    FlaskInstrumentor().instrument_app(app)
+
+
+@app.before_request
+def _start_timer():
+    request._start_time = time.monotonic()
+
+
+@app.after_request
+def _record_metrics(response):
+    duration = time.monotonic() - getattr(request, '_start_time', time.monotonic())
+    endpoint = request.path
+    REQUEST_COUNT.labels(request.method, endpoint, response.status_code).inc()
+    REQUEST_DURATION.labels(request.method, endpoint).observe(duration)
+    return response
 
 # Keycloak configuration
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL")
@@ -107,6 +168,12 @@ def map_fineract_role_to_keycloak(fineract_role: str) -> str:
     # This ensures consistency for permissions and access control.
     logger.info(f"Using Fineract role '{fineract_role}' for Keycloak")
     return fineract_role
+
+
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    """Prometheus metrics endpoint."""
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 
 @app.route('/health', methods=['GET'])

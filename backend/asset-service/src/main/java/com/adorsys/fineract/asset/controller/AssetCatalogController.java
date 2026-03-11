@@ -20,7 +20,7 @@ import java.util.List;
  * Public endpoints for asset catalog browsing.
  */
 @RestController
-@RequestMapping("/api/assets")
+@RequestMapping("/assets")
 @RequiredArgsConstructor
 @Tag(name = "Asset Catalog", description = "Browse and search the asset marketplace")
 public class AssetCatalogController {

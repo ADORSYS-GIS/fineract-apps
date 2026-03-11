@@ -127,12 +127,12 @@ public final class TestDataFactory {
                 new BigDecimal("95"),
                 LocalDate.now().minusMonths(1),
                 LocalDate.now().plusYears(1),
-                null,
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits (maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays)
                 null, null, // min order size/cash
                 null, null, null, null, null, null, // bond fields
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, null // tax fields
         );
     }
 
@@ -152,7 +152,6 @@ public final class TestDataFactory {
                 new BigDecimal("9500"),
                 LocalDate.now().minusMonths(1),
                 LocalDate.now().plusYears(1),
-                null,
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
@@ -162,7 +161,8 @@ public final class TestDataFactory {
                 new BigDecimal("5.80"),
                 6,
                 LocalDate.now().plusMonths(6),
-                null, null, null, null // income fields
+                null, null, null, null, // income fields
+                null, null, null, null, null, null, null, null, true // tax: govt bond
         );
     }
 

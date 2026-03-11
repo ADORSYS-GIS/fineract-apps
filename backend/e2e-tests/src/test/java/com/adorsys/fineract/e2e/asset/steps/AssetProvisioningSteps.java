@@ -103,7 +103,7 @@ public class AssetProvisioningSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(request)
-                .post("/api/admin/assets");
+                .post("/api/v1/admin/assets");
 
         context.setLastResponse(response);
 
@@ -150,7 +150,7 @@ public class AssetProvisioningSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(request)
-                .post("/api/admin/assets");
+                .post("/api/v1/admin/assets");
 
         context.setLastResponse(response);
 
@@ -169,7 +169,7 @@ public class AssetProvisioningSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/activate");
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
 
         context.setLastResponse(response);
     }
@@ -181,7 +181,7 @@ public class AssetProvisioningSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/halt");
+                .post("/api/v1/admin/assets/" + assetId + "/halt");
 
         context.setLastResponse(response);
     }
@@ -193,7 +193,7 @@ public class AssetProvisioningSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .post("/api/admin/assets/" + assetId + "/resume");
+                .post("/api/v1/admin/assets/" + assetId + "/resume");
 
         context.setLastResponse(response);
     }
@@ -206,7 +206,7 @@ public class AssetProvisioningSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(Map.of("askPrice", price))
-                .post("/api/admin/assets/" + assetId + "/set-price");
+                .post("/api/v1/admin/assets/" + assetId + "/set-price");
 
         context.setLastResponse(response);
     }
@@ -221,7 +221,7 @@ public class AssetProvisioningSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
+                .get("/api/v1/admin/assets/" + assetId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         String status = response.jsonPath().getString("status");
@@ -245,7 +245,7 @@ public class AssetProvisioningSteps {
 
         Response assetResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/assets/" + assetId);
+                .get("/api/v1/admin/assets/" + assetId);
 
         assertThat(assetResp.statusCode()).isEqualTo(200);
         Number accountId = assetResp.jsonPath().get("lpAssetAccountId");

@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step definitions for asset catalog browsing and discovery.
- * Exercises: GET /api/assets, /api/assets/{id}, /api/assets/{id}/recent-trades, /api/assets/discover
+ * Exercises: GET /api/v1/assets, /api/v1/assets/{id}, /api/v1/assets/{id}/recent-trades, /api/v1/assets/discover
  */
 public class CatalogSteps {
 
@@ -28,7 +28,7 @@ public class CatalogSteps {
     public void requestAssetCatalog() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/assets");
+                .get("/api/v1/assets");
         context.setLastResponse(response);
     }
 
@@ -37,7 +37,7 @@ public class CatalogSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .queryParam("category", category)
-                .get("/api/assets");
+                .get("/api/v1/assets");
         context.setLastResponse(response);
     }
 
@@ -46,7 +46,7 @@ public class CatalogSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .queryParam("search", keyword)
-                .get("/api/assets");
+                .get("/api/v1/assets");
         context.setLastResponse(response);
     }
 
@@ -55,7 +55,7 @@ public class CatalogSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/assets/" + assetId);
+                .get("/api/v1/assets/" + assetId);
         context.setLastResponse(response);
     }
 
@@ -64,7 +64,7 @@ public class CatalogSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/assets/" + assetId + "/recent-trades");
+                .get("/api/v1/assets/" + assetId + "/recent-trades");
         context.setLastResponse(response);
     }
 
@@ -96,6 +96,32 @@ public class CatalogSteps {
     public void recentTradesShouldNotBeEmpty() {
         List<?> trades = context.getLastResponse().jsonPath().getList("$");
         assertThat(trades).isNotEmpty();
+    }
+
+    // ---------------------------------------------------------------
+    // Discover endpoints
+    // ---------------------------------------------------------------
+
+    @When("I request the discover page")
+    public void requestDiscoverPage() {
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/assets/discover");
+        context.setLastResponse(response);
+    }
+
+    @Then("the discover results should contain asset {string}")
+    public void discoverResultsShouldContainAsset(String symbol) {
+        List<String> symbols = context.getLastResponse().jsonPath().getList("content.symbol");
+        assertThat(symbols).contains(symbol);
+    }
+
+    @Then("the discover results should not contain asset {string}")
+    public void discoverResultsShouldNotContainAsset(String symbol) {
+        List<String> symbols = context.getLastResponse().jsonPath().getList("content.symbol");
+        if (symbols != null) {
+            assertThat(symbols).doesNotContain(symbol);
+        }
     }
 
     private String resolveAssetId(String ref) {

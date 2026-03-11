@@ -26,6 +26,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.math.BigDecimal;
@@ -61,6 +62,7 @@ class TradingServiceTest {
     @Mock private LockupService lockupService;
     @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
     @Mock private QuoteReservationService quoteReservationService;
+    @Mock private TaxService taxService;
 
     @InjectMocks
     private TradingService tradingService;
@@ -124,6 +126,23 @@ class TradingServiceTest {
         quoteConfig.setTtlSeconds(30);
         quoteConfig.setMaxActivePerUser(5);
         lenient().when(assetServiceConfig.getQuote()).thenReturn(quoteConfig);
+
+        // Tax service defaults (returns zero tax for all calculations)
+        lenient().when(taxService.calculateRegistrationDuty(any(), any())).thenReturn(BigDecimal.ZERO);
+        lenient().when(taxService.calculateCapitalGainsTax(any(), anyLong(), any())).thenReturn(BigDecimal.ZERO);
+        lenient().when(taxService.getRegistrationDutyRate(any())).thenReturn(BigDecimal.ZERO);
+        lenient().when(taxService.buildTaxBreakdown(any(), anyLong(), any(), any(), anyBoolean()))
+                .thenReturn(new TaxBreakdown(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                        BigDecimal.ZERO, BigDecimal.ZERO, false));
+
+        // AssetMetrics timer mocks
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        lenient().when(assetMetrics.getQuoteToExecutionTimer())
+                .thenReturn(io.micrometer.core.instrument.Timer.builder("test.q2e").register(registry));
+        lenient().when(assetMetrics.getBuyTimer())
+                .thenReturn(io.micrometer.core.instrument.Timer.builder("test.buy").register(registry));
+        lenient().when(assetMetrics.getSellTimer())
+                .thenReturn(io.micrometer.core.instrument.Timer.builder("test.sell").register(registry));
     }
 
     // -------------------------------------------------------------------------

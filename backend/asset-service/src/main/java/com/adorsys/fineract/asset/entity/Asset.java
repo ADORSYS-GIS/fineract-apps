@@ -170,10 +170,6 @@ public class Asset {
     @Column(name = "subscription_end_date", nullable = false)
     private LocalDate subscriptionEndDate;
 
-    /** Percentage of capital opened for subscription (e.g. 44.44). Null if not applicable. */
-    @Column(name = "capital_opened_percent", precision = 5, scale = 2)
-    private BigDecimal capitalOpenedPercent;
-
     // ── Delisting fields ─────────────────────────────────────────────────────
 
     /** Date on which forced buyback will occur. Set when delisting is initiated. */
@@ -185,6 +181,52 @@ public class Asset {
     private BigDecimal delistingRedemptionPrice;
 
     // ── End bond fields ────────────────────────────────────────────────────
+
+    // ── Tax configuration (Cameroon/CEMAC) ───────────────────────────────
+
+    /** Whether registration duty (2% droit d'enregistrement) applies to trades of this asset. */
+    @Column(name = "registration_duty_enabled", nullable = false)
+    @Builder.Default
+    private Boolean registrationDutyEnabled = true;
+
+    /** Registration duty rate override. Null uses global default (0.02). */
+    @Column(name = "registration_duty_rate", precision = 5, scale = 4)
+    private BigDecimal registrationDutyRate;
+
+    /** Whether IRCM withholding applies to income distributions from this asset. */
+    @Column(name = "ircm_enabled", nullable = false)
+    @Builder.Default
+    private Boolean ircmEnabled = true;
+
+    /** IRCM rate override. Null uses auto-determination based on asset type/listing status. */
+    @Column(name = "ircm_rate_override", precision = 5, scale = 4)
+    private BigDecimal ircmRateOverride;
+
+    /** Whether this asset is exempt from IRCM (e.g. government bonds). */
+    @Column(name = "ircm_exempt", nullable = false)
+    @Builder.Default
+    private Boolean ircmExempt = false;
+
+    /** Whether capital gains tax applies to profitable sales of this asset. */
+    @Column(name = "capital_gains_tax_enabled", nullable = false)
+    @Builder.Default
+    private Boolean capitalGainsTaxEnabled = true;
+
+    /** Capital gains tax rate override. Null uses global default (0.165). */
+    @Column(name = "capital_gains_rate", precision = 5, scale = 4)
+    private BigDecimal capitalGainsRate;
+
+    /** Whether this asset is listed on the BVMAC (triggers reduced 11% IRCM rate). */
+    @Column(name = "is_bvmac_listed", nullable = false)
+    @Builder.Default
+    private Boolean isBvmacListed = false;
+
+    /** Whether this is a government bond (triggers IRCM exemption). */
+    @Column(name = "is_government_bond", nullable = false)
+    @Builder.Default
+    private Boolean isGovernmentBond = false;
+
+    // ── End tax configuration ────────────────────────────────────────────
 
     /** Fineract client ID of the liquidity partner (reseller) for this asset. */
     @Column(name = "lp_client_id", nullable = false)

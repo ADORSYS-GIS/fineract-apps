@@ -21,7 +21,7 @@ import java.util.Map;
  * Admin endpoints for viewing broadcast notifications (stuck orders, critical reconciliation alerts).
  */
 @RestController
-@RequestMapping("/api/admin/notifications")
+@RequestMapping("/admin/notifications")
 @RequiredArgsConstructor
 @Tag(name = "Admin - Notifications", description = "View admin broadcast notifications")
 public class AdminNotificationController {

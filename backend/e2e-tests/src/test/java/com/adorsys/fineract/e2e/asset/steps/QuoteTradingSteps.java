@@ -56,7 +56,7 @@ public class QuoteTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .post("/api/trades/orders/" + orderId + "/confirm");
+                .post("/api/v1/trades/orders/" + orderId + "/confirm");
 
         assertThat(response.statusCode())
                 .as("Confirm quote: %s", response.body().asString())
@@ -73,7 +73,7 @@ public class QuoteTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .post("/api/trades/orders/" + orderId + "/cancel");
+                .post("/api/v1/trades/orders/" + orderId + "/cancel");
 
         context.setLastResponse(response);
     }
@@ -90,7 +90,7 @@ public class QuoteTradingSteps {
             Response response = RestAssured.given()
                     .baseUri("http://localhost:" + port)
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .get("/api/trades/orders/" + orderId);
+                    .get("/api/v1/trades/orders/" + orderId);
 
             String status = response.jsonPath().getString("status");
             if ("CANCELLED".equals(status)) {
@@ -108,7 +108,7 @@ public class QuoteTradingSteps {
         Response finalResponse = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders/" + orderId);
+                .get("/api/v1/trades/orders/" + orderId);
         context.setLastResponse(finalResponse);
     }
 
@@ -121,7 +121,7 @@ public class QuoteTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .post("/api/trades/orders/" + orderId + "/confirm");
+                .post("/api/v1/trades/orders/" + orderId + "/confirm");
 
         context.setLastResponse(response);
     }
@@ -149,7 +149,7 @@ public class QuoteTradingSteps {
                 .header("X-Idempotency-Key", idempotencyKey)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         context.storeValue("firstQuoteOrderId", first.jsonPath().getString("orderId"));
 
@@ -160,7 +160,7 @@ public class QuoteTradingSteps {
                 .header("X-Idempotency-Key", idempotencyKey)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         context.storeValue("secondQuoteOrderId", second.jsonPath().getString("orderId"));
         context.setLastResponse(second);
@@ -193,7 +193,7 @@ public class QuoteTradingSteps {
             Response response = RestAssured.given()
                     .baseUri("http://localhost:" + port)
                     .header("Authorization", "Bearer " + testUserJwt())
-                    .get("/api/trades/orders/" + orderId);
+                    .get("/api/v1/trades/orders/" + orderId);
 
             String status = response.jsonPath().getString("status");
             if ("FILLED".equals(status)) {
@@ -216,7 +216,7 @@ public class QuoteTradingSteps {
         Response finalResponse = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders/" + orderId);
+                .get("/api/v1/trades/orders/" + orderId);
         context.setLastResponse(finalResponse);
         assertThat(finalResponse.jsonPath().getString("status"))
                 .as("Order did not reach FILLED within timeout")
@@ -229,7 +229,7 @@ public class QuoteTradingSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
-                .get("/api/trades/orders/" + orderId);
+                .get("/api/v1/trades/orders/" + orderId);
 
         assertThat(response.jsonPath().getString("status")).isEqualTo("CANCELLED");
     }
@@ -272,7 +272,7 @@ public class QuoteTradingSteps {
                 .header("X-Idempotency-Key", UUID.randomUUID().toString())
                 .header("Authorization", "Bearer " + testUserJwt())
                 .body(body)
-                .post("/api/trades/quote");
+                .post("/api/v1/trades/quote");
 
         assertThat(response.statusCode())
                 .as("Create quote: %s", response.body().asString())

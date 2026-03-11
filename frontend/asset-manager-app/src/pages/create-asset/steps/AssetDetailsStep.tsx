@@ -1,5 +1,6 @@
-import { FC } from "react";
+import { type FC, useRef, useState } from "react";
 import { ASSET_CATEGORIES } from "@/constants/categories";
+import { assetApi, extractErrorMessage } from "@/services/assetApi";
 import type { AssetFormData } from "../useCreateAsset";
 
 interface Props {
@@ -8,11 +9,53 @@ interface Props {
 	validationErrors: string[];
 }
 
+const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp,image/svg+xml";
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 export const AssetDetailsStep: FC<Props> = ({
 	formData,
 	updateFormData,
 	validationErrors,
 }) => {
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [uploading, setUploading] = useState(false);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(
+		formData.imageUrl || null,
+	);
+	const [uploadError, setUploadError] = useState<string | null>(null);
+
+	const handleFileSelect = async (file: File) => {
+		setUploadError(null);
+		if (file.size > MAX_FILE_SIZE) {
+			setUploadError("File size exceeds 5MB limit");
+			return;
+		}
+		if (!ACCEPTED_TYPES.split(",").includes(file.type)) {
+			setUploadError("Only JPEG, PNG, WebP, and SVG files are allowed");
+			return;
+		}
+		setPreviewUrl(URL.createObjectURL(file));
+		setUploading(true);
+		try {
+			const { data } = await assetApi.uploadFile(file);
+			updateFormData({ imageUrl: data.key });
+			setPreviewUrl(data.url);
+		} catch (err) {
+			setUploadError(extractErrorMessage(err));
+			setPreviewUrl(null);
+			updateFormData({ imageUrl: "" });
+		} finally {
+			setUploading(false);
+		}
+	};
+
+	const handleRemoveImage = () => {
+		setPreviewUrl(null);
+		setUploadError(null);
+		updateFormData({ imageUrl: "" });
+		if (fileInputRef.current) fileInputRef.current.value = "";
+	};
+
 	const fieldError = (keyword: string) =>
 		validationErrors.find((e) => e.toLowerCase().includes(keyword));
 	const inputClass = (keyword: string) =>
@@ -96,35 +139,6 @@ export const AssetDetailsStep: FC<Props> = ({
 						get a separate coupon configuration step
 					</p>
 				</div>
-
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Capital Opened (%)
-					</label>
-					<input
-						type="number"
-						aria-label="Capital opened percent"
-						className={inputClass("capital")}
-						placeholder="e.g. 44.44"
-						step="0.01"
-						min="0"
-						max="100"
-						value={formData.capitalOpenedPercent || ""}
-						onChange={(e) =>
-							updateFormData({
-								capitalOpenedPercent: Number.parseFloat(e.target.value),
-							})
-						}
-					/>
-					{fieldError("capital") ? (
-						<p className="text-xs text-red-600 mt-1">{fieldError("capital")}</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							Percentage of total market cap (supply × price) available for
-							public purchase. 100% = full capital open
-						</p>
-					)}
-				</div>
 			</div>
 
 			<div>
@@ -147,19 +161,73 @@ export const AssetDetailsStep: FC<Props> = ({
 
 			<div>
 				<label className="block text-sm font-medium text-gray-700 mb-1">
-					Image URL
+					Asset Image
 				</label>
 				<input
-					type="url"
-					aria-label="Image URL"
-					className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					placeholder="https://example.com/asset-image.jpg"
-					value={formData.imageUrl}
-					onChange={(e) => updateFormData({ imageUrl: e.target.value })}
+					ref={fileInputRef}
+					type="file"
+					accept={ACCEPTED_TYPES}
+					className="hidden"
+					onChange={(e) => {
+						const file = e.target.files?.[0];
+						if (file) handleFileSelect(file);
+					}}
 				/>
-				<p className="text-xs text-gray-400 mt-1">
-					Public URL for the asset thumbnail (e.g., company logo)
-				</p>
+				{previewUrl ? (
+					<div className="flex items-center gap-4">
+						<img
+							src={previewUrl}
+							alt="Asset preview"
+							className="h-16 w-16 rounded-lg object-cover border border-gray-200"
+						/>
+						<div className="flex gap-2">
+							<button
+								type="button"
+								className="text-sm text-blue-600 hover:text-blue-800"
+								onClick={() => fileInputRef.current?.click()}
+								disabled={uploading}
+							>
+								Change
+							</button>
+							<button
+								type="button"
+								className="text-sm text-red-600 hover:text-red-800"
+								onClick={handleRemoveImage}
+								disabled={uploading}
+							>
+								Remove
+							</button>
+						</div>
+						{uploading && (
+							<span className="text-xs text-gray-500">Uploading...</span>
+						)}
+					</div>
+				) : (
+					<button
+						type="button"
+						className="w-full border-2 border-dashed border-gray-300 rounded-lg px-4 py-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors"
+						onClick={() => fileInputRef.current?.click()}
+						onDragOver={(e) => e.preventDefault()}
+						onDrop={(e) => {
+							e.preventDefault();
+							const file = e.dataTransfer.files[0];
+							if (file) handleFileSelect(file);
+						}}
+						disabled={uploading}
+					>
+						<p className="text-sm text-gray-600">
+							{uploading
+								? "Uploading..."
+								: "Click or drag & drop to upload an image"}
+						</p>
+						<p className="text-xs text-gray-400 mt-1">
+							JPEG, PNG, WebP, or SVG (max 5MB)
+						</p>
+					</button>
+				)}
+				{uploadError && (
+					<p className="text-xs text-red-600 mt-1">{uploadError}</p>
+				)}
 			</div>
 		</div>
 	);

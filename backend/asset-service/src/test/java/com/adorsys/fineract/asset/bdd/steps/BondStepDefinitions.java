@@ -64,6 +64,8 @@ public class BondStepDefinitions {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         String nextCoupon = data.get("nextCouponDate");
         LocalDate couponDate = resolveDateToLocalDate(nextCoupon);
+        boolean isGovBond = Boolean.parseBoolean(data.getOrDefault("isGovernmentBond", "false"));
+        boolean ircmExempt = Boolean.parseBoolean(data.getOrDefault("ircmExempt", "false"));
 
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
@@ -71,16 +73,21 @@ public class BondStepDefinitions {
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id, version,
                 interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
                 subscription_start_date, subscription_end_date,
+                registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
+                is_bvmac_listed, is_government_bond, ircm_exempt,
                 created_at, updated_at)
-            VALUES (?, ?, ?, ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL, 0,
+            VALUES (?, ?, 'XAF', ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL, 0,
                 ?, ?, ?, ?,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), NOW(), NOW())
-            """, bondId, bondId, bondId, "Bond " + bondId,
+                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
+                true, true, true, false, ?, ?,
+                NOW(), NOW())
+            """, bondId, shortSymbol(bondId), "Bond " + bondId,
                 new BigDecimal(data.get("issuerPrice")),
                 new BigDecimal(data.get("interestRate")),
                 Integer.parseInt(data.get("couponFrequencyMonths")),
                 couponDate,
-                LocalDate.now().plusYears(5));
+                LocalDate.now().plusYears(5),
+                isGovBond, ircmExempt);
 
         // Insert price record
         BigDecimal issuerPrice = new BigDecimal(data.get("issuerPrice"));
@@ -158,7 +165,7 @@ public class BondStepDefinitions {
             request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
         }
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -179,7 +186,7 @@ public class BondStepDefinitions {
         request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -201,7 +208,7 @@ public class BondStepDefinitions {
         request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -223,7 +230,7 @@ public class BondStepDefinitions {
         request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
         request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
-        MvcResult result = mockMvc.perform(post("/api/admin/assets")
+        MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -320,11 +327,15 @@ public class BondStepDefinitions {
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id, version,
                 issuer_name, interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
                 subscription_start_date, subscription_end_date,
+                registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
+                is_bvmac_listed, is_government_bond, ircm_exempt,
                 created_at, updated_at)
-            VALUES (?, ?, ?, ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, NULL, 0,
+            VALUES (?, ?, 'XAF', ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, NULL, 0,
                 'Test Issuer', 5.80, 6, ?, ?,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE), NOW(), NOW())
-            """, bondId, bondId, bondId, "Bond " + bondId, status, nextCouponDate, maturityDate);
+                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
+                true, true, true, false, false, false,
+                NOW(), NOW())
+            """, bondId, shortSymbol(bondId), "Bond " + bondId, status, nextCouponDate, maturityDate);
 
         jdbcTemplate.update("""
             INSERT INTO asset_prices (asset_id, bid_price, ask_price, day_open, day_high, day_low,
@@ -336,6 +347,11 @@ public class BondStepDefinitions {
     private String resolveDateExpression(String expr) {
         if (expr == null) return null;
         return resolveDateToLocalDate(expr).toString();
+    }
+
+    private String shortSymbol(String bondId) {
+        // Truncate to max 10 chars for VARCHAR(10) symbol column
+        return bondId.length() > 10 ? bondId.substring(0, 10) : bondId;
     }
 
     private LocalDate resolveDateToLocalDate(String expr) {
@@ -354,5 +370,23 @@ public class BondStepDefinitions {
             };
         }
         return LocalDate.parse(expr);
+    }
+
+    // ── Tax verification steps ──────────────────────────────────────
+
+    @Then("the IRCM withholding for bond {string} should be {int}")
+    public void ircmWithholdingShouldBe(String bondId, int expectedAmount) {
+        BigDecimal totalIrcm = jdbcTemplate.queryForObject(
+                "SELECT COALESCE(SUM(tax_amount), 0) FROM tax_transactions WHERE asset_id = ? AND tax_type = 'IRCM'",
+                BigDecimal.class, bondId);
+        assertThat(totalIrcm).isEqualByComparingTo(new BigDecimal(expectedAmount));
+    }
+
+    @Then("the IRCM withholding for bond {string} should be greater than {int}")
+    public void ircmWithholdingShouldBeGreaterThan(String bondId, int threshold) {
+        BigDecimal totalIrcm = jdbcTemplate.queryForObject(
+                "SELECT COALESCE(SUM(tax_amount), 0) FROM tax_transactions WHERE asset_id = ? AND tax_type = 'IRCM'",
+                BigDecimal.class, bondId);
+        assertThat(totalIrcm).isGreaterThan(new BigDecimal(threshold));
     }
 }

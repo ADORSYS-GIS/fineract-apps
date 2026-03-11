@@ -31,7 +31,7 @@ public class OrderResolutionSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .param("status", status)
-                .get("/api/admin/orders");
+                .get("/api/v1/admin/orders");
         context.setLastResponse(response);
     }
 
@@ -49,7 +49,7 @@ public class OrderResolutionSteps {
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/orders/" + orderId);
+                .get("/api/v1/admin/orders/" + orderId);
         context.setLastResponse(response);
     }
 
@@ -71,7 +71,7 @@ public class OrderResolutionSteps {
     public void adminGetsOrderAssetOptions() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/orders/asset-options");
+                .get("/api/v1/admin/orders/asset-options");
         context.setLastResponse(response);
     }
 
@@ -82,7 +82,7 @@ public class OrderResolutionSteps {
         String assetId = resolveAssetId(symbolRef);
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .post("/api/admin/reconciliation/trigger/" + assetId);
+                .post("/api/v1/admin/reconciliation/trigger/" + assetId);
         context.setLastResponse(response);
     }
 
@@ -106,7 +106,7 @@ public class OrderResolutionSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(Map.of("resolution", resolution))
-                .post("/api/admin/orders/" + orderId + "/resolve");
+                .post("/api/v1/admin/orders/" + orderId + "/resolve");
         context.setLastResponse(response);
     }
 
@@ -116,7 +116,7 @@ public class OrderResolutionSteps {
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
                 .body(Map.of("resolution", resolution))
-                .post("/api/admin/orders/" + orderId + "/resolve");
+                .post("/api/v1/admin/orders/" + orderId + "/resolve");
         context.setLastResponse(response);
     }
 

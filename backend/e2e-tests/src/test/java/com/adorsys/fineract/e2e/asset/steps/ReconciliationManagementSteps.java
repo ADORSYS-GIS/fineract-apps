@@ -31,7 +31,7 @@ public class ReconciliationManagementSteps {
     public void adminListsReports() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/reconciliation/reports");
+                .get("/api/v1/admin/reconciliation/reports");
         context.setLastResponse(response);
     }
 
@@ -40,7 +40,7 @@ public class ReconciliationManagementSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .param("status", status)
-                .get("/api/admin/reconciliation/reports");
+                .get("/api/v1/admin/reconciliation/reports");
         context.setLastResponse(response);
     }
 
@@ -50,7 +50,7 @@ public class ReconciliationManagementSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .param("assetId", assetId)
-                .get("/api/admin/reconciliation/reports");
+                .get("/api/v1/admin/reconciliation/reports");
         context.setLastResponse(response);
     }
 
@@ -60,7 +60,7 @@ public class ReconciliationManagementSteps {
     public void adminGetsSummary() {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/reconciliation/summary");
+                .get("/api/v1/admin/reconciliation/summary");
         context.setLastResponse(response);
     }
 
@@ -71,7 +71,7 @@ public class ReconciliationManagementSteps {
         Long reportId = getFirstReportId();
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .patch("/api/admin/reconciliation/reports/" + reportId + "/acknowledge");
+                .patch("/api/v1/admin/reconciliation/reports/" + reportId + "/acknowledge");
         context.setLastResponse(response);
     }
 
@@ -81,7 +81,7 @@ public class ReconciliationManagementSteps {
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .param("notes", notes)
-                .patch("/api/admin/reconciliation/reports/" + reportId + "/resolve");
+                .patch("/api/v1/admin/reconciliation/reports/" + reportId + "/resolve");
         context.setLastResponse(response);
     }
 
@@ -132,7 +132,7 @@ public class ReconciliationManagementSteps {
     private Long getFirstReportId() {
         Response listResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/admin/reconciliation/reports");
+                .get("/api/v1/admin/reconciliation/reports");
         List<Integer> ids = listResp.jsonPath().getList("content.id");
         assertThat(ids).as("Reconciliation report list should not be empty").isNotEmpty();
         return ids.get(0).longValue();

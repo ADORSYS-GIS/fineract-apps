@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Public endpoint for market status.
  */
 @RestController
-@RequestMapping("/api/market")
+@RequestMapping("/market")
 @RequiredArgsConstructor
 @Tag(name = "Market", description = "Market status and schedule")
 public class MarketController {

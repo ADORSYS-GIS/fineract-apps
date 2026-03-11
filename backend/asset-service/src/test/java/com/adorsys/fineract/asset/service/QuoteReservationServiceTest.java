@@ -59,11 +59,13 @@ class QuoteReservationServiceTest {
     @Test
     void release_deletesKeyAndDecrements() {
         when(redisTemplate.delete("quote:reserve:asset-001:order-001")).thenReturn(true);
+        when(valueOps.get("quote:reserved-total:asset-001")).thenReturn("25");
 
         quoteReservationService.release("asset-001", "order-001", new BigDecimal("10"));
 
         verify(redisTemplate).delete("quote:reserve:asset-001:order-001");
-        verify(valueOps).decrement("quote:reserved-total:asset-001", 10L);
+        verify(valueOps).get("quote:reserved-total:asset-001");
+        verify(valueOps).set(eq("quote:reserved-total:asset-001"), eq("15"), any());
     }
 
     @Test

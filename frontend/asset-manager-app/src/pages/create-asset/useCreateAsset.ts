@@ -43,13 +43,20 @@ export interface AssetFormData {
 	decimalPlaces: number;
 	subscriptionStartDate: string;
 	subscriptionEndDate: string;
-	capitalOpenedPercent: number;
 	lockupDays: number;
 	// Income distribution (non-bond)
 	incomeType: string;
 	incomeRate: number;
 	distributionFrequencyMonths: number;
 	nextDistributionDate: string;
+	// Tax configuration (Cameroon/CEMAC)
+	registrationDutyEnabled: boolean;
+	registrationDutyRate: number;
+	ircmEnabled: boolean;
+	ircmRateOverride: number;
+	ircmExempt: boolean;
+	capitalGainsTaxEnabled: boolean;
+	capitalGainsRate: number;
 }
 
 const toDateStr = (d: Date) => d.toISOString().split("T")[0];
@@ -95,12 +102,18 @@ const initialFormData: AssetFormData = {
 	decimalPlaces: 0,
 	subscriptionStartDate: today(),
 	subscriptionEndDate: daysFromNow(90),
-	capitalOpenedPercent: 100,
 	lockupDays: 0,
 	incomeType: "",
 	incomeRate: 0,
 	distributionFrequencyMonths: 12,
 	nextDistributionDate: "",
+	registrationDutyEnabled: true,
+	registrationDutyRate: 2,
+	ircmEnabled: true,
+	ircmRateOverride: 0,
+	ircmExempt: false,
+	capitalGainsTaxEnabled: true,
+	capitalGainsRate: 0,
 };
 
 export const useCreateAsset = () => {
@@ -117,6 +130,7 @@ export const useCreateAsset = () => {
 				"Bond Details",
 				"Pricing & Fees",
 				"Supply",
+				"Tax Configuration",
 				"Review & Create",
 			]
 		: [
@@ -124,6 +138,8 @@ export const useCreateAsset = () => {
 				"Asset Details",
 				"Pricing & Fees",
 				"Supply",
+				"Income Distribution",
+				"Tax Configuration",
 				"Review & Create",
 			];
 
@@ -137,10 +153,16 @@ export const useCreateAsset = () => {
 				sortOrder: "ASC",
 			}),
 		select: (res) =>
-			(res.pageItems ?? []).filter(
-				(c) =>
-					(c as unknown as { legalForm?: { id?: number } }).legalForm?.id === 2,
-			),
+			(res.pageItems ?? []).filter((c) => {
+				const client = c as unknown as {
+					legalForm?: { id?: number };
+					displayName?: string;
+				};
+				return (
+					client.legalForm?.id === 2 &&
+					!client.displayName?.toLowerCase().includes("platform fee collector")
+				);
+			}),
 	});
 
 	const createMutation = useMutation({
@@ -212,11 +234,9 @@ export const useCreateAsset = () => {
 					errors.push(
 						"Subscription end date must be on or after the start date",
 					);
-				if (
-					formData.capitalOpenedPercent < 0 ||
-					formData.capitalOpenedPercent > 100
-				)
-					errors.push("Capital opened must be between 0% and 100%");
+				break;
+			case "Income Distribution":
+				// All income fields are optional
 				break;
 		}
 		return errors;
@@ -284,7 +304,6 @@ export const useCreateAsset = () => {
 			decimalPlaces: formData.decimalPlaces,
 			subscriptionStartDate: formData.subscriptionStartDate,
 			subscriptionEndDate: formData.subscriptionEndDate,
-			capitalOpenedPercent: formData.capitalOpenedPercent || undefined,
 			lpClientId: formData.lpClientId,
 			// Exposure limits (only if set)
 			maxPositionPercent: formData.maxPositionPercent || undefined,
@@ -313,6 +332,20 @@ export const useCreateAsset = () => {
 				couponFrequencyMonths: formData.couponFrequencyMonths,
 				nextCouponDate: formData.nextCouponDate,
 			}),
+			// Tax configuration
+			registrationDutyEnabled: formData.registrationDutyEnabled,
+			registrationDutyRate: formData.registrationDutyRate
+				? formData.registrationDutyRate / 100
+				: undefined,
+			ircmEnabled: formData.ircmEnabled,
+			ircmRateOverride: formData.ircmRateOverride
+				? formData.ircmRateOverride / 100
+				: undefined,
+			ircmExempt: formData.ircmExempt,
+			capitalGainsTaxEnabled: formData.capitalGainsTaxEnabled,
+			capitalGainsRate: formData.capitalGainsRate
+				? formData.capitalGainsRate / 100
+				: undefined,
 		};
 
 		createMutation.mutate(request);

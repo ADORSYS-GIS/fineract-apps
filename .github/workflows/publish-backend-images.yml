@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - main
+      - feature/asset-service
     paths:
       - 'backend/**'
       - '.github/workflows/publish-backend-images.yml'
@@ -33,7 +34,10 @@ jobs:
       - name: Set services matrix
         id: set-services
         run: |
-          if [ "${{ github.event.inputs.services }}" == "all" ] || [ "${{ github.event.inputs.services }}" == "" ]; then
+          BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          if [ "$BRANCH" == "feature/asset-service" ]; then
+            echo 'services=["asset-service"]' >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.services }}" == "all" ] || [ "${{ github.event.inputs.services }}" == "" ]; then
             echo 'services=["asset-service","customer-self-service","payment-gateway-service","user-sync-service"]' >> $GITHUB_OUTPUT
           else
             SERVICES=$(echo "${{ github.event.inputs.services }}" | jq -R 'split(",") | map(. | gsub(" "; ""))')
