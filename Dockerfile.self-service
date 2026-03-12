@@ -7,7 +7,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable pnpm
 
 # Copy workspace files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -24,7 +24,7 @@ RUN cd packages/ui && npx tsc --build
 RUN pnpm --filter @fineract/self-service-app build
 
 # Stage 2: Production
-FROM nginxinc/nginx-unprivileged:1.27.4-alpine
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 # Copy built assets
 COPY --from=builder /app/frontend/self-service-app/dist /usr/share/nginx/html
@@ -33,7 +33,7 @@ COPY --from=builder /app/frontend/self-service-app/dist /usr/share/nginx/html
 # For local development, use default nginx config
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

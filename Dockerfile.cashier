@@ -24,27 +24,24 @@ RUN cd packages/ui && npx tsc --build
 RUN pnpm --filter cashier-app build
 
 # Stage 2: Serve with Nginx
-FROM nginx:1.28.2-alpine
-
-# Install wget for health check
-RUN apk --no-cache add wget
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 # Copy built assets from builder stage
 COPY --from=builder /app/frontend/cashier-app/dist /usr/share/nginx/html
 
 # Nginx config and env-config.js will be mounted via ConfigMaps in Kubernetes
 # For local development, create a basic nginx config
-RUN echo 'server { listen 80; root /usr/share/nginx/html; index index.html; location / { try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
+RUN echo 'server { listen 8080; root /usr/share/nginx/html; index index.html; location / { try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
 
 # Create health check file
 RUN echo "healthy" > /usr/share/nginx/html/health
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Run nginx
 CMD ["nginx", "-g", "daemon off;"]
