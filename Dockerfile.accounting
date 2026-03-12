@@ -15,7 +15,7 @@ RUN corepack enable pnpm && \
     pnpm --filter accounting-app build
 
 # Production stage
-FROM nginx:alpine
+FROM nginx:1.28.2-alpine
 
 # Copy built assets
 COPY --from=builder /app/frontend/accounting-app/dist /usr/share/nginx/html

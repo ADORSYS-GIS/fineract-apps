@@ -11,7 +11,7 @@ COPY frontend/asset-manager-app/ frontend/asset-manager-app/
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter asset-manager-app build
 
-FROM nginx:alpine
+FROM nginx:1.28.2-alpine
 COPY --from=builder /app/frontend/asset-manager-app/dist /usr/share/nginx/html
 COPY frontend/asset-manager-app/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
