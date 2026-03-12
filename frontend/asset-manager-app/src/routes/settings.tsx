@@ -1,5 +1,6 @@
 import { Card } from "@fineract-apps/ui";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ErrorFallback } from "@/components/ErrorFallback";
 
@@ -14,9 +15,22 @@ function Settings() {
 	const { t } = useTranslation();
 
 	const apiEndpoint =
-		import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083";
+		import.meta.env.VITE_FINERACT_API_URL || "http://localhost:8443";
 	const authMode = import.meta.env.VITE_AUTH_MODE || "basic";
-	const appVersion = "1.0.0";
+	const assetServiceUrl =
+		import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083";
+
+	const [backendVersion, setBackendVersion] = useState<{
+		commit: string;
+		branch: string;
+	} | null>(null);
+
+	useEffect(() => {
+		fetch(`${assetServiceUrl}/api/version`)
+			.then((res) => res.json())
+			.then(setBackendVersion)
+			.catch(() => setBackendVersion(null));
+	}, [assetServiceUrl]);
 
 	return (
 		<div className="bg-gray-50 min-h-screen">
@@ -39,8 +53,20 @@ function Settings() {
 							<span className="font-medium text-gray-900">{authMode}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-gray-500">App Version</span>
-							<span className="font-medium text-gray-900">{appVersion}</span>
+							<span className="text-gray-500">Release Tag</span>
+							<span className="font-mono text-gray-900">{__BUILD_TAG__}</span>
+						</div>
+						<div className="flex justify-between">
+							<span className="text-gray-500">Asset Manager</span>
+							<span className="font-mono text-gray-900">{__COMMIT_SHA__}</span>
+						</div>
+						<div className="flex justify-between">
+							<span className="text-gray-500">Asset Service</span>
+							<span className="font-mono text-gray-900">
+								{backendVersion
+									? `${backendVersion.commit} (${backendVersion.branch})`
+									: "—"}
+							</span>
 						</div>
 					</div>
 				</Card>
