@@ -83,6 +83,11 @@ public class RegistrationE2ESpringConfiguration {
                 () -> String.valueOf(FineractInitializer.getXafSavingsProductId()));
         registry.add("fineract.default-gender-id", () -> "2");
 
+        // Redis (pointing at the container)
+        registry.add("spring.data.redis.host", TestcontainersConfig.REDIS::getHost);
+        registry.add("spring.data.redis.port", () -> TestcontainersConfig.REDIS.getMappedPort(6379).toString());
+        registry.add("spring.data.redis.password", () -> "");
+
         // CORS (allow all for tests)
         registry.add("app.cors.allowed-origins", () -> "http://localhost:3000");
 
