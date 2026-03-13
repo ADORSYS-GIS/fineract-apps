@@ -34,10 +34,20 @@ jobs:
         run: pnpm install
 
       - name: Build affected projects
-        run: pnpm --filter="...[origin/${{ github.base_ref }}]" run build
+        run: |
+          if [ -n "${{ github.base_ref }}" ]; then
+            pnpm --filter="...[origin/${{ github.base_ref }}]" run build
+          else
+            pnpm -r build
+          fi
 
       - name: Lint affected projects
-        run: pnpm --filter="...[origin/${{ github.base_ref }}]" run lint --if-present
+        run: |
+          if [ -n "${{ github.base_ref }}" ]; then
+            pnpm --filter="...[origin/${{ github.base_ref }}]" run lint --if-present
+          else
+            pnpm -r lint --if-present
+          fi
 
       - name: Run Biome for the whole repo
         run: pnpm biome ci .
