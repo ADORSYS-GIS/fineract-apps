@@ -39,14 +39,23 @@ public class RegistrationSteps {
         context.storeValue("jwtToken", token);
     }
 
+    @Given("a customer has already been registered with the following details:")
+    public void aCustomerHasAlreadyBeenRegisteredWithTheFollowingDetails(io.cucumber.datatable.DataTable dataTable) {
+        // This step is a slightly modified version of the "a new customer is registered" step.
+        // It ensures the first registration is successful before we attempt a duplicate.
+        aNewCustomerIsRegisteredWithTheFollowingDetails(dataTable);
+        theRegistrationShouldBeSuccessfulAndReturnAClientId();
+    }
+
     @When("a new customer is registered with the following details:")
     public void aNewCustomerIsRegisteredWithTheFollowingDetails(io.cucumber.datatable.DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         String externalId = data.get("externalId");
-        assertThat(externalId).as("externalId is required in the test data").isNotNull();
 
-        // Store the externalId for later verification steps
-        context.storeId(externalId, externalId); // Store externalId by itself as key
+        if (externalId != null) {
+            // Store the externalId for later verification steps
+            context.storeId(externalId, externalId); // Store externalId by itself as key
+        }
 
         Map<String, Object> body = new HashMap<>(data);
 
@@ -70,6 +79,17 @@ public class RegistrationSteps {
 
         // Store for subsequent steps
         context.storeId("clientId", clientId.toString());
+    }
+
+    @Then("the registration should fail with a {int} Conflict status code")
+    public void theRegistrationShouldFailWithAStatusCode(int statusCode) {
+        Response response = context.getLastResponse();
+        assertThat(response.statusCode()).isEqualTo(statusCode);
+    }
+
+    @Then("the registration should fail with a {int} Bad Request status code")
+    public void theRegistrationShouldFailWithABadRequestStatusCode(int statusCode) {
+        theRegistrationShouldFailWithAStatusCode(statusCode);
     }
 
     @And("a corresponding client with id {string} should exist in Fineract")

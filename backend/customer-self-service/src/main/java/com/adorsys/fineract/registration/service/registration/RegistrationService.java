@@ -58,19 +58,7 @@ public class RegistrationService {
         Map<String, Object> client = fineractService.getClientByExternalId(externalId);
 
         if (!client.isEmpty()) {
-            Long fineractClientId = ((Number) client.get("id")).longValue();
-            log.info("Client with externalId {} already exists. Found Fineract client ID: {}", externalId, fineractClientId);
-            List<Map<String, Object>> savingsAccounts = fineractService.getSavingsAccountsByClientId(fineractClientId);
-            if (!savingsAccounts.isEmpty()) {
-                Long savingsAccountId = ((Number) savingsAccounts.get(0).get("id")).longValue();
-                log.info("Savings account for Fineract client ID {} already exists. Savings account ID: {}", fineractClientId, savingsAccountId);
-                ClientAndAccountResponse response = new ClientAndAccountResponse();
-                response.setSuccess(true);
-                response.setStatus(STATUS_SUCCESS);
-                response.setFineractClientId(fineractClientId);
-                response.setSavingsAccountId(savingsAccountId);
-                return response;
-            }
+            throw new RegistrationException("CONFLICT", "Client with externalId " + externalId + " already exists.");
         }
 
         List<BatchRequest> batchRequests = buildClientAndAccountBatchRequests(request);
