@@ -15,6 +15,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import org.springframework.data.domain.PageRequest;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -37,7 +39,8 @@ public class QueuedOrderScheduler {
     @Scheduled(cron = "0 1 8 * * MON-FRI", zone = "Africa/Douala")
     public void processQueuedOrders() {
         try {
-            List<Order> queuedOrders = orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED);
+            List<Order> queuedOrders = orderRepository.findByStatusOrderByCreatedAtAsc(
+                    OrderStatus.QUEUED, PageRequest.of(0, 500));
 
             if (queuedOrders.isEmpty()) {
                 log.debug("No queued orders to process at market open.");

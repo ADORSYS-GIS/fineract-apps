@@ -1,42 +1,39 @@
 package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
-import com.adorsys.fineract.asset.entity.PortfolioSnapshot;
-import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
-import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
+import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
+import com.adorsys.fineract.asset.service.PortfolioSnapshotWriter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PortfolioSnapshotSchedulerTest {
 
     @Mock private UserPositionRepository userPositionRepository;
+    @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
-    @Mock private PortfolioSnapshotRepository portfolioSnapshotRepository;
+    @Mock private PortfolioSnapshotWriter snapshotWriter;
     @Mock private AssetServiceConfig config;
     @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PortfolioSnapshotScheduler scheduler;
-
-    @Captor private ArgumentCaptor<PortfolioSnapshot> snapshotCaptor;
 
     @Test
     void takeSnapshots_noUsers_skips() {
@@ -44,11 +41,11 @@ class PortfolioSnapshotSchedulerTest {
 
         scheduler.takeSnapshots();
 
-        verify(portfolioSnapshotRepository, never()).save(any());
+        verify(snapshotWriter, never()).snapshotUser(anyLong(), any(), any(), any());
     }
 
     @Test
-    void takeSnapshots_singleUser_computesCorrectValues() {
+    void takeSnapshots_singleUser_delegatesToWriter() {
         when(userPositionRepository.findDistinctUserIdsWithPositions()).thenReturn(List.of(42L));
 
         AssetPrice price = new AssetPrice();
@@ -56,32 +53,11 @@ class PortfolioSnapshotSchedulerTest {
         price.setAskPrice(new BigDecimal("150"));
         price.setBidPrice(new BigDecimal("145"));
         when(assetPriceRepository.findAll()).thenReturn(List.of(price));
-
-        UserPosition pos = UserPosition.builder()
-                .userId(42L)
-                .assetId("asset-1")
-                .totalUnits(new BigDecimal("10"))
-                .totalCostBasis(new BigDecimal("1000"))
-                .avgPurchasePrice(new BigDecimal("100"))
-                .realizedPnl(BigDecimal.ZERO)
-                .fineractSavingsAccountId(200L)
-                .lastTradeAt(Instant.now())
-                .build();
-        when(userPositionRepository.findByUserId(42L)).thenReturn(List.of(pos));
-        when(portfolioSnapshotRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(assetRepository.findAll()).thenReturn(List.of());
 
         scheduler.takeSnapshots();
 
-        verify(portfolioSnapshotRepository).save(snapshotCaptor.capture());
-        PortfolioSnapshot saved = snapshotCaptor.getValue();
-
-        assertThat(saved.getUserId()).isEqualTo(42L);
-        // totalValue = 10 * 150 = 1500
-        assertThat(saved.getTotalValue()).isEqualByComparingTo("1500");
-        assertThat(saved.getTotalCostBasis()).isEqualByComparingTo("1000");
-        // unrealizedPnl = 1500 - 1000 = 500
-        assertThat(saved.getUnrealizedPnl()).isEqualByComparingTo("500");
-        assertThat(saved.getPositionCount()).isEqualTo(1);
+        verify(snapshotWriter).snapshotUser(eq(42L), any(LocalDate.class), anyMap(), anyMap());
     }
 
     @Test
@@ -93,22 +69,19 @@ class PortfolioSnapshotSchedulerTest {
         price.setAskPrice(new BigDecimal("100"));
         price.setBidPrice(new BigDecimal("95"));
         when(assetPriceRepository.findAll()).thenReturn(List.of(price));
+        when(assetRepository.findAll()).thenReturn(List.of());
 
         // User 1 throws
-        when(userPositionRepository.findByUserId(1L)).thenThrow(new RuntimeException("DB error"));
+        doThrow(new RuntimeException("DB error"))
+                .when(snapshotWriter).snapshotUser(eq(1L), any(), any(), any());
 
         // User 2 succeeds
-        UserPosition pos = UserPosition.builder()
-                .userId(2L).assetId("a").totalUnits(new BigDecimal("5"))
-                .totalCostBasis(new BigDecimal("400")).avgPurchasePrice(new BigDecimal("80"))
-                .realizedPnl(BigDecimal.ZERO).fineractSavingsAccountId(300L)
-                .lastTradeAt(Instant.now()).build();
-        when(userPositionRepository.findByUserId(2L)).thenReturn(List.of(pos));
-        when(portfolioSnapshotRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doNothing().when(snapshotWriter).snapshotUser(eq(2L), any(), any(), any());
 
         scheduler.takeSnapshots();
 
-        // Only user 2's snapshot should be saved
-        verify(portfolioSnapshotRepository, times(1)).save(any());
+        // Both users should have been attempted
+        verify(snapshotWriter).snapshotUser(eq(1L), any(), any(), any());
+        verify(snapshotWriter).snapshotUser(eq(2L), any(), any(), any());
     }
 }
