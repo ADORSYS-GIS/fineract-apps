@@ -158,9 +158,11 @@ export const useCreateAsset = () => {
 					legalForm?: { id?: number };
 					displayName?: string;
 				};
+				const name = client.displayName?.toLowerCase() ?? "";
 				return (
 					client.legalForm?.id === 2 &&
-					!client.displayName?.toLowerCase().includes("platform fee collector")
+					!name.includes("platform fee collector") &&
+					!name.includes("tax authority")
 				);
 			}),
 	});
