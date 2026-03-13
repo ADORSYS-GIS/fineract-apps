@@ -3,15 +3,14 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.SessionCallback;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -29,31 +28,56 @@ public class QuoteReservationService {
     private static final String RESERVE_KEY_PREFIX = "quote:reserve:";
     private static final String TOTAL_KEY_PREFIX = "quote:reserved-total:";
 
+    /**
+     * Lua script for atomic reserve: SET per-quote key with TTL, then INCR total.
+     * KEYS[1] = per-quote key, KEYS[2] = total key
+     * ARGV[1] = units string, ARGV[2] = per-quote TTL seconds, ARGV[3] = total TTL seconds
+     */
+    private static final String RESERVE_LUA =
+            "redis.call('SET', KEYS[1], ARGV[1], 'EX', tonumber(ARGV[2])) " +
+            "local current = redis.call('GET', KEYS[2]) " +
+            "local newTotal = tonumber(current or '0') + tonumber(ARGV[1]) " +
+            "redis.call('SET', KEYS[2], tostring(newTotal), 'EX', tonumber(ARGV[3])) " +
+            "return 1";
+
+    /**
+     * Lua script for atomic release: DEL per-quote key, if deleted then DECR total.
+     * KEYS[1] = per-quote key, KEYS[2] = total key
+     * ARGV[1] = units string
+     */
+    private static final String RELEASE_LUA =
+            "local deleted = redis.call('DEL', KEYS[1]) " +
+            "if deleted == 1 then " +
+            "  local current = redis.call('GET', KEYS[2]) " +
+            "  local newTotal = tonumber(current or '0') - tonumber(ARGV[1]) " +
+            "  if newTotal <= 0 then " +
+            "    redis.call('DEL', KEYS[2]) " +
+            "  else " +
+            "    local ttl = redis.call('TTL', KEYS[2]) " +
+            "    if ttl > 0 then " +
+            "      redis.call('SET', KEYS[2], tostring(newTotal), 'EX', ttl) " +
+            "    else " +
+            "      redis.call('SET', KEYS[2], tostring(newTotal), 'EX', 600) " +
+            "    end " +
+            "  end " +
+            "end " +
+            "return deleted";
+
     private final RedisTemplate<String, String> redisTemplate;
     private final AssetServiceConfig config;
 
     /**
-     * Soft-reserve units for a quote. Sets a per-quote Redis key with TTL and
-     * increments the per-asset total counter. Operations are atomic via MULTI/EXEC.
+     * Soft-reserve units for a quote. Uses a Lua script for atomic per-quote key SET
+     * and total counter increment.
      */
     public void reserve(String assetId, String orderId, BigDecimal units) {
         int ttl = config.getQuote().getTtlSeconds() + 2;
         String key = RESERVE_KEY_PREFIX + assetId + ":" + orderId;
         String totalKey = TOTAL_KEY_PREFIX + assetId;
         try {
-            redisTemplate.execute(new SessionCallback<List<Object>>() {
-                @Override
-                @SuppressWarnings("unchecked")
-                public List<Object> execute(RedisOperations operations) throws DataAccessException {
-                    operations.multi();
-                    operations.opsForValue().set(key, units.toPlainString(), Duration.ofSeconds(ttl));
-                    // Read current total, add units, write back (handles fractional correctly)
-                    String current = (String) redisTemplate.opsForValue().get(totalKey);
-                    BigDecimal newTotal = (current != null ? new BigDecimal(current) : BigDecimal.ZERO).add(units);
-                    operations.opsForValue().set(totalKey, newTotal.toPlainString(), Duration.ofMinutes(10));
-                    return operations.exec();
-                }
-            });
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>(RESERVE_LUA, Long.class);
+            redisTemplate.execute(script, Arrays.asList(key, totalKey),
+                    units.toPlainString(), String.valueOf(ttl), "600");
         } catch (RedisConnectionFailureException e) {
             log.warn("Redis unavailable, skipping soft-reserve for quote {} asset {}", orderId, assetId);
         } catch (Exception e) {
@@ -63,23 +87,15 @@ public class QuoteReservationService {
 
     /**
      * Release a soft reservation (on cancel, expiry, or successful execution).
-     * Only decrements the total counter if the per-quote key was still present,
-     * preventing negative counters from partial reserve failures.
+     * Uses a Lua script to atomically delete the per-quote key and decrement total
+     * only if the key was still present.
      */
     public void release(String assetId, String orderId, BigDecimal units) {
         String key = RESERVE_KEY_PREFIX + assetId + ":" + orderId;
         String totalKey = TOTAL_KEY_PREFIX + assetId;
         try {
-            Boolean deleted = redisTemplate.delete(key);
-            if (Boolean.TRUE.equals(deleted)) {
-                String current = redisTemplate.opsForValue().get(totalKey);
-                BigDecimal newTotal = (current != null ? new BigDecimal(current) : BigDecimal.ZERO).subtract(units);
-                if (newTotal.compareTo(BigDecimal.ZERO) <= 0) {
-                    redisTemplate.delete(totalKey);
-                } else {
-                    redisTemplate.opsForValue().set(totalKey, newTotal.toPlainString(), Duration.ofMinutes(10));
-                }
-            }
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>(RELEASE_LUA, Long.class);
+            redisTemplate.execute(script, Arrays.asList(key, totalKey), units.toPlainString());
         } catch (RedisConnectionFailureException e) {
             log.warn("Redis unavailable, skipping release for quote {} asset {}", orderId, assetId);
         } catch (Exception e) {

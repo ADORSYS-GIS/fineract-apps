@@ -21,7 +21,7 @@ RUN corepack enable pnpm && \
 RUN pnpm --filter reporting-app build
 
 # Stage 2: Serve with Nginx
-FROM nginx:alpine
+FROM nginx:1.28.2-alpine
 
 # Copy built assets from builder stage
 COPY --from=builder /app/frontend/reporting-app/dist /usr/share/nginx/html

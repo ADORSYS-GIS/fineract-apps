@@ -7,8 +7,10 @@ import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.entity.PortfolioSnapshot;
 import com.adorsys.fineract.asset.entity.PurchaseLot;
 import com.adorsys.fineract.asset.entity.UserPosition;
+import com.adorsys.fineract.asset.entity.CategorySnapshot;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.CategorySnapshotRepository;
 import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
 import com.adorsys.fineract.asset.repository.PurchaseLotRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
@@ -40,6 +42,7 @@ public class PortfolioService {
     private final BondBenefitService bondBenefitService;
     private final IncomeBenefitService incomeBenefitService;
     private final PortfolioSnapshotRepository portfolioSnapshotRepository;
+    private final CategorySnapshotRepository categorySnapshotRepository;
 
     /**
      * Get full portfolio summary for a user including positions and holdings.
@@ -114,13 +117,17 @@ public class PortfolioService {
             BigDecimal catMarketValue = pos.getTotalUnits().multiply(marketPrice);
             categoryValues.merge(category, catMarketValue, BigDecimal::add);
         }
+        // --- Sparkline data from pre-computed category snapshots (last 30 days) ---
+        Map<String, List<SparklinePointDto>> sparklineMap = buildSparklineMap(userId);
+
         List<CategoryAllocationResponse> allocations = new ArrayList<>();
         for (Map.Entry<String, BigDecimal> entry : categoryValues.entrySet()) {
             BigDecimal pct = totalValue.compareTo(BigDecimal.ZERO) > 0
                     ? entry.getValue().divide(totalValue, 4, RoundingMode.HALF_UP)
                             .multiply(new BigDecimal("100"))
                     : BigDecimal.ZERO;
-            allocations.add(new CategoryAllocationResponse(entry.getKey(), entry.getValue(), pct));
+            List<SparklinePointDto> sparkline = sparklineMap.getOrDefault(entry.getKey(), List.of());
+            allocations.add(new CategoryAllocationResponse(entry.getKey(), entry.getValue(), pct, sparkline));
         }
 
         // --- Estimated annual yield (total return) ---
@@ -351,6 +358,54 @@ public class PortfolioService {
         }
 
         return totalPnl;
+    }
+
+    /**
+     * Build sparkline data from pre-computed category snapshots (last 30 days).
+     * Returns a map of category name → list of (date, value) points, downsampled to ~20 points.
+     */
+    private Map<String, List<SparklinePointDto>> buildSparklineMap(Long userId) {
+        LocalDate fromDate = LocalDate.now().minusDays(30);
+        List<CategorySnapshot> snapshots = categorySnapshotRepository
+                .findByUserIdAndSnapshotDateGreaterThanEqualOrderBySnapshotDateAsc(userId, fromDate);
+
+        if (snapshots.isEmpty()) {
+            return Map.of();
+        }
+
+        // Group by category
+        Map<String, List<SparklinePointDto>> result = new LinkedHashMap<>();
+        Map<String, List<CategorySnapshot>> byCategory = snapshots.stream()
+                .collect(Collectors.groupingBy(CategorySnapshot::getCategory, LinkedHashMap::new, Collectors.toList()));
+
+        for (Map.Entry<String, List<CategorySnapshot>> entry : byCategory.entrySet()) {
+            List<CategorySnapshot> catSnapshots = entry.getValue();
+            List<SparklinePointDto> points = catSnapshots.stream()
+                    .map(s -> new SparklinePointDto(s.getSnapshotDate(), s.getTotalValue()))
+                    .toList();
+
+            // Downsample to ~20 points if needed
+            if (points.size() > 20) {
+                points = downsample(points, 20);
+            }
+            result.put(entry.getKey(), points);
+        }
+
+        return result;
+    }
+
+    /**
+     * Downsample a list of sparkline points to the target count by evenly spacing selections.
+     */
+    private List<SparklinePointDto> downsample(List<SparklinePointDto> points, int target) {
+        if (points.size() <= target) return points;
+        List<SparklinePointDto> result = new ArrayList<>(target);
+        double step = (double) (points.size() - 1) / (target - 1);
+        for (int i = 0; i < target; i++) {
+            int idx = (int) Math.round(i * step);
+            result.add(points.get(idx));
+        }
+        return result;
     }
 
     /**

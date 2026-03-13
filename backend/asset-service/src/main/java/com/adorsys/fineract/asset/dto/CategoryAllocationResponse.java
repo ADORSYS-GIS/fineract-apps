@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Breakdown of portfolio allocation by asset category.
@@ -8,5 +9,6 @@ import java.math.BigDecimal;
 public record CategoryAllocationResponse(
     String category,
     BigDecimal totalValue,
-    BigDecimal percentage
+    BigDecimal percentage,
+    List<SparklinePointDto> sparkline
 ) {}

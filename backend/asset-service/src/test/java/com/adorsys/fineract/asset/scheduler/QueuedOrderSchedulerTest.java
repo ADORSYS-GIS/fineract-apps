@@ -16,12 +16,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,7 +48,7 @@ class QueuedOrderSchedulerTest {
 
     @Test
     void processQueuedOrders_noOrders_doesNothing() {
-        when(orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED))
+        when(orderRepository.findByStatusOrderByCreatedAtAsc(eq(OrderStatus.QUEUED), any(Pageable.class)))
                 .thenReturn(List.of());
 
         queuedOrderScheduler.processQueuedOrders();
@@ -63,7 +65,7 @@ class QueuedOrderSchedulerTest {
                 .status(OrderStatus.QUEUED)
                 .queuedPrice(new BigDecimal("100"))
                 .build();
-        when(orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED))
+        when(orderRepository.findByStatusOrderByCreatedAtAsc(eq(OrderStatus.QUEUED), any(Pageable.class)))
                 .thenReturn(List.of(order));
 
         // Current price is close to queued price (within 5%)
@@ -87,7 +89,7 @@ class QueuedOrderSchedulerTest {
                 .status(OrderStatus.QUEUED)
                 .queuedPrice(new BigDecimal("100"))
                 .build();
-        when(orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED))
+        when(orderRepository.findByStatusOrderByCreatedAtAsc(eq(OrderStatus.QUEUED), any(Pageable.class)))
                 .thenReturn(List.of(order));
 
         // Price moved 10% — beyond 5% threshold
@@ -113,7 +115,7 @@ class QueuedOrderSchedulerTest {
                 .status(OrderStatus.QUEUED)
                 .queuedPrice(null) // No queued price
                 .build();
-        when(orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED))
+        when(orderRepository.findByStatusOrderByCreatedAtAsc(eq(OrderStatus.QUEUED), any(Pageable.class)))
                 .thenReturn(List.of(order));
 
         queuedOrderScheduler.processQueuedOrders();
@@ -131,7 +133,7 @@ class QueuedOrderSchedulerTest {
                 .status(OrderStatus.QUEUED)
                 .queuedPrice(new BigDecimal("100"))
                 .build();
-        when(orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED))
+        when(orderRepository.findByStatusOrderByCreatedAtAsc(eq(OrderStatus.QUEUED), any(Pageable.class)))
                 .thenReturn(List.of(order));
 
         // Ask price is used for BUY (104 → 4% change, within 5% threshold)
@@ -154,7 +156,7 @@ class QueuedOrderSchedulerTest {
                 .status(OrderStatus.QUEUED)
                 .queuedPrice(new BigDecimal("100"))
                 .build();
-        when(orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED))
+        when(orderRepository.findByStatusOrderByCreatedAtAsc(eq(OrderStatus.QUEUED), any(Pageable.class)))
                 .thenReturn(List.of(order));
 
         // Bid price is used for SELL (96 → 4% change, within threshold)
@@ -177,7 +179,7 @@ class QueuedOrderSchedulerTest {
                 .status(OrderStatus.QUEUED)
                 .queuedPrice(new BigDecimal("100"))
                 .build();
-        when(orderRepository.findByStatusOrderByCreatedAtAsc(OrderStatus.QUEUED))
+        when(orderRepository.findByStatusOrderByCreatedAtAsc(eq(OrderStatus.QUEUED), any(Pageable.class)))
                 .thenReturn(List.of(order));
 
         // Price service throws

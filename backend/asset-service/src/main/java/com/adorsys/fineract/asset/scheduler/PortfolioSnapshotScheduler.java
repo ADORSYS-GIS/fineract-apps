@@ -1,13 +1,13 @@
 package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
-import com.adorsys.fineract.asset.entity.PortfolioSnapshot;
-import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
-import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
+import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
+import com.adorsys.fineract.asset.service.PortfolioSnapshotWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,8 +34,9 @@ import java.util.stream.Collectors;
 public class PortfolioSnapshotScheduler {
 
     private final UserPositionRepository userPositionRepository;
+    private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
-    private final PortfolioSnapshotRepository portfolioSnapshotRepository;
+    private final PortfolioSnapshotWriter snapshotWriter;
     private final AssetServiceConfig config;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -51,10 +52,12 @@ public class PortfolioSnapshotScheduler {
                 return;
             }
 
-            // Bulk-load all prices once
+            // Bulk-load all prices and assets once
             Map<String, BigDecimal> priceMap = assetPriceRepository.findAll().stream()
                     .collect(Collectors.toMap(AssetPrice::getAssetId, AssetPrice::getAskPrice,
                             (a, b) -> b));
+            Map<String, Asset> assetMap = assetRepository.findAll().stream()
+                    .collect(Collectors.toMap(Asset::getId, Function.identity(), (a, b) -> b));
 
             LocalDate today = LocalDate.now();
             int success = 0;
@@ -62,7 +65,7 @@ public class PortfolioSnapshotScheduler {
 
             for (Long userId : userIds) {
                 try {
-                    snapshotUser(userId, today, priceMap);
+                    snapshotWriter.snapshotUser(userId, today, priceMap, assetMap);
                     success++;
                 } catch (Exception e) {
                     failed++;
@@ -85,32 +88,5 @@ public class PortfolioSnapshotScheduler {
                     "SCHEDULER_FAILURE", "Portfolio snapshot scheduler failed",
                     e.getMessage(), null, "SCHEDULER"));
         }
-    }
-
-    private void snapshotUser(Long userId, LocalDate date, Map<String, BigDecimal> priceMap) {
-        List<UserPosition> positions = userPositionRepository.findByUserId(userId);
-
-        BigDecimal totalValue = BigDecimal.ZERO;
-        BigDecimal totalCostBasis = BigDecimal.ZERO;
-        int positionCount = 0;
-
-        for (UserPosition pos : positions) {
-            if (pos.getTotalUnits().compareTo(BigDecimal.ZERO) <= 0) continue;
-            BigDecimal price = priceMap.getOrDefault(pos.getAssetId(), BigDecimal.ZERO);
-            totalValue = totalValue.add(pos.getTotalUnits().multiply(price));
-            totalCostBasis = totalCostBasis.add(pos.getTotalCostBasis());
-            positionCount++;
-        }
-
-        PortfolioSnapshot snapshot = PortfolioSnapshot.builder()
-                .userId(userId)
-                .snapshotDate(date)
-                .totalValue(totalValue)
-                .totalCostBasis(totalCostBasis)
-                .unrealizedPnl(totalValue.subtract(totalCostBasis))
-                .positionCount(positionCount)
-                .build();
-
-        portfolioSnapshotRepository.save(snapshot);
     }
 }

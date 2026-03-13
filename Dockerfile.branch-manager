@@ -24,7 +24,7 @@ RUN cd packages/ui && npx tsc --build
 RUN pnpm --filter branchmanager-app build
 
 # Stage 2: Serve with Nginx
-FROM nginx:alpine
+FROM nginx:1.28.2-alpine
 
 # Install wget for health check
 RUN apk --no-cache add wget
