@@ -84,8 +84,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
         log.warn("Illegal state: {}", ex.getMessage());
+        // Do not expose internal details (e.g. LP balance) to clients
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse("ILLEGAL_STATE", ex.getMessage(), "ILLEGAL_STATE", Instant.now()));
+                .body(new ErrorResponse("ILLEGAL_STATE", "Operation cannot be completed in the current state",
+                        "ILLEGAL_STATE", Instant.now()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

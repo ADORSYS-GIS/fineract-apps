@@ -11,11 +11,14 @@ public interface TaxTransactionRepository extends JpaRepository<TaxTransaction, 
 
     /**
      * Sum of capital gains taxable amounts for a user in a given fiscal year.
-     * Used to check the 500,000 XAF annual exemption threshold.
+     * Uses FOR UPDATE to prevent concurrent trades from reading stale cumulative totals
+     * during the annual 500,000 XAF exemption check.
      */
-    @Query("SELECT COALESCE(SUM(t.taxableAmount), 0) FROM TaxTransaction t " +
-           "WHERE t.userId = :userId AND t.fiscalYear = :fiscalYear " +
-           "AND t.taxType = 'CAPITAL_GAINS' AND t.status = 'SUCCESS'")
+    @Query(value = "SELECT COALESCE(SUM(t.taxable_amount), 0) FROM tax_transactions t " +
+           "WHERE t.user_id = :userId AND t.fiscal_year = :fiscalYear " +
+           "AND t.tax_type = 'CAPITAL_GAINS' AND t.status = 'SUCCESS' " +
+           "FOR UPDATE",
+           nativeQuery = true)
     BigDecimal sumCapitalGainsByUserAndYear(@Param("userId") Long userId,
                                             @Param("fiscalYear") int fiscalYear);
 

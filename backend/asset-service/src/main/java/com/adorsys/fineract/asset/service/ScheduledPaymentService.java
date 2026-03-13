@@ -194,7 +194,7 @@ public class ScheduledPaymentService {
         }
 
         // Update schedule record
-        schedule.setStatus("CONFIRMED");
+        schedule.setStatus(failCount > 0 ? "PARTIAL" : "CONFIRMED");
         schedule.setActualAmountPerUnit(actualAmountPerUnit);
         schedule.setConfirmedBy(adminUsername);
         schedule.setConfirmedAt(Instant.now());

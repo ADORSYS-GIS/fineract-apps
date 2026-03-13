@@ -749,18 +749,20 @@ public class TradingService {
         }
     }
 
-    /** Update portfolio: WAP on BUY, realized P&L on SELL. */
+    /** Update portfolio: WAP on BUY, realized P&L on SELL.
+     *  Uses executionPrice (gross, excluding fees/tax) for consistent P&L:
+     *  BUY cost basis = execution price per unit (fees are a separate expense)
+     *  SELL realized P&L = (sell execution price - buy execution price) × units
+     */
     private void updatePortfolio(TradeContext ctx) {
         TradeSide side = ctx.getStrategy().side();
         BigDecimal units = ctx.getUnits();
         if (side == TradeSide.BUY) {
-            BigDecimal effectiveCostPerUnit = ctx.getOrderCashAmount().divide(units, 4, RoundingMode.HALF_UP);
             portfolioService.updatePositionAfterBuy(ctx.getUserId(), ctx.getAssetId(),
-                    ctx.getUserAssetAccountId(), units, effectiveCostPerUnit);
+                    ctx.getUserAssetAccountId(), units, ctx.getExecutionPrice());
         } else {
-            BigDecimal netProceedsPerUnit = ctx.getOrderCashAmount().divide(units, 4, RoundingMode.HALF_UP);
             BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    ctx.getUserId(), ctx.getAssetId(), units, netProceedsPerUnit);
+                    ctx.getUserId(), ctx.getAssetId(), units, ctx.getExecutionPrice());
             ctx.setRealizedPnl(realizedPnl);
         }
     }
