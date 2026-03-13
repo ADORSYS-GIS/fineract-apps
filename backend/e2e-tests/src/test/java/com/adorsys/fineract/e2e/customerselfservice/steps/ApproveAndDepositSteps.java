@@ -34,8 +34,11 @@ public class ApproveAndDepositSteps {
         Response response = context.getLastResponse();
         assertThat(response.statusCode()).isEqualTo(201);
         Integer savingsAccountId = response.jsonPath().get("savingsAccountId");
+        Integer fineractClientId = response.jsonPath().get("fineractClientId");
         assertThat(savingsAccountId).isNotNull().isPositive();
+        assertThat(fineractClientId).isNotNull().isPositive();
         context.storeId("savingsAccountId", savingsAccountId.toString());
+        context.storeId("clientId", fineractClientId.toString());
     }
 
     @When("the KYC manager approves, activates, and deposits into the account with the following details:")

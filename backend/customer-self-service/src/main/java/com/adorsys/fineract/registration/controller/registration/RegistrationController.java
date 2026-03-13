@@ -7,7 +7,6 @@ import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.service.registration.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
-import org.springframework.security.access.prepost.PreAuthorize;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,8 +18,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -65,6 +67,11 @@ public class RegistrationController {
         log.info("Received deposit request for savings account: {}", request.getSavingsAccountId());
         if (!StringUtils.hasText(idempotencyKey)) {
             throw new RegistrationException("VALIDATION_ERROR", "X-Idempotency-Key header must not be blank.", "X-Idempotency-Key");
+        }
+        try {
+            UUID.fromString(idempotencyKey);
+        } catch (IllegalArgumentException e) {
+            throw new RegistrationException("VALIDATION_ERROR", "X-Idempotency-Key header must be a valid UUID.", "X-Idempotency-Key");
         }
         log.debug("Deposit request payload: {}", request);
         DepositResponse response = registrationService.fundAccount(request, idempotencyKey);
