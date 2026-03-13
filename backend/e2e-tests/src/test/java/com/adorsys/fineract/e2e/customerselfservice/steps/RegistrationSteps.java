@@ -92,6 +92,11 @@ public class RegistrationSteps {
         theRegistrationShouldFailWithAStatusCode(statusCode);
     }
 
+    @Then("the registration should fail with a {int} Not Found status code")
+    public void theRegistrationShouldFailWithANotFoundStatusCode(int statusCode) {
+        theRegistrationShouldFailWithAStatusCode(statusCode);
+    }
+
     @And("a corresponding client with id {string} should exist in Fineract")
     public void aCorrespondingClientWithIdShouldExistInFineract(String externalIdKey) {
         String clientIdStr = context.getId("clientId");

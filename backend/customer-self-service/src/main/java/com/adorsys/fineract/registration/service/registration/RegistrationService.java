@@ -135,8 +135,16 @@ public class RegistrationService {
     public DepositResponse fundAccount(DepositRequest request, String idempotencyKey) {
         log.info("Starting account funding process for savings account: {}", request.getSavingsAccountId());
 
+        if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(BigDecimal.ZERO) < 0) {
+            throw new RegistrationException("VALIDATION_ERROR", "Deposit amount cannot be negative.", "depositAmount");
+        }
+
         Map<String, Object> savingsAccount = fineractAccountService.getSavingsAccount(request.getSavingsAccountId());
-        if (savingsAccount != null && savingsAccount.get("status") instanceof Map) {
+        if (savingsAccount == null || savingsAccount.isEmpty()) {
+            throw new RegistrationException("NOT_FOUND", "Savings account with id " + request.getSavingsAccountId() + " not found.");
+        }
+        
+        if (savingsAccount.get("status") instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<String, Object> status = (Map<String, Object>) savingsAccount.get("status");
             if (SAVINGS_ACCOUNT_STATUS_PENDING_APPROVAL.equals(status.get("code"))) {

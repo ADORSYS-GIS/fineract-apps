@@ -61,6 +61,46 @@ public class ApproveAndDepositSteps {
         context.setLastResponse(response);
     }
 
+    @When("the KYC manager attempts to approve and deposit for a non-existent account with details:")
+    public void whenTheKycManagerApprovesWithNonExistentAccount(io.cucumber.datatable.DataTable dataTable) {
+        Map<String, String> data = dataTable.asMap(String.class, String.class);
+        long nonExistentSavingsAccountId = 99999L; // An ID that is unlikely to exist
+
+        Map<String, Object> body = new HashMap<>(data);
+        body.put("savingsAccountId", nonExistentSavingsAccountId);
+
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .header("Authorization", "Bearer " + context.<String>getValue("jwtToken"))
+                .header("X-Idempotency-Key", idempotencyKey)
+                .contentType(ContentType.JSON)
+                .body(body)
+                .post("/api/registration/approve-and-deposit");
+
+        context.setLastResponse(response);
+    }
+
+    @When("the KYC manager attempts to approve and deposit without an idempotency key with details:")
+    public void whenTheKycManagerApprovesWithoutIdempotencyKey(io.cucumber.datatable.DataTable dataTable) {
+        Map<String, String> data = dataTable.asMap(String.class, String.class);
+        String savingsAccountId = context.getId("savingsAccountId");
+
+        Map<String, Object> body = new HashMap<>(data);
+        body.put("savingsAccountId", Long.parseLong(savingsAccountId));
+
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .header("Authorization", "Bearer " + context.<String>getValue("jwtToken"))
+                // No X-Idempotency-Key header
+                .contentType(ContentType.JSON)
+                .body(body)
+                .post("/api/registration/approve-and-deposit");
+
+        context.setLastResponse(response);
+    }
+
     @Then("the approval and deposit should be successful and return a transactionId")
     public void theApprovalAndDepositShouldBeSuccessfulAndReturnATransactionId() {
         Response response = context.getLastResponse();

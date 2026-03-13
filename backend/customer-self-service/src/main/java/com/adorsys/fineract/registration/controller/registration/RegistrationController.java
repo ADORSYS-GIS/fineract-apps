@@ -4,6 +4,7 @@ import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
 import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
 import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
+import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.service.registration.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -58,9 +60,12 @@ public class RegistrationController {
     })
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<DepositResponse> approveAndDeposit(
-            @RequestHeader(value = "X-Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-Idempotency-Key", required = true) String idempotencyKey,
             @Valid @RequestBody DepositRequest request) {
         log.info("Received deposit request for savings account: {}", request.getSavingsAccountId());
+        if (!StringUtils.hasText(idempotencyKey)) {
+            throw new RegistrationException("VALIDATION_ERROR", "X-Idempotency-Key header must not be blank.", "X-Idempotency-Key");
+        }
         log.debug("Deposit request payload: {}", request);
         DepositResponse response = registrationService.fundAccount(request, idempotencyKey);
         return ResponseEntity.ok(response);
