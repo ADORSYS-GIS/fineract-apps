@@ -7,6 +7,7 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.datatable.DataTable;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -40,7 +41,7 @@ public class RegistrationSteps {
     }
 
     @Given("a customer has already been registered with the following details:")
-    public void aCustomerHasAlreadyBeenRegisteredWithTheFollowingDetails(io.cucumber.datatable.DataTable dataTable) {
+    public void aCustomerHasAlreadyBeenRegisteredWithTheFollowingDetails(DataTable dataTable) {
         // This step is a slightly modified version of the "a new customer is registered" step.
         // It ensures the first registration is successful before we attempt a duplicate.
         aNewCustomerIsRegisteredWithTheFollowingDetails(dataTable);
@@ -48,7 +49,7 @@ public class RegistrationSteps {
     }
 
     @When("a new customer is registered with the following details:")
-    public void aNewCustomerIsRegisteredWithTheFollowingDetails(io.cucumber.datatable.DataTable dataTable) {
+    public void aNewCustomerIsRegisteredWithTheFollowingDetails(DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         String externalId = data.get("externalId");
 

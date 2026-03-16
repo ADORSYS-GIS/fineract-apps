@@ -5,6 +5,7 @@ import com.adorsys.fineract.e2e.support.JwtTokenFactory;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.datatable.DataTable;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -40,7 +41,7 @@ public class AuthorizationSteps {
     }
 
     @When("the user attempts to register a new customer with the following details:")
-    public void theUserAttemptsToRegisterANewCustomerWithTheFollowingDetails(io.cucumber.datatable.DataTable dataTable) {
+    public void theUserAttemptsToRegisterANewCustomerWithTheFollowingDetails(DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         Map<String, Object> body = new HashMap<>(data);
 
@@ -55,7 +56,7 @@ public class AuthorizationSteps {
     }
 
     @When("the user attempts to approve and deposit for the account with details:")
-    public void theUserAttemptsToApproveAndDepositForTheAccountWithDetails(io.cucumber.datatable.DataTable dataTable) {
+    public void theUserAttemptsToApproveAndDepositForTheAccountWithDetails(DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         String savingsAccountId = context.getId("savingsAccountId");
 

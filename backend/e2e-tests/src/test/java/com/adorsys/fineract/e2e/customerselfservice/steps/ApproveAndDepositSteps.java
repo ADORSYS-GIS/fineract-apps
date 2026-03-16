@@ -5,6 +5,7 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.datatable.DataTable;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -29,7 +30,7 @@ public class ApproveAndDepositSteps {
     private RegistrationSteps registrationSteps;
 
     @Given("a new customer has been registered with the following details:")
-    public void aNewCustomerHasBeenRegisteredWithTheFollowingDetails(io.cucumber.datatable.DataTable dataTable) {
+    public void aNewCustomerHasBeenRegisteredWithTheFollowingDetails(DataTable dataTable) {
         registrationSteps.aNewCustomerIsRegisteredWithTheFollowingDetails(dataTable);
         Response response = context.getLastResponse();
         assertThat(response.statusCode()).isEqualTo(201);
@@ -42,7 +43,7 @@ public class ApproveAndDepositSteps {
     }
 
     @When("the KYC manager approves, activates, and deposits into the account with the following details:")
-    public void theKycManagerApprovesActivatesAndDepositsIntoTheAccountWithTheFollowingDetails(io.cucumber.datatable.DataTable dataTable) {
+    public void theKycManagerApprovesActivatesAndDepositsIntoTheAccountWithTheFollowingDetails(DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         String savingsAccountId = context.getId("savingsAccountId");
 
@@ -65,7 +66,7 @@ public class ApproveAndDepositSteps {
     }
 
     @When("the KYC manager attempts to approve and deposit for a non-existent account with details:")
-    public void whenTheKycManagerApprovesWithNonExistentAccount(io.cucumber.datatable.DataTable dataTable) {
+    public void whenTheKycManagerApprovesWithNonExistentAccount(DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         long nonExistentSavingsAccountId = 99999L; // An ID that is unlikely to exist
 
@@ -86,7 +87,7 @@ public class ApproveAndDepositSteps {
     }
 
     @When("the KYC manager attempts to approve and deposit without an idempotency key with details:")
-    public void whenTheKycManagerApprovesWithoutIdempotencyKey(io.cucumber.datatable.DataTable dataTable) {
+    public void whenTheKycManagerApprovesWithoutIdempotencyKey(DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
         String savingsAccountId = context.getId("savingsAccountId");
 
