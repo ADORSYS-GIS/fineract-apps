@@ -96,15 +96,24 @@ Flyway migrations create the following tables:
 - `user_favorites` — Watchlist
 - `interest_payments` — Bond coupon payment audit log
 - `portfolio_snapshots` — Daily portfolio value snapshots for performance charting
+- `purchase_lots` — FIFO cost basis tracking per user per asset
+- `principal_redemptions` — Bond redemption payment history
+- `income_distributions` — Non-bond income payment history
+- `scheduled_payments` — Pending coupon/income payment schedules awaiting admin confirmation
+- `reconciliation_reports` — Discrepancy reports between asset-service and Fineract
+- `audit_log` — Admin action audit trail (IP, user agent, duration)
+- `notification_log` — User and admin broadcast notifications
+- `notification_preferences` — Per-user notification event toggles
+- `category_snapshots` — Per-category daily portfolio value snapshots
 - `orders_archive` — Archived old orders (moved by ArchivalScheduler)
 - `trade_log_archive` — Archived old trade logs (moved by ArchivalScheduler)
 - `tax_transactions` — Tax calculation and collection audit trail (registration duty, IRCM, capital gains)
 
-## API Documentation
+## Documentation
 
-- [Customer API Guide](CUSTOMER-API-GUIDE.md) - Integration guide for the customer-facing app
-- [Admin Guide](ADMIN-GUIDE.md) - Asset management operations
-- [Accounting Guide](ACCOUNTING.md) - GL account mappings and journal entries
+- [API Guide](ADMIN-GUIDE.md) - Complete API reference (Part 1: Customer-facing API, Part 2: Admin API)
+- [Asset Manager UI Guide](ASSET-MANAGER-GUIDE.md) - Step-by-step guide for using the Asset Manager web application
+- [Accounting Guide](ACCOUNTING.md) - GL account mappings, settlement flows, and journal entries
 
 ## Scheduled Jobs
 
@@ -118,6 +127,11 @@ Flyway migrations create the following tables:
 | PriceSnapshotScheduler | Hourly (configurable) | Captures price snapshots for chart history |
 | OhlcScheduler | Every 60s | Resets/closes daily OHLC candles at market open/close |
 | PortfolioSnapshotScheduler | 20:30 WAT daily | Takes daily portfolio value snapshots for performance charting |
+| IncomeDistributionScheduler | 00:30 WAT daily | Creates pending income distribution schedules for eligible non-bond assets |
+| AccruedInterestScheduler | 00:30 WAT daily | Accrues daily interest on bond positions |
+| DelistingScheduler | Daily | Executes forced buyback on delisting date |
+| ReconciliationScheduler | 01:30 WAT daily | Compares asset-service state vs Fineract, creates discrepancy reports |
+| TreasuryShortfallScheduler | Daily | Checks LP cash coverage for upcoming coupon/income obligations |
 | ArchivalScheduler | 03:00 WAT 1st of month | Archives trade_log + orders older than retention period (default 12 months) |
 
 ## Market Hours

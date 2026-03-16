@@ -258,6 +258,24 @@ All trades use the **LP Cash hub model** — money flows through LP Cash, then g
 1. LP Cash → Investor XAF: `grossIncome - ircmAmount` (net payment)
 2. LP Cash → TAX-IRCM: `ircmAmount` (withholding tax, if > 0)
 
+### Bond Principal Redemption (2 legs)
+
+At maturity, the admin triggers redemption. Each holder receives face value:
+
+1. Investor Asset → LP Asset: `units` (token return)
+2. LP Cash → Investor XAF: `units × issuerPrice` (face value payout)
+
+No fee, no spread, no tax. Each holder is processed independently — partial failures do not block others.
+
+### Delisting / Forced Buyback (2 legs)
+
+On the delisting date, the scheduler force-buys all remaining holdings:
+
+1. Investor Asset → LP Asset: `units` (token return)
+2. LP Cash → Investor XAF: `units × delistingRedemptionPrice` (buyback payout)
+
+No fee, no spread, no tax. Uses the redemption price set during delisting initiation (falls back to last ask price if not set).
+
 All legs execute atomically via the Fineract Batch API — if any fails, all are reversed.
 
 ### Order Record Fields (always positive)
@@ -278,9 +296,10 @@ Period margin report: `net margin = SUM(spreadAmount) - SUM(buybackPremium)`
 | 47 | Digital Asset Inventory | Asset | Bank's vault holding of all digital asset units |
 | 48 | Asset Transfer Suspense | Asset | Clearing account for in-flight transfers |
 | 65 | Customer Digital Asset Holdings | Liability | Obligation to customers who hold asset units |
+| 42 | Fund Source / Cash Reference | Asset | Cash reference for savings product accounting |
 | 73 | Company Asset Capital | Equity | Origin of minted asset units |
 | 87 | Asset Trading Fee Income | Income | Revenue from trading fees |
-| 141 | Tax Payable - WHT | Liability | Withholding tax payable (legacy) |
+| 91 | Expense Account | Expense | Interest on savings / write-off expenses |
 | 142 | Tax Payable - Registration Duty | Liability | Registration duty (droit d'enregistrement) payable to DGI |
 | 143 | Tax Payable - IRCM | Liability | IRCM withholding tax on investment income payable to DGI |
 | 144 | Tax Payable - Capital Gains | Liability | Capital gains tax payable to DGI |
@@ -403,9 +422,7 @@ Single Fineract account transfer:
 
 | Name | Position | Description |
 |------|----------|-------------|
-| Asset Purchase | 20 | Internal transfer for digital asset buy |
-| Asset Sale | 21 | Internal transfer for digital asset sell-back |
-| Asset Issuance | 22 | Initial LP inventory deposit of asset units |
+| Asset Issuance | 22 | Used for all asset service transfers (inventory deposits, trade settlements, coupon/income payments) |
 
 ## Charges
 
