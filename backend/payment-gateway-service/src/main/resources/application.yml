@@ -1,5 +1,6 @@
 server:
   port: 8082
+  forward-headers-strategy: framework
   servlet:
     context-path: /
   tomcat:
@@ -126,9 +127,6 @@ fineract:
 app:
   ssl:
     insecure: ${SSL_INSECURE:false}
-  stepup:
-    enabled: ${APP_STEPUP_ENABLED:false}
-    secret: ${APP_STEPUP_SECRET:}
   cleanup:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
@@ -136,8 +134,8 @@ app:
     processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:60}
     processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:600000}
   limits:
-    daily-deposit-max: ${APP_DAILY_DEPOSIT_MAX:10000000}
-    daily-withdrawal-max: ${APP_DAILY_WITHDRAWAL_MAX:5000000}
+    daily-deposit-max: ${APP_DAILY_DEPOSIT_MAX:500000}
+    daily-withdrawal-max: ${APP_DAILY_WITHDRAWAL_MAX:500000}
   rate-limit:
     enabled: true
     payment-per-minute: ${RATE_LIMIT_PAYMENT:5}

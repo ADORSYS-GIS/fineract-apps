@@ -167,7 +167,7 @@ public class CinetPayClient {
             java.util.List<Map<String, Object>> payloadList = java.util.List.of(requestBody);
             String jsonPayload = objectMapper.writeValueAsString(payloadList);
 
-            Map<String, Object> response = WebClient.builder()
+            Map<String, Object> response = this.webClient.mutate()
                 .baseUrl(config.getTransferUrl())
                 .build()
                 .post()
@@ -259,11 +259,17 @@ public class CinetPayClient {
      * @return true if signature is valid
      */
     public boolean validateCallbackSignature(CinetPayCallbackRequest callback) {
-        // Verify site_id matches
-        if (!String.valueOf(config.getSiteId()).equals(callback.getSiteId())) {
-            log.warn("CinetPay callback site_id mismatch: expected={}, received={}",
-                config.getSiteId(), callback.getSiteId());
-            return false;
+        // Transfer callbacks use different fields and don't carry cpm_site_id.
+        // Detect transfer callbacks by the presence of treatment_status.
+        boolean isTransferCallback = callback.getTreatmentStatus() != null;
+
+        // For payment callbacks, verify site_id matches
+        if (!isTransferCallback) {
+            if (!String.valueOf(config.getSiteId()).equals(callback.getSiteId())) {
+                log.warn("CinetPay callback site_id mismatch: expected={}, received={}",
+                    config.getSiteId(), callback.getSiteId());
+                return false;
+            }
         }
 
         // Fail-closed: reject callbacks when secret key is not configured
@@ -272,7 +278,18 @@ public class CinetPayClient {
             return false;
         }
 
-        // Check X-Token presence
+        // For transfer callbacks, validate xToken presence only (transfer callbacks have
+        // a different payload structure that doesn't match the payment HMAC formula)
+        if (isTransferCallback) {
+            if (callback.getXToken() == null || callback.getXToken().isEmpty()) {
+                log.warn("CinetPay transfer callback missing X-Token header for txnId={}",
+                    callback.getTransactionId());
+                return false;
+            }
+            return true;
+        }
+
+        // Check X-Token presence for payment callbacks
         if (callback.getXToken() == null) {
             log.warn("CinetPay X-Token header missing. Cannot validate signature.");
             return false;
@@ -282,7 +299,7 @@ public class CinetPayClient {
             // Formula: cpm_site_id + cpm_trans_id + cpm_trans_date + cpm_amount + cpm_currency + signature +
             // payment_method + cel_phone_num + cpm_phone_prefixe + cpm_language + cpm_version +
             // cpm_payment_config + cpm_page_action + cpm_custom + cpm_designation + cpm_error_message
-            
+
             String dataToSign = callback.getSiteId() +
                 callback.getTransactionId() +
                 callback.getTransactionDate() +
@@ -328,7 +345,7 @@ public class CinetPayClient {
 
         return tokenCacheService.getToken(cacheKey).orElseGet(() -> {
             try {
-                Map<String, Object> response = WebClient.builder()
+                Map<String, Object> response = this.webClient.mutate()
                     .baseUrl(config.getTransferUrl())
                     .build()
                     .post()

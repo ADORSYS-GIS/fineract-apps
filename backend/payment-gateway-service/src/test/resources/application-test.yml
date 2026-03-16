@@ -75,14 +75,11 @@ app:
     insecure: true
   rate-limit:
     enabled: false
-  stepup:
-    enabled: false
-    secret: test-secret-for-hmac-validation
   cleanup:
     enabled: false
   limits:
-    daily-deposit-max: 10000000
-    daily-withdrawal-max: 5000000
+    daily-deposit-max: 500000
+    daily-withdrawal-max: 500000
   callbacks:
     ip-whitelist:
       enabled: false
