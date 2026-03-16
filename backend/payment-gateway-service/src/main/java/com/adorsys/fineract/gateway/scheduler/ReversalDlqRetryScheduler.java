@@ -63,9 +63,20 @@ public class ReversalDlqRetryScheduler {
     }
 
     private void retryEntry(ReversalDeadLetter entry) {
-        log.info("DLQ retry attempt {} for txnId={}, accountId={}, amount={}",
-            entry.getRetryCount() + 1, entry.getTransactionId(),
+        int attempt = entry.getRetryCount() + 1;
+        log.info("DLQ retry attempt {}/{} for txnId={}, accountId={}, amount={}",
+            attempt, maxRetries, entry.getTransactionId(),
             entry.getAccountId(), entry.getAmount());
+
+        // Optimistically mark resolved BEFORE calling Fineract to prevent double-credit.
+        // If Fineract succeeds but the subsequent DB save fails, the entry stays resolved
+        // (safe: no double-credit). If Fineract fails, we revert the resolved status.
+        entry.setRetryCount(attempt);
+        entry.setResolved(true);
+        entry.setResolvedBy("dlq-auto-retry");
+        entry.setResolvedAt(Instant.now());
+        entry.setNotes("Auto-retry attempt " + attempt);
+        deadLetterRepository.save(entry);
 
         try {
             Long paymentTypeId = reversalService.getPaymentTypeId(entry.getProvider());
@@ -77,31 +88,26 @@ public class ReversalDlqRetryScheduler {
                 "REVERSAL-" + entry.getTransactionId()
             );
 
-            // Success — mark as resolved
-            entry.setResolved(true);
-            entry.setResolvedBy("dlq-auto-retry");
-            entry.setResolvedAt(Instant.now());
-            entry.setNotes("Automated DLQ retry succeeded on attempt " + (entry.getRetryCount() + 1));
-            entry.setRetryCount(entry.getRetryCount() + 1);
-            deadLetterRepository.save(entry);
-
             paymentMetrics.incrementReversalSuccess();
             log.info("DLQ retry succeeded for txnId={}", entry.getTransactionId());
 
         } catch (Exception e) {
-            entry.setRetryCount(entry.getRetryCount() + 1);
+            // Fineract call failed — revert resolved status so it can be retried
+            entry.setResolved(false);
+            entry.setResolvedBy(null);
+            entry.setResolvedAt(null);
             entry.setFailureReason(truncate(e.getMessage(), 500));
             deadLetterRepository.save(entry);
 
-            if (entry.getRetryCount() >= maxRetries) {
+            if (attempt >= maxRetries) {
                 log.error("CRITICAL: DLQ retry exhausted ({}/{}) for txnId={}. Manual intervention required. " +
                     "accountId={}, amount={}, error={}",
-                    entry.getRetryCount(), maxRetries, entry.getTransactionId(),
+                    attempt, maxRetries, entry.getTransactionId(),
                     entry.getAccountId(), entry.getAmount(), e.getMessage());
                 paymentMetrics.incrementReversalFailure();
             } else {
                 log.warn("DLQ retry failed ({}/{}) for txnId={}: {}. Will retry later.",
-                    entry.getRetryCount(), maxRetries, entry.getTransactionId(), e.getMessage());
+                    attempt, maxRetries, entry.getTransactionId(), e.getMessage());
             }
         }
     }
