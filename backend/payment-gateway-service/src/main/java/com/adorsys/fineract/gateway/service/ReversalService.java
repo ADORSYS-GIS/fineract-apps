@@ -89,7 +89,7 @@ public class ReversalService {
      * Resolve payment type ID for a provider.
      * For CinetPay, uses the notifToken field (repurposed to store the detected underlying provider).
      */
-    Long getPaymentTypeId(PaymentProvider provider) {
+    public Long getPaymentTypeId(PaymentProvider provider) {
         return getPaymentTypeId(provider, null);
     }
 

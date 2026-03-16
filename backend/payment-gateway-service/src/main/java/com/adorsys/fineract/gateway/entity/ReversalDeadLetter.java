@@ -55,6 +55,9 @@ public class ReversalDeadLetter {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(nullable = false)
+    private int retryCount = 0;
+
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();

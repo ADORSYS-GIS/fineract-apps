@@ -130,6 +130,7 @@ public class PaymentE2ESpringConfiguration {
 
         // Disable schedulers and rate limiting for tests
         registry.add("app.cleanup.enabled", () -> "false");
+        registry.add("app.dlq-retry.enabled", () -> "false");
         registry.add("app.rate-limit.enabled", () -> "false");
         registry.add("app.callbacks.ip-whitelist.enabled", () -> "false");
 

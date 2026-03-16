@@ -77,6 +77,8 @@ app:
     enabled: false
   cleanup:
     enabled: false
+  dlq-retry:
+    enabled: false
   limits:
     daily-deposit-max: 500000
     daily-withdrawal-max: 500000
