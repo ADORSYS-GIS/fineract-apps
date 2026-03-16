@@ -55,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [asset, payment]
+        suite: [asset, payment, registration]
 
     steps:
       - name: Checkout code
