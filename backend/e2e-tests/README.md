@@ -9,6 +9,7 @@ real PostgreSQL, real Redis, real Apache Fineract, and WireMock for external pro
 |-------|------------|-----------|------|
 | Asset Service | `AssetServiceApplication` | 43 | `@stocks`, `@bonds`, `@treasury`, `@reconciliation`, `@errors`, `@catalog`, `@trading`, `@portfolio`, `@pricing`, `@favorites`, `@admin` |
 | Payment Gateway | `PaymentGatewayApplication` | 14 | `@mtn`, `@orange`, `@deposit`, `@withdrawal`, `@idempotency`, `@security`, `@limits`, `@callbacks` |
+| Registration Service | `RegistrationApplication` | 1 | `@registration` |
 
 ## Prerequisites
 
@@ -49,6 +50,9 @@ mvn -f backend/e2e-tests/pom.xml test -Pe2e-asset
 
 # Run only payment-gateway E2E (~14 scenarios)
 mvn -f backend/e2e-tests/pom.xml test -Pe2e-payment
+
+# Run only registration-service E2E
+mvn -f backend/e2e-tests/pom.xml test -Pe2e-registration
 
 # Run by tag
 mvn -f backend/e2e-tests/pom.xml test -Pe2e-asset -Dcucumber.filter.tags="@stocks"
@@ -128,9 +132,12 @@ backend/e2e-tests/
     │       ├── security.feature
     │       ├── transaction-limits.feature
     │       └── callback-validation.feature
+    │   └── registration/            # Registration-service feature files
+    │       └── customer-registration.feature
     └── java/com/adorsys/fineract/e2e/
         ├── RunAssetE2ETests.java     # Cucumber runner for asset suite
         ├── RunPaymentE2ETests.java   # Cucumber runner for payment suite
+        ├── RunRegistrationE2ETests.java # Cucumber runner for registration suite
         ├── config/
         │   ├── TestcontainersConfig.java   # Starts Postgres x3, Redis, Fineract
         │   └── FineractInitializer.java    # Creates GL accounts, payment types, users
@@ -143,11 +150,14 @@ backend/e2e-tests/
         │   ├── AssetE2ESpringConfiguration.java
         │   ├── hooks/ScenarioCleanupHook.java
         │   └── steps/*.java                # 12 step definition files
-        └── payment/                        # Payment suite
-            ├── PaymentE2ESpringConfiguration.java
-            ├── hooks/PaymentScenarioCleanupHook.java
-            ├── support/WireMockProviderStubs.java
-            └── steps/*.java                # 8 step definition files
+        ├── payment/                        # Payment suite
+        │   ├── PaymentE2ESpringConfiguration.java
+        │   ├── hooks/PaymentScenarioCleanupHook.java
+        │   ├── support/WireMockProviderStubs.java
+        │   └── steps/*.java                # 8 step definition files
+        └── customerselfservice/            # Registration suite
+            ├── RegistrationE2ESpringConfiguration.java
+            └── steps/*.java
 ```
 
 ## Startup Sequence
