@@ -55,6 +55,6 @@ public record AssetResponse(
     BigDecimal currentYield,
     @Schema(description = "Days remaining until maturity date. Computed at query time.")
     Long residualDays,
-    @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
+    @Schema(description = "True if subscriptionEndDate has passed. Informational only — does not restrict trading.")
     Boolean subscriptionClosed
 ) {}
