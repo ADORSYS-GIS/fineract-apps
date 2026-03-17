@@ -32,3 +32,11 @@ user-sync-service/.env.local
 
 # Spec files
 backend/asset-service/spec.md
+
+# Playwright reports
+playwright-report/
+test-results/
+test-results.json
+
+# BDD auto-generated files
+.features-gen/
