@@ -14,7 +14,8 @@
 		"test:coverage": "jest --coverage",
 		"prepare": "husky",
 		"postinstall": "pnpm codegen",
-		"codegen": "pnpm --filter @fineract-apps/fineract-api codegen"
+		"codegen": "pnpm --filter @fineract-apps/fineract-api codegen",
+		"test:e2e": "pnpm --filter @fineract-apps/e2e-tests test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.6",

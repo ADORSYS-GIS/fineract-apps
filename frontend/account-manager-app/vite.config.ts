@@ -19,6 +19,7 @@ export default mergeConfig(
 			}),
 		],
 		server: {
+			port: 3000,
 			proxy: {
 				"/fineract-provider": {
 					target: "https://localhost",
