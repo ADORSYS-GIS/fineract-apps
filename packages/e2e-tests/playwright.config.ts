@@ -3,13 +3,13 @@ import { defineBddConfig } from "playwright-bdd";
 
 const assetManagerTestDir = defineBddConfig({
 	paths: ["tests/asset-manager-app/features/*.feature"],
-	require: ["tests/asset-manager-app/steps/*.steps.ts"],
+	require: ["tests/shared/steps/*.steps.ts"],
 	outputDir: ".features-gen/asset-manager-app",
 });
 
 const accountManagerTestDir = defineBddConfig({
 	paths: ["tests/account-manager-app/features/*.feature"],
-	require: ["tests/account-manager-app/steps/*.steps.ts"],
+	require: ["tests/shared/steps/*.steps.ts"],
 	outputDir: ".features-gen/account-manager-app",
 });
 

@@ -18,6 +18,7 @@ packages/fineract-api/src/generated
 
 # Local environment overrides (contain secrets)
 .env.local
+.env
 .env.*.local
 */.env.local
 **/.env.local
