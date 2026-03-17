@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#00000018"/></filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="844" fill="#f3f4f6"/>
+
+  <!-- Status Bar -->
+  <rect width="390" height="44" fill="#1a56db"/>
+  <text x="20" y="28" fill="white" font-size="13" font-weight="600">9:41</text>
+  <text x="340" y="28" fill="white" font-size="11">▐▐▐ 🔋</text>
+
+  <!-- Header -->
+  <rect width="390" height="76" y="44" fill="#1a56db"/>
+  <text x="36" y="90" fill="white" font-size="20">←</text>
+  <text x="195" y="90" fill="white" font-size="18" font-weight="700" text-anchor="middle">My Wallet</text>
+
+  <!-- Balance Card -->
+  <rect x="16" y="132" width="358" height="140" rx="16" fill="#1a56db" filter="url(#shadow)"/>
+  <!-- Decorative circles -->
+  <circle cx="320" cy="140" r="80" fill="rgba(255,255,255,0.06)"/>
+  <circle cx="60" cy="240" r="60" fill="rgba(255,255,255,0.06)"/>
+  <text x="32" y="164" fill="rgba(255,255,255,0.75)" font-size="13">Total Cash Balance</text>
+  <text x="32" y="204" fill="white" font-size="34" font-weight="700">850,000 XAF</text>
+  <text x="32" y="228" fill="rgba(255,255,255,0.65)" font-size="13">Available for investment</text>
+  <text x="358" y="228" fill="rgba(255,255,255,0.9)" font-size="14" font-weight="600" text-anchor="end">800,000 XAF</text>
+  <!-- Eye icon to hide balance -->
+  <text x="358" y="164" fill="rgba(255,255,255,0.7)" font-size="16" text-anchor="end">👁</text>
+
+  <!-- Action Buttons -->
+  <rect x="16" y="284" width="172" height="54" rx="12" fill="white" filter="url(#shadow)"/>
+  <text x="103" y="307" fill="#111827" font-size="13" font-weight="600" text-anchor="middle">+ Deposit</text>
+  <text x="103" y="326" fill="#9ca3af" font-size="11" text-anchor="middle">MTN · Orange</text>
+  <rect x="202" y="284" width="172" height="54" rx="12" fill="white" filter="url(#shadow)"/>
+  <text x="288" y="307" fill="#111827" font-size="13" font-weight="600" text-anchor="middle">↑ Withdraw</text>
+  <text x="288" y="326" fill="#9ca3af" font-size="11" text-anchor="middle">To bank account</text>
+
+  <!-- Balance Breakdown -->
+  <rect x="16" y="350" width="358" height="120" rx="14" fill="white" filter="url(#shadow)"/>
+  <text x="32" y="376" fill="#111827" font-size="14" font-weight="600">Balance Breakdown</text>
+  <line x1="32" y1="386" x2="358" y2="386" stroke="#f3f4f6" stroke-width="1"/>
+
+  <rect x="28" y="396" width="8" height="8" rx="2" fill="#10b981"/>
+  <text x="44" y="406" fill="#6b7280" font-size="13">Available to invest</text>
+  <text x="358" y="406" fill="#111827" font-size="14" font-weight="700" text-anchor="end">800,000 XAF</text>
+  <line x1="32" y1="416" x2="358" y2="416" stroke="#f3f4f6" stroke-width="1"/>
+
+  <rect x="28" y="426" width="8" height="8" rx="2" fill="#f59e0b"/>
+  <text x="44" y="436" fill="#6b7280" font-size="13">Pending (in orders)</text>
+  <text x="358" y="436" fill="#f59e0b" font-size="14" font-weight="700" text-anchor="end">50,000 XAF</text>
+  <line x1="32" y1="446" x2="358" y2="446" stroke="#f3f4f6" stroke-width="1"/>
+
+  <rect x="28" y="456" width="8" height="8" rx="2" fill="#1a56db"/>
+  <text x="44" y="466" fill="#6b7280" font-size="13">Income received (March)</text>
+  <text x="358" y="466" fill="#10b981" font-size="14" font-weight="700" text-anchor="end">+17,170 XAF</text>
+
+  <!-- Recent Wallet Activity -->
+  <text x="20" y="498" fill="#111827" font-size="16" font-weight="700">Recent Activity</text>
+
+  <!-- Activity 1 - Deposit -->
+  <rect x="16" y="508" width="358" height="68" rx="14" fill="white" filter="url(#shadow)"/>
+  <circle cx="46" cy="542" r="20" fill="#d1fae5"/>
+  <text x="46" y="549" fill="#059669" font-size="20" text-anchor="middle">↓</text>
+  <text x="76" y="531" fill="#111827" font-size="14" font-weight="600">Deposit · MTN Mobile Money</text>
+  <text x="76" y="549" fill="#9ca3af" font-size="12">Mar 10, 2026 · 08:15</text>
+  <text x="76" y="567" fill="#9ca3af" font-size="11">Ref: DEP-20260310-00192</text>
+  <text x="358" y="540" fill="#10b981" font-size="15" font-weight="700" text-anchor="end">+500,000</text>
+  <text x="358" y="558" fill="#9ca3af" font-size="11" text-anchor="end">XAF</text>
+
+  <!-- Activity 2 - Buy deduction -->
+  <rect x="16" y="584" width="358" height="68" rx="14" fill="white" filter="url(#shadow)"/>
+  <circle cx="46" cy="618" r="20" fill="#fecaca"/>
+  <text x="46" y="625" fill="#ef4444" font-size="20" text-anchor="middle">↑</text>
+  <text x="76" y="607" fill="#111827" font-size="14" font-weight="600">Buy Order · Immo Plus</text>
+  <text x="76" y="625" fill="#9ca3af" font-size="12">Mar 17, 2026 · 09:41</text>
+  <text x="76" y="643" fill="#9ca3af" font-size="11">10 units · #ORD-2026-031745</text>
+  <text x="358" y="616" fill="#ef4444" font-size="15" font-weight="700" text-anchor="end">-52,260</text>
+  <text x="358" y="634" fill="#9ca3af" font-size="11" text-anchor="end">XAF</text>
+
+  <!-- Activity 3 - Income received -->
+  <rect x="16" y="660" width="358" height="68" rx="14" fill="white" filter="url(#shadow)"/>
+  <circle cx="46" cy="694" r="20" fill="#d1fae5"/>
+  <text x="46" y="701" fill="#059669" font-size="20" text-anchor="middle">💰</text>
+  <text x="76" y="683" fill="#111827" font-size="14" font-weight="600">Dividend · TechGrowth</text>
+  <text x="76" y="701" fill="#9ca3af" font-size="12">Mar 10, 2026 · Auto</text>
+  <text x="76" y="719" fill="#9ca3af" font-size="11">8 units × 2,146 XAF · #INC-2026-000145</text>
+  <text x="358" y="692" fill="#10b981" font-size="15" font-weight="700" text-anchor="end">+17,170</text>
+  <text x="358" y="710" fill="#9ca3af" font-size="11" text-anchor="end">XAF</text>
+
+  <!-- Activity 4 - Sell proceeds -->
+  <rect x="16" y="736" width="358" height="50" rx="14" fill="white" filter="url(#shadow)"/>
+  <circle cx="46" cy="761" r="18" fill="#d1fae5"/>
+  <text x="46" y="768" fill="#059669" font-size="18" text-anchor="middle">↓</text>
+  <text x="76" y="752" fill="#111827" font-size="13" font-weight="600">Sell Proceeds · TechGrowth</text>
+  <text x="76" y="770" fill="#9ca3af" font-size="12">Mar 12, 2026 · #ORD-2026-030982</text>
+  <text x="358" y="762" fill="#10b981" font-size="14" font-weight="700" text-anchor="end">+124,375 XAF</text>
+
+  <!-- See all -->
+  <text x="195" y="800" fill="#1a56db" font-size="13" text-anchor="middle">See full wallet history →</text>
+
+  <!-- Bottom Nav -->
+  <rect x="0" y="796" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="48" y="826" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">🏠 Home</text>
+  <text x="146" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">📊 Market</text>
+  <text x="244" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">💼 Portfolio</text>
+  <text x="342" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
+</svg>

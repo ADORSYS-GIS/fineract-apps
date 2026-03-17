@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#00000018"/></filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="844" fill="#f3f4f6"/>
+
+  <!-- Status Bar -->
+  <rect width="390" height="44" fill="#1a56db"/>
+  <text x="20" y="28" fill="white" font-size="13" font-weight="600">9:41</text>
+  <text x="340" y="28" fill="white" font-size="11">▐▐▐ 🔋</text>
+
+  <!-- Header -->
+  <rect width="390" height="76" y="44" fill="#1a56db"/>
+  <text x="36" y="90" fill="white" font-size="20">←</text>
+  <text x="195" y="90" fill="white" font-size="18" font-weight="700" text-anchor="middle">Review Order</text>
+
+  <!-- Step Progress Bar -->
+  <rect x="16" y="132" width="358" height="6" rx="3" fill="#e5e7eb"/>
+  <rect x="16" y="132" width="239" height="6" rx="3" fill="#1a56db"/>
+  <text x="16" y="154" fill="#1a56db" font-size="12" font-weight="600">Step 2 of 3 · Review &amp; Confirm</text>
+
+  <!-- Review Banner -->
+  <rect x="16" y="166" width="358" height="44" rx="12" fill="#eff6ff"/>
+  <text x="195" y="193" fill="#1e40af" font-size="13" text-anchor="middle">📋 Please review your order carefully before confirming</text>
+
+  <!-- Order Summary Card -->
+  <rect x="16" y="220" width="358" height="290" rx="14" fill="white" filter="url(#shadow)"/>
+  <text x="32" y="248" fill="#111827" font-size="15" font-weight="700">Order Summary</text>
+
+  <!-- Asset row -->
+  <line x1="32" y1="258" x2="358" y2="258" stroke="#f3f4f6" stroke-width="1"/>
+  <circle cx="48" cy="282" r="16" fill="#fef3c7"/>
+  <text x="48" y="288" fill="#d97706" font-size="14" text-anchor="middle">🏠</text>
+  <text x="72" y="277" fill="#6b7280" font-size="12">Asset</text>
+  <text x="72" y="293" fill="#111827" font-size="14" font-weight="600">Immo Plus (IMMO)</text>
+  <text x="358" y="285" fill="#6b7280" font-size="12" text-anchor="end">Real Estate</text>
+
+  <!-- Divider -->
+  <line x1="32" y1="308" x2="358" y2="308" stroke="#f3f4f6" stroke-width="1"/>
+
+  <!-- Order type -->
+  <text x="32" y="332" fill="#6b7280" font-size="13">Order Type</text>
+  <rect x="280" y="319" width="72" height="22" rx="11" fill="#dcfce7"/>
+  <text x="316" y="334" fill="#16a34a" font-size="12" font-weight="600" text-anchor="middle">📈 BUY</text>
+
+  <line x1="32" y1="348" x2="358" y2="348" stroke="#f3f4f6" stroke-width="1"/>
+
+  <!-- Units -->
+  <text x="32" y="372" fill="#6b7280" font-size="13">Units to buy</text>
+  <text x="358" y="372" fill="#111827" font-size="14" font-weight="700" text-anchor="end">10 units</text>
+
+  <line x1="32" y1="388" x2="358" y2="388" stroke="#f3f4f6" stroke-width="1"/>
+
+  <!-- Unit price -->
+  <text x="32" y="412" fill="#6b7280" font-size="13">Price per unit</text>
+  <text x="358" y="412" fill="#111827" font-size="14" text-anchor="end">5,200 XAF</text>
+
+  <line x1="32" y1="428" x2="358" y2="428" stroke="#f3f4f6" stroke-width="1"/>
+
+  <!-- Subtotal -->
+  <text x="32" y="452" fill="#6b7280" font-size="13">Subtotal</text>
+  <text x="358" y="452" fill="#111827" font-size="14" text-anchor="end">52,000 XAF</text>
+
+  <line x1="32" y1="468" x2="358" y2="468" stroke="#f3f4f6" stroke-width="1"/>
+
+  <!-- Trading fee -->
+  <text x="32" y="492" fill="#6b7280" font-size="13">Trading fee (0.5%)</text>
+  <text x="358" y="492" fill="#ef4444" font-size="14" text-anchor="end">+260 XAF</text>
+
+  <!-- Total line -->
+  <line x1="16" y1="506" x2="374" y2="506" stroke="#e5e7eb" stroke-width="2"/>
+
+  <!-- Total -->
+  <text x="32" y="496" fill="#111827" font-size="16" font-weight="700">Total</text>
+  <text x="358" y="496" fill="#1a56db" font-size="20" font-weight="700" text-anchor="end">52,260 XAF</text>
+
+  <!-- Balance after purchase -->
+  <rect x="16" y="522" width="358" height="56" rx="12" fill="#f0fdf4"/>
+  <text x="32" y="546" fill="#6b7280" font-size="13">Balance after purchase</text>
+  <text x="358" y="546" fill="#15803d" font-size="14" font-weight="700" text-anchor="end">797,740 XAF</text>
+  <text x="32" y="566" fill="#9ca3af" font-size="12">Available: 850,000 XAF → After: 797,740 XAF</text>
+
+  <!-- Important note -->
+  <rect x="16" y="590" width="358" height="66" rx="12" fill="#fffbeb"/>
+  <text x="32" y="612" fill="#92400e" font-size="13" font-weight="600">⚠️ Important</text>
+  <text x="32" y="630" fill="#92400e" font-size="12">• Lock-up period: 90 days after purchase</text>
+  <text x="32" y="648" fill="#92400e" font-size="12">• Orders are processed within 1 business day</text>
+
+  <!-- Price change warning -->
+  <text x="195" y="676" fill="#9ca3af" font-size="12" text-anchor="middle">Price may change slightly at execution time</text>
+
+  <!-- Confirm Button -->
+  <rect x="16" y="690" width="358" height="52" rx="14" fill="#1a56db" filter="url(#shadow)"/>
+  <text x="195" y="721" fill="white" font-size="16" font-weight="700" text-anchor="middle">✓  Confirm &amp; Buy</text>
+
+  <!-- Go Back -->
+  <text x="195" y="760" fill="#1a56db" font-size="14" text-anchor="middle">← Go Back</text>
+
+  <!-- Bottom Nav -->
+  <rect x="0" y="796" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="48" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
+  <text x="146" y="826" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">📊 Market</text>
+  <text x="244" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">💼 Portfolio</text>
+  <text x="342" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
+</svg>
