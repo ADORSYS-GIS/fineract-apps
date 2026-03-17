@@ -1,0 +1,61 @@
+<configuration>
+    <property name="LOG_PATH" value="target/logs" />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Appender for Testcontainers logs -->
+    <appender name="CONTAINERS" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_PATH}/containers.log</file>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Appender specifically for Fineract container logs -->
+    <appender name="FINERACT" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_PATH}/fineract.log</file>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Appender for this application's logs -->
+    <appender name="APP" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_PATH}/e2e-test-app.log</file>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Loggers -->
+    <logger name="com.adorsys.fineract" level="DEBUG" additivity="false">
+        <appender-ref ref="APP" />
+        <appender-ref ref="STDOUT" />
+    </logger>
+
+    <!--
+        Testcontainers uses these specific logger names to output container logs.
+        We capture them and send them to their respective files.
+    -->
+    <logger name="org.testcontainers" level="INFO" additivity="false">
+        <appender-ref ref="CONTAINERS"/>
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="com.github.dockerjava" level="WARN" additivity="false">
+        <appender-ref ref="CONTAINERS"/>
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <!-- This is the logger for the Fineract container output -->
+    <logger name="tc.fineract" level="INFO" additivity="false">
+        <appender-ref ref="FINERACT" />
+    </logger>
+
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
