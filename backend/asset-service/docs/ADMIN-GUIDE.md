@@ -2467,7 +2467,7 @@ In addition to specifying units, the trade preview API accepts an XAF **amount**
 ### Request (amount mode)
 
 ```
-POST /api/trades/preview
+POST /api/trades/quote
 Body: {
   "assetId": "uuid",
   "side": "BUY",
