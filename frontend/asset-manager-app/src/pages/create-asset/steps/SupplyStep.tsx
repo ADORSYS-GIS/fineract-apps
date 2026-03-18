@@ -112,8 +112,8 @@ export const SupplyStep: FC<Props> = ({
 							</p>
 						) : (
 							<p className="text-xs text-gray-400 mt-1">
-								Users cannot buy until this date. Use this to schedule a future
-								launch
+								Informational only — marks the start of the issuance period.
+								Does not restrict trading
 							</p>
 						)}
 					</div>
@@ -137,7 +137,8 @@ export const SupplyStep: FC<Props> = ({
 							</p>
 						) : (
 							<p className="text-xs text-gray-400 mt-1">
-								Users cannot buy after this date. SELL orders remain allowed
+								Informational only — marks the end of the issuance period. Does
+								not restrict trading
 							</p>
 						)}
 					</div>
