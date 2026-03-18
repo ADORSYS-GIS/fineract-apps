@@ -7,6 +7,7 @@ import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -156,7 +157,7 @@ class RegistrationControllerTest {
             when(registrationService.fundAccount(any(DepositRequest.class), any())).thenReturn(response);
 
             mockMvc.perform(post("/api/registration/approve-and-deposit")
-                    .header("X-Idempotency-Key", "test-key")
+                    .header("X-Idempotency-Key", UUID.randomUUID().toString())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(depositRequest)))
                     .andExpect(status().isOk())
@@ -171,7 +172,7 @@ class RegistrationControllerTest {
                     .thenThrow(new RegistrationException("Funding failed"));
 
             mockMvc.perform(post("/api/registration/approve-and-deposit")
-                    .header("X-Idempotency-Key", "test-key")
+                    .header("X-Idempotency-Key", UUID.randomUUID().toString())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(depositRequest)))
                     .andExpect(status().isInternalServerError())
