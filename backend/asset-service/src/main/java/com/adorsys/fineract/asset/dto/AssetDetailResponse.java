@@ -120,7 +120,7 @@ public record AssetDetailResponse(
     @Schema(description = "Days remaining until maturity date. Computed at query time.", nullable = true)
     Long residualDays,
     /** Whether the subscription period has ended. */
-    @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
+    @Schema(description = "True if subscriptionEndDate has passed. Informational only — does not restrict trading.")
     Boolean subscriptionClosed,
     /** Coupon amount per unit per period. Computed: issuerPrice * (rate/100) * (months/12). Null for non-bonds. */
     @Schema(description = "Coupon amount per unit per period, based on issuer price.", nullable = true)

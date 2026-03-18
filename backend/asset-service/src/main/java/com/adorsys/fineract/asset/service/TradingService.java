@@ -141,18 +141,6 @@ public class TradingService {
             throw new TradingHaltedException(request.assetId());
         }
 
-        // Subscription period check (BUY only)
-        if (request.side() == TradeSide.BUY) {
-            ZoneId marketZone = ZoneId.of(assetServiceConfig.getMarketHours().getTimezone());
-            LocalDate today = LocalDate.now(marketZone);
-            if (today.isBefore(asset.getSubscriptionStartDate())) {
-                throw new TradingException("Subscription period has not started for this asset", "SUBSCRIPTION_NOT_STARTED");
-            }
-            if (!asset.getSubscriptionEndDate().isAfter(today)) {
-                throw new TradingException("Subscription period has ended for this asset", "SUBSCRIPTION_ENDED");
-            }
-        }
-
         // Market hours (soft warning — quote can still be created, confirmed when open)
         if (!marketHoursService.isMarketOpen()) {
             warnings.add("MARKET_CLOSED");
