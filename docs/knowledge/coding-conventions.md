@@ -1,61 +1,135 @@
 # Coding Conventions — fineract-apps
 
 ## Naming Standards
-<!-- TODO: Define naming conventions for your project -->
+Follow these naming conventions to maintain consistency across the codebase.
 
+**Frontend (TypeScript/React):**
 | Element | Convention | Example |
-|---------|-----------|---------|
-| Variables | <!-- TODO --> | <!-- TODO --> |
-| Functions | <!-- TODO --> | <!-- TODO --> |
-| Classes | <!-- TODO --> | <!-- TODO --> |
-| Constants | <!-- TODO --> | <!-- TODO --> |
-| Files | <!-- TODO --> | <!-- TODO --> |
-| Database tables | <!-- TODO --> | <!-- TODO --> |
-| API endpoints | <!-- TODO --> | <!-- TODO --> |
+|-----------|------------------|-------------------------|
+| Variables | `camelCase` | `const customerId = 1;` |
+| Functions | `camelCase` | `function getCustomer() {}` |
+| React Components | `PascalCase` | `function CustomerProfile() {}` |
+| React Hooks | `use` + `PascalCase` | `function useCustomer() {}` |
+| Types/Interfaces | `PascalCase` | `interface Customer {}` |
+| Files (Components) | `PascalCase.tsx` | `CustomerProfile.tsx` |
+| Files (Other) | `camelCase.ts` | `useCustomer.ts` |
+
+**Backend (Java):**
+| Element | Convention | Example |
+|-----------|------------------|------------------------------|
+| Variables | `camelCase` | `String customerId = "1";` |
+| Methods | `camelCase` | `public Customer getCustomer() {}` |
+| Classes | `PascalCase` | `public class CustomerService {}` |
+| Constants | `UPPER_CASE` | `public static final int MAX_RETRIES = 3;` |
+| Files | `PascalCase.java`| `CustomerService.java` |
+
+**General:**
+| Element | Convention | Example |
+|------------------|------------------|----------------------------|
+| API endpoints | `kebab-case` | `/api/v1/asset-catalog` |
+| Database tables | `snake_case` | `customer_orders` |
 
 ## File Organization
-<!-- TODO: Describe the project directory structure and where different types of files belong -->
+This is a monorepo with the following top-level directory structure:
+
 ```
-<!-- TODO: Replace with actual project structure -->
-src/
-  modules/
-  shared/
-  config/
-tests/
-docs/
+.
+├── backend/         # All backend microservices
+├── docs/            # Project documentation
+├── frontend/        # All frontend applications
+├── observability/   # Monitoring and tracing configurations (e.g., Grafana, Prometheus)
+├── packages/        # Shared packages used by frontend applications
+├── public/          # Public assets
+├── scripts/         # Utility scripts
+└── .github/         # GitHub Actions workflows and issue templates
 ```
+
+**Backend:**
+Each subdirectory in `backend/` is a separate microservice (e.g., `asset-service`, `payment-gateway-service`). Each service is a self-contained Spring Boot application with its own `pom.xml` and `src/` directory.
+
+**Frontend:**
+Each subdirectory in `frontend/` is a separate React application (e.g., `self-service-app`, `admin-app`). They are all managed by `pnpm` workspaces.
+
+**Packages:**
+The `packages/` directory contains shared libraries used across the frontend applications. For example, a UI component library or a shared API client.
 
 ## Code Formatting
-<!-- TODO: Specify formatter, configuration, and rules -->
-- Formatter: <!-- TODO: e.g., Prettier, Black, gofmt -->
-- Config file: <!-- TODO: e.g., .prettierrc, pyproject.toml -->
-- Max line length: <!-- TODO: e.g., 100, 120 -->
-- Indentation: <!-- TODO: e.g., 2 spaces, 4 spaces, tabs -->
-- Trailing commas: <!-- TODO: e.g., always, never, es5 -->
+**Frontend:**
+The frontend code is formatted using [Biome](https://biomejs.dev/). The configuration is in `biome.json`.
+- Indentation: Tabs
+- Quote Style: Double quotes
+
+To format the code, run:
+```bash
+pnpm format
+```
+
+**Backend:**
+There is no automated code formatter enforced for the backend. Please follow standard Java code conventions, which are generally the default in modern IDEs like IntelliJ IDEA or VS Code with Java extensions.
 
 ## Import Ordering
-<!-- TODO: Define the order and grouping for imports -->
-1. <!-- TODO: e.g., Standard library -->
-2. <!-- TODO: e.g., Third-party packages -->
-3. <!-- TODO: e.g., Internal/project modules -->
-4. <!-- TODO: e.g., Relative imports -->
+**Frontend:**
+Imports are automatically sorted by Biome when you run the formatter.
 
-Enforce with: <!-- TODO: e.g., eslint-plugin-import, isort -->
+**Backend:**
+There is no automated import sorter enforced for the backend. Please follow standard Java conventions:
+1. `java` and `javax` packages
+2. Third-party packages (e.g., `org.springframework`)
+3. Project packages (e.g., `com.adorsys.fineract`)
 
 ## Comment Standards
-<!-- TODO: Define when and how to write comments -->
-- Public APIs: <!-- TODO: e.g., JSDoc, docstrings required -->
-- Complex logic: <!-- TODO: e.g., explain WHY, not WHAT -->
-- TODO format: <!-- TODO: e.g., TODO(username): description -->
-- Deprecated code: <!-- TODO: e.g., @deprecated annotation with migration path -->
+**Frontend:**
+Use JSDoc-style comments for hooks and complex functions. Explain the *why*, not the *what*.
+```typescript
+/**
+ * Hook to get the authenticated customer's details.
+ *
+ * This hook now sources customer data directly from the OIDC token's
+ * claims, avoiding a separate API call. It provides a consistent
+ * `Customer` object to the rest of the application.
+ */
+export function useCustomer() {
+  // ...
+}
+```
+
+**Backend:**
+Use Javadoc-style comments for all public classes and methods.
+```java
+/**
+ * Service for asset catalog browsing, search, and discovery.
+ */
+@Service
+public class AssetCatalogService {
+    /**
+     * List active assets with optional category filter and search.
+     */
+    public Page<AssetResponse> listAssets(...) {
+        // ...
+    }
+}
+```
+
+**TODOs:**
+Use a consistent format for TODO comments:
+`// TODO(username): Description of what needs to be done`
 
 ## Commit Message Format
-<!-- TODO: Define commit message conventions -->
-<!-- e.g., Conventional Commits: type(scope): description -->
+This project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification. This is enforced by `commitlint` with the `@commitlint/config-conventional` configuration.
+
+The format is:
+`type(scope): description`
+
+- **type**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, etc.
+- **scope**: Optional, e.g., `asset-service`, `self-service-app`.
+- **description**: A short, imperative-tense description of the change.
 
 ## Code Review Checklist
-<!-- TODO: Define what reviewers should check -->
-- [ ] <!-- TODO: e.g., Tests included for new functionality -->
-- [ ] <!-- TODO: e.g., No hardcoded secrets or credentials -->
-- [ ] <!-- TODO: e.g., Error handling is appropriate -->
-- [ ] <!-- TODO: e.g., Documentation updated if needed -->
+When reviewing pull requests, please check for the following:
+
+- [ ] **Clarity:** Is the code easy to understand? Are variable and function names descriptive?
+- [ ] **Correctness:** Does the code do what it's supposed to do? Does it handle edge cases?
+- [ ] **Testing:** Are there new tests for new features? Do existing tests pass?
+- [ ] **Security:** Are there any potential security vulnerabilities (e.g., XSS, SQL injection)? Are secrets handled properly?
+- [ ] **Documentation:** Is the code well-commented? Has the public API been documented? Have any relevant documents (e.g., `README.md`) been updated?
+- [ ] **Consistency:** Does the code follow the conventions in this document?
