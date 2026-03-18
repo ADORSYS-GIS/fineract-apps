@@ -1,8 +1,7 @@
-package com.adorsys.fineract.e2e.registration.steps;
+package com.adorsys.fineract.e2e.customerselfservice.steps;
 
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
-import com.adorsys.fineract.e2e.config.TestcontainersConfig;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
