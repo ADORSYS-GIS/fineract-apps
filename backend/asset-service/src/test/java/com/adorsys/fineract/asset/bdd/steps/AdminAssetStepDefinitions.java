@@ -225,6 +225,30 @@ public class AdminAssetStepDefinitions {
         context.setLastResult(result);
     }
 
+    @When("the admin updates asset {string} with issuerPrice {string}")
+    public void adminUpdatesIssuerPrice(String assetId, String price) throws Exception {
+        Map<String, Object> request = new HashMap<>();
+        request.put("issuerPrice", new BigDecimal(price));
+        MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
+                        .with(jwt().authorities(ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn();
+        context.setLastResult(result);
+    }
+
+    @When("the admin updates asset {string} with issuerName {string}")
+    public void adminUpdatesIssuerName(String assetId, String issuerName) throws Exception {
+        Map<String, Object> request = new HashMap<>();
+        request.put("issuerName", issuerName);
+        MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
+                        .with(jwt().authorities(ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn();
+        context.setLastResult(result);
+    }
+
     @When("the admin mints {int} additional units for asset {string}")
     public void adminMintsSupply(int amount, String assetId) throws Exception {
         Map<String, Object> request = Map.of("additionalSupply", amount);

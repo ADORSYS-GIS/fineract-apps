@@ -136,10 +136,10 @@ public class AssetProvisioningService {
                     lpAssetAccountId, request.totalSupply());
 
         } catch (AssetException e) {
-            rollbackFineractResources(productId, request.currencyCode(), assetId);
+            rollbackFineractResources(productId, request.currencyCode(), lpCashAccountId, lpSpreadAccountId, lpAssetAccountId, assetId);
             throw e;
         } catch (Exception e) {
-            rollbackFineractResources(productId, request.currencyCode(), assetId);
+            rollbackFineractResources(productId, request.currencyCode(), lpCashAccountId, lpSpreadAccountId, lpAssetAccountId, assetId);
             log.error("Fineract provisioning failed for asset {}: {}. productId={}.",
                     assetId, e.getMessage(), productId);
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
@@ -236,6 +236,16 @@ public class AssetProvisioningService {
             }
         }
 
+        // PENDING-only fields: reject early before any mutations
+        boolean hasPendingOnlyField = request.issuerPrice() != null || request.totalSupply() != null
+                || request.issuerName() != null || request.isinCode() != null
+                || request.couponFrequencyMonths() != null;
+
+        if (hasPendingOnlyField && asset.getStatus() != AssetStatus.PENDING) {
+            throw new AssetException("Fields issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths "
+                    + "can only be changed when asset is PENDING. Current status: " + asset.getStatus());
+        }
+
         if (request.name() != null) asset.setName(request.name());
         if (request.description() != null) asset.setDescription(request.description());
         if (request.imageUrl() != null) {
@@ -274,6 +284,36 @@ public class AssetProvisioningService {
         if (request.capitalGainsRate() != null) asset.setCapitalGainsRate(request.capitalGainsRate());
         if (request.isBvmacListed() != null) asset.setIsBvmacListed(request.isBvmacListed());
         if (request.isGovernmentBond() != null) asset.setIsGovernmentBond(request.isGovernmentBond());
+
+        // Apply PENDING-only field mutations
+        if (hasPendingOnlyField) {
+            if (request.issuerPrice() != null) {
+                asset.setIssuerPrice(request.issuerPrice());
+                asset.setManualPrice(request.issuerPrice());
+            }
+            if (request.totalSupply() != null) {
+                BigDecimal oldSupply = asset.getTotalSupply();
+                BigDecimal newSupply = request.totalSupply();
+                asset.setTotalSupply(newSupply);
+
+                // Adjust LP asset account balance to match new total supply
+                if (asset.getLpAssetAccountId() != null && oldSupply != null) {
+                    BigDecimal delta = newSupply.subtract(oldSupply);
+                    if (delta.compareTo(BigDecimal.ZERO) > 0) {
+                        fineractClient.depositToSavingsAccount(
+                                asset.getLpAssetAccountId(), delta,
+                                resolvedGlAccounts.getAssetIssuancePaymentTypeId());
+                    } else if (delta.compareTo(BigDecimal.ZERO) < 0) {
+                        fineractClient.withdrawFromSavingsAccount(
+                                asset.getLpAssetAccountId(), delta.abs(),
+                                "Supply adjustment: burn " + delta.abs() + " units for " + asset.getSymbol());
+                    }
+                }
+            }
+            if (request.issuerName() != null) asset.setIssuerName(request.issuerName());
+            if (request.isinCode() != null) asset.setIsinCode(request.isinCode());
+            if (request.couponFrequencyMonths() != null) asset.setCouponFrequencyMonths(request.couponFrequencyMonths());
+        }
 
         assetRepository.save(asset);
 
@@ -510,8 +550,34 @@ public class AssetProvisioningService {
      * Best-effort rollback of Fineract resources created during provisioning.
      * Follows the same pattern as RegistrationService.rollback().
      */
-    private void rollbackFineractResources(Integer productId, String currencyCode, String assetId) {
+    private void rollbackFineractResources(Integer productId, String currencyCode,
+                                           Long lpCashAccountId, Long lpSpreadAccountId,
+                                           Long lpAssetAccountId, String assetId) {
         log.info("Rolling back Fineract resources for asset {}...", assetId);
+
+        // Close LP accounts (best-effort, same pattern as cleanupFineractResources)
+        for (Long accountId : new Long[]{lpAssetAccountId, lpCashAccountId, lpSpreadAccountId}) {
+            if (accountId != null) {
+                try {
+                    BigDecimal balance = fineractClient.getAccountBalance(accountId);
+                    if (balance != null && balance.compareTo(BigDecimal.ZERO) > 0) {
+                        fineractClient.withdrawFromSavingsAccount(accountId, balance,
+                                "Rollback: withdraw for asset " + assetId);
+                    }
+                } catch (Exception e) {
+                    log.warn("Rollback: failed to withdraw from account {} for asset {}: {}",
+                            accountId, assetId, e.getMessage());
+                }
+                try {
+                    fineractClient.closeSavingsAccount(accountId,
+                            "Rollback: close account for asset " + assetId);
+                } catch (Exception e) {
+                    log.warn("Rollback: failed to close account {} for asset {}: {}",
+                            accountId, assetId, e.getMessage());
+                }
+            }
+        }
+
         if (productId != null) {
             fineractClient.deleteSavingsProduct(productId);
         }

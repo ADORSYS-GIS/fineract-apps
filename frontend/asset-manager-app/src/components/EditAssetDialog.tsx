@@ -37,6 +37,12 @@ interface EditFormValues {
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
 	capitalGainsRate: string;
+	// PENDING-only fields
+	issuerPrice: string;
+	totalSupply: string;
+	issuerName: string;
+	isinCode: string;
+	couponFrequencyMonths: string;
 }
 
 function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
@@ -78,6 +84,12 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 			asset.capitalGainsRate != null
 				? (asset.capitalGainsRate * 100).toString()
 				: "",
+		// PENDING-only fields
+		issuerPrice: asset.issuerPrice?.toString() ?? "",
+		totalSupply: asset.totalSupply?.toString() ?? "",
+		issuerName: asset.issuerName ?? "",
+		isinCode: asset.isinCode ?? "",
+		couponFrequencyMonths: asset.couponFrequencyMonths?.toString() ?? "",
 	};
 }
 
@@ -144,6 +156,18 @@ function buildUpdateRequest(
 		data.capitalGainsRate = values.capitalGainsRate
 			? Number(values.capitalGainsRate) / 100
 			: undefined;
+
+	// PENDING-only fields
+	if (values.issuerPrice !== initial.issuerPrice)
+		data.issuerPrice = num(values.issuerPrice);
+	if (values.totalSupply !== initial.totalSupply)
+		data.totalSupply = num(values.totalSupply);
+	if (values.issuerName !== initial.issuerName)
+		data.issuerName = values.issuerName || undefined;
+	if (values.isinCode !== initial.isinCode)
+		data.isinCode = values.isinCode || undefined;
+	if (values.couponFrequencyMonths !== initial.couponFrequencyMonths)
+		data.couponFrequencyMonths = num(values.couponFrequencyMonths);
 
 	return Object.keys(data).length > 0 ? data : null;
 }
@@ -265,6 +289,146 @@ const BasicInfoSection: FC<{
 		</div>
 	</>
 );
+
+const CoreFieldsSection: FC<{
+	isPending: boolean;
+	asset: AssetDetailResponse;
+}> = ({ isPending, asset }) => {
+	if (isPending) {
+		return (
+			<>
+				{/* Read-only identity fields */}
+				<div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+					<p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+						Asset Identity (read-only — delete and recreate to change)
+					</p>
+					<div className="grid grid-cols-3 gap-x-4 gap-y-1 text-sm">
+						<div>
+							<span className="text-gray-500 dark:text-gray-400">Symbol</span>
+							<span className="block font-mono font-medium text-gray-800 dark:text-gray-200">
+								{asset.symbol}
+							</span>
+						</div>
+						<div>
+							<span className="text-gray-500 dark:text-gray-400">Currency</span>
+							<span className="block font-mono font-medium text-gray-800 dark:text-gray-200">
+								{asset.currencyCode}
+							</span>
+						</div>
+						<div>
+							<span className="text-gray-500 dark:text-gray-400">Decimals</span>
+							<span className="block font-medium text-gray-800 dark:text-gray-200">
+								{asset.decimalPlaces}
+							</span>
+						</div>
+					</div>
+				</div>
+				{/* Editable core fields */}
+				<div className="grid grid-cols-2 gap-4">
+					<div>
+						<label className={LABEL_CLASS}>Issuer Price (XAF)</label>
+						<Field
+							name="issuerPrice"
+							type="number"
+							className={INPUT_CLASS}
+							min={0}
+							placeholder="e.g. 5000"
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Face value for coupon/income calculations
+						</p>
+					</div>
+					<div>
+						<label className={LABEL_CLASS}>Total Supply</label>
+						<Field
+							name="totalSupply"
+							type="number"
+							className={INPUT_CLASS}
+							min={0}
+							placeholder="e.g. 100000"
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Maximum units that can exist
+						</p>
+					</div>
+				</div>
+				{asset.category === "BONDS" && (
+					<>
+						<div>
+							<label className={LABEL_CLASS}>Issuer Name</label>
+							<Field
+								name="issuerName"
+								className={INPUT_CLASS}
+								maxLength={255}
+								placeholder="e.g. Etat du Sénégal"
+							/>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<label className={LABEL_CLASS}>ISIN Code</label>
+								<Field
+									name="isinCode"
+									className={INPUT_CLASS}
+									maxLength={12}
+									placeholder="e.g. SN0000038741"
+								/>
+							</div>
+							<div>
+								<label className={LABEL_CLASS}>Coupon Frequency</label>
+								<Field
+									as="select"
+									name="couponFrequencyMonths"
+									className={INPUT_CLASS}
+								>
+									<option value="">Select...</option>
+									{FREQUENCY_OPTIONS.map((f) => (
+										<option key={f.value} value={f.value}>
+											{f.label}
+										</option>
+									))}
+								</Field>
+							</div>
+						</div>
+					</>
+				)}
+			</>
+		);
+	}
+
+	return (
+		<div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+			<p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+				Asset Identity (read-only)
+			</p>
+			<div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+				<div className="text-gray-500 dark:text-gray-400">Symbol</div>
+				<div className="font-mono font-medium text-gray-800 dark:text-gray-200">
+					{asset.symbol}
+				</div>
+				<div className="text-gray-500 dark:text-gray-400">Issuer Price</div>
+				<div className="font-medium text-gray-800 dark:text-gray-200">
+					{asset.issuerPrice != null
+						? `${asset.issuerPrice.toLocaleString()} XAF`
+						: "—"}
+				</div>
+				<div className="text-gray-500 dark:text-gray-400">Total Supply</div>
+				<div className="font-medium text-gray-800 dark:text-gray-200">
+					{asset.totalSupply?.toLocaleString()} units
+				</div>
+				{asset.category === "BONDS" && asset.maturityDate && (
+					<>
+						<div className="text-gray-500 dark:text-gray-400">
+							Maturity Date
+						</div>
+						<div className="font-medium text-gray-800 dark:text-gray-200">
+							{asset.maturityDate}
+						</div>
+					</>
+				)}
+			</div>
+		</div>
+	);
+};
 
 const PricingSection: FC = () => (
 	<>
@@ -673,39 +837,6 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 					Edit Asset
 				</h3>
 
-				{/* Read-only context */}
-				<div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 mb-4">
-					<p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-						Asset Identity (read-only)
-					</p>
-					<div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-						<div className="text-gray-500 dark:text-gray-400">Symbol</div>
-						<div className="font-mono font-medium text-gray-800 dark:text-gray-200">
-							{asset.symbol}
-						</div>
-						<div className="text-gray-500 dark:text-gray-400">Issuer Price</div>
-						<div className="font-medium text-gray-800 dark:text-gray-200">
-							{asset.issuerPrice != null
-								? `${asset.issuerPrice.toLocaleString()} XAF`
-								: "—"}
-						</div>
-						<div className="text-gray-500 dark:text-gray-400">Total Supply</div>
-						<div className="font-medium text-gray-800 dark:text-gray-200">
-							{asset.totalSupply?.toLocaleString()} units
-						</div>
-						{asset.category === "BONDS" && asset.maturityDate && (
-							<>
-								<div className="text-gray-500 dark:text-gray-400">
-									Maturity Date
-								</div>
-								<div className="font-medium text-gray-800 dark:text-gray-200">
-									{asset.maturityDate}
-								</div>
-							</>
-						)}
-					</div>
-				</div>
-
 				<Formik
 					initialValues={initialValues}
 					enableReinitialize
@@ -720,6 +851,13 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 				>
 					{(formik) => (
 						<Form>
+							{/* Core fields — editable when PENDING, read-only otherwise */}
+							<div className="mb-4">
+								<CoreFieldsSection
+									isPending={asset.status === "PENDING"}
+									asset={asset}
+								/>
+							</div>
 							<div className="space-y-4">
 								<BasicInfoSection
 									previewUrl={previewUrl}
