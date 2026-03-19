@@ -30,3 +30,11 @@ Feature: Asset Delisting (E2E)
     When the admin cancels delisting of asset "DCL"
     Then the response status should be 200
     And the asset should be in ACTIVE status
+
+  Scenario: Selling a delisted asset is allowed during the grace period
+    Given an active stock asset "DLS2" with price 1000 and supply 1000
+    And the user holds 10 units of "DLS2"
+    When the admin initiates delisting of asset "DLS2" on date 30 days from now
+    Then the asset should be in DELISTING status
+    When the user previews a SELL of 5 units of "DLS2"
+    Then the preview should be feasible
