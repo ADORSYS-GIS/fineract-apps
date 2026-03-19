@@ -31,3 +31,8 @@ Feature: Favorites / Watchlist
     Then the response status should be 201
     When the user adds asset "FV3" to favorites
     Then the response status should be 201
+
+  Scenario: Removing a non-existent favorite is idempotent
+    Given an active stock asset "FV4" with price 1000 and supply 100
+    When the user removes asset "FV4" from favorites
+    Then the response status should be 204
