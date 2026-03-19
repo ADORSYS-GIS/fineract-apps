@@ -44,3 +44,7 @@ Feature: Trade Preview & Order History
     When the user requests their order history for asset "TP5"
     Then the response status should be 200
     And the order history should contain at least 1 order
+
+  Scenario: Preview a BUY trade for a non-existent asset
+    When the user previews a BUY of 5 units of "NONEXISTENT"
+    Then the preview should not be feasible
