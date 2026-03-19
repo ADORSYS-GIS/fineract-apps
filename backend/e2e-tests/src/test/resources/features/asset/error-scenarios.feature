@@ -48,6 +48,13 @@ Feature: Error Scenarios (E2E)
     Then the idempotent order should return the same result
     And only one trade should be recorded in the trade log
 
+  Scenario: Duplicate sell order with same idempotency key is idempotent
+    Given an active stock asset "IDS" with price 500 and supply 100
+    And the user holds 10 units of "IDS"
+    When the user sends two identical sell orders for 1 units of "IDS"
+    Then the idempotent order should return the same result
+    And only one trade should be recorded in the trade log
+
   # -----------------------------------------------------------------
   # Quote Error Scenarios
   # -----------------------------------------------------------------
