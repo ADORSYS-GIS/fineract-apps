@@ -198,7 +198,6 @@ If you need to create many assets at once, the Excel import workflow is faster t
    - Results show success/failure for each row with error details
 
 All imported assets are created in **PENDING** status. You can then review and activate them individually.
-
 ---
 
 ## 3. Creating a New Asset

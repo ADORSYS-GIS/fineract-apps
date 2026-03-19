@@ -76,11 +76,14 @@ public class InterestPaymentScheduler {
     @Transactional
     public void createPendingAndAdvance(Asset bond) {
         LocalDate couponDate = bond.getNextCouponDate();
-        boolean created = scheduledPaymentService.createPendingSchedule(bond, "COUPON", couponDate);
+        scheduledPaymentService.createPendingSchedule(bond, "COUPON", couponDate);
 
-        if (created) {
-            advanceCouponDate(bond);
-        }
+        // Always advance the coupon date — whether a new schedule was created or
+        // one already exists (idempotent skip). This prevents the coupon date from
+        // getting permanently stuck if the first createPendingSchedule call succeeds
+        // but advanceCouponDate fails, since subsequent runs would see "already exists"
+        // and never advance.
+        advanceCouponDate(bond);
     }
 
     private void advanceCouponDate(Asset bond) {

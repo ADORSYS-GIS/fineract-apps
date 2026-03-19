@@ -94,7 +94,7 @@ The investor pays the LP's **ask price** per unit plus the trading fee, all in a
 
 #### Step 1: Trade Preview
 
-The app calls `POST /api/trades/preview` to show the investor what they'll pay:
+The app calls `POST /api/trades/quote` to lock a price and show the investor what they'll pay:
 
 ```
 Units:              10
@@ -227,7 +227,7 @@ LP Spread balance = **+2,000 XAF** = net LP profit from bid-ask spread.
 
 All trades use the **LP Cash hub model** — money flows through LP Cash, then gets distributed internally. The investor sees at most **1 XAF transaction** per trade (fee bundled, spread invisible).
 
-### BUY (3-6 legs)
+### BUY (2-5 legs)
 
 1. Investor XAF → LP Cash: `grossAmount + fee + registrationDuty` (single investor debit)
 2. LP Asset → Investor Asset: `units` (token delivery)
@@ -235,7 +235,7 @@ All trades use the **LP Cash hub model** — money flows through LP Cash, then g
 4. LP Cash → Fee Collection: `fee` (internal, if > 0)
 5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 
-### SELL, bid ≤ issuer (3-7 legs)
+### SELL, bid ≤ issuer (2-6 legs)
 
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Cash → Investor XAF: `grossAmount - fee - registrationDuty - capitalGainsTax` (single investor credit)
@@ -244,7 +244,7 @@ All trades use the **LP Cash hub model** — money flows through LP Cash, then g
 5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 6. LP Cash → TAX-CAP-GAINS: `capitalGainsTax` (tax, if gain > 0 and above exemption)
 
-### SELL, bid > issuer (3-7 legs)
+### SELL, bid > issuer (3-6 legs)
 
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Spread → LP Cash: `buybackPremium` (internal, funds the premium)
@@ -253,12 +253,32 @@ All trades use the **LP Cash hub model** — money flows through LP Cash, then g
 5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 6. LP Cash → TAX-CAP-GAINS: `capitalGainsTax` (tax, if gain > 0 and above exemption)
 
-### Coupon/Income Payment (2-3 legs)
+### Coupon/Income Payment (1-2 legs)
 
 1. LP Cash → Investor XAF: `grossIncome - ircmAmount` (net payment)
 2. LP Cash → TAX-IRCM: `ircmAmount` (withholding tax, if > 0)
 
-All legs execute atomically via the Fineract Batch API — if any fails, all are reversed.
+Both coupon and income payments use atomic batch execution when IRCM applies.
+
+### Bond Principal Redemption (2 transfers per holder, non-atomic)
+
+At maturity, the admin triggers redemption via `POST /api/admin/assets/{id}/redeem`. Each holder receives face value:
+
+1. Investor Asset → LP Asset: `units` (token return)
+2. LP Cash → Investor XAF: `units × issuerPrice` (face value payout)
+
+No fee, no spread, no tax. Each holder is processed independently — partial failures do not block others. Unlike trade settlement, these two transfers are executed as **individual Fineract account transfers** (not an atomic batch). The asset leg executes first; if the cash leg fails, the asset units have already been returned to LP. Failed holders can be retried by calling the endpoint again (already-succeeded holders are skipped).
+
+### Delisting / Forced Buyback (2 transfers per holder, non-atomic)
+
+On the delisting date, the scheduler force-buys all remaining holdings:
+
+1. Investor Asset → LP Asset: `units` (token return)
+2. LP Cash → Investor XAF: `units × delistingRedemptionPrice` (buyback payout)
+
+No fee, no spread, no tax. Uses the redemption price set during delisting initiation (falls back to the current ask price from the asset price table if not set). Each holder is processed independently — partial failures do not block others. Like principal redemption, these are **individual Fineract account transfers**, not an atomic batch.
+
+**Trade settlement** (BUY/SELL) legs execute atomically via the Fineract Batch API (`enclosingTransaction=true`) — if any fails, all are reversed. **Coupon/income payments** also use atomic batches when IRCM withholding applies.
 
 ### Order Record Fields (always positive)
 
@@ -278,9 +298,10 @@ Period margin report: `net margin = SUM(spreadAmount) - SUM(buybackPremium)`
 | 47 | Digital Asset Inventory | Asset | Bank's vault holding of all digital asset units |
 | 48 | Asset Transfer Suspense | Asset | Clearing account for in-flight transfers |
 | 65 | Customer Digital Asset Holdings | Liability | Obligation to customers who hold asset units |
+| 42 | Fund Source / Cash Reference | Asset | Cash reference for savings product accounting |
 | 73 | Company Asset Capital | Equity | Origin of minted asset units |
 | 87 | Asset Trading Fee Income | Income | Revenue from trading fees |
-| 141 | Tax Payable - WHT | Liability | Withholding tax payable (legacy) |
+| 91 | Expense Account | Expense | Interest on savings / write-off expenses |
 | 142 | Tax Payable - Registration Duty | Liability | Registration duty (droit d'enregistrement) payable to DGI |
 | 143 | Tax Payable - IRCM | Liability | IRCM withholding tax on investment income payable to DGI |
 | 144 | Tax Payable - Capital Gains | Liability | Capital gains tax payable to DGI |
@@ -289,10 +310,21 @@ Period margin report: `net margin = SUM(spreadAmount) - SUM(buybackPremium)`
 
 Each asset's savings product is configured with **Cash-based accounting** (rule = 2):
 
-| Mapping | GL Account |
+| Fineract Mapping | GL Account |
 |---------|------------|
+| **Asset accounts** | |
 | Savings Reference | GL 47 (Digital Asset Inventory) |
+| Overdraft Portfolio Control | GL 47 (Digital Asset Inventory) |
+| **Liability accounts** | |
 | Savings Control | GL 65 (Customer Digital Asset Holdings) |
+| Transfers in Suspense | GL 65 (Customer Digital Asset Holdings) |
+| **Income accounts** | |
+| Income from Interest | GL 87 (Asset Trading Fee Income) |
+| Income from Fee | GL 87 (Asset Trading Fee Income) |
+| Income from Penalty | GL 87 (Asset Trading Fee Income) |
+| **Expense accounts** | |
+| Interest on Savings | GL 91 (Expense Account) |
+| Write-Off | GL 91 (Expense Account) |
 
 ## Journal Entry Examples
 
@@ -391,21 +423,22 @@ For non-bond assets (REAL_ESTATE, AGRICULTURE, etc.) with income configured, per
 
 - Formula: `units × issuerPrice × (incomeRate / 100) × (frequencyMonths / 12)`
 - Example: Investor holds 50 units. Issuer price = 4,000 XAF, income rate = 8%, monthly:
-  - Income = 50 × 4,000 × (8 / 100) × (1 / 12) = **1,333 XAF**
+  - Gross income = 50 × 4,000 × (8 / 100) × (1 / 12) = **1,333 XAF**
 
-Single Fineract account transfer:
+IRCM withholding tax is deducted from the gross income before payment, using the same rate logic as coupon payments:
 
 | Transfer | From | To | Amount |
 |----------|------|----|--------|
-| Income payment | LP Cash | Investor XAF | 1,333 XAF |
+| Income payment | LP Cash | Investor XAF | 1,333 - IRCM |
+| IRCM collection | LP Cash | TAX-IRCM | IRCM amount |
+
+Each payment is recorded in the `income_distributions` table. Tax is recorded in `tax_transactions` table.
 
 ## Payment Types
 
 | Name | Position | Description |
 |------|----------|-------------|
-| Asset Purchase | 20 | Internal transfer for digital asset buy |
-| Asset Sale | 21 | Internal transfer for digital asset sell-back |
-| Asset Issuance | 22 | Initial LP inventory deposit of asset units |
+| Asset Issuance | 22 | Used for all asset service transfers (inventory deposits, trade settlements, coupon/income payments) |
 
 ## Charges
 

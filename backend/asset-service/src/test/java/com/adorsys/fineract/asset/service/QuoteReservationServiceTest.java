@@ -4,16 +4,16 @@ import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -38,18 +38,19 @@ class QuoteReservationServiceTest {
     }
 
     @Test
-    void reserve_executesAtomicTransaction() {
-        // SessionCallback is executed via redisTemplate.execute()
-        when(redisTemplate.execute(any(SessionCallback.class))).thenReturn(null);
+    void reserve_executesLuaScript() {
+        when(redisTemplate.execute(any(DefaultRedisScript.class), anyList(), any()))
+                .thenReturn(1L);
 
         quoteReservationService.reserve("asset-001", "order-001", new BigDecimal("10"));
 
-        verify(redisTemplate).execute(any(SessionCallback.class));
+        verify(redisTemplate).execute(any(DefaultRedisScript.class), anyList(),
+                eq("10"), eq("32"), eq("600"));
     }
 
     @Test
     void reserve_redisDown_failsOpenSilently() {
-        when(redisTemplate.execute(any(SessionCallback.class)))
+        when(redisTemplate.execute(any(DefaultRedisScript.class), anyList(), any()))
                 .thenThrow(new RedisConnectionFailureException("Connection refused"));
 
         assertDoesNotThrow(() ->
@@ -57,40 +58,20 @@ class QuoteReservationServiceTest {
     }
 
     @Test
-    void release_deletesKeyAndDecrements() {
-        when(redisTemplate.delete("quote:reserve:asset-001:order-001")).thenReturn(true);
-        when(valueOps.get("quote:reserved-total:asset-001")).thenReturn("25");
+    void release_executesLuaScript() {
+        when(redisTemplate.execute(any(DefaultRedisScript.class), anyList(), any()))
+                .thenReturn(1L);
 
         quoteReservationService.release("asset-001", "order-001", new BigDecimal("10"));
 
-        verify(redisTemplate).delete("quote:reserve:asset-001:order-001");
-        verify(valueOps).get("quote:reserved-total:asset-001");
-        verify(valueOps).set(eq("quote:reserved-total:asset-001"), eq("15"), any());
-    }
-
-    @Test
-    void release_keyNotFound_skipsDecrement() {
-        when(redisTemplate.delete("quote:reserve:asset-001:order-001")).thenReturn(false);
-
-        quoteReservationService.release("asset-001", "order-001", new BigDecimal("10"));
-
-        verify(redisTemplate).delete("quote:reserve:asset-001:order-001");
-        verifyNoInteractions(valueOps);
-    }
-
-    @Test
-    void release_deleteReturnsNull_skipsDecrement() {
-        when(redisTemplate.delete("quote:reserve:asset-001:order-001")).thenReturn(null);
-
-        quoteReservationService.release("asset-001", "order-001", new BigDecimal("10"));
-
-        verify(redisTemplate).delete("quote:reserve:asset-001:order-001");
-        verifyNoInteractions(valueOps);
+        verify(redisTemplate).execute(any(DefaultRedisScript.class),
+                eq(List.of("quote:reserve:asset-001:order-001", "quote:reserved-total:asset-001")),
+                eq("10"));
     }
 
     @Test
     void release_redisDown_failsOpenSilently() {
-        when(redisTemplate.delete(anyString()))
+        when(redisTemplate.execute(any(DefaultRedisScript.class), anyList(), any()))
                 .thenThrow(new RedisConnectionFailureException("Connection refused"));
 
         assertDoesNotThrow(() ->

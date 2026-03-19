@@ -212,6 +212,8 @@ public class FineractAccountService {
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {});
             log.debug("Successfully made deposit. Fineract response: {}", response);
             return response;
+        } catch (RegistrationException e) {
+            throw e; // Re-throw it as is
         } catch (Exception e) {
             log.error("Failed to make deposit to savings account {}: {}", savingsAccountId, e.getMessage());
             throw new RegistrationException("Failed to make deposit", e);
@@ -248,7 +250,7 @@ public class FineractAccountService {
         }
 
         log.error("Payment type '{}' not found after fetching from API.", paymentTypeName);
-        throw new RegistrationException("Payment type not found: " + paymentTypeName);
+        throw new RegistrationException("VALIDATION_ERROR", "Payment type not found: " + paymentTypeName, "paymentType");
     }
 
 

@@ -11,6 +11,7 @@ import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
+import com.adorsys.fineract.asset.service.PortfolioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -36,6 +37,7 @@ public class DelistingService {
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
     private final UserPositionRepository userPositionRepository;
+    private final PortfolioService portfolioService;
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
     private final ApplicationEventPublisher eventPublisher;
@@ -124,7 +126,21 @@ public class DelistingService {
                     .orElse(BigDecimal.ZERO);
         }
 
+        // Pre-flight: check LP cash balance covers total obligation
         String currency = assetServiceConfig.getSettlementCurrency();
+        BigDecimal totalObligation = BigDecimal.ZERO;
+        for (UserPosition h : holders) {
+            totalObligation = totalObligation.add(
+                    h.getTotalUnits().multiply(redemptionPrice).setScale(0, RoundingMode.HALF_UP));
+        }
+        BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+        if (lpCashBalance.compareTo(totalObligation) < 0) {
+            log.error("Insufficient LP cash for delisting buyback of {}: available={}, required={}",
+                    asset.getSymbol(), lpCashBalance, totalObligation);
+            throw new AssetException("Insufficient LP cash balance for forced buyback: "
+                    + lpCashBalance + " available, " + totalObligation + " required");
+        }
+
         int successCount = 0;
         int failCount = 0;
         BigDecimal totalCashPaid = BigDecimal.ZERO;
@@ -158,10 +174,9 @@ public class DelistingService {
                         cashAmount,
                         "Delisting redemption: " + asset.getSymbol());
 
-                // Zero out the position
-                holder.setTotalUnits(BigDecimal.ZERO);
-                holder.setTotalCostBasis(BigDecimal.ZERO);
-                userPositionRepository.save(holder);
+                // Update position via PortfolioService (handles FIFO lots + realized P&L)
+                portfolioService.updatePositionAfterSell(
+                        holder.getUserId(), asset.getId(), holderUnits, redemptionPrice);
 
                 successCount++;
                 totalCashPaid = totalCashPaid.add(cashAmount);

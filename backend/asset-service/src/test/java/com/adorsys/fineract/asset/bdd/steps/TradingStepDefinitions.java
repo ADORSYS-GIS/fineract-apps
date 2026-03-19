@@ -85,6 +85,11 @@ public class TradingStepDefinitions {
         jdbcTemplate.update("UPDATE assets SET subscription_end_date = DATEADD('DAY', -1, CURRENT_DATE) WHERE id = ?", assetId);
     }
 
+    @Given("asset {string} has a subscription start date in the future")
+    public void assetHasFutureSubscriptionStart(String assetId) {
+        jdbcTemplate.update("UPDATE assets SET subscription_start_date = DATEADD('DAY', 1, CURRENT_DATE) WHERE id = ?", assetId);
+    }
+
     // -------------------------------------------------------------------------
     // When steps — Quote-based trading flow
     // -------------------------------------------------------------------------

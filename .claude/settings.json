@@ -1,0 +1,65 @@
+{
+	"mcpServers": {
+		"context7": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@upstash/context7-mcp"
+			],
+			"env": {
+				"DEFAULT_MINIMUM_TOKENS": ""
+			}
+		},
+		"tavily": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"tavily-mcp@0.2.3"
+			],
+			"env": {
+				"TAVILY_API_KEY": "tvly-dev-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+			}
+		},
+		"memory": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-memory"
+			]
+		},
+		"kubernetes": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"kubernetes-mcp-server@latest"
+			],
+			"type": "stdio"
+		},
+		"figma-dev-mode": {
+			"type": "sse",
+			"url": "http://127.0.0.1:3845/sse",
+			"disabled": true,
+			"alwaysAllow": []
+		},
+		"github": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "-e",
+        "GITHUB_TOOLSETS",
+        "-e",
+        "GITHUB_READ_ONLY",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "GITHUB_TOOLSETS": "",
+        "GITHUB_READ_ONLY": "0"
+      }
+    }
+	}
+}
