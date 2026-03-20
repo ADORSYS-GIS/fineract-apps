@@ -12,7 +12,6 @@ async function createTestWorkbook(
 	const headers = [
 		"name *",
 		"symbol *",
-		"currencyCode *",
 		"category *",
 		"issuerPrice *",
 		"totalSupply *",
@@ -34,7 +33,6 @@ async function createTestWorkbook(
 		sheet.addRow([
 			"BRVM Composite Index",
 			"BRVM",
-			"BRV",
 			"STOCKS",
 			5000,
 			100000,
@@ -72,7 +70,7 @@ describe("assetExcelTemplate", () => {
 		it("contains all mandatory field keys", () => {
 			expect(REQUIRED_KEYS).toContain("name");
 			expect(REQUIRED_KEYS).toContain("symbol");
-			expect(REQUIRED_KEYS).toContain("currencyCode");
+			// currencyCode is auto-derived from symbol, not in template
 			expect(REQUIRED_KEYS).toContain("category");
 			expect(REQUIRED_KEYS).toContain("issuerPrice");
 			expect(REQUIRED_KEYS).toContain("totalSupply");
@@ -98,7 +96,6 @@ describe("assetExcelTemplate", () => {
 				{
 					name: "Gold Token",
 					symbol: "GLD",
-					currencyCode: "GLD",
 					category: "COMMODITIES",
 					issuerPrice: 50000,
 					totalSupply: 10000,
@@ -132,7 +129,6 @@ describe("assetExcelTemplate", () => {
 				{
 					name: "Incomplete Asset",
 					// symbol missing
-					currencyCode: "INC",
 					category: "STOCKS",
 					// issuerPrice missing
 					totalSupply: 100,
@@ -159,7 +155,6 @@ describe("assetExcelTemplate", () => {
 				{
 					name: "Bad Category",
 					symbol: "BAD",
-					currencyCode: "BAD",
 					category: "INVALID",
 					issuerPrice: 100,
 					totalSupply: 100,
@@ -181,7 +176,6 @@ describe("assetExcelTemplate", () => {
 				{
 					name: "Asset A",
 					symbol: "AAA",
-					currencyCode: "AAA",
 					category: "STOCKS",
 					issuerPrice: 1000,
 					totalSupply: 50000,
@@ -195,7 +189,6 @@ describe("assetExcelTemplate", () => {
 				{
 					name: "Asset B",
 					symbol: "BBB",
-					currencyCode: "BBB",
 					category: "REAL_ESTATE",
 					issuerPrice: 25000,
 					totalSupply: 1000,
@@ -221,7 +214,6 @@ describe("assetExcelTemplate", () => {
 			const headers = [
 				"name *",
 				"symbol *",
-				"currencyCode *",
 				"category *",
 				"issuerPrice *",
 				"totalSupply *",
@@ -237,7 +229,6 @@ describe("assetExcelTemplate", () => {
 			// Add row with Date objects
 			sheet.addRow([
 				"Date Test",
-				"DTE",
 				"DTE",
 				"STOCKS",
 				1000,
@@ -270,7 +261,6 @@ describe("assetExcelTemplate", () => {
 				{
 					name: "Real Asset",
 					symbol: "REA",
-					currencyCode: "REA",
 					category: "AGRICULTURE",
 					issuerPrice: 2000,
 					totalSupply: 8000,
@@ -293,7 +283,6 @@ describe("assetExcelTemplate", () => {
 				{
 					name: "Fee Asset",
 					symbol: "FEE",
-					currencyCode: "FEE",
 					category: "STOCKS",
 					issuerPrice: 500,
 					totalSupply: 20000,

@@ -59,6 +59,10 @@ class AssetProvisioningServiceTest {
         lenient().when(resolvedGlAccounts.getExpenseAccountId()).thenReturn(91L);
         lenient().when(resolvedGlAccounts.getAssetIssuancePaymentTypeId()).thenReturn(22L);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
+
+        // Default: no orphaned Fineract resources
+        lenient().when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
+        lenient().when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
     }
 
     // -------------------------------------------------------------------------

@@ -26,17 +26,8 @@ const COLUMNS: ColumnDef[] = [
 		header: "symbol *",
 		required: true,
 		comment:
-			"Short ticker symbol (max 10 chars, must be unique across all assets). REQUIRED.",
+			"Short ticker symbol (3-4 chars, e.g. 'GRT'). REQUIRED. Must be unique. Also used as the internal currency code in Adorsys Core Banking.",
 		example: "BRVM",
-		type: "string",
-	},
-	{
-		key: "currencyCode",
-		header: "currencyCode *",
-		required: true,
-		comment:
-			"ISO-style currency code used internally by Adorsys Core Banking (max 10 chars, must be unique). REQUIRED.",
-		example: "BRV",
 		type: "string",
 	},
 	{
@@ -396,7 +387,6 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		// COMMODITIES sample
 		name: "Gold Reserve Token",
 		symbol: "GRT",
-		currencyCode: "GRT",
 		category: "COMMODITIES",
 		issuerPrice: 3000,
 		totalSupply: 50000,
@@ -439,7 +429,6 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		// BONDS sample
 		name: "Cameroon Gov Bond 2030",
 		symbol: "CGB",
-		currencyCode: "CGB",
 		category: "BONDS",
 		issuerPrice: 10000,
 		totalSupply: 100000,
@@ -482,7 +471,6 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		// REAL_ESTATE sample
 		name: "Douala Tower Token",
 		symbol: "DTT",
-		currencyCode: "DTT",
 		category: "REAL_ESTATE",
 		issuerPrice: 5000,
 		totalSupply: 100000,
@@ -725,7 +713,7 @@ export async function parseAssetExcel(
 		const asset: CreateAssetRequest = {
 			name: String(raw.name ?? ""),
 			symbol: String(raw.symbol ?? ""),
-			currencyCode: String(raw.currencyCode ?? ""),
+			currencyCode: String(raw.currencyCode ?? raw.symbol ?? ""),
 			category: String(raw.category ?? ""),
 			issuerPrice: parseNumber(raw.issuerPrice) ?? 0,
 			totalSupply: parseNumber(raw.totalSupply) ?? 0,
