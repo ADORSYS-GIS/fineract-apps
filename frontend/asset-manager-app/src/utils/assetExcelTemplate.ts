@@ -661,9 +661,8 @@ export async function parseAssetExcel(
 	const headerRow = sheet.getRow(1);
 	const headerMap = new Map<string, number>();
 	headerRow.eachCell((cell, colNumber) => {
-		const val = String(cell.value ?? "")
-			.replace(/\s*\*$/, "")
-			.trim();
+		let val = String(cell.value ?? "").trim();
+		if (val.endsWith("*")) val = val.slice(0, -1).trim();
 		headerMap.set(val, colNumber);
 	});
 
