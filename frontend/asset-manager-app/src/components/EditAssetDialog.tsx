@@ -93,83 +93,77 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 	};
 }
 
+/** Maps form field names to their transform for the API request. */
+const num = (v: string) => (v ? Number(v) : undefined);
+const pct = (v: string) => (v ? Number(v) / 100 : undefined);
+const str = (v: string) => v || undefined;
+
+type FieldTransform = (v: string) => unknown;
+
+const STRING_FIELDS: (keyof EditFormValues)[] = [
+	"name",
+	"description",
+	"imageUrl",
+	"category",
+];
+
+const NUM_FIELDS: (keyof EditFormValues)[] = [
+	"lpBidPrice",
+	"lpAskPrice",
+	"maxPositionPercent",
+	"maxOrderSize",
+	"minOrderSize",
+	"minOrderCashAmount",
+	"dailyTradeLimitXaf",
+	"lockupDays",
+	"incomeRate",
+	"distributionFrequencyMonths",
+	"issuerPrice",
+	"totalSupply",
+	"couponFrequencyMonths",
+];
+
+const PCT_FIELDS: (keyof EditFormValues)[] = [
+	"tradingFeePercent",
+	"registrationDutyRate",
+	"ircmRateOverride",
+	"capitalGainsRate",
+];
+
+const STR_FIELDS: (keyof EditFormValues)[] = [
+	"incomeType",
+	"nextDistributionDate",
+	"issuerName",
+	"isinCode",
+];
+
+const BOOL_FIELDS: (keyof EditFormValues)[] = [
+	"registrationDutyEnabled",
+	"ircmEnabled",
+	"ircmExempt",
+	"capitalGainsTaxEnabled",
+];
+
 function buildUpdateRequest(
 	values: EditFormValues,
 	initial: EditFormValues,
 ): UpdateAssetRequest | null {
-	const data: UpdateAssetRequest = {};
-	const num = (v: string) => (v ? Number(v) : undefined);
+	const data: Record<string, unknown> = {};
 
-	if (values.name !== initial.name) data.name = values.name;
-	if (values.description !== initial.description)
-		data.description = values.description;
-	if (values.imageUrl !== initial.imageUrl) data.imageUrl = values.imageUrl;
-	if (values.category !== initial.category) data.category = values.category;
-	if (values.tradingFeePercent !== initial.tradingFeePercent)
-		data.tradingFeePercent = values.tradingFeePercent
-			? Number(values.tradingFeePercent) / 100
-			: undefined;
-	if (values.lpBidPrice !== initial.lpBidPrice)
-		data.lpBidPrice = num(values.lpBidPrice);
-	if (values.lpAskPrice !== initial.lpAskPrice)
-		data.lpAskPrice = num(values.lpAskPrice);
-	if (values.maxPositionPercent !== initial.maxPositionPercent)
-		data.maxPositionPercent = num(values.maxPositionPercent);
-	if (values.maxOrderSize !== initial.maxOrderSize)
-		data.maxOrderSize = num(values.maxOrderSize);
-	if (values.minOrderSize !== initial.minOrderSize)
-		data.minOrderSize = num(values.minOrderSize);
-	if (values.minOrderCashAmount !== initial.minOrderCashAmount)
-		data.minOrderCashAmount = num(values.minOrderCashAmount);
-	if (values.dailyTradeLimitXaf !== initial.dailyTradeLimitXaf)
-		data.dailyTradeLimitXaf = num(values.dailyTradeLimitXaf);
-	if (values.lockupDays !== initial.lockupDays)
-		data.lockupDays = num(values.lockupDays);
-	if (values.incomeType !== initial.incomeType)
-		data.incomeType = values.incomeType || undefined;
-	if (values.incomeRate !== initial.incomeRate)
-		data.incomeRate = num(values.incomeRate);
-	if (
-		values.distributionFrequencyMonths !== initial.distributionFrequencyMonths
-	)
-		data.distributionFrequencyMonths = num(values.distributionFrequencyMonths);
-	if (values.nextDistributionDate !== initial.nextDistributionDate)
-		data.nextDistributionDate = values.nextDistributionDate || undefined;
-	// Tax configuration
-	if (values.registrationDutyEnabled !== initial.registrationDutyEnabled)
-		data.registrationDutyEnabled = values.registrationDutyEnabled;
-	if (values.registrationDutyRate !== initial.registrationDutyRate)
-		data.registrationDutyRate = values.registrationDutyRate
-			? Number(values.registrationDutyRate) / 100
-			: undefined;
-	if (values.ircmEnabled !== initial.ircmEnabled)
-		data.ircmEnabled = values.ircmEnabled;
-	if (values.ircmRateOverride !== initial.ircmRateOverride)
-		data.ircmRateOverride = values.ircmRateOverride
-			? Number(values.ircmRateOverride) / 100
-			: undefined;
-	if (values.ircmExempt !== initial.ircmExempt)
-		data.ircmExempt = values.ircmExempt;
-	if (values.capitalGainsTaxEnabled !== initial.capitalGainsTaxEnabled)
-		data.capitalGainsTaxEnabled = values.capitalGainsTaxEnabled;
-	if (values.capitalGainsRate !== initial.capitalGainsRate)
-		data.capitalGainsRate = values.capitalGainsRate
-			? Number(values.capitalGainsRate) / 100
-			: undefined;
+	const diffAndSet = (key: keyof EditFormValues, transform: FieldTransform) => {
+		if (values[key] !== initial[key])
+			data[key] = transform(values[key] as string);
+	};
 
-	// PENDING-only fields
-	if (values.issuerPrice !== initial.issuerPrice)
-		data.issuerPrice = num(values.issuerPrice);
-	if (values.totalSupply !== initial.totalSupply)
-		data.totalSupply = num(values.totalSupply);
-	if (values.issuerName !== initial.issuerName)
-		data.issuerName = values.issuerName || undefined;
-	if (values.isinCode !== initial.isinCode)
-		data.isinCode = values.isinCode || undefined;
-	if (values.couponFrequencyMonths !== initial.couponFrequencyMonths)
-		data.couponFrequencyMonths = num(values.couponFrequencyMonths);
+	for (const k of STRING_FIELDS) diffAndSet(k, (v) => v);
+	for (const k of NUM_FIELDS) diffAndSet(k, num);
+	for (const k of PCT_FIELDS) diffAndSet(k, pct);
+	for (const k of STR_FIELDS) diffAndSet(k, str);
+	for (const k of BOOL_FIELDS) {
+		if (values[k] !== initial[k]) data[k] = values[k];
+	}
 
-	return Object.keys(data).length > 0 ? data : null;
+	return Object.keys(data).length > 0 ? (data as UpdateAssetRequest) : null;
 }
 
 const INPUT_CLASS =

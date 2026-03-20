@@ -738,59 +738,58 @@ export async function parseAssetExcel(
 			lpClientId: parseNumber(raw.lpClientId) ?? 0,
 		};
 
-		// Optional fields
-		if (raw.description) asset.description = String(raw.description);
-		const tradingFee = parseNumber(raw.tradingFeePercent);
-		if (tradingFee !== undefined) asset.tradingFeePercent = tradingFee;
-		const maxPos = parseNumber(raw.maxPositionPercent);
-		if (maxPos !== undefined) asset.maxPositionPercent = maxPos;
-		const maxOrder = parseNumber(raw.maxOrderSize);
-		if (maxOrder !== undefined) asset.maxOrderSize = maxOrder;
-		const minOrder = parseNumber(raw.minOrderSize);
-		if (minOrder !== undefined) asset.minOrderSize = minOrder;
-		const minCash = parseNumber(raw.minOrderCashAmount);
-		if (minCash !== undefined) asset.minOrderCashAmount = minCash;
-		const dailyLimit = parseNumber(raw.dailyTradeLimitXaf);
-		if (dailyLimit !== undefined) asset.dailyTradeLimitXaf = dailyLimit;
-		const lockup = parseNumber(raw.lockupDays);
-		if (lockup !== undefined) asset.lockupDays = lockup;
+		// Apply optional fields using data-driven mapping
+		const optionalStr = [
+			"description",
+			"issuerName",
+			"isinCode",
+			"incomeType",
+		] as const;
+		for (const k of optionalStr) {
+			if (raw[k]) (asset as Record<string, unknown>)[k] = String(raw[k]);
+		}
 
-		// Bond fields
-		if (raw.issuerName) asset.issuerName = String(raw.issuerName);
-		if (raw.isinCode) asset.isinCode = String(raw.isinCode);
-		const matDate = parseDate(raw.maturityDate);
-		if (matDate) asset.maturityDate = matDate;
-		const intRate = parseNumber(raw.interestRate);
-		if (intRate !== undefined) asset.interestRate = intRate;
-		const couponFreq = parseNumber(raw.couponFrequencyMonths);
-		if (couponFreq !== undefined) asset.couponFrequencyMonths = couponFreq;
-		const nextCoupon = parseDate(raw.nextCouponDate);
-		if (nextCoupon) asset.nextCouponDate = nextCoupon;
+		const optionalNum = [
+			"tradingFeePercent",
+			"maxPositionPercent",
+			"maxOrderSize",
+			"minOrderSize",
+			"minOrderCashAmount",
+			"dailyTradeLimitXaf",
+			"lockupDays",
+			"interestRate",
+			"couponFrequencyMonths",
+			"incomeRate",
+			"distributionFrequencyMonths",
+			"registrationDutyRate",
+			"ircmRateOverride",
+			"capitalGainsRate",
+		] as const;
+		for (const k of optionalNum) {
+			const v = parseNumber(raw[k]);
+			if (v !== undefined) (asset as Record<string, unknown>)[k] = v;
+		}
 
-		// Income distribution
-		if (raw.incomeType) asset.incomeType = String(raw.incomeType);
-		const incRate = parseNumber(raw.incomeRate);
-		if (incRate !== undefined) asset.incomeRate = incRate;
-		const distFreq = parseNumber(raw.distributionFrequencyMonths);
-		if (distFreq !== undefined) asset.distributionFrequencyMonths = distFreq;
-		const nextDist = parseDate(raw.nextDistributionDate);
-		if (nextDist) asset.nextDistributionDate = nextDist;
+		const optionalDate = [
+			"maturityDate",
+			"nextCouponDate",
+			"nextDistributionDate",
+		] as const;
+		for (const k of optionalDate) {
+			const v = parseDate(raw[k]);
+			if (v) (asset as Record<string, unknown>)[k] = v;
+		}
 
-		// Tax configuration
-		const regDuty = parseBoolean(raw.registrationDutyEnabled);
-		if (regDuty !== undefined) asset.registrationDutyEnabled = regDuty;
-		const regRate = parseNumber(raw.registrationDutyRate);
-		if (regRate !== undefined) asset.registrationDutyRate = regRate;
-		const ircm = parseBoolean(raw.ircmEnabled);
-		if (ircm !== undefined) asset.ircmEnabled = ircm;
-		const ircmRate = parseNumber(raw.ircmRateOverride);
-		if (ircmRate !== undefined) asset.ircmRateOverride = ircmRate;
-		const ircmEx = parseBoolean(raw.ircmExempt);
-		if (ircmEx !== undefined) asset.ircmExempt = ircmEx;
-		const cgt = parseBoolean(raw.capitalGainsTaxEnabled);
-		if (cgt !== undefined) asset.capitalGainsTaxEnabled = cgt;
-		const cgRate = parseNumber(raw.capitalGainsRate);
-		if (cgRate !== undefined) asset.capitalGainsRate = cgRate;
+		const optionalBool = [
+			"registrationDutyEnabled",
+			"ircmEnabled",
+			"ircmExempt",
+			"capitalGainsTaxEnabled",
+		] as const;
+		for (const k of optionalBool) {
+			const v = parseBoolean(raw[k]);
+			if (v !== undefined) (asset as Record<string, unknown>)[k] = v;
+		}
 
 		rows.push(asset);
 	});
