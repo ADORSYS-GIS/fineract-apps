@@ -745,8 +745,9 @@ export async function parseAssetExcel(
 			"isinCode",
 			"incomeType",
 		] as const;
+		const assetAny = asset as unknown as Record<string, unknown>;
 		for (const k of optionalStr) {
-			if (raw[k]) (asset as Record<string, unknown>)[k] = String(raw[k]);
+			if (raw[k]) assetAny[k] = String(raw[k]);
 		}
 
 		const optionalNum = [
@@ -767,7 +768,7 @@ export async function parseAssetExcel(
 		] as const;
 		for (const k of optionalNum) {
 			const v = parseNumber(raw[k]);
-			if (v !== undefined) (asset as Record<string, unknown>)[k] = v;
+			if (v !== undefined) assetAny[k] = v;
 		}
 
 		const optionalDate = [
@@ -777,7 +778,7 @@ export async function parseAssetExcel(
 		] as const;
 		for (const k of optionalDate) {
 			const v = parseDate(raw[k]);
-			if (v) (asset as Record<string, unknown>)[k] = v;
+			if (v) assetAny[k] = v;
 		}
 
 		const optionalBool = [
@@ -788,7 +789,7 @@ export async function parseAssetExcel(
 		] as const;
 		for (const k of optionalBool) {
 			const v = parseBoolean(raw[k]);
-			if (v !== undefined) (asset as Record<string, unknown>)[k] = v;
+			if (v !== undefined) assetAny[k] = v;
 		}
 
 		rows.push(asset);
