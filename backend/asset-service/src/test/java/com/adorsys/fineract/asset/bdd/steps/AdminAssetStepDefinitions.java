@@ -46,8 +46,12 @@ public class AdminAssetStepDefinitions {
     public void fineractProvisioningMocked() {
         // Mock client name lookup
         when(fineractClient.getClientDisplayName(anyLong())).thenReturn("Test Company");
-        // Mock settlement product lookup and cash account provisioning
-        when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(50);
+        // Default: no orphaned products (orphan check returns null)
+        when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
+        // No orphaned currencies
+        when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
+        // Mock settlement product lookup — only the settlement product shortName returns a product ID
+        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
         // Cash account provisioning (null deposit amount)
         when(fineractClient.provisionSavingsAccount(anyLong(), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
