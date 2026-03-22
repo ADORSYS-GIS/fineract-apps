@@ -1,5 +1,6 @@
 package com.adorsys.fineract.registration.controller.webank;
 
+import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.dto.webank.*;
 import com.adorsys.fineract.registration.service.fineract.FineractAccountService;
 import com.adorsys.fineract.registration.service.registration.RegistrationService;
@@ -52,9 +53,16 @@ public class CustomerServiceController {
     @Operation(summary = "Create customer with savings account")
     public ResponseEntity<Map<String, Object>> createCustomer(@Valid @RequestBody CreateCustomerRequest req) {
         log.info("Creating customer: phone={}", req.phone());
-        var result = registrationService.registerClientAndAccount(
-            req.phone(), req.phone(), "", req.phone(), req.keycloakId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        var regReq = new RegistrationRequest();
+        regReq.setFirstName(req.phone()); // Use phone as placeholder name
+        regReq.setLastName("Webank");
+        regReq.setEmail(req.phone() + "@webank.cm");
+        regReq.setPhone(req.phone());
+        regReq.setExternalId(req.keycloakId());
+        var result = registrationService.registerClientAndAccount(regReq);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            Map.of("fineract_client_id", result.getFineractClientId(),
+                   "savings_account_id", result.getSavingsAccountId()));
     }
 
     @PostMapping("/{id}/agent-accounts")
