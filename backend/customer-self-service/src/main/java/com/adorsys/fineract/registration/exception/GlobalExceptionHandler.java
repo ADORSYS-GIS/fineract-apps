@@ -103,6 +103,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @ExceptionHandler(com.adorsys.fineract.registration.service.webank.TransactionLimitService.LimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleLimitExceededException(
+            com.adorsys.fineract.registration.service.webank.TransactionLimitService.LimitExceededException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        log.warn("Transaction limit exceeded [correlationId={}]: {} (code={}, limit={})",
+            correlationId, ex.getMessage(), ex.getCode(), ex.getLimit());
+
+        ErrorResponse response = ErrorResponse.builder()
+                .error(ex.getCode())
+                .message(ex.getMessage())
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .build();
+
+        HttpStatus status = "RECOVERY_COOLING_LIMIT".equals(ex.getCode())
+            ? HttpStatus.UNPROCESSABLE_ENTITY : HttpStatus.UNPROCESSABLE_ENTITY;
+
+        return ResponseEntity.status(status).body(response);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         String correlationId = UUID.randomUUID().toString();

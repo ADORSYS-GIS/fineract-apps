@@ -55,6 +55,35 @@ fineract:
     STATE: 27
     Gender: 4
 
+# Webank Customer Service Configuration
+webank:
+  cs:
+    api-key: ${CS_API_KEY:dev-cs-key}
+    recovery-cooling-cap: ${RECOVERY_COOLING_CAP:50000}
+    daily-limit-ttl: ${DAILY_LIMIT_TTL:86400}
+    monthly-limit-ttl: ${MONTHLY_LIMIT_TTL:2592000}
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      fineract:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+  retry:
+    instances:
+      fineract:
+        maxAttempts: 3
+        waitDuration: 1s
+        exponentialBackoffMultiplier: 2
+  timelimiter:
+    instances:
+      fineract:
+        timeoutDuration: 10s
+
 # Actuator Endpoints
 management:
   endpoints:
