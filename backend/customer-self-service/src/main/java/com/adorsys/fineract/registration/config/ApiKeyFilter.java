@@ -37,7 +37,8 @@ public class ApiKeyFilter extends OncePerRequestFilter {
             if (key != null && key.equals(properties.apiKey())) {
                 var auth = new UsernamePasswordAuthenticationToken(
                     "bff-service", null,
-                    List.of(new SimpleGrantedAuthority("ROLE_BFF_SERVICE"))
+                    List.of(new SimpleGrantedAuthority("ROLE_BFF_SERVICE"),
+                            new SimpleGrantedAuthority("ROLE_KYC_MANAGER"))
                 );
                 SecurityContextHolder.getContext().setAuthentication(auth);
                 log.debug("API key auth successful for /customers path");
