@@ -46,7 +46,7 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/customers/**").permitAll() // API key auth handled by ApiKeyFilter
+                .requestMatchers("/customers/**").authenticated() // JWT auth from BFF (per-user Keycloak token)
                 .requestMatchers(HttpMethod.POST, "/api/registration/register").hasAuthority("ROLE_KYC_MANAGER")
                 .requestMatchers("/api/registration/health/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()

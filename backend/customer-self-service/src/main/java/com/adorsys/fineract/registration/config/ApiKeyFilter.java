@@ -15,11 +15,12 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Filter that authenticates BFF-to-CS requests via X-CS-Api-Key header.
- * Only applies to /customers/** paths.
+ * @deprecated BFF now sends per-user Keycloak JWT tokens instead of API keys.
+ * The /customers/** endpoints are protected by standard JWT auth in SecurityConfig.
+ * This filter is no longer registered as a Spring component.
  */
 @Slf4j
-@Component
+@Deprecated
 public class ApiKeyFilter extends OncePerRequestFilter {
 
     private final WebankProperties properties;
