@@ -93,24 +93,6 @@ const COLUMNS: ColumnDef[] = [
 		type: "number",
 	},
 	{
-		key: "subscriptionStartDate",
-		header: "subscriptionStartDate *",
-		required: true,
-		comment:
-			"Start of subscription period (YYYY-MM-DD). REQUIRED. BUY orders are only accepted within the subscription window. SELL orders are always allowed.",
-		example: "2026-04-01",
-		type: "date",
-	},
-	{
-		key: "subscriptionEndDate",
-		header: "subscriptionEndDate *",
-		required: true,
-		comment:
-			"End of subscription period (YYYY-MM-DD). REQUIRED. BUY orders are rejected after this date. SELL orders are always allowed.",
-		example: "2027-04-01",
-		type: "date",
-	},
-	{
 		key: "lpClientId",
 		header: "lpClientId *",
 		required: true,
@@ -393,8 +375,6 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		decimalPlaces: 2,
 		lpAskPrice: 3060,
 		lpBidPrice: 2940,
-		subscriptionStartDate: "2026-05-01",
-		subscriptionEndDate: "2027-05-01",
 		lpClientId: 1,
 		description:
 			"Gold-backed commodity token representing fractional ownership of certified gold reserves",
@@ -435,8 +415,6 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		decimalPlaces: 0,
 		lpAskPrice: 10200,
 		lpBidPrice: 9800,
-		subscriptionStartDate: "2026-05-01",
-		subscriptionEndDate: "2028-05-01",
 		lpClientId: 1,
 		description:
 			"Republic of Cameroon government bond maturing 2030 with 5.80% annual coupon",
@@ -477,8 +455,6 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		decimalPlaces: 2,
 		lpAskPrice: 5100,
 		lpBidPrice: 4900,
-		subscriptionStartDate: "2026-05-01",
-		subscriptionEndDate: "2027-05-01",
 		lpClientId: 1,
 		description:
 			"Tokenized commercial property in Douala business district generating quarterly rental income",
@@ -720,8 +696,6 @@ export async function parseAssetExcel(
 			decimalPlaces: parseNumber(raw.decimalPlaces) ?? 0,
 			lpAskPrice: parseNumber(raw.lpAskPrice) ?? 0,
 			lpBidPrice: parseNumber(raw.lpBidPrice) ?? 0,
-			subscriptionStartDate: parseDate(raw.subscriptionStartDate) ?? "",
-			subscriptionEndDate: parseDate(raw.subscriptionEndDate) ?? "",
 			lpClientId: parseNumber(raw.lpClientId) ?? 0,
 		};
 

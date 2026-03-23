@@ -47,8 +47,6 @@ public final class TestDataFactory {
                 .lpAssetAccountId(LP_ASSET_ACCOUNT)
                 .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
                 .fineractProductId(10)
-                .subscriptionStartDate(LocalDate.now().minusMonths(1))
-                .subscriptionEndDate(LocalDate.now().plusYears(1))
                 .createdAt(Instant.now())
                 .build();
     }
@@ -125,8 +123,6 @@ public final class TestDataFactory {
                 new BigDecimal("0.005"),
                 new BigDecimal("110"),
                 new BigDecimal("95"),
-                LocalDate.now().minusMonths(1),
-                LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits (maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays)
                 null, null, // min order size/cash
@@ -150,8 +146,6 @@ public final class TestDataFactory {
                 new BigDecimal("0.005"),
                 new BigDecimal("11000"),
                 new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1),
-                LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
@@ -304,7 +298,6 @@ public final class TestDataFactory {
         bond.setInterestRate(new BigDecimal("5.80"));
         bond.setCouponFrequencyMonths(6);
         bond.setNextCouponDate(LocalDate.now().plusMonths(6));
-        bond.setSubscriptionEndDate(LocalDate.now().plusYears(1));
         return bond;
     }
 }

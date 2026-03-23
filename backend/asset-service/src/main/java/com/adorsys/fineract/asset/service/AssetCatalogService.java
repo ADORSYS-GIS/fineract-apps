@@ -90,14 +90,12 @@ public class AssetCatalogService {
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
-                asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIssuerName(), asset.getIssuerPrice(), asset.getLpClientName(),
                 asset.getIsinCode(), asset.getMaturityDate(),
                 asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
-                isSubscriptionClosed(asset.getSubscriptionEndDate()),
                 couponAmountPerUnit,
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
@@ -142,7 +140,6 @@ public class AssetCatalogService {
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
-                asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
                 asset.getIssuerName(), asset.getIssuerPrice(),
                 asset.getLpClientId(), asset.getLpAssetAccountId(),
                 asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
@@ -154,7 +151,6 @@ public class AssetCatalogService {
                 asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
-                isSubscriptionClosed(asset.getSubscriptionEndDate()),
                 couponAmountPerUnit,
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
@@ -179,16 +175,10 @@ public class AssetCatalogService {
     public Page<DiscoverAssetResponse> discoverAssets(Pageable pageable) {
         Page<Asset> assets = assetRepository.findByStatus(AssetStatus.PENDING, withIdTiebreaker(pageable));
 
-        return assets.map(a -> {
-            long daysUntilSubscription = 0;
-            if (a.getSubscriptionStartDate() != null && a.getSubscriptionStartDate().isAfter(LocalDate.now())) {
-                daysUntilSubscription = ChronoUnit.DAYS.between(LocalDate.now(), a.getSubscriptionStartDate());
-            }
-            return new DiscoverAssetResponse(
+        return assets.map(a -> new DiscoverAssetResponse(
                     a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
-                    a.getCategory(), a.getStatus(), a.getSubscriptionStartDate(), daysUntilSubscription
-            );
-        });
+                    a.getCategory(), a.getStatus()
+        ));
     }
 
     /**
@@ -234,12 +224,10 @@ public class AssetCatalogService {
                 a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
                 a.getCategory(), a.getStatus(), askPrice, change,
                 available, a.getTotalSupply(),
-                a.getSubscriptionStartDate(), a.getSubscriptionEndDate(),
                 a.getIssuerName(), a.getLpClientName(), couponAmountPerUnit,
                 a.getIsinCode(), a.getMaturityDate(),
                 a.getInterestRate(), currentYield,
-                computeResidualDays(a.getMaturityDate()),
-                isSubscriptionClosed(a.getSubscriptionEndDate())
+                computeResidualDays(a.getMaturityDate())
         );
     }
 
@@ -307,17 +295,6 @@ public class AssetCatalogService {
         if (maturityDate == null) return null;
         long days = ChronoUnit.DAYS.between(LocalDate.now(), maturityDate);
         return Math.max(0, days);
-    }
-
-    /**
-     * Checks whether the subscription period has ended.
-     *
-     * @param subscriptionEndDate the subscription deadline
-     * @return true if ended, false if still open
-     */
-    private Boolean isSubscriptionClosed(LocalDate subscriptionEndDate) {
-        if (subscriptionEndDate == null) return null;
-        return !subscriptionEndDate.isAfter(LocalDate.now());
     }
 
     /**
