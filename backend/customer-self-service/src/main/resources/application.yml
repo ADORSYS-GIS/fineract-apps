@@ -67,6 +67,14 @@ fineract:
     STATE: 27
     Gender: 4
 
+# Keycloak Admin Configuration (for updating user attributes)
+keycloak:
+  url: ${KEYCLOAK_URL:http://localhost:8080}
+  realm: ${KEYCLOAK_REALM:fineract}
+  admin-realm: ${KEYCLOAK_ADMIN_REALM:master}
+  client-id: ${KEYCLOAK_CLIENT_ID:}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:}
+
 # Webank Customer Service Configuration
 webank:
   cs:

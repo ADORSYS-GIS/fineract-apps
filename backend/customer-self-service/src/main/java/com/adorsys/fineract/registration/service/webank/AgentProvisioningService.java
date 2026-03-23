@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Manages agent float provisioning with branch-level tracking.
@@ -27,14 +28,17 @@ public class AgentProvisioningService {
     private final AgentProvisioningLogRepository provisioningLogRepo;
     private final AgentHomeBranchHistoryRepository branchHistoryRepo;
     private final FineractAccountService accountService;
+    private final KeycloakAdminService keycloakAdminService;
 
     public AgentProvisioningService(
             AgentProvisioningLogRepository provisioningLogRepo,
             AgentHomeBranchHistoryRepository branchHistoryRepo,
-            FineractAccountService accountService) {
+            FineractAccountService accountService,
+            KeycloakAdminService keycloakAdminService) {
         this.provisioningLogRepo = provisioningLogRepo;
         this.branchHistoryRepo = branchHistoryRepo;
         this.accountService = accountService;
+        this.keycloakAdminService = keycloakAdminService;
     }
 
     /**
@@ -132,6 +136,23 @@ public class AgentProvisioningService {
         }
 
         branchHistoryRepo.saveAll(historyEntries);
+
+        // Update Keycloak user attributes for each reassigned agent (async, non-blocking).
+        for (String agentId : req.agentKeycloakIds()) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    keycloakAdminService.updateUserAttributes(agentId, Map.of(
+                            "home_branch_office_id", List.of(String.valueOf(req.newOfficeId())),
+                            "home_branch_name", List.of(req.newOfficeName())
+                    ));
+                    log.info("Keycloak attributes updated for agent {}: officeId={}, officeName={}",
+                            agentId, req.newOfficeId(), req.newOfficeName());
+                } catch (Exception e) {
+                    log.error("Failed to update Keycloak attributes for agent {}: {}",
+                            agentId, e.getMessage(), e);
+                }
+            });
+        }
 
         log.info("Agents reassigned: {}", reassigned.size());
         return new ReassignAgentsResponse(reassigned.size(), reassigned);
