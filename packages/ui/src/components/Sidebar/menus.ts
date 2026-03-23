@@ -1,6 +1,7 @@
 import {
 	BarChart3,
 	BookOpen,
+	Building2,
 	CalendarCheck,
 	CheckCircle,
 	ClipboardCheck,
@@ -17,6 +18,7 @@ import {
 	Shield,
 	TrendingUp,
 	Users,
+	Wallet,
 } from "lucide-react";
 import { MenuItem } from "./Sidebar.types";
 
@@ -32,6 +34,12 @@ export const menuAccountManager: MenuItem[] = [
 		title: "sidebar.kycReviews",
 		link: "/kyc-reviews",
 		icon: ClipboardCheck,
+	},
+	{
+		name: "agency-dashboard",
+		title: "sidebar.agencyDashboard",
+		link: "/agency-dashboard",
+		icon: Building2,
 	},
 	{
 		name: "settings",
@@ -75,6 +83,12 @@ export const menuCashier: MenuItem[] = [
 		title: "sidebar.loanRepayment",
 		link: "/repayment",
 		icon: Send,
+	},
+	{
+		name: "agent-provisioning",
+		title: "sidebar.agentProvisioning",
+		link: "/agent-provisioning",
+		icon: Wallet,
 	},
 ];
 
