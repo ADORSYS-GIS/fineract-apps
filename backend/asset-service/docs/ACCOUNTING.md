@@ -352,9 +352,37 @@ Period margin report: `net margin = SUM(spreadAmount) - SUM(buybackPremium)`
 | 143 | Tax Payable - IRCM | Liability | IRCM withholding tax on investment income payable to DGI |
 | 144 | Tax Payable - Capital Gains | Liability | Capital gains tax payable to DGI |
 
-## Savings Product Accounting Mapping
+## Savings Product Accounting Mappings
 
-Each asset's savings product is configured with **Cash-based accounting** (rule = 2):
+There are **two distinct savings product types** in the system, each with different GL mappings. Both use Cash-based accounting (rule = 2).
+
+### 1. XAF Settlement Product (short name: `VSAV`)
+
+Used for: LP Cash, LP Spread, User XAF, Fee Collection, Tax Authority accounts.
+Pre-created in Fineract before the asset service starts. The asset service looks it up by short name (`SETTLEMENT_CURRENCY_PRODUCT_SHORT_NAME`, default `VSAV`).
+
+| Fineract Mapping | GL Account |
+|---------|------------|
+| **Asset accounts** | |
+| Savings Reference | GL 42 (Fund Source / Cash Reference) |
+| Overdraft Portfolio Control | GL 51 (Loans and Advances) |
+| **Liability accounts** | |
+| Savings Control | GL 61 (Current Liabilities) |
+| Transfers in Suspense | GL 131 (Suspense / Clearing) |
+| **Income accounts** | |
+| Income from Interest | GL 81 (Interest Income on Loans) |
+| Income from Fees | GL 84 (Service Fees) |
+| Income from Penalties | GL 84 (Service Fees) |
+| **Expense accounts** | |
+| Interest on Savings | GL 91 (Interest Expense on Savings) |
+| Write-Off | GL 93 (Write-off Expense) |
+
+This product backs all XAF cash movements — investor deposits, trade payouts, fee sweeps, tax sweeps, coupon payments. Fineract automatically creates journal entries (DR/CR GL 42, GL 61) when transfers occur between savings accounts using this product.
+
+### 2. Asset Token Product (per-asset, created dynamically)
+
+Used for: LP Asset Account, User Asset Accounts (one per asset currency, e.g. DTT, YMT).
+Created by `AssetProvisioningService` when an admin provisions a new asset.
 
 | Fineract Mapping | GL Account |
 |---------|------------|
@@ -363,14 +391,22 @@ Each asset's savings product is configured with **Cash-based accounting** (rule 
 | Overdraft Portfolio Control | GL 47 (Digital Asset Inventory) |
 | **Liability accounts** | |
 | Savings Control | GL 65 (Customer Digital Asset Holdings) |
-| Transfers in Suspense | GL 65 (Customer Digital Asset Holdings) |
+| Transfers in Suspense | GL 48 (Asset Transfer Suspense) |
 | **Income accounts** | |
-| Income from Interest | GL 87 (Asset Trading Fee Income) |
-| Income from Fee | GL 87 (Asset Trading Fee Income) |
-| Income from Penalty | GL 87 (Asset Trading Fee Income) |
+| Income from Interest | GL 87 (Income from Interest/Fees) |
+| Income from Fees | GL 88 (Platform Fee Income) |
+| Income from Penalties | GL 87 (Income from Interest/Fees) |
 | **Expense accounts** | |
 | Interest on Savings | GL 91 (Expense Account) |
 | Write-Off | GL 91 (Expense Account) |
+
+This product backs all token unit movements. When tokens transfer between LP and investor accounts, Fineract automatically creates journal entries (DR/CR GL 47, GL 65) reflecting the change in digital asset inventory and customer holdings.
+
+### Why Two Products?
+
+- **XAF product** handles fiat currency (money). Its GL mappings track cash flows through standard banking accounts (GL 42 as savings reference, GL 61 as customer liability).
+- **Token product** handles digital asset units. Its GL mappings track asset inventory (GL 47) and customer obligations (GL 65) — separate from fiat accounting.
+- The **explicit GL journal entries** created by the asset service (GL 88, 89, 92, 93, 94) are layered on top of Fineract's automatic entries to provide income/expense recognition that Fineract's savings product accounting doesn't natively capture.
 
 ## Journal Entry Examples
 
