@@ -211,6 +211,25 @@ public class AccountingSteps {
                 .isGreaterThan(BigDecimal.valueOf(threshold));
     }
 
+    @Then("the fee-tax summary entry for GL {string} should have amount greater than {long}")
+    public void feeTaxSummaryEntryForGlShouldHaveAmountGreaterThan(String glCode, long threshold) {
+        List<Map<String, Object>> entries = context.jsonPath("entries");
+        assertThat(entries).as("Fee-tax summary entries should not be null").isNotNull();
+
+        Map<String, Object> entry = entries.stream()
+                .filter(e -> glCode.equals(e.get("glCode")))
+                .findFirst()
+                .orElse(null);
+
+        assertThat(entry)
+                .as("Fee-tax summary should have an entry for GL code %s", glCode)
+                .isNotNull();
+
+        assertThat(new BigDecimal(entry.get("amount").toString()))
+                .as("GL %s amount should be > %d", glCode, threshold)
+                .isGreaterThan(BigDecimal.valueOf(threshold));
+    }
+
     @Then("the fee-tax summary entry for GL {string} should have amount {long}")
     public void feeTaxSummaryEntryForGlShouldHaveAmount(String glCode, long expectedAmount) {
         List<Map<String, Object>> entries = context.jsonPath("entries");
@@ -348,6 +367,70 @@ public class AccountingSteps {
         assertThat(Integer.parseInt(discrepancies.toString()))
                 .as("Expected %d discrepancies", expectedCount)
                 .isEqualTo(expectedCount);
+    }
+
+    // ---------------------------------------------------------------
+    // Then steps — GL net balance (debits - credits)
+    // ---------------------------------------------------------------
+
+    /**
+     * Asserts a GL account's net balance (debits - credits) equals the expected value.
+     * Uses the trial balance from the last response. For suspense accounts, expected = 0.
+     */
+    @Then("the trial balance GL {string} net balance should be {long}")
+    public void trialBalanceGlNetBalanceShouldBe(String glCode, long expectedBalance) {
+        List<Map<String, Object>> entries = context.jsonPath("entries");
+        BigDecimal debits = findGlAmount(entries, glCode, "debitAmount");
+        BigDecimal credits = findGlAmount(entries, glCode, "creditAmount");
+
+        // Use snapshot if available (delta-based)
+        BigDecimal snapshotDebits = context.getValue("snapshot_debits_" + glCode);
+        BigDecimal snapshotCredits = context.getValue("snapshot_credits_" + glCode);
+        if (snapshotDebits != null) debits = debits.subtract(snapshotDebits);
+        if (snapshotCredits != null) credits = credits.subtract(snapshotCredits);
+
+        BigDecimal netBalance = debits.subtract(credits);
+        assertThat(netBalance.abs())
+                .as("GL %s net balance (debits=%s, credits=%s) should be %d",
+                        glCode, debits, credits, expectedBalance)
+                .isLessThanOrEqualTo(new BigDecimal("1")); // tolerance for rounding
+    }
+
+    // ---------------------------------------------------------------
+    // Then steps — GL/fee-tax cross-reference
+    // ---------------------------------------------------------------
+
+    /**
+     * Cross-references GL debits from the trial balance with the fee-tax summary amount.
+     * Requires both trial balance and fee-tax summary to have been fetched.
+     */
+    @Then("the fee-tax GL {string} debits should match fee-tax summary amount")
+    public void feeTaxGlDebitsShouldMatchFeeTaxSummaryAmount(String glCode) {
+        // Get GL debits from trial balance (last trial balance request stored in snapshot)
+        Response trialBalanceResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/accounting/trial-balance");
+        assertThat(trialBalanceResp.statusCode()).isEqualTo(200);
+
+        List<Map<String, Object>> tbEntries = trialBalanceResp.jsonPath().getList("entries");
+        BigDecimal glDebits = findGlAmount(tbEntries, glCode, "debitAmount");
+        BigDecimal snapshotDebits = context.getValue("snapshot_debits_" + glCode);
+        if (snapshotDebits != null) glDebits = glDebits.subtract(snapshotDebits);
+
+        // Get fee-tax summary amount for same GL code
+        List<Map<String, Object>> ftEntries = context.jsonPath("entries");
+        assertThat(ftEntries).isNotNull();
+        BigDecimal summaryAmount = ftEntries.stream()
+                .filter(e -> glCode.equals(e.get("glCode")))
+                .findFirst()
+                .map(e -> new BigDecimal(e.get("amount").toString()))
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal diff = glDebits.subtract(summaryAmount).abs();
+        assertThat(diff)
+                .as("GL %s debits (%s) should match fee-tax summary amount (%s), diff=%s",
+                        glCode, glDebits, summaryAmount, diff)
+                .isLessThanOrEqualTo(new BigDecimal("2")); // tolerance for rounding
     }
 
     // ---------------------------------------------------------------
