@@ -227,16 +227,23 @@ LP Spread balance = **+2,000 XAF** = net LP profit from bid-ask spread.
 
 All trades use the **LP Cash hub model** — money flows through LP Cash, then gets distributed internally. The investor sees at most **1 XAF transaction** per trade (fee bundled, spread invisible).
 
-### BUY (2-5 legs)
+### BUY (2-5 transfers + 1-3 GL entries)
 
+**Transfers:**
 1. Investor XAF → LP Cash: `grossAmount + fee + registrationDuty` (single investor debit)
 2. LP Asset → Investor Asset: `units` (token delivery)
 3. LP Cash → LP Spread: `spreadAmount` (internal, if > 0)
 4. LP Cash → Fee Collection: `fee` (internal, if > 0)
 5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 
-### SELL, bid ≤ issuer (2-6 legs)
+**GL Journal Entries:**
+- DR Fund Source (42) / CR Platform Fee Income (88): `fee` (if > 0)
+- DR Fund Source (42) / CR Spread Income (89): `spreadAmount` (if > 0)
+- DR Tax Expense Reg Duty (92) / CR Fund Source (42): `registrationDuty` (if > 0)
 
+### SELL, bid ≤ issuer (2-7 transfers + 1-4 GL entries)
+
+**Transfers:**
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Cash → Investor XAF: `grossAmount - fee - registrationDuty - capitalGainsTax` (single investor credit)
 3. LP Cash → Fee Collection: `fee` (internal, if > 0)
@@ -244,8 +251,15 @@ All trades use the **LP Cash hub model** — money flows through LP Cash, then g
 5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 6. LP Cash → TAX-CAP-GAINS: `capitalGainsTax` (tax, if gain > 0 and above exemption)
 
-### SELL, bid > issuer (3-6 legs)
+**GL Journal Entries:**
+- DR Fund Source (42) / CR Platform Fee Income (88): `fee` (if > 0)
+- DR Fund Source (42) / CR Spread Income (89): `spreadAmount` (if > 0)
+- DR Tax Expense Reg Duty (92) / CR Fund Source (42): `registrationDuty` (if > 0)
+- DR Tax Expense Cap Gains (93) / CR Fund Source (42): `capitalGainsTax` (if > 0)
 
+### SELL, bid > issuer (3-6 transfers + 1-4 GL entries)
+
+**Transfers:**
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Spread → LP Cash: `buybackPremium` (internal, funds the premium)
 3. LP Cash → Investor XAF: `grossAmount - fee - registrationDuty - capitalGainsTax` (single investor credit)
@@ -253,32 +267,42 @@ All trades use the **LP Cash hub model** — money flows through LP Cash, then g
 5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 6. LP Cash → TAX-CAP-GAINS: `capitalGainsTax` (tax, if gain > 0 and above exemption)
 
-### Coupon/Income Payment (1-2 legs)
+**GL Journal Entries:**
+- DR Fund Source (42) / CR Platform Fee Income (88): `fee` (if > 0)
+- DR Spread Income (89) / CR Fund Source (42): `buybackPremium` (reverses spread income)
+- DR Tax Expense Reg Duty (92) / CR Fund Source (42): `registrationDuty` (if > 0)
+- DR Tax Expense Cap Gains (93) / CR Fund Source (42): `capitalGainsTax` (if > 0)
+
+### Coupon/Income Payment (1-4 legs, atomic)
 
 1. LP Cash → Investor XAF: `grossIncome - ircmAmount` (net payment)
 2. LP Cash → TAX-IRCM: `ircmAmount` (withholding tax, if > 0)
+3. **GL**: DR Tax Expense IRCM (GL 94) / CR Fund Source (GL 42): `ircmAmount` (if > 0)
+4. **GL**: DR Expense Account (GL 91) / CR Fund Source (GL 42): `grossIncome` (always — full expense obligation)
 
-Both coupon and income payments use atomic batch execution when IRCM applies.
+All legs execute atomically via Fineract Batch API. The GL expense entry (leg 4) records the gross amount, not the net — IRCM is a separate tax expense, not a deduction from the platform's expense obligation. Fund Source (GL 42) absorbs both credits and nets to zero.
 
-### Bond Principal Redemption (2 transfers per holder, non-atomic)
+### Bond Principal Redemption (3 legs per holder, atomic)
 
 At maturity, the admin triggers redemption via `POST /api/admin/assets/{id}/redeem`. Each holder receives face value:
 
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Cash → Investor XAF: `units × issuerPrice` (face value payout)
+3. **GL**: DR Expense Account (GL 91) / CR Fund Source (GL 42): `cashAmount` (expense recognition)
 
-No fee, no spread, no tax. Each holder is processed independently — partial failures do not block others. Unlike trade settlement, these two transfers are executed as **individual Fineract account transfers** (not an atomic batch). The asset leg executes first; if the cash leg fails, the asset units have already been returned to LP. Failed holders can be retried by calling the endpoint again (already-succeeded holders are skipped).
+No fee, no spread, no tax. Each holder is processed independently — partial failures do not block others. All three legs execute atomically via Fineract Batch API (`enclosingTransaction=true`). Failed holders can be retried by calling the endpoint again (already-succeeded holders are skipped).
 
-### Delisting / Forced Buyback (2 transfers per holder, non-atomic)
+### Delisting / Forced Buyback (3 legs per holder, atomic)
 
 On the delisting date, the scheduler force-buys all remaining holdings:
 
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Cash → Investor XAF: `units × delistingRedemptionPrice` (buyback payout)
+3. **GL**: DR Expense Account (GL 91) / CR Fund Source (GL 42): `cashAmount` (expense recognition)
 
-No fee, no spread, no tax. Uses the redemption price set during delisting initiation (falls back to the current ask price from the asset price table if not set). Each holder is processed independently — partial failures do not block others. Like principal redemption, these are **individual Fineract account transfers**, not an atomic batch.
+No fee, no spread, no tax. Uses the redemption price set during delisting initiation (falls back to the current ask price from the asset price table if not set). Each holder is processed independently — partial failures do not block others. All three legs execute atomically via Fineract Batch API.
 
-**Trade settlement** (BUY/SELL) legs execute atomically via the Fineract Batch API (`enclosingTransaction=true`) — if any fails, all are reversed. **Coupon/income payments** also use atomic batches when IRCM withholding applies.
+**All financial operations** (trades, coupon/income payments, principal redemption, delisting) execute atomically via the Fineract Batch API (`enclosingTransaction=true`) — if any leg fails, all are reversed.
 
 ### Order Record Fields (always positive)
 
@@ -293,15 +317,37 @@ Period margin report: `net margin = SUM(spreadAmount) - SUM(buybackPremium)`
 
 ## GL Accounts
 
+### Core Accounts (Fineract Savings Product Mapping)
+
 | GL Code | Name | Type | Purpose |
 |---------|------|------|---------|
-| 47 | Digital Asset Inventory | Asset | Bank's vault holding of all digital asset units |
-| 48 | Asset Transfer Suspense | Asset | Clearing account for in-flight transfers |
+| 42 | Fund Source / Cash Reference | Asset | Universal balancing account for all GL journal entries |
+| 47 | Digital Asset Inventory | Asset | LP's vault holding of all digital asset units |
+| 48 | Asset Transfer Suspense | Asset | Clearing account for in-flight transfers (should be 0) |
 | 65 | Customer Digital Asset Holdings | Liability | Obligation to customers who hold asset units |
-| 42 | Fund Source / Cash Reference | Asset | Cash reference for savings product accounting |
-| 73 | Company Asset Capital | Equity | Origin of minted asset units |
-| 87 | Asset Trading Fee Income | Income | Revenue from trading fees |
-| 91 | Expense Account | Expense | Interest on savings / write-off expenses |
+| 73 | Asset Equity / LP Capital | Equity | Origin of minted asset units (credited on issuance) |
+| 87 | Income from Interest/Fees | Income | Legacy income account (used in savings product mapping) |
+| 91 | Expense Account | Expense | Interest/income expense, redemption expense, delisting expense |
+
+### Income Recognition Accounts
+
+| GL Code | Name | Type | Purpose |
+|---------|------|------|---------|
+| 88 | Platform Fee Income | Income | Trading fees collected per trade (DR 42 / CR 88) |
+| 89 | Trading Spread Income | Income | LP bid-ask spread earnings (DR 42 / CR 89) |
+
+### Tax Expense Accounts (Debit Side — Expense Recognition)
+
+| GL Code | Name | Type | Purpose |
+|---------|------|------|---------|
+| 92 | Tax Expense - Registration Duty | Expense | Registration duty recognized as expense (DR 92 / CR 42) |
+| 93 | Tax Expense - Capital Gains | Expense | Capital gains tax recognized as expense (DR 93 / CR 42) |
+| 94 | Tax Expense - IRCM | Expense | IRCM withholding tax recognized as expense (DR 94 / CR 42) |
+
+### Tax Payable Accounts (Credit Side — Liability in Fineract)
+
+| GL Code | Name | Type | Purpose |
+|---------|------|------|---------|
 | 142 | Tax Payable - Registration Duty | Liability | Registration duty (droit d'enregistrement) payable to DGI |
 | 143 | Tax Payable - IRCM | Liability | IRCM withholding tax on investment income payable to DGI |
 | 144 | Tax Payable - Capital Gains | Liability | Capital gains tax payable to DGI |
@@ -357,12 +403,28 @@ Four Fineract account transfers (LP Cash hub):
 
 **LP Cash net:** +50,250 - 10,000 - 250 = +40,000 XAF = issuerPrice × units
 
-**GL impact (asset leg):**
+**GL impact (asset leg — automatic via savings product mapping):**
 
 | Account | Debit | Credit |
 |---------|-------|--------|
 | GL 65 - Customer Digital Asset Holdings | 10 DTT | |
 | GL 47 - Digital Asset Inventory | | 10 DTT |
+
+**GL journal entries (explicit, created by asset service):**
+
+| Account | Debit | Credit |
+|---------|-------|--------|
+| GL 42 - Fund Source | 250 XAF | |
+| GL 88 - Platform Fee Income | | 250 XAF |
+| GL 42 - Fund Source | 10,000 XAF | |
+| GL 89 - Trading Spread Income | | 10,000 XAF |
+
+Registration duty (if enabled, e.g. 2%): `50,000 × 2% = 1,000 XAF`
+
+| Account | Debit | Credit |
+|---------|-------|--------|
+| GL 92 - Tax Expense Reg Duty | 1,000 XAF | |
+| GL 42 - Fund Source | | 1,000 XAF |
 
 ### 3. Investor Sell Trade (bid ≤ issuer)
 
@@ -384,12 +446,21 @@ Fineract account transfers (LP Cash hub):
 
 **LP Cash net:** -17,412 - 88 - 2,500 = -20,000 XAF = -(issuerPrice × units)
 
-**GL impact (asset leg):**
+**GL impact (asset leg — automatic via savings product mapping):**
 
 | Account | Debit | Credit |
 |---------|-------|--------|
 | GL 47 - Digital Asset Inventory | 5 DTT | |
 | GL 65 - Customer Digital Asset Holdings | | 5 DTT |
+
+**GL journal entries (explicit, created by asset service):**
+
+| Account | Debit | Credit |
+|---------|-------|--------|
+| GL 42 - Fund Source | 88 XAF | |
+| GL 88 - Platform Fee Income | | 88 XAF |
+| GL 42 - Fund Source | 2,500 XAF | |
+| GL 89 - Trading Spread Income | | 2,500 XAF |
 
 ### 4. Coupon Payment (Bond Interest)
 
@@ -397,13 +468,11 @@ When the InterestPaymentScheduler runs and a bond's coupon date is due, each hol
 
 - Formula: `units × issuerPrice × (annualRate / 100) × (periodMonths / 12)`
 - Example: Investor holds 100 units of a bond. Issuer price = 10,000 XAF, 5.80% annual rate, semi-annual (6 months):
-  - Coupon = 100 × 10,000 × (5.80 / 100) × (6 / 12) = **29,000 XAF**
+  - Gross coupon = 100 × 10,000 × (5.80 / 100) × (6 / 12) = **29,000 XAF**
+  - IRCM (e.g. 16.5%) = 29,000 × 16.5% = **4,785 XAF**
+  - Net payment = 29,000 - 4,785 = **24,215 XAF**
 
-Single Fineract account transfer:
-
-| Transfer | From | To | Amount |
-|----------|------|----|--------|
-| Coupon payment | LP Cash | Investor XAF | 29,000 XAF |
+Fineract account transfers (atomic batch):
 
 IRCM withholding tax is deducted from the gross coupon before payment to the investor:
 - Effective IRCM rate depends on asset configuration (govt bond → 0%, BVMAC-listed → 11%, bond 5yr+ → 5.5%, default → 16.5%)
@@ -412,8 +481,19 @@ IRCM withholding tax is deducted from the gross coupon before payment to the inv
 
 | Transfer | From | To | Amount |
 |----------|------|----|--------|
-| Coupon payment | LP Cash | Investor XAF | 29,000 - IRCM |
-| IRCM collection | LP Cash | TAX-IRCM | IRCM amount |
+| Net coupon payment | LP Cash | Investor XAF | 24,215 XAF |
+| IRCM collection | LP Cash | TAX-IRCM | 4,785 XAF |
+
+**GL journal entries (atomic with transfers):**
+
+| Account | Debit | Credit |
+|---------|-------|--------|
+| GL 94 - Tax Expense IRCM | 4,785 XAF | |
+| GL 42 - Fund Source | | 4,785 XAF |
+| GL 91 - Expense Account | 29,000 XAF | |
+| GL 42 - Fund Source | | 29,000 XAF |
+
+Note: The expense entry records the GROSS amount (29,000). This is not double-counting with the IRCM entry — GL 91 records the full expense obligation, GL 94 records the tax portion separately. Fund Source (GL 42) absorbs both credits and nets to zero.
 
 Each payment is recorded in the `interest_payments` table with status SUCCESS or FAILED. Failed payments (e.g. LP insufficient cash) do not block other holders. Tax is recorded in `tax_transactions` table.
 
@@ -424,13 +504,22 @@ For non-bond assets (REAL_ESTATE, AGRICULTURE, etc.) with income configured, per
 - Formula: `units × issuerPrice × (incomeRate / 100) × (frequencyMonths / 12)`
 - Example: Investor holds 50 units. Issuer price = 4,000 XAF, income rate = 8%, monthly:
   - Gross income = 50 × 4,000 × (8 / 100) × (1 / 12) = **1,333 XAF**
-
-IRCM withholding tax is deducted from the gross income before payment, using the same rate logic as coupon payments:
+  - IRCM (16.5%) = 1,333 × 16.5% = **220 XAF**
+  - Net payment = 1,333 - 220 = **1,113 XAF**
 
 | Transfer | From | To | Amount |
 |----------|------|----|--------|
-| Income payment | LP Cash | Investor XAF | 1,333 - IRCM |
-| IRCM collection | LP Cash | TAX-IRCM | IRCM amount |
+| Net income payment | LP Cash | Investor XAF | 1,113 XAF |
+| IRCM collection | LP Cash | TAX-IRCM | 220 XAF |
+
+**GL journal entries (same pattern as coupon):**
+
+| Account | Debit | Credit |
+|---------|-------|--------|
+| GL 94 - Tax Expense IRCM | 220 XAF | |
+| GL 42 - Fund Source | | 220 XAF |
+| GL 91 - Expense Account | 1,333 XAF | |
+| GL 42 - Fund Source | | 1,333 XAF |
 
 Each payment is recorded in the `income_distributions` table. Tax is recorded in `tax_transactions` table.
 
@@ -452,40 +541,22 @@ All monetary amounts in the system (trade costs, fees, coupon payments) use the 
 
 ## Accounting Reports
 
-### New GL Accounts (added for proper accounting separation)
+### GL Journal Entry Summary
 
-| GL Code | Name | Type | Purpose |
-|---------|------|------|---------|
-| 73 | Asset Equity / LP Capital | EQUITY | LP's equity stake in the asset pool |
-| 88 | Platform Fee Income | INCOME | Trading fees collected per trade |
-| 89 | Trading Spread Income | INCOME | Bid-ask spread earnings |
-| 92 | Tax Expense - Registration Duty | EXPENSE | Cameroon registration duty (2% on BUY) |
-| 93 | Tax Expense - Capital Gains | EXPENSE | Capital gains tax on profitable SELL |
-| 94 | Tax Expense - IRCM | EXPENSE | IRCM withholding on coupons/income |
+All GL journal entries are created atomically alongside the savings account transfers in the same Fineract Batch API call. They are recognition entries — the actual cash movements are handled by the transfer legs.
 
-### Journal Entry Creation on Trades
-
-When a trade executes, the following GL journal entries are created alongside the savings account transfers:
-
-**Platform fee income** (if fee > 0):
-- DR Fund Source (GL 42) / CR Platform Fee Income (GL 88)
-- Amount: `grossAmount × tradingFeePercent`
-
-**Spread income** (if spread > 0 and enabled):
-- DR Fund Source (GL 42) / CR Trading Spread Income (GL 89)
-- Amount: `|executionPrice - issuerPrice| × units`
-
-**Registration duty** (on BUY, if enabled):
-- DR Tax Expense Reg Duty (GL 92) / CR Fund Source (GL 42)
-- Amount: `grossAmount × registrationDutyRate` (default 2%)
-
-**Capital gains tax** (on SELL with gain):
-- DR Tax Expense Capital Gains (GL 93) / CR Fund Source (GL 42)
-
-**IRCM withholding** (on coupon/income distributions):
-- DR Tax Expense IRCM (GL 94) / CR Fund Source (GL 42)
-
-These are memo-style recognition entries — the actual cash movements are handled by the savings account transfer legs in the same atomic batch.
+| Trigger | Debit GL | Credit GL | Amount | Condition |
+|---------|----------|-----------|--------|-----------|
+| BUY/SELL trade | 42 (Fund Source) | 88 (Fee Income) | `fee` | fee > 0 |
+| BUY/SELL trade | 42 (Fund Source) | 89 (Spread Income) | `spreadAmount` | spread > 0 |
+| BUY/SELL trade | 92 (Tax Reg Duty) | 42 (Fund Source) | `registrationDuty` | regDuty > 0 |
+| SELL trade | 93 (Tax Cap Gains) | 42 (Fund Source) | `capitalGainsTax` | CGT > 0 |
+| SELL (bid > issuer) | 89 (Spread Income) | 42 (Fund Source) | `buybackPremium` | premium > 0 |
+| Coupon/Income | 94 (Tax IRCM) | 42 (Fund Source) | `ircmAmount` | IRCM > 0 |
+| Coupon/Income | 91 (Expense) | 42 (Fund Source) | `grossAmount` | always |
+| Redemption | 91 (Expense) | 42 (Fund Source) | `cashAmount` | always |
+| Delisting | 91 (Expense) | 42 (Fund Source) | `cashAmount` | always |
+| Asset issuance | 47 (Inventory) | 73 (Equity) | `totalSupply` | supply > 0 |
 
 ### Admin Reporting Endpoints
 
@@ -503,14 +574,32 @@ These are memo-style recognition entries — the actual cash movements are handl
 
 ## Reconciliation
 
-To verify asset accounting is correct:
+The `ReconciliationService` runs daily and checks these invariants. The admin can also trigger it via `POST /api/admin/reconciliation/trigger`.
+
+### Automated Checks (ReconciliationService)
+
+| Check | What | Severity |
+|-------|------|----------|
+| Supply mismatch | `circulatingSupply` vs `totalSupply - lpAssetBalance` | CRITICAL |
+| Position mismatch | `UserPosition.totalUnits` vs Fineract savings balance per holder | CRITICAL |
+| LP cash negative | LP Cash account balance < 0 | CRITICAL |
+| LP spread negative | LP Spread account balance < 0 | WARNING |
+| Tax account mismatch | `SUM(tax_amount)` per type vs Fineract tax savings account balance | CRITICAL |
+| Fee collection mismatch | `SUM(fee)` from `trade_logs` vs fee collection savings account balance | WARNING |
+
+### Manual Verification Checklist
 
 1. **GL 47 balance** should equal the sum of all LP asset savings account balances across all asset currencies
 2. **GL 65 balance** should equal the sum of all investor savings account balances across all asset currencies
 3. **GL 47 + GL 65** should equal the total supply of all assets (units minted via GL 73)
-4. **Fee collection account balance** should match the sum of all `fee` values in both `orders` and `trade_log_archive` tables
-5. **LP Spread account balance** per asset should equal `SUM(spreadAmount) - SUM(buybackPremium)` across all orders for that asset
-6. **LP Cash account balance** per asset should reflect `SUM(issuerPrice × units)` for BUY minus `SUM(issuerPrice × units)` for SELL, adjusted for coupon/income payouts and tax disbursements
-7. **TAX-REG-DUTY account balance** should match `SUM(registration_duty_amount)` across all filled orders
-8. **TAX-IRCM account balance** should match `SUM(tax_amount)` from `tax_transactions` where `tax_type = 'IRCM'`
-9. **TAX-CAP-GAINS account balance** should match `SUM(capital_gains_tax_amount)` across all filled sell orders with profit
+4. **Fee collection account balance** should match `SUM(fee)` from `trade_logs` (assumes no withdrawals from fee account)
+5. **GL 88 credits** should match fee collection account balance (cross-referencing GL with savings)
+6. **GL 89 credits** should match `SUM(spreadAmount)` from `trade_logs` minus `SUM(buybackPremium)`
+7. **LP Spread account balance** per asset should equal `SUM(spreadAmount) - SUM(buybackPremium)` across all orders for that asset
+8. **LP Cash account balance** per asset should reflect `SUM(issuerPrice × units)` for BUY minus SELL, adjusted for coupon/income payouts and tax disbursements
+9. **TAX-REG-DUTY account balance** should match `SUM(registration_duty_amount)` across all filled orders
+10. **GL 92 debits** should match TAX-REG-DUTY savings balance (cross-referencing GL expense with savings)
+11. **TAX-IRCM account balance** should match `SUM(tax_amount)` from `tax_transactions` where `tax_type = 'IRCM'`
+12. **TAX-CAP-GAINS account balance** should match `SUM(capital_gains_tax_amount)` across all filled sell orders with profit
+13. **Trial balance total debits** should equal total credits (double-entry integrity)
+14. **GL 48 (Suspense) balance** should be 0 (all transfers settled)
