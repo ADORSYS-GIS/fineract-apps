@@ -52,7 +52,7 @@ public class FineractClient {
     /**
      * Sealed interface for operations that can be included in an atomic Fineract batch.
      */
-    public sealed interface BatchOperation permits BatchTransferOp {}
+    public sealed interface BatchOperation permits BatchTransferOp, BatchJournalEntryOp {}
 
     /**
      * Account transfer between two savings accounts.
@@ -60,6 +60,15 @@ public class FineractClient {
     public record BatchTransferOp(
             Long fromAccountId, Long toAccountId,
             BigDecimal amount, String description
+    ) implements BatchOperation {}
+
+    /**
+     * GL journal entry for explicit accounting recognition (fees, taxes, spread).
+     * Creates a debit on one GL account and a credit on another.
+     */
+    public record BatchJournalEntryOp(
+            Long debitGlAccountId, Long creditGlAccountId,
+            BigDecimal amount, String comments, String currencyCode
     ) implements BatchOperation {}
 
     /**
@@ -176,6 +185,7 @@ public class FineractClient {
                                         Long savingsControlAccountId,
                                         Long transfersInSuspenseAccountId,
                                         Long incomeFromInterestId,
+                                        Long incomeFromFeeAccountId,
                                         Long expenseAccountId) {
         try {
             Map<String, Object> body = new HashMap<>();
@@ -195,10 +205,10 @@ public class FineractClient {
             body.put("overdraftPortfolioControlId", savingsReferenceAccountId);
             // LIABILITY type accounts
             body.put("savingsControlAccountId", savingsControlAccountId);
-            body.put("transfersInSuspenseAccountId", savingsControlAccountId);
+            body.put("transfersInSuspenseAccountId", transfersInSuspenseAccountId);
             // INCOME type accounts
             body.put("incomeFromInterestId", incomeFromInterestId);
-            body.put("incomeFromFeeAccountId", incomeFromInterestId);
+            body.put("incomeFromFeeAccountId", incomeFromFeeAccountId);
             body.put("incomeFromPenaltyAccountId", incomeFromInterestId);
             // EXPENSE type accounts
             body.put("interestOnSavingsAccountId", expenseAccountId);
@@ -742,6 +752,24 @@ public class FineractClient {
                     body.put("dateFormat", "dd MMMM yyyy");
                     relativeUrl = "accounttransfers";
                 }
+                case BatchJournalEntryOp je -> {
+                    body = new HashMap<>();
+                    body.put("officeId", 1);
+                    body.put("transactionDate", today);
+                    body.put("comments", je.comments());
+                    body.put("currencyCode", je.currencyCode());
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    body.put("debits", List.of(Map.of(
+                            "glAccountId", je.debitGlAccountId(),
+                            "amount", je.amount()
+                    )));
+                    body.put("credits", List.of(Map.of(
+                            "glAccountId", je.creditGlAccountId(),
+                            "amount", je.amount()
+                    )));
+                    relativeUrl = "journalentries";
+                }
             }
 
             String bodyJson;
@@ -780,6 +808,14 @@ public class FineractClient {
                 boolean hasBatchRoutingError = responses.stream()
                         .anyMatch(r -> Integer.valueOf(501).equals(r.get("statusCode")));
                 if (hasBatchRoutingError) {
+                    boolean hasJournalEntries = operations.stream()
+                            .anyMatch(op -> op instanceof BatchJournalEntryOp);
+                    if (hasJournalEntries) {
+                        throw new AssetException(
+                                "Fineract batch API returned 501 and the batch contains journal entries. "
+                                + "Journal entries cannot be executed non-atomically in sequential fallback "
+                                + "because partial failure would leave the GL out of sync with account balances.");
+                    }
                     log.warn("Fineract batch API returned 501 for some operations. "
                             + "Falling back to sequential execution.");
                     return executeSequentially(operations);
@@ -817,12 +853,123 @@ public class FineractClient {
             switch (op) {
                 case BatchTransferOp t -> resourceId = createAccountTransfer(
                         t.fromAccountId(), t.toAccountId(), t.amount(), t.description());
+                case BatchJournalEntryOp je -> resourceId = createJournalEntry(
+                        je.debitGlAccountId(), je.creditGlAccountId(),
+                        je.amount(), je.comments(), je.currencyCode());
             }
             results.add(Map.of("requestId", (long) (i + 1), "statusCode", 200,
                     "body", Map.of("resourceId", resourceId)));
         }
         log.info("Executed {} transfers sequentially (batch API fallback)", operations.size());
         return results;
+    }
+
+    /**
+     * Create a GL journal entry in Fineract with a debit and credit leg.
+     * Used to record fee income, tax expenses, and spread income in the GL
+     * so they appear in the trial balance.
+     *
+     * @param debitGlAccountId  GL account to debit
+     * @param creditGlAccountId GL account to credit
+     * @param amount            Amount for both legs
+     * @param comments          Description/comments for the journal entry
+     * @param currencyCode      Currency code for the journal entry
+     * @return The journal entry resource ID
+     */
+    @SuppressWarnings("unchecked")
+    public Long createJournalEntry(Long debitGlAccountId, Long creditGlAccountId,
+                                    BigDecimal amount, String comments, String currencyCode) {
+        try {
+            String today = LocalDate.now().format(DATE_FORMAT);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("officeId", 1);
+            body.put("transactionDate", today);
+            body.put("comments", comments);
+            body.put("currencyCode", currencyCode);
+            body.put("locale", "en");
+            body.put("dateFormat", "dd MMMM yyyy");
+
+            List<Map<String, Object>> debits = List.of(Map.of(
+                    "glAccountId", debitGlAccountId,
+                    "amount", amount
+            ));
+            List<Map<String, Object>> credits = List.of(Map.of(
+                    "glAccountId", creditGlAccountId,
+                    "amount", amount
+            ));
+            body.put("debits", debits);
+            body.put("credits", credits);
+
+            Map<String, Object> response = webClient.post()
+                    .uri("/fineract-provider/api/v1/journalentries")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .flatMap(b -> Mono.error(new AssetException("Fineract journal entry error: " + b))))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            Long resourceId = ((Number) response.get("resourceId")).longValue();
+            log.info("Created journal entry: DR={}, CR={}, amount={}, currency={}, id={}",
+                    debitGlAccountId, creditGlAccountId, amount, currencyCode, resourceId);
+            return resourceId;
+        } catch (AssetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to create journal entry: DR={}, CR={}, amount={}, error={}",
+                    debitGlAccountId, creditGlAccountId, amount, e.getMessage());
+            throw new AssetException("Failed to create journal entry in Fineract", e);
+        }
+    }
+
+    /**
+     * Fetch journal entries from Fineract filtered by GL account, date range, and currency.
+     *
+     * @param glAccountId  Optional GL account ID filter
+     * @param currencyCode Optional currency code filter
+     * @param fromDate     Optional start date (inclusive)
+     * @param toDate       Optional end date (inclusive)
+     * @param offset       Pagination offset
+     * @param limit        Pagination limit
+     * @return List of journal entry maps from Fineract
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getJournalEntries(Long glAccountId, String currencyCode,
+                                                  String fromDate, String toDate,
+                                                  int offset, int limit) {
+        try {
+            StringBuilder uri = new StringBuilder("/fineract-provider/api/v1/journalentries?");
+            uri.append("offset=").append(offset).append("&limit=").append(limit);
+            uri.append("&orderBy=id&sortOrder=DESC");
+            if (glAccountId != null) {
+                uri.append("&glAccountId=").append(glAccountId);
+            }
+            if (fromDate != null) {
+                uri.append("&fromDate=").append(fromDate);
+            }
+            if (toDate != null) {
+                uri.append("&toDate=").append(toDate);
+            }
+            uri.append("&locale=en&dateFormat=dd MMMM yyyy");
+
+            Map<String, Object> response = webClient.get()
+                    .uri(uri.toString())
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            return response != null ? response : Map.of();
+        } catch (Exception e) {
+            log.error("Failed to fetch journal entries: {}", e.getMessage());
+            throw new AssetException("Failed to fetch journal entries from Fineract", e);
+        }
     }
 
     /**

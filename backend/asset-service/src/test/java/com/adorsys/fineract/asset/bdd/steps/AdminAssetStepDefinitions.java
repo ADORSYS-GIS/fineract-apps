@@ -52,7 +52,7 @@ public class AdminAssetStepDefinitions {
         when(fineractClient.provisionSavingsAccount(anyLong(), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
         // Asset product creation
-        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
+        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
         // Asset account provisioning (with deposit amount)
         when(fineractClient.provisionSavingsAccount(anyLong(), eq(10), any(BigDecimal.class), anyLong()))

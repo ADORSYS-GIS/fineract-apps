@@ -114,10 +114,20 @@ public class AssetServiceConfig {
         private String expenseAccount = "91";
         /** Payment type name for asset issuance. Resolved to DB ID at startup. */
         private String assetIssuancePaymentType = "Asset Issuance";
-        /** GL code for trading fee income account. Resolved to DB ID at startup. */
-        private String feeIncome = "87";
         /** GL code for fund source / cash reference account. Resolved to DB ID at startup. */
         private String fundSource = "42";
+        /** GL code for asset equity / LP capital account (EQUITY type). Resolved to DB ID at startup. */
+        private String assetEquity = "73";
+        /** GL code for platform fee income account (INCOME type). Resolved to DB ID at startup. */
+        private String platformFeeIncome = "88";
+        /** GL code for trading spread income account (INCOME type). Resolved to DB ID at startup. */
+        private String spreadIncome = "89";
+        /** GL code for registration duty tax expense account (EXPENSE type). Resolved to DB ID at startup. */
+        private String taxExpenseRegDuty = "92";
+        /** GL code for capital gains tax expense account (EXPENSE type). Resolved to DB ID at startup. */
+        private String taxExpenseCapGains = "93";
+        /** GL code for IRCM withholding tax expense account (EXPENSE type). Resolved to DB ID at startup. */
+        private String taxExpenseIrcm = "94";
     }
 
     @PostConstruct

@@ -450,6 +450,57 @@ Each payment is recorded in the `income_distributions` table. Tax is recorded in
 
 All monetary amounts in the system (trade costs, fees, coupon payments) use the configured settlement currency. This defaults to **XAF** (West African CFA franc) but is configurable via the `SETTLEMENT_CURRENCY` environment variable. All references to "XAF" in this document apply to whatever settlement currency is configured.
 
+## Accounting Reports
+
+### New GL Accounts (added for proper accounting separation)
+
+| GL Code | Name | Type | Purpose |
+|---------|------|------|---------|
+| 73 | Asset Equity / LP Capital | EQUITY | LP's equity stake in the asset pool |
+| 88 | Platform Fee Income | INCOME | Trading fees collected per trade |
+| 89 | Trading Spread Income | INCOME | Bid-ask spread earnings |
+| 92 | Tax Expense - Registration Duty | EXPENSE | Cameroon registration duty (2% on BUY) |
+| 93 | Tax Expense - Capital Gains | EXPENSE | Capital gains tax on profitable SELL |
+| 94 | Tax Expense - IRCM | EXPENSE | IRCM withholding on coupons/income |
+
+### Journal Entry Creation on Trades
+
+When a trade executes, the following GL journal entries are created alongside the savings account transfers:
+
+**Platform fee income** (if fee > 0):
+- DR Fund Source (GL 42) / CR Platform Fee Income (GL 88)
+- Amount: `grossAmount × tradingFeePercent`
+
+**Spread income** (if spread > 0 and enabled):
+- DR Fund Source (GL 42) / CR Trading Spread Income (GL 89)
+- Amount: `|executionPrice - issuerPrice| × units`
+
+**Registration duty** (on BUY, if enabled):
+- DR Tax Expense Reg Duty (GL 92) / CR Fund Source (GL 42)
+- Amount: `grossAmount × registrationDutyRate` (default 2%)
+
+**Capital gains tax** (on SELL with gain):
+- DR Tax Expense Capital Gains (GL 93) / CR Fund Source (GL 42)
+
+**IRCM withholding** (on coupon/income distributions):
+- DR Tax Expense IRCM (GL 94) / CR Fund Source (GL 42)
+
+These are memo-style recognition entries — the actual cash movements are handled by the savings account transfer legs in the same atomic batch.
+
+### Admin Reporting Endpoints
+
+**Trial Balance** — `GET /admin/accounting/trial-balance`
+- Aggregates debits/credits per GL account from Fineract journal entries
+- Parameters: `currencyCode` (optional, default: XAF), `fromDate`, `toDate` (ISO dates)
+- Paginates through all entries (no 1000-entry truncation)
+
+**Fee & Tax Summary** — `GET /admin/accounting/fee-tax-summary`
+- Aggregates from local `trade_log` and `tax_transactions` tables (faster than Fineract query)
+- Shows platform fees, spread income, and tax expenses with transaction counts
+- Parameters: `currencyCode`, `fromDate`, `toDate`
+
+---
+
 ## Reconciliation
 
 To verify asset accounting is correct:

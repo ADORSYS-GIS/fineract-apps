@@ -288,6 +288,22 @@ public class FineractTestClient {
     }
 
     @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getJournalEntries(Long glAccountId) {
+        Response response = request()
+                .param("glAccountId", glAccountId)
+                .param("limit", 1000)
+                .param("orderBy", "id")
+                .param("sortOrder", "DESC")
+                .param("locale", "en")
+                .param("dateFormat", "dd MMMM yyyy")
+                .get("/fineract-provider/api/v1/journalentries");
+
+        assertOk(response, "getJournalEntries(glAccountId=" + glAccountId + ")");
+        List<Map<String, Object>> pageItems = response.jsonPath().getList("pageItems");
+        return pageItems != null ? pageItems : List.of();
+    }
+
+    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getGlAccounts() {
         Response response = request()
                 .get("/fineract-provider/api/v1/glaccounts");

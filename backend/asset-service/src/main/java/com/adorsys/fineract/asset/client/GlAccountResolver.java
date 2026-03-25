@@ -30,7 +30,10 @@ import java.util.Map;
 public class GlAccountResolver implements ApplicationRunner {
 
     private static final int MAX_RETRIES = 5;
-    private static final long INITIAL_DELAY_MS = 5_000;
+    static final long DEFAULT_INITIAL_DELAY_MS = 5_000;
+
+    /** Initial retry delay in ms. Package-private for test override. */
+    long initialDelayMs = DEFAULT_INITIAL_DELAY_MS;
 
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
@@ -45,7 +48,7 @@ public class GlAccountResolver implements ApplicationRunner {
         AssetServiceConfig.GlAccounts glConfig = assetServiceConfig.getGlAccounts();
 
         Exception lastException = null;
-        long delay = INITIAL_DELAY_MS;
+        long delay = initialDelayMs;
 
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
@@ -85,10 +88,20 @@ public class GlAccountResolver implements ApplicationRunner {
                 resolveGlCode(glCodeToId, glConfig.getIncomeFromInterest(), "incomeFromInterest"));
         resolvedGlAccounts.setExpenseAccountId(
                 resolveGlCode(glCodeToId, glConfig.getExpenseAccount(), "expenseAccount"));
-        resolvedGlAccounts.setFeeIncomeId(
-                resolveGlCode(glCodeToId, glConfig.getFeeIncome(), "feeIncome"));
         resolvedGlAccounts.setFundSourceId(
                 resolveGlCode(glCodeToId, glConfig.getFundSource(), "fundSource"));
+        resolvedGlAccounts.setAssetEquityId(
+                resolveGlCode(glCodeToId, glConfig.getAssetEquity(), "assetEquity"));
+        resolvedGlAccounts.setPlatformFeeIncomeId(
+                resolveGlCode(glCodeToId, glConfig.getPlatformFeeIncome(), "platformFeeIncome"));
+        resolvedGlAccounts.setSpreadIncomeId(
+                resolveGlCode(glCodeToId, glConfig.getSpreadIncome(), "spreadIncome"));
+        resolvedGlAccounts.setTaxExpenseRegDutyId(
+                resolveGlCode(glCodeToId, glConfig.getTaxExpenseRegDuty(), "taxExpenseRegDuty"));
+        resolvedGlAccounts.setTaxExpenseCapGainsId(
+                resolveGlCode(glCodeToId, glConfig.getTaxExpenseCapGains(), "taxExpenseCapGains"));
+        resolvedGlAccounts.setTaxExpenseIrcmId(
+                resolveGlCode(glCodeToId, glConfig.getTaxExpenseIrcm(), "taxExpenseIrcm"));
 
         // Resolve payment type by name
         Map<String, Long> paymentTypeNameToId = fineractClient.lookupPaymentTypes();
@@ -126,8 +139,13 @@ public class GlAccountResolver implements ApplicationRunner {
                 + "transfersInSuspense={} (code {}), "
                 + "incomeFromInterest={} (code {}), "
                 + "expenseAccount={} (code {}), "
-                + "feeIncome={} (code {}), "
                 + "fundSource={} (code {}), "
+                + "assetEquity={} (code {}), "
+                + "platformFeeIncome={} (code {}), "
+                + "spreadIncome={} (code {}), "
+                + "taxExpenseRegDuty={} (code {}), "
+                + "taxExpenseCapGains={} (code {}), "
+                + "taxExpenseIrcm={} (code {}), "
                 + "assetIssuancePaymentType={} (name '{}'), "
                 + "feeCollectionAccount={} (externalId '{}')",
                 resolvedGlAccounts.getDigitalAssetInventoryId(), glConfig.getDigitalAssetInventory(),
@@ -135,8 +153,13 @@ public class GlAccountResolver implements ApplicationRunner {
                 resolvedGlAccounts.getTransfersInSuspenseId(), glConfig.getTransfersInSuspense(),
                 resolvedGlAccounts.getIncomeFromInterestId(), glConfig.getIncomeFromInterest(),
                 resolvedGlAccounts.getExpenseAccountId(), glConfig.getExpenseAccount(),
-                resolvedGlAccounts.getFeeIncomeId(), glConfig.getFeeIncome(),
                 resolvedGlAccounts.getFundSourceId(), glConfig.getFundSource(),
+                resolvedGlAccounts.getAssetEquityId(), glConfig.getAssetEquity(),
+                resolvedGlAccounts.getPlatformFeeIncomeId(), glConfig.getPlatformFeeIncome(),
+                resolvedGlAccounts.getSpreadIncomeId(), glConfig.getSpreadIncome(),
+                resolvedGlAccounts.getTaxExpenseRegDutyId(), glConfig.getTaxExpenseRegDuty(),
+                resolvedGlAccounts.getTaxExpenseCapGainsId(), glConfig.getTaxExpenseCapGains(),
+                resolvedGlAccounts.getTaxExpenseIrcmId(), glConfig.getTaxExpenseIrcm(),
                 resolvedGlAccounts.getAssetIssuancePaymentTypeId(), glConfig.getAssetIssuancePaymentType(),
                 resolvedGlAccounts.getFeeCollectionAccountId(), feeExtId);
     }

@@ -165,6 +165,12 @@ export const menuAssetManager: MenuItem[] = [
 		icon: Scale,
 	},
 	{
+		name: "accounting",
+		title: "sidebar.accounting",
+		link: "/accounting",
+		icon: BookOpen,
+	},
+	{
 		name: "settings",
 		title: "sidebar.settings",
 		link: "/settings",

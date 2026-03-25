@@ -91,7 +91,7 @@ public final class TestcontainersConfig {
     public static final GenericContainer<?> FINERACT =
             new GenericContainer<>(
                     DockerImageName.parse(System.getProperty("fineract.image",
-                            "fineract-custom:latest")))
+                            "ghcr.io/adorsys-gis/fineract:latest")))
                     .withExposedPorts(8443)
                     .withNetwork(SHARED_NETWORK)
                     .withNetworkAliases("fineract")

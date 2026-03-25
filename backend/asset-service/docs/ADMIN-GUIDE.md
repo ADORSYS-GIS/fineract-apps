@@ -2516,3 +2516,79 @@ For non-bond assets with an income type set, BUY previews include an `incomeBene
 ```
 
 Note: Income is calculated from the `issuerPrice`, not the LP's ask price. The `estimatedYieldPercent` reflects the true yield based on the issuer price.
+
+---
+
+## 19. Accounting Reports
+
+### Trial Balance
+
+```
+GET /admin/accounting/trial-balance
+```
+
+Query Parameters:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| currencyCode | string | No | Currency filter (e.g. "XAF"). Defaults to settlement currency. |
+| fromDate | date | No | Start date (inclusive), ISO format (yyyy-MM-dd) |
+| toDate | date | No | End date (inclusive), ISO format (yyyy-MM-dd) |
+
+Response:
+```json
+{
+  "currencyCode": "XAF",
+  "fromDate": "2026-01-01",
+  "toDate": "2026-03-31",
+  "entries": [
+    {
+      "glAccountId": 1042,
+      "glCode": "42",
+      "glAccountName": "Fund Source",
+      "glAccountType": "ASSET",
+      "debitAmount": 5000,
+      "creditAmount": 3000,
+      "balance": 2000
+    }
+  ],
+  "totalDebits": 5000,
+  "totalCredits": 3000
+}
+```
+
+### Fee & Tax Summary
+
+```
+GET /admin/accounting/fee-tax-summary
+```
+
+Query Parameters: same as trial balance.
+
+Response:
+```json
+{
+  "reportType": "FEE_AND_TAX_SUMMARY",
+  "currencyCode": "XAF",
+  "fromDate": "2026-01-01",
+  "toDate": "2026-03-31",
+  "entries": [
+    {
+      "category": "INCOME",
+      "glCode": "88",
+      "description": "Platform Fee Income",
+      "amount": 15000,
+      "transactionCount": 25
+    },
+    {
+      "category": "EXPENSE",
+      "glCode": "92",
+      "description": "Registration Duty Tax Expense",
+      "amount": 5000,
+      "transactionCount": 10
+    }
+  ],
+  "total": 20000
+}
+```
+
+Both endpoints require `ROLE_ASSET_MANAGER` authorization.

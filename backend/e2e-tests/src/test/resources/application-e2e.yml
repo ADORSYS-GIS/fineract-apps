@@ -18,8 +18,13 @@ asset-service:
     income-from-interest: "87"
     expense-account: "91"
     asset-issuance-payment-type: "Asset Issuance"
-    fee-income: "87"
     fund-source: "42"
+    asset-equity: "73"
+    platform-fee-income: "88"
+    spread-income: "89"
+    tax-expense-reg-duty: "92"
+    tax-expense-cap-gains: "93"
+    tax-expense-ircm: "94"
 
 logging:
   level:

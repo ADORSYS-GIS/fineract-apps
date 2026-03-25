@@ -26,6 +26,12 @@ public final class FineractInitializer {
     private static Long glIncomeFromInterestId;   // code 87 - Income type
     private static Long glExpenseAccountId;       // code 91 - Expense type
     private static Long glFundSourceId;           // code 42 - Asset type
+    private static Long glAssetEquityId;          // code 73 - Equity type
+    private static Long glPlatformFeeIncomeId;    // code 88 - Income type
+    private static Long glSpreadIncomeId;         // code 89 - Income type
+    private static Long glTaxExpenseRegDutyId;    // code 92 - Expense type
+    private static Long glTaxExpenseCapGainsId;   // code 93 - Expense type
+    private static Long glTaxExpenseIrcmId;       // code 94 - Expense type
     private static Long paymentTypeId;
     private static Long paymentTypeMtnId;
     private static Long paymentTypeOrangeId;
@@ -73,9 +79,25 @@ public final class FineractInitializer {
         glExpenseAccountId = client.createGlAccount(
                 "Expense Account", "91", 5, 2);
 
-        log.info("Created GL accounts: 47={}, 42={}, 65={}, 48={}, 87={}, 91={}",
+        // Type: 3=Equity
+        glAssetEquityId = client.createGlAccount(
+                "Asset Equity / LP Capital", "73", 3, 2);
+        glPlatformFeeIncomeId = client.createGlAccount(
+                "Platform Fee Income", "88", 4, 2);
+        glSpreadIncomeId = client.createGlAccount(
+                "Trading Spread Income", "89", 4, 2);
+        glTaxExpenseRegDutyId = client.createGlAccount(
+                "Tax Expense - Registration Duty", "92", 5, 2);
+        glTaxExpenseCapGainsId = client.createGlAccount(
+                "Tax Expense - Capital Gains", "93", 5, 2);
+        glTaxExpenseIrcmId = client.createGlAccount(
+                "Tax Expense - IRCM", "94", 5, 2);
+
+        log.info("Created GL accounts: 47={}, 42={}, 65={}, 48={}, 87={}, 91={}, 73={}, 88={}, 89={}, 92={}, 93={}, 94={}",
                 glAssetInventoryId, glFundSourceId, glCustomerHoldingsId,
-                glTransfersInSuspenseId, glIncomeFromInterestId, glExpenseAccountId);
+                glTransfersInSuspenseId, glIncomeFromInterestId, glExpenseAccountId,
+                glAssetEquityId, glPlatformFeeIncomeId, glSpreadIncomeId,
+                glTaxExpenseRegDutyId, glTaxExpenseCapGainsId, glTaxExpenseIrcmId);
 
         // 1b. Financial Activity Account mappings (required for savings transfers)
         // FAA 200 = LIABILITY_TRANSFER → maps to a liability GL account
@@ -161,4 +183,10 @@ public final class FineractInitializer {
     public static Long getTaxRegDutyAccountId() { return taxRegDutyAccountId; }
     public static Long getTaxIrcmAccountId() { return taxIrcmAccountId; }
     public static Long getTaxCapGainsAccountId() { return taxCapGainsAccountId; }
+    public static Long getGlAssetEquityId() { return glAssetEquityId; }
+    public static Long getGlPlatformFeeIncomeId() { return glPlatformFeeIncomeId; }
+    public static Long getGlSpreadIncomeId() { return glSpreadIncomeId; }
+    public static Long getGlTaxExpenseRegDutyId() { return glTaxExpenseRegDutyId; }
+    public static Long getGlTaxExpenseCapGainsId() { return glTaxExpenseCapGainsId; }
+    public static Long getGlTaxExpenseIrcmId() { return glTaxExpenseIrcmId; }
 }

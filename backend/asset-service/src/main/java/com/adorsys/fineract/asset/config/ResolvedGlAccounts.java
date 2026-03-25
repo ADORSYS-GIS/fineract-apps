@@ -30,12 +30,29 @@ public class ResolvedGlAccounts {
     /** Database ID of the asset issuance payment type. */
     private Long assetIssuancePaymentTypeId;
 
-    /** Database ID of the trading fee income GL account. */
-    private Long feeIncomeId;
-
     /** Database ID of the fund source / cash reference GL account. */
     private Long fundSourceId;
 
     /** Database ID of the platform-wide fee collection savings account (mandatory). */
     private Long feeCollectionAccountId;
+
+    // --- New GL accounts for proper accounting separation ---
+
+    /** Database ID of the asset equity / LP capital GL account (EQUITY type). */
+    private Long assetEquityId;
+
+    /** Database ID of the platform fee income GL account (INCOME type). */
+    private Long platformFeeIncomeId;
+
+    /** Database ID of the trading spread income GL account (INCOME type). */
+    private Long spreadIncomeId;
+
+    /** Database ID of the registration duty tax expense GL account (EXPENSE type). */
+    private Long taxExpenseRegDutyId;
+
+    /** Database ID of the capital gains tax expense GL account (EXPENSE type). */
+    private Long taxExpenseCapGainsId;
+
+    /** Database ID of the IRCM withholding tax expense GL account (EXPENSE type). */
+    private Long taxExpenseIrcmId;
 }

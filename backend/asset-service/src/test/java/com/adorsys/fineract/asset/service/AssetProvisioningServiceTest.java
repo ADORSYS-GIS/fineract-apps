@@ -56,6 +56,7 @@ class AssetProvisioningServiceTest {
         lenient().when(resolvedGlAccounts.getCustomerDigitalAssetHoldingsId()).thenReturn(65L);
         lenient().when(resolvedGlAccounts.getTransfersInSuspenseId()).thenReturn(48L);
         lenient().when(resolvedGlAccounts.getIncomeFromInterestId()).thenReturn(87L);
+        lenient().when(resolvedGlAccounts.getPlatformFeeIncomeId()).thenReturn(88L);
         lenient().when(resolvedGlAccounts.getExpenseAccountId()).thenReturn(91L);
         lenient().when(resolvedGlAccounts.getAssetIssuancePaymentTypeId()).thenReturn(22L);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
@@ -84,7 +85,7 @@ class AssetProvisioningServiceTest {
 
         // Fineract: register currency, create product, provision account
 
-        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), eq(47L), eq(65L), eq(48L), eq(87L), eq(91L)))
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), eq(47L), eq(65L), eq(48L), eq(87L), eq(88L), eq(91L)))
                 .thenReturn(10);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
                 .thenReturn(400L);
@@ -159,7 +160,7 @@ class AssetProvisioningServiceTest {
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
 
-        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
+        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenThrow(new RuntimeException("Connection timeout"));
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -182,7 +183,7 @@ class AssetProvisioningServiceTest {
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
 
-        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
+        when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
                 .thenThrow(new RuntimeException("Batch API timeout"));

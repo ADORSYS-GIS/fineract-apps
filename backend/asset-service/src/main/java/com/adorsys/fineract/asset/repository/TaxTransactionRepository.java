@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 
 public interface TaxTransactionRepository extends JpaRepository<TaxTransaction, Long> {
 
@@ -29,4 +31,14 @@ public interface TaxTransactionRepository extends JpaRepository<TaxTransaction, 
     @Query("SELECT COALESCE(SUM(t.taxAmount), 0) FROM TaxTransaction t " +
            "WHERE t.taxType = :taxType AND t.status = 'SUCCESS'")
     BigDecimal sumCollectedByTaxType(@Param("taxType") String taxType);
+
+    /**
+     * Aggregate tax amounts grouped by tax type within a date range.
+     * Returns rows of [taxType, sumTaxAmount, count].
+     */
+    @Query("SELECT t.taxType, COALESCE(SUM(t.taxAmount), 0), COUNT(t) FROM TaxTransaction t " +
+           "WHERE t.status = 'SUCCESS' " +
+           "AND (:from IS NULL OR t.createdAt >= :from) AND (:to IS NULL OR t.createdAt < :to) " +
+           "GROUP BY t.taxType")
+    List<Object[]> sumByTaxTypeAndDateRange(@Param("from") Instant from, @Param("to") Instant to);
 }
