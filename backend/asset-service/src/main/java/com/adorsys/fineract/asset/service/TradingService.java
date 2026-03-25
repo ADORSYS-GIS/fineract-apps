@@ -681,6 +681,7 @@ public class TradingService {
                 BigDecimal estimatedGain = executionPrice.subtract(avgCost).multiply(units)
                         .setScale(0, RoundingMode.HALF_UP);
                 capitalGainsTax = taxService.calculateCapitalGainsTax(asset, ctx.getUserId(), estimatedGain);
+                ctx.setEstimatedGain(estimatedGain);
             }
         }
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax);
@@ -722,14 +723,20 @@ public class TradingService {
                         "INSUFFICIENT_FUNDS");
             }
         } else {
-            // SELL: LP must have enough cash to cover all outflows (investor payout + fee + tax)
+            // SELL: LP must have enough cash to cover all outflows from LP Cash:
+            // user payout (gross - fee - tax) + fee sweep + spread sweep + tax sweeps = gross + spread
+            // Buyback premium (if any) is funded atomically from LP Spread within the batch,
+            // so we don't subtract it here — this is intentionally conservative to avoid
+            // edge cases where LP Spread might not have sufficient premium funds.
             Asset asset = ctx.getAsset();
             BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
-            if (lpCashBalance.compareTo(ctx.getGrossAmount()) < 0) {
+            BigDecimal spread = ctx.getSpreadAmount() != null ? ctx.getSpreadAmount() : BigDecimal.ZERO;
+            BigDecimal requiredLpCash = ctx.getGrossAmount().add(spread);
+            if (lpCashBalance.compareTo(requiredLpCash) < 0) {
                 rejectOrder(ctx.getOrder(), "Insufficient LP funds for payout");
                 throw new TradingException(
                         "This asset's liquidity provider currently has insufficient funds to process your sell order. "
-                                + "Required: " + ctx.getGrossAmount() + " " + currency
+                                + "Required: " + requiredLpCash + " " + currency
                                 + ", LP available: " + lpCashBalance + " " + currency
                                 + ". Please try again later or contact support.",
                         "INSUFFICIENT_LP_FUNDS");
@@ -800,7 +807,8 @@ public class TradingService {
                 side, lockedAsset, ctx.getUserCashAccountId(), ctx.getUserAssetAccountId(),
                 ctx.getGrossAmount(), ctx.getUnits(), ctx.getFee(), ctx.getSpreadAmount(),
                 ctx.getBuybackPremium(), feeCollectionAccountId,
-                registrationDuty, capitalGainsTax);
+                registrationDuty, capitalGainsTax,
+                ctx.getOrderId(), ctx.getUserId());
 
         try {
             List<Map<String, Object>> batchResponses = fineractClient.executeAtomicBatch(batchOps);
@@ -812,9 +820,13 @@ public class TradingService {
                         "REGISTRATION_DUTY", ctx.getGrossAmount(),
                         taxService.getRegistrationDutyRate(lockedAsset), registrationDuty, null);
             }
-            // Always record CAPITAL_GAINS tax_transaction when there's a realized gain,
-            // even if tax amount is 0 (exemption applied). This ensures sumCapitalGainsByUserAndYear
-            // correctly tracks cumulative gains for the annual exemption threshold.
+            // Record CAPITAL_GAINS tax_transaction when there's a realized gain.
+            // Uses realizedPnl (FIFO-based, from portfolio update) as taxableAmount because
+            // sumCapitalGainsByUserAndYear sums taxableAmount for the annual exemption check.
+            // FIFO is more accurate than WAP for users with heterogeneous purchase lots.
+            // The tax *amount* (capitalGainsTax) was calculated from estimatedGain (WAP-based)
+            // during recalculatePriceInsideLock — this is an accepted approximation since exact
+            // FIFO-based tax would require lot consumption before the balance check.
             BigDecimal realizedPnl = ctx.getRealizedPnl() != null ? ctx.getRealizedPnl() : BigDecimal.ZERO;
             if (side == TradeSide.SELL && realizedPnl.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal cgtRate = lockedAsset.getCapitalGainsRate() != null
@@ -880,10 +892,12 @@ public class TradingService {
             Long userCashAccountId, Long userAssetAccountId,
             BigDecimal grossAmount, BigDecimal units, BigDecimal fee,
             BigDecimal spreadAmount, BigDecimal buybackPremium, Long feeCollectionAccountId,
-            BigDecimal registrationDuty, BigDecimal capitalGainsTax) {
+            BigDecimal registrationDuty, BigDecimal capitalGainsTax,
+            String orderId, Long userId) {
 
         List<BatchOperation> ops = new ArrayList<>();
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax);
+        String settlementCurrency = assetServiceConfig.getSettlementCurrency();
 
         if (side == TradeSide.BUY) {
             // Leg 1: Investor pays total (grossAmount + fee + tax) to LP Cash — single XAF debit
@@ -951,6 +965,61 @@ public class TradingService {
                         asset.getLpCashAccountId(), taxService.getCapitalGainsAccountId(),
                         capitalGainsTax, "Capital gains tax: SELL " + asset.getSymbol()));
             }
+        }
+
+        // --- GL Journal Entries for accounting recognition ---
+        // These create explicit entries in the trial balance for fees, taxes, and spread income.
+        String sideLabel = side.name();
+
+        // Platform fee income recognition: DR Fund Source, CR Platform Fee Income (GL 88)
+        if (fee.compareTo(BigDecimal.ZERO) > 0) {
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getFundSourceId(),
+                    resolvedGlAccounts.getPlatformFeeIncomeId(),
+                    fee, String.format("Platform fee income: %s %s, order=%s, user=%d",
+                            sideLabel, asset.getSymbol(), orderId, userId),
+                    settlementCurrency));
+        }
+
+        // Spread income recognition: DR Fund Source, CR Spread Income (GL 89)
+        if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getFundSourceId(),
+                    resolvedGlAccounts.getSpreadIncomeId(),
+                    spreadAmount, String.format("Spread income: %s %s, order=%s, user=%d",
+                            sideLabel, asset.getSymbol(), orderId, userId),
+                    settlementCurrency));
+        }
+
+        // Registration duty tax expense: DR Tax Expense Reg Duty (GL 92), CR Fund Source
+        if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getTaxExpenseRegDutyId(),
+                    resolvedGlAccounts.getFundSourceId(),
+                    registrationDuty, String.format("Registration duty: %s %s, order=%s, user=%d",
+                            sideLabel, asset.getSymbol(), orderId, userId),
+                    settlementCurrency));
+        }
+
+        // Capital gains tax expense: DR Tax Expense CGT (GL 93), CR Fund Source
+        if (capitalGainsTax.compareTo(BigDecimal.ZERO) > 0) {
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getTaxExpenseCapGainsId(),
+                    resolvedGlAccounts.getFundSourceId(),
+                    capitalGainsTax, String.format("Capital gains tax: %s %s, order=%s, user=%d",
+                            sideLabel, asset.getSymbol(), orderId, userId),
+                    settlementCurrency));
+        }
+
+        // Buyback premium: reduces recognized spread income when bid > issuer on SELL.
+        // DR Spread Income (GL 89) / CR Fund Source (GL 42)
+        if (buybackPremium != null && buybackPremium.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getSpreadIncomeId(),
+                    resolvedGlAccounts.getFundSourceId(),
+                    buybackPremium, String.format("Buyback premium expense: %s %s, order=%s, user=%d",
+                            sideLabel, asset.getSymbol(), orderId, userId),
+                    settlementCurrency));
         }
 
         return ops;

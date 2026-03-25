@@ -44,4 +44,24 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, String> {
            "COUNT(t) " +
            "FROM TradeLog t")
     List<Object[]> aggregateTotalLPPerformance();
+
+    /** Sum of fees within a date range, for accounting reports. */
+    @Query("SELECT COALESCE(SUM(t.fee), 0) FROM TradeLog t " +
+           "WHERE (:from IS NULL OR t.executedAt >= :from) AND (:to IS NULL OR t.executedAt < :to)")
+    BigDecimal sumFeesByDateRange(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** Count of trades with non-zero fees within a date range. */
+    @Query("SELECT COUNT(t) FROM TradeLog t " +
+           "WHERE t.fee > 0 AND (:from IS NULL OR t.executedAt >= :from) AND (:to IS NULL OR t.executedAt < :to)")
+    int countByFeeGreaterThanAndDateRange(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** Sum of spread amounts within a date range. */
+    @Query("SELECT COALESCE(SUM(t.spreadAmount), 0) FROM TradeLog t " +
+           "WHERE (:from IS NULL OR t.executedAt >= :from) AND (:to IS NULL OR t.executedAt < :to)")
+    BigDecimal sumSpreadByDateRange(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** Count of trades with non-zero spread within a date range. */
+    @Query("SELECT COUNT(t) FROM TradeLog t " +
+           "WHERE t.spreadAmount > 0 AND (:from IS NULL OR t.executedAt >= :from) AND (:to IS NULL OR t.executedAt < :to)")
+    int countBySpreadGreaterThanAndDateRange(@Param("from") Instant from, @Param("to") Instant to);
 }

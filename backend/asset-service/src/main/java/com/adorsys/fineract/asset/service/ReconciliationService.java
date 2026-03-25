@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.dto.ReconciliationReportResponse;
@@ -13,6 +14,7 @@ import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.ReconciliationReportRepository;
 import com.adorsys.fineract.asset.repository.TaxTransactionRepository;
+import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +42,9 @@ public class ReconciliationService {
     private final UserPositionRepository userPositionRepository;
     private final ReconciliationReportRepository reportRepository;
     private final TaxTransactionRepository taxTransactionRepository;
+    private final TradeLogRepository tradeLogRepository;
     private final FineractClient fineractClient;
+    private final ResolvedGlAccounts resolvedGlAccounts;
     private final ResolvedTaxAccounts resolvedTaxAccounts;
     private final AssetMetrics assetMetrics;
     private final ApplicationEventPublisher eventPublisher;
@@ -69,6 +73,9 @@ public class ReconciliationService {
 
             // 5. Tax account reconciliation (global, not per-asset)
             totalDiscrepancies += reconcileTaxAccounts(today);
+
+            // 6. Fee collection account reconciliation
+            totalDiscrepancies += reconcileFeeCollectionAccount(today);
 
             // Update the open reports gauge
             assetMetrics.setReconciliationOpenReports(reportRepository.countByStatus("OPEN"));
@@ -254,6 +261,37 @@ public class ReconciliationService {
     }
 
     // ── Internal ──
+
+    /**
+     * Reconcile fee collection account: compare sum of all trade fees from trade_logs
+     * against the actual Fineract fee collection savings account balance.
+     * <p>
+     * Assumption: no withdrawals are made from the fee collection account. If fees are
+     * swept to an operating account, this check will produce false-positive mismatches.
+     */
+    private int reconcileFeeCollectionAccount(LocalDate reportDate) {
+        Long feeAccountId = resolvedGlAccounts.getFeeCollectionAccountId();
+        if (feeAccountId == null) {
+            log.warn("Fee collection account not configured, skipping reconciliation");
+            return 0;
+        }
+        try {
+            BigDecimal expectedBalance = tradeLogRepository.sumFeesByDateRange(null, null);
+            BigDecimal actualBalance = fineractClient.getAccountBalance(feeAccountId);
+            BigDecimal discrepancy = expectedBalance.subtract(actualBalance).abs();
+
+            if (discrepancy.compareTo(POSITION_THRESHOLD) > 0) {
+                createReport(reportDate, "FEE_COLLECTION_MISMATCH", null, null,
+                        expectedBalance, actualBalance, discrepancy, "WARNING");
+                log.warn("Fee collection mismatch: expected={}, actual={}, discrepancy={}",
+                        expectedBalance, actualBalance, discrepancy);
+                return 1;
+            }
+        } catch (Exception e) {
+            log.warn("Fee collection reconciliation skipped: {}", e.getMessage());
+        }
+        return 0;
+    }
 
     private void createReport(LocalDate reportDate, String reportType, String assetId,
                                 Long userId, BigDecimal expected, BigDecimal actual,

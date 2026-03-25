@@ -744,6 +744,43 @@ export interface AdminDashboardResponse {
 	activeInvestors: number;
 }
 
+// Accounting Reports
+export interface TrialBalanceEntry {
+	glAccountId: number;
+	glCode: string;
+	glAccountName: string;
+	glAccountType: string;
+	debitAmount: number;
+	creditAmount: number;
+	balance: number;
+}
+
+export interface TrialBalanceResponse {
+	currencyCode: string;
+	fromDate?: string;
+	toDate?: string;
+	entries: TrialBalanceEntry[];
+	totalDebits: number;
+	totalCredits: number;
+}
+
+export interface AccountingReportEntry {
+	category: string;
+	glCode: string;
+	description: string;
+	amount: number;
+	transactionCount: number;
+}
+
+export interface AccountingReportResponse {
+	reportType: string;
+	currencyCode: string;
+	fromDate?: string;
+	toDate?: string;
+	entries: AccountingReportEntry[];
+	total: number;
+}
+
 // --- API ---
 
 export const assetApi = {
@@ -1027,4 +1064,23 @@ export const assetApi = {
 	// LP Performance - Admin
 	getLPPerformance: () =>
 		assetClient.get<LPPerformanceResponse>("/admin/lp/performance"),
+
+	// Accounting Reports - Admin
+	getTrialBalance: (params?: {
+		currencyCode?: string;
+		fromDate?: string;
+		toDate?: string;
+	}) =>
+		assetClient.get<TrialBalanceResponse>("/admin/accounting/trial-balance", {
+			params,
+		}),
+	getFeeTaxSummary: (params?: {
+		currencyCode?: string;
+		fromDate?: string;
+		toDate?: string;
+	}) =>
+		assetClient.get<AccountingReportResponse>(
+			"/admin/accounting/fee-tax-summary",
+			{ params },
+		),
 };

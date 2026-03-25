@@ -48,6 +48,7 @@ public class TradeContext {
     // -- Tax --
     private BigDecimal registrationDutyAmount;
     private BigDecimal capitalGainsTaxAmount;
+    private BigDecimal estimatedGain; // Weighted-average-price-based gain used for CGT tax calculation
 
     // -- Output --
     private BigDecimal realizedPnl;

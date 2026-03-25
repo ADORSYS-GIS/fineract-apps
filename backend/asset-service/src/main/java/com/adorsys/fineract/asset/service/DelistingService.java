@@ -1,7 +1,11 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.client.FineractClient.BatchJournalEntryOp;
+import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
+import com.adorsys.fineract.asset.client.FineractClient.BatchTransferOp;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.UserPosition;
@@ -40,6 +44,7 @@ public class DelistingService {
     private final PortfolioService portfolioService;
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
+    private final ResolvedGlAccounts resolvedGlAccounts;
     private final ApplicationEventPublisher eventPublisher;
     private final AssetMetrics assetMetrics;
 
@@ -161,18 +166,26 @@ public class DelistingService {
                     continue;
                 }
 
-                // Return asset units to LP
-                fineractClient.createAccountTransfer(
-                        holder.getFineractSavingsAccountId(),
-                        asset.getLpAssetAccountId(),
-                        holderUnits,
-                        "Delisting buyback: " + asset.getSymbol());
-
-                // Pay cash to holder
-                fineractClient.createAccountTransfer(
-                        asset.getLpCashAccountId(), userCashAccountId,
-                        cashAmount,
-                        "Delisting redemption: " + asset.getSymbol());
+                // Atomic batch: asset return + cash payout + GL expense entry
+                // Uses Fineract Batch API (enclosingTransaction=true) so all succeed or all roll back.
+                List<BatchOperation> ops = List.of(
+                        new BatchTransferOp(holder.getFineractSavingsAccountId(),
+                                asset.getLpAssetAccountId(), holderUnits,
+                                "Delisting buyback: " + asset.getSymbol()),
+                        new BatchTransferOp(asset.getLpCashAccountId(), userCashAccountId,
+                                cashAmount, "Delisting redemption: " + asset.getSymbol()),
+                        // GL entry: recognize forced buyback expense (full cash payout).
+                        // DR Expense Account (GL 91) / CR Fund Source (GL 42)
+                        // Records entire cashAmount — does not split principal vs premium/discount.
+                        new BatchJournalEntryOp(
+                                resolvedGlAccounts.getExpenseAccountId(),
+                                resolvedGlAccounts.getFundSourceId(),
+                                cashAmount,
+                                String.format("Delisting buyback expense: %s, user=%d",
+                                        asset.getSymbol(), holder.getUserId()),
+                                currency)
+                );
+                fineractClient.executeAtomicBatch(ops);
 
                 // Update position via PortfolioService (handles FIFO lots + realized P&L)
                 portfolioService.updatePositionAfterSell(

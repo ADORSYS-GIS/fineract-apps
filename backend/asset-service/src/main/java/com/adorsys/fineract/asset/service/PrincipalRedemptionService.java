@@ -1,7 +1,11 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.client.FineractClient.BatchJournalEntryOp;
+import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
+import com.adorsys.fineract.asset.client.FineractClient.BatchTransferOp;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.dto.RedemptionTriggerResponse;
 import com.adorsys.fineract.asset.dto.RedemptionTriggerResponse.HolderRedemptionDetail;
@@ -23,6 +27,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,6 +48,7 @@ public class PrincipalRedemptionService {
     private final PrincipalRedemptionRepository principalRedemptionRepository;
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
+    private final ResolvedGlAccounts resolvedGlAccounts;
     private final PortfolioService portfolioService;
     private final AssetMetrics assetMetrics;
 
@@ -209,19 +215,33 @@ public class PrincipalRedemptionService {
                         + " account for user " + holder.getUserId());
             }
 
-            // b. Asset leg first: user asset account → LP asset account
+            // b. Atomic batch: asset return + cash payout
+            // Uses Fineract Batch API (enclosingTransaction=true) so both succeed or both roll back.
             String assetDescription = String.format("Principal redemption — asset return: %s (%.8f units)",
                     bond.getSymbol(), units);
-            Long assetTransferId = fineractClient.createAccountTransfer(
-                    holder.getFineractSavingsAccountId(), bond.getLpAssetAccountId(),
-                    units, assetDescription);
-
-            // c. Cash leg: LP cash account → user XAF account
             String cashDescription = String.format("Principal redemption: %s (%.8f units @ %s face value)",
                     bond.getSymbol(), units, faceValue);
-            Long cashTransferId = fineractClient.createAccountTransfer(
-                    bond.getLpCashAccountId(), userCashAccountId,
-                    cashAmount, cashDescription);
+
+            List<BatchOperation> ops = List.of(
+                    new BatchTransferOp(holder.getFineractSavingsAccountId(), bond.getLpAssetAccountId(),
+                            units, assetDescription),
+                    new BatchTransferOp(bond.getLpCashAccountId(), userCashAccountId,
+                            cashAmount, cashDescription),
+                    // GL entry: recognize principal redemption expense
+                    // DR Expense Account (GL 91) / CR Fund Source (GL 42)
+                    new BatchJournalEntryOp(
+                            resolvedGlAccounts.getExpenseAccountId(),
+                            resolvedGlAccounts.getFundSourceId(),
+                            cashAmount,
+                            String.format("Principal redemption expense: %s, user=%d",
+                                    bond.getSymbol(), holder.getUserId()),
+                            currency)
+            );
+            List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
+            Long assetTransferId = results.size() > 0
+                    ? ((Number) results.get(0).getOrDefault("resourceId", 0L)).longValue() : null;
+            Long cashTransferId = results.size() > 1
+                    ? ((Number) results.get(1).getOrDefault("resourceId", 0L)).longValue() : null;
 
             // d. Update position: zero out units, record realized P&L
             BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(

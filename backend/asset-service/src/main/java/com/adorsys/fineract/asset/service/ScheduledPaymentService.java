@@ -2,8 +2,10 @@ package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
+import com.adorsys.fineract.asset.client.FineractClient.BatchJournalEntryOp;
 import com.adorsys.fineract.asset.client.FineractClient.BatchTransferOp;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.*;
 import com.adorsys.fineract.asset.event.CouponPaidEvent;
@@ -44,6 +46,7 @@ public class ScheduledPaymentService {
     private final IncomeDistributionRepository incomeDistributionRepository;
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
+    private final ResolvedGlAccounts resolvedGlAccounts;
     private final AssetMetrics assetMetrics;
     private final ApplicationEventPublisher eventPublisher;
     private final TaxService taxService;
@@ -424,7 +427,32 @@ public class ScheduledPaymentService {
                 String ircmDesc = String.format("IRCM withholding: %s coupon (%s%%)",
                         bond.getSymbol(), ircmRate.multiply(new BigDecimal("100")));
                 ops.add(new BatchTransferOp(bond.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+
+                // GL memo entry for IRCM tax expense recognition in the trial balance.
+                // This is NOT a cash movement (the cash sweep is handled by the BatchTransferOp above).
+                // DR Tax Expense IRCM / CR Fund Source — matches the pattern in TradingService.
+                ops.add(new BatchJournalEntryOp(
+                        resolvedGlAccounts.getTaxExpenseIrcmId(),
+                        resolvedGlAccounts.getFundSourceId(),
+                        ircmAmount,
+                        String.format("IRCM tax expense: %s coupon, user=%d, date=%s",
+                                bond.getSymbol(), holder.getUserId(), couponDate),
+                        currency));
             }
+
+            // GL entry: recognize coupon interest expense in trial balance.
+            // DR Expense Account (GL 91) / CR Fund Source (GL 42) for GROSS amount.
+            // The platform pays out interest — this is an expense regardless of IRCM withholding.
+            // Note: This is NOT double-counting with the IRCM entry above. GL 91 records the full
+            // expense obligation, GL 94 records the tax portion separately. Fund Source (GL 42)
+            // absorbs both credits and nets to zero against the actual cash transfers.
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getExpenseAccountId(),
+                    resolvedGlAccounts.getFundSourceId(),
+                    cashAmount,
+                    String.format("Interest expense: %s coupon, user=%d, date=%s",
+                            bond.getSymbol(), holder.getUserId(), couponDate),
+                    currency));
 
             List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
 
@@ -496,7 +524,29 @@ public class ScheduledPaymentService {
                 String ircmDesc = String.format("IRCM withholding: %s %s (%s%%)",
                         asset.getSymbol(), incomeType, ircmRate.multiply(new BigDecimal("100")));
                 ops.add(new BatchTransferOp(asset.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+
+                // GL memo entry for IRCM tax expense recognition in the trial balance.
+                // This is NOT a cash movement (the cash sweep is handled by the BatchTransferOp above).
+                // DR Tax Expense IRCM / CR Fund Source — matches the pattern in TradingService.
+                ops.add(new BatchJournalEntryOp(
+                        resolvedGlAccounts.getTaxExpenseIrcmId(),
+                        resolvedGlAccounts.getFundSourceId(),
+                        ircmAmount,
+                        String.format("IRCM tax expense: %s %s, user=%d, date=%s",
+                                asset.getSymbol(), incomeType, holder.getUserId(), distributionDate),
+                        currency));
             }
+
+            // GL entry: recognize income distribution expense in trial balance.
+            // DR Expense Account (GL 91) / CR Fund Source (GL 42) for GROSS amount.
+            // Not double-counting with IRCM — see coupon path comment for explanation.
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getExpenseAccountId(),
+                    resolvedGlAccounts.getFundSourceId(),
+                    cashAmount,
+                    String.format("Income expense: %s %s, user=%d, date=%s",
+                            asset.getSymbol(), incomeType, holder.getUserId(), distributionDate),
+                    currency));
 
             List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
 

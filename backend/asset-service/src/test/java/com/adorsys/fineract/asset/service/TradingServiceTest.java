@@ -112,9 +112,12 @@ class TradingServiceTest {
         accounting.setSpreadCollectionAccountId(LP_SPREAD_ACCOUNT);
         lenient().when(assetServiceConfig.getAccounting()).thenReturn(accounting);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
-        lenient().when(resolvedGlAccounts.getFeeIncomeId()).thenReturn(FEE_INCOME_GL_ID);
         lenient().when(resolvedGlAccounts.getFundSourceId()).thenReturn(FUND_SOURCE_GL_ID);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECTION_ACCOUNT);
+        lenient().when(resolvedGlAccounts.getPlatformFeeIncomeId()).thenReturn(1088L);
+        lenient().when(resolvedGlAccounts.getSpreadIncomeId()).thenReturn(1089L);
+        lenient().when(resolvedGlAccounts.getTaxExpenseRegDutyId()).thenReturn(1092L);
+        lenient().when(resolvedGlAccounts.getTaxExpenseCapGainsId()).thenReturn(1093L);
 
         // Market hours config (needed for subscription period checks)
         AssetServiceConfig.MarketHours marketHours = new AssetServiceConfig.MarketHours();
@@ -560,10 +563,10 @@ class TradingServiceTest {
                 .filter(o -> o.getStatus() == OrderStatus.FILLED).findFirst().orElse(null);
         assertNotNull(finalOrder, "Order should be marked FILLED");
 
-        // Verify 4-leg batch: investor→LP cash, LP asset→investor, spread sweep, fee sweep
+        // Verify 4 transfer legs + 2 journal entries (fee income + spread income)
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        assertEquals(4, ops.size());
+        assertEquals(6, ops.size());
         assertTransferOp(ops.get(0), USER_CASH_ACCOUNT, LP_CASH_ACCOUNT, new BigDecimal("1106")); // gross+fee
         assertTransferOp(ops.get(1), LP_ASSET_ACCOUNT, USER_ASSET_ACCOUNT, units); // token delivery
         assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT, spreadAmount); // spread
@@ -603,10 +606,10 @@ class TradingServiceTest {
                 .filter(o -> o.getStatus() == OrderStatus.FILLED).findFirst().orElse(null);
         assertNotNull(finalOrder, "Order should be marked FILLED");
 
-        // Verify 4-leg batch: token return, LP pays investor, fee, spread
+        // Verify 4 transfer legs + 2 journal entries (fee income + spread income)
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        assertEquals(4, ops.size());
+        assertEquals(6, ops.size());
         assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, units); // token return
         BigDecimal grossAmount = new BigDecimal("450"); // 5 * 90
         assertTransferOp(ops.get(1), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(fee)); // net proceeds
@@ -766,8 +769,8 @@ class TradingServiceTest {
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
 
-        // Expect 4 legs: token return, buyback premium (spread→LP cash), net proceeds, fee
-        assertEquals(4, ops.size());
+        // Expect 4 transfer legs + 2 journal entries (fee income + buyback premium reversal)
+        assertEquals(6, ops.size());
         assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, units); // token return
         // Leg 2: buyback premium from LP Spread → LP Cash
         assertTransferOp(ops.get(1), LP_SPREAD_ACCOUNT, LP_CASH_ACCOUNT, new BigDecimal("25"));
@@ -797,8 +800,8 @@ class TradingServiceTest {
 
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        // No spread leg → 3 legs: investor pays, token delivery, fee
-        assertEquals(3, ops.size());
+        // No spread leg → 3 transfer legs + 1 journal entry (fee income)
+        assertEquals(4, ops.size());
         assertTransferOp(ops.get(0), USER_CASH_ACCOUNT, LP_CASH_ACCOUNT, new BigDecimal("1106")); // gross+fee
         assertTransferOp(ops.get(1), LP_ASSET_ACCOUNT, USER_ASSET_ACCOUNT, units);
         assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, fee);
@@ -824,8 +827,8 @@ class TradingServiceTest {
 
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        // No fee leg → 3 legs: investor pays, token delivery, spread
-        assertEquals(3, ops.size());
+        // No fee leg → 3 transfer legs + 1 journal entry (spread income)
+        assertEquals(4, ops.size());
         assertTransferOp(ops.get(0), USER_CASH_ACCOUNT, LP_CASH_ACCOUNT, new BigDecimal("1100")); // gross only
         assertTransferOp(ops.get(1), LP_ASSET_ACCOUNT, USER_ASSET_ACCOUNT, units);
         assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT, spreadAmount);
