@@ -561,15 +561,27 @@ Each payment is recorded in the `income_distributions` table. Tax is recorded in
 
 ## Payment Types
 
-| Name | Position | Description |
-|------|----------|-------------|
-| Asset Issuance | 22 | Used for all asset service transfers (inventory deposits, trade settlements, coupon/income payments) |
+Fineract payment types classify the nature of savings account deposits/withdrawals. They appear in transaction history and reports.
 
-## Charges
+| Name | Position | Used For | Configured Via |
+|------|----------|----------|----------------|
+| Asset Issuance | 20 | Initial supply deposit into LP Asset Account during provisioning, and additional minting via `mintSupply()` | `ASSET_ISSUANCE_PAYMENT_TYPE` env var (default: `Asset Issuance`) |
+| MTN Mobile Money | 21 | User deposits/withdrawals via MTN MoMo (payment gateway) | Payment gateway config |
+| Orange Money | 22 | User deposits/withdrawals via Orange Money (payment gateway) | Payment gateway config |
 
-| Name | Applies To | Type | Amount |
-|------|-----------|------|--------|
-| Asset Trading Fee | Savings | Percentage of Amount | 0.50% |
+**Note:** Account-to-account transfers (trades, fee sweeps, tax sweeps, coupon payments) do **not** use payment types — they use Fineract's `/accounttransfers` API which has its own transfer type. Payment types only apply to direct deposits/withdrawals on a single savings account.
+
+The asset service resolves the "Asset Issuance" payment type to a Fineract database ID at startup via `GlAccountResolver`. If the payment type doesn't exist in Fineract, provisioning will fail.
+
+## Trading Fee
+
+The trading fee is **not** a Fineract charge — it's calculated by the asset service in application code and collected via batch transfer (LP Cash → Fee Collection account).
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `tradingFeePercent` | 0.5% (0.005) | Per-asset configurable. Applied to `grossAmount` on both BUY and SELL. |
+
+The fee is set per asset at creation time. It can be 0 (no fee). The fee amount appears in the order record (`order.fee`) and is recognized in the GL as DR Fund Source (42) / CR Platform Fee Income (88).
 
 ## Settlement Currency
 
