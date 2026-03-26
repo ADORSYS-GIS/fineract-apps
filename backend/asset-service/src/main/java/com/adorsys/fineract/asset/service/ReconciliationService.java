@@ -53,8 +53,11 @@ public class ReconciliationService {
 
     /**
      * Run full reconciliation across all active assets.
+     * <p>
+     * Not @Transactional: each sub-reconciliation runs in its own transaction so that
+     * a PostgreSQL error in one asset doesn't poison the transaction and abort all
+     * subsequent SQL commands ("current transaction is aborted" error).
      */
-    @Transactional
     public int runDailyReconciliation() {
         return assetMetrics.getReconciliationRunTimer().record(() -> {
             LocalDate today = LocalDate.now();
@@ -72,13 +75,25 @@ public class ReconciliationService {
             }
 
             // 5. Tax account reconciliation (global, not per-asset)
-            totalDiscrepancies += reconcileTaxAccounts(today);
+            try {
+                totalDiscrepancies += reconcileTaxAccounts(today);
+            } catch (Exception e) {
+                log.error("Tax account reconciliation failed: {}", e.getMessage());
+            }
 
             // 6. Fee collection account reconciliation
-            totalDiscrepancies += reconcileFeeCollectionAccount(today);
+            try {
+                totalDiscrepancies += reconcileFeeCollectionAccount(today);
+            } catch (Exception e) {
+                log.error("Fee collection reconciliation failed: {}", e.getMessage());
+            }
 
             // Update the open reports gauge
-            assetMetrics.setReconciliationOpenReports(reportRepository.countByStatus("OPEN"));
+            try {
+                assetMetrics.setReconciliationOpenReports(reportRepository.countByStatus("OPEN"));
+            } catch (Exception e) {
+                log.error("Failed to update open reports gauge: {}", e.getMessage());
+            }
 
             log.info("Daily reconciliation complete: {} discrepancies found across {} assets",
                     totalDiscrepancies, activeAssets.size());
