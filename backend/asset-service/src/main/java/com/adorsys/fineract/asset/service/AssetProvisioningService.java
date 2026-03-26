@@ -136,14 +136,15 @@ public class AssetProvisioningService {
             log.info("Provisioned LP asset account atomically: accountId={}, supply={}",
                     lpAssetAccountId, request.totalSupply());
 
-            // Step 4b: GL journal entry for initial capitalization
-            // DR Digital Asset Inventory (GL 47) / CR Asset Equity (GL 73)
-            // Note: This is a separate API call, not atomic with provisioning. If it fails,
-            // the savings account exists with supply but no GL record — admin must create manually.
+            // Step 4b: GL journal entry for initial capitalization — reclassify as equity
+            // The savings deposit (Step 4) already created: DR GL 47 / CR GL 61
+            // Now reclassify the savings liability as equity: DR GL 61 / CR GL 73
+            // This records that the deposited supply is LP's own capital, not a customer deposit.
+            // Note: This is a separate API call, not atomic with provisioning.
             if (request.totalSupply() != null && request.totalSupply().compareTo(BigDecimal.ZERO) > 0) {
                 try {
                     fineractClient.createJournalEntry(
-                            resolvedGlAccounts.getDigitalAssetInventoryId(),
+                            resolvedGlAccounts.getSavingsControlId(),
                             resolvedGlAccounts.getAssetEquityId(),
                             request.totalSupply(),
                             String.format("Asset issuance: %s initial supply %s",
@@ -152,7 +153,7 @@ public class AssetProvisioningService {
                     log.info("Created GL entry for asset issuance: {} supply={}", request.symbol(), request.totalSupply());
                 } catch (Exception glError) {
                     log.error("Failed to create GL entry for asset issuance: {} supply={}. "
-                            + "Admin must create manually: DR GL 47 / CR GL 73 for {} {}. Error: {}",
+                            + "Admin must create manually: DR GL 61 / CR GL 73 for {} {}. Error: {}",
                             request.symbol(), request.totalSupply(),
                             request.totalSupply(), request.currencyCode(), glError.getMessage());
                 }
@@ -373,9 +374,10 @@ public class AssetProvisioningService {
                 request.additionalSupply(),
                 resolvedGlAccounts.getAssetIssuancePaymentTypeId());
 
-        // GL journal entry for additional minting: DR Digital Asset Inventory / CR Asset Equity
+        // GL journal entry for additional minting: reclassify savings liability as equity
+        // The deposit above created DR GL 47 / CR GL 61. Now reclassify: DR GL 61 / CR GL 73
         fineractClient.createJournalEntry(
-                resolvedGlAccounts.getDigitalAssetInventoryId(),
+                resolvedGlAccounts.getSavingsControlId(),
                 resolvedGlAccounts.getAssetEquityId(),
                 request.additionalSupply(),
                 String.format("Supply mint: %s +%s units", asset.getSymbol(), request.additionalSupply()),
