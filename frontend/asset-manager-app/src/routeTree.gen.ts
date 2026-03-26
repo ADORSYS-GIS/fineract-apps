@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AccountingRouteImport } from './routes/accounting'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScheduledPaymentsRouteImport } from './routes/scheduled-payments'
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
@@ -25,6 +26,11 @@ import { Route as PricingAssetIdRouteImport } from './routes/pricing.$assetId'
 import { Route as PaymentResultsPaymentIdRouteImport } from './routes/payment-results.$paymentId'
 import { Route as AssetDetailsAssetIdRouteImport } from './routes/asset-details.$assetId'
 
+const AccountingRoute = AccountingRouteImport.update({
+  id: '/accounting',
+  path: '/accounting',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -103,6 +109,7 @@ const AssetDetailsAssetIdRoute = AssetDetailsAssetIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
@@ -138,6 +146,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accounting'
     | '/audit-log'
     | '/create-asset'
     | '/dashboard'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/accounting'
     | '/audit-log'
     | '/create-asset'
     | '/dashboard'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/accounting'
     | '/audit-log'
     | '/create-asset'
     | '/dashboard'
@@ -209,6 +221,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountingRoute: typeof AccountingRoute
   AuditLogRoute: typeof AuditLogRoute
   CreateAssetRoute: typeof CreateAssetRoute
   DashboardRoute: typeof DashboardRoute
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAssetRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/accounting': {
+      id: '/accounting'
+      path: '/accounting'
+      fullPath: '/accounting'
+      preLoaderRoute: typeof AccountingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/audit-log': {
       id: '/audit-log'
       path: '/audit-log'
@@ -337,6 +357,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountingRoute: AccountingRoute,
   AuditLogRoute: AuditLogRoute,
   CreateAssetRoute: CreateAssetRoute,
   DashboardRoute: DashboardRoute,

@@ -112,7 +112,7 @@ asset-service:
   gl-accounts:
     digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:47}
     customer-digital-asset-holdings: ${GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS:65}
-    transfers-in-suspense: ${GL_TRANSFERS_IN_SUSPENSE:48}
+    transfers-in-suspense: ${GL_TRANSFERS_IN_SUSPENSE:131}
     income-from-interest: ${GL_INCOME_FROM_INTEREST:87}
     expense-account: ${GL_EXPENSE_ACCOUNT:91}
     asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:Asset Issuance}

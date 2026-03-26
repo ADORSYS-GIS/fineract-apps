@@ -38,8 +38,6 @@ export const AccountingView: FC<ReturnType<typeof useAccounting>> = ({
 	isErrorFeeTax,
 	refetch,
 }) => {
-	const _isLoading =
-		activeTab === "trial-balance" ? isLoadingTrialBalance : isLoadingFeeTax;
 	const isError =
 		activeTab === "trial-balance" ? isErrorTrialBalance : isErrorFeeTax;
 
