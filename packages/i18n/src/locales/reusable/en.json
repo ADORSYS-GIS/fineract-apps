@@ -23,7 +23,8 @@
 			"orderResolution": "Order Resolution",
 			"reconciliation": "Reconciliation",
 			"scheduledPayments": "Scheduled Payments",
-			"lpPerformance": "LP Performance"
+			"lpPerformance": "LP Performance",
+			"accounting": "Accounting"
 		},
 		"navbar": {
 			"onlineBank": "OnlineBank"

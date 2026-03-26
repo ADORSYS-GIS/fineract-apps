@@ -45,23 +45,23 @@ public interface TradeLogRepository extends JpaRepository<TradeLog, String> {
            "FROM TradeLog t")
     List<Object[]> aggregateTotalLPPerformance();
 
-    /** Sum of fees within a date range, for accounting reports. */
+    /** Sum of fees within a date range, for accounting reports. Callers must pass non-null Instants. */
     @Query("SELECT COALESCE(SUM(t.fee), 0) FROM TradeLog t " +
-           "WHERE (:from IS NULL OR t.executedAt >= :from) AND (:to IS NULL OR t.executedAt < :to)")
+           "WHERE t.executedAt >= :from AND t.executedAt < :to")
     BigDecimal sumFeesByDateRange(@Param("from") Instant from, @Param("to") Instant to);
 
-    /** Count of trades with non-zero fees within a date range. */
+    /** Count of trades with non-zero fees within a date range. Callers must pass non-null Instants. */
     @Query("SELECT COUNT(t) FROM TradeLog t " +
-           "WHERE t.fee > 0 AND (:from IS NULL OR t.executedAt >= :from) AND (:to IS NULL OR t.executedAt < :to)")
+           "WHERE t.fee > 0 AND t.executedAt >= :from AND t.executedAt < :to")
     int countByFeeGreaterThanAndDateRange(@Param("from") Instant from, @Param("to") Instant to);
 
-    /** Sum of spread amounts within a date range. */
+    /** Sum of spread amounts within a date range. Callers must pass non-null Instants. */
     @Query("SELECT COALESCE(SUM(t.spreadAmount), 0) FROM TradeLog t " +
-           "WHERE (:from IS NULL OR t.executedAt >= :from) AND (:to IS NULL OR t.executedAt < :to)")
+           "WHERE t.executedAt >= :from AND t.executedAt < :to")
     BigDecimal sumSpreadByDateRange(@Param("from") Instant from, @Param("to") Instant to);
 
-    /** Count of trades with non-zero spread within a date range. */
+    /** Count of trades with non-zero spread within a date range. Callers must pass non-null Instants. */
     @Query("SELECT COUNT(t) FROM TradeLog t " +
-           "WHERE t.spreadAmount > 0 AND (:from IS NULL OR t.executedAt >= :from) AND (:to IS NULL OR t.executedAt < :to)")
+           "WHERE t.spreadAmount > 0 AND t.executedAt >= :from AND t.executedAt < :to")
     int countBySpreadGreaterThanAndDateRange(@Param("from") Instant from, @Param("to") Instant to);
 }

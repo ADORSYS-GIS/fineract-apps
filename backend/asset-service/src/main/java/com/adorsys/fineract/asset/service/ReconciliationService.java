@@ -291,7 +291,7 @@ public class ReconciliationService {
             return 0;
         }
         try {
-            BigDecimal expectedBalance = tradeLogRepository.sumFeesByDateRange(null, null);
+            BigDecimal expectedBalance = tradeLogRepository.sumFeesByDateRange(Instant.EPOCH, Instant.now().plusSeconds(86400));
             BigDecimal actualBalance = fineractClient.getAccountBalance(feeAccountId);
             BigDecimal discrepancy = expectedBalance.subtract(actualBalance).abs();
 

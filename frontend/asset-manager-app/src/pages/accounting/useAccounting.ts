@@ -16,6 +16,12 @@ export const useAccounting = () => {
 		toDate: toDate || undefined,
 	};
 
+	const { data: currencies } = useQuery({
+		queryKey: ["accounting-currencies"],
+		queryFn: () => assetApi.getAccountingCurrencies(),
+		select: (res) => res.data,
+	});
+
 	const {
 		data: trialBalance,
 		isLoading: isLoadingTrialBalance,
@@ -48,6 +54,7 @@ export const useAccounting = () => {
 		setActiveTab,
 		currencyCode,
 		setCurrencyCode,
+		currencies,
 		fromDate,
 		setFromDate,
 		toDate,

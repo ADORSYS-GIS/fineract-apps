@@ -102,6 +102,8 @@ public class GlAccountResolver implements ApplicationRunner {
                 resolveGlCode(glCodeToId, glConfig.getTaxExpenseCapGains(), "taxExpenseCapGains"));
         resolvedGlAccounts.setTaxExpenseIrcmId(
                 resolveGlCode(glCodeToId, glConfig.getTaxExpenseIrcm(), "taxExpenseIrcm"));
+        resolvedGlAccounts.setSavingsControlId(
+                resolveGlCode(glCodeToId, glConfig.getSavingsControl(), "savingsControl"));
 
         // Resolve payment type by name
         Map<String, Long> paymentTypeNameToId = fineractClient.lookupPaymentTypes();
@@ -146,6 +148,7 @@ public class GlAccountResolver implements ApplicationRunner {
                 + "taxExpenseRegDuty={} (code {}), "
                 + "taxExpenseCapGains={} (code {}), "
                 + "taxExpenseIrcm={} (code {}), "
+                + "savingsControl={} (code {}), "
                 + "assetIssuancePaymentType={} (name '{}'), "
                 + "feeCollectionAccount={} (externalId '{}')",
                 resolvedGlAccounts.getDigitalAssetInventoryId(), glConfig.getDigitalAssetInventory(),
@@ -160,6 +163,7 @@ public class GlAccountResolver implements ApplicationRunner {
                 resolvedGlAccounts.getTaxExpenseRegDutyId(), glConfig.getTaxExpenseRegDuty(),
                 resolvedGlAccounts.getTaxExpenseCapGainsId(), glConfig.getTaxExpenseCapGains(),
                 resolvedGlAccounts.getTaxExpenseIrcmId(), glConfig.getTaxExpenseIrcm(),
+                resolvedGlAccounts.getSavingsControlId(), glConfig.getSavingsControl(),
                 resolvedGlAccounts.getAssetIssuancePaymentTypeId(), glConfig.getAssetIssuancePaymentType(),
                 resolvedGlAccounts.getFeeCollectionAccountId(), feeExtId);
     }

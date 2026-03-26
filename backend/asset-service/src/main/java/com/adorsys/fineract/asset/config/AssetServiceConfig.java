@@ -128,6 +128,8 @@ public class AssetServiceConfig {
         private String taxExpenseCapGains = "93";
         /** GL code for IRCM withholding tax expense account (EXPENSE type). Resolved to DB ID at startup. */
         private String taxExpenseIrcm = "94";
+        /** GL code for voluntary savings control account (LIABILITY type). Resolved to DB ID at startup. */
+        private String savingsControl = "61";
     }
 
     @PostConstruct

@@ -55,4 +55,7 @@ public class ResolvedGlAccounts {
 
     /** Database ID of the IRCM withholding tax expense GL account (EXPENSE type). */
     private Long taxExpenseIrcmId;
+
+    /** Database ID of the voluntary savings control GL account (LIABILITY type). */
+    private Long savingsControlId;
 }

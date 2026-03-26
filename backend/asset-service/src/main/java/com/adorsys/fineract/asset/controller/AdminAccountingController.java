@@ -1,7 +1,11 @@
 package com.adorsys.fineract.asset.controller;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.AccountingReportResponse;
+import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.dto.TrialBalanceResponse;
+import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.service.AccountingReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +17,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/admin/accounting")
@@ -22,6 +28,22 @@ import java.time.LocalDate;
 public class AdminAccountingController {
 
     private final AccountingReportService accountingReportService;
+    private final AssetRepository assetRepository;
+    private final AssetServiceConfig assetServiceConfig;
+
+    @GetMapping("/currencies")
+    @Operation(summary = "Available currencies", description = "Returns the settlement currency plus all active asset currencies.")
+    public ResponseEntity<List<String>> getAvailableCurrencies() {
+        List<String> currencies = new ArrayList<>();
+        currencies.add(assetServiceConfig.getSettlementCurrency());
+        assetRepository.findByStatusIn(List.of(AssetStatus.ACTIVE, AssetStatus.DELISTING, AssetStatus.MATURED))
+                .stream()
+                .map(Asset::getCurrencyCode)
+                .distinct()
+                .sorted()
+                .forEach(currencies::add);
+        return ResponseEntity.ok(currencies);
+    }
 
     @GetMapping("/trial-balance")
     @Operation(summary = "Trial balance",

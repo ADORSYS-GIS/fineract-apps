@@ -221,8 +221,8 @@ export function ReportParameterModal({
 						message: t("reportParameters.dateError", { label }),
 					});
 			} else {
-				// Treat all other fields, including all types of selects, as required strings
-				schemaShape[key] = z
+				// Coerce to string to handle select inputs that convert numeric IDs to numbers
+				schemaShape[key] = z.coerce
 					.string()
 					.min(1, { message: t("reportParameters.requiredError", { label }) });
 			}

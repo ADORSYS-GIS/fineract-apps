@@ -123,8 +123,9 @@ public class AccountingReportService {
     public AccountingReportResponse getFeeAndTaxSummary(String currencyCode, LocalDate fromDate, LocalDate toDate) {
         String currency = currencyCode != null ? currencyCode : assetServiceConfig.getSettlementCurrency();
 
-        Instant fromInstant = fromDate != null ? fromDate.atStartOfDay().toInstant(ZoneOffset.UTC) : null;
-        Instant toInstant = toDate != null ? toDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC) : null;
+        // Use epoch boundaries instead of null to avoid PostgreSQL "could not determine data type" errors
+        Instant fromInstant = fromDate != null ? fromDate.atStartOfDay().toInstant(ZoneOffset.UTC) : Instant.EPOCH;
+        Instant toInstant = toDate != null ? toDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC) : Instant.now().plusSeconds(86400);
 
         List<AccountingReportResponse.ReportEntry> entries = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
@@ -189,7 +190,8 @@ public class AccountingReportService {
         Map<Long, GlAccountMeta> map = new LinkedHashMap<>();
         putIfNonNull(map, resolvedGlAccounts.getFundSourceId(), gl.getFundSource(), "Fund Source", "ASSET");
         putIfNonNull(map, resolvedGlAccounts.getDigitalAssetInventoryId(), gl.getDigitalAssetInventory(), "Digital Asset Inventory", "ASSET");
-        putIfNonNull(map, resolvedGlAccounts.getTransfersInSuspenseId(), gl.getTransfersInSuspense(), "Transfers in Suspense", "ASSET");
+        putIfNonNull(map, resolvedGlAccounts.getTransfersInSuspenseId(), gl.getTransfersInSuspense(), "Transfers in Suspense", "LIABILITY");
+        putIfNonNull(map, resolvedGlAccounts.getSavingsControlId(), gl.getSavingsControl(), "Voluntary Savings Control", "LIABILITY");
         putIfNonNull(map, resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(), gl.getCustomerDigitalAssetHoldings(), "Customer Digital Asset Holdings", "LIABILITY");
         putIfNonNull(map, resolvedGlAccounts.getAssetEquityId(), gl.getAssetEquity(), "Asset Equity / LP Capital", "EQUITY");
         putIfNonNull(map, resolvedGlAccounts.getIncomeFromInterestId(), gl.getIncomeFromInterest(), "Income from Interest", "INCOME");

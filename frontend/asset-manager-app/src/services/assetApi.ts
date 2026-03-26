@@ -1083,4 +1083,6 @@ export const assetApi = {
 			"/admin/accounting/fee-tax-summary",
 			{ params },
 		),
+	getAccountingCurrencies: () =>
+		assetClient.get<string[]>("/admin/accounting/currencies"),
 };

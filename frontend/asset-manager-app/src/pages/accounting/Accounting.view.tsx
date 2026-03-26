@@ -26,6 +26,7 @@ export const AccountingView: FC<ReturnType<typeof useAccounting>> = ({
 	setActiveTab,
 	currencyCode,
 	setCurrencyCode,
+	currencies,
 	fromDate,
 	setFromDate,
 	toDate,
@@ -122,7 +123,11 @@ export const AccountingView: FC<ReturnType<typeof useAccounting>> = ({
 							value={currencyCode}
 							onChange={(e) => setCurrencyCode(e.target.value)}
 						>
-							<option value="XAF">XAF</option>
+							{currencies?.map((c) => (
+								<option key={c} value={c}>
+									{c}
+								</option>
+							)) ?? <option value="XAF">XAF</option>}
 						</select>
 					</div>
 					<div>

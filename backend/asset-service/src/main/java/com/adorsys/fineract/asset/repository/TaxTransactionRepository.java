@@ -36,9 +36,10 @@ public interface TaxTransactionRepository extends JpaRepository<TaxTransaction, 
      * Aggregate tax amounts grouped by tax type within a date range.
      * Returns rows of [taxType, sumTaxAmount, count].
      */
+    /** Callers must pass non-null Instants (use Instant.EPOCH / Instant.now() for unbounded). */
     @Query("SELECT t.taxType, COALESCE(SUM(t.taxAmount), 0), COUNT(t) FROM TaxTransaction t " +
            "WHERE t.status = 'SUCCESS' " +
-           "AND (:from IS NULL OR t.createdAt >= :from) AND (:to IS NULL OR t.createdAt < :to) " +
+           "AND t.createdAt >= :from AND t.createdAt < :to " +
            "GROUP BY t.taxType")
     List<Object[]> sumByTaxTypeAndDateRange(@Param("from") Instant from, @Param("to") Instant to);
 }
