@@ -208,6 +208,8 @@ public class AccountingReportService {
         if (!isSettlementCurrency) {
             putIfNonNull(map, resolvedGlAccounts.getDigitalAssetInventoryId(), gl.getDigitalAssetInventory(), "Digital Asset Inventory", "ASSET");
             putIfNonNull(map, resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(), gl.getCustomerDigitalAssetHoldings(), "Customer Digital Asset Holdings", "LIABILITY");
+            putIfNonNull(map, resolvedGlAccounts.getAssetEquityId(), gl.getAssetEquity(), "Asset Equity / LP Capital", "EQUITY");
+            putIfNonNull(map, resolvedGlAccounts.getSavingsControlId(), gl.getSavingsControl(), "Voluntary Savings Control", "LIABILITY");
             putIfNonNull(map, resolvedGlAccounts.getIncomeFromInterestId(), gl.getIncomeFromInterest(), "Income from Interest", "INCOME");
         }
 
