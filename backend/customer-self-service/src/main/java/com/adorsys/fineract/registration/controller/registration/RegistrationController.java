@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,7 +42,6 @@ public class RegistrationController {
             @ApiResponse(responseCode = "400", description = "Validation error or email already exists"),
             @ApiResponse(responseCode = "500", description = "Registration failed")
     })
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ClientAndAccountResponse> register(
             @Valid @RequestBody RegistrationRequest request) {
         log.info("Received registration request for email: {}", request.getEmail());
@@ -60,7 +58,6 @@ public class RegistrationController {
             @ApiResponse(responseCode = "400", description = "Validation error"),
             @ApiResponse(responseCode = "500", description = "Deposit failed")
     })
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<DepositResponse> approveAndDeposit(
             @RequestHeader(value = "X-Idempotency-Key", required = true) String idempotencyKey,
             @Valid @RequestBody DepositRequest request) {

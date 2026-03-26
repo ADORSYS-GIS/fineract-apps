@@ -47,6 +47,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(HttpMethod.POST, "/api/registration/register").hasAuthority("ROLE_KYC_MANAGER")
+                .requestMatchers(HttpMethod.POST, "/api/registration/approve-and-deposit").hasAuthority("ROLE_KYC_MANAGER")
                 .requestMatchers("/api/registration/health/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
