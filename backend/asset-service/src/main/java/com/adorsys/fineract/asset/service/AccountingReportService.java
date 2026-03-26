@@ -44,7 +44,7 @@ public class AccountingReportService {
         String to = toDate != null ? toDate.format(FINERACT_DATE_FORMAT) : null;
 
         // Build map of GL account IDs we care about to their metadata
-        Map<Long, GlAccountMeta> glAccountMap = buildGlAccountMap();
+        Map<Long, GlAccountMeta> glAccountMap = buildGlAccountMap(currency);
 
         // Query journal entries for each GL account
         List<TrialBalanceResponse.TrialBalanceEntry> entries = new ArrayList<>();
@@ -185,22 +185,32 @@ public class AccountingReportService {
                 entries, total);
     }
 
-    private Map<Long, GlAccountMeta> buildGlAccountMap() {
+    private Map<Long, GlAccountMeta> buildGlAccountMap(String currency) {
         AssetServiceConfig.GlAccounts gl = assetServiceConfig.getGlAccounts();
+        boolean isSettlementCurrency = assetServiceConfig.getSettlementCurrency().equals(currency);
         Map<Long, GlAccountMeta> map = new LinkedHashMap<>();
-        putIfNonNull(map, resolvedGlAccounts.getFundSourceId(), gl.getFundSource(), "Fund Source", "ASSET");
-        putIfNonNull(map, resolvedGlAccounts.getDigitalAssetInventoryId(), gl.getDigitalAssetInventory(), "Digital Asset Inventory", "ASSET");
-        putIfNonNull(map, resolvedGlAccounts.getTransfersInSuspenseId(), gl.getTransfersInSuspense(), "Transfers in Suspense", "LIABILITY");
-        putIfNonNull(map, resolvedGlAccounts.getSavingsControlId(), gl.getSavingsControl(), "Voluntary Savings Control", "LIABILITY");
-        putIfNonNull(map, resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(), gl.getCustomerDigitalAssetHoldings(), "Customer Digital Asset Holdings", "LIABILITY");
-        putIfNonNull(map, resolvedGlAccounts.getAssetEquityId(), gl.getAssetEquity(), "Asset Equity / LP Capital", "EQUITY");
-        putIfNonNull(map, resolvedGlAccounts.getIncomeFromInterestId(), gl.getIncomeFromInterest(), "Income from Interest", "INCOME");
-        putIfNonNull(map, resolvedGlAccounts.getPlatformFeeIncomeId(), gl.getPlatformFeeIncome(), "Platform Fee Income", "INCOME");
-        putIfNonNull(map, resolvedGlAccounts.getSpreadIncomeId(), gl.getSpreadIncome(), "Trading Spread Income", "INCOME");
-        putIfNonNull(map, resolvedGlAccounts.getExpenseAccountId(), gl.getExpenseAccount(), "General Expense", "EXPENSE");
-        putIfNonNull(map, resolvedGlAccounts.getTaxExpenseRegDutyId(), gl.getTaxExpenseRegDuty(), "Tax Expense - Registration Duty", "EXPENSE");
-        putIfNonNull(map, resolvedGlAccounts.getTaxExpenseCapGainsId(), gl.getTaxExpenseCapGains(), "Tax Expense - Capital Gains", "EXPENSE");
-        putIfNonNull(map, resolvedGlAccounts.getTaxExpenseIrcmId(), gl.getTaxExpenseIrcm(), "Tax Expense - IRCM", "EXPENSE");
+
+        // Cash/settlement accounts — only for settlement currency (XAF)
+        if (isSettlementCurrency) {
+            putIfNonNull(map, resolvedGlAccounts.getFundSourceId(), gl.getFundSource(), "Fund Source", "ASSET");
+            putIfNonNull(map, resolvedGlAccounts.getTransfersInSuspenseId(), gl.getTransfersInSuspense(), "Transfers in Suspense", "LIABILITY");
+            putIfNonNull(map, resolvedGlAccounts.getSavingsControlId(), gl.getSavingsControl(), "Voluntary Savings Control", "LIABILITY");
+            putIfNonNull(map, resolvedGlAccounts.getAssetEquityId(), gl.getAssetEquity(), "Asset Equity / LP Capital", "EQUITY");
+            putIfNonNull(map, resolvedGlAccounts.getPlatformFeeIncomeId(), gl.getPlatformFeeIncome(), "Platform Fee Income", "INCOME");
+            putIfNonNull(map, resolvedGlAccounts.getSpreadIncomeId(), gl.getSpreadIncome(), "Trading Spread Income", "INCOME");
+            putIfNonNull(map, resolvedGlAccounts.getExpenseAccountId(), gl.getExpenseAccount(), "General Expense", "EXPENSE");
+            putIfNonNull(map, resolvedGlAccounts.getTaxExpenseRegDutyId(), gl.getTaxExpenseRegDuty(), "Tax Expense - Registration Duty", "EXPENSE");
+            putIfNonNull(map, resolvedGlAccounts.getTaxExpenseCapGainsId(), gl.getTaxExpenseCapGains(), "Tax Expense - Capital Gains", "EXPENSE");
+            putIfNonNull(map, resolvedGlAccounts.getTaxExpenseIrcmId(), gl.getTaxExpenseIrcm(), "Tax Expense - IRCM", "EXPENSE");
+        }
+
+        // Token inventory/holdings accounts — only for asset currencies (not XAF)
+        if (!isSettlementCurrency) {
+            putIfNonNull(map, resolvedGlAccounts.getDigitalAssetInventoryId(), gl.getDigitalAssetInventory(), "Digital Asset Inventory", "ASSET");
+            putIfNonNull(map, resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(), gl.getCustomerDigitalAssetHoldings(), "Customer Digital Asset Holdings", "LIABILITY");
+            putIfNonNull(map, resolvedGlAccounts.getIncomeFromInterestId(), gl.getIncomeFromInterest(), "Income from Interest", "INCOME");
+        }
+
         return map;
     }
 
