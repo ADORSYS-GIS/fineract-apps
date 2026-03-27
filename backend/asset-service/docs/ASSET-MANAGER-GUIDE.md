@@ -169,8 +169,35 @@ Below the summary cards, a table lists all assets:
 ### 2.4 Quick Actions
 
 - Click **"Create Asset"** (top right) to start the creation wizard.
+- Click **"Export Template"** to download an Excel template for bulk asset import.
+- Click **"Import Assets"** to upload a filled template and create multiple assets at once.
 - Click **"Manage"** on any asset row to open its details page.
 
+### 2.5 Bulk Asset Import
+
+If you need to create many assets at once, the Excel import workflow is faster than creating them one by one:
+
+1. **Download the template** — Click the **"Export Template"** button. An `.xlsx` file downloads with:
+   - All column headers matching the asset creation fields
+   - Mandatory columns marked with `*` and highlighted in red
+   - An example row (row 2) showing realistic sample data
+   - Hover over any header cell to see a description of that field
+
+2. **Fill in the template** — Open the file in Excel or Google Sheets:
+   - Keep the header row (row 1) intact
+   - You can delete or keep the example row (it will be skipped during import)
+   - Add one row per asset you want to create
+   - Fill in all mandatory fields (marked with `*`)
+   - Use the dropdown menus for category, income type, frequencies, and boolean fields
+
+3. **Import the file** — Click **"Import Assets"** on the Dashboard:
+   - Select your filled `.xlsx` file
+   - A preview shows all parsed rows with any validation errors highlighted
+   - Click **"Import X Assets"** to start creating them
+   - A progress bar shows how many have been created
+   - Results show success/failure for each row with error details
+
+All imported assets are created in **PENDING** status. You can then review and activate them individually.
 ---
 
 ## 3. Creating a New Asset
@@ -375,8 +402,13 @@ The buttons you see depend on the asset's current status:
    - Trading fee %, LP ask/bid prices
    - Subscription dates, exposure limits
    - Income configuration, tax settings
-3. You **cannot change**: symbol, currency code, issuer price, LP client (these are immutable).
-4. Click **"Save"** to apply changes.
+3. **When the asset is PENDING**, you can also edit:
+   - Issuer price (face value)
+   - Total supply
+   - Issuer name, ISIN code, coupon frequency (bond assets)
+4. You **cannot change**: symbol, currency code, decimal places. To change these, delete the PENDING asset and recreate it.
+5. Once an asset is **ACTIVE or beyond**, the core fields (issuer price, total supply, etc.) become read-only.
+6. Click **"Save"** to apply changes.
 
 ### 4.7 Minting Additional Supply
 

@@ -109,5 +109,23 @@ public record UpdateAssetRequest(
     Boolean isBvmacListed,
     /** Government bond flag. Null to keep current. */
     @Schema(description = "Government bond.")
-    Boolean isGovernmentBond
+    Boolean isGovernmentBond,
+
+    // ── PENDING-only fields (rejected if asset is not PENDING) ──
+
+    /** New issuer/face price. Only updatable when asset is PENDING. */
+    @Schema(description = "Issuer price (face value). Only updatable when PENDING.")
+    @Positive BigDecimal issuerPrice,
+    /** New total supply. Only updatable when asset is PENDING. Adjusts LP account balance. */
+    @Schema(description = "Total supply. Only updatable when PENDING.")
+    @Positive BigDecimal totalSupply,
+    /** New issuer name. Only updatable when asset is PENDING. */
+    @Schema(description = "Issuer name. Only updatable when PENDING.")
+    @Size(max = 255) String issuerName,
+    /** New ISIN code. Only updatable when asset is PENDING. */
+    @Schema(description = "ISIN code (ISO 6166). Only updatable when PENDING.")
+    @Size(max = 12) String isinCode,
+    /** New coupon frequency. Only updatable when asset is PENDING. */
+    @Schema(description = "Coupon frequency in months (1, 3, 6, or 12). Only updatable when PENDING.")
+    Integer couponFrequencyMonths
 ) {}

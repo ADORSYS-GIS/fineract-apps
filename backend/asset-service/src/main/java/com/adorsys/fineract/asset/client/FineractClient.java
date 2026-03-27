@@ -110,7 +110,7 @@ public class FineractClient {
                     .retrieve()
                     .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                             resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract currency API error: " + b))))
+                                    .flatMap(b -> Mono.error(new AssetException(parseFineractError("Failed to register currency", b)))))
                     .bodyToMono(Map.class)
                     .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                     .block();
@@ -213,7 +213,7 @@ public class FineractClient {
                     .retrieve()
                     .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                             resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract product API error: " + b))))
+                                    .flatMap(b -> Mono.error(new AssetException(parseFineractError("Failed to create savings product", b)))))
                     .bodyToMono(Map.class)
                     .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                     .block();
@@ -691,7 +691,7 @@ public class FineractClient {
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                         resp -> resp.bodyToMono(String.class)
-                                .flatMap(b -> Mono.error(new AssetException("Fineract API error: " + b))))
+                                .flatMap(b -> Mono.error(new AssetException(parseFineractError("Core banking API call failed", b)))))
                 .bodyToMono(Map.class)
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                 .block();
@@ -770,7 +770,7 @@ public class FineractClient {
                     .retrieve()
                     .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                             resp -> resp.bodyToMono(String.class)
-                                    .flatMap(b -> Mono.error(new AssetException("Fineract batch API error: " + b))))
+                                    .flatMap(b -> Mono.error(new AssetException(parseFineractError("Failed to provision account", b)))))
                     .bodyToMono(List.class)
                     .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                     .block();
@@ -889,5 +889,28 @@ public class FineractClient {
     private String getBasicAuth() {
         String credentials = config.getUsername() + ":" + config.getPassword();
         return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Parse a Fineract error response into a human-readable message.
+     * Extracts defaultUserMessage from the JSON and adds contextual guidance.
+     */
+    @SuppressWarnings("unchecked")
+    private String parseFineractError(String context, String rawBody) {
+        try {
+            Map<String, Object> errorResponse = new ObjectMapper().readValue(rawBody, Map.class);
+            String userMessage = (String) errorResponse.get("defaultUserMessage");
+            if (userMessage != null && !userMessage.isBlank()) {
+                String result = context + ": " + userMessage;
+                // Add guidance for common errors
+                if (userMessage.contains("data integrity issue")) {
+                    result += " This usually means an asset with the same name or symbol already exists in the core banking system.";
+                }
+                return result;
+            }
+        } catch (Exception ignored) {
+            // JSON parsing failed, fall through to raw message
+        }
+        return context + ": " + rawBody;
     }
 }

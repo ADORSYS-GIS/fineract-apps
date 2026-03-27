@@ -1650,9 +1650,22 @@ Body:
 
 All fields are optional. Only provided fields are updated.
 
-**Editable fields:** name, description, imageUrl, category, tradingFeePercent, lpAskPrice, lpBidPrice, subscriptionStartDate, subscriptionEndDate, capitalOpenedPercent, maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, income config.
+**Editable fields (all states):** name, description, imageUrl, category, tradingFeePercent, lpAskPrice, lpBidPrice, subscriptionStartDate, subscriptionEndDate, capitalOpenedPercent, maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount, income config, tax config.
 
-**Immutable fields (cannot be changed after creation):** symbol, currencyCode, issuerPrice, issuerName, lpClientId, totalSupply, decimalPlaces, interestRate, couponFrequencyMonths, maturityDate (bond contractual terms).
+**Editable fields (PENDING only):** issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths. These fields are rejected with HTTP 400 if the asset is not in PENDING status. When `totalSupply` is changed, the LP asset account balance is automatically adjusted (minted/burned) to match.
+
+**Immutable fields (cannot be changed after creation):** symbol, currencyCode, decimalPlaces. To change these, delete the PENDING asset and recreate it.
+
+**Example — updating a PENDING asset's issuer price and total supply:**
+
+```
+PUT /api/admin/assets/{id}
+Body:
+{
+  "issuerPrice": 6000,
+  "totalSupply": 150000
+}
+```
 
 ---
 
@@ -2516,3 +2529,57 @@ For non-bond assets with an income type set, BUY previews include an `incomeBene
 ```
 
 Note: Income is calculated from the `issuerPrice`, not the LP's ask price. The `estimatedYieldPercent` reflects the true yield based on the issuer price.
+
+---
+
+## 19. Bulk Asset Import via Excel
+
+The Asset Manager UI provides an Excel-based import workflow for creating multiple assets at once.
+
+### Workflow
+
+1. **Export Template** — Click "Export Template" on the Dashboard. This downloads `asset-import-template.xlsx` with:
+   - Header row with all column names (mandatory columns marked with `*` and highlighted in red)
+   - Example data row (row 2) with realistic sample values
+   - Cell comments on each header explaining the field, valid values, and format
+   - Dropdown validation for enum fields (category, incomeType, couponFrequencyMonths, boolean fields)
+
+2. **Fill In Data** — Open the template in Excel/Google Sheets. Keep the header row, optionally delete the example row, and add one row per asset. All required fields must be filled.
+
+3. **Import** — Click "Import Assets" on the Dashboard, select the filled .xlsx file. The system will:
+   - Parse and validate the file client-side
+   - Show a preview of parsed rows with any validation errors highlighted
+   - On confirmation, create each asset one-by-one using the standard asset creation endpoint
+   - Display per-row results (success or failure with error message)
+
+### Template Columns
+
+| Column | Required | Description |
+|--------|----------|-------------|
+| name | Yes | Display name (max 200 chars) |
+| symbol | Yes | Ticker symbol (max 10 chars, unique) |
+| currencyCode | Yes | ISO currency code (max 10 chars, unique) |
+| category | Yes | REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, BONDS |
+| issuerPrice | Yes | Face value in XAF |
+| totalSupply | Yes | Maximum units |
+| decimalPlaces | Yes | Fractional digits (0–8) |
+| lpAskPrice | Yes | Investor buy price (XAF) |
+| lpBidPrice | Yes | Investor sell price (XAF) |
+| subscriptionStartDate | Yes | YYYY-MM-DD |
+| subscriptionEndDate | Yes | YYYY-MM-DD |
+| lpClientId | Yes | Fineract LP client ID |
+| description | No | Long description |
+| tradingFeePercent | No | Decimal (e.g. 0.005 = 0.5%) |
+| maxPositionPercent | No | Max % of supply per user |
+| maxOrderSize / minOrderSize | No | Order unit limits |
+| dailyTradeLimitXaf / minOrderCashAmount | No | XAF limits |
+| lockupDays | No | Hold period in days |
+| issuerName / isinCode | No | Bond identity fields |
+| maturityDate / interestRate / couponFrequencyMonths / nextCouponDate | No | Bond fields |
+| incomeType / incomeRate / distributionFrequencyMonths / nextDistributionDate | No | Income fields |
+| registrationDutyEnabled, registrationDutyRate | No | Registration duty tax config |
+| ircmEnabled, ircmRateOverride, ircmExempt | No | IRCM tax config |
+| capitalGainsTaxEnabled, capitalGainsRate | No | Capital gains tax config |
+| isBvmacListed, isGovernmentBond | No | Special tax treatment flags |
+
+All imported assets are created in **PENDING** status. Use the Activate endpoint to make them available for trading.

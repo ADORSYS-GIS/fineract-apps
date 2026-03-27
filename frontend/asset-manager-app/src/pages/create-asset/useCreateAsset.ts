@@ -116,6 +116,63 @@ const initialFormData: AssetFormData = {
 	capitalGainsRate: 0,
 };
 
+function validateLiquidityPartner(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (!data.lpClientId) errors.push("Select a liquidity partner");
+	return errors;
+}
+
+function validateAssetDetails(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (!data.name.trim()) errors.push("Name is required");
+	if (!data.symbol.trim()) errors.push("Symbol is required");
+	else if (!/^[A-Z]{3}$/.test(data.symbol))
+		errors.push("Symbol must be exactly 3 uppercase letters");
+	return errors;
+}
+
+function validateBondDetails(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (!data.issuerName.trim()) errors.push("Issuer is required");
+	if (!data.maturityDate) errors.push("Maturity date is required");
+	if (data.interestRate <= 0)
+		errors.push("Interest rate must be greater than 0");
+	if (![1, 3, 6, 12].includes(data.couponFrequencyMonths))
+		errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
+	if (!data.nextCouponDate) errors.push("First coupon date is required");
+	return errors;
+}
+
+function validatePricingFees(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (data.issuerPrice <= 0) errors.push("Issuer price must be greater than 0");
+	if (data.tradingFeePercent < 0 || data.tradingFeePercent > 50)
+		errors.push("Trading fee must be 0-50%");
+	if (data.lpAskPrice <= 0) errors.push("LP ask price must be greater than 0");
+	if (data.lpAskPrice < data.issuerPrice)
+		errors.push("LP ask price must be >= issuer price");
+	if (data.lpBidPrice < 0) errors.push("LP bid price must be >= 0");
+	if (data.lpBidPrice > 0 && data.lpBidPrice > data.lpAskPrice)
+		errors.push("LP bid price must be <= LP ask price");
+	return errors;
+}
+
+function validateSupply(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (data.totalSupply <= 0) errors.push("Total supply must be greater than 0");
+	if (!data.subscriptionStartDate)
+		errors.push("Subscription start date is required");
+	if (!data.subscriptionEndDate)
+		errors.push("Subscription end date is required");
+	if (
+		data.subscriptionStartDate &&
+		data.subscriptionEndDate &&
+		data.subscriptionEndDate < data.subscriptionStartDate
+	)
+		errors.push("Subscription end date must be on or after the start date");
+	return errors;
+}
+
 export const useCreateAsset = () => {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
@@ -182,66 +239,19 @@ export const useCreateAsset = () => {
 	const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
 	const validateStep = (step: number): string[] => {
-		const errors: string[] = [];
-		// Map logical step to validation based on whether bond step is present
 		const stepName = steps[step];
-		switch (stepName) {
-			case "Select Liquidity Partner":
-				if (!formData.lpClientId) errors.push("Select a liquidity partner");
-				break;
-			case "Asset Details":
-				if (!formData.name.trim()) errors.push("Name is required");
-				if (!formData.symbol.trim()) errors.push("Symbol is required");
-				else if (!/^[A-Z]{3}$/.test(formData.symbol))
-					errors.push("Symbol must be exactly 3 uppercase letters");
-				break;
-			case "Bond Details":
-				if (!formData.issuerName.trim()) errors.push("Issuer is required");
-				if (!formData.maturityDate) errors.push("Maturity date is required");
-				if (formData.interestRate <= 0)
-					errors.push("Interest rate must be greater than 0");
-				if (![1, 3, 6, 12].includes(formData.couponFrequencyMonths))
-					errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
-				if (!formData.nextCouponDate)
-					errors.push("First coupon date is required");
-				break;
-			case "Pricing & Fees":
-				if (formData.issuerPrice <= 0)
-					errors.push("Issuer price must be greater than 0");
-				if (formData.tradingFeePercent < 0 || formData.tradingFeePercent > 50)
-					errors.push("Trading fee must be 0-50%");
-				if (formData.lpAskPrice <= 0)
-					errors.push("LP ask price must be greater than 0");
-				if (formData.lpAskPrice < formData.issuerPrice)
-					errors.push("LP ask price must be >= issuer price");
-				if (formData.lpBidPrice < 0) errors.push("LP bid price must be >= 0");
-				if (
-					formData.lpBidPrice > 0 &&
-					formData.lpBidPrice > formData.lpAskPrice
-				)
-					errors.push("LP bid price must be <= LP ask price");
-				break;
-			case "Supply":
-				if (formData.totalSupply <= 0)
-					errors.push("Total supply must be greater than 0");
-				if (!formData.subscriptionStartDate)
-					errors.push("Subscription start date is required");
-				if (!formData.subscriptionEndDate)
-					errors.push("Subscription end date is required");
-				if (
-					formData.subscriptionStartDate &&
-					formData.subscriptionEndDate &&
-					formData.subscriptionEndDate < formData.subscriptionStartDate
-				)
-					errors.push(
-						"Subscription end date must be on or after the start date",
-					);
-				break;
-			case "Income Distribution":
-				// All income fields are optional
-				break;
-		}
-		return errors;
+		const validators: Record<string, (data: AssetFormData) => string[]> = {
+			"Select Liquidity Partner": validateLiquidityPartner,
+			"Asset Details": validateAssetDetails,
+			"Bond Details": validateBondDetails,
+			"Pricing & Fees": validatePricingFees,
+			Supply: validateSupply,
+			"Income Distribution": () => [],
+			"Tax Configuration": () => [],
+			"Review & Create": () => [],
+		};
+		const validator = validators[stepName];
+		return validator ? validator(formData) : [];
 	};
 
 	const updateFormData = (updates: Partial<AssetFormData>) => {

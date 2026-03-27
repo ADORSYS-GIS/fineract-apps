@@ -278,6 +278,13 @@ export interface UpdateAssetRequest {
 	ircmExempt?: boolean;
 	capitalGainsTaxEnabled?: boolean;
 	capitalGainsRate?: number;
+
+	// PENDING-only fields (rejected if asset is not PENDING)
+	issuerPrice?: number;
+	totalSupply?: number;
+	issuerName?: string;
+	isinCode?: string;
+	couponFrequencyMonths?: number;
 }
 
 /** Coupon payment audit record (matches backend CouponPaymentResponse). */
