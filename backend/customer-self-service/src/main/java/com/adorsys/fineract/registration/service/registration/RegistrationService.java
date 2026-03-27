@@ -7,6 +7,7 @@ import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
 import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
 import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
+import com.adorsys.fineract.registration.exception.ValidationException;
 import com.adorsys.fineract.registration.exception.JsonSerializationException;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
@@ -136,7 +137,7 @@ public class RegistrationService {
         log.info("Starting account funding process for savings account: {}", request.getSavingsAccountId());
 
         if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(BigDecimal.ZERO) < 0) {
-            throw new RegistrationException("VALIDATION_ERROR", "Deposit amount cannot be negative.", "depositAmount");
+            throw new ValidationException("Deposit amount cannot be negative.", "depositAmount");
         }
 
         Map<String, Object> savingsAccount = fineractAccountService.getSavingsAccount(request.getSavingsAccountId());
