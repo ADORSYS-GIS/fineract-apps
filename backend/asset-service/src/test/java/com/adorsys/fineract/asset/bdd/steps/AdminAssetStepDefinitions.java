@@ -74,12 +74,10 @@ public class AdminAssetStepDefinitions {
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id,
-                subscription_start_date, subscription_end_date,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
                 is_bvmac_listed, is_government_bond, ircm_exempt,
                 version, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 300, 10,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
                 true, true, true, false, false, false,
                 0, NOW(), NOW())
             """, "dup-" + symbol, symbol, symbol, "Duplicate " + symbol);
@@ -114,10 +112,6 @@ public class AdminAssetStepDefinitions {
         request.put("totalSupply", new BigDecimal(data.get("totalSupply")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("lpClientId", 1L);
-        request.put("subscriptionStartDate", data.getOrDefault("subscriptionStartDate",
-                java.time.LocalDate.now().minusMonths(1).toString()));
-        request.put("subscriptionEndDate", data.getOrDefault("subscriptionEndDate",
-                java.time.LocalDate.now().plusYears(1).toString()));
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -135,8 +129,6 @@ public class AdminAssetStepDefinitions {
                 "decimalPlaces", 0, "lpClientId", 1L));
         request.put("lpAskPrice", 110);
         request.put("lpBidPrice", 95);
-        request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -154,8 +146,6 @@ public class AdminAssetStepDefinitions {
                 "decimalPlaces", 0, "lpClientId", 1L));
         request.put("lpAskPrice", 110);
         request.put("lpBidPrice", 95);
-        request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))

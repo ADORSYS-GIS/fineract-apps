@@ -30,8 +30,6 @@ public record AssetPublicDetailResponse(
     BigDecimal availableSupply,
     BigDecimal tradingFeePercent,
     Integer decimalPlaces,
-    LocalDate subscriptionStartDate,
-    LocalDate subscriptionEndDate,
     Instant createdAt,
     Instant updatedAt,
 
@@ -60,8 +58,6 @@ public record AssetPublicDetailResponse(
     LocalDate nextCouponDate,
     @Schema(description = "Days remaining until maturity date. Computed at query time.")
     Long residualDays,
-    @Schema(description = "True if subscriptionEndDate has passed. Informational only — does not restrict trading.")
-    Boolean subscriptionClosed,
     @Schema(description = "Coupon amount per unit per period, based on issuer price.", nullable = true)
     BigDecimal couponAmountPerUnit,
 
