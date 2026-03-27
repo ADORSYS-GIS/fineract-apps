@@ -4,7 +4,8 @@ import com.adorsys.fineract.registration.config.FineractProperties;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
-import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.exception.FineractApiException;
+import com.adorsys.fineract.registration.exception.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -87,10 +88,10 @@ public class FineractClientService {
             return response;
         } catch (HttpClientErrorException e) {
             log.error("Fineract API update error: {}", e.getResponseBodyAsString(), e);
-            throw new RegistrationException("Failed to update Fineract client: " + e.getResponseBodyAsString(), e);
+            throw new FineractApiException("Failed to update Fineract client: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             log.error("Failed to update Fineract client {}: {}", clientId, e.getMessage(), e);
-            throw new RegistrationException("Failed to update client account", e);
+            throw new FineractApiException("Failed to update client account", e);
         }
     }
 
@@ -132,7 +133,7 @@ public class FineractClientService {
 
         if (hasAddressInfo) {
             if (request.getAddressType() == null || request.getStateProvince() == null || request.getCountry() == null) {
-                throw new RegistrationException("AddressType, State/Province, and Country are required if any address information is provided.");
+                throw new ValidationException("AddressType, State/Province, and Country are required if any address information is provided.");
             }
             payload.put("address", List.of(fineractAddressService.buildAddressPayload(request)));
         }
