@@ -16,7 +16,7 @@ import static io.cucumber.junit.platform.engine.Constants.*;
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features/registration")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME,
-        value = "com.adorsys.fineract.e2e.registration")
+        value = "com.adorsys.fineract.e2e.customerselfservice")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME,
         value = "pretty,html:target/cucumber-reports/registration-cucumber.html,"
                 + "json:target/cucumber-reports/registration-cucumber.json")

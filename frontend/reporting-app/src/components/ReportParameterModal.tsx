@@ -86,6 +86,11 @@ function ParameterInput({
 	if (param.parameterDisplayType === "date") {
 		inputType = "date";
 	} else if (
+		label.toLowerCase().includes("account no") ||
+		param.parameterName.toLowerCase().includes("accountno")
+	) {
+		inputType = "text";
+	} else if (
 		param.parameterDisplayType === "select" ||
 		param.parameterName.toLowerCase().includes("select")
 	) {
@@ -221,10 +226,12 @@ export function ReportParameterModal({
 						message: t("reportParameters.dateError", { label }),
 					});
 			} else {
-				// Treat all other fields, including all types of selects, as required strings
+				// Treat all other fields, including all types of selects, as required strings or numbers
 				schemaShape[key] = z
-					.string()
-					.min(1, { message: t("reportParameters.requiredError", { label }) });
+					.union([z.string(), z.number()])
+					.refine((val) => val !== "", {
+						message: t("reportParameters.requiredError", { label }),
+					});
 			}
 		});
 

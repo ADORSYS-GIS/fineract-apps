@@ -92,7 +92,7 @@ public class Asset {
     @Column(name = "issuer_price", precision = 20, scale = 8)
     private BigDecimal issuerPrice;
 
-    /** Start of the subscription period. BUY orders are rejected before this date. */
+    /** Start of the issuance/subscription period. Informational only — does not restrict trading. */
     @Column(name = "subscription_start_date", nullable = false)
     private LocalDate subscriptionStartDate;
 
@@ -166,7 +166,7 @@ public class Asset {
     @Column(name = "next_coupon_date")
     private LocalDate nextCouponDate;
 
-    /** End of the subscription period. BUY orders are rejected after this date; SELL is always allowed. */
+    /** End of the issuance/subscription period. Informational only — does not restrict trading. */
     @Column(name = "subscription_end_date", nullable = false)
     private LocalDate subscriptionEndDate;
 

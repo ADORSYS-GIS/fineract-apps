@@ -30,7 +30,6 @@ public class AssetMetrics {
     private final Counter couponPaidCounter;
     private final Counter couponFailedCounter;
     private final DistributionSummary couponCashTotal;
-    private final Counter subscriptionExpiredRejectionsCounter;
 
     // Order resolution metrics
     private final Counter ordersResolvedCounter;
@@ -108,10 +107,6 @@ public class AssetMetrics {
         couponCashTotal = DistributionSummary.builder("asset.bonds.coupon.cash_total")
                 .description("Total " + config.getSettlementCurrency() + " distributed as coupon payments")
                 .baseUnit(config.getSettlementCurrency())
-                .register(registry);
-
-        subscriptionExpiredRejectionsCounter = Counter.builder("asset.subscription_expired_rejections")
-                .description("BUY orders rejected due to subscription period violation")
                 .register(registry);
 
         // Order resolution metrics
@@ -196,9 +191,6 @@ public class AssetMetrics {
     }
     /** Record a failed coupon payment attempt. */
     public void recordCouponFailed() { couponFailedCounter.increment(); }
-    /** Record a BUY order rejected because subscription period is violated. */
-    public void incrementSubscriptionExpiredRejections() { subscriptionExpiredRejectionsCounter.increment(); }
-
     /** Record an order manually resolved by an admin. */
     public void recordOrderResolved() { ordersResolvedCounter.increment(); }
 
