@@ -86,11 +86,6 @@ public class AssetProvisioningService {
                     + "This may be from a previously failed creation.");
         }
 
-        // Validate subscription dates
-        if (request.subscriptionEndDate().isBefore(request.subscriptionStartDate())) {
-            throw new AssetException("Subscription end date must be on or after the start date");
-        }
-
         // Validate bid/ask spread before provisioning Fineract resources
         if (request.lpBidPrice().compareTo(request.lpAskPrice()) > 0) {
             throw new AssetException("Invalid spread: bid price (" + request.lpBidPrice()
@@ -185,8 +180,6 @@ public class AssetProvisioningService {
                 .totalSupply(request.totalSupply())
                 .circulatingSupply(BigDecimal.ZERO)
                 .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
-                .subscriptionStartDate(request.subscriptionStartDate())
-                .subscriptionEndDate(request.subscriptionEndDate())
                 .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
@@ -251,13 +244,6 @@ public class AssetProvisioningService {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
 
-        // Validate subscription dates if provided
-        if (request.subscriptionEndDate() != null && request.subscriptionStartDate() != null) {
-            if (request.subscriptionEndDate().isBefore(request.subscriptionStartDate())) {
-                throw new AssetException("Subscription end date must be on or after the start date");
-            }
-        }
-
         // PENDING-only fields: reject early before any mutations
         boolean hasPendingOnlyField = request.issuerPrice() != null || request.totalSupply() != null
                 || request.issuerName() != null || request.isinCode() != null
@@ -276,8 +262,6 @@ public class AssetProvisioningService {
         }
         if (request.category() != null) asset.setCategory(request.category());
         if (request.tradingFeePercent() != null) asset.setTradingFeePercent(request.tradingFeePercent());
-        if (request.subscriptionStartDate() != null) asset.setSubscriptionStartDate(request.subscriptionStartDate());
-        if (request.subscriptionEndDate() != null) asset.setSubscriptionEndDate(request.subscriptionEndDate());
         if (request.interestRate() != null) asset.setInterestRate(request.interestRate());
         if (request.maturityDate() != null) asset.setMaturityDate(request.maturityDate());
         if (request.nextCouponDate() != null) asset.setNextCouponDate(request.nextCouponDate());

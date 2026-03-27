@@ -52,10 +52,6 @@ public record AssetDetailResponse(
     BigDecimal tradingFeePercent,
     /** Number of decimal places for fractional units (0-8). */
     Integer decimalPlaces,
-    /** Start of the subscription period. */
-    LocalDate subscriptionStartDate,
-    /** End of the subscription period. */
-    LocalDate subscriptionEndDate,
     // ── Issuer info ──
 
     /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
@@ -119,9 +115,6 @@ public record AssetDetailResponse(
     /** Days remaining until maturity. Null for non-bond assets. Computed, not stored. */
     @Schema(description = "Days remaining until maturity date. Computed at query time.", nullable = true)
     Long residualDays,
-    /** Whether the subscription period has ended. */
-    @Schema(description = "True if subscriptionEndDate has passed. Informational only — does not restrict trading.")
-    Boolean subscriptionClosed,
     /** Coupon amount per unit per period. Computed: issuerPrice * (rate/100) * (months/12). Null for non-bonds. */
     @Schema(description = "Coupon amount per unit per period, based on issuer price.", nullable = true)
     BigDecimal couponAmountPerUnit,

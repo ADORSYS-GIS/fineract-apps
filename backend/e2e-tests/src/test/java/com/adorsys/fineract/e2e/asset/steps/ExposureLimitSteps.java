@@ -9,7 +9,6 @@ import io.restassured.response.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,8 +58,6 @@ public class ExposureLimitSteps {
         request.put("totalSupply", supply);
         request.put("decimalPlaces", 0);
         request.put("lpClientId", FineractInitializer.getLpClientId());
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
         request.putAll(extraFields);
 
         Response createResp = RestAssured.given()

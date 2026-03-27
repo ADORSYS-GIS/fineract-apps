@@ -84,8 +84,6 @@ public class AssetProvisioningSteps {
         request.put("totalSupply", new BigDecimal(data.getOrDefault("totalSupply", "10000")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("lpClientId", FineractInitializer.getLpClientId());
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         // Optional income distribution fields
         if (data.containsKey("incomeType")) {
@@ -143,8 +141,6 @@ public class AssetProvisioningSteps {
                 data.getOrDefault("maturityDate", "+5y")));
         request.put("nextCouponDate", resolveDateExpression(
                 data.getOrDefault("nextCouponDate", "+6m")));
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
