@@ -46,8 +46,12 @@ public class AdminAssetStepDefinitions {
     public void fineractProvisioningMocked() {
         // Mock client name lookup
         when(fineractClient.getClientDisplayName(anyLong())).thenReturn("Test Company");
-        // Mock settlement product lookup and cash account provisioning
-        when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(50);
+        // Default: no orphaned products (orphan check returns null)
+        when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
+        // No orphaned currencies
+        when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
+        // Mock settlement product lookup — only the settlement product shortName returns a product ID
+        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
         // Cash account provisioning (null deposit amount)
         when(fineractClient.provisionSavingsAccount(anyLong(), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
@@ -217,6 +221,30 @@ public class AdminAssetStepDefinitions {
     public void adminUpdatesTradingFee(String assetId, String fee) throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("tradingFeePercent", new BigDecimal(fee));
+        MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
+                        .with(jwt().authorities(ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn();
+        context.setLastResult(result);
+    }
+
+    @When("the admin updates asset {string} with issuerPrice {string}")
+    public void adminUpdatesIssuerPrice(String assetId, String price) throws Exception {
+        Map<String, Object> request = new HashMap<>();
+        request.put("issuerPrice", new BigDecimal(price));
+        MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
+                        .with(jwt().authorities(ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn();
+        context.setLastResult(result);
+    }
+
+    @When("the admin updates asset {string} with issuerName {string}")
+    public void adminUpdatesIssuerName(String assetId, String issuerName) throws Exception {
+        Map<String, Object> request = new HashMap<>();
+        request.put("issuerName", issuerName);
         MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
