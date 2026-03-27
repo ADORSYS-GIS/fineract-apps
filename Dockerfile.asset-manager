@@ -7,16 +7,17 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages/ packages/
 COPY frontend/asset-manager-app/ frontend/asset-manager-app/
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter asset-manager-app build
+RUN pnpm --filter asset-manager-app build && \
+    echo "healthy" > /app/frontend/asset-manager-app/dist/health
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 ARG COMMIT_SHA=unknown
 ARG BUILD_TAG=unknown
 LABEL org.opencontainers.image.revision="$COMMIT_SHA" \
       org.opencontainers.image.version="$BUILD_TAG"
-COPY --from=builder /app/frontend/asset-manager-app/dist /usr/share/nginx/html
+COPY --chown=101:101 --from=builder /app/frontend/asset-manager-app/dist /usr/share/nginx/html
 COPY frontend/asset-manager-app/nginx.conf /etc/nginx/conf.d/default.conf
-RUN echo "healthy" > /usr/share/nginx/html/health
+# Health check file is created in builder stage
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1

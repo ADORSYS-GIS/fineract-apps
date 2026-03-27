@@ -27,7 +27,7 @@ RUN pnpm --filter @fineract/self-service-app build
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 # Copy built assets
-COPY --from=builder /app/frontend/self-service-app/dist /usr/share/nginx/html
+COPY --chown=101:101 --from=builder /app/frontend/self-service-app/dist /usr/share/nginx/html
 
 # Copy nginx config (provided by Kubernetes ConfigMap in production)
 # For local development, use default nginx config
