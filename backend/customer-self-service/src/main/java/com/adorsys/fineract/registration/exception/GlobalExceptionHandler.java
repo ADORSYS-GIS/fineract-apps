@@ -1,5 +1,6 @@
 package com.adorsys.fineract.registration.exception;
 
+import com.adorsys.fineract.registration.exception.security.SecurityException;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -117,6 +118,59 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ErrorResponse> handleSecurityException(SecurityException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        log.warn("Security error [correlationId={}]: {}", correlationId, ex.getMessage(), ex);
+
+        ErrorResponse response = ErrorResponse.builder()
+                .error(ex.getErrorCode())
+                .message(ex.getMessage())
+                .field(ex.getField())
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .build();
+
+        HttpStatus status = switch (ex.getErrorCode()) {
+            case "IDENTITY_CLAIM_MISSING" -> HttpStatus.UNAUTHORIZED;
+            default -> HttpStatus.FORBIDDEN;
+        };
+
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(ValidationException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        log.warn("Validation error [correlationId={}]: {}", correlationId, ex.getMessage(), ex);
+
+        ErrorResponse response = ErrorResponse.builder()
+                .error(ex.getErrorCode())
+                .message(ex.getMessage())
+                .field(ex.getField())
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(IdempotencyException.class)
+    public ResponseEntity<ErrorResponse> handleIdempotencyException(IdempotencyException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        log.warn("Idempotency error [correlationId={}]: {}", correlationId, ex.getMessage(), ex);
+
+        ErrorResponse response = ErrorResponse.builder()
+                .error("IDEMPOTENCY_ERROR")
+                .message(ex.getMessage())
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
 
     @Data
     @Builder

@@ -1,6 +1,9 @@
 package com.adorsys.fineract.registration.service.fineract;
 
 import com.adorsys.fineract.registration.config.FineractProperties;
+import com.adorsys.fineract.registration.exception.FineractApiException;
+import com.adorsys.fineract.registration.exception.IdempotencyException;
+import com.adorsys.fineract.registration.exception.ValidationException;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -115,7 +118,7 @@ public class FineractAccountService {
                     .toBodilessEntity();
         } catch (Exception e) {
             log.error("Failed to approve savings account {}: {}", savingsAccountId, e.getMessage());
-            throw new RegistrationException("Failed to approve savings account", e);
+            throw new FineractApiException("Failed to approve savings account", e);
         }
     }
 
@@ -134,7 +137,7 @@ public class FineractAccountService {
                     .toBodilessEntity();
         } catch (Exception e) {
             log.error("Failed to activate savings account {}: {}", savingsAccountId, e.getMessage());
-            throw new RegistrationException("Failed to activate savings account", e);
+            throw new FineractApiException("Failed to activate savings account", e);
         }
     }
 
@@ -184,10 +187,10 @@ public class FineractAccountService {
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RegistrationException("Thread interrupted while waiting for idempotency key", e);
+                throw new IdempotencyException("Thread interrupted while waiting for idempotency key", e);
             }
             log.error("Could not acquire lock and no cached response found after waiting for idempotency key: {}", idempotencyKey);
-            throw new RegistrationException("Another request with the same idempotency key is already being processed.");
+            throw new IdempotencyException("Another request with the same idempotency key is already being processed.");
         }
     }
 
@@ -212,11 +215,11 @@ public class FineractAccountService {
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {});
             log.debug("Successfully made deposit. Fineract response: {}", response);
             return response;
-        } catch (RegistrationException e) {
+        } catch (RegistrationException | ValidationException e) {
             throw e; // Re-throw it as is
         } catch (Exception e) {
             log.error("Failed to make deposit to savings account {}: {}", savingsAccountId, e.getMessage());
-            throw new RegistrationException("Failed to make deposit", e);
+            throw new FineractApiException("Failed to make deposit", e);
         }
     }
 
@@ -250,7 +253,7 @@ public class FineractAccountService {
         }
 
         log.error("Payment type '{}' not found after fetching from API.", paymentTypeName);
-        throw new RegistrationException("VALIDATION_ERROR", "Payment type not found: " + paymentTypeName, "paymentType");
+        throw new ValidationException("Payment type not found: " + paymentTypeName, "paymentType");
     }
 
 
@@ -269,7 +272,7 @@ public class FineractAccountService {
         } catch (Exception e) {
             log.error("Redis error while checking idempotency key: {}", e.getMessage());
             // Fail closed
-            throw new RegistrationException("Failed to check idempotency key", e);
+            throw new IdempotencyException("Failed to check idempotency key", e);
         }
     }
 
@@ -290,13 +293,13 @@ public class FineractAccountService {
                 log.warn("Attempt {} of {} failed to cache response for idempotency key: {}. Retrying in {}ms.", attempt, maxRetries, e.getMessage(), delayMs);
                 if (attempt == maxRetries) {
                     log.error("Redis error after {} attempts while storing idempotency key: {}. This may lead to duplicate transactions.", maxRetries, e.getMessage());
-                    throw new RegistrationException("Failed to cache response for idempotency key after " + maxRetries + " attempts", e);
+                    throw new IdempotencyException("Failed to cache response for idempotency key after " + maxRetries + " attempts", e);
                 }
                 try {
                     Thread.sleep(delayMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    throw new RegistrationException("Thread interrupted during retry delay for caching", ie);
+                    throw new IdempotencyException("Thread interrupted during retry delay for caching", ie);
                 }
             }
         }
