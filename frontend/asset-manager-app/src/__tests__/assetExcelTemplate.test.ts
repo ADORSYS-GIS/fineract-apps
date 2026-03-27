@@ -18,8 +18,6 @@ async function createTestWorkbook(
 		"decimalPlaces *",
 		"lpAskPrice *",
 		"lpBidPrice *",
-		"subscriptionStartDate *",
-		"subscriptionEndDate *",
 		"lpClientId *",
 		"description",
 		"tradingFeePercent",
@@ -39,8 +37,6 @@ async function createTestWorkbook(
 			2,
 			5100,
 			4900,
-			"2026-04-01",
-			"2027-04-01",
 			1,
 			"Example description",
 			0.005,
@@ -77,8 +73,6 @@ describe("assetExcelTemplate", () => {
 			expect(REQUIRED_KEYS).toContain("decimalPlaces");
 			expect(REQUIRED_KEYS).toContain("lpAskPrice");
 			expect(REQUIRED_KEYS).toContain("lpBidPrice");
-			expect(REQUIRED_KEYS).toContain("subscriptionStartDate");
-			expect(REQUIRED_KEYS).toContain("subscriptionEndDate");
 			expect(REQUIRED_KEYS).toContain("lpClientId");
 		});
 
@@ -102,8 +96,6 @@ describe("assetExcelTemplate", () => {
 					decimalPlaces: 2,
 					lpAskPrice: 51000,
 					lpBidPrice: 49000,
-					subscriptionStartDate: "2026-05-01",
-					subscriptionEndDate: "2027-05-01",
 					lpClientId: 2,
 				},
 			]);
@@ -135,8 +127,6 @@ describe("assetExcelTemplate", () => {
 					decimalPlaces: 0,
 					lpAskPrice: 100,
 					lpBidPrice: 90,
-					subscriptionStartDate: "2026-06-01",
-					subscriptionEndDate: "2027-06-01",
 					lpClientId: 1,
 				},
 			]);
@@ -161,8 +151,6 @@ describe("assetExcelTemplate", () => {
 					decimalPlaces: 0,
 					lpAskPrice: 110,
 					lpBidPrice: 90,
-					subscriptionStartDate: "2026-06-01",
-					subscriptionEndDate: "2027-06-01",
 					lpClientId: 1,
 				},
 			]);
@@ -182,8 +170,6 @@ describe("assetExcelTemplate", () => {
 					decimalPlaces: 0,
 					lpAskPrice: 1050,
 					lpBidPrice: 950,
-					subscriptionStartDate: "2026-06-01",
-					subscriptionEndDate: "2027-06-01",
 					lpClientId: 1,
 				},
 				{
@@ -195,8 +181,6 @@ describe("assetExcelTemplate", () => {
 					decimalPlaces: 2,
 					lpAskPrice: 25500,
 					lpBidPrice: 24500,
-					subscriptionStartDate: "2026-07-01",
-					subscriptionEndDate: "2027-07-01",
 					lpClientId: 1,
 				},
 			]);
@@ -205,55 +189,6 @@ describe("assetExcelTemplate", () => {
 			expect(result.rows).toHaveLength(2);
 			expect(result.rows[0].symbol).toBe("AAA");
 			expect(result.rows[1].symbol).toBe("BBB");
-		});
-
-		it("handles date values as Date objects", async () => {
-			const workbook = new ExcelJS.Workbook();
-			const sheet = workbook.addWorksheet("Sheet1");
-
-			const headers = [
-				"name *",
-				"symbol *",
-				"category *",
-				"issuerPrice *",
-				"totalSupply *",
-				"decimalPlaces *",
-				"lpAskPrice *",
-				"lpBidPrice *",
-				"subscriptionStartDate *",
-				"subscriptionEndDate *",
-				"lpClientId *",
-			];
-			sheet.addRow(headers);
-
-			// Add row with Date objects
-			sheet.addRow([
-				"Date Test",
-				"DTE",
-				"STOCKS",
-				1000,
-				5000,
-				0,
-				1100,
-				900,
-				new Date("2026-06-01"),
-				new Date("2027-06-01"),
-				1,
-			]);
-
-			const buf = await workbook.xlsx.writeBuffer();
-			const uint8 = new Uint8Array(buf);
-			const arrayBuffer = uint8.buffer.slice(
-				uint8.byteOffset,
-				uint8.byteOffset + uint8.byteLength,
-			);
-
-			const result = await parseAssetExcel(arrayBuffer);
-			expect(result.rows).toHaveLength(1);
-			expect(result.rows[0].subscriptionStartDate).toMatch(
-				/^\d{4}-\d{2}-\d{2}$/,
-			);
-			expect(result.rows[0].subscriptionEndDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 		});
 
 		it("skips completely empty rows", async () => {
@@ -267,8 +202,6 @@ describe("assetExcelTemplate", () => {
 					decimalPlaces: 0,
 					lpAskPrice: 2100,
 					lpBidPrice: 1900,
-					subscriptionStartDate: "2026-06-01",
-					subscriptionEndDate: "2027-06-01",
 					lpClientId: 1,
 				},
 				{}, // empty row
@@ -289,8 +222,6 @@ describe("assetExcelTemplate", () => {
 					decimalPlaces: 2,
 					lpAskPrice: 520,
 					lpBidPrice: 480,
-					subscriptionStartDate: "2026-06-01",
-					subscriptionEndDate: "2027-06-01",
 					lpClientId: 1,
 					tradingFeePercent: 0.01,
 				},

@@ -27,12 +27,6 @@ public record UpdateAssetRequest(
     /** New LP bid price (what investors receive when selling). Null to keep current. */
     @Positive BigDecimal lpBidPrice,
 
-    /** New subscription start date. Null to keep current. */
-    @Schema(description = "New subscription start date.")
-    LocalDate subscriptionStartDate,
-    /** New subscription end date. Null to keep current. */
-    @Schema(description = "New subscription end date.")
-    LocalDate subscriptionEndDate,
     // ── Exposure limits ──
 
     /** New max position percent. Null to keep current. */

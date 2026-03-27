@@ -67,8 +67,6 @@ public class BondLifecycleSteps {
         request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().plusYears(5).toString());
         request.put("nextCouponDate", LocalDate.now().toString());
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         Response createResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
