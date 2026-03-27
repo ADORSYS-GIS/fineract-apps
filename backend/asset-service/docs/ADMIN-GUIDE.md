@@ -64,9 +64,7 @@ No authentication required.
       "incomeType": "RENT",
       "incomeRate": 8.0,
       "interestRate": null,
-      "maturityDate": null,
-      "subscriptionStartDate": "2025-12-15",
-      "subscriptionEndDate": "2026-03-15"
+      "maturityDate": null
     },
     {
       "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
@@ -86,9 +84,7 @@ No authentication required.
       "incomeType": null,
       "incomeRate": null,
       "interestRate": 5.80,
-      "maturityDate": "2028-06-30",
-      "subscriptionStartDate": "2025-12-01",
-      "subscriptionEndDate": "2026-06-30"
+      "maturityDate": "2028-06-30"
     }
   ],
   "totalElements": 42,
@@ -120,8 +116,6 @@ No authentication required.
 | `incomeRate` | number | Annual income rate as percentage (non-bond assets) |
 | `interestRate` | number | Annual coupon rate as percentage (bonds only) |
 | `maturityDate` | string | Bond maturity date (bonds only) |
-| `subscriptionStartDate` | string | When BUY orders start being accepted |
-| `subscriptionEndDate` | string | When BUY orders stop being accepted |
 
 ---
 
@@ -165,9 +159,6 @@ No authentication required.
   "couponFrequencyMonths": null,
   "maturityDate": null,
   "currentYield": null,
-  "subscriptionStartDate": "2025-12-15",
-  "subscriptionEndDate": "2026-03-15",
-  "capitalOpenedPercent": 44.44,
   "lockupDays": 30,
   "ohlc": {
     "open": 4950,
@@ -194,7 +185,6 @@ No authentication required.
 | `nextDistributionDate` | string | Next scheduled income/coupon date |
 | `couponFrequencyMonths` | integer | Bond coupon frequency in months |
 | `currentYield` | number | Effective annual return for bonds (issuerPrice x rate / askPrice) |
-| `capitalOpenedPercent` | number | Percentage of capital opened for subscription |
 | `lockupDays` | integer | Days after purchase before SELL is allowed (0 = none) |
 | `ohlc` | object | Today's Open/High/Low/Close/Volume |
 
@@ -264,9 +254,7 @@ No authentication required. Returns assets in `PENDING` status with expected lau
     "totalSupply": 200000,
     "incomeType": "HARVEST_YIELD",
     "incomeRate": 6.5,
-    "subscriptionStartDate": "2026-04-01",
-    "subscriptionEndDate": "2026-09-30",
-    "capitalOpenedPercent": 30.00
+    "incomeRate": 6.5
   }
 ]
 ```
@@ -608,8 +596,6 @@ Exactly one of `units` or `amount` must be provided.
 | 422 | `TRADING_HALTED` | Asset trading is halted |
 | 422 | `ASSET_DELISTING` | Asset is delisting (BUY blocked) |
 | 422 | `MARKET_CLOSED` | Market is closed. Response includes `nextOpenAt` and `nextOpenCountdownSeconds`. |
-| 422 | `SUBSCRIPTION_NOT_STARTED` | BUY before subscription start date |
-| 422 | `SUBSCRIPTION_ENDED` | BUY after subscription end date |
 
 ---
 
@@ -1368,8 +1354,6 @@ All error responses follow a consistent format:
 | `TRADING_HALTED` | Asset trading is halted by admin | — |
 | `ASSET_DELISTING` | Asset is in delisting period (BUY blocked) | `delistingDate`, `redemptionPrice` |
 | `MARKET_CLOSED` | Market is currently closed | `nextOpenAt`, `nextOpenCountdownSeconds` |
-| `SUBSCRIPTION_NOT_STARTED` | BUY attempted before subscription start | `subscriptionStartDate` |
-| `SUBSCRIPTION_ENDED` | BUY attempted after subscription end | `subscriptionEndDate` |
 
 #### 429 Too Many Requests
 
@@ -1436,10 +1420,7 @@ Body:
   "tradingFeePercent": 0.50,
   "totalSupply": 100000,
   "decimalPlaces": 0,
-  "lpClientId": 42,
-  "subscriptionStartDate": "2025-12-15",
-  "subscriptionEndDate": "2026-03-15",
-  "capitalOpenedPercent": 44.44
+  "lpClientId": 42
 }
 ```
 
@@ -1464,8 +1445,6 @@ Body:
   "totalSupply": 50000,
   "decimalPlaces": 0,
   "lpClientId": 42,
-  "subscriptionStartDate": "2025-12-01",
-  "subscriptionEndDate": "2026-06-30",
   "issuerName": "Etat du Senegal",
   "isinCode": "SN0000000001",
   "maturityDate": "2028-06-30",
@@ -1500,10 +1479,6 @@ General fields (all categories):
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `subscriptionStartDate` | Yes | Start of the subscription window. BUY orders are rejected before this date. |
-| `subscriptionEndDate` | Yes | End of the subscription window. BUY orders are rejected after this date; SELL is always allowed. |
-| `capitalOpenedPercent` | No | Percentage of capital opened for subscription (e.g. 44.44 for RENAPROV-style offerings). |
-
 ### What Happens on Create
 
 1. Auto-detects the LP's active XAF savings account for trade settlements
@@ -1640,9 +1615,6 @@ Body:
   "tradingFeePercent": 0.75,
   "lpAskPrice": 5500,
   "lpBidPrice": 5200,
-  "subscriptionStartDate": "2026-01-01",
-  "subscriptionEndDate": "2026-12-31",
-  "capitalOpenedPercent": 50.00,
   "interestRate": 6.25,
   "maturityDate": "2029-06-30"
 }
@@ -1650,7 +1622,7 @@ Body:
 
 All fields are optional. Only provided fields are updated.
 
-**Editable fields (all states):** name, description, imageUrl, category, tradingFeePercent, lpAskPrice, lpBidPrice, subscriptionStartDate, subscriptionEndDate, capitalOpenedPercent, maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount, income config, tax config.
+**Editable fields (all states):** name, description, imageUrl, category, tradingFeePercent, lpAskPrice, lpBidPrice, maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount, income config, tax config.
 
 **Editable fields (PENDING only):** issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths. These fields are rejected with HTTP 400 if the asset is not in PENDING status. When `totalSupply` is changed, the LP asset account balance is automatically adjusted (minted/burned) to match.
 
@@ -2565,8 +2537,6 @@ The Asset Manager UI provides an Excel-based import workflow for creating multip
 | decimalPlaces | Yes | Fractional digits (0–8) |
 | lpAskPrice | Yes | Investor buy price (XAF) |
 | lpBidPrice | Yes | Investor sell price (XAF) |
-| subscriptionStartDate | Yes | YYYY-MM-DD |
-| subscriptionEndDate | Yes | YYYY-MM-DD |
 | lpClientId | Yes | Fineract LP client ID |
 | description | No | Long description |
 | tradingFeePercent | No | Decimal (e.g. 0.005 = 0.5%) |
