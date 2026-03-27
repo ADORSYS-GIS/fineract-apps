@@ -215,7 +215,7 @@ public class FineractAccountService {
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {});
             log.debug("Successfully made deposit. Fineract response: {}", response);
             return response;
-        } catch (RegistrationException e) {
+        } catch (RegistrationException | ValidationException e) {
             throw e; // Re-throw it as is
         } catch (Exception e) {
             log.error("Failed to make deposit to savings account {}: {}", savingsAccountId, e.getMessage());
