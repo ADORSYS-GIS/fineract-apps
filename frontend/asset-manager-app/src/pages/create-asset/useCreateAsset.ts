@@ -38,11 +38,9 @@ export interface AssetFormData {
 	// Step 3 continued: Min order size
 	minOrderSize: number;
 	minOrderCashAmount: number;
-	// Step 4: Supply & Subscription
+	// Step 4: Supply
 	totalSupply: number;
 	decimalPlaces: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 	lockupDays: number;
 	// Income distribution (non-bond)
 	incomeType: string;
@@ -60,7 +58,6 @@ export interface AssetFormData {
 }
 
 const toDateStr = (d: Date) => d.toISOString().split("T")[0];
-const today = () => toDateStr(new Date());
 const daysFromNow = (n: number) =>
 	toDateStr(new Date(Date.now() + n * 86400000));
 
@@ -100,8 +97,6 @@ const initialFormData: AssetFormData = {
 	minOrderCashAmount: 0,
 	totalSupply: 0,
 	decimalPlaces: 0,
-	subscriptionStartDate: today(),
-	subscriptionEndDate: daysFromNow(90),
 	lockupDays: 0,
 	incomeType: "",
 	incomeRate: 0,
@@ -160,16 +155,6 @@ function validatePricingFees(data: AssetFormData): string[] {
 function validateSupply(data: AssetFormData): string[] {
 	const errors: string[] = [];
 	if (data.totalSupply <= 0) errors.push("Total supply must be greater than 0");
-	if (!data.subscriptionStartDate)
-		errors.push("Subscription start date is required");
-	if (!data.subscriptionEndDate)
-		errors.push("Subscription end date is required");
-	if (
-		data.subscriptionStartDate &&
-		data.subscriptionEndDate &&
-		data.subscriptionEndDate < data.subscriptionStartDate
-	)
-		errors.push("Subscription end date must be on or after the start date");
 	return errors;
 }
 
@@ -314,8 +299,6 @@ export const useCreateAsset = () => {
 			tradingFeePercent: formData.tradingFeePercent / 100,
 			totalSupply: formData.totalSupply,
 			decimalPlaces: formData.decimalPlaces,
-			subscriptionStartDate: formData.subscriptionStartDate,
-			subscriptionEndDate: formData.subscriptionEndDate,
 			lpClientId: formData.lpClientId,
 			// Exposure limits (only if set)
 			maxPositionPercent: formData.maxPositionPercent || undefined,

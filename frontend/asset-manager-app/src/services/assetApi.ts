@@ -105,8 +105,6 @@ export interface AssetResponse {
 	change24hPercent: number;
 	availableSupply: number;
 	totalSupply: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 	// Bond fields (null for non-bond assets)
 	issuerName?: string;
 	isinCode?: string;
@@ -114,7 +112,6 @@ export interface AssetResponse {
 	interestRate?: number;
 	currentYield?: number;
 	residualDays?: number;
-	subscriptionClosed?: boolean;
 	lpName?: string;
 	couponAmountPerUnit?: number;
 }
@@ -142,8 +139,6 @@ export interface AssetDetailResponse {
 	availableSupply: number;
 	tradingFeePercent?: number;
 	decimalPlaces: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 
 	lpClientId: number;
 	lpAssetAccountId?: number;
@@ -183,7 +178,6 @@ export interface AssetDetailResponse {
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
 	residualDays?: number;
-	subscriptionClosed?: boolean;
 	// Tax configuration (Cameroon/CEMAC)
 	registrationDutyEnabled?: boolean;
 	registrationDutyRate?: number;
@@ -207,8 +201,6 @@ export interface CreateAssetRequest {
 	tradingFeePercent?: number;
 	totalSupply: number;
 	decimalPlaces: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 
 	lpClientId: number;
 	// Exposure limits
@@ -250,8 +242,6 @@ export interface UpdateAssetRequest {
 	tradingFeePercent?: number;
 	lpBidPrice?: number;
 	lpAskPrice?: number;
-	subscriptionStartDate?: string;
-	subscriptionEndDate?: string;
 
 	// Exposure limits
 	maxPositionPercent?: number;

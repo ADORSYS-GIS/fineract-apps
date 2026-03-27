@@ -103,8 +103,6 @@ class TradingServiceTest {
                 .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
                 .issuerPrice(new BigDecimal("100"))
                 .fineractProductId(10)
-                .subscriptionStartDate(LocalDate.now().minusMonths(1))
-                .subscriptionEndDate(LocalDate.now().plusYears(1))
                 .build();
 
         // Default accounting config (spread enabled)
@@ -116,7 +114,7 @@ class TradingServiceTest {
         lenient().when(resolvedGlAccounts.getFundSourceId()).thenReturn(FUND_SOURCE_GL_ID);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECTION_ACCOUNT);
 
-        // Market hours config (needed for subscription period checks)
+        // Market hours config
         AssetServiceConfig.MarketHours marketHours = new AssetServiceConfig.MarketHours();
         marketHours.setTimezone("Africa/Douala");
         lenient().when(assetServiceConfig.getMarketHours()).thenReturn(marketHours);
