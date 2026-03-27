@@ -59,6 +59,10 @@ class AssetProvisioningServiceTest {
         lenient().when(resolvedGlAccounts.getExpenseAccountId()).thenReturn(91L);
         lenient().when(resolvedGlAccounts.getAssetIssuancePaymentTypeId()).thenReturn(22L);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
+
+        // Default: no orphaned Fineract resources
+        lenient().when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
+        lenient().when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
     }
 
     // -------------------------------------------------------------------------
@@ -210,7 +214,8 @@ class AssetProvisioningServiceTest {
                 null, null, // min order size/cash
                 null, null, null, null, // income distribution
                 null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
-                null, null, null, null, null, null, null, null, null); // tax config
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null, null, null, null); // PENDING-only fields
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -227,7 +232,97 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+    }
+
+    @Test
+    void updateAsset_pendingAsset_appliesCoreFields() {
+        Asset pending = pendingAsset();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
+
+        UpdateAssetRequest request = new UpdateAssetRequest(
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                new BigDecimal("6000"), new BigDecimal("2000"), "New Issuer", "SN0000038741", 6);
+
+        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
+
+        service.updateAsset(ASSET_ID, request);
+
+        verify(assetRepository).save(assetCaptor.capture());
+        Asset saved = assetCaptor.getValue();
+        assertEquals(new BigDecimal("6000"), saved.getIssuerPrice());
+        assertEquals(new BigDecimal("6000"), saved.getManualPrice());
+        assertEquals(new BigDecimal("2000"), saved.getTotalSupply());
+        assertEquals("New Issuer", saved.getIssuerName());
+        assertEquals("SN0000038741", saved.getIsinCode());
+        assertEquals(6, saved.getCouponFrequencyMonths());
+    }
+
+    @Test
+    void updateAsset_activeAsset_rejectsCoreFields() {
+        Asset active = activeAsset();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(active));
+
+        UpdateAssetRequest request = new UpdateAssetRequest(
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                new BigDecimal("6000"), null, null, null, null);
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
+        assertTrue(ex.getMessage().contains("PENDING"));
+    }
+
+    @Test
+    void updateAsset_pendingAsset_totalSupplyIncrease_depositsToLpAccount() {
+        Asset pending = pendingAsset();
+        pending.setTotalSupply(new BigDecimal("1000"));
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
+        when(resolvedGlAccounts.getAssetIssuancePaymentTypeId()).thenReturn(22L);
+
+        UpdateAssetRequest request = new UpdateAssetRequest(
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, new BigDecimal("1500"), null, null, null);
+
+        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
+
+        service.updateAsset(ASSET_ID, request);
+
+        verify(fineractClient).depositToSavingsAccount(eq(LP_ASSET_ACCOUNT), eq(new BigDecimal("500")), eq(22L));
+    }
+
+    @Test
+    void updateAsset_pendingAsset_totalSupplyDecrease_withdrawsFromLpAccount() {
+        Asset pending = pendingAsset();
+        pending.setTotalSupply(new BigDecimal("1000"));
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
+
+        UpdateAssetRequest request = new UpdateAssetRequest(
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, new BigDecimal("800"), null, null, null);
+
+        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
+
+        service.updateAsset(ASSET_ID, request);
+
+        verify(fineractClient).withdrawFromSavingsAccount(eq(LP_ASSET_ACCOUNT), eq(new BigDecimal("200")), anyString());
     }
 
     // -------------------------------------------------------------------------
@@ -395,7 +490,8 @@ class AssetProvisioningServiceTest {
                 null, null, // min order size/cash
                 null, null, null, null, // income distribution
                 null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
-                null, null, null, null, null, null, null, null, null); // tax config
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null, null, null, null); // PENDING-only fields
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));

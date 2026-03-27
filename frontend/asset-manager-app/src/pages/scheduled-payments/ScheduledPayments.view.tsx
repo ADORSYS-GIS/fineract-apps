@@ -29,6 +29,26 @@ const fmtDate = (d?: string) =>
 const fmtAmount = (n?: number) =>
 	n != null ? n.toLocaleString() + " XAF" : "\u2014";
 
+function LpBalanceCell({
+	lpCashBalance,
+	estimatedTotal,
+}: {
+	lpCashBalance: number | null | undefined;
+	estimatedTotal: number | null | undefined;
+}) {
+	if (lpCashBalance == null) return <>{"\u2014"}</>;
+	const isSufficient = lpCashBalance >= (estimatedTotal ?? 0);
+	return (
+		<span
+			className={
+				isSufficient ? "text-green-700 font-medium" : "text-red-600 font-medium"
+			}
+		>
+			{fmtAmount(lpCashBalance)}
+		</span>
+	);
+}
+
 export const ScheduledPaymentsView: FC<
 	ReturnType<typeof useScheduledPayments>
 > = ({
@@ -235,19 +255,10 @@ export const ScheduledPaymentsView: FC<
 													{fmtAmount(s.estimatedTotal)}
 												</td>
 												<td className="px-4 py-3 whitespace-nowrap text-sm text-right">
-													{s.lpCashBalance != null ? (
-														<span
-															className={
-																s.lpCashBalance >= (s.estimatedTotal ?? 0)
-																	? "text-green-700 font-medium"
-																	: "text-red-600 font-medium"
-															}
-														>
-															{fmtAmount(s.lpCashBalance)}
-														</span>
-													) : (
-														"\u2014"
-													)}
+													<LpBalanceCell
+														lpCashBalance={s.lpCashBalance}
+														estimatedTotal={s.estimatedTotal}
+													/>
 												</td>
 												<td className="px-4 py-3 whitespace-nowrap">
 													<StatusBadge status={s.status} />
