@@ -3,6 +3,7 @@ package com.adorsys.fineract.registration.service.account;
 import java.util.List;
 
 import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.exception.security.IdentityClaimException;
 import com.adorsys.fineract.registration.service.FineractService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,7 +60,7 @@ public class AccountSecurityService {
         // Fallback: Lookup via fineract_external_id
         String externalId = jwt.getClaimAsString("fineract_external_id");
         if (externalId == null) {
-            throw new RegistrationException("UNAUTHORIZED", "Missing identity claims in token", null);
+            throw new IdentityClaimException("Missing identity claims in token");
         }
 
         log.info("Looking up client ID via external ID: {}", externalId);

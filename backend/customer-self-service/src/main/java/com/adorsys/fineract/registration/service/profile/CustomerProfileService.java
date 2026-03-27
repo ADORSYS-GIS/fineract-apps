@@ -1,5 +1,7 @@
 package com.adorsys.fineract.registration.service.profile;
 
+import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.exception.security.IdentityClaimException;
 import com.adorsys.fineract.registration.dto.profile.AddressRequest;
 import com.adorsys.fineract.registration.dto.profile.AddressListResponse;
 import com.adorsys.fineract.registration.dto.profile.AddressDetailsResponse;
@@ -65,11 +67,11 @@ public class CustomerProfileService {
         if (fineractClientId == null) {
             String fineractExternalId = jwt.getClaimAsString("fineract_external_id");
             if (fineractExternalId == null) {
-                throw new IllegalArgumentException("fineract_client_id and fineract_external_id claims are missing from JWT");
+                throw new IdentityClaimException("fineract_client_id and fineract_external_id claims are missing from JWT");
             }
             Map<String, Object> client = fineractService.getClientByExternalId(fineractExternalId);
             if (client == null || client.isEmpty()) {
-                throw new IllegalArgumentException("Client not found with external id " + fineractExternalId);
+                throw new RegistrationException("NOT_FOUND", "Client not found with external id " + fineractExternalId);
             }
             fineractClientId = String.valueOf(client.get("id"));
         }

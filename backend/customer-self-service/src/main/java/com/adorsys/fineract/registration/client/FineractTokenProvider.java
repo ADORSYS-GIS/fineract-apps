@@ -1,6 +1,7 @@
 package com.adorsys.fineract.registration.client;
 
 import com.adorsys.fineract.registration.config.FineractProperties;
+import com.adorsys.fineract.registration.exception.FineractConfigurationException;
 import com.adorsys.fineract.registration.exception.FineractAuthenticationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,7 @@ public class FineractTokenProvider {
      */
     public String getAccessToken() {
         if (!"oauth".equalsIgnoreCase(config.getAuth().getType())) {
-            throw new IllegalStateException("OAuth is not enabled. Set fineract.auth-type=oauth to use OAuth authentication.");
+            throw new FineractConfigurationException("OAuth is not enabled. Set fineract.auth-type=oauth to use OAuth authentication.");
         }
 
         validateOAuthConfig();
@@ -137,20 +138,20 @@ public class FineractTokenProvider {
     private void validateOAuthConfig() {
         FineractProperties.Auth auth = config.getAuth();
         if (auth.getTokenUrl() == null || auth.getTokenUrl().isBlank()) {
-            throw new IllegalStateException("fineract.auth.token-url is required for OAuth authentication");
+            throw new FineractConfigurationException("fineract.auth.token-url is required for OAuth authentication");
         }
         if (auth.getClientId() == null || auth.getClientId().isBlank()) {
-            throw new IllegalStateException("fineract.auth.client-id is required for OAuth authentication");
+            throw new FineractConfigurationException("fineract.auth.client-id is required for OAuth authentication");
         }
         if (auth.getClientSecret() == null || auth.getClientSecret().isBlank()) {
-            throw new IllegalStateException("fineract.auth.client-secret is required for OAuth authentication");
+            throw new FineractConfigurationException("fineract.auth.client-secret is required for OAuth authentication");
         }
         if ("password".equalsIgnoreCase(auth.getGrantType())) {
             if (auth.getOauthUsername() == null || auth.getOauthUsername().isBlank()) {
-                throw new IllegalStateException("fineract.auth.oauth-username is required for password grant type");
+                throw new FineractConfigurationException("fineract.auth.oauth-username is required for password grant type");
             }
             if (auth.getOauthPassword() == null || auth.getOauthPassword().isBlank()) {
-                throw new IllegalStateException("fineract.auth.oauth-password is required for password grant type");
+                throw new FineractConfigurationException("fineract.auth.oauth-password is required for password grant type");
             }
         }
     }
