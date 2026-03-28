@@ -995,6 +995,20 @@ public class TradingService {
                         clearingAccountId, taxService.getTvaAccountId(),
                         tvaAmount, "TVA: BUY " + asset.getSymbol()));
             }
+
+            // Revenue recognition journal entries (reclassify liability → income in GL)
+            if (fee.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchJournalEntryOp(
+                        resolvedGlAccounts.getPlatformFeePayableId(),  // DR 4201 (reduce liability)
+                        resolvedGlAccounts.getPlatformFeeIncomeId(),   // CR 701 (recognize income)
+                        fee, "XAF", "Fee income: BUY " + asset.getSymbol()));
+            }
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
+                ops.add(new BatchJournalEntryOp(
+                        resolvedGlAccounts.getLpSpreadPayableId(),     // DR 4012 (reduce liability)
+                        resolvedGlAccounts.getSpreadIncomeId(),        // CR 702 (recognize income)
+                        spreadAmount, "XAF", "Spread income: BUY " + asset.getSymbol()));
+            }
         } else {
             // Leg 1: Investor returns tokens
             ops.add(new BatchTransferOp(
@@ -1048,6 +1062,20 @@ public class TradingService {
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), taxDestination,
                         tvaAmount, "TVA: SELL " + asset.getSymbol()));
+            }
+
+            // Revenue recognition journal entries (reclassify liability → income in GL)
+            if (fee.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchJournalEntryOp(
+                        resolvedGlAccounts.getPlatformFeePayableId(),  // DR 4201
+                        resolvedGlAccounts.getPlatformFeeIncomeId(),   // CR 701
+                        fee, "XAF", "Fee income: SELL " + asset.getSymbol()));
+            }
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
+                ops.add(new BatchJournalEntryOp(
+                        resolvedGlAccounts.getLpSpreadPayableId(),     // DR 4012
+                        resolvedGlAccounts.getSpreadIncomeId(),        // CR 702
+                        spreadAmount, "XAF", "Spread income: SELL " + asset.getSymbol()));
             }
         }
 

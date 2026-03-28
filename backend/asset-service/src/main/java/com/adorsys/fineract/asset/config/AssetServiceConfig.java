@@ -148,6 +148,8 @@ public class AssetServiceConfig {
         private String transfersInSuspense = "4501";
 
         // --- Income ---
+        /** GL code for platform fee payable (liability). */
+        private String platformFeePayable = "4201";
         /** GL code for platform fee income. */
         private String platformFeeIncome = "701";
         /** GL code for LP spread income. */

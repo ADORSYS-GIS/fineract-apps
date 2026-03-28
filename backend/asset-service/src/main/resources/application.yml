@@ -131,6 +131,8 @@ asset-service:
     # Inventory & suspense
     digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:301}
     transfers-in-suspense: ${GL_TRANSFERS_IN_SUSPENSE:4501}
+    # Fee/spread payable (for revenue recognition)
+    platform-fee-payable: ${GL_PLATFORM_FEE_PAYABLE:4201}
     # Income
     platform-fee-income: ${GL_PLATFORM_FEE_INCOME:701}
     spread-income: ${GL_SPREAD_INCOME:702}

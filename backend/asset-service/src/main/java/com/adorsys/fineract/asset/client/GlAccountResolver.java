@@ -111,6 +111,10 @@ public class GlAccountResolver implements ApplicationRunner {
         resolvedGlAccounts.setTransfersInSuspenseId(
                 resolveGlCode(glCodeToId, glConfig.getTransfersInSuspense(), "transfersInSuspense"));
 
+        // Fee/spread payable (liability — for revenue recognition journal entries)
+        resolvedGlAccounts.setPlatformFeePayableId(
+                resolveGlCode(glCodeToId, glConfig.getPlatformFeePayable(), "platformFeePayable"));
+
         // Income
         resolvedGlAccounts.setPlatformFeeIncomeId(
                 resolveGlCode(glCodeToId, glConfig.getPlatformFeeIncome(), "platformFeeIncome"));

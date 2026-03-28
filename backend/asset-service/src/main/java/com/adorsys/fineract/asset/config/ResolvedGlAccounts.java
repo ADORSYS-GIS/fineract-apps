@@ -43,6 +43,8 @@ public class ResolvedGlAccounts {
     private Long transfersInSuspenseId;
 
     // --- Income ---
+    /** Database ID of the platform fee payable GL account (4201). */
+    private Long platformFeePayableId;
     /** Database ID of the platform fee income GL account. */
     private Long platformFeeIncomeId;
     /** Database ID of the LP spread income GL account. */
