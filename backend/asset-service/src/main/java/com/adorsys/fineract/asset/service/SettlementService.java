@@ -1,6 +1,9 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.client.FineractClient.BatchJournalEntryOp;
+import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.SettlementRepository;
@@ -11,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +31,7 @@ public class SettlementService {
 
     private final SettlementRepository settlementRepository;
     private final FineractClient fineractClient;
+    private final ResolvedGlAccounts resolvedGlAccounts;
 
     @Transactional
     public Settlement createSettlement(Settlement request) {
@@ -71,16 +76,31 @@ public class SettlementService {
         }
 
         try {
-            // Create Fineract journal entry for the settlement
-            String journalEntryId = fineractClient.createJournalEntry(
-                    s.getSourceGlCode(), s.getDestinationGlCode(),
-                    s.getAmount(), s.getDescription());
+            // Resolve GL codes to Fineract database IDs
+            Map<String, Long> glCodeToId = fineractClient.lookupGlAccounts();
+            Long debitGlId = glCodeToId.get(s.getSourceGlCode());
+            Long creditGlId = glCodeToId.get(s.getDestinationGlCode());
+            if (debitGlId == null || creditGlId == null) {
+                throw new AssetException("GL code not found: debit=" + s.getSourceGlCode()
+                        + " credit=" + s.getDestinationGlCode());
+            }
+
+            // Execute via atomic batch API (supports compound settlements)
+            List<BatchOperation> ops = List.of(
+                    new BatchJournalEntryOp(debitGlId, creditGlId, s.getAmount(), "XAF",
+                            s.getDescription() != null ? s.getDescription() : "Settlement: " + s.getSettlementType())
+            );
+            var batchResponses = fineractClient.executeAtomicBatch(ops);
+
+            String batchId = batchResponses != null && !batchResponses.isEmpty()
+                    ? batchResponses.get(0).getOrDefault("requestId", "").toString()
+                    : null;
 
             s.setStatus("EXECUTED");
             s.setExecutedAt(Instant.now());
-            s.setFineractJournalEntryId(journalEntryId);
+            s.setFineractJournalEntryId(batchId);
             settlementRepository.save(s);
-            log.info("Settlement executed: id={}, journalEntryId={}", id, journalEntryId);
+            log.info("Settlement executed via batch: id={}, batchId={}", id, batchId);
         } catch (Exception e) {
             log.error("Settlement execution failed: id={}, error={}", id, e.getMessage());
             throw new AssetException("Settlement execution failed: " + e.getMessage(), e);

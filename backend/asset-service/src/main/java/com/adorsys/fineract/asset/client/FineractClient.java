@@ -52,7 +52,7 @@ public class FineractClient {
     /**
      * Sealed interface for operations that can be included in an atomic Fineract batch.
      */
-    public sealed interface BatchOperation permits BatchTransferOp {}
+    public sealed interface BatchOperation permits BatchTransferOp, BatchJournalEntryOp {}
 
     /**
      * Account transfer between two savings accounts.
@@ -60,6 +60,14 @@ public class FineractClient {
     public record BatchTransferOp(
             Long fromAccountId, Long toAccountId,
             BigDecimal amount, String description
+    ) implements BatchOperation {}
+
+    /**
+     * Manual GL journal entry (debit one account, credit another).
+     */
+    public record BatchJournalEntryOp(
+            Long debitGlAccountId, Long creditGlAccountId,
+            BigDecimal amount, String currencyCode, String description
     ) implements BatchOperation {}
 
     /**
@@ -724,8 +732,6 @@ public class FineractClient {
 
             switch (op) {
                 case BatchTransferOp t -> {
-                    // Fineract requires officeId/clientId fields but resolves
-                    // the actual owner from the savings account ID.
                     body = new HashMap<>();
                     body.put("fromOfficeId", 1);
                     body.put("fromClientId", 1);
@@ -741,6 +747,18 @@ public class FineractClient {
                     body.put("locale", "en");
                     body.put("dateFormat", "dd MMMM yyyy");
                     relativeUrl = "accounttransfers";
+                }
+                case BatchJournalEntryOp j -> {
+                    body = new HashMap<>();
+                    body.put("officeId", 1);
+                    body.put("transactionDate", today);
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    body.put("currencyCode", j.currencyCode());
+                    body.put("comments", j.description() != null ? j.description() : "Settlement");
+                    body.put("debits", List.of(Map.of("glAccountId", j.debitGlAccountId(), "amount", j.amount())));
+                    body.put("credits", List.of(Map.of("glAccountId", j.creditGlAccountId(), "amount", j.amount())));
+                    relativeUrl = "journalentries";
                 }
             }
 
