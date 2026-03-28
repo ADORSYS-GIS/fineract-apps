@@ -6,6 +6,10 @@ export const useAccounting = () => {
 	const [currencyCode, setCurrencyCode] = useState("XAF");
 	const [fromDate, setFromDate] = useState("");
 	const [toDate, setToDate] = useState("");
+	const [hideInactive, setHideInactive] = useState(true);
+	const [activeTab, setActiveTab] = useState<
+		"trial-balance" | "income-statement" | "balance-sheet" | "tax-report"
+	>("trial-balance");
 
 	const {
 		data: trialBalance,
@@ -36,5 +40,9 @@ export const useAccounting = () => {
 		isLoading,
 		isError,
 		refetch,
+		hideInactive,
+		setHideInactive,
+		activeTab,
+		setActiveTab,
 	};
 };
