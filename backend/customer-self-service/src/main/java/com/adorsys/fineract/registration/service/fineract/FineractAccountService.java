@@ -224,10 +224,11 @@ public class FineractAccountService {
     }
 
     private Long getPaymentTypeIdByName(String paymentTypeName) {
+        String key = paymentTypeName.toLowerCase();
         // Check cache first
-        if (paymentTypeCache.containsKey(paymentTypeName)) {
+        if (paymentTypeCache.containsKey(key)) {
             log.info("Payment type cache hit for '{}'.", paymentTypeName);
-            return paymentTypeCache.get(paymentTypeName);
+            return paymentTypeCache.get(key);
         }
 
         // If not in cache, fetch from API
@@ -238,18 +239,18 @@ public class FineractAccountService {
                 .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
 
         if (paymentTypes != null) {
-            // Populate cache
+            // Populate cache with lowercase keys for case-insensitive lookup
             log.debug("Populating payment type cache with {} entries.", paymentTypes.size());
             for (Map<String, Object> pt : paymentTypes) {
                 String name = (String) pt.get("name");
                 Long id = ((Number) pt.get("id")).longValue();
-                paymentTypeCache.put(name, id);
+                paymentTypeCache.put(name.toLowerCase(), id);
             }
         }
 
         // Check cache again
-        if (paymentTypeCache.containsKey(paymentTypeName)) {
-            return paymentTypeCache.get(paymentTypeName);
+        if (paymentTypeCache.containsKey(key)) {
+            return paymentTypeCache.get(key);
         }
 
         log.error("Payment type '{}' not found after fetching from API.", paymentTypeName);
