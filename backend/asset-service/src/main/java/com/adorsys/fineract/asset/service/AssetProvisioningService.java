@@ -314,6 +314,8 @@ public class AssetProvisioningService {
         if (request.capitalGainsRate() != null) asset.setCapitalGainsRate(request.capitalGainsRate());
         if (request.isBvmacListed() != null) asset.setIsBvmacListed(request.isBvmacListed());
         if (request.isGovernmentBond() != null) asset.setIsGovernmentBond(request.isGovernmentBond());
+        if (request.tvaEnabled() != null) asset.setTvaEnabled(request.tvaEnabled());
+        if (request.tvaRate() != null) asset.setTvaRate(request.tvaRate());
 
         // Apply PENDING-only field mutations
         if (hasPendingOnlyField) {

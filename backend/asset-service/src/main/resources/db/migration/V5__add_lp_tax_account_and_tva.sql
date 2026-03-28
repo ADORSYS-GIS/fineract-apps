@@ -5,6 +5,9 @@ ALTER TABLE assets ADD COLUMN lp_tax_account_id BIGINT;
 ALTER TABLE assets ADD COLUMN tva_enabled BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE assets ADD COLUMN tva_rate DECIMAL(5,4);
 
+-- Add TVA amount to orders table
+ALTER TABLE orders ADD COLUMN tva_amount DECIMAL(20,0);
+
 -- Per-asset projection counters (denormalized for fast reporting)
 CREATE TABLE asset_projections (
     asset_id VARCHAR(36) PRIMARY KEY REFERENCES assets(id),

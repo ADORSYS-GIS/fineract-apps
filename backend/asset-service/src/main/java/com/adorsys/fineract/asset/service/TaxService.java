@@ -164,8 +164,10 @@ public class TaxService {
             cgtExemptionApplied = cgtAmount.compareTo(BigDecimal.ZERO) == 0;
         }
 
-        BigDecimal totalTax = regDutyAmount.add(cgtAmount);
-        return new TaxBreakdown(regDutyRate, regDutyAmount, cgtRate, cgtAmount, totalTax, cgtExemptionApplied);
+        BigDecimal tvaRate = getTvaRate(asset);
+        BigDecimal tvaAmount = calculateTva(asset, grossAmount);
+        BigDecimal totalTax = regDutyAmount.add(cgtAmount).add(tvaAmount);
+        return new TaxBreakdown(regDutyRate, regDutyAmount, cgtRate, cgtAmount, tvaRate, tvaAmount, totalTax, cgtExemptionApplied);
     }
 
     /**

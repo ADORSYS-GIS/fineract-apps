@@ -712,6 +712,7 @@ public class TradingService {
         order.setBuybackPremium(buybackPremium);
         order.setRegistrationDutyAmount(registrationDuty);
         order.setCapitalGainsTaxAmount(capitalGainsTax);
+        order.setTvaAmount(tvaAmount);
         orderRepository.save(order);
     }
 
@@ -828,6 +829,11 @@ public class TradingService {
                         ? lockedAsset.getCapitalGainsRate() : new BigDecimal("0.165");
                 taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
                         "CAPITAL_GAINS", realizedPnl, cgtRate, capitalGainsTax, null);
+            }
+            if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
+                taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
+                        "TVA", ctx.getGrossAmount(),
+                        taxService.getTvaRate(lockedAsset), tvaAmount, null);
             }
         } catch (Exception batchError) {
             log.error("Batch transfer failed for {} order {}: {}", side, ctx.getOrderId(), batchError.getMessage());
