@@ -127,28 +127,10 @@ public class AccountingReportService {
                     .build());
         }
 
-        // Sort: parents before children, then by numeric GL code within each level
-        entries.sort((a, b) -> {
-            // Parse GL codes as integers for proper numeric ordering
-            // This ensures 401 < 4011 < 4012 < 410 < 4101 hierarchy is correct
-            try {
-                int codeA = Integer.parseInt(a.getGlCode());
-                int codeB = Integer.parseInt(b.getGlCode());
-                // Group by SYSCOHADA class (first digit), then by code length (parents first), then by value
-                int classA = codeA / (int) Math.pow(10, a.getGlCode().length() - 1);
-                int classB = codeB / (int) Math.pow(10, b.getGlCode().length() - 1);
-                if (classA != classB) return Integer.compare(classA, classB);
-                // Within same class: shorter codes (parents) before longer codes (children)
-                if (a.getGlCode().length() != b.getGlCode().length()) {
-                    // But only if one is parent of the other (same prefix)
-                    if (b.getGlCode().startsWith(a.getGlCode())) return -1;
-                    if (a.getGlCode().startsWith(b.getGlCode())) return 1;
-                }
-                return Integer.compare(codeA, codeB);
-            } catch (NumberFormatException e) {
-                return a.getGlCode().compareTo(b.getGlCode());
-            }
-        });
+        // Sort by lexicographic GL code — this naturally produces the correct SYSCOHADA hierarchy:
+        // "101" < "102" < "201" < "301" < "401" < "4011" < "4012" < "4013" < "410" < "4101" < "4102"
+        // Parents (shorter codes) sort before their children (longer codes with same prefix).
+        entries.sort(Comparator.comparing(TrialBalanceResponse.TrialBalanceEntry::getGlCode));
 
         return TrialBalanceResponse.builder()
                 .currencyCode(currency)

@@ -238,10 +238,10 @@ public class TradingService {
             }
             lockupService.validateLockup(asset, userId, units);
 
-            // LP capital adequacy check — LP Cash must cover all outflows (nominal + spread + fee + tax)
+            // LP capital adequacy check — LP LSAV must cover: gross + spread (fee/tax cancel in the transfer legs)
             if (asset.getLpCashAccountId() != null) {
                 BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
-                BigDecimal totalLpRequired = grossAmount.add(totalTax);
+                BigDecimal totalLpRequired = grossAmount.add(spreadAmount);
                 if (lpCashBalance.compareTo(totalLpRequired) < 0) {
                     String currency = assetServiceConfig.getSettlementCurrency();
                     throw new TradingException(
@@ -734,10 +734,10 @@ public class TradingService {
             // SELL: LP must have enough cash to cover all outflows (nominal + spread + fee + tax)
             Asset asset = ctx.getAsset();
             BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
-            BigDecimal regDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
-            BigDecimal cgt = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
-            BigDecimal tva = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
-            BigDecimal totalLpOutflow = ctx.getGrossAmount().add(regDuty).add(cgt).add(tva);
+            BigDecimal spread = ctx.getSpreadAmount() != null ? ctx.getSpreadAmount() : BigDecimal.ZERO;
+            // LP LSAV total outflow = gross + spread (fee/tax cancel: client gets gross-fee-tax,
+            // then LP pays fee+tax separately, so net = gross; spread is additional outflow to LSPD)
+            BigDecimal totalLpOutflow = ctx.getGrossAmount().add(spread);
             if (lpCashBalance.compareTo(totalLpOutflow) < 0) {
                 rejectOrder(ctx.getOrder(), "Insufficient LP funds for payout");
 
