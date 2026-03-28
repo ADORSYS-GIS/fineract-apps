@@ -1,17 +1,20 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
-import com.adorsys.fineract.asset.client.FineractClient.*;
+import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
+import com.adorsys.fineract.asset.client.FineractClient.BatchTransferOp;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.TradeSide;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
+import com.adorsys.fineract.asset.repository.AssetProjectionRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,9 +30,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests for the journal entry and batch operation building logic in TradingService.
- * Uses reflection to invoke the private buildBatchOperations method directly,
- * as testing through the full trade execution flow would require excessive mocking.
+ * Tests for buildBatchOperations — verifies the custodial accounting model:
+ * - BUY: Client → Clearing → LP/Spread/Fee/Tax (single client withdrawal)
+ * - SELL: LP → Client/Spread/Fee/Tax (LP bears all taxes)
  */
 @ExtendWith(MockitoExtension.class)
 class TradingServiceAccountingTest {
@@ -53,26 +56,23 @@ class TradingServiceAccountingTest {
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private QuoteReservationService quoteReservationService;
     @Mock private TaxService taxService;
+    @Mock private AssetProjectionRepository assetProjectionRepository;
 
     @InjectMocks
     private TradingService tradingService;
 
-    // GL account IDs (mocked from ResolvedGlAccounts)
-    private static final Long FUND_SOURCE_GL_ID = 1042L;
-    private static final Long PLATFORM_FEE_INCOME_GL_ID = 1088L;
-    private static final Long SPREAD_INCOME_GL_ID = 1089L;
-    private static final Long TAX_EXPENSE_REG_DUTY_GL_ID = 1092L;
-    private static final Long TAX_EXPENSE_CGT_GL_ID = 1093L;
-
-    // Savings account IDs
-    private static final Long USER_CASH_ACCOUNT = 100L;
-    private static final Long USER_ASSET_ACCOUNT = 200L;
-    private static final Long LP_CASH_ACCOUNT = 300L;
-    private static final Long LP_ASSET_ACCOUNT = 400L;
-    private static final Long LP_SPREAD_ACCOUNT = 500L;
-    private static final Long FEE_COLLECTION_ACCOUNT = 999L;
-    private static final Long TAX_REG_DUTY_ACCOUNT = 888L;
-    private static final Long TAX_CGT_ACCOUNT = 887L;
+    // Account IDs
+    private static final Long USER_CASH = 100L;
+    private static final Long USER_ASSET = 200L;
+    private static final Long LP_CASH = 300L;
+    private static final Long LP_ASSET = 400L;
+    private static final Long LP_SPREAD = 500L;
+    private static final Long LP_TAX = 360L;
+    private static final Long FEE_COLLECT = 999L;
+    private static final Long CLEARING = 901L;
+    private static final Long TAX_REG_DUTY = 888L;
+    private static final Long TAX_TVA = 889L;
+    private static final Long TAX_CGT = 887L;
 
     private Asset testAsset;
     private Method buildBatchOps;
@@ -82,444 +82,245 @@ class TradingServiceAccountingTest {
         testAsset = Asset.builder()
                 .id("asset-001")
                 .symbol("TST")
-                .name("Test Asset")
-                .lpCashAccountId(LP_CASH_ACCOUNT)
-                .lpAssetAccountId(LP_ASSET_ACCOUNT)
-                .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
+                .lpCashAccountId(LP_CASH)
+                .lpAssetAccountId(LP_ASSET)
+                .lpSpreadAccountId(LP_SPREAD)
+                .lpTaxAccountId(LP_TAX)
                 .build();
 
-        // Setup ResolvedGlAccounts mock
-        lenient().when(resolvedGlAccounts.getFundSourceId()).thenReturn(FUND_SOURCE_GL_ID);
-        lenient().when(resolvedGlAccounts.getPlatformFeeIncomeId()).thenReturn(PLATFORM_FEE_INCOME_GL_ID);
-        lenient().when(resolvedGlAccounts.getSpreadIncomeId()).thenReturn(SPREAD_INCOME_GL_ID);
-        lenient().when(resolvedGlAccounts.getTaxExpenseRegDutyId()).thenReturn(TAX_EXPENSE_REG_DUTY_GL_ID);
-        lenient().when(resolvedGlAccounts.getTaxExpenseCapGainsId()).thenReturn(TAX_EXPENSE_CGT_GL_ID);
+        lenient().when(resolvedGlAccounts.getClearingAccountId()).thenReturn(CLEARING);
+        lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECT);
+        lenient().when(taxService.getRegistrationDutyAccountId()).thenReturn(TAX_REG_DUTY);
+        lenient().when(taxService.getCapitalGainsAccountId()).thenReturn(TAX_CGT);
+        lenient().when(taxService.getTvaAccountId()).thenReturn(TAX_TVA);
 
-        // Setup AssetServiceConfig mock
-        lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
-
-        // Setup TaxService mock for tax account IDs
-        lenient().when(taxService.getRegistrationDutyAccountId()).thenReturn(TAX_REG_DUTY_ACCOUNT);
-        lenient().when(taxService.getCapitalGainsAccountId()).thenReturn(TAX_CGT_ACCOUNT);
-
-        // Access private method via reflection
         buildBatchOps = TradingService.class.getDeclaredMethod("buildBatchOperations",
                 TradeSide.class, Asset.class, Long.class, Long.class,
                 BigDecimal.class, BigDecimal.class, BigDecimal.class,
                 BigDecimal.class, BigDecimal.class, Long.class,
-                BigDecimal.class, BigDecimal.class,
-                String.class, Long.class);
+                BigDecimal.class, BigDecimal.class, BigDecimal.class);
         buildBatchOps.setAccessible(true);
     }
 
-    // -------------------------------------------------------------------------
-    // BUY with fee and registration duty (no spread, no capital gains)
-    // -------------------------------------------------------------------------
-
-    @Test
     @SuppressWarnings("unchecked")
-    void buildBatchOperations_buyWithFeeAndRegDuty_producesCorrectOps() throws Exception {
-        BigDecimal grossAmount = new BigDecimal("100000");
-        BigDecimal units = new BigDecimal("10");
-        BigDecimal fee = new BigDecimal("500");
-        BigDecimal spreadAmount = BigDecimal.ZERO;
-        BigDecimal buybackPremium = BigDecimal.ZERO;
-        BigDecimal registrationDuty = new BigDecimal("2000");
-        BigDecimal capitalGainsTax = BigDecimal.ZERO;
-
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.BUY, testAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, spreadAmount, buybackPremium, FEE_COLLECTION_ACCOUNT,
-                registrationDuty, capitalGainsTax,
-                "order-test-001", 42L);
-
-        // Leg 1: User pays gross + fee + tax to LP Cash
-        BatchTransferOp leg1 = findTransferOp(ops, USER_CASH_ACCOUNT, LP_CASH_ACCOUNT);
-        assertNotNull(leg1, "Should have transfer from user cash to LP cash");
-        assertEquals(new BigDecimal("102500"), leg1.amount()); // 100000 + 500 + 2000
-
-        // Leg 2: LP delivers tokens to user
-        BatchTransferOp leg2 = findTransferOp(ops, LP_ASSET_ACCOUNT, USER_ASSET_ACCOUNT);
-        assertNotNull(leg2, "Should have transfer from LP asset to user asset");
-        assertEquals(units, leg2.amount());
-
-        // No spread transfer (spread is zero)
-        assertNull(findTransferOp(ops, LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT),
-                "No spread transfer when spread is zero");
-
-        // Leg 4: Fee sweep to fee collection
-        BatchTransferOp feeTransfer = findTransferOp(ops, LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT);
-        assertNotNull(feeTransfer, "Should have fee transfer to fee collection");
-        assertEquals(fee, feeTransfer.amount());
-
-        // Leg 5: Registration duty sweep to tax authority
-        BatchTransferOp taxTransfer = findTransferOp(ops, LP_CASH_ACCOUNT, TAX_REG_DUTY_ACCOUNT);
-        assertNotNull(taxTransfer, "Should have registration duty transfer");
-        assertEquals(registrationDuty, taxTransfer.amount());
-
-        // Journal Entry: DR Fund Source, CR Platform Fee Income (GL 88)
-        BatchJournalEntryOp feeJe = findJournalEntryOp(ops, FUND_SOURCE_GL_ID, PLATFORM_FEE_INCOME_GL_ID);
-        assertNotNull(feeJe, "Should have fee income journal entry");
-        assertEquals(fee, feeJe.amount());
-        assertEquals("XAF", feeJe.currencyCode());
-
-        // Journal Entry: DR Tax Expense Reg Duty (GL 92), CR Fund Source
-        BatchJournalEntryOp regDutyJe = findJournalEntryOp(ops, TAX_EXPENSE_REG_DUTY_GL_ID, FUND_SOURCE_GL_ID);
-        assertNotNull(regDutyJe, "Should have reg duty expense journal entry");
-        assertEquals(registrationDuty, regDutyJe.amount());
-
-        // No capital gains journal entry
-        assertNull(findJournalEntryOp(ops, TAX_EXPENSE_CGT_GL_ID, FUND_SOURCE_GL_ID),
-                "No CGT journal entry when capital gains tax is zero");
+    private List<BatchOperation> invoke(TradeSide side, BigDecimal gross, BigDecimal units,
+            BigDecimal fee, BigDecimal spread, BigDecimal buyback,
+            BigDecimal regDuty, BigDecimal cgt, BigDecimal tva) throws Exception {
+        return (List<BatchOperation>) buildBatchOps.invoke(tradingService,
+                side, testAsset, USER_CASH, USER_ASSET,
+                gross, units, fee, spread, buyback, FEE_COLLECT,
+                regDuty, cgt, tva);
     }
 
     // -------------------------------------------------------------------------
-    // BUY with fee, spread, and registration duty
+    // BUY — Clearing Account Pattern
     // -------------------------------------------------------------------------
 
-    @Test
-    @SuppressWarnings("unchecked")
-    void buildBatchOperations_buyWithFeeSpreadAndRegDuty_includesSpreadOps() throws Exception {
-        BigDecimal grossAmount = new BigDecimal("100000");
-        BigDecimal units = new BigDecimal("10");
-        BigDecimal fee = new BigDecimal("500");
-        BigDecimal spreadAmount = new BigDecimal("5000");
-        BigDecimal buybackPremium = BigDecimal.ZERO;
-        BigDecimal registrationDuty = new BigDecimal("2000");
-        BigDecimal capitalGainsTax = BigDecimal.ZERO;
+    @Nested
+    class BuyFlow {
 
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.BUY, testAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, spreadAmount, buybackPremium, FEE_COLLECTION_ACCOUNT,
-                registrationDuty, capitalGainsTax,
-                "order-test-001", 42L);
+        @Test
+        void buy_singleClientWithdrawalToClearing() throws Exception {
+            // gross=100000, fee=500, regDuty=2000, tva=0, spread=5000
+            List<BatchOperation> ops = invoke(TradeSide.BUY,
+                    bd("100000"), bd("10"), bd("500"), bd("5000"), bd("0"),
+                    bd("2000"), bd("0"), bd("0"));
 
-        // Leg 1: User pays total to LP Cash
-        BatchTransferOp leg1 = findTransferOp(ops, USER_CASH_ACCOUNT, LP_CASH_ACCOUNT);
-        assertEquals(new BigDecimal("102500"), leg1.amount()); // 100000 + 500 + 2000
+            // Leg 1: Client → Clearing (total: 100000 + 500 + 2000 = 102500)
+            BatchTransferOp leg1 = findTransfer(ops, USER_CASH, CLEARING);
+            assertNotNull(leg1, "Should transfer from client to clearing");
+            assertEquals(bd("102500"), leg1.amount());
+        }
 
-        // Leg 3: Spread sweep LP Cash -> LP Spread
-        BatchTransferOp spreadTransfer = findTransferOp(ops, LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT);
-        assertNotNull(spreadTransfer, "Should have spread transfer when spread > 0 and enabled");
-        assertEquals(spreadAmount, spreadTransfer.amount());
+        @Test
+        void buy_clearingDistributesToLP() throws Exception {
+            List<BatchOperation> ops = invoke(TradeSide.BUY,
+                    bd("100000"), bd("10"), bd("500"), bd("5000"), bd("0"),
+                    bd("2000"), bd("0"), bd("0"));
 
-        // Journal Entry: DR Fund Source, CR Spread Income (GL 89)
-        BatchJournalEntryOp spreadJe = findJournalEntryOp(ops, FUND_SOURCE_GL_ID, SPREAD_INCOME_GL_ID);
-        assertNotNull(spreadJe, "Should have spread income journal entry");
-        assertEquals(spreadAmount, spreadJe.amount());
-        assertEquals("XAF", spreadJe.currencyCode());
+            // Leg 3: Clearing → LP LSAV (nominal = gross - spread = 95000)
+            BatchTransferOp lpLeg = findTransfer(ops, CLEARING, LP_CASH);
+            assertNotNull(lpLeg, "Should transfer nominal to LP settlement");
+            assertEquals(bd("95000"), lpLeg.amount());
 
-        // Fee and reg duty journal entries still present
-        assertNotNull(findJournalEntryOp(ops, FUND_SOURCE_GL_ID, PLATFORM_FEE_INCOME_GL_ID));
-        assertNotNull(findJournalEntryOp(ops, TAX_EXPENSE_REG_DUTY_GL_ID, FUND_SOURCE_GL_ID));
+            // Leg 4: Clearing → LP Spread
+            BatchTransferOp spreadLeg = findTransfer(ops, CLEARING, LP_SPREAD);
+            assertNotNull(spreadLeg, "Should transfer spread to LP spread");
+            assertEquals(bd("5000"), spreadLeg.amount());
+        }
+
+        @Test
+        void buy_clearingDistributesFeeAndTax() throws Exception {
+            List<BatchOperation> ops = invoke(TradeSide.BUY,
+                    bd("100000"), bd("10"), bd("500"), bd("5000"), bd("0"),
+                    bd("2000"), bd("0"), bd("1000"));
+
+            // Fee: Clearing → Fee Collection
+            BatchTransferOp feeLeg = findTransfer(ops, CLEARING, FEE_COLLECT);
+            assertNotNull(feeLeg, "Should transfer fee to platform");
+            assertEquals(bd("500"), feeLeg.amount());
+
+            // Reg duty: Clearing → Tax Authority
+            BatchTransferOp regDutyLeg = findTransfer(ops, CLEARING, TAX_REG_DUTY);
+            assertNotNull(regDutyLeg, "Should transfer reg duty to tax authority");
+            assertEquals(bd("2000"), regDutyLeg.amount());
+
+            // TVA: Clearing → Tax Authority
+            BatchTransferOp tvaLeg = findTransfer(ops, CLEARING, TAX_TVA);
+            assertNotNull(tvaLeg, "Should transfer TVA to tax authority");
+            assertEquals(bd("1000"), tvaLeg.amount());
+        }
+
+        @Test
+        void buy_clearingNetsToZero() throws Exception {
+            BigDecimal gross = bd("100000");
+            BigDecimal fee = bd("500");
+            BigDecimal spread = bd("5000");
+            BigDecimal regDuty = bd("2000");
+            BigDecimal tva = bd("1000");
+
+            List<BatchOperation> ops = invoke(TradeSide.BUY,
+                    gross, bd("10"), fee, spread, bd("0"),
+                    regDuty, bd("0"), tva);
+
+            // Sum inflows to clearing
+            BigDecimal inflow = bd("0");
+            BigDecimal outflow = bd("0");
+            for (BatchOperation op : ops) {
+                if (op instanceof BatchTransferOp t) {
+                    if (t.toAccountId().equals(CLEARING)) inflow = inflow.add(t.amount());
+                    if (t.fromAccountId().equals(CLEARING)) outflow = outflow.add(t.amount());
+                }
+            }
+
+            assertEquals(0, inflow.compareTo(outflow),
+                    "Clearing inflow (" + inflow + ") should equal outflow (" + outflow + ")");
+        }
+
+        @Test
+        void buy_tokenDelivery() throws Exception {
+            List<BatchOperation> ops = invoke(TradeSide.BUY,
+                    bd("100000"), bd("10"), bd("500"), bd("0"), bd("0"),
+                    bd("0"), bd("0"), bd("0"));
+
+            BatchTransferOp tokenLeg = findTransfer(ops, LP_ASSET, USER_ASSET);
+            assertNotNull(tokenLeg, "Should deliver tokens from LP to client");
+            assertEquals(bd("10"), tokenLeg.amount());
+        }
     }
 
     // -------------------------------------------------------------------------
-    // SELL with fee, registration duty, and capital gains tax
+    // SELL — LP Bears Tax
     // -------------------------------------------------------------------------
 
-    @Test
-    @SuppressWarnings("unchecked")
-    void buildBatchOperations_sellWithFeeRegDutyAndCgt_producesCorrectOps() throws Exception {
-        BigDecimal grossAmount = new BigDecimal("120000");
-        BigDecimal units = new BigDecimal("10");
-        BigDecimal fee = new BigDecimal("600");
-        BigDecimal spreadAmount = BigDecimal.ZERO;
-        BigDecimal buybackPremium = BigDecimal.ZERO;
-        BigDecimal registrationDuty = new BigDecimal("2400");
-        BigDecimal capitalGainsTax = new BigDecimal("3300");
+    @Nested
+    class SellFlow {
 
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.SELL, testAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, spreadAmount, buybackPremium, FEE_COLLECTION_ACCOUNT,
-                registrationDuty, capitalGainsTax,
-                "order-test-001", 42L);
+        @Test
+        void sell_clientReceivesGrossMinusFeeOnly() throws Exception {
+            // gross=95000, fee=500, regDuty=1900, tva=0
+            // Client gets: 95000 - 500 = 94500 (LP pays tax separately)
+            List<BatchOperation> ops = invoke(TradeSide.SELL,
+                    bd("95000"), bd("10"), bd("500"), bd("5000"), bd("0"),
+                    bd("1900"), bd("0"), bd("0"));
 
-        // Leg 1: User returns tokens
-        BatchTransferOp tokenReturn = findTransferOp(ops, USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT);
-        assertNotNull(tokenReturn, "Should have token return transfer");
-        assertEquals(units, tokenReturn.amount());
+            BatchTransferOp clientLeg = findTransfer(ops, LP_CASH, USER_CASH);
+            assertNotNull(clientLeg, "Should transfer proceeds to client");
+            assertEquals(bd("94500"), clientLeg.amount()); // gross - fee, no tax deduction
+        }
 
-        // Leg 3: LP Cash pays net proceeds to user (gross - fee - totalTax)
-        BatchTransferOp proceeds = findTransferOp(ops, LP_CASH_ACCOUNT, USER_CASH_ACCOUNT);
-        assertNotNull(proceeds, "Should have proceeds transfer to user");
-        // 120000 - 600 - (2400 + 3300) = 113700
-        assertEquals(new BigDecimal("113700"), proceeds.amount());
+        @Test
+        void sell_lpPaysTaxToLtaxAccount() throws Exception {
+            List<BatchOperation> ops = invoke(TradeSide.SELL,
+                    bd("95000"), bd("10"), bd("500"), bd("5000"), bd("0"),
+                    bd("1900"), bd("500"), bd("0"));
 
-        // Leg 4: Fee sweep
-        BatchTransferOp feeTransfer = findTransferOp(ops, LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT);
-        assertNotNull(feeTransfer, "Should have fee transfer");
-        assertEquals(fee, feeTransfer.amount());
+            // Reg duty → LP TAX account (not global)
+            BatchTransferOp regDutyLeg = findTransfer(ops, LP_CASH, LP_TAX);
+            assertNotNull(regDutyLeg, "Reg duty should go to LP's LTAX account");
+            assertEquals(bd("1900"), regDutyLeg.amount());
 
-        // Leg 6: Registration duty to tax authority
-        BatchTransferOp regDutyTransfer = findTransferOp(ops, LP_CASH_ACCOUNT, TAX_REG_DUTY_ACCOUNT);
-        assertNotNull(regDutyTransfer, "Should have reg duty transfer");
-        assertEquals(registrationDuty, regDutyTransfer.amount());
+            // Capital gains → LP TAX account
+            BatchTransferOp cgtLeg = findTransferByAmount(ops, LP_CASH, LP_TAX, bd("500"));
+            assertNotNull(cgtLeg, "CGT should go to LP's LTAX account");
+        }
 
-        // Leg 7: Capital gains tax to tax authority
-        BatchTransferOp cgtTransfer = findTransferOp(ops, LP_CASH_ACCOUNT, TAX_CGT_ACCOUNT);
-        assertNotNull(cgtTransfer, "Should have CGT transfer");
-        assertEquals(capitalGainsTax, cgtTransfer.amount());
+        @Test
+        void sell_lpPaysFeeAndSpread() throws Exception {
+            List<BatchOperation> ops = invoke(TradeSide.SELL,
+                    bd("95000"), bd("10"), bd("500"), bd("5000"), bd("0"),
+                    bd("0"), bd("0"), bd("0"));
 
-        // Journal Entry: DR Fund Source, CR Platform Fee Income (GL 88)
-        BatchJournalEntryOp feeJe = findJournalEntryOp(ops, FUND_SOURCE_GL_ID, PLATFORM_FEE_INCOME_GL_ID);
-        assertNotNull(feeJe, "Should have fee income journal entry");
-        assertEquals(fee, feeJe.amount());
+            // Fee: LP → Fee Collection
+            BatchTransferOp feeLeg = findTransfer(ops, LP_CASH, FEE_COLLECT);
+            assertNotNull(feeLeg, "LP should pay fee");
+            assertEquals(bd("500"), feeLeg.amount());
 
-        // Journal Entry: DR Tax Expense Reg Duty (GL 92), CR Fund Source
-        BatchJournalEntryOp regDutyJe = findJournalEntryOp(ops, TAX_EXPENSE_REG_DUTY_GL_ID, FUND_SOURCE_GL_ID);
-        assertNotNull(regDutyJe, "Should have reg duty expense journal entry");
-        assertEquals(registrationDuty, regDutyJe.amount());
+            // Spread: LP → LP Spread
+            BatchTransferOp spreadLeg = findTransfer(ops, LP_CASH, LP_SPREAD);
+            assertNotNull(spreadLeg, "LP should sweep spread");
+            assertEquals(bd("5000"), spreadLeg.amount());
+        }
 
-        // Journal Entry: DR Tax Expense CGT (GL 93), CR Fund Source
-        BatchJournalEntryOp cgtJe = findJournalEntryOp(ops, TAX_EXPENSE_CGT_GL_ID, FUND_SOURCE_GL_ID);
-        assertNotNull(cgtJe, "Should have CGT expense journal entry");
-        assertEquals(capitalGainsTax, cgtJe.amount());
-    }
+        @Test
+        void sell_tokenReturnedToLP() throws Exception {
+            List<BatchOperation> ops = invoke(TradeSide.SELL,
+                    bd("95000"), bd("10"), bd("500"), bd("0"), bd("0"),
+                    bd("0"), bd("0"), bd("0"));
 
-    // -------------------------------------------------------------------------
-    // SELL with spread (bid < issuer, spread collected on sell)
-    // -------------------------------------------------------------------------
+            BatchTransferOp tokenLeg = findTransfer(ops, USER_ASSET, LP_ASSET);
+            assertNotNull(tokenLeg, "Should return tokens from client to LP");
+            assertEquals(bd("10"), tokenLeg.amount());
+        }
 
-    @Test
-    @SuppressWarnings("unchecked")
-    void buildBatchOperations_sellWithSpread_includesSpreadTransferAndJournal() throws Exception {
-        BigDecimal grossAmount = new BigDecimal("90000");
-        BigDecimal units = new BigDecimal("10");
-        BigDecimal fee = new BigDecimal("450");
-        BigDecimal spreadAmount = new BigDecimal("5000"); // bid < issuer
-        BigDecimal buybackPremium = BigDecimal.ZERO;
-        BigDecimal registrationDuty = new BigDecimal("1800");
-        BigDecimal capitalGainsTax = BigDecimal.ZERO;
+        @Test
+        void sell_withTva_routesToLpTaxAccount() throws Exception {
+            List<BatchOperation> ops = invoke(TradeSide.SELL,
+                    bd("95000"), bd("10"), bd("500"), bd("0"), bd("0"),
+                    bd("0"), bd("0"), bd("1800"));
 
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.SELL, testAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, spreadAmount, buybackPremium, FEE_COLLECTION_ACCOUNT,
-                registrationDuty, capitalGainsTax,
-                "order-test-001", 42L);
+            BatchTransferOp tvaLeg = findTransfer(ops, LP_CASH, LP_TAX);
+            assertNotNull(tvaLeg, "TVA should go to LP's LTAX account on SELL");
+            assertEquals(bd("1800"), tvaLeg.amount());
+        }
 
-        // Spread sweep: LP Cash -> LP Spread
-        BatchTransferOp spreadTransfer = findTransferOp(ops, LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT);
-        assertNotNull(spreadTransfer, "Should have spread transfer on sell");
-        assertEquals(spreadAmount, spreadTransfer.amount());
+        @Test
+        void sell_fallsBackToGlobalTaxWhenNoLpTax() throws Exception {
+            testAsset.setLpTaxAccountId(null); // No LTAX account
 
-        // Spread journal entry
-        BatchJournalEntryOp spreadJe = findJournalEntryOp(ops, FUND_SOURCE_GL_ID, SPREAD_INCOME_GL_ID);
-        assertNotNull(spreadJe, "Should have spread income journal entry");
-        assertEquals(spreadAmount, spreadJe.amount());
-    }
+            List<BatchOperation> ops = invoke(TradeSide.SELL,
+                    bd("95000"), bd("10"), bd("500"), bd("0"), bd("0"),
+                    bd("1900"), bd("0"), bd("0"));
 
-    // -------------------------------------------------------------------------
-    // SELL with buyback premium (bid > issuer, premium funded from LP Spread)
-    // -------------------------------------------------------------------------
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void buildBatchOperations_sellWithBuybackPremium_fundsFromLpSpread() throws Exception {
-        BigDecimal grossAmount = new BigDecimal("110000");
-        BigDecimal units = new BigDecimal("10");
-        BigDecimal fee = new BigDecimal("550");
-        BigDecimal spreadAmount = BigDecimal.ZERO;
-        BigDecimal buybackPremium = new BigDecimal("10000"); // bid > issuer
-        BigDecimal registrationDuty = new BigDecimal("2200");
-        BigDecimal capitalGainsTax = BigDecimal.ZERO;
-
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.SELL, testAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, spreadAmount, buybackPremium, FEE_COLLECTION_ACCOUNT,
-                registrationDuty, capitalGainsTax,
-                "order-test-001", 42L);
-
-        // Buyback premium: LP Spread -> LP Cash
-        BatchTransferOp premiumTransfer = findTransferOp(ops, LP_SPREAD_ACCOUNT, LP_CASH_ACCOUNT);
-        assertNotNull(premiumTransfer, "Should have buyback premium transfer from LP Spread");
-        assertEquals(buybackPremium, premiumTransfer.amount());
-
-        // Journal Entry: DR Spread Income (GL 89), CR Fund Source — reverses spread income
-        BatchJournalEntryOp premiumJe = findJournalEntryOp(ops, SPREAD_INCOME_GL_ID, FUND_SOURCE_GL_ID);
-        assertNotNull(premiumJe, "Should have buyback premium spread income reversal journal entry");
-        assertEquals(buybackPremium, premiumJe.amount());
-        assertTrue(premiumJe.comments().contains("Buyback premium"), "Comment should describe buyback premium");
-    }
-
-    // -------------------------------------------------------------------------
-    // BUY with zero fee - no fee transfer or journal entry
-    // -------------------------------------------------------------------------
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void buildBatchOperations_buyWithZeroFee_noFeeOps() throws Exception {
-        BigDecimal grossAmount = new BigDecimal("50000");
-        BigDecimal units = new BigDecimal("5");
-        BigDecimal fee = BigDecimal.ZERO;
-        BigDecimal spreadAmount = BigDecimal.ZERO;
-        BigDecimal buybackPremium = BigDecimal.ZERO;
-        BigDecimal registrationDuty = BigDecimal.ZERO;
-        BigDecimal capitalGainsTax = BigDecimal.ZERO;
-
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.BUY, testAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, spreadAmount, buybackPremium, FEE_COLLECTION_ACCOUNT,
-                registrationDuty, capitalGainsTax,
-                "order-test-001", 42L);
-
-        // Should only have 2 transfer ops (user->LP cash, LP asset->user asset)
-        long transferCount = ops.stream().filter(op -> op instanceof BatchTransferOp).count();
-        assertEquals(2, transferCount, "Only cash and asset transfers when no fee/tax/spread");
-
-        // No journal entries at all
-        long journalCount = ops.stream().filter(op -> op instanceof BatchJournalEntryOp).count();
-        assertEquals(0, journalCount, "No journal entries when no fee/tax/spread");
-    }
-
-    // -------------------------------------------------------------------------
-    // Spread disabled (LP spread account null) - spread ops skipped
-    // -------------------------------------------------------------------------
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void buildBatchOperations_spreadDisabledNullAccount_noSpreadOps() throws Exception {
-        // Asset with no spread account
-        Asset noSpreadAsset = Asset.builder()
-                .id("asset-no-spread")
-                .symbol("NSP")
-                .name("No Spread Asset")
-                .lpCashAccountId(LP_CASH_ACCOUNT)
-                .lpAssetAccountId(LP_ASSET_ACCOUNT)
-                .lpSpreadAccountId(null)
-                .build();
-
-        BigDecimal grossAmount = new BigDecimal("100000");
-        BigDecimal units = new BigDecimal("10");
-        BigDecimal fee = new BigDecimal("500");
-        BigDecimal spreadAmount = new BigDecimal("5000"); // non-zero but spread disabled
-        BigDecimal buybackPremium = BigDecimal.ZERO;
-        BigDecimal registrationDuty = BigDecimal.ZERO;
-        BigDecimal capitalGainsTax = BigDecimal.ZERO;
-
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.BUY, noSpreadAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, spreadAmount, buybackPremium, FEE_COLLECTION_ACCOUNT,
-                registrationDuty, capitalGainsTax,
-                "order-test-001", 42L);
-
-        // No spread transfer
-        assertNull(findTransferOp(ops, LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT),
-                "No spread transfer when spread is disabled");
-
-        // No spread journal entry
-        assertNull(findJournalEntryOp(ops, FUND_SOURCE_GL_ID, SPREAD_INCOME_GL_ID),
-                "No spread journal entry when spread is disabled");
-    }
-
-    // -------------------------------------------------------------------------
-    // Journal entry comments contain trade side and symbol
-    // -------------------------------------------------------------------------
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void buildBatchOperations_buyJournalEntries_commentsContainBuyAndSymbol() throws Exception {
-        BigDecimal grossAmount = new BigDecimal("100000");
-        BigDecimal units = new BigDecimal("10");
-        BigDecimal fee = new BigDecimal("500");
-
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.BUY, testAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, BigDecimal.ZERO, BigDecimal.ZERO, FEE_COLLECTION_ACCOUNT,
-                BigDecimal.ZERO, BigDecimal.ZERO,
-                "order-test-001", 42L);
-
-        BatchJournalEntryOp feeJe = findJournalEntryOp(ops, FUND_SOURCE_GL_ID, PLATFORM_FEE_INCOME_GL_ID);
-        assertNotNull(feeJe);
-        assertTrue(feeJe.comments().contains("BUY"), "Comment should contain trade side");
-        assertTrue(feeJe.comments().contains("TST"), "Comment should contain asset symbol");
-        assertTrue(feeJe.comments().contains("order-test-001"), "Comment should contain orderId");
-        assertTrue(feeJe.comments().contains("502"), "Comment should contain userId");
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void buildBatchOperations_sellJournalEntries_commentsContainSellAndSymbol() throws Exception {
-        BigDecimal grossAmount = new BigDecimal("100000");
-        BigDecimal units = new BigDecimal("10");
-        BigDecimal fee = new BigDecimal("500");
-
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.SELL, testAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, BigDecimal.ZERO, BigDecimal.ZERO, FEE_COLLECTION_ACCOUNT,
-                BigDecimal.ZERO, BigDecimal.ZERO,
-                "order-test-001", 42L);
-
-        BatchJournalEntryOp feeJe = findJournalEntryOp(ops, FUND_SOURCE_GL_ID, PLATFORM_FEE_INCOME_GL_ID);
-        assertNotNull(feeJe);
-        assertTrue(feeJe.comments().contains("SELL"), "Comment should contain trade side");
-        assertTrue(feeJe.comments().contains("TST"), "Comment should contain asset symbol");
-        assertTrue(feeJe.comments().contains("order-test-001"), "Comment should contain orderId");
-        assertTrue(feeJe.comments().contains("502"), "Comment should contain userId");
-    }
-
-    // -------------------------------------------------------------------------
-    // Full scenario: SELL with all components (fee, spread, reg duty, CGT)
-    // -------------------------------------------------------------------------
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void buildBatchOperations_sellWithAllComponents_producesCompleteOpsList() throws Exception {
-        BigDecimal grossAmount = new BigDecimal("150000");
-        BigDecimal units = new BigDecimal("15");
-        BigDecimal fee = new BigDecimal("750");
-        BigDecimal spreadAmount = new BigDecimal("7500");
-        BigDecimal buybackPremium = BigDecimal.ZERO;
-        BigDecimal registrationDuty = new BigDecimal("3000");
-        BigDecimal capitalGainsTax = new BigDecimal("8250");
-
-        List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                TradeSide.SELL, testAsset, USER_CASH_ACCOUNT, USER_ASSET_ACCOUNT,
-                grossAmount, units, fee, spreadAmount, buybackPremium, FEE_COLLECTION_ACCOUNT,
-                registrationDuty, capitalGainsTax,
-                "order-test-001", 42L);
-
-        // Count operations by type
-        long transferCount = ops.stream().filter(op -> op instanceof BatchTransferOp).count();
-        long journalCount = ops.stream().filter(op -> op instanceof BatchJournalEntryOp).count();
-
-        // Transfers: token return, proceeds, fee sweep, spread sweep, reg duty, CGT = 6
-        assertEquals(6, transferCount, "Should have 6 transfer operations");
-
-        // Journal entries: fee income, spread income, reg duty expense, CGT expense = 4
-        assertEquals(4, journalCount, "Should have 4 journal entry operations");
-
-        // Verify net proceeds calculation: gross - fee - (regDuty + CGT)
-        BatchTransferOp proceeds = findTransferOp(ops, LP_CASH_ACCOUNT, USER_CASH_ACCOUNT);
-        // 150000 - 750 - (3000 + 8250) = 138000
-        assertEquals(new BigDecimal("138000"), proceeds.amount());
+            // Should fall back to global tax authority
+            BatchTransferOp regDutyLeg = findTransfer(ops, LP_CASH, TAX_REG_DUTY);
+            assertNotNull(regDutyLeg, "Should fall back to global reg duty account");
+            assertEquals(bd("1900"), regDutyLeg.amount());
+        }
     }
 
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
-    /**
-     * Find a BatchTransferOp matching the given from/to account IDs.
-     */
-    private BatchTransferOp findTransferOp(List<BatchOperation> ops, Long fromAccountId, Long toAccountId) {
-        return ops.stream()
-                .filter(op -> op instanceof BatchTransferOp)
-                .map(op -> (BatchTransferOp) op)
-                .filter(t -> t.fromAccountId().equals(fromAccountId) && t.toAccountId().equals(toAccountId))
-                .findFirst()
-                .orElse(null);
+    private static BigDecimal bd(String val) {
+        return new BigDecimal(val);
     }
 
-    /**
-     * Find a BatchJournalEntryOp matching the given debit/credit GL account IDs.
-     */
-    private BatchJournalEntryOp findJournalEntryOp(List<BatchOperation> ops, Long debitGlId, Long creditGlId) {
+    private static BatchTransferOp findTransfer(List<BatchOperation> ops, Long from, Long to) {
         return ops.stream()
-                .filter(op -> op instanceof BatchJournalEntryOp)
-                .map(op -> (BatchJournalEntryOp) op)
-                .filter(j -> j.debitGlAccountId().equals(debitGlId) && j.creditGlAccountId().equals(creditGlId))
-                .findFirst()
-                .orElse(null);
+                .filter(op -> op instanceof BatchTransferOp t
+                        && t.fromAccountId().equals(from) && t.toAccountId().equals(to))
+                .map(op -> (BatchTransferOp) op)
+                .findFirst().orElse(null);
+    }
+
+    private static BatchTransferOp findTransferByAmount(List<BatchOperation> ops, Long from, Long to, BigDecimal amount) {
+        return ops.stream()
+                .filter(op -> op instanceof BatchTransferOp t
+                        && t.fromAccountId().equals(from) && t.toAccountId().equals(to)
+                        && t.amount().compareTo(amount) == 0)
+                .map(op -> (BatchTransferOp) op)
+                .findFirst().orElse(null);
     }
 }
