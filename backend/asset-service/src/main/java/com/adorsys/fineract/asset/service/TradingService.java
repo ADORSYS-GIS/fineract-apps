@@ -238,10 +238,10 @@ public class TradingService {
             }
             lockupService.validateLockup(asset, userId, units);
 
-            // LP capital adequacy check — LP LSAV must cover: gross + spread (fee/tax cancel in the transfer legs)
+            // LP capital adequacy check — LP LSAV must cover: gross + spread + tax (LP bears all on SELL)
             if (asset.getLpCashAccountId() != null) {
                 BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
-                BigDecimal totalLpRequired = grossAmount.add(spreadAmount);
+                BigDecimal totalLpRequired = grossAmount.add(spreadAmount).add(totalTax);
                 if (lpCashBalance.compareTo(totalLpRequired) < 0) {
                     String currency = assetServiceConfig.getSettlementCurrency();
                     throw new TradingException(
@@ -735,9 +735,11 @@ public class TradingService {
             Asset asset = ctx.getAsset();
             BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
             BigDecimal spread = ctx.getSpreadAmount() != null ? ctx.getSpreadAmount() : BigDecimal.ZERO;
-            // LP LSAV total outflow = gross + spread (fee/tax cancel: client gets gross-fee-tax,
-            // then LP pays fee+tax separately, so net = gross; spread is additional outflow to LSPD)
-            BigDecimal totalLpOutflow = ctx.getGrossAmount().add(spread);
+            BigDecimal regDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
+            BigDecimal cgt = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
+            BigDecimal tva = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
+            // LP bears all on SELL: client proceeds + fee + spread + tax
+            BigDecimal totalLpOutflow = ctx.getGrossAmount().add(spread).add(regDuty).add(cgt).add(tva);
             if (lpCashBalance.compareTo(totalLpOutflow) < 0) {
                 rejectOrder(ctx.getOrder(), "Insufficient LP funds for payout");
 
@@ -1004,10 +1006,10 @@ public class TradingService {
                         asset.getLpSpreadAccountId(), asset.getLpCashAccountId(),
                         buybackPremium, "Buyback premium: SELL " + asset.getSymbol()));
             }
-            // Leg 3: LP Cash pays net proceeds to investor (gross - fee - tax) — single XAF credit
+            // Leg 3: LP Cash pays proceeds to investor (gross - fee) — LP bears tax separately
             ops.add(new BatchTransferOp(
                     asset.getLpCashAccountId(), userCashAccountId,
-                    grossAmount.subtract(fee).subtract(totalTax), "Asset sale proceeds: " + asset.getSymbol()));
+                    grossAmount.subtract(fee), "Asset sale proceeds: " + asset.getSymbol()));
             // Leg 4 (internal): LP Cash sweeps fee to Fee Collection (mandatory)
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
