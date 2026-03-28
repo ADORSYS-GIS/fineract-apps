@@ -1042,4 +1042,25 @@ export const assetApi = {
 		}),
 	getAccountingCurrencies: () =>
 		assetClient.get<string[]>("/admin/accounting/currencies"),
+
+	// Settlement - Admin
+	getSettlements: (status?: string[]) =>
+		assetClient.get("/admin/settlement", {
+			params: status ? { status } : undefined,
+		}),
+	getSettlementSummary: () => assetClient.get("/admin/settlement/summary"),
+	createSettlement: (data: {
+		settlementType: string;
+		amount: number;
+		lpClientId?: number;
+		description?: string;
+		sourceGlCode?: string;
+		destinationGlCode?: string;
+	}) => assetClient.post("/admin/settlement", data),
+	approveSettlement: (id: string) =>
+		assetClient.post(`/admin/settlement/${id}/approve`),
+	executeSettlement: (id: string) =>
+		assetClient.post(`/admin/settlement/${id}/execute`),
+	rejectSettlement: (id: string, reason?: string) =>
+		assetClient.post(`/admin/settlement/${id}/reject`, { reason }),
 };
