@@ -206,4 +206,33 @@ public class TaxService {
     public Long getCapitalGainsAccountId() {
         return resolvedTaxAccounts.getCapitalGainsAccountId();
     }
+
+    /**
+     * Calculate TVA (VAT) for a trade.
+     * @return TVA amount (0 if disabled on this asset)
+     */
+    public BigDecimal calculateTva(Asset asset, BigDecimal transactionValue) {
+        if (!Boolean.TRUE.equals(asset.getTvaEnabled())) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal rate = asset.getTvaRate() != null
+                ? asset.getTvaRate()
+                : taxConfig.getDefaultTvaRate();
+        return transactionValue.multiply(rate).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    /** Get the effective TVA rate for an asset. */
+    public BigDecimal getTvaRate(Asset asset) {
+        if (!Boolean.TRUE.equals(asset.getTvaEnabled())) {
+            return BigDecimal.ZERO;
+        }
+        return asset.getTvaRate() != null
+                ? asset.getTvaRate()
+                : taxConfig.getDefaultTvaRate();
+    }
+
+    /** Get the resolved tax collection account ID for TVA. */
+    public Long getTvaAccountId() {
+        return resolvedTaxAccounts.getTvaAccountId();
+    }
 }

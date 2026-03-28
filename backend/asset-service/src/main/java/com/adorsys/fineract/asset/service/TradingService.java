@@ -198,7 +198,8 @@ public class TradingService {
                 capitalGainsTax = taxService.calculateCapitalGainsTax(asset, userId, estimatedRealizedGain);
             }
         }
-        BigDecimal totalTax = registrationDuty.add(capitalGainsTax);
+        BigDecimal tvaAmount = taxService.calculateTva(asset, grossAmount);
+        BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
         TaxBreakdown taxBreakdown = taxService.buildTaxBreakdown(asset, userId, grossAmount, estimatedRealizedGain, request.side() == TradeSide.SELL);
         BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee, totalTax);
 
@@ -683,7 +684,8 @@ public class TradingService {
                 capitalGainsTax = taxService.calculateCapitalGainsTax(asset, ctx.getUserId(), estimatedGain);
             }
         }
-        BigDecimal totalTax = registrationDuty.add(capitalGainsTax);
+        BigDecimal tvaAmount = taxService.calculateTva(asset, grossAmount);
+        BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
         BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee, totalTax);
 
         ctx.setBasePrice(lockedBasePrice);
@@ -696,6 +698,7 @@ public class TradingService {
         ctx.setOrderCashAmount(orderCashAmount);
         ctx.setRegistrationDutyAmount(registrationDuty);
         ctx.setCapitalGainsTaxAmount(capitalGainsTax);
+        ctx.setTvaAmount(tvaAmount);
 
         // Update order with authoritative locked values
         Order order = ctx.getOrder();
@@ -795,12 +798,13 @@ public class TradingService {
         Long feeCollectionAccountId = resolvedGlAccounts.getFeeCollectionAccountId();
         BigDecimal registrationDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
         BigDecimal capitalGainsTax = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
+        BigDecimal tvaAmount = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
 
         List<BatchOperation> batchOps = buildBatchOperations(
                 side, lockedAsset, ctx.getUserCashAccountId(), ctx.getUserAssetAccountId(),
                 ctx.getGrossAmount(), ctx.getUnits(), ctx.getFee(), ctx.getSpreadAmount(),
                 ctx.getBuybackPremium(), feeCollectionAccountId,
-                registrationDuty, capitalGainsTax);
+                registrationDuty, capitalGainsTax, tvaAmount);
 
         try {
             List<Map<String, Object>> batchResponses = fineractClient.executeAtomicBatch(batchOps);
@@ -880,10 +884,10 @@ public class TradingService {
             Long userCashAccountId, Long userAssetAccountId,
             BigDecimal grossAmount, BigDecimal units, BigDecimal fee,
             BigDecimal spreadAmount, BigDecimal buybackPremium, Long feeCollectionAccountId,
-            BigDecimal registrationDuty, BigDecimal capitalGainsTax) {
+            BigDecimal registrationDuty, BigDecimal capitalGainsTax, BigDecimal tvaAmount) {
 
         List<BatchOperation> ops = new ArrayList<>();
-        BigDecimal totalTax = registrationDuty.add(capitalGainsTax);
+        BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
 
         if (side == TradeSide.BUY) {
             // Leg 1: Investor pays total (grossAmount + fee + tax) to LP Cash — single XAF debit
@@ -912,6 +916,12 @@ public class TradingService {
                         asset.getLpCashAccountId(), taxService.getRegistrationDutyAccountId(),
                         registrationDuty, "Registration duty: BUY " + asset.getSymbol()));
             }
+            // Leg 6 (tax): LP Cash sweeps TVA to Tax Authority
+            if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchTransferOp(
+                        asset.getLpCashAccountId(), taxService.getTvaAccountId(),
+                        tvaAmount, "TVA: BUY " + asset.getSymbol()));
+            }
         } else {
             // Leg 1: Investor returns tokens
             ops.add(new BatchTransferOp(
@@ -939,17 +949,32 @@ public class TradingService {
                         asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
                         spreadAmount, "LP margin: SELL " + asset.getSymbol()));
             }
-            // Leg 6 (tax): LP Cash sweeps registration duty to Tax Authority
+            // Leg 6 (tax): LP pays registration duty — route to LP Tax account if available, else global
             if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
+                Long taxDestination = asset.getLpTaxAccountId() != null
+                        ? asset.getLpTaxAccountId()
+                        : taxService.getRegistrationDutyAccountId();
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), taxService.getRegistrationDutyAccountId(),
+                        asset.getLpCashAccountId(), taxDestination,
                         registrationDuty, "Registration duty: SELL " + asset.getSymbol()));
             }
-            // Leg 7 (tax): LP Cash sweeps capital gains tax to Tax Authority
+            // Leg 7 (tax): LP pays capital gains tax — route to LP Tax account if available, else global
             if (capitalGainsTax.compareTo(BigDecimal.ZERO) > 0) {
+                Long taxDestination = asset.getLpTaxAccountId() != null
+                        ? asset.getLpTaxAccountId()
+                        : taxService.getCapitalGainsAccountId();
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), taxService.getCapitalGainsAccountId(),
+                        asset.getLpCashAccountId(), taxDestination,
                         capitalGainsTax, "Capital gains tax: SELL " + asset.getSymbol()));
+            }
+            // Leg 8 (tax): LP pays TVA — route to LP Tax account if available, else global
+            if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
+                Long taxDestination = asset.getLpTaxAccountId() != null
+                        ? asset.getLpTaxAccountId()
+                        : taxService.getTvaAccountId();
+                ops.add(new BatchTransferOp(
+                        asset.getLpCashAccountId(), taxDestination,
+                        tvaAmount, "TVA: SELL " + asset.getSymbol()));
             }
         }
 
