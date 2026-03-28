@@ -1063,4 +1063,9 @@ export const assetApi = {
 		assetClient.post(`/admin/settlement/${id}/execute`),
 	rejectSettlement: (id: string, reason?: string) =>
 		assetClient.post(`/admin/settlement/${id}/reject`, { reason }),
+	exportSettlementReport: (id: string) =>
+		assetClient.get(`/admin/settlement/${id}/report`, {
+			responseType: "blob",
+		}),
+	getLpBalances: () => assetClient.get("/admin/settlement/lp-balances"),
 };

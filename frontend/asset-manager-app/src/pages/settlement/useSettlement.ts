@@ -27,6 +27,12 @@ export const useSettlement = () => {
 		select: (res) => res.data,
 	});
 
+	const { data: lpBalances } = useQuery({
+		queryKey: ["lp-balances"],
+		queryFn: () => assetApi.getLpBalances(),
+		select: (res) => res.data,
+	});
+
 	const approveMutation = useMutation({
 		mutationFn: (id: string) => assetApi.approveSettlement(id),
 		onSuccess: () => {
@@ -71,6 +77,7 @@ export const useSettlement = () => {
 	return {
 		settlements,
 		summary,
+		lpBalances,
 		isLoading,
 		isError,
 		refetch,

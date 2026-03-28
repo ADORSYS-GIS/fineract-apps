@@ -28,9 +28,20 @@ interface Settlement {
 	rejectionReason: string | null;
 }
 
+interface LPBalance {
+	lpClientId: number;
+	lpClientName: string;
+	lsavBalance: number;
+	lspdBalance: number;
+	ltaxBalance: number;
+	unsettledTotal: number;
+	assetCount: number;
+}
+
 interface SettlementViewProps {
 	settlements?: { content: Settlement[]; totalElements: number };
 	summary?: { pendingCount: number; approvedCount: number; totalCount: number };
+	lpBalances?: LPBalance[];
 	isLoading: boolean;
 	isError: boolean;
 	refetch: () => void;
@@ -78,6 +89,7 @@ const fmt = (n: number) =>
 export const SettlementView: FC<SettlementViewProps> = ({
 	settlements,
 	summary,
+	lpBalances,
 	isLoading,
 	isError,
 	refetch,
@@ -148,6 +160,38 @@ export const SettlementView: FC<SettlementViewProps> = ({
 					</p>
 				</div>
 			</div>
+
+			{/* LP Unsettled Balances */}
+			{lpBalances && lpBalances.length > 0 && (
+				<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+					<h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">
+						LP Unsettled Balances
+					</h3>
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+						{lpBalances.map((lp: LPBalance) => (
+							<div
+								key={lp.lpClientId}
+								className="border dark:border-gray-700 rounded-lg p-3"
+							>
+								<div className="font-medium dark:text-white text-sm">
+									{lp.lpClientName}
+								</div>
+								<div className="text-xs text-gray-400 mt-1">
+									LSAV: {fmt(lp.lsavBalance)} · LSPD: {fmt(lp.lspdBalance)} ·
+									LTAX: {fmt(lp.ltaxBalance)}
+								</div>
+								<div className="text-lg font-bold mt-1 dark:text-white">
+									{fmt(lp.unsettledTotal)}{" "}
+									<span className="text-xs text-gray-400">XAF</span>
+								</div>
+								<div className="text-xs text-gray-400">
+									{lp.assetCount} assets
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
 
 			{/* Filter */}
 			<div className="flex gap-2">
@@ -267,6 +311,17 @@ export const SettlementView: FC<SettlementViewProps> = ({
 													>
 														<Play className="w-4 h-4" />
 													</button>
+												)}
+												{s.status === "EXECUTED" && (
+													<a
+														href={`${import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083/api/v1"}/admin/settlement/${s.id}/report`}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="p-1 text-blue-600 hover:bg-blue-50 rounded inline-block"
+														title="Export CSV"
+													>
+														<RefreshCw className="w-4 h-4" />
+													</a>
 												)}
 											</div>
 										</td>

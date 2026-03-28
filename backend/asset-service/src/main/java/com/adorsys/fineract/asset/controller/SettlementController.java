@@ -107,4 +107,34 @@ public class SettlementController {
         String reason = body != null ? body.get("reason") : null;
         return ResponseEntity.ok(settlementService.rejectSettlement(id, reason));
     }
+
+    @GetMapping("/{id}/report")
+    @Operation(summary = "Export settlement report", description = "Download settlement as CSV for bank wire instructions.")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    public ResponseEntity<String> exportReport(@PathVariable String id) {
+        Settlement s = settlementService.getSettlement(id);
+        StringBuilder csv = new StringBuilder();
+        csv.append("Settlement ID,Type,Status,Amount (XAF),LP Client ID,Source GL,Destination GL,Created By,Created At,Approved By,Approved At,Description\n");
+        csv.append(String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                s.getId(), s.getSettlementType(), s.getStatus(), s.getAmount(),
+                s.getLpClientId() != null ? s.getLpClientId() : "",
+                s.getSourceGlCode() != null ? s.getSourceGlCode() : "",
+                s.getDestinationGlCode() != null ? s.getDestinationGlCode() : "",
+                s.getCreatedBy() != null ? s.getCreatedBy() : "",
+                s.getCreatedAt() != null ? s.getCreatedAt() : "",
+                s.getApprovedBy() != null ? s.getApprovedBy() : "",
+                s.getApprovedAt() != null ? s.getApprovedAt() : "",
+                s.getDescription() != null ? s.getDescription().replace(",", ";") : ""));
+        return ResponseEntity.ok()
+                .header("Content-Type", "text/csv")
+                .header("Content-Disposition", "attachment; filename=settlement-" + id + ".csv")
+                .body(csv.toString());
+    }
+
+    @GetMapping("/lp-balances")
+    @Operation(summary = "LP unsettled balances", description = "Per-LP LSAV/LSPD/LTAX balances for settlement creation.")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    public ResponseEntity<?> getLpBalances() {
+        return ResponseEntity.ok(settlementService.getLpBalances());
+    }
 }
