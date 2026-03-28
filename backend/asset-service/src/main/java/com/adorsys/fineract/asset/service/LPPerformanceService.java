@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.dto.LPPerformanceResponse;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.repository.AssetRepository;
@@ -10,9 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -26,6 +25,7 @@ public class LPPerformanceService {
 
     private final TradeLogRepository tradeLogRepository;
     private final AssetRepository assetRepository;
+    private final FineractClient fineractClient;
 
     @Transactional(readOnly = true)
     public LPPerformanceResponse getPerformanceSummary() {
@@ -59,6 +59,51 @@ public class LPPerformanceService {
             ));
         }
 
-        return new LPPerformanceResponse(totalSpread, totalBuyback, totalFee, netMargin, totalTrades, perAsset);
+        // Build per-LP summaries with LSAV/LSPD/LTAX balances
+        List<LPPerformanceResponse.LPSummary> perLP = buildPerLPSummaries(assetMap.values());
+
+        return new LPPerformanceResponse(totalSpread, totalBuyback, totalFee, netMargin, totalTrades, perAsset, perLP);
+    }
+
+    private List<LPPerformanceResponse.LPSummary> buildPerLPSummaries(Collection<Asset> assets) {
+        // Group assets by LP client ID
+        Map<Long, List<Asset>> lpAssets = assets.stream()
+                .filter(a -> a.getLpClientId() != null)
+                .collect(Collectors.groupingBy(Asset::getLpClientId));
+
+        List<LPPerformanceResponse.LPSummary> summaries = new ArrayList<>();
+        for (Map.Entry<Long, List<Asset>> entry : lpAssets.entrySet()) {
+            Long lpClientId = entry.getKey();
+            List<Asset> lpAssetList = entry.getValue();
+            String lpName = lpAssetList.get(0).getLpClientName();
+
+            // Sum balances across all assets for this LP
+            BigDecimal lsavTotal = BigDecimal.ZERO;
+            BigDecimal lspdTotal = BigDecimal.ZERO;
+            BigDecimal ltaxTotal = BigDecimal.ZERO;
+
+            for (Asset asset : lpAssetList) {
+                lsavTotal = lsavTotal.add(getAccountBalance(asset.getLpCashAccountId()));
+                lspdTotal = lspdTotal.add(getAccountBalance(asset.getLpSpreadAccountId()));
+                if (asset.getLpTaxAccountId() != null) {
+                    ltaxTotal = ltaxTotal.add(getAccountBalance(asset.getLpTaxAccountId()));
+                }
+            }
+
+            BigDecimal unsettled = lsavTotal.add(lspdTotal).subtract(ltaxTotal);
+            summaries.add(new LPPerformanceResponse.LPSummary(
+                    lpClientId, lpName, lsavTotal, lspdTotal, ltaxTotal, unsettled, lpAssetList.size()));
+        }
+        return summaries;
+    }
+
+    private BigDecimal getAccountBalance(Long accountId) {
+        if (accountId == null) return BigDecimal.ZERO;
+        try {
+            return fineractClient.getAccountBalance(accountId);
+        } catch (Exception e) {
+            log.warn("Failed to fetch balance for account {}: {}", accountId, e.getMessage());
+            return BigDecimal.ZERO;
+        }
     }
 }
