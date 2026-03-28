@@ -833,14 +833,7 @@ public class FineractClient {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Long> lookupGlAccounts() {
-        List<Map<String, Object>> accounts = webClient.get()
-                .uri("/fineract-provider/api/v1/glaccounts")
-                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                .retrieve()
-                .bodyToMono(List.class)
-                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                .block();
-
+        List<Map<String, Object>> accounts = getGlAccountsFull();
         Map<String, Long> codeToId = new HashMap<>();
         if (accounts != null) {
             for (Map<String, Object> acct : accounts) {
@@ -850,6 +843,64 @@ public class FineractClient {
             }
         }
         return codeToId;
+    }
+
+    /**
+     * Fetch all GL accounts from Fineract with full details.
+     * Returns list of maps containing: id, glCode, name, type.value, parentId, usage.value.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getGlAccountsFull() {
+        return webClient.get()
+                .uri("/fineract-provider/api/v1/glaccounts")
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                .retrieve()
+                .bodyToMono(List.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+    }
+
+    /**
+     * Fetch journal entries from Fineract for a specific GL account within a date range.
+     * Handles pagination automatically.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getJournalEntries(Long glAccountId, String currencyCode,
+                                                        String fromDate, String toDate) {
+        List<Map<String, Object>> allEntries = new ArrayList<>();
+        int offset = 0;
+        int limit = 500;
+        boolean hasMore = true;
+
+        while (hasMore) {
+            final int currentOffset = offset;
+            Map<String, Object> response = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/fineract-provider/api/v1/journalentries")
+                            .queryParam("glAccountId", glAccountId)
+                            .queryParam("currencyCode", currencyCode)
+                            .queryParam("offset", currentOffset)
+                            .queryParam("limit", limit)
+                            .queryParamIfPresent("fromDate", Optional.ofNullable(fromDate))
+                            .queryParamIfPresent("toDate", Optional.ofNullable(toDate))
+                            .build())
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            if (response != null && response.get("pageItems") instanceof List<?> items) {
+                allEntries.addAll((List<Map<String, Object>>) items);
+                int totalFiltered = response.get("totalFilteredRecords") instanceof Number n
+                        ? n.intValue() : items.size();
+                hasMore = (offset + limit) < totalFiltered;
+                offset += limit;
+            } else {
+                hasMore = false;
+            }
+        }
+        return allEntries;
     }
 
     /**
