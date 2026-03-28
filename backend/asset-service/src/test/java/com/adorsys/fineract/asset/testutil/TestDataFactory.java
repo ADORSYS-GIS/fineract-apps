@@ -22,7 +22,9 @@ public final class TestDataFactory {
     public static final Long LP_CASH_ACCOUNT = 300L;
     public static final Long LP_ASSET_ACCOUNT = 400L;
     public static final Long LP_SPREAD_ACCOUNT = 500L;
+    public static final Long LP_TAX_ACCOUNT = 360L;
     public static final Long FEE_COLLECTION_ACCOUNT = 999L;
+    public static final Long CLEARING_ACCOUNT = 901L;
     public static final String IDEMPOTENCY_KEY = "idem-key-1";
     public static final Long LP_CLIENT_ID = 1L;
 

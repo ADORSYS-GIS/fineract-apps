@@ -29,20 +29,34 @@ class GlAccountResolverTest {
 
     private GlAccountResolver resolver;
 
-    // GL code -> Fineract database ID mapping
+    // GL code -> Fineract database ID mapping (SYSCOHADA-aligned)
     private static final Map<String, Long> GL_CODE_TO_ID = Map.ofEntries(
-            Map.entry("502", 1042L),
-            Map.entry("301", 1047L),
-            Map.entry("4501", 1048L),
-            Map.entry("4102", 1065L),
-            Map.entry("73", 1073L),
-            Map.entry("701", 1087L),
-            Map.entry("88", 1088L),
-            Map.entry("89", 1089L),
-            Map.entry("601", 1091L),
-            Map.entry("92", 1092L),
-            Map.entry("93", 1093L),
-            Map.entry("94", 1094L)
+            // Client
+            Map.entry("502", 1502L),    // fundSource (Azamra Cash Register)
+            Map.entry("4101", 4101L),   // savingsControl (Client Savings Control)
+            Map.entry("4102", 4102L),   // customerDigitalAssetHoldings
+            // LP
+            Map.entry("4011", 4011L),   // lpSettlementControl
+            Map.entry("4012", 4012L),   // lpSpreadPayable
+            Map.entry("4013", 4013L),   // lpTaxWithholding
+            Map.entry("5011", 5011L),   // lpFundSource (UBA Bank Trust)
+            // Trust
+            Map.entry("5001", 5001L),   // mtnMoMo
+            Map.entry("5002", 5002L),   // orangeMoney
+            Map.entry("5012", 5012L),   // afrilandBank
+            // Inventory & suspense
+            Map.entry("301", 1301L),    // digitalAssetInventory
+            Map.entry("4501", 4501L),   // transfersInSuspense
+            // Income
+            Map.entry("701", 1701L),    // platformFeeIncome + incomeFromInterest + feeIncome
+            Map.entry("702", 1702L),    // spreadIncome
+            // Expense
+            Map.entry("601", 1601L),    // expenseAccount
+            Map.entry("608", 1608L),    // taxExpenseRegDuty + taxExpenseCapGains + taxExpenseIrcm + taxExpenseTva
+            // Equity
+            Map.entry("103", 1103L),    // assetEquity
+            // Tax payable
+            Map.entry("5031", 5031L)    // taxPayableFundSource
     );
 
     private static final Map<String, Long> PAYMENT_TYPE_NAME_TO_ID = Map.of(
@@ -78,18 +92,38 @@ class GlAccountResolverTest {
 
         resolver.run(null);
 
-        assertEquals(1042L, resolvedGlAccounts.getFundSourceId());
-        assertEquals(1047L, resolvedGlAccounts.getDigitalAssetInventoryId());
-        assertEquals(1048L, resolvedGlAccounts.getTransfersInSuspenseId());
-        assertEquals(1065L, resolvedGlAccounts.getCustomerDigitalAssetHoldingsId());
-        assertEquals(1073L, resolvedGlAccounts.getAssetEquityId());
-        assertEquals(1087L, resolvedGlAccounts.getIncomeFromInterestId());
-        assertEquals(1088L, resolvedGlAccounts.getPlatformFeeIncomeId());
-        assertEquals(1089L, resolvedGlAccounts.getSpreadIncomeId());
-        assertEquals(1091L, resolvedGlAccounts.getExpenseAccountId());
-        assertEquals(1092L, resolvedGlAccounts.getTaxExpenseRegDutyId());
-        assertEquals(1093L, resolvedGlAccounts.getTaxExpenseCapGainsId());
-        assertEquals(1094L, resolvedGlAccounts.getTaxExpenseIrcmId());
+        // Client
+        assertEquals(1502L, resolvedGlAccounts.getFundSourceId());
+        assertEquals(4101L, resolvedGlAccounts.getSavingsControlId());
+        assertEquals(4102L, resolvedGlAccounts.getCustomerDigitalAssetHoldingsId());
+        // LP
+        assertEquals(4011L, resolvedGlAccounts.getLpSettlementControlId());
+        assertEquals(4012L, resolvedGlAccounts.getLpSpreadPayableId());
+        assertEquals(4013L, resolvedGlAccounts.getLpTaxWithholdingId());
+        assertEquals(5011L, resolvedGlAccounts.getLpFundSourceId());
+        // Trust
+        assertEquals(5001L, resolvedGlAccounts.getMtnMoMoId());
+        assertEquals(5002L, resolvedGlAccounts.getOrangeMoneyId());
+        assertEquals(5011L, resolvedGlAccounts.getUbaBankId());
+        assertEquals(5012L, resolvedGlAccounts.getAfrilandBankId());
+        // Inventory & suspense
+        assertEquals(1301L, resolvedGlAccounts.getDigitalAssetInventoryId());
+        assertEquals(4501L, resolvedGlAccounts.getTransfersInSuspenseId());
+        // Income
+        assertEquals(1701L, resolvedGlAccounts.getPlatformFeeIncomeId());
+        assertEquals(1702L, resolvedGlAccounts.getSpreadIncomeId());
+        assertEquals(1701L, resolvedGlAccounts.getIncomeFromInterestId());
+        assertEquals(1701L, resolvedGlAccounts.getFeeIncomeId());
+        // Expense
+        assertEquals(1601L, resolvedGlAccounts.getExpenseAccountId());
+        assertEquals(1608L, resolvedGlAccounts.getTaxExpenseRegDutyId());
+        assertEquals(1608L, resolvedGlAccounts.getTaxExpenseCapGainsId());
+        assertEquals(1608L, resolvedGlAccounts.getTaxExpenseIrcmId());
+        assertEquals(1608L, resolvedGlAccounts.getTaxExpenseTvaId());
+        // Equity
+        assertEquals(1103L, resolvedGlAccounts.getAssetEquityId());
+        // Tax payable
+        assertEquals(5031L, resolvedGlAccounts.getTaxPayableFundSourceId());
     }
 
     @Test
@@ -98,24 +132,24 @@ class GlAccountResolverTest {
 
         resolver.run(null);
 
-        // Verify the 6 new GL accounts specifically
-        assertNotNull(resolvedGlAccounts.getAssetEquityId(), "assetEquity (GL 73) should be resolved");
-        assertEquals(1073L, resolvedGlAccounts.getAssetEquityId());
+        // Verify the LP-specific GL accounts
+        assertNotNull(resolvedGlAccounts.getLpSettlementControlId(), "lpSettlementControl (GL 4011) should be resolved");
+        assertEquals(4011L, resolvedGlAccounts.getLpSettlementControlId());
 
-        assertNotNull(resolvedGlAccounts.getPlatformFeeIncomeId(), "platformFeeIncome (GL 88) should be resolved");
-        assertEquals(1088L, resolvedGlAccounts.getPlatformFeeIncomeId());
+        assertNotNull(resolvedGlAccounts.getLpSpreadPayableId(), "lpSpreadPayable (GL 4012) should be resolved");
+        assertEquals(4012L, resolvedGlAccounts.getLpSpreadPayableId());
 
-        assertNotNull(resolvedGlAccounts.getSpreadIncomeId(), "spreadIncome (GL 89) should be resolved");
-        assertEquals(1089L, resolvedGlAccounts.getSpreadIncomeId());
+        assertNotNull(resolvedGlAccounts.getLpTaxWithholdingId(), "lpTaxWithholding (GL 4013) should be resolved");
+        assertEquals(4013L, resolvedGlAccounts.getLpTaxWithholdingId());
 
-        assertNotNull(resolvedGlAccounts.getTaxExpenseRegDutyId(), "taxExpenseRegDuty (GL 92) should be resolved");
-        assertEquals(1092L, resolvedGlAccounts.getTaxExpenseRegDutyId());
+        assertNotNull(resolvedGlAccounts.getLpFundSourceId(), "lpFundSource (GL 5011) should be resolved");
+        assertEquals(5011L, resolvedGlAccounts.getLpFundSourceId());
 
-        assertNotNull(resolvedGlAccounts.getTaxExpenseCapGainsId(), "taxExpenseCapGains (GL 93) should be resolved");
-        assertEquals(1093L, resolvedGlAccounts.getTaxExpenseCapGainsId());
+        assertNotNull(resolvedGlAccounts.getTaxPayableFundSourceId(), "taxPayableFundSource (GL 5031) should be resolved");
+        assertEquals(5031L, resolvedGlAccounts.getTaxPayableFundSourceId());
 
-        assertNotNull(resolvedGlAccounts.getTaxExpenseIrcmId(), "taxExpenseIrcm (GL 94) should be resolved");
-        assertEquals(1094L, resolvedGlAccounts.getTaxExpenseIrcmId());
+        assertNotNull(resolvedGlAccounts.getTaxExpenseTvaId(), "taxExpenseTva (GL 608) should be resolved");
+        assertEquals(1608L, resolvedGlAccounts.getTaxExpenseTvaId());
     }
 
     // -------------------------------------------------------------------------
@@ -150,29 +184,29 @@ class GlAccountResolverTest {
     @Test
     void run_missingGlCode_throwsIllegalStateException() {
         Map<String, Long> incompleteGlCodes = new HashMap<>(GL_CODE_TO_ID);
-        incompleteGlCodes.remove("88"); // Remove platformFeeIncome
+        incompleteGlCodes.remove("4011"); // Remove lpSettlementControl
 
         when(fineractClient.lookupGlAccounts()).thenReturn(incompleteGlCodes);
 
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> resolver.run(null));
 
-        assertTrue(ex.getMessage().contains("GL account with code '88' not found"),
-                "Error should mention missing GL code 88");
+        assertTrue(ex.getMessage().contains("GL account with code '4011' not found"),
+                "Error should mention missing GL code 4011");
     }
 
     @Test
     void run_missingTaxExpenseGlCode_throwsIllegalStateException() {
         Map<String, Long> incompleteGlCodes = new HashMap<>(GL_CODE_TO_ID);
-        incompleteGlCodes.remove("92"); // Remove taxExpenseRegDuty
+        incompleteGlCodes.remove("5031"); // Remove taxPayableFundSource
 
         when(fineractClient.lookupGlAccounts()).thenReturn(incompleteGlCodes);
 
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> resolver.run(null));
 
-        assertTrue(ex.getMessage().contains("GL account with code '92' not found"),
-                "Error should mention missing GL code 92");
+        assertTrue(ex.getMessage().contains("GL account with code '5031' not found"),
+                "Error should mention missing GL code 5031");
     }
 
     // -------------------------------------------------------------------------
@@ -188,6 +222,16 @@ class GlAccountResolverTest {
         assertEquals(801L, resolvedTaxAccounts.getRegistrationDutyAccountId());
         assertEquals(802L, resolvedTaxAccounts.getIrcmAccountId());
         assertEquals(803L, resolvedTaxAccounts.getCapitalGainsAccountId());
+        assertEquals(804L, resolvedTaxAccounts.getTvaAccountId());
+    }
+
+    @Test
+    void run_clearingAccountPresent_resolvesByExternalId() {
+        setupSuccessfulResolution();
+
+        resolver.run(null);
+
+        assertEquals(901L, resolvedGlAccounts.getClearingAccountId());
     }
 
     @Test
@@ -195,6 +239,7 @@ class GlAccountResolverTest {
         when(fineractClient.lookupGlAccounts()).thenReturn(new HashMap<>(GL_CODE_TO_ID));
         when(fineractClient.lookupPaymentTypes()).thenReturn(PAYMENT_TYPE_NAME_TO_ID);
         when(fineractClient.findSavingsAccountByExternalId("PLATFORM-FEE-COLLECT")).thenReturn(900L);
+        when(fineractClient.findSavingsAccountByExternalId("PLATFORM-CLEARING")).thenReturn(901L);
         when(fineractClient.findSavingsAccountByExternalId("TAX-REG-DUTY")).thenReturn(null); // missing
 
         IllegalStateException ex = assertThrows(IllegalStateException.class,
@@ -264,8 +309,10 @@ class GlAccountResolverTest {
         when(fineractClient.lookupGlAccounts()).thenReturn(new HashMap<>(GL_CODE_TO_ID));
         when(fineractClient.lookupPaymentTypes()).thenReturn(PAYMENT_TYPE_NAME_TO_ID);
         when(fineractClient.findSavingsAccountByExternalId("PLATFORM-FEE-COLLECT")).thenReturn(900L);
+        when(fineractClient.findSavingsAccountByExternalId("PLATFORM-CLEARING")).thenReturn(901L);
         when(fineractClient.findSavingsAccountByExternalId("TAX-REG-DUTY")).thenReturn(801L);
         when(fineractClient.findSavingsAccountByExternalId("TAX-IRCM")).thenReturn(802L);
         when(fineractClient.findSavingsAccountByExternalId("TAX-CAP-GAINS")).thenReturn(803L);
+        when(fineractClient.findSavingsAccountByExternalId("TAX-TVA")).thenReturn(804L);
     }
 }

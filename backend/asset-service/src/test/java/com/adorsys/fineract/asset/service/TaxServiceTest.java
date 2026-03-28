@@ -454,4 +454,63 @@ class TaxServiceTest {
             assertEquals(300L, taxService.getCapitalGainsAccountId());
         }
     }
+
+    // -------------------------------------------------------------------------
+    // TVA (VAT) Calculation
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class TvaCalculation {
+
+        @Test
+        void calculateTva_enabled_usesDefaultRate() {
+            Asset asset = Asset.builder().tvaEnabled(true).build();
+            BigDecimal result = taxService.calculateTva(asset, new BigDecimal("10000"));
+            // Default rate = 0.1925, so 10000 * 0.1925 = 1925
+            assertEquals(new BigDecimal("1925"), result);
+        }
+
+        @Test
+        void calculateTva_disabled_returnsZero() {
+            Asset asset = Asset.builder().tvaEnabled(false).build();
+            BigDecimal result = taxService.calculateTva(asset, new BigDecimal("10000"));
+            assertEquals(BigDecimal.ZERO, result);
+        }
+
+        @Test
+        void calculateTva_nullEnabled_returnsZero() {
+            Asset asset = Asset.builder().build();
+            BigDecimal result = taxService.calculateTva(asset, new BigDecimal("10000"));
+            assertEquals(BigDecimal.ZERO, result);
+        }
+
+        @Test
+        void calculateTva_customRate_usesAssetRate() {
+            Asset asset = Asset.builder()
+                    .tvaEnabled(true)
+                    .tvaRate(new BigDecimal("0.10"))
+                    .build();
+            BigDecimal result = taxService.calculateTva(asset, new BigDecimal("10000"));
+            // Custom rate = 0.10, so 10000 * 0.10 = 1000
+            assertEquals(new BigDecimal("1000"), result);
+        }
+
+        @Test
+        void getTvaRate_enabled_returnsDefaultRate() {
+            Asset asset = Asset.builder().tvaEnabled(true).build();
+            assertEquals(new BigDecimal("0.1925"), taxService.getTvaRate(asset));
+        }
+
+        @Test
+        void getTvaRate_disabled_returnsZero() {
+            Asset asset = Asset.builder().tvaEnabled(false).build();
+            assertEquals(BigDecimal.ZERO, taxService.getTvaRate(asset));
+        }
+
+        @Test
+        void getTvaAccountId_delegatesToResolvedAccounts() {
+            when(resolvedTaxAccounts.getTvaAccountId()).thenReturn(400L);
+            assertEquals(400L, taxService.getTvaAccountId());
+        }
+    }
 }
