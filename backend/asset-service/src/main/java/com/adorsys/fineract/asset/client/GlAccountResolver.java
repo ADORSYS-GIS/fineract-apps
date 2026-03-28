@@ -30,7 +30,9 @@ import java.util.Map;
 public class GlAccountResolver implements ApplicationRunner {
 
     private static final int MAX_RETRIES = 5;
-    private static final long INITIAL_DELAY_MS = 5_000;
+
+    /** Initial retry delay in ms. Package-private for testing. */
+    long initialDelayMs = 5_000;
 
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
@@ -45,7 +47,7 @@ public class GlAccountResolver implements ApplicationRunner {
         AssetServiceConfig.GlAccounts glConfig = assetServiceConfig.getGlAccounts();
 
         Exception lastException = null;
-        long delay = INITIAL_DELAY_MS;
+        long delay = initialDelayMs;
 
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {

@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.controller;
 
+import com.adorsys.fineract.asset.dto.SettlementRequest;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.service.SettlementService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,9 +39,17 @@ public class SettlementController {
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
-    public ResponseEntity<Settlement> create(@Valid @RequestBody Settlement request, Authentication auth) {
-        request.setCreatedBy(auth != null ? auth.getName() : "system");
-        return ResponseEntity.ok(settlementService.createSettlement(request));
+    public ResponseEntity<Settlement> create(@Valid @RequestBody SettlementRequest request, Authentication auth) {
+        Settlement settlement = Settlement.builder()
+                .settlementType(request.settlementType())
+                .amount(request.amount())
+                .lpClientId(request.lpClientId())
+                .description(request.description())
+                .sourceGlCode(request.sourceGlCode())
+                .destinationGlCode(request.destinationGlCode())
+                .createdBy(auth != null ? auth.getName() : "system")
+                .build();
+        return ResponseEntity.ok(settlementService.createSettlement(settlement));
     }
 
     @GetMapping

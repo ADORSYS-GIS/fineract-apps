@@ -115,6 +115,7 @@ const AssetDetailsAssetIdRoute = AssetDetailsAssetIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
@@ -126,12 +127,14 @@ export interface FileRoutesByFullPath {
   '/reconciliation': typeof ReconciliationRoute
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
+  '/settlement': typeof SettlementRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/payment-results/$paymentId': typeof PaymentResultsPaymentIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
@@ -143,6 +146,7 @@ export interface FileRoutesByTo {
   '/reconciliation': typeof ReconciliationRoute
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
+  '/settlement': typeof SettlementRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/payment-results/$paymentId': typeof PaymentResultsPaymentIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -150,6 +154,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
@@ -161,6 +166,7 @@ export interface FileRoutesById {
   '/reconciliation': typeof ReconciliationRoute
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
+  '/settlement': typeof SettlementRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/payment-results/$paymentId': typeof PaymentResultsPaymentIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -169,6 +175,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accounting'
     | '/audit-log'
     | '/create-asset'
     | '/dashboard'
@@ -180,12 +187,14 @@ export interface FileRouteTypes {
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
+    | '/settlement'
     | '/asset-details/$assetId'
     | '/payment-results/$paymentId'
     | '/pricing/$assetId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/accounting'
     | '/audit-log'
     | '/create-asset'
     | '/dashboard'
@@ -197,12 +206,14 @@ export interface FileRouteTypes {
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
+    | '/settlement'
     | '/asset-details/$assetId'
     | '/payment-results/$paymentId'
     | '/pricing/$assetId'
   id:
     | '__root__'
     | '/'
+    | '/accounting'
     | '/audit-log'
     | '/create-asset'
     | '/dashboard'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
+    | '/settlement'
     | '/asset-details/$assetId'
     | '/payment-results/$paymentId'
     | '/pricing/$assetId'
