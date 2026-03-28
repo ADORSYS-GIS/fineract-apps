@@ -37,6 +37,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	onCategoryChange,
 	marketStatus,
 	dashboardSummary,
+	settlementSummary,
 	refetch,
 	isImportOpen,
 	onExportTemplate,
@@ -215,6 +216,28 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 								</>
 							)}
 						</StatCard>
+					</div>
+				)}
+
+				{/* Settlement Alert */}
+				{settlementSummary && settlementSummary.pendingCount > 0 && (
+					<div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 flex items-center justify-between">
+						<div>
+							<p className="font-semibold text-yellow-800 dark:text-yellow-200">
+								{settlementSummary.pendingCount} pending settlement(s)
+							</p>
+							<p className="text-sm text-yellow-600 dark:text-yellow-400">
+								{settlementSummary.approvedCount > 0
+									? `${settlementSummary.approvedCount} approved and ready for execution`
+									: "Awaiting approval"}
+							</p>
+						</div>
+						<a
+							href="/settlement"
+							className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm"
+						>
+							View Settlements
+						</a>
 					</div>
 				)}
 
