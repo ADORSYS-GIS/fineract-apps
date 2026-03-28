@@ -159,9 +159,9 @@ public class AssetServiceConfig {
         /** GL code for expense account (interest on savings / write-off). */
         private String expenseAccount = "601";
         /** GL code for tax expense - registration duty. */
-        private String taxExpenseRegDuty = "603";
+        private String taxExpenseRegDuty = "608";
         /** GL code for tax expense - capital gains. */
-        private String taxExpenseCapGains = "604";
+        private String taxExpenseCapGains = "608";
         /** GL code for tax expense - IRCM. */
         private String taxExpenseIrcm = "608";
         /** GL code for tax expense - TVA. */

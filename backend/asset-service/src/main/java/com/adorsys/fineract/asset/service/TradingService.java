@@ -729,14 +729,18 @@ public class TradingService {
                         "INSUFFICIENT_FUNDS");
             }
         } else {
-            // SELL: LP must have enough cash to cover all outflows (investor payout + fee + tax)
+            // SELL: LP must have enough cash to cover all outflows (nominal + spread + fee + tax)
             Asset asset = ctx.getAsset();
             BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
-            if (lpCashBalance.compareTo(ctx.getGrossAmount()) < 0) {
+            BigDecimal regDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
+            BigDecimal cgt = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
+            BigDecimal tva = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
+            BigDecimal totalLpOutflow = ctx.getGrossAmount().add(regDuty).add(cgt).add(tva);
+            if (lpCashBalance.compareTo(totalLpOutflow) < 0) {
                 rejectOrder(ctx.getOrder(), "Insufficient LP funds for payout");
                 throw new TradingException(
                         "This asset's liquidity provider currently has insufficient funds to process your sell order. "
-                                + "Required: " + ctx.getGrossAmount() + " " + currency
+                                + "Required: " + totalLpOutflow + " " + currency
                                 + ", LP available: " + lpCashBalance + " " + currency
                                 + ". Please try again later or contact support.",
                         "INSUFFICIENT_LP_FUNDS");
@@ -936,36 +940,40 @@ public class TradingService {
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
 
         if (side == TradeSide.BUY) {
-            // Leg 1: Investor pays total (grossAmount + fee + tax) to LP Cash — single XAF debit
+            // BUY: Client pays separately to each destination — preserves custodial segregation.
+            // Only nominal goes to LP. Fee and tax stay in client trust pool.
+
+            // Leg 1: Client pays nominal to LP Settlement (LSAV)
+            BigDecimal nominalToLP = grossAmount.subtract(spreadAmount);
             ops.add(new BatchTransferOp(
                     userCashAccountId, asset.getLpCashAccountId(),
-                    grossAmount.add(fee).add(totalTax), "Asset purchase: " + asset.getSymbol()));
+                    nominalToLP, "Asset purchase (nominal): " + asset.getSymbol()));
             // Leg 2: LP delivers tokens to investor
             ops.add(new BatchTransferOp(
                     asset.getLpAssetAccountId(), userAssetAccountId,
                     units, "Asset delivery: " + asset.getSymbol()));
-            // Leg 3 (internal): LP Cash sweeps spread to LP Spread
+            // Leg 3: Client pays spread directly to LP Spread (LSPD)
             if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
+                        userCashAccountId, asset.getLpSpreadAccountId(),
                         spreadAmount, "LP margin: BUY " + asset.getSymbol()));
             }
-            // Leg 4 (internal): LP Cash sweeps fee to Fee Collection (mandatory)
+            // Leg 4: Client pays fee directly to Platform Fee Collection (stays in MoMo trust)
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), feeCollectionAccountId,
+                        userCashAccountId, feeCollectionAccountId,
                         fee, "Trading fee: BUY " + asset.getSymbol()));
             }
-            // Leg 5 (tax): LP Cash sweeps registration duty to Tax Authority
+            // Leg 5 (tax): Client pays registration duty to Tax Authority (stays in MoMo trust)
             if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), taxService.getRegistrationDutyAccountId(),
+                        userCashAccountId, taxService.getRegistrationDutyAccountId(),
                         registrationDuty, "Registration duty: BUY " + asset.getSymbol()));
             }
-            // Leg 6 (tax): LP Cash sweeps TVA to Tax Authority
+            // Leg 6 (tax): Client pays TVA to Tax Authority (stays in MoMo trust)
             if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), taxService.getTvaAccountId(),
+                        userCashAccountId, taxService.getTvaAccountId(),
                         tvaAmount, "TVA: BUY " + asset.getSymbol()));
             }
         } else {
