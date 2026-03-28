@@ -14,6 +14,8 @@ import com.adorsys.fineract.asset.exception.InsufficientInventoryException;
 import com.adorsys.fineract.asset.exception.TradingException;
 import com.adorsys.fineract.asset.exception.TradingHaltedException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
+import com.adorsys.fineract.asset.entity.AssetProjection;
+import com.adorsys.fineract.asset.repository.AssetProjectionRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
@@ -87,6 +89,7 @@ public class TradingService {
     private final ApplicationEventPublisher eventPublisher;
     private final QuoteReservationService quoteReservationService;
     private final TaxService taxService;
+    private final AssetProjectionRepository assetProjectionRepository;
 
     // ──────────────────────────────────────────────────────────────────────
     // Quote-based async trade flow
@@ -867,6 +870,43 @@ public class TradingService {
             assetMetrics.getQuoteToExecutionTimer().record(quoteToFill);
         }
 
+        // Update per-asset projection counters
+        updateAssetProjection(ctx);
+    }
+
+    private void updateAssetProjection(TradeContext ctx) {
+        try {
+            BigDecimal regDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
+            BigDecimal capGains = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
+            BigDecimal tva = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
+            BigDecimal spread = ctx.getSpreadAmount() != null ? ctx.getSpreadAmount() : BigDecimal.ZERO;
+            BigDecimal fee = ctx.getFee() != null ? ctx.getFee() : BigDecimal.ZERO;
+            BigDecimal cashVol = ctx.getOrderCashAmount() != null ? ctx.getOrderCashAmount() : BigDecimal.ZERO;
+            boolean isBuy = ctx.getStrategy().side() == TradeSide.BUY;
+
+            int updated = assetProjectionRepository.incrementCounters(
+                    ctx.getAssetId(), cashVol, spread, fee,
+                    regDuty, capGains, tva,
+                    isBuy ? 1L : 0L, isBuy ? 0L : 1L);
+
+            if (updated == 0) {
+                // First trade for this asset — create projection row
+                assetProjectionRepository.save(AssetProjection.builder()
+                        .assetId(ctx.getAssetId())
+                        .totalCashVolume(cashVol)
+                        .totalSpread(spread)
+                        .totalFees(fee)
+                        .totalTaxRegDuty(regDuty)
+                        .totalTaxCapGains(capGains)
+                        .totalTaxTva(tva)
+                        .totalBuyCount(isBuy ? 1L : 0L)
+                        .totalSellCount(isBuy ? 0L : 1L)
+                        .lastUpdatedAt(Instant.now())
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update asset projection for {}: {}", ctx.getAssetId(), e.getMessage());
+        }
     }
 
     /**

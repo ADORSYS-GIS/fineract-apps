@@ -1,6 +1,8 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.TrialBalanceResponse;
+import com.adorsys.fineract.asset.entity.AssetProjection;
+import com.adorsys.fineract.asset.repository.AssetProjectionRepository;
 import com.adorsys.fineract.asset.service.AccountingReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +23,7 @@ import java.util.List;
 public class AdminAccountingController {
 
     private final AccountingReportService accountingReportService;
+    private final AssetProjectionRepository assetProjectionRepository;
 
     @GetMapping("/trial-balance")
     @Operation(summary = "Trial balance", description = "Full trial balance across all GL accounts with SYSCOHADA hierarchy.")
@@ -37,5 +40,21 @@ public class AdminAccountingController {
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public ResponseEntity<List<String>> getAvailableCurrencies() {
         return ResponseEntity.ok(accountingReportService.getAvailableCurrencies());
+    }
+
+    @GetMapping("/projections")
+    @Operation(summary = "All asset projections", description = "Denormalized per-asset trade volume, spread, fee, and tax totals.")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    public ResponseEntity<List<AssetProjection>> getAllProjections() {
+        return ResponseEntity.ok(assetProjectionRepository.findAll());
+    }
+
+    @GetMapping("/projections/{assetId}")
+    @Operation(summary = "Asset projection", description = "Per-asset trade volume, spread, fee, and tax totals.")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    public ResponseEntity<AssetProjection> getProjection(@PathVariable String assetId) {
+        return assetProjectionRepository.findById(assetId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }
