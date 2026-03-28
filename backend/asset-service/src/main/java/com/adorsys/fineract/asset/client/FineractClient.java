@@ -904,6 +904,47 @@ public class FineractClient {
     }
 
     /**
+     * Create a manual journal entry in Fineract (for settlement operations).
+     * @return journal entry transaction ID
+     */
+    @SuppressWarnings("unchecked")
+    public String createJournalEntry(String debitGlCode, String creditGlCode,
+                                      BigDecimal amount, String description) {
+        Map<String, Long> glCodeToId = lookupGlAccounts();
+        Long debitId = glCodeToId.get(debitGlCode);
+        Long creditId = glCodeToId.get(creditGlCode);
+        if (debitId == null || creditId == null) {
+            throw new AssetException("GL code not found: debit=" + debitGlCode + ", credit=" + creditGlCode);
+        }
+
+        String dateStr = java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy", java.util.Locale.ENGLISH));
+        Map<String, Object> body = Map.of(
+                "officeId", 1,
+                "transactionDate", dateStr,
+                "locale", "en",
+                "dateFormat", "dd MMMM yyyy",
+                "currencyCode", "XAF",
+                "comments", description != null ? description : "Settlement",
+                "debits", List.of(Map.of("glAccountId", debitId, "amount", amount)),
+                "credits", List.of(Map.of("glAccountId", creditId, "amount", amount))
+        );
+
+        Map<String, Object> response = webClient.post()
+                .uri("/fineract-provider/api/v1/journalentries")
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+
+        if (response != null && response.get("transactionId") != null) {
+            return response.get("transactionId").toString();
+        }
+        return null;
+    }
+
+    /**
      * Look up all payment types from Fineract and return a map of payment type name to database ID.
      * Used at startup to resolve configured payment type names to their actual database IDs.
      *
