@@ -5,6 +5,7 @@ import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.TrialBalanceResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -27,6 +28,8 @@ public class AccountingReportService {
      * Build a full trial balance across ALL GL accounts in Fineract.
      * Groups accounts by parent-child hierarchy (SYSCOHADA classes).
      */
+    @Cacheable(value = "trialBalance", key = "#currencyCode + '_' + #fromDate + '_' + #toDate",
+               condition = "#fromDate != null && #toDate != null")
     public TrialBalanceResponse getTrialBalance(String currencyCode, String fromDate, String toDate) {
         String currency = currencyCode != null ? currencyCode : assetServiceConfig.getSettlementCurrency();
 

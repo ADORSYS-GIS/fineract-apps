@@ -37,6 +37,8 @@ public class AuditLogAspect {
           + "execution(* com.adorsys.fineract.asset.controller.AdminOrderController.*(..)) || "
           + "execution(* com.adorsys.fineract.asset.controller.AdminReconciliationController.*(..)) || "
           + "execution(* com.adorsys.fineract.asset.controller.AdminDashboardController.*(..)) || "
+          + "execution(* com.adorsys.fineract.asset.controller.AdminAccountingController.*(..)) || "
+          + "execution(* com.adorsys.fineract.asset.controller.SettlementController.*(..)) || "
           + "execution(* com.adorsys.fineract.asset.controller.TradeController.*(..))")
     public Object auditAdminAction(ProceedingJoinPoint joinPoint) throws Throwable {
         String action = joinPoint.getSignature().getName();

@@ -304,18 +304,45 @@ public class AssetProvisioningService {
         if (request.distributionFrequencyMonths() != null) asset.setDistributionFrequencyMonths(request.distributionFrequencyMonths());
         if (request.nextDistributionDate() != null) asset.setNextDistributionDate(request.nextDistributionDate());
 
-        // Tax configuration
-        if (request.registrationDutyEnabled() != null) asset.setRegistrationDutyEnabled(request.registrationDutyEnabled());
-        if (request.registrationDutyRate() != null) asset.setRegistrationDutyRate(request.registrationDutyRate());
-        if (request.ircmEnabled() != null) asset.setIrcmEnabled(request.ircmEnabled());
-        if (request.ircmRateOverride() != null) asset.setIrcmRateOverride(request.ircmRateOverride());
-        if (request.ircmExempt() != null) asset.setIrcmExempt(request.ircmExempt());
-        if (request.capitalGainsTaxEnabled() != null) asset.setCapitalGainsTaxEnabled(request.capitalGainsTaxEnabled());
-        if (request.capitalGainsRate() != null) asset.setCapitalGainsRate(request.capitalGainsRate());
+        // Tax configuration (with audit logging)
+        if (request.registrationDutyEnabled() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=registrationDutyEnabled, old={}, new={}", assetId, asset.getRegistrationDutyEnabled(), request.registrationDutyEnabled());
+            asset.setRegistrationDutyEnabled(request.registrationDutyEnabled());
+        }
+        if (request.registrationDutyRate() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=registrationDutyRate, old={}, new={}", assetId, asset.getRegistrationDutyRate(), request.registrationDutyRate());
+            asset.setRegistrationDutyRate(request.registrationDutyRate());
+        }
+        if (request.ircmEnabled() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=ircmEnabled, old={}, new={}", assetId, asset.getIrcmEnabled(), request.ircmEnabled());
+            asset.setIrcmEnabled(request.ircmEnabled());
+        }
+        if (request.ircmRateOverride() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=ircmRateOverride, old={}, new={}", assetId, asset.getIrcmRateOverride(), request.ircmRateOverride());
+            asset.setIrcmRateOverride(request.ircmRateOverride());
+        }
+        if (request.ircmExempt() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=ircmExempt, old={}, new={}", assetId, asset.getIrcmExempt(), request.ircmExempt());
+            asset.setIrcmExempt(request.ircmExempt());
+        }
+        if (request.capitalGainsTaxEnabled() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=capitalGainsTaxEnabled, old={}, new={}", assetId, asset.getCapitalGainsTaxEnabled(), request.capitalGainsTaxEnabled());
+            asset.setCapitalGainsTaxEnabled(request.capitalGainsTaxEnabled());
+        }
+        if (request.capitalGainsRate() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=capitalGainsRate, old={}, new={}", assetId, asset.getCapitalGainsRate(), request.capitalGainsRate());
+            asset.setCapitalGainsRate(request.capitalGainsRate());
+        }
         if (request.isBvmacListed() != null) asset.setIsBvmacListed(request.isBvmacListed());
         if (request.isGovernmentBond() != null) asset.setIsGovernmentBond(request.isGovernmentBond());
-        if (request.tvaEnabled() != null) asset.setTvaEnabled(request.tvaEnabled());
-        if (request.tvaRate() != null) asset.setTvaRate(request.tvaRate());
+        if (request.tvaEnabled() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=tvaEnabled, old={}, new={}", assetId, asset.getTvaEnabled(), request.tvaEnabled());
+            asset.setTvaEnabled(request.tvaEnabled());
+        }
+        if (request.tvaRate() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=tvaRate, old={}, new={}", assetId, asset.getTvaRate(), request.tvaRate());
+            asset.setTvaRate(request.tvaRate());
+        }
 
         // Apply PENDING-only field mutations
         if (hasPendingOnlyField) {

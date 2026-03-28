@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -71,22 +72,35 @@ public class LPPerformanceService {
                 .filter(a -> a.getLpClientId() != null)
                 .collect(Collectors.groupingBy(Asset::getLpClientId));
 
+        // Pre-fetch all account balances in bulk (reduces N+1 to single pass)
+        Set<Long> allAccountIds = new HashSet<>();
+        for (List<Asset> assetList : lpAssets.values()) {
+            for (Asset asset : assetList) {
+                if (asset.getLpCashAccountId() != null) allAccountIds.add(asset.getLpCashAccountId());
+                if (asset.getLpSpreadAccountId() != null) allAccountIds.add(asset.getLpSpreadAccountId());
+                if (asset.getLpTaxAccountId() != null) allAccountIds.add(asset.getLpTaxAccountId());
+            }
+        }
+        Map<Long, BigDecimal> balanceCache = new HashMap<>();
+        for (Long accountId : allAccountIds) {
+            balanceCache.put(accountId, getAccountBalance(accountId));
+        }
+
         List<LPPerformanceResponse.LPSummary> summaries = new ArrayList<>();
         for (Map.Entry<Long, List<Asset>> entry : lpAssets.entrySet()) {
             Long lpClientId = entry.getKey();
             List<Asset> lpAssetList = entry.getValue();
             String lpName = lpAssetList.get(0).getLpClientName();
 
-            // Sum balances across all assets for this LP
             BigDecimal lsavTotal = BigDecimal.ZERO;
             BigDecimal lspdTotal = BigDecimal.ZERO;
             BigDecimal ltaxTotal = BigDecimal.ZERO;
 
             for (Asset asset : lpAssetList) {
-                lsavTotal = lsavTotal.add(getAccountBalance(asset.getLpCashAccountId()));
-                lspdTotal = lspdTotal.add(getAccountBalance(asset.getLpSpreadAccountId()));
+                lsavTotal = lsavTotal.add(balanceCache.getOrDefault(asset.getLpCashAccountId(), BigDecimal.ZERO));
+                lspdTotal = lspdTotal.add(balanceCache.getOrDefault(asset.getLpSpreadAccountId(), BigDecimal.ZERO));
                 if (asset.getLpTaxAccountId() != null) {
-                    ltaxTotal = ltaxTotal.add(getAccountBalance(asset.getLpTaxAccountId()));
+                    ltaxTotal = ltaxTotal.add(balanceCache.getOrDefault(asset.getLpTaxAccountId(), BigDecimal.ZERO));
                 }
             }
 

@@ -3,7 +3,10 @@ package com.adorsys.fineract.asset.controller;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.service.SettlementService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,8 +32,13 @@ public class SettlementController {
 
     @PostMapping
     @Operation(summary = "Create settlement", description = "Create a new settlement request (status: PENDING).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Settlement created"),
+        @ApiResponse(responseCode = "400", description = "Invalid request"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
-    public ResponseEntity<Settlement> create(@RequestBody Settlement request, Authentication auth) {
+    public ResponseEntity<Settlement> create(@Valid @RequestBody Settlement request, Authentication auth) {
         request.setCreatedBy(auth != null ? auth.getName() : "system");
         return ResponseEntity.ok(settlementService.createSettlement(request));
     }
@@ -60,6 +68,11 @@ public class SettlementController {
 
     @PostMapping("/{id}/approve")
     @Operation(summary = "Approve settlement", description = "Approve a pending settlement (maker-checker: approver must differ from creator).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Settlement approved"),
+        @ApiResponse(responseCode = "400", description = "Not PENDING or same user as creator (maker-checker violation)"),
+        @ApiResponse(responseCode = "404", description = "Settlement not found")
+    })
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public ResponseEntity<Settlement> approve(@PathVariable String id, Authentication auth) {
         String approver = auth != null ? auth.getName() : "system";
@@ -67,7 +80,12 @@ public class SettlementController {
     }
 
     @PostMapping("/{id}/execute")
-    @Operation(summary = "Execute settlement", description = "Execute an approved settlement (creates Fineract journal entry).")
+    @Operation(summary = "Execute settlement", description = "Execute an approved settlement (creates Fineract journal entry via batch API).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Settlement executed, GL journal entry posted"),
+        @ApiResponse(responseCode = "400", description = "Not APPROVED or GL codes not found"),
+        @ApiResponse(responseCode = "404", description = "Settlement not found")
+    })
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public ResponseEntity<Settlement> execute(@PathVariable String id) {
         return ResponseEntity.ok(settlementService.executeSettlement(id));
