@@ -91,6 +91,8 @@ public class AssetServiceConfig {
         private Long spreadCollectionAccountId;
         /** External ID of the platform-wide fee collection savings account. Resolved to DB ID at startup. */
         private String feeCollectionAccountExternalId = "PLATFORM-FEE-COLLECT";
+        /** External ID of the clearing account for BUY trade routing. Resolved to DB ID at startup. */
+        private String clearingAccountExternalId = "PLATFORM-CLEARING";
     }
 
     @Data

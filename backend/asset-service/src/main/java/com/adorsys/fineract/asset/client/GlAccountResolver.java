@@ -157,6 +157,16 @@ public class GlAccountResolver implements ApplicationRunner {
         }
         resolvedGlAccounts.setFeeCollectionAccountId(feeAccountId);
 
+        // Resolve clearing account by external ID (mandatory for BUY single-transaction routing)
+        String clearingExtId = assetServiceConfig.getAccounting().getClearingAccountExternalId();
+        Long clearingAccountId = fineractClient.findSavingsAccountByExternalId(clearingExtId);
+        if (clearingAccountId == null) {
+            throw new IllegalStateException(
+                    "Clearing savings account with external ID '" + clearingExtId
+                    + "' not found in Fineract. Create it under PLATFORM-CLIENT.");
+        }
+        resolvedGlAccounts.setClearingAccountId(clearingAccountId);
+
         // Resolve tax collection savings accounts by external ID
         resolveTaxAccount(taxConfig.getRegDutyAccountExternalId(), "TAX-REG-DUTY",
                 resolvedTaxAccounts::setRegistrationDutyAccountId);

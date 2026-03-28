@@ -27,6 +27,7 @@ import com.adorsys.fineract.asset.service.trade.TradeStrategy;
 import com.adorsys.fineract.asset.util.JwtUtils;
 import com.adorsys.fineract.asset.event.OrderStatusChangedEvent;
 import com.adorsys.fineract.asset.event.TradeExecutedEvent;
+import com.adorsys.fineract.asset.event.TreasuryShortfallEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -738,6 +739,15 @@ public class TradingService {
             BigDecimal totalLpOutflow = ctx.getGrossAmount().add(regDuty).add(cgt).add(tva);
             if (lpCashBalance.compareTo(totalLpOutflow) < 0) {
                 rejectOrder(ctx.getOrder(), "Insufficient LP funds for payout");
+
+                // Notify admins about LP shortfall
+                BigDecimal shortfall = totalLpOutflow.subtract(lpCashBalance);
+                eventPublisher.publishEvent(new TreasuryShortfallEvent(
+                        null, // null userId = broadcast to all admins
+                        ctx.getAssetId(), asset.getSymbol(),
+                        lpCashBalance, totalLpOutflow, shortfall,
+                        java.time.LocalDate.now()));
+
                 throw new TradingException(
                         "This asset's liquidity provider currently has insufficient funds to process your sell order. "
                                 + "Required: " + totalLpOutflow + " " + currency
@@ -940,40 +950,46 @@ public class TradingService {
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
 
         if (side == TradeSide.BUY) {
-            // BUY: Client pays separately to each destination — preserves custodial segregation.
-            // Only nominal goes to LP. Fee and tax stay in client trust pool.
+            // BUY: Single debit from client → clearing account, then clearing distributes.
+            // Customer sees exactly ONE withdrawal in their savings history.
+            Long clearingAccountId = resolvedGlAccounts.getClearingAccountId();
+            BigDecimal totalClientPays = grossAmount.add(fee).add(totalTax);
 
-            // Leg 1: Client pays nominal to LP Settlement (LSAV)
-            BigDecimal nominalToLP = grossAmount.subtract(spreadAmount);
+            // Leg 1: Client pays total to Clearing (single customer-visible withdrawal)
             ops.add(new BatchTransferOp(
-                    userCashAccountId, asset.getLpCashAccountId(),
-                    nominalToLP, "Asset purchase (nominal): " + asset.getSymbol()));
+                    userCashAccountId, clearingAccountId,
+                    totalClientPays, "Asset purchase: " + asset.getSymbol()));
             // Leg 2: LP delivers tokens to investor
             ops.add(new BatchTransferOp(
                     asset.getLpAssetAccountId(), userAssetAccountId,
                     units, "Asset delivery: " + asset.getSymbol()));
-            // Leg 3: Client pays spread directly to LP Spread (LSPD)
+            // Leg 3: Clearing → LP Settlement (nominal = grossAmount - spread)
+            BigDecimal nominalToLP = grossAmount.subtract(spreadAmount);
+            ops.add(new BatchTransferOp(
+                    clearingAccountId, asset.getLpCashAccountId(),
+                    nominalToLP, "Settlement: " + asset.getSymbol()));
+            // Leg 4: Clearing → LP Spread (LSPD)
             if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
                 ops.add(new BatchTransferOp(
-                        userCashAccountId, asset.getLpSpreadAccountId(),
+                        clearingAccountId, asset.getLpSpreadAccountId(),
                         spreadAmount, "LP margin: BUY " + asset.getSymbol()));
             }
-            // Leg 4: Client pays fee directly to Platform Fee Collection (stays in MoMo trust)
+            // Leg 5: Clearing → Platform Fee Collection
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
-                        userCashAccountId, feeCollectionAccountId,
+                        clearingAccountId, feeCollectionAccountId,
                         fee, "Trading fee: BUY " + asset.getSymbol()));
             }
-            // Leg 5 (tax): Client pays registration duty to Tax Authority (stays in MoMo trust)
+            // Leg 6 (tax): Clearing → Tax Authority (registration duty)
             if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
-                        userCashAccountId, taxService.getRegistrationDutyAccountId(),
+                        clearingAccountId, taxService.getRegistrationDutyAccountId(),
                         registrationDuty, "Registration duty: BUY " + asset.getSymbol()));
             }
-            // Leg 6 (tax): Client pays TVA to Tax Authority (stays in MoMo trust)
+            // Leg 7 (tax): Clearing → Tax Authority (TVA)
             if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
-                        userCashAccountId, taxService.getTvaAccountId(),
+                        clearingAccountId, taxService.getTvaAccountId(),
                         tvaAmount, "TVA: BUY " + asset.getSymbol()));
             }
         } else {

@@ -79,4 +79,7 @@ public class ResolvedGlAccounts {
     // --- Savings accounts ---
     /** Database ID of the platform-wide fee collection savings account (mandatory). */
     private Long feeCollectionAccountId;
+
+    /** Database ID of the clearing account for BUY trade routing. */
+    private Long clearingAccountId;
 }
