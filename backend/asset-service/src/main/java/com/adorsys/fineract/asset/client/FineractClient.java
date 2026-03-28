@@ -835,6 +835,18 @@ public class FineractClient {
             switch (op) {
                 case BatchTransferOp t -> resourceId = createAccountTransfer(
                         t.fromAccountId(), t.toAccountId(), t.amount(), t.description());
+                case BatchJournalEntryOp j -> {
+                    // Journal entries via sequential fallback — use GL code lookup
+                    Map<String, Long> glCodes = lookupGlAccounts();
+                    String debitCode = glCodes.entrySet().stream()
+                            .filter(e -> e.getValue().equals(j.debitGlAccountId()))
+                            .map(Map.Entry::getKey).findFirst().orElse("unknown");
+                    String creditCode = glCodes.entrySet().stream()
+                            .filter(e -> e.getValue().equals(j.creditGlAccountId()))
+                            .map(Map.Entry::getKey).findFirst().orElse("unknown");
+                    createJournalEntry(debitCode, creditCode, j.amount(), j.description());
+                    resourceId = 0L;
+                }
             }
             results.add(Map.of("requestId", (long) (i + 1), "statusCode", 200,
                     "body", Map.of("resourceId", resourceId)));
