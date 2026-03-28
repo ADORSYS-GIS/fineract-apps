@@ -19,8 +19,17 @@ public class AssetServiceConfig {
     /** ISO 4217 currency code for the settlement/cash currency. */
     private String settlementCurrency = "XAF";
 
-    /** Short name of the Fineract savings product used for settlement currency (XAF) treasury accounts. */
+    /** Short name of the Fineract savings product used for client settlement currency (XAF) accounts. */
     private String settlementCurrencyProductShortName = "VSAV";
+
+    /** Short name of the Fineract savings product used for LP settlement (XAF) accounts. */
+    private String lpSettlementProductShortName = "LSAV";
+
+    /** Short name of the Fineract savings product used for LP spread collection accounts. */
+    private String lpSpreadProductShortName = "LSPD";
+
+    /** Short name of the Fineract savings product used for LP tax withholding accounts. */
+    private String lpTaxProductShortName = "LTAX";
 
     private MarketHours marketHours = new MarketHours();
     private Pricing pricing = new Pricing();
@@ -102,22 +111,73 @@ public class AssetServiceConfig {
 
     @Data
     public static class GlAccounts {
-        /** GL code for digital asset inventory account. Resolved to DB ID at startup. */
-        private String digitalAssetInventory = "47";
-        /** GL code for customer digital asset holdings account. Resolved to DB ID at startup. */
-        private String customerDigitalAssetHoldings = "65";
-        /** GL code for transfers in suspense account. Resolved to DB ID at startup. */
-        private String transfersInSuspense = "48";
-        /** GL code for income from interest account. Resolved to DB ID at startup. */
-        private String incomeFromInterest = "87";
-        /** GL code for expense account (interest on savings / write-off). Resolved to DB ID at startup. */
-        private String expenseAccount = "91";
+        // --- Client GL accounts ---
+        /** GL code for fund source / cash reference account (client side). */
+        private String fundSource = "502";
+        /** GL code for client savings control (liability to clients). */
+        private String savingsControl = "4101";
+        /** GL code for customer digital asset holdings account. */
+        private String customerDigitalAssetHoldings = "4102";
+
+        // --- LP GL accounts ---
+        /** GL code for LP settlement control (liability to LPs). */
+        private String lpSettlementControl = "4011";
+        /** GL code for LP spread payable (spread held by Azamra until settled). */
+        private String lpSpreadPayable = "4012";
+        /** GL code for LP tax withholding (tax withheld from LPs on sell). */
+        private String lpTaxWithholding = "4013";
+        /** GL code for LP fund source (UBA bank trust). */
+        private String lpFundSource = "5011";
+
+        // --- Trust accounts ---
+        /** GL code for MTN MoMo trust. */
+        private String mtnMoMo = "5001";
+        /** GL code for Orange Money trust. */
+        private String orangeMoney = "5002";
+        /** GL code for UBA bank trust. */
+        private String ubaBank = "5011";
+        /** GL code for Afriland bank. */
+        private String afrilandBank = "5012";
+
+        // --- Inventory & suspense ---
+        /** GL code for digital asset inventory account (LP token vault). */
+        private String digitalAssetInventory = "301";
+        /** GL code for transfers in suspense account. */
+        private String transfersInSuspense = "4501";
+
+        // --- Income ---
+        /** GL code for platform fee income. */
+        private String platformFeeIncome = "701";
+        /** GL code for LP spread income. */
+        private String spreadIncome = "702";
+        /** GL code for income from interest account. */
+        private String incomeFromInterest = "701";
+        /** GL code for trading fee income (alias for platformFeeIncome). */
+        private String feeIncome = "701";
+
+        // --- Expense ---
+        /** GL code for expense account (interest on savings / write-off). */
+        private String expenseAccount = "601";
+        /** GL code for tax expense - registration duty. */
+        private String taxExpenseRegDuty = "603";
+        /** GL code for tax expense - capital gains. */
+        private String taxExpenseCapGains = "604";
+        /** GL code for tax expense - IRCM. */
+        private String taxExpenseIrcm = "608";
+        /** GL code for tax expense - TVA. */
+        private String taxExpenseTva = "608";
+
+        // --- Equity ---
+        /** GL code for LP asset equity / capital. */
+        private String assetEquity = "103";
+
+        // --- Tax payable ---
+        /** GL code for tax payable fund source (Afriland tax account). */
+        private String taxPayableFundSource = "5031";
+
+        // --- Payment types ---
         /** Payment type name for asset issuance. Resolved to DB ID at startup. */
         private String assetIssuancePaymentType = "Asset Issuance";
-        /** GL code for trading fee income account. Resolved to DB ID at startup. */
-        private String feeIncome = "87";
-        /** GL code for fund source / cash reference account. Resolved to DB ID at startup. */
-        private String fundSource = "42";
     }
 
     @PostConstruct

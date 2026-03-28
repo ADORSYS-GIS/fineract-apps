@@ -75,20 +75,69 @@ public class GlAccountResolver implements ApplicationRunner {
         Map<String, Long> glCodeToId = fineractClient.lookupGlAccounts();
         log.debug("Fetched {} GL accounts from Fineract", glCodeToId.size());
 
-        resolvedGlAccounts.setDigitalAssetInventoryId(
-                resolveGlCode(glCodeToId, glConfig.getDigitalAssetInventory(), "digitalAssetInventory"));
-        resolvedGlAccounts.setCustomerDigitalAssetHoldingsId(
-                resolveGlCode(glCodeToId, glConfig.getCustomerDigitalAssetHoldings(), "customerDigitalAssetHoldings"));
-        resolvedGlAccounts.setTransfersInSuspenseId(
-                resolveGlCode(glCodeToId, glConfig.getTransfersInSuspense(), "transfersInSuspense"));
-        resolvedGlAccounts.setIncomeFromInterestId(
-                resolveGlCode(glCodeToId, glConfig.getIncomeFromInterest(), "incomeFromInterest"));
-        resolvedGlAccounts.setExpenseAccountId(
-                resolveGlCode(glCodeToId, glConfig.getExpenseAccount(), "expenseAccount"));
-        resolvedGlAccounts.setFeeIncomeId(
-                resolveGlCode(glCodeToId, glConfig.getFeeIncome(), "feeIncome"));
+        // Client GL accounts
         resolvedGlAccounts.setFundSourceId(
                 resolveGlCode(glCodeToId, glConfig.getFundSource(), "fundSource"));
+        resolvedGlAccounts.setSavingsControlId(
+                resolveGlCode(glCodeToId, glConfig.getSavingsControl(), "savingsControl"));
+        resolvedGlAccounts.setCustomerDigitalAssetHoldingsId(
+                resolveGlCode(glCodeToId, glConfig.getCustomerDigitalAssetHoldings(), "customerDigitalAssetHoldings"));
+
+        // LP GL accounts
+        resolvedGlAccounts.setLpSettlementControlId(
+                resolveGlCode(glCodeToId, glConfig.getLpSettlementControl(), "lpSettlementControl"));
+        resolvedGlAccounts.setLpSpreadPayableId(
+                resolveGlCode(glCodeToId, glConfig.getLpSpreadPayable(), "lpSpreadPayable"));
+        resolvedGlAccounts.setLpTaxWithholdingId(
+                resolveGlCode(glCodeToId, glConfig.getLpTaxWithholding(), "lpTaxWithholding"));
+        resolvedGlAccounts.setLpFundSourceId(
+                resolveGlCode(glCodeToId, glConfig.getLpFundSource(), "lpFundSource"));
+
+        // Trust accounts
+        resolvedGlAccounts.setMtnMoMoId(
+                resolveGlCode(glCodeToId, glConfig.getMtnMoMo(), "mtnMoMo"));
+        resolvedGlAccounts.setOrangeMoneyId(
+                resolveGlCode(glCodeToId, glConfig.getOrangeMoney(), "orangeMoney"));
+        resolvedGlAccounts.setUbaBankId(
+                resolveGlCode(glCodeToId, glConfig.getUbaBank(), "ubaBank"));
+        resolvedGlAccounts.setAfrilandBankId(
+                resolveGlCode(glCodeToId, glConfig.getAfrilandBank(), "afrilandBank"));
+
+        // Inventory & suspense
+        resolvedGlAccounts.setDigitalAssetInventoryId(
+                resolveGlCode(glCodeToId, glConfig.getDigitalAssetInventory(), "digitalAssetInventory"));
+        resolvedGlAccounts.setTransfersInSuspenseId(
+                resolveGlCode(glCodeToId, glConfig.getTransfersInSuspense(), "transfersInSuspense"));
+
+        // Income
+        resolvedGlAccounts.setPlatformFeeIncomeId(
+                resolveGlCode(glCodeToId, glConfig.getPlatformFeeIncome(), "platformFeeIncome"));
+        resolvedGlAccounts.setSpreadIncomeId(
+                resolveGlCode(glCodeToId, glConfig.getSpreadIncome(), "spreadIncome"));
+        resolvedGlAccounts.setIncomeFromInterestId(
+                resolveGlCode(glCodeToId, glConfig.getIncomeFromInterest(), "incomeFromInterest"));
+        resolvedGlAccounts.setFeeIncomeId(
+                resolveGlCode(glCodeToId, glConfig.getFeeIncome(), "feeIncome"));
+
+        // Expense
+        resolvedGlAccounts.setExpenseAccountId(
+                resolveGlCode(glCodeToId, glConfig.getExpenseAccount(), "expenseAccount"));
+        resolvedGlAccounts.setTaxExpenseRegDutyId(
+                resolveGlCode(glCodeToId, glConfig.getTaxExpenseRegDuty(), "taxExpenseRegDuty"));
+        resolvedGlAccounts.setTaxExpenseCapGainsId(
+                resolveGlCode(glCodeToId, glConfig.getTaxExpenseCapGains(), "taxExpenseCapGains"));
+        resolvedGlAccounts.setTaxExpenseIrcmId(
+                resolveGlCode(glCodeToId, glConfig.getTaxExpenseIrcm(), "taxExpenseIrcm"));
+        resolvedGlAccounts.setTaxExpenseTvaId(
+                resolveGlCode(glCodeToId, glConfig.getTaxExpenseTva(), "taxExpenseTva"));
+
+        // Equity
+        resolvedGlAccounts.setAssetEquityId(
+                resolveGlCode(glCodeToId, glConfig.getAssetEquity(), "assetEquity"));
+
+        // Tax payable fund source
+        resolvedGlAccounts.setTaxPayableFundSourceId(
+                resolveGlCode(glCodeToId, glConfig.getTaxPayableFundSource(), "taxPayableFundSource"));
 
         // Resolve payment type by name
         Map<String, Long> paymentTypeNameToId = fineractClient.lookupPaymentTypes();
@@ -115,30 +164,11 @@ public class GlAccountResolver implements ApplicationRunner {
                 resolvedTaxAccounts::setIrcmAccountId);
         resolveTaxAccount(taxConfig.getCapGainsAccountExternalId(), "TAX-CAP-GAINS",
                 resolvedTaxAccounts::setCapitalGainsAccountId);
+        resolveTaxAccount(taxConfig.getTvaAccountExternalId(), "TAX-TVA",
+                resolvedTaxAccounts::setTvaAccountId);
 
-        log.info("Resolved tax accounts: regDuty={} ({}), ircm={} ({}), capGains={} ({})",
-                resolvedTaxAccounts.getRegistrationDutyAccountId(), taxConfig.getRegDutyAccountExternalId(),
-                resolvedTaxAccounts.getIrcmAccountId(), taxConfig.getIrcmAccountExternalId(),
-                resolvedTaxAccounts.getCapitalGainsAccountId(), taxConfig.getCapGainsAccountExternalId());
-
-        log.info("Resolved GL accounts: digitalAssetInventory={} (code {}), "
-                + "customerDigitalAssetHoldings={} (code {}), "
-                + "transfersInSuspense={} (code {}), "
-                + "incomeFromInterest={} (code {}), "
-                + "expenseAccount={} (code {}), "
-                + "feeIncome={} (code {}), "
-                + "fundSource={} (code {}), "
-                + "assetIssuancePaymentType={} (name '{}'), "
-                + "feeCollectionAccount={} (externalId '{}')",
-                resolvedGlAccounts.getDigitalAssetInventoryId(), glConfig.getDigitalAssetInventory(),
-                resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(), glConfig.getCustomerDigitalAssetHoldings(),
-                resolvedGlAccounts.getTransfersInSuspenseId(), glConfig.getTransfersInSuspense(),
-                resolvedGlAccounts.getIncomeFromInterestId(), glConfig.getIncomeFromInterest(),
-                resolvedGlAccounts.getExpenseAccountId(), glConfig.getExpenseAccount(),
-                resolvedGlAccounts.getFeeIncomeId(), glConfig.getFeeIncome(),
-                resolvedGlAccounts.getFundSourceId(), glConfig.getFundSource(),
-                resolvedGlAccounts.getAssetIssuancePaymentTypeId(), glConfig.getAssetIssuancePaymentType(),
-                resolvedGlAccounts.getFeeCollectionAccountId(), feeExtId);
+        log.info("Resolved {} GL accounts, {} payment types, {} tax accounts",
+                glCodeToId.size(), paymentTypeNameToId.size(), 4);
     }
 
     private Long resolveGlCode(Map<String, Long> codeToId, String glCode, String configName) {

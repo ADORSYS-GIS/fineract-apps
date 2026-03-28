@@ -109,15 +109,45 @@ asset-service:
     trade-duration-minutes: ${RATE_LIMIT_TRADE_DURATION:1}
     general-limit: ${RATE_LIMIT_GENERAL:100}
     general-duration-minutes: ${RATE_LIMIT_GENERAL_DURATION:1}
+  settlement-currency-product-short-name: ${SETTLEMENT_CURRENCY_PRODUCT_SHORT_NAME:VSAV}
+  lp-settlement-product-short-name: ${LP_SAVINGS_PRODUCT_SHORT_NAME:LSAV}
+  lp-spread-product-short-name: ${LP_SPREAD_PRODUCT_SHORT_NAME:LSPD}
+  lp-tax-product-short-name: ${LP_TAX_PRODUCT_SHORT_NAME:LTAX}
   gl-accounts:
-    digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:47}
-    customer-digital-asset-holdings: ${GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS:65}
-    transfers-in-suspense: ${GL_TRANSFERS_IN_SUSPENSE:48}
-    income-from-interest: ${GL_INCOME_FROM_INTEREST:87}
-    expense-account: ${GL_EXPENSE_ACCOUNT:91}
+    # Client GL accounts
+    fund-source: ${GL_FUND_SOURCE:502}
+    savings-control: ${GL_SAVINGS_CONTROL:4101}
+    customer-digital-asset-holdings: ${GL_CUSTOMER_DIGITAL_ASSET_HOLDINGS:4102}
+    # LP GL accounts
+    lp-settlement-control: ${GL_LP_SAVINGS_CONTROL:4011}
+    lp-spread-payable: ${GL_LP_SPREAD_PAYABLE:4012}
+    lp-tax-withholding: ${GL_LP_TAX_WITHHOLDING:4013}
+    lp-fund-source: ${GL_LP_FUND_SOURCE:5011}
+    # Trust accounts
+    mtn-mo-mo: ${GL_MTN_MOMO:5001}
+    orange-money: ${GL_ORANGE_MONEY:5002}
+    uba-bank: ${GL_UBA_BANK:5011}
+    afriland-bank: ${GL_AFRILAND_BANK:5012}
+    # Inventory & suspense
+    digital-asset-inventory: ${GL_DIGITAL_ASSET_INVENTORY:301}
+    transfers-in-suspense: ${GL_TRANSFERS_IN_SUSPENSE:4501}
+    # Income
+    platform-fee-income: ${GL_PLATFORM_FEE_INCOME:701}
+    spread-income: ${GL_SPREAD_INCOME:702}
+    income-from-interest: ${GL_INCOME_FROM_INTEREST:701}
+    fee-income: ${GL_FEE_INCOME:701}
+    # Expense
+    expense-account: ${GL_EXPENSE_ACCOUNT:601}
+    tax-expense-reg-duty: ${GL_TAX_EXPENSE_REG_DUTY:603}
+    tax-expense-cap-gains: ${GL_TAX_EXPENSE_CAP_GAINS:604}
+    tax-expense-ircm: ${GL_TAX_EXPENSE_IRCM:608}
+    tax-expense-tva: ${GL_TAX_EXPENSE_TVA:608}
+    # Equity
+    asset-equity: ${GL_ASSET_EQUITY:103}
+    # Tax payable
+    tax-payable-fund-source: ${GL_TAX_PAYABLE_FUND_SOURCE:5031}
+    # Payment types
     asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:Asset Issuance}
-    fee-income: ${GL_FEE_INCOME:87}
-    fund-source: ${GL_FUND_SOURCE:42}
   quote:
     ttl-seconds: ${QUOTE_TTL_SECONDS:30}
     max-active-per-user: ${QUOTE_MAX_ACTIVE_PER_USER:5}
