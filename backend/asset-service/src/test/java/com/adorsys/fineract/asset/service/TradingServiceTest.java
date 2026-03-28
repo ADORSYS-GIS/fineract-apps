@@ -63,6 +63,7 @@ class TradingServiceTest {
     @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
     @Mock private QuoteReservationService quoteReservationService;
     @Mock private TaxService taxService;
+    @Mock private com.adorsys.fineract.asset.repository.AssetProjectionRepository assetProjectionRepository;
 
     @InjectMocks
     private TradingService tradingService;
