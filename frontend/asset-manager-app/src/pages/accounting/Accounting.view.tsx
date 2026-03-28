@@ -133,6 +133,9 @@ export const AccountingView: FC<AccountingViewProps> = ({
 		(sum, e) => sum + (e.creditAmount - e.debitAmount),
 		0,
 	);
+	// NOTE: This assumes no closing entries have been run (mid-period trial balance).
+	// Equity GL accounts don't yet include current-period net income, so we add it manually.
+	// After a period close, equity GLs would already include retained earnings — remove netIncome then.
 	const totalEquity =
 		equityEntries.reduce(
 			(sum, e) => sum + (e.creditAmount - e.debitAmount),

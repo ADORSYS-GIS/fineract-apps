@@ -33,6 +33,7 @@ public class SettlementService {
     private final SettlementRepository settlementRepository;
     private final FineractClient fineractClient;
     private final ResolvedGlAccounts resolvedGlAccounts;
+    private final com.adorsys.fineract.asset.repository.AssetRepository assetRepository;
 
     @Transactional
     public Settlement createSettlement(Settlement request) {
@@ -101,9 +102,10 @@ public class SettlementService {
 
     /**
      * Build batch operations based on settlement type.
-     * LP_PAYOUT: multi-leg — clear LSAV (4011→5011) + LSPD (4012→5011)
-     * TAX_REMITTANCE: clear LTAX (4013→5031) + DTAX (4301→5031)
-     * Others: single journal entry from source→destination GL
+     * LP_PAYOUT: clears the GL specified by sourceGlCode (4011 for LSAV, 4012 for LSPD) → 5011.
+     *            Admin creates separate settlements for LSAV and LSPD.
+     * TAX_REMITTANCE: clears sourceGlCode (default 4301) → 5031.
+     * Others: single journal entry from source→destination GL.
      */
     private List<BatchOperation> buildSettlementOps(Settlement s, Map<String, Long> glCodeToId) {
         String desc = s.getDescription() != null ? s.getDescription() : "Settlement: " + s.getSettlementType();
@@ -111,19 +113,13 @@ public class SettlementService {
 
         switch (s.getSettlementType()) {
             case "LP_PAYOUT" -> {
-                // Multi-leg: clear LP Settlement (4011) + LP Spread (4012) → UBA Trust (5011)
-                Long lpSettlement = resolveGl(glCodeToId, "4011");
-                Long lpSpread = resolveGl(glCodeToId, "4012");
-                Long ubaTrust = resolveGl(glCodeToId, "5011");
-                // Split amount: use source/dest GL codes if provided, otherwise use full amount on 4011
-                if (s.getSourceGlCode() != null && s.getSourceGlCode().equals("4012")) {
-                    // Spread-only payout
-                    ops.add(new BatchJournalEntryOp(lpSpread, ubaTrust, s.getAmount(), "XAF", desc + " (spread)"));
-                } else {
-                    // Full LP payout — settlement + spread combined
-                    ops.add(new BatchJournalEntryOp(lpSettlement, ubaTrust, s.getAmount(), "XAF", desc + " (settlement)"));
-                    // If there's spread to clear, it would be a separate settlement
-                }
+                // LP payout: sourceGlCode determines which account to clear.
+                // Admin creates separate settlements for LSAV (4011) and LSPD (4012).
+                // The LP balances UI shows each balance separately to guide the admin.
+                Long ubaTrustGl = resolveGl(glCodeToId, "5011");
+                String sourceCode = s.getSourceGlCode() != null ? s.getSourceGlCode() : "4011";
+                Long sourceGl = resolveGl(glCodeToId, sourceCode);
+                ops.add(new BatchJournalEntryOp(sourceGl, ubaTrustGl, s.getAmount(), "XAF", desc));
             }
             case "TAX_REMITTANCE" -> {
                 // Clear tax payable → Afriland tax account
@@ -221,13 +217,13 @@ public class SettlementService {
 
             for (var asset : assetList) {
                 if (asset.getLpCashAccountId() != null) {
-                    try { lsav = lsav.add(fineractClient.getAccountBalance(asset.getLpCashAccountId())); } catch (Exception e) { /* skip */ }
+                    try { lsav = lsav.add(fineractClient.getAccountBalance(asset.getLpCashAccountId())); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
                 }
                 if (asset.getLpSpreadAccountId() != null) {
-                    try { lspd = lspd.add(fineractClient.getAccountBalance(asset.getLpSpreadAccountId())); } catch (Exception e) { /* skip */ }
+                    try { lspd = lspd.add(fineractClient.getAccountBalance(asset.getLpSpreadAccountId())); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
                 }
                 if (asset.getLpTaxAccountId() != null) {
-                    try { ltax = ltax.add(fineractClient.getAccountBalance(asset.getLpTaxAccountId())); } catch (Exception e) { /* skip */ }
+                    try { ltax = ltax.add(fineractClient.getAccountBalance(asset.getLpTaxAccountId())); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
                 }
             }
 
@@ -245,6 +241,4 @@ public class SettlementService {
         return result;
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.adorsys.fineract.asset.repository.AssetRepository assetRepository;
 }

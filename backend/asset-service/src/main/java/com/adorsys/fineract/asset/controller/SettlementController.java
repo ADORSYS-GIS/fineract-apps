@@ -118,13 +118,13 @@ public class SettlementController {
         csv.append(String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
                 s.getId(), s.getSettlementType(), s.getStatus(), s.getAmount(),
                 s.getLpClientId() != null ? s.getLpClientId() : "",
-                s.getSourceGlCode() != null ? s.getSourceGlCode() : "",
-                s.getDestinationGlCode() != null ? s.getDestinationGlCode() : "",
-                s.getCreatedBy() != null ? s.getCreatedBy() : "",
+                sanitizeCsv(s.getSourceGlCode()),
+                sanitizeCsv(s.getDestinationGlCode()),
+                sanitizeCsv(s.getCreatedBy()),
                 s.getCreatedAt() != null ? s.getCreatedAt() : "",
-                s.getApprovedBy() != null ? s.getApprovedBy() : "",
+                sanitizeCsv(s.getApprovedBy()),
                 s.getApprovedAt() != null ? s.getApprovedAt() : "",
-                s.getDescription() != null ? s.getDescription().replace(",", ";") : ""));
+                sanitizeCsv(s.getDescription())));
         return ResponseEntity.ok()
                 .header("Content-Type", "text/csv")
                 .header("Content-Disposition", "attachment; filename=settlement-" + id + ".csv")
@@ -136,5 +136,15 @@ public class SettlementController {
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public ResponseEntity<?> getLpBalances() {
         return ResponseEntity.ok(settlementService.getLpBalances());
+    }
+
+    /** Sanitize a string for CSV output — prevent formula injection (OWASP). */
+    private static String sanitizeCsv(String value) {
+        if (value == null) return "";
+        String v = value.replace(",", ";").replace("\"", "'");
+        if (v.startsWith("=") || v.startsWith("+") || v.startsWith("-") || v.startsWith("@")) {
+            v = "'" + v;
+        }
+        return v;
     }
 }
