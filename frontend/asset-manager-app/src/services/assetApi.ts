@@ -1024,4 +1024,22 @@ export const assetApi = {
 	// LP Performance - Admin
 	getLPPerformance: () =>
 		assetClient.get<LPPerformanceResponse>("/admin/lp/performance"),
+
+	// Accounting - Admin
+	getTrialBalance: (params: {
+		currencyCode?: string;
+		fromDate?: string;
+		toDate?: string;
+	}) =>
+		assetClient.get("/admin/accounting/trial-balance", {
+			params: {
+				...(params.currencyCode && {
+					currencyCode: params.currencyCode,
+				}),
+				...(params.fromDate && { fromDate: params.fromDate }),
+				...(params.toDate && { toDate: params.toDate }),
+			},
+		}),
+	getAccountingCurrencies: () =>
+		assetClient.get<string[]>("/admin/accounting/currencies"),
 };
