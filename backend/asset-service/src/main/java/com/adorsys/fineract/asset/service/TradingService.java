@@ -238,14 +238,15 @@ public class TradingService {
             }
             lockupService.validateLockup(asset, userId, units);
 
-            // LP capital adequacy check — LP Cash must cover all outflows (investor payout + fee + tax)
+            // LP capital adequacy check — LP Cash must cover all outflows (nominal + spread + fee + tax)
             if (asset.getLpCashAccountId() != null) {
                 BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
-                if (lpCashBalance.compareTo(grossAmount) < 0) {
+                BigDecimal totalLpRequired = grossAmount.add(totalTax);
+                if (lpCashBalance.compareTo(totalLpRequired) < 0) {
                     String currency = assetServiceConfig.getSettlementCurrency();
                     throw new TradingException(
                             "This asset's liquidity provider currently has insufficient funds to process your sell order. "
-                                    + "Required: " + grossAmount + " " + currency
+                                    + "Required: " + totalLpRequired + " " + currency
                                     + ", LP available: " + lpCashBalance + " " + currency
                                     + ". Please try again later or contact support.",
                             "INSUFFICIENT_LP_FUNDS");
