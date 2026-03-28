@@ -132,7 +132,7 @@ class TradingServiceTest {
         lenient().when(taxService.getRegistrationDutyRate(any())).thenReturn(BigDecimal.ZERO);
         lenient().when(taxService.buildTaxBreakdown(any(), anyLong(), any(), any(), anyBoolean()))
                 .thenReturn(new TaxBreakdown(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                        BigDecimal.ZERO, BigDecimal.ZERO, false));
+                        BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
 
         // AssetMetrics timer mocks
         SimpleMeterRegistry registry = new SimpleMeterRegistry();

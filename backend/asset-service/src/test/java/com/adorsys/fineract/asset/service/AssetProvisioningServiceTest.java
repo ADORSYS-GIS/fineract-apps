@@ -236,6 +236,7 @@ class AssetProvisioningServiceTest {
                 null, null, null, null, // income distribution
                 null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
                 null, null, null, null, null, null, null, null, null, // tax config
+                null, null, // tvaEnabled, tvaRate
                 null, null, null, null, null); // PENDING-only fields
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
@@ -266,8 +267,10 @@ class AssetProvisioningServiceTest {
                 null, null, null, null, null, null,
                 null, null, null, null,
                 null, null, null,
-                null, null, null, null, null, null, null, null, null,
-                new BigDecimal("6000"), new BigDecimal("2000"), "New Issuer", "SN0000038741", 6);
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null, // tvaEnabled, tvaRate
+                new BigDecimal("6000"), new BigDecimal("2000"), "New Issuer", "SN0000038741", 6); // PENDING-only
+
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -294,8 +297,9 @@ class AssetProvisioningServiceTest {
                 null, null, null, null, null, null,
                 null, null, null, null,
                 null, null, null,
-                null, null, null, null, null, null, null, null, null,
-                new BigDecimal("6000"), null, null, null, null);
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null, // tvaEnabled, tvaRate
+                new BigDecimal("6000"), null, null, null, null); // PENDING-only
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("PENDING"));
@@ -313,8 +317,9 @@ class AssetProvisioningServiceTest {
                 null, null, null, null, null, null,
                 null, null, null, null,
                 null, null, null,
-                null, null, null, null, null, null, null, null, null,
-                null, new BigDecimal("1500"), null, null, null);
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null, // tvaEnabled, tvaRate
+                null, new BigDecimal("1500"), null, null, null); // PENDING-only
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -335,8 +340,9 @@ class AssetProvisioningServiceTest {
                 null, null, null, null, null, null,
                 null, null, null, null,
                 null, null, null,
-                null, null, null, null, null, null, null, null, null,
-                null, new BigDecimal("800"), null, null, null);
+                null, null, null, null, null, null, null, null, null, // tax
+                null, null, // tvaEnabled, tvaRate
+                null, new BigDecimal("800"), null, null, null); // PENDING-only
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -452,8 +458,9 @@ class AssetProvisioningServiceTest {
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax config
-        );
+                null, null, null, null, null, null, null, null, null, // tax config
+                false, null); // tvaEnabled, tvaRate
+
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Issuer name is required"));
@@ -471,8 +478,9 @@ class AssetProvisioningServiceTest {
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
                 LocalDate.now().plusMonths(5),
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax config
-        );
+                null, null, null, null, null, null, null, null, null, // tax config
+                false, null); // tvaEnabled, tvaRate
+
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Coupon frequency must be"));
@@ -557,8 +565,9 @@ class AssetProvisioningServiceTest {
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax config
-        );
+                null, null, null, null, null, null, null, null, null, // tax config
+                false, null); // tvaEnabled, tvaRate
+
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Maturity date must be in the future"));

@@ -132,7 +132,8 @@ public final class TestDataFactory {
                 null, null, // min order size/cash
                 null, null, null, null, null, null, // bond fields
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax fields
+                null, null, null, null, null, null, null, null, null, // tax fields
+                false, null // tvaEnabled, tvaRate
         );
     }
 
@@ -160,7 +161,8 @@ public final class TestDataFactory {
                 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, true // tax: govt bond
+                null, null, null, null, null, null, null, null, true, // tax: govt bond
+                false, null // tvaEnabled, tvaRate
         );
     }
 
