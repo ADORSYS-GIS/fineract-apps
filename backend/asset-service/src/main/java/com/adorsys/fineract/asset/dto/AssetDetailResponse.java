@@ -52,10 +52,6 @@ public record AssetDetailResponse(
     BigDecimal tradingFeePercent,
     /** Number of decimal places for fractional units (0-8). */
     Integer decimalPlaces,
-    /** Start of the subscription period. */
-    LocalDate subscriptionStartDate,
-    /** End of the subscription period. */
-    LocalDate subscriptionEndDate,
     // ── Issuer info ──
 
     /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
@@ -76,6 +72,9 @@ public record AssetDetailResponse(
     /** Fineract savings account ID for the LP's spread income collection. */
     @Schema(description = "LP spread collection account ID.", nullable = true)
     Long lpSpreadAccountId,
+    /** Fineract savings account ID for the LP's tax withholding. */
+    @Schema(description = "LP tax withholding account ID.", nullable = true)
+    Long lpTaxAccountId,
     /** Corresponding Fineract savings product ID. */
     Integer fineractProductId,
     /** Display name of the liquidity partner in Fineract. */
@@ -119,9 +118,6 @@ public record AssetDetailResponse(
     /** Days remaining until maturity. Null for non-bond assets. Computed, not stored. */
     @Schema(description = "Days remaining until maturity date. Computed at query time.", nullable = true)
     Long residualDays,
-    /** Whether the subscription period has ended. */
-    @Schema(description = "True if subscriptionEndDate has passed. Informational only — does not restrict trading.")
-    Boolean subscriptionClosed,
     /** Coupon amount per unit per period. Computed: issuerPrice * (rate/100) * (months/12). Null for non-bonds. */
     @Schema(description = "Coupon amount per unit per period, based on issuer price.", nullable = true)
     BigDecimal couponAmountPerUnit,
@@ -203,5 +199,9 @@ public record AssetDetailResponse(
     @Schema(description = "Listed on BVMAC.")
     Boolean isBvmacListed,
     @Schema(description = "Government bond (IRCM exempt).")
-    Boolean isGovernmentBond
+    Boolean isGovernmentBond,
+    @Schema(description = "TVA (VAT) enabled for trades.")
+    Boolean tvaEnabled,
+    @Schema(description = "TVA rate override.", nullable = true)
+    BigDecimal tvaRate
 ) {}

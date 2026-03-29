@@ -1,6 +1,5 @@
 package com.adorsys.fineract.registration.dto.registration;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,13 +15,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class RegistrationRequest {
 
-    @NotBlank(message = "First name is required")
-    @Size(max = 100, message = "First name must not exceed 100 characters")
-    private String firstName;
-
-    @NotBlank(message = "Last name is required")
-    @Size(max = 100, message = "Last name must not exceed 100 characters")
-    private String lastName;
+    @NotBlank(message = "Full name is required")
+    @Size(max = 200, message = "Full name must not exceed 200 characters")
+    private String fullName;
 
     @Email(message = "Invalid email format")
     @Size(max = 254, message = "Email must not exceed 254 characters")

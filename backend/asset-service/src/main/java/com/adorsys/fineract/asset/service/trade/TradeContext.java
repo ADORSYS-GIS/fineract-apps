@@ -48,6 +48,7 @@ public class TradeContext {
     // -- Tax --
     private BigDecimal registrationDutyAmount;
     private BigDecimal capitalGainsTaxAmount;
+    private BigDecimal tvaAmount;
 
     // -- Output --
     private BigDecimal realizedPnl;

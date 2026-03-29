@@ -12,7 +12,8 @@ public record LPPerformanceResponse(
     BigDecimal totalFeeCommission,
     BigDecimal netMargin,
     long totalTrades,
-    List<AssetPerformance> perAsset
+    List<AssetPerformance> perAsset,
+    List<LPSummary> perLP
 ) {
     public record AssetPerformance(
         String assetId,
@@ -22,5 +23,15 @@ public record LPPerformanceResponse(
         BigDecimal feeCommission,
         BigDecimal netMargin,
         long tradeCount
+    ) {}
+
+    public record LPSummary(
+        Long lpClientId,
+        String lpClientName,
+        BigDecimal lsavBalance,
+        BigDecimal lspdBalance,
+        BigDecimal ltaxBalance,
+        BigDecimal unsettledTotal,
+        int assetCount
     ) {}
 }

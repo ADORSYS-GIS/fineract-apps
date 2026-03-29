@@ -18,7 +18,7 @@
   - [Step 2: Asset Details](#step-2-asset-details)
   - [Step 3: Bond Details (Bonds Only)](#step-3-bond-details-bonds-only)
   - [Step 4: Pricing & Fees](#step-4-pricing--fees)
-  - [Step 5: Supply & Subscription](#step-5-supply--subscription)
+  - [Step 5: Supply & Precision](#step-5-supply--precision)
   - [Step 6: Income Distribution (Non-Bond Assets)](#step-6-income-distribution-non-bond-assets)
   - [Step 7: Tax Configuration](#step-7-tax-configuration)
   - [Step 8: Review & Create](#step-8-review--create)
@@ -169,8 +169,35 @@ Below the summary cards, a table lists all assets:
 ### 2.4 Quick Actions
 
 - Click **"Create Asset"** (top right) to start the creation wizard.
+- Click **"Export Template"** to download an Excel template for bulk asset import.
+- Click **"Import Assets"** to upload a filled template and create multiple assets at once.
 - Click **"Manage"** on any asset row to open its details page.
 
+### 2.5 Bulk Asset Import
+
+If you need to create many assets at once, the Excel import workflow is faster than creating them one by one:
+
+1. **Download the template** — Click the **"Export Template"** button. An `.xlsx` file downloads with:
+   - All column headers matching the asset creation fields
+   - Mandatory columns marked with `*` and highlighted in red
+   - An example row (row 2) showing realistic sample data
+   - Hover over any header cell to see a description of that field
+
+2. **Fill in the template** — Open the file in Excel or Google Sheets:
+   - Keep the header row (row 1) intact
+   - You can delete or keep the example row (it will be skipped during import)
+   - Add one row per asset you want to create
+   - Fill in all mandatory fields (marked with `*`)
+   - Use the dropdown menus for category, income type, frequencies, and boolean fields
+
+3. **Import the file** — Click **"Import Assets"** on the Dashboard:
+   - Select your filled `.xlsx` file
+   - A preview shows all parsed rows with any validation errors highlighted
+   - Click **"Import X Assets"** to start creating them
+   - A progress bar shows how many have been created
+   - Results show success/failure for each row with error details
+
+All imported assets are created in **PENDING** status. You can then review and activate them individually.
 ---
 
 ## 3. Creating a New Asset
@@ -245,14 +272,12 @@ A live **LP Margin** display shows the difference between ask and issuer price i
 | **Min Order Size (units)** | Minimum units per trade |
 | **Min Order Amount (XAF)** | Minimum cash amount per trade |
 
-### Step 5: Supply & Subscription
+### Step 5: Supply & Precision
 
 | Field | Description | Rules |
 |-------|-------------|-------|
 | **Total Supply** | Total units to create | Required. Deposited into LP's asset account. Can mint more later. |
 | **Decimal Places** | Fractional unit precision | Options: 0 (whole units), 2, 4, or 8 |
-| **Subscription Start Date** | When BUY orders become accepted | Required. BUY orders are rejected before this date. |
-| **Subscription End Date** | When BUY orders stop being accepted | Required. SELL is always allowed regardless of this date. |
 | **Lock-up Days** | Minimum holding period after purchase | Optional. 0 or blank = no lock-up. |
 
 A **Supply Summary** box shows: total supply, price per unit, and total market cap.
@@ -312,7 +337,6 @@ A read-only summary shows all the information you entered, organized into cards:
 - Bond Details (if applicable)
 - Pricing & Fees
 - Supply & Precision
-- Subscription Period
 - Income Distribution (if configured)
 - Tax Configuration
 
@@ -373,10 +397,15 @@ The buttons you see depend on the asset's current status:
 2. A dialog opens where you can update:
    - Name, description, image URL
    - Trading fee %, LP ask/bid prices
-   - Subscription dates, exposure limits
+   - Exposure limits
    - Income configuration, tax settings
-3. You **cannot change**: symbol, currency code, issuer price, LP client (these are immutable).
-4. Click **"Save"** to apply changes.
+3. **When the asset is PENDING**, you can also edit:
+   - Issuer price (face value)
+   - Total supply
+   - Issuer name, ISIN code, coupon frequency (bond assets)
+4. You **cannot change**: symbol, currency code, decimal places. To change these, delete the PENDING asset and recreate it.
+5. Once an asset is **ACTIVE or beyond**, the core fields (issuer price, total supply, etc.) become read-only.
+6. Click **"Save"** to apply changes.
 
 ### 4.7 Minting Additional Supply
 
@@ -443,10 +472,6 @@ The Asset Details page displays several information cards:
 **Bond Information** (bonds only):
 
 - Issuer, ISIN, Maturity Date, Coupon Amount per unit, Current Yield, Coupon Frequency, Next Coupon Date, Residual Days until maturity
-
-**Subscription Period:**
-
-- Start and end dates, "Closed" badge if past the end date
 
 **Pricing & Limits:**
 

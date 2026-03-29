@@ -59,6 +59,10 @@ class AssetProvisioningServiceTest {
         lenient().when(resolvedGlAccounts.getExpenseAccountId()).thenReturn(91L);
         lenient().when(resolvedGlAccounts.getAssetIssuancePaymentTypeId()).thenReturn(22L);
         lenient().when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
+
+        // Default: no orphaned Fineract resources
+        lenient().when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
+        lenient().when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
     }
 
     // -------------------------------------------------------------------------
@@ -76,17 +80,24 @@ class AssetProvisioningServiceTest {
         // Look up client display name
         when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test Company");
 
-        // Fineract: find XAF savings product and provision cash account
-        when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
-        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
+        // Fineract: find LP savings products and provision accounts
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
-                .thenReturn(300L);
+                .thenReturn(300L);  // LP settlement (LSAV)
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull()))
+                .thenReturn(350L);  // LP spread (LSPD)
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull()))
+                .thenReturn(360L);  // LP tax (LTAX)
 
         // Fineract: register currency, create product, provision account
-
-        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), eq(47L), eq(65L), eq(48L), eq(87L), eq(91L)))
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong()))
                 .thenReturn(400L);
 
         // Return value for getAssetDetailAdmin
@@ -140,12 +151,12 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
         when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
-        // Settlement product not found
-        when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
-        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(null);
+        // LP settlement product not found
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(null);
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
-        assertTrue(ex.getMessage().contains("Settlement currency savings product"));
+        assertTrue(ex.getMessage().contains("LP settlement savings product"));
     }
 
     @Test
@@ -154,10 +165,18 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
         when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
-        when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
-        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull()))
+                .thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull()))
+                .thenReturn(360L);
 
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenThrow(new RuntimeException("Connection timeout"));
@@ -165,9 +184,7 @@ class AssetProvisioningServiceTest {
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Failed to provision asset"));
         verify(assetRepository, never()).save(any());
-        // productId is null when createSavingsProduct fails, so no product rollback
         verify(fineractClient, never()).deleteSavingsProduct(anyInt());
-        // Currency was registered before product creation, so it should be deregistered
         verify(fineractClient).deregisterCurrency("TST");
     }
 
@@ -177,14 +194,22 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
         when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
-        when(assetServiceConfig.getSettlementCurrencyProductShortName()).thenReturn("VSAV");
-        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull()))
+                .thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull()))
+                .thenReturn(360L);
 
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), eq(22L)))
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong()))
                 .thenThrow(new RuntimeException("Batch API timeout"));
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
@@ -205,12 +230,14 @@ class AssetProvisioningServiceTest {
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
 
         UpdateAssetRequest request = new UpdateAssetRequest(
-                "New Name", null, null, null, null, null, null, null, null,
-                null, null, null, null, // exposure limits
+                "New Name", null, null, null, null, null, null,
+                null, null, null, null, // exposure limits (maxPosition, maxOrder, dailyLimit, lockup)
                 null, null, // min order size/cash
                 null, null, null, null, // income distribution
                 null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
-                null, null, null, null, null, null, null, null, null); // tax config
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null, // tvaEnabled, tvaRate
+                null, null, null, null, null); // PENDING-only fields
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -227,7 +254,102 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+    }
+
+    @Test
+    void updateAsset_pendingAsset_appliesCoreFields() {
+        Asset pending = pendingAsset();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
+
+        UpdateAssetRequest request = new UpdateAssetRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null, // tvaEnabled, tvaRate
+                new BigDecimal("6000"), new BigDecimal("2000"), "New Issuer", "SN0000038741", 6); // PENDING-only
+
+
+        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
+
+        service.updateAsset(ASSET_ID, request);
+
+        verify(assetRepository).save(assetCaptor.capture());
+        Asset saved = assetCaptor.getValue();
+        assertEquals(new BigDecimal("6000"), saved.getIssuerPrice());
+        assertEquals(new BigDecimal("6000"), saved.getManualPrice());
+        assertEquals(new BigDecimal("2000"), saved.getTotalSupply());
+        assertEquals("New Issuer", saved.getIssuerName());
+        assertEquals("SN0000038741", saved.getIsinCode());
+        assertEquals(6, saved.getCouponFrequencyMonths());
+    }
+
+    @Test
+    void updateAsset_activeAsset_rejectsCoreFields() {
+        Asset active = activeAsset();
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(active));
+
+        UpdateAssetRequest request = new UpdateAssetRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null, // tvaEnabled, tvaRate
+                new BigDecimal("6000"), null, null, null, null); // PENDING-only
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
+        assertTrue(ex.getMessage().contains("PENDING"));
+    }
+
+    @Test
+    void updateAsset_pendingAsset_totalSupplyIncrease_depositsToLpAccount() {
+        Asset pending = pendingAsset();
+        pending.setTotalSupply(new BigDecimal("1000"));
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
+        when(resolvedGlAccounts.getAssetIssuancePaymentTypeId()).thenReturn(22L);
+
+        UpdateAssetRequest request = new UpdateAssetRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null, // tvaEnabled, tvaRate
+                null, new BigDecimal("1500"), null, null, null); // PENDING-only
+
+        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
+
+        service.updateAsset(ASSET_ID, request);
+
+        verify(fineractClient).depositToSavingsAccount(eq(LP_ASSET_ACCOUNT), eq(new BigDecimal("500")), eq(22L));
+    }
+
+    @Test
+    void updateAsset_pendingAsset_totalSupplyDecrease_withdrawsFromLpAccount() {
+        Asset pending = pendingAsset();
+        pending.setTotalSupply(new BigDecimal("1000"));
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(pending));
+
+        UpdateAssetRequest request = new UpdateAssetRequest(
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null, null, null, null, // tax
+                null, null, // tvaEnabled, tvaRate
+                null, new BigDecimal("800"), null, null, null); // PENDING-only
+
+        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
+
+        service.updateAsset(ASSET_ID, request);
+
+        verify(fineractClient).withdrawFromSavingsAccount(eq(LP_ASSET_ACCOUNT), eq(new BigDecimal("200")), anyString());
     }
 
     // -------------------------------------------------------------------------
@@ -330,15 +452,15 @@ class AssetProvisioningServiceTest {
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax config
-        );
+                null, null, null, null, null, null, null, null, null, // tax config
+                false, null); // tvaEnabled, tvaRate
+
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Issuer name is required"));
@@ -350,55 +472,18 @@ class AssetProvisioningServiceTest {
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
                 LocalDate.now().plusMonths(5),
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax config
-        );
+                null, null, null, null, null, null, null, null, null, // tax config
+                false, null); // tvaEnabled, tvaRate
+
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Coupon frequency must be"));
-    }
-
-    @Test
-    void createAsset_subscriptionEndBeforeStart_throws() {
-        CreateAssetRequest request = new CreateAssetRequest(
-                "Token", "TKN", "TKN", null, null, AssetCategory.STOCKS,
-                new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1),
-                LP_CLIENT_ID,
-                null, null, null, null, // exposure limits
-                null, null, // min order size/cash
-                null, null, null, null, null, null, // bond fields
-                null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax config
-        );
-
-        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
-        assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
-    }
-
-    @Test
-    void updateAsset_subscriptionEndBeforeStart_throws() {
-        Asset existing = activeAsset();
-        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(existing));
-
-        UpdateAssetRequest request = new UpdateAssetRequest(
-                null, null, null, null, null, null, null,
-                LocalDate.now().plusYears(1), LocalDate.now().minusDays(1),
-                null, null, null, null, // exposure limits
-                null, null, // min order size/cash
-                null, null, null, null, // income distribution
-                null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
-                null, null, null, null, null, null, null, null, null); // tax config
-
-        AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
-        assertTrue(ex.getMessage().contains("Subscription end date must be on or after the start date"));
     }
 
     // -------------------------------------------------------------------------
@@ -474,15 +559,15 @@ class AssetProvisioningServiceTest {
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1), LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax config
-        );
+                null, null, null, null, null, null, null, null, null, // tax config
+                false, null); // tvaEnabled, tvaRate
+
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Maturity date must be in the future"));

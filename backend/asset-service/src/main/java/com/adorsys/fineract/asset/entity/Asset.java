@@ -92,10 +92,6 @@ public class Asset {
     @Column(name = "issuer_price", precision = 20, scale = 8)
     private BigDecimal issuerPrice;
 
-    /** Start of the issuance/subscription period. Informational only — does not restrict trading. */
-    @Column(name = "subscription_start_date", nullable = false)
-    private LocalDate subscriptionStartDate;
-
     // ── Exposure limits (all nullable — null means no limit) ───────────────
 
     /** Maximum percentage of totalSupply a single user can hold (e.g. 10.00 = 10%). */
@@ -165,10 +161,6 @@ public class Asset {
     /** Next scheduled coupon payment date. Auto-advanced by InterestPaymentScheduler after each payment. */
     @Column(name = "next_coupon_date")
     private LocalDate nextCouponDate;
-
-    /** End of the issuance/subscription period. Informational only — does not restrict trading. */
-    @Column(name = "subscription_end_date", nullable = false)
-    private LocalDate subscriptionEndDate;
 
     // ── Delisting fields ─────────────────────────────────────────────────────
 
@@ -247,6 +239,19 @@ public class Asset {
     /** Fineract savings account ID where the LP collects spread income (margin). */
     @Column(name = "lp_spread_account_id")
     private Long lpSpreadAccountId;
+
+    /** Fineract savings account ID where tax is withheld from the LP on sell transactions. */
+    @Column(name = "lp_tax_account_id")
+    private Long lpTaxAccountId;
+
+    /** Whether TVA (VAT) is enabled for this asset. */
+    @Column(name = "tva_enabled")
+    @Builder.Default
+    private Boolean tvaEnabled = false;
+
+    /** TVA rate override for this asset. Null = use global default. */
+    @Column(name = "tva_rate", precision = 5, scale = 4)
+    private BigDecimal tvaRate;
 
     /** Timestamp when this asset record was created. Set automatically, never updated. */
     @Column(name = "created_at", nullable = false, updatable = false)

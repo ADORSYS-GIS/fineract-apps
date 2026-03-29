@@ -133,9 +133,11 @@ public class NotificationService {
             createNotification(event.userId(), "LP_SHORTFALL", title, body,
                     event.assetId(), "ASSET");
         } else {
-            // For broadcast, just log — controller can be used to query
+            // Broadcast to admins — persist notification for admin notification feed
             log.warn("LP cash shortfall detected for {}: shortfall={} XAF",
                     event.assetSymbol(), event.shortfall().toPlainString());
+            createNotification(null, "LP_SHORTFALL", title, body,
+                    event.assetId(), "ASSET");
         }
     }
 

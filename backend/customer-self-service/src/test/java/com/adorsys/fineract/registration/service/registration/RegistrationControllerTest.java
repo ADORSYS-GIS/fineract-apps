@@ -46,8 +46,7 @@ class RegistrationControllerTest {
         validRequest = new RegistrationRequest();
         validRequest.setEmail("test@example.com");
         validRequest.setExternalId("external-id-123");
-        validRequest.setFirstName("John");
-        validRequest.setLastName("Doe");
+        validRequest.setFullName("John Doe");
         validRequest.setPhone("1234567890");
     }
 

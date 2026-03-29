@@ -22,8 +22,6 @@ Feature: Bond Asset Creation
       | interestRate          | 5.80              |
       | couponFrequencyMonths | 6                 |
       | nextCouponDate        | +6m               |
-      | subscriptionStartDate | -1m               |
-      | subscriptionEndDate   | +1y               |
     Then the response status should be 201
     And the response body should contain field "category" with value "BONDS"
     And the response body should contain field "issuerName" with value "Etat du Senegal"

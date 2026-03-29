@@ -23,7 +23,9 @@
 			"orderResolution": "Résolution d'ordres",
 			"reconciliation": "Réconciliation",
 			"scheduledPayments": "Paiements programmés",
-			"lpPerformance": "Performance LP"
+			"lpPerformance": "Performance LP",
+			"accounting": "Comptabilité",
+			"settlement": "Règlement"
 		},
 		"navbar": {
 			"onlineBank": "Banque en ligne"

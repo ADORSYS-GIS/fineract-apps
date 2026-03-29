@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { type AssetResponse, assetApi } from "@/services/assetApi";
+import { exportAssetTemplate } from "@/utils/assetExcelTemplate";
 
 export const useDashboard = () => {
 	const [searchValue, setSearchValue] = useState("");
@@ -40,6 +41,13 @@ export const useDashboard = () => {
 		refetchInterval: 30000,
 	});
 
+	const { data: settlementSummary } = useQuery({
+		queryKey: ["settlement-summary"],
+		queryFn: () => assetApi.getSettlementSummary(),
+		select: (res) => res.data,
+		refetchInterval: 60000,
+	});
+
 	const handleSearch = (value: string) => {
 		setSearchValue(value);
 		setCurrentPage(1);
@@ -74,6 +82,22 @@ export const useDashboard = () => {
 		return filtered;
 	}, [allAssets, categoryFilter, debouncedSearch]);
 
+	const [isImportOpen, setIsImportOpen] = useState(false);
+
+	const onExportTemplate = useCallback(() => {
+		exportAssetTemplate().catch((err) => {
+			console.error("Failed to export template:", err);
+		});
+	}, []);
+
+	const onOpenImport = useCallback(() => {
+		setIsImportOpen(true);
+	}, []);
+
+	const onCloseImport = useCallback(() => {
+		setIsImportOpen(false);
+	}, []);
+
 	return {
 		searchValue,
 		onSearchValueChange: setSearchValue,
@@ -88,6 +112,11 @@ export const useDashboard = () => {
 		onCategoryChange: handleCategoryChange,
 		marketStatus,
 		dashboardSummary,
+		settlementSummary,
 		refetch,
+		isImportOpen,
+		onExportTemplate,
+		onOpenImport,
+		onCloseImport,
 	};
 };

@@ -27,6 +27,9 @@ public class TaxConfig {
     /** External ID of the capital gains tax collection savings account. */
     private String capGainsAccountExternalId = "TAX-CAP-GAINS";
 
+    /** External ID of the TVA (VAT) collection savings account. */
+    private String tvaAccountExternalId = "TAX-TVA";
+
     /** Default registration duty rate (2% = 0.02). */
     private BigDecimal defaultRegistrationDutyRate = new BigDecimal("0.02");
 
@@ -44,4 +47,7 @@ public class TaxConfig {
 
     /** Annual capital gains exemption threshold in XAF. Gains below this are exempt. */
     private BigDecimal capitalGainsAnnualExemption = new BigDecimal("500000");
+
+    /** Default TVA (VAT) rate (19.25% = 0.1925). */
+    private BigDecimal defaultTvaRate = new BigDecimal("0.1925");
 }

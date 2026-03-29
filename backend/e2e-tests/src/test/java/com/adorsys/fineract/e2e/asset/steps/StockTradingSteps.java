@@ -53,8 +53,6 @@ public class StockTradingSteps {
         ));
         request.put("decimalPlaces", 0);
         request.put("lpClientId", FineractInitializer.getLpClientId());
-        request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
         Response createResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)

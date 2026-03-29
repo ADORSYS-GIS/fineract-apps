@@ -105,8 +105,6 @@ export interface AssetResponse {
 	change24hPercent: number;
 	availableSupply: number;
 	totalSupply: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 	// Bond fields (null for non-bond assets)
 	issuerName?: string;
 	isinCode?: string;
@@ -114,7 +112,6 @@ export interface AssetResponse {
 	interestRate?: number;
 	currentYield?: number;
 	residualDays?: number;
-	subscriptionClosed?: boolean;
 	lpName?: string;
 	couponAmountPerUnit?: number;
 }
@@ -142,8 +139,6 @@ export interface AssetDetailResponse {
 	availableSupply: number;
 	tradingFeePercent?: number;
 	decimalPlaces: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 
 	lpClientId: number;
 	lpAssetAccountId?: number;
@@ -183,7 +178,6 @@ export interface AssetDetailResponse {
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
 	residualDays?: number;
-	subscriptionClosed?: boolean;
 	// Tax configuration (Cameroon/CEMAC)
 	registrationDutyEnabled?: boolean;
 	registrationDutyRate?: number;
@@ -207,8 +201,6 @@ export interface CreateAssetRequest {
 	tradingFeePercent?: number;
 	totalSupply: number;
 	decimalPlaces: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 
 	lpClientId: number;
 	// Exposure limits
@@ -250,8 +242,6 @@ export interface UpdateAssetRequest {
 	tradingFeePercent?: number;
 	lpBidPrice?: number;
 	lpAskPrice?: number;
-	subscriptionStartDate?: string;
-	subscriptionEndDate?: string;
 
 	// Exposure limits
 	maxPositionPercent?: number;
@@ -278,6 +268,13 @@ export interface UpdateAssetRequest {
 	ircmExempt?: boolean;
 	capitalGainsTaxEnabled?: boolean;
 	capitalGainsRate?: number;
+
+	// PENDING-only fields (rejected if asset is not PENDING)
+	issuerPrice?: number;
+	totalSupply?: number;
+	issuerName?: string;
+	isinCode?: string;
+	couponFrequencyMonths?: number;
 }
 
 /** Coupon payment audit record (matches backend CouponPaymentResponse). */
@@ -1027,4 +1024,94 @@ export const assetApi = {
 	// LP Performance - Admin
 	getLPPerformance: () =>
 		assetClient.get<LPPerformanceResponse>("/admin/lp/performance"),
+
+	// Accounting - Admin
+	getTrialBalance: (params: {
+		currencyCode?: string;
+		fromDate?: string;
+		toDate?: string;
+	}) =>
+		assetClient.get("/admin/accounting/trial-balance", {
+			params: {
+				...(params.currencyCode && {
+					currencyCode: params.currencyCode,
+				}),
+				...(params.fromDate && { fromDate: params.fromDate }),
+				...(params.toDate && { toDate: params.toDate }),
+			},
+		}),
+	getAccountingCurrencies: () =>
+		assetClient.get<string[]>("/admin/accounting/currencies"),
+
+	// Settlement - Admin
+	getSettlements: (status?: string[]) =>
+		assetClient.get("/admin/settlement", {
+			params: status?.length ? { status: status[0] } : undefined,
+		}),
+	getSettlementSummary: () => assetClient.get("/admin/settlement/summary"),
+	createSettlement: (data: {
+		settlementType: string;
+		amount: number;
+		lpClientId?: number;
+		description?: string;
+		sourceGlCode?: string;
+		destinationGlCode?: string;
+	}) => assetClient.post("/admin/settlement", data),
+	approveSettlement: (id: string) =>
+		assetClient.post(`/admin/settlement/${id}/approve`),
+	executeSettlement: (id: string) =>
+		assetClient.post(`/admin/settlement/${id}/execute`),
+	rejectSettlement: (id: string, reason?: string) =>
+		assetClient.post(`/admin/settlement/${id}/reject`, { reason }),
+	exportSettlementReport: (id: string) =>
+		assetClient.get(`/admin/settlement/${id}/report`, {
+			responseType: "blob",
+		}),
+	getLpBalances: () => assetClient.get("/admin/settlement/lp-balances"),
+	getTrustBalances: () =>
+		assetClient.get<
+			{
+				name: string;
+				glCode: string;
+				debits: number;
+				credits: number;
+				balance: number;
+			}[]
+		>("/admin/settlement/trust-balances"),
+	getRebalanceProposal: (reservePercent?: number) =>
+		assetClient.get<RebalanceProposal>("/admin/settlement/rebalance-proposal", {
+			params: reservePercent != null ? { reservePercent } : undefined,
+		}),
+	executeRebalanceProposal: (transfers: RebalanceProposal["transfers"]) =>
+		assetClient.post("/admin/settlement/rebalance-proposal/execute", {
+			transfers,
+		}),
 };
+
+export interface RebalanceProposal {
+	totalLpOwed: number;
+	totalTaxOwed: number;
+	totalFeesOwed: number;
+	totalOutflowNeeded: number;
+	ubaCurrentBalance: number;
+	afrilandCurrentBalance: number;
+	needInUba: number;
+	needInAfriland: number;
+	momoBalance: number;
+	orangeBalance: number;
+	momoAvailable: number;
+	orangeAvailable: number;
+	totalMobileAvailable: number;
+	reservePercent: number;
+	feasible: boolean;
+	shortfall: number;
+	transfers: {
+		settlementType: string;
+		sourceGlCode: string;
+		sourceName: string;
+		destinationGlCode: string;
+		destinationName: string;
+		amount: number;
+		description: string;
+	}[];
+}

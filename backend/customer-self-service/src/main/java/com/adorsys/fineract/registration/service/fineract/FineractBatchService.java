@@ -2,7 +2,7 @@ package com.adorsys.fineract.registration.service.fineract;
 
 import com.adorsys.fineract.registration.dto.batch.BatchRequest;
 import com.adorsys.fineract.registration.dto.batch.BatchResponse;
-import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.exception.FineractApiException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -35,7 +35,7 @@ public class FineractBatchService {
                     if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
                         String errorMessage = "Batch leg " + response.getRequestId() + " failed with status " + response.getStatusCode() + ": " + response.getBody();
                         log.error(errorMessage);
-                        throw new RegistrationException(errorMessage);
+                        throw new FineractApiException(errorMessage);
                     }
                 }
             }
@@ -45,10 +45,10 @@ public class FineractBatchService {
 
         } catch (HttpClientErrorException e) {
             log.error("Fineract API error: {}", e.getResponseBodyAsString(), e);
-            throw new RegistrationException("Failed to send batch request: " + e.getResponseBodyAsString(), e);
+            throw new FineractApiException("Failed to send batch request: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             log.error("Failed to send batch request: {}", e.getMessage(), e);
-            throw new RegistrationException("Failed to send batch request", e);
+            throw new FineractApiException("Failed to send batch request", e);
         }
     }
 }
