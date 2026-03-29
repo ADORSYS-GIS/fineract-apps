@@ -32,6 +32,13 @@ public class AccountingReportService {
                condition = "#fromDate != null && #toDate != null")
     public TrialBalanceResponse getTrialBalance(String currencyCode, String fromDate, String toDate) {
         String currency = currencyCode != null ? currencyCode : assetServiceConfig.getSettlementCurrency();
+        String settlementCurrency = assetServiceConfig.getSettlementCurrency();
+
+        // GL codes that track asset-denominated units (not settlement currency)
+        Set<String> assetDenominatedGlCodes = Set.of(
+                assetServiceConfig.getGlAccounts().getDigitalAssetInventory(),   // 301
+                assetServiceConfig.getGlAccounts().getCustomerDigitalAssetHoldings() // 4102
+        );
 
         // Fetch all GL accounts from Fineract
         List<Map<String, Object>> allAccounts = fineractClient.getGlAccountsFull();
@@ -61,6 +68,11 @@ public class AccountingReportService {
             Long id = ((Number) acct.get("id")).longValue();
             String code = (String) acct.get("glCode");
             String name = (String) acct.get("name");
+
+            // Skip asset-denominated GL accounts (e.g. 301, 4102) when viewing settlement currency
+            if (settlementCurrency.equals(currency) && assetDenominatedGlCodes.contains(code)) {
+                continue;
+            }
 
             // Extract type
             String type = "UNKNOWN";

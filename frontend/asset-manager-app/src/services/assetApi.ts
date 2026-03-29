@@ -1046,7 +1046,7 @@ export const assetApi = {
 	// Settlement - Admin
 	getSettlements: (status?: string[]) =>
 		assetClient.get("/admin/settlement", {
-			params: status ? { status } : undefined,
+			params: status?.length ? { status: status[0] } : undefined,
 		}),
 	getSettlementSummary: () => assetClient.get("/admin/settlement/summary"),
 	createSettlement: (data: {

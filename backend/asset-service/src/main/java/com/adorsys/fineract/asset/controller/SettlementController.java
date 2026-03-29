@@ -56,9 +56,10 @@ public class SettlementController {
     @Operation(summary = "List settlements", description = "List settlements with optional status filter.")
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public ResponseEntity<Page<Settlement>> list(
-            @RequestParam(required = false) List<String> status,
+            @RequestParam(required = false) String status,
             Pageable pageable) {
-        return ResponseEntity.ok(settlementService.getSettlements(status, pageable));
+        List<String> statuses = (status != null && !status.isBlank()) ? List.of(status) : null;
+        return ResponseEntity.ok(settlementService.getSettlements(statuses, pageable));
     }
 
     @GetMapping("/pending")

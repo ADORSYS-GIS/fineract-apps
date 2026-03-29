@@ -9,7 +9,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import type { FC } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Settlement {
 	id: string;
@@ -216,6 +216,7 @@ export const SettlementView: FC<SettlementViewProps> = ({
 					onSubmit={(data) => createMutation.mutate(data)}
 					onCancel={() => setShowCreateForm(false)}
 					isPending={createMutation.isPending}
+					lpBalances={lpBalances}
 				/>
 			)}
 
@@ -314,7 +315,7 @@ export const SettlementView: FC<SettlementViewProps> = ({
 												)}
 												{s.status === "EXECUTED" && (
 													<a
-														href={`${import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083/api/v1"}/admin/settlement/${s.id}/report`}
+														href={`/api/v1/admin/settlement/${s.id}/report`}
 														target="_blank"
 														rel="noopener noreferrer"
 														className="p-1 text-blue-600 hover:bg-blue-50 rounded inline-block"
@@ -340,6 +341,7 @@ function CreateSettlementForm({
 	onSubmit,
 	onCancel,
 	isPending,
+	lpBalances,
 }: {
 	onSubmit: (data: {
 		settlementType: string;
@@ -351,13 +353,47 @@ function CreateSettlementForm({
 	}) => void;
 	onCancel: () => void;
 	isPending: boolean;
+	lpBalances?: LPBalance[];
 }) {
+	const glDefaults: Record<
+		string,
+		{ source: string; sourceName: string; dest: string; destName: string }
+	> = {
+		LP_PAYOUT: {
+			source: "4011",
+			sourceName: "LP Settlement Control",
+			dest: "5011",
+			destName: "UBA Bank",
+		},
+		TAX_REMITTANCE: {
+			source: "4013",
+			sourceName: "LP Tax Withholding",
+			dest: "5031",
+			destName: "Afriland Tax",
+		},
+		FEE_COLLECTION: {
+			source: "4201",
+			sourceName: "Platform Fee Payable",
+			dest: "5011",
+			destName: "UBA Bank",
+		},
+		TRUST_REBALANCE: { source: "", sourceName: "", dest: "", destName: "" },
+	};
+
 	const [type, setType] = useState("LP_PAYOUT");
 	const [amount, setAmount] = useState("");
 	const [lpClientId, setLpClientId] = useState("");
 	const [description, setDescription] = useState("");
-	const [sourceGl, setSourceGl] = useState("");
-	const [destGl, setDestGl] = useState("");
+	const [sourceGl, setSourceGl] = useState(glDefaults.LP_PAYOUT.source);
+	const [destGl, setDestGl] = useState(glDefaults.LP_PAYOUT.dest);
+
+	useEffect(() => {
+		const defaults = glDefaults[type];
+		if (defaults) {
+			setSourceGl(defaults.source);
+			setDestGl(defaults.dest);
+		}
+	}, [type]);
 
 	return (
 		<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-4">
@@ -402,14 +438,20 @@ function CreateSettlementForm({
 				</div>
 				<div>
 					<label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-						LP Client ID (optional)
+						LP Client
 					</label>
-					<input
-						type="number"
+					<select
 						value={lpClientId}
 						onChange={(e) => setLpClientId(e.target.value)}
 						className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-					/>
+					>
+						<option value="">— All / None —</option>
+						{lpBalances?.map((lp) => (
+							<option key={lp.lpClientId} value={String(lp.lpClientId)}>
+								{lp.lpClientName} ({fmt(lp.unsettledTotal)} XAF)
+							</option>
+						))}
+					</select>
 				</div>
 				<div>
 					<label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
@@ -433,6 +475,11 @@ function CreateSettlementForm({
 						className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
 						placeholder="e.g. 4011"
 					/>
+					{glDefaults[type]?.sourceName && (
+						<span className="text-xs text-gray-400 mt-1 block">
+							{glDefaults[type].sourceName}
+						</span>
+					)}
 				</div>
 				<div>
 					<label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
@@ -445,6 +492,11 @@ function CreateSettlementForm({
 						className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
 						placeholder="e.g. 5011"
 					/>
+					{glDefaults[type]?.destName && (
+						<span className="text-xs text-gray-400 mt-1 block">
+							{glDefaults[type].destName}
+						</span>
+					)}
 				</div>
 			</div>
 			<div className="flex justify-end gap-2">

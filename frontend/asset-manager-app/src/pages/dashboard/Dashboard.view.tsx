@@ -232,12 +232,12 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 									: "Awaiting approval"}
 							</p>
 						</div>
-						<a
-							href="/settlement"
+						<Link
+							to="/settlement"
 							className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm"
 						>
 							View Settlements
-						</a>
+						</Link>
 					</div>
 				)}
 
