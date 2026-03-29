@@ -910,7 +910,7 @@ public class TradingService {
             int updated = assetProjectionRepository.incrementCounters(
                     ctx.getAssetId(), cashVol, spread, fee,
                     regDuty, capGains, tva,
-                    isBuy ? 1L : 0L, isBuy ? 0L : 1L);
+                    isBuy ? 1L : 0L, isBuy ? 0L : 1L, Instant.now());
 
             if (updated == 0) {
                 // First trade for this asset — create projection row

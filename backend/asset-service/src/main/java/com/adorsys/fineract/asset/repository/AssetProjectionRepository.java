@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Repository
 public interface AssetProjectionRepository extends JpaRepository<AssetProjection, String> {
@@ -23,7 +24,7 @@ public interface AssetProjectionRepository extends JpaRepository<AssetProjection
             p.totalTaxTva = p.totalTaxTva + :taxTva,
             p.totalBuyCount = p.totalBuyCount + :buyIncrement,
             p.totalSellCount = p.totalSellCount + :sellIncrement,
-            p.lastUpdatedAt = CURRENT_TIMESTAMP
+            p.lastUpdatedAt = :now
         WHERE p.assetId = :assetId
     """)
     int incrementCounters(
@@ -35,6 +36,7 @@ public interface AssetProjectionRepository extends JpaRepository<AssetProjection
             @Param("taxCapGains") BigDecimal taxCapGains,
             @Param("taxTva") BigDecimal taxTva,
             @Param("buyIncrement") long buyIncrement,
-            @Param("sellIncrement") long sellIncrement
+            @Param("sellIncrement") long sellIncrement,
+            @Param("now") Instant now
     );
 }
