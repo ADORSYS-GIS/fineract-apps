@@ -117,7 +117,7 @@ public class AssetServiceConfig {
         /** Default reserve % to keep in MoMo/Orange for client withdrawals (0.0 to 1.0). */
         private BigDecimal defaultReservePercent = new BigDecimal("0.20");
         /** Minimum transfer amount to include in a proposal (avoids dust entries). */
-        private BigDecimal minTransferAmount = new BigDecimal("100");
+        private BigDecimal minTransferAmount = new BigDecimal("1");
     }
 
     @Data

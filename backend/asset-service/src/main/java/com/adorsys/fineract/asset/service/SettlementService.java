@@ -355,9 +355,10 @@ public class SettlementService {
         boolean feasible = totalAvail.compareTo(totalNeeded) >= 0;
         BigDecimal shortfall = feasible ? BigDecimal.ZERO : totalNeeded.subtract(totalAvail);
 
-        // 6. Build transfers
+        // 6. Build transfers (rebalances + payouts)
         List<RebalanceProposalResponse.ProposedTransfer> transfers = buildProposedTransfers(
-                needInUba, needInAfriland, momoAvail, orangeAvail, totalAvail);
+                needInUba, needInAfriland, momoAvail, orangeAvail, totalAvail,
+                totalLpOwed, taxOwed, feesOwed);
 
         return new RebalanceProposalResponse(
                 totalLpOwed, taxOwed, feesOwed, totalOutflow,
@@ -369,48 +370,69 @@ public class SettlementService {
 
     private List<RebalanceProposalResponse.ProposedTransfer> buildProposedTransfers(
             BigDecimal needInUba, BigDecimal needInAfriland,
-            BigDecimal momoAvail, BigDecimal orangeAvail, BigDecimal totalAvail) {
+            BigDecimal momoAvail, BigDecimal orangeAvail, BigDecimal totalAvail,
+            BigDecimal totalLpOwed, BigDecimal taxOwed, BigDecimal feesOwed) {
 
         List<RebalanceProposalResponse.ProposedTransfer> result = new ArrayList<>();
         BigDecimal minTransfer = assetServiceConfig.getRebalance().getMinTransferAmount();
-        BigDecimal totalNeeded = needInUba.add(needInAfriland);
-
-        if (totalNeeded.compareTo(BigDecimal.ZERO) <= 0 || totalAvail.compareTo(BigDecimal.ZERO) <= 0) {
-            return result;
-        }
 
         String momoGl = assetServiceConfig.getGlAccounts().getMtnMoMo();
         String orangeGl = assetServiceConfig.getGlAccounts().getOrangeMoney();
         String ubaGl = assetServiceConfig.getGlAccounts().getUbaBank();
         String afriGl = assetServiceConfig.getGlAccounts().getTaxPayableFundSource();
 
-        String[] sources = {momoGl, orangeGl};
-        String[] sourceNames = {"MTN Mobile Money", "Orange Money"};
-        BigDecimal[] avails = {momoAvail, orangeAvail};
+        // Step 1: Trust Rebalance transfers (MoMo/Orange → UBA/Afriland)
+        BigDecimal totalNeeded = needInUba.add(needInAfriland);
+        if (totalNeeded.compareTo(BigDecimal.ZERO) > 0 && totalAvail.compareTo(BigDecimal.ZERO) > 0) {
+            String[] sources = {momoGl, orangeGl};
+            String[] sourceNames = {"MTN Mobile Money", "Orange Money"};
+            BigDecimal[] avails = {momoAvail, orangeAvail};
+            String[] dests = {ubaGl, afriGl};
+            String[] destNames = {"UBA Bank", "Afriland Tax"};
+            BigDecimal[] needs = {needInUba, needInAfriland};
 
-        String[] dests = {ubaGl, afriGl};
-        String[] destNames = {"UBA Bank", "Afriland Tax"};
-        BigDecimal[] needs = {needInUba, needInAfriland};
+            for (int s = 0; s < sources.length; s++) {
+                if (avails[s].compareTo(BigDecimal.ZERO) <= 0) continue;
+                BigDecimal sourceProportion = avails[s].divide(totalAvail, 10, java.math.RoundingMode.HALF_UP);
 
-        for (int s = 0; s < sources.length; s++) {
-            if (avails[s].compareTo(BigDecimal.ZERO) <= 0) continue;
-            BigDecimal sourceProportion = totalAvail.compareTo(BigDecimal.ZERO) > 0
-                    ? avails[s].divide(totalAvail, 10, java.math.RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
-
-            for (int d = 0; d < dests.length; d++) {
-                if (needs[d].compareTo(BigDecimal.ZERO) <= 0) continue;
-                BigDecimal amount = needs[d].multiply(sourceProportion)
-                        .setScale(0, java.math.RoundingMode.HALF_UP);
-
-                if (amount.compareTo(minTransfer) >= 0) {
-                    result.add(new RebalanceProposalResponse.ProposedTransfer(
-                            "TRUST_REBALANCE", sources[s], sourceNames[s],
-                            dests[d], destNames[d], amount,
-                            sourceNames[s] + " → " + destNames[d]));
+                for (int d = 0; d < dests.length; d++) {
+                    if (needs[d].compareTo(BigDecimal.ZERO) <= 0) continue;
+                    BigDecimal amount = needs[d].multiply(sourceProportion)
+                            .setScale(0, java.math.RoundingMode.HALF_UP);
+                    if (amount.compareTo(minTransfer) >= 0) {
+                        result.add(new RebalanceProposalResponse.ProposedTransfer(
+                                "TRUST_REBALANCE", sources[s], sourceNames[s],
+                                dests[d], destNames[d], amount,
+                                "Rebalance: " + sourceNames[s] + " → " + destNames[d]));
+                    }
                 }
             }
         }
+
+        // Step 2: LP Payout (clear LP liability via UBA)
+        if (totalLpOwed.compareTo(minTransfer) >= 0) {
+            result.add(new RebalanceProposalResponse.ProposedTransfer(
+                    "LP_PAYOUT", "4011", "LP Settlement Control",
+                    ubaGl, "UBA Bank", totalLpOwed,
+                    "LP Payout: clear LP settlement balance"));
+        }
+
+        // Step 3: Tax Remittance (clear tax liability via Afriland)
+        if (taxOwed.compareTo(minTransfer) >= 0) {
+            result.add(new RebalanceProposalResponse.ProposedTransfer(
+                    "TAX_REMITTANCE", "4013", "LP Tax Withholding",
+                    afriGl, "Afriland Tax", taxOwed,
+                    "Tax Remittance: clear LP tax withholding"));
+        }
+
+        // Step 4: Fee Collection (collect platform fees via UBA)
+        if (feesOwed.compareTo(minTransfer) >= 0) {
+            result.add(new RebalanceProposalResponse.ProposedTransfer(
+                    "FEE_COLLECTION", "4201", "Platform Fee Payable",
+                    ubaGl, "UBA Bank", feesOwed,
+                    "Fee Collection: collect platform fees"));
+        }
+
         return result;
     }
 
