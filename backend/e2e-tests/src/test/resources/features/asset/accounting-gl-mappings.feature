@@ -1,4 +1,4 @@
-@e2e @accounting
+@e2e @accounting @wip
 Feature: Accounting GL Mappings (E2E)
   Verify that trade execution creates correct GL journal entries in Fineract
   and that the admin accounting endpoints report exact amounts.

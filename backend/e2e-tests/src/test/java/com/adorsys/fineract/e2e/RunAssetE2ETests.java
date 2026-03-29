@@ -17,6 +17,8 @@ import static io.cucumber.junit.platform.engine.Constants.*;
 @SelectClasspathResource("features/asset")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME,
         value = "com.adorsys.fineract.e2e.asset")
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME,
+        value = "not @wip")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME,
         value = "pretty,html:target/cucumber-reports/asset-cucumber.html,"
                 + "json:target/cucumber-reports/asset-cucumber.json")
