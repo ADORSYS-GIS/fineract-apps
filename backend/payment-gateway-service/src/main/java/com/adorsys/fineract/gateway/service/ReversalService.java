@@ -96,7 +96,7 @@ public class ReversalService {
         return getPaymentTypeId(provider, null);
     }
 
-    Long getPaymentTypeId(PaymentProvider provider, String underlyingProviderHint) {
+    public Long getPaymentTypeId(PaymentProvider provider, String underlyingProviderHint) {
         return switch (provider) {
             case MTN_MOMO -> mtnConfig.getFineractPaymentTypeId();
             case ORANGE_MONEY -> orangeConfig.getFineractPaymentTypeId();

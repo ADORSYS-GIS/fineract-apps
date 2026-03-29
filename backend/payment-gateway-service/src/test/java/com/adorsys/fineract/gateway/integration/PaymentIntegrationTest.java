@@ -129,6 +129,7 @@ class PaymentIntegrationTest {
                 .referenceId("mtn-ref-id")
                 .externalId("mtn-ext-ref-001")
                 .status("SUCCESSFUL")
+                .amount("10000")
                 .financialTransactionId("fin-txn-abc")
                 .build();
 
