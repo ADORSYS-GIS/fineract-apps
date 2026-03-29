@@ -34,10 +34,12 @@ public final class FineractInitializer {
     private static Long testUserClientId;
     private static Long testUserXafAccountId;
     private static Long feeCollectionAccountId;
+    private static Long clearingAccountId;
     private static Long taxAuthorityClientId;
     private static Long taxRegDutyAccountId;
     private static Long taxIrcmAccountId;
     private static Long taxCapGainsAccountId;
+    private static Long taxTvaAccountId;
 
     /** The external ID used for the test user in Fineract (UUID format for payment-gateway compatibility). */
     public static final String TEST_USER_EXTERNAL_ID = "00000000-e2e0-4000-a000-000000000001";
@@ -127,6 +129,11 @@ public final class FineractInitializer {
                 lpClientId, xafSavingsProductId, "PLATFORM-FEE-COLLECT");
         log.info("Fee Collection account: id={}, externalId=PLATFORM-FEE-COLLECT", feeCollectionAccountId);
 
+        // 8b. Create platform-wide Clearing savings account (owned by LP)
+        clearingAccountId = client.provisionSavingsAccount(
+                lpClientId, xafSavingsProductId, "PLATFORM-CLEARING");
+        log.info("Clearing account: id={}, externalId=PLATFORM-CLEARING", clearingAccountId);
+
         // 9. Create DGI Tax Authority client and tax collection savings accounts
         taxAuthorityClientId = client.createClient("DGI", "Tax Authority", "TAX-AUTHORITY");
         taxRegDutyAccountId = client.provisionSavingsAccount(
@@ -135,8 +142,10 @@ public final class FineractInitializer {
                 taxAuthorityClientId, xafSavingsProductId, "TAX-IRCM");
         taxCapGainsAccountId = client.provisionSavingsAccount(
                 taxAuthorityClientId, xafSavingsProductId, "TAX-CAP-GAINS");
-        log.info("Tax Authority client: id={}, accounts: regDuty={}, ircm={}, capGains={}",
-                taxAuthorityClientId, taxRegDutyAccountId, taxIrcmAccountId, taxCapGainsAccountId);
+        taxTvaAccountId = client.provisionSavingsAccount(
+                taxAuthorityClientId, xafSavingsProductId, "TAX-TVA");
+        log.info("Tax Authority client: id={}, accounts: regDuty={}, ircm={}, capGains={}, tva={}",
+                taxAuthorityClientId, taxRegDutyAccountId, taxIrcmAccountId, taxCapGainsAccountId, taxTvaAccountId);
 
         initialized = true;
         log.info("Fineract initialization complete.");
@@ -161,4 +170,6 @@ public final class FineractInitializer {
     public static Long getTaxRegDutyAccountId() { return taxRegDutyAccountId; }
     public static Long getTaxIrcmAccountId() { return taxIrcmAccountId; }
     public static Long getTaxCapGainsAccountId() { return taxCapGainsAccountId; }
+    public static Long getTaxTvaAccountId() { return taxTvaAccountId; }
+    public static Long getClearingAccountId() { return clearingAccountId; }
 }
