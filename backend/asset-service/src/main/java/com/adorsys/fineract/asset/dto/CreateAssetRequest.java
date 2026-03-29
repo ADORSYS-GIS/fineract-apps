@@ -34,10 +34,6 @@ public record CreateAssetRequest(
     @NotNull @Positive BigDecimal lpAskPrice,
     /** LP's bid price (what investors receive when selling). Must be <= lpAskPrice. */
     @NotNull @Positive BigDecimal lpBidPrice,
-    /** Start of the subscription period. BUY orders rejected before this date. */
-    @NotNull LocalDate subscriptionStartDate,
-    /** End of the subscription period. BUY orders rejected after this date; SELL always allowed. */
-    @NotNull LocalDate subscriptionEndDate,
     /** Fineract client ID of the liquidity partner (reseller) that will hold this asset's inventory. */
     @NotNull Long lpClientId,
 

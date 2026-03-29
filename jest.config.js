@@ -16,6 +16,7 @@ export default {
 		"^@fineract-apps/(.*)$": "<rootDir>/packages/$1/src",
 		"\\.(svg)$": "<rootDir>/__mocks__/svgMock.js",
 		"react-i18next": "<rootDir>/__mocks__/react-i18next.js",
+		"^@/(.*)$": "<rootDir>/frontend/asset-manager-app/src/$1",
 	},
 	setupFilesAfterEnv: ["@testing-library/jest-dom"],
 	testPathIgnorePatterns: ["/node_modules/", "/dist/"],

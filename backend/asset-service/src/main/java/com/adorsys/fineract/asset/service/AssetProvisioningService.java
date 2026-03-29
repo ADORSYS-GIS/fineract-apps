@@ -24,6 +24,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -56,17 +57,33 @@ public class AssetProvisioningService {
     @Transactional
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public AssetDetailResponse createAsset(CreateAssetRequest request) {
-        // Validate uniqueness
+        // Auto-derive currencyCode from symbol if not provided
+        String effectiveCurrencyCode = (request.currencyCode() != null && !request.currencyCode().isBlank())
+                ? request.currencyCode() : request.symbol();
+
+        // Validate uniqueness in local DB
         if (assetRepository.findBySymbol(request.symbol()).isPresent()) {
             throw new AssetException("Symbol already exists: " + request.symbol());
         }
-        if (assetRepository.findByCurrencyCode(request.currencyCode()).isPresent()) {
-            throw new AssetException("Currency code already exists: " + request.currencyCode());
+        if (assetRepository.findByCurrencyCode(effectiveCurrencyCode).isPresent()) {
+            throw new AssetException("Currency code already exists: " + effectiveCurrencyCode);
         }
 
-        // Validate subscription dates
-        if (request.subscriptionEndDate().isBefore(request.subscriptionStartDate())) {
-            throw new AssetException("Subscription end date must be on or after the start date");
+        // Check Fineract for orphaned resources (from previously failed creations)
+        Integer existingProduct = fineractClient.findSavingsProductByShortName(request.symbol());
+        if (existingProduct != null) {
+            throw new AssetException("A savings product with symbol '" + request.symbol()
+                    + "' already exists in the core banking system (product ID: " + existingProduct
+                    + "). This may be from a previously failed creation. Please use a different symbol "
+                    + "or clean up the orphaned product.");
+        }
+        List<Map<String, Object>> currencies = fineractClient.getExistingCurrencies();
+        boolean currencyExists = currencies.stream()
+                .anyMatch(c -> effectiveCurrencyCode.equals(c.get("code")));
+        if (currencyExists) {
+            throw new AssetException("A currency with code '" + effectiveCurrencyCode
+                    + "' is already registered in the core banking system. "
+                    + "This may be from a previously failed creation.");
         }
 
         // Validate bid/ask spread before provisioning Fineract resources
@@ -81,7 +98,7 @@ public class AssetProvisioningService {
         }
 
         String assetId = UUID.randomUUID().toString();
-        log.info("Creating asset: id={}, symbol={}, currency={}", assetId, request.symbol(), request.currencyCode());
+        log.info("Creating asset: id={}, symbol={}, currency={}", assetId, request.symbol(), effectiveCurrencyCode);
 
         // Look up LP client display name (best-effort, non-blocking)
         String lpClientName = fineractClient.getClientDisplayName(request.lpClientId());
@@ -109,14 +126,14 @@ public class AssetProvisioningService {
             log.info("Created LP spread collection account: {}", lpSpreadAccountId);
 
             // Step 2: Register custom currency in Fineract
-            fineractClient.registerCurrencies(List.of(request.currencyCode()));
-            log.info("Registered currency: {}", request.currencyCode());
+            fineractClient.registerCurrencies(List.of(effectiveCurrencyCode));
+            log.info("Registered currency: {}", effectiveCurrencyCode);
 
             // Step 3: Create savings product (using resolved DB IDs, not GL codes)
             productId = fineractClient.createSavingsProduct(
                     request.name() + " Token",
                     request.symbol(),
-                    request.currencyCode(),
+                    effectiveCurrencyCode,
                     request.decimalPlaces(),
                     resolvedGlAccounts.getDigitalAssetInventoryId(),
                     resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
@@ -136,10 +153,10 @@ public class AssetProvisioningService {
                     lpAssetAccountId, request.totalSupply());
 
         } catch (AssetException e) {
-            rollbackFineractResources(productId, request.currencyCode(), assetId);
+            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpAssetAccountId, assetId);
             throw e;
         } catch (Exception e) {
-            rollbackFineractResources(productId, request.currencyCode(), assetId);
+            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpAssetAccountId, assetId);
             log.error("Fineract provisioning failed for asset {}: {}. productId={}.",
                     assetId, e.getMessage(), productId);
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
@@ -150,7 +167,7 @@ public class AssetProvisioningService {
                 .id(assetId)
                 .fineractProductId(productId)
                 .symbol(request.symbol())
-                .currencyCode(request.currencyCode())
+                .currencyCode(effectiveCurrencyCode)
                 .name(request.name())
                 .description(request.description())
                 .imageUrl(request.imageUrl())
@@ -163,8 +180,6 @@ public class AssetProvisioningService {
                 .totalSupply(request.totalSupply())
                 .circulatingSupply(BigDecimal.ZERO)
                 .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
-                .subscriptionStartDate(request.subscriptionStartDate())
-                .subscriptionEndDate(request.subscriptionEndDate())
                 .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
@@ -229,11 +244,14 @@ public class AssetProvisioningService {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
 
-        // Validate subscription dates if provided
-        if (request.subscriptionEndDate() != null && request.subscriptionStartDate() != null) {
-            if (request.subscriptionEndDate().isBefore(request.subscriptionStartDate())) {
-                throw new AssetException("Subscription end date must be on or after the start date");
-            }
+        // PENDING-only fields: reject early before any mutations
+        boolean hasPendingOnlyField = request.issuerPrice() != null || request.totalSupply() != null
+                || request.issuerName() != null || request.isinCode() != null
+                || request.couponFrequencyMonths() != null;
+
+        if (hasPendingOnlyField && asset.getStatus() != AssetStatus.PENDING) {
+            throw new AssetException("Fields issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths "
+                    + "can only be changed when asset is PENDING. Current status: " + asset.getStatus());
         }
 
         if (request.name() != null) asset.setName(request.name());
@@ -244,8 +262,6 @@ public class AssetProvisioningService {
         }
         if (request.category() != null) asset.setCategory(request.category());
         if (request.tradingFeePercent() != null) asset.setTradingFeePercent(request.tradingFeePercent());
-        if (request.subscriptionStartDate() != null) asset.setSubscriptionStartDate(request.subscriptionStartDate());
-        if (request.subscriptionEndDate() != null) asset.setSubscriptionEndDate(request.subscriptionEndDate());
         if (request.interestRate() != null) asset.setInterestRate(request.interestRate());
         if (request.maturityDate() != null) asset.setMaturityDate(request.maturityDate());
         if (request.nextCouponDate() != null) asset.setNextCouponDate(request.nextCouponDate());
@@ -274,6 +290,36 @@ public class AssetProvisioningService {
         if (request.capitalGainsRate() != null) asset.setCapitalGainsRate(request.capitalGainsRate());
         if (request.isBvmacListed() != null) asset.setIsBvmacListed(request.isBvmacListed());
         if (request.isGovernmentBond() != null) asset.setIsGovernmentBond(request.isGovernmentBond());
+
+        // Apply PENDING-only field mutations
+        if (hasPendingOnlyField) {
+            if (request.issuerPrice() != null) {
+                asset.setIssuerPrice(request.issuerPrice());
+                asset.setManualPrice(request.issuerPrice());
+            }
+            if (request.totalSupply() != null) {
+                BigDecimal oldSupply = asset.getTotalSupply();
+                BigDecimal newSupply = request.totalSupply();
+                asset.setTotalSupply(newSupply);
+
+                // Adjust LP asset account balance to match new total supply
+                if (asset.getLpAssetAccountId() != null && oldSupply != null) {
+                    BigDecimal delta = newSupply.subtract(oldSupply);
+                    if (delta.compareTo(BigDecimal.ZERO) > 0) {
+                        fineractClient.depositToSavingsAccount(
+                                asset.getLpAssetAccountId(), delta,
+                                resolvedGlAccounts.getAssetIssuancePaymentTypeId());
+                    } else if (delta.compareTo(BigDecimal.ZERO) < 0) {
+                        fineractClient.withdrawFromSavingsAccount(
+                                asset.getLpAssetAccountId(), delta.abs(),
+                                "Supply adjustment: burn " + delta.abs() + " units for " + asset.getSymbol());
+                    }
+                }
+            }
+            if (request.issuerName() != null) asset.setIssuerName(request.issuerName());
+            if (request.isinCode() != null) asset.setIsinCode(request.isinCode());
+            if (request.couponFrequencyMonths() != null) asset.setCouponFrequencyMonths(request.couponFrequencyMonths());
+        }
 
         assetRepository.save(asset);
 
@@ -510,8 +556,34 @@ public class AssetProvisioningService {
      * Best-effort rollback of Fineract resources created during provisioning.
      * Follows the same pattern as RegistrationService.rollback().
      */
-    private void rollbackFineractResources(Integer productId, String currencyCode, String assetId) {
+    private void rollbackFineractResources(Integer productId, String currencyCode,
+                                           Long lpCashAccountId, Long lpSpreadAccountId,
+                                           Long lpAssetAccountId, String assetId) {
         log.info("Rolling back Fineract resources for asset {}...", assetId);
+
+        // Close LP accounts (best-effort, same pattern as cleanupFineractResources)
+        for (Long accountId : new Long[]{lpAssetAccountId, lpCashAccountId, lpSpreadAccountId}) {
+            if (accountId != null) {
+                try {
+                    BigDecimal balance = fineractClient.getAccountBalance(accountId);
+                    if (balance != null && balance.compareTo(BigDecimal.ZERO) > 0) {
+                        fineractClient.withdrawFromSavingsAccount(accountId, balance,
+                                "Rollback: withdraw for asset " + assetId);
+                    }
+                } catch (Exception e) {
+                    log.warn("Rollback: failed to withdraw from account {} for asset {}: {}",
+                            accountId, assetId, e.getMessage());
+                }
+                try {
+                    fineractClient.closeSavingsAccount(accountId,
+                            "Rollback: close account for asset " + assetId);
+                } catch (Exception e) {
+                    log.warn("Rollback: failed to close account {} for asset {}: {}",
+                            accountId, assetId, e.getMessage());
+                }
+            }
+        }
+
         if (productId != null) {
             fineractClient.deleteSavingsProduct(productId);
         }

@@ -92,10 +92,6 @@ public class Asset {
     @Column(name = "issuer_price", precision = 20, scale = 8)
     private BigDecimal issuerPrice;
 
-    /** Start of the subscription period. BUY orders are rejected before this date. */
-    @Column(name = "subscription_start_date", nullable = false)
-    private LocalDate subscriptionStartDate;
-
     // ── Exposure limits (all nullable — null means no limit) ───────────────
 
     /** Maximum percentage of totalSupply a single user can hold (e.g. 10.00 = 10%). */
@@ -165,10 +161,6 @@ public class Asset {
     /** Next scheduled coupon payment date. Auto-advanced by InterestPaymentScheduler after each payment. */
     @Column(name = "next_coupon_date")
     private LocalDate nextCouponDate;
-
-    /** End of the subscription period. BUY orders are rejected after this date; SELL is always allowed. */
-    @Column(name = "subscription_end_date", nullable = false)
-    private LocalDate subscriptionEndDate;
 
     // ── Delisting fields ─────────────────────────────────────────────────────
 
