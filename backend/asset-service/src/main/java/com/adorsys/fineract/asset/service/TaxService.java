@@ -214,7 +214,7 @@ public class TaxService {
      * @return TVA amount (0 if disabled on this asset)
      */
     public BigDecimal calculateTva(Asset asset, BigDecimal transactionValue) {
-        if (!Boolean.TRUE.equals(asset.getTvaEnabled())) {
+        if (!Boolean.TRUE.equals(asset.isTvaEnabled())) {
             return BigDecimal.ZERO;
         }
         BigDecimal rate = asset.getTvaRate() != null
@@ -225,7 +225,7 @@ public class TaxService {
 
     /** Get the effective TVA rate for an asset. */
     public BigDecimal getTvaRate(Asset asset) {
-        if (!Boolean.TRUE.equals(asset.getTvaEnabled())) {
+        if (!Boolean.TRUE.equals(asset.isTvaEnabled())) {
             return BigDecimal.ZERO;
         }
         return asset.getTvaRate() != null

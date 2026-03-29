@@ -336,7 +336,7 @@ public class AssetProvisioningService {
         if (request.isBvmacListed() != null) asset.setIsBvmacListed(request.isBvmacListed());
         if (request.isGovernmentBond() != null) asset.setIsGovernmentBond(request.isGovernmentBond());
         if (request.tvaEnabled() != null) {
-            log.info("[TAX_CONFIG_CHANGE] asset={}, field=tvaEnabled, old={}, new={}", assetId, asset.getTvaEnabled(), request.tvaEnabled());
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=tvaEnabled, old={}, new={}", assetId, asset.isTvaEnabled(), request.tvaEnabled());
             asset.setTvaEnabled(request.tvaEnabled());
         }
         if (request.tvaRate() != null) {
