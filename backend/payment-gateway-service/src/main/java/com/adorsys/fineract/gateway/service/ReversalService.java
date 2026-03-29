@@ -66,7 +66,7 @@ public class ReversalService {
             txn.getAmount(), txn.getAccountId(), ex);
 
         try {
-            deadLetterRepository.save(new ReversalDeadLetter(
+            ReversalDeadLetter dlq = new ReversalDeadLetter(
                 txn.getTransactionId(),
                 txn.getFineractTransactionId(),
                 txn.getAccountId(),
@@ -74,7 +74,10 @@ public class ReversalService {
                 txn.getCurrency(),
                 txn.getProvider(),
                 truncate(ex.getMessage(), 500)
-            ));
+            );
+            // For CinetPay, persist underlying provider hint for correct GL mapping on DLQ retry
+            dlq.setProviderHint(txn.getNotifToken());
+            deadLetterRepository.save(dlq);
         } catch (Exception dlqEx) {
             log.error("CRITICAL: Failed to persist reversal to dead-letter queue! transactionId={}",
                 txn.getTransactionId(), dlqEx);

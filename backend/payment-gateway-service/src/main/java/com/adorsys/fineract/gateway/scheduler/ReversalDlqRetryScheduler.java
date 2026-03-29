@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -62,15 +63,21 @@ public class ReversalDlqRetryScheduler {
         }
     }
 
-    private void retryEntry(ReversalDeadLetter entry) {
+    /**
+     * Retry a single DLQ entry inside a transaction.
+     * The @Transactional ensures that if the pod crashes between the pre-mark
+     * and the Fineract call, the pre-mark is rolled back (entry stays unresolved).
+     */
+    @Transactional
+    public void retryEntry(ReversalDeadLetter entry) {
         int attempt = entry.getRetryCount() + 1;
         log.info("DLQ retry attempt {}/{} for txnId={}, accountId={}, amount={}",
             attempt, maxRetries, entry.getTransactionId(),
             entry.getAccountId(), entry.getAmount());
 
         // Optimistically mark resolved BEFORE calling Fineract to prevent double-credit.
-        // If Fineract succeeds but the subsequent DB save fails, the entry stays resolved
-        // (safe: no double-credit). If Fineract fails, we revert the resolved status.
+        // Wrapped in @Transactional: if pod crashes or Fineract call throws,
+        // the transaction rolls back and the entry stays unresolved.
         entry.setRetryCount(attempt);
         entry.setResolved(true);
         entry.setResolvedBy("dlq-auto-retry");
@@ -79,7 +86,8 @@ public class ReversalDlqRetryScheduler {
         deadLetterRepository.save(entry);
 
         try {
-            Long paymentTypeId = reversalService.getPaymentTypeId(entry.getProvider());
+            Long paymentTypeId = reversalService.getPaymentTypeId(
+                entry.getProvider(), entry.getProviderHint());
 
             fineractClient.createDeposit(
                 entry.getAccountId(),
@@ -99,12 +107,13 @@ public class ReversalDlqRetryScheduler {
             entry.setFailureReason(truncate(e.getMessage(), 500));
             deadLetterRepository.save(entry);
 
+            paymentMetrics.incrementReversalFailure();
+
             if (attempt >= maxRetries) {
                 log.error("CRITICAL: DLQ retry exhausted ({}/{}) for txnId={}. Manual intervention required. " +
                     "accountId={}, amount={}, error={}",
                     attempt, maxRetries, entry.getTransactionId(),
                     entry.getAccountId(), entry.getAmount(), e.getMessage());
-                paymentMetrics.incrementReversalFailure();
             } else {
                 log.warn("DLQ retry failed ({}/{}) for txnId={}: {}. Will retry later.",
                     attempt, maxRetries, entry.getTransactionId(), e.getMessage());

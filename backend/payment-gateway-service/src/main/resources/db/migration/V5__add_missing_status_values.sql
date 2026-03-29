@@ -2,6 +2,9 @@
 -- The PaymentStatus enum has 7 values but V1 only allowed 4.
 -- This caused the StaleTransactionCleanupScheduler to fail with a constraint violation
 -- whenever it tried to set a transaction to EXPIRED.
-ALTER TABLE payment_transactions DROP CONSTRAINT chk_status;
+-- Wrapped in explicit transaction: if ADD fails, DROP is rolled back too.
+BEGIN;
+ALTER TABLE payment_transactions DROP CONSTRAINT IF EXISTS chk_status;
 ALTER TABLE payment_transactions ADD CONSTRAINT chk_status
   CHECK (status IN ('PENDING', 'PROCESSING', 'SUCCESSFUL', 'FAILED', 'EXPIRED', 'CANCELLED', 'REFUNDED'));
+COMMIT;

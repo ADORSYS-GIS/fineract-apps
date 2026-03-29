@@ -38,6 +38,10 @@ public class ReversalDeadLetter {
     @Column(length = 20, nullable = false)
     private PaymentProvider provider;
 
+    /** Stores underlying provider hint for CinetPay (e.g. "MTN_MOMO", "ORANGE_MONEY") for correct GL mapping */
+    @Column(length = 50)
+    private String providerHint;
+
     @Column(length = 500)
     private String failureReason;
 

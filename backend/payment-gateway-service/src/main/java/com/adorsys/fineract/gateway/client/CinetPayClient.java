@@ -329,7 +329,7 @@ public class CinetPayClient {
                 nullSafe(callback.getDesignation()) +
                 nullSafe(callback.getErrorMessage());
 
-            log.debug("Verifying CinetPay HMAC. Data: {}", dataToSign);
+            log.debug("Verifying CinetPay HMAC for txnId={}, fieldCount=16", callback.getTransactionId());
 
             String generatedToken = generateHmacSha256(dataToSign, config.getSecretKey());
             boolean valid = java.security.MessageDigest.isEqual(

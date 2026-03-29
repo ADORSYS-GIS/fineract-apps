@@ -339,7 +339,16 @@ public class CallbackHandlerDelegate {
      */
     private void verifyCallbackAmount(String callbackAmountStr, PaymentTransaction txn, PaymentProvider provider) {
         if (callbackAmountStr == null || callbackAmountStr.isEmpty()) {
-            return; // Some callbacks don't include amount
+            // MTN and CinetPay always include amount — missing amount is suspicious
+            if (provider == PaymentProvider.MTN_MOMO || provider == PaymentProvider.CINETPAY) {
+                log.error("AMOUNT MISSING in callback for txnId={}, provider={}. Rejecting for safety.",
+                    txn.getTransactionId(), provider);
+                paymentMetrics.incrementCallbackAmountMismatch(provider);
+                throw new PaymentException("Callback amount missing for provider " + provider);
+            }
+            log.warn("Callback amount not provided for txnId={}, provider={}. Skipping amount check.",
+                txn.getTransactionId(), provider);
+            return;
         }
         try {
             BigDecimal callbackAmount = new BigDecimal(callbackAmountStr);

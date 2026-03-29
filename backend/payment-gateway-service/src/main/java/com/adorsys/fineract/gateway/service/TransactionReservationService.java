@@ -90,7 +90,8 @@ public class TransactionReservationService {
         if (!supportsAdvisoryLocks) {
             return;
         }
-        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtext(:externalId))")
+        // Use two-argument form: (namespace, hash) to reduce 32-bit collision risk
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(1, hashtext(:externalId))")
             .setParameter("externalId", externalId)
             .getSingleResult();
     }
