@@ -1068,4 +1068,14 @@ export const assetApi = {
 			responseType: "blob",
 		}),
 	getLpBalances: () => assetClient.get("/admin/settlement/lp-balances"),
+	getTrustBalances: () =>
+		assetClient.get<
+			{
+				name: string;
+				glCode: string;
+				debits: number;
+				credits: number;
+				balance: number;
+			}[]
+		>("/admin/settlement/trust-balances"),
 };

@@ -139,6 +139,13 @@ public class SettlementController {
         return ResponseEntity.ok(settlementService.getLpBalances());
     }
 
+    @GetMapping("/trust-balances")
+    @Operation(summary = "Trust account balances", description = "Physical cash balances in MoMo, Orange, UBA, Afriland trust accounts.")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    public ResponseEntity<?> getTrustBalances() {
+        return ResponseEntity.ok(settlementService.getTrustBalances());
+    }
+
     /** Sanitize a string for CSV output — prevent formula injection (OWASP). */
     private static String sanitizeCsv(String value) {
         if (value == null) return "";

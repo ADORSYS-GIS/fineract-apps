@@ -33,6 +33,12 @@ export const useSettlement = () => {
 		select: (res) => res.data,
 	});
 
+	const { data: trustBalances } = useQuery({
+		queryKey: ["trust-balances"],
+		queryFn: () => assetApi.getTrustBalances(),
+		select: (res) => res.data,
+	});
+
 	const approveMutation = useMutation({
 		mutationFn: (id: string) => assetApi.approveSettlement(id),
 		onSuccess: () => {
@@ -78,6 +84,7 @@ export const useSettlement = () => {
 		settlements,
 		summary,
 		lpBalances,
+		trustBalances,
 		isLoading,
 		isError,
 		refetch,

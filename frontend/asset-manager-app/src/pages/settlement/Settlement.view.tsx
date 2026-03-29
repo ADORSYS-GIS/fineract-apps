@@ -38,10 +38,19 @@ interface LPBalance {
 	assetCount: number;
 }
 
+interface TrustBalance {
+	name: string;
+	glCode: string;
+	debits: number;
+	credits: number;
+	balance: number;
+}
+
 interface SettlementViewProps {
 	settlements?: { content: Settlement[]; totalElements: number };
 	summary?: { pendingCount: number; approvedCount: number; totalCount: number };
 	lpBalances?: LPBalance[];
+	trustBalances?: TrustBalance[];
 	isLoading: boolean;
 	isError: boolean;
 	refetch: () => void;
@@ -90,6 +99,7 @@ export const SettlementView: FC<SettlementViewProps> = ({
 	settlements,
 	summary,
 	lpBalances,
+	trustBalances,
 	isLoading,
 	isError,
 	refetch,
@@ -186,6 +196,33 @@ export const SettlementView: FC<SettlementViewProps> = ({
 								</div>
 								<div className="text-xs text-gray-400">
 									{lp.assetCount} assets
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Trust Account Balances */}
+			{trustBalances && trustBalances.length > 0 && (
+				<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+					<h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">
+						Trust Account Balances
+					</h3>
+					<div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+						{trustBalances.map((t) => (
+							<div
+								key={t.glCode}
+								className="border dark:border-gray-700 rounded-lg p-3"
+							>
+								<div className="font-medium dark:text-white text-sm">
+									{t.name}
+								</div>
+								<div className="text-xs text-gray-400 mt-1">GL {t.glCode}</div>
+								<div
+									className={`text-lg font-bold mt-1 ${t.balance < 0 ? "text-red-500" : "text-green-600"}`}
+								>
+									{fmt(t.balance)} XAF
 								</div>
 							</div>
 						))}

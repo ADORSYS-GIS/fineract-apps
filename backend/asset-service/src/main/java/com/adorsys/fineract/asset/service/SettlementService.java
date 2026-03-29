@@ -4,6 +4,7 @@ import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractClient.BatchJournalEntryOp;
 import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
 import com.adorsys.fineract.asset.config.AdminSecurityCheck;
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.exception.AssetException;
@@ -35,6 +36,7 @@ public class SettlementService {
     private final FineractClient fineractClient;
     private final ResolvedGlAccounts resolvedGlAccounts;
     private final AdminSecurityCheck adminSecurity;
+    private final AssetServiceConfig assetServiceConfig;
     private final com.adorsys.fineract.asset.repository.AssetRepository assetRepository;
 
     @Transactional
@@ -241,6 +243,61 @@ public class SettlementService {
             ));
         }
         return result;
+    }
+
+    /**
+     * Get trust account balances (MoMo, Orange, UBA, Afriland, Tax).
+     * These are the physical cash accounts — helps admin decide how to rebalance.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getTrustBalances() {
+        String currency = assetServiceConfig.getSettlementCurrency();
+        List<Map<String, Object>> accounts = new ArrayList<>();
+
+        addGlBalance(accounts, "MTN Mobile Money", assetServiceConfig.getGlAccounts().getMtnMoMo(),
+                resolvedGlAccounts.getMtnMoMoId(), currency);
+        addGlBalance(accounts, "Orange Money", assetServiceConfig.getGlAccounts().getOrangeMoney(),
+                resolvedGlAccounts.getOrangeMoneyId(), currency);
+        addGlBalance(accounts, "UBA Bank", assetServiceConfig.getGlAccounts().getUbaBank(),
+                resolvedGlAccounts.getUbaBankId(), currency);
+        addGlBalance(accounts, "Afriland Bank", assetServiceConfig.getGlAccounts().getAfrilandBank(),
+                resolvedGlAccounts.getAfrilandBankId(), currency);
+        addGlBalance(accounts, "Afriland Tax", assetServiceConfig.getGlAccounts().getTaxPayableFundSource(),
+                resolvedGlAccounts.getTaxPayableFundSourceId(), currency);
+
+        return accounts;
+    }
+
+    private void addGlBalance(List<Map<String, Object>> accounts, String name, String glCode,
+                                Long glId, String currency) {
+        if (glId == null) return;
+        try {
+            var entries = fineractClient.getJournalEntries(glId, currency, null, null);
+            BigDecimal debits = BigDecimal.ZERO;
+            BigDecimal credits = BigDecimal.ZERO;
+            for (var entry : entries) {
+                BigDecimal amount = entry.get("amount") instanceof Number n
+                        ? BigDecimal.valueOf(n.doubleValue()) : BigDecimal.ZERO;
+                Object entryType = entry.get("entryType");
+                String typeValue = "";
+                if (entryType instanceof Map<?, ?> etMap) {
+                    Object val = etMap.get("value");
+                    if (val != null) typeValue = val.toString();
+                }
+                if ("DEBIT".equalsIgnoreCase(typeValue)) debits = debits.add(amount);
+                else if ("CREDIT".equalsIgnoreCase(typeValue)) credits = credits.add(amount);
+            }
+            BigDecimal balance = debits.subtract(credits);
+            accounts.add(Map.of(
+                    "name", name,
+                    "glCode", glCode,
+                    "debits", debits,
+                    "credits", credits,
+                    "balance", balance
+            ));
+        } catch (Exception e) {
+            log.warn("Failed to fetch trust balance for GL {} ({}): {}", glCode, name, e.getMessage());
+        }
     }
 
 }
