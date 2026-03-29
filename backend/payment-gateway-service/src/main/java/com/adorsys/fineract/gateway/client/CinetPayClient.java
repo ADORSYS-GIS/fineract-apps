@@ -167,7 +167,7 @@ public class CinetPayClient {
             java.util.List<Map<String, Object>> payloadList = java.util.List.of(requestBody);
             String jsonPayload = objectMapper.writeValueAsString(payloadList);
 
-            Map<String, Object> response = WebClient.builder()
+            Map<String, Object> response = this.webClient.mutate()
                 .baseUrl(config.getTransferUrl())
                 .build()
                 .post()
@@ -259,11 +259,17 @@ public class CinetPayClient {
      * @return true if signature is valid
      */
     public boolean validateCallbackSignature(CinetPayCallbackRequest callback) {
-        // Verify site_id matches
-        if (!String.valueOf(config.getSiteId()).equals(callback.getSiteId())) {
-            log.warn("CinetPay callback site_id mismatch: expected={}, received={}",
-                config.getSiteId(), callback.getSiteId());
-            return false;
+        // Transfer callbacks use different fields and don't carry cpm_site_id.
+        // Detect transfer callbacks by the presence of treatment_status.
+        boolean isTransferCallback = callback.getTreatmentStatus() != null;
+
+        // For payment callbacks, verify site_id matches
+        if (!isTransferCallback) {
+            if (!String.valueOf(config.getSiteId()).equals(callback.getSiteId())) {
+                log.warn("CinetPay callback site_id mismatch: expected={}, received={}",
+                    config.getSiteId(), callback.getSiteId());
+                return false;
+            }
         }
 
         // Fail-closed: reject callbacks when secret key is not configured
@@ -273,34 +279,57 @@ public class CinetPayClient {
         }
 
         // Check X-Token presence
-        if (callback.getXToken() == null) {
-            log.warn("CinetPay X-Token header missing. Cannot validate signature.");
+        if (callback.getXToken() == null || callback.getXToken().isEmpty()) {
+            log.warn("CinetPay X-Token header missing for txnId={}", callback.getTransactionId());
             return false;
         }
 
+        // For transfer callbacks, use transfer-specific HMAC formula
+        if (isTransferCallback) {
+            try {
+                String dataToSign = nullSafe(callback.getTransactionId()) +
+                    nullSafe(callback.getAmount()) +
+                    nullSafe(callback.getOperatorTransactionId());
+
+                String expected = generateHmacSha256(dataToSign, config.getSecretKey());
+                boolean valid = java.security.MessageDigest.isEqual(
+                    expected.toLowerCase().getBytes(StandardCharsets.UTF_8),
+                    callback.getXToken().toLowerCase().getBytes(StandardCharsets.UTF_8));
+
+                if (!valid) {
+                    log.error("CinetPay transfer HMAC validation failed for txnId={}", callback.getTransactionId());
+                }
+                return valid;
+            } catch (Exception e) {
+                log.error("Failed to validate CinetPay transfer signature: {}", e.getMessage());
+                return false;
+            }
+        }
+
         try {
-            // Formula: cpm_site_id + cpm_trans_id + cpm_trans_date + cpm_amount + cpm_currency + signature +
+            // Payment callback HMAC formula:
+            // cpm_site_id + cpm_trans_id + cpm_trans_date + cpm_amount + cpm_currency + signature +
             // payment_method + cel_phone_num + cpm_phone_prefixe + cpm_language + cpm_version +
             // cpm_payment_config + cpm_page_action + cpm_custom + cpm_designation + cpm_error_message
-            
-            String dataToSign = callback.getSiteId() +
-                callback.getTransactionId() +
-                callback.getTransactionDate() +
-                callback.getAmount() +
-                callback.getCurrency() +
-                callback.getSignature() +
-                callback.getPaymentMethod() +
-                callback.getPhoneNumber() +
-                callback.getPhonePrefix() +
-                (callback.getLanguage() != null ? callback.getLanguage() : "") +
-                (callback.getVersion() != null ? callback.getVersion() : "") +
-                (callback.getPaymentConfig() != null ? callback.getPaymentConfig() : "") +
-                (callback.getPageAction() != null ? callback.getPageAction() : "") +
-                (callback.getCustomData() != null ? callback.getCustomData() : "") +
-                (callback.getDesignation() != null ? callback.getDesignation() : "") +
-                (callback.getErrorMessage() != null ? callback.getErrorMessage() : "");
 
-            log.debug("Verifying CinetPay HMAC. Data: {}", dataToSign);
+            String dataToSign = nullSafe(callback.getSiteId()) +
+                nullSafe(callback.getTransactionId()) +
+                nullSafe(callback.getTransactionDate()) +
+                nullSafe(callback.getAmount()) +
+                nullSafe(callback.getCurrency()) +
+                nullSafe(callback.getSignature()) +
+                nullSafe(callback.getPaymentMethod()) +
+                nullSafe(callback.getPhoneNumber()) +
+                nullSafe(callback.getPhonePrefix()) +
+                nullSafe(callback.getLanguage()) +
+                nullSafe(callback.getVersion()) +
+                nullSafe(callback.getPaymentConfig()) +
+                nullSafe(callback.getPageAction()) +
+                nullSafe(callback.getCustomData()) +
+                nullSafe(callback.getDesignation()) +
+                nullSafe(callback.getErrorMessage());
+
+            log.debug("Verifying CinetPay HMAC for txnId={}, fieldCount=16", callback.getTransactionId());
 
             String generatedToken = generateHmacSha256(dataToSign, config.getSecretKey());
             boolean valid = java.security.MessageDigest.isEqual(
@@ -328,7 +357,7 @@ public class CinetPayClient {
 
         return tokenCacheService.getToken(cacheKey).orElseGet(() -> {
             try {
-                Map<String, Object> response = WebClient.builder()
+                Map<String, Object> response = this.webClient.mutate()
                     .baseUrl(config.getTransferUrl())
                     .build()
                     .post()
@@ -381,6 +410,10 @@ public class CinetPayClient {
             case "201" -> PaymentStatus.PENDING;
             default -> PaymentStatus.PENDING;
         };
+    }
+
+    private static String nullSafe(String s) {
+        return s != null ? s : "";
     }
 
     private String generateHmacSha256(String data, String key) throws Exception {

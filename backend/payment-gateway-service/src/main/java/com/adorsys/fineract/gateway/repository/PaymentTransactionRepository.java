@@ -32,8 +32,9 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     Optional<PaymentTransaction> findByProviderReferenceForUpdate(@Param("ref") String ref);
 
     /**
-     * Find transaction by ID with pessimistic write lock (SELECT FOR UPDATE).
-     * Used by Orange/CinetPay callback handlers to prevent race conditions.
+     * Find transaction by internal transactionId with pessimistic write lock (SELECT FOR UPDATE).
+     * Used by Orange (orderId = our transactionId) and CinetPay (transaction_id = our transactionId)
+     * callback handlers. MTN uses providerReference instead (findByProviderReferenceForUpdate).
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM PaymentTransaction t WHERE t.transactionId = :id")

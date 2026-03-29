@@ -72,9 +72,4 @@ public class WithdrawalRequest {
     @Size(max = 100, message = "Reference cannot exceed 100 characters")
     private String reference;
 
-    /**
-     * Step-up authentication token (from WebAuthn verification)
-     */
-    @Size(max = 2048, message = "Step-up token is too long")
-    private String stepUpToken;
 }

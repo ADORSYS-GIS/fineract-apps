@@ -2,7 +2,6 @@ package com.adorsys.fineract.gateway.controller;
 
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.service.PaymentService;
-import com.adorsys.fineract.gateway.service.StepUpAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final PaymentService paymentService;
-    private final StepUpAuthService stepUpAuthService;
 
     /**
      * Initiate a deposit (customer pays into their account).
@@ -79,8 +77,6 @@ public class PaymentController {
                 userExternalId, request.getExternalId());
             return ResponseEntity.status(403).build();
         }
-
-        stepUpAuthService.validateStepUpToken(userExternalId, request.getStepUpToken());
 
         PaymentResponse response = paymentService.initiateWithdrawal(request, idempotencyKey);
         return ResponseEntity.ok(response);

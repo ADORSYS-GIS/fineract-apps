@@ -3,7 +3,6 @@ package com.adorsys.fineract.gateway.controller;
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.exception.PaymentException;
 import com.adorsys.fineract.gateway.service.PaymentService;
-import com.adorsys.fineract.gateway.service.StepUpAuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,9 +37,6 @@ class PaymentControllerTest {
 
     @MockBean
     private PaymentService paymentService;
-
-    @MockBean
-    private StepUpAuthService stepUpAuthService;
 
     @MockBean
     private JwtDecoder jwtDecoder;
@@ -200,8 +196,6 @@ class PaymentControllerTest {
                     .andExpect(jsonPath("$.transactionId").value(idempotencyKey))
                     .andExpect(jsonPath("$.status").value("PROCESSING"))
                     .andExpect(jsonPath("$.fineractTransactionId").value(789));
-
-            verify(stepUpAuthService).validateStepUpToken(eq(EXTERNAL_ID), isNull());
         }
 
         @Test

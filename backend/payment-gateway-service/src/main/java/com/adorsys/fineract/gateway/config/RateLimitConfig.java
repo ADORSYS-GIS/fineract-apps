@@ -18,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +45,10 @@ public class RateLimitConfig {
     private static final Duration WINDOW = Duration.ofMinutes(1);
 
     // In-memory fallback buckets (used when Redis is unavailable)
+    // Entries are evicted after 2 minutes to prevent unbounded memory growth during Redis outages
+    private static final int MAX_FALLBACK_BUCKETS = 10_000;
     private final Map<String, Bucket> fallbackBuckets = new ConcurrentHashMap<>();
+    private final Map<String, Instant> fallbackTimestamps = new ConcurrentHashMap<>();
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -121,12 +125,26 @@ public class RateLimitConfig {
         }
 
         private boolean fallbackIsAllowed(String type, String clientId, int limit) {
+            evictStaleFallbackBuckets();
             String key = type + ":" + clientId;
+            fallbackTimestamps.put(key, Instant.now());
             Bucket bucket = fallbackBuckets.computeIfAbsent(key,
                 k -> Bucket.builder()
                     .addLimit(Bandwidth.classic(limit, Refill.greedy(limit, WINDOW)))
                     .build());
             return bucket.tryConsume(1);
+        }
+
+        private void evictStaleFallbackBuckets() {
+            if (fallbackBuckets.size() <= MAX_FALLBACK_BUCKETS) return;
+            Instant cutoff = Instant.now().minus(WINDOW);
+            fallbackTimestamps.entrySet().removeIf(e -> {
+                if (e.getValue().isBefore(cutoff)) {
+                    fallbackBuckets.remove(e.getKey());
+                    return true;
+                }
+                return false;
+            });
         }
 
         private void sendRateLimitResponse(HttpServletResponse response) throws IOException {
@@ -138,14 +156,8 @@ public class RateLimitConfig {
         }
 
         String getIpAddress(HttpServletRequest request) {
-            String xForwardedFor = request.getHeader("X-Forwarded-For");
-            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                return xForwardedFor.split(",")[0].trim();
-            }
-            String xRealIp = request.getHeader("X-Real-IP");
-            if (xRealIp != null && !xRealIp.isEmpty()) {
-                return xRealIp;
-            }
+            // Spring's ForwardedHeaderFilter (enabled via server.forward-headers-strategy=framework)
+            // resolves the correct remote address from trusted proxy headers.
             return request.getRemoteAddr();
         }
 
