@@ -22,7 +22,9 @@ public final class TestDataFactory {
     public static final Long LP_CASH_ACCOUNT = 300L;
     public static final Long LP_ASSET_ACCOUNT = 400L;
     public static final Long LP_SPREAD_ACCOUNT = 500L;
+    public static final Long LP_TAX_ACCOUNT = 360L;
     public static final Long FEE_COLLECTION_ACCOUNT = 999L;
+    public static final Long CLEARING_ACCOUNT = 901L;
     public static final String IDEMPOTENCY_KEY = "idem-key-1";
     public static final Long LP_CLIENT_ID = 1L;
 
@@ -46,6 +48,8 @@ public final class TestDataFactory {
                 .lpCashAccountId(LP_CASH_ACCOUNT)
                 .lpAssetAccountId(LP_ASSET_ACCOUNT)
                 .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
+                .lpTaxAccountId(360L)
+                .tvaEnabled(false)
                 .fineractProductId(10)
                 .createdAt(Instant.now())
                 .build();
@@ -128,7 +132,8 @@ public final class TestDataFactory {
                 null, null, // min order size/cash
                 null, null, null, null, null, null, // bond fields
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax fields
+                null, null, null, null, null, null, null, null, null, // tax fields
+                false, null // tvaEnabled, tvaRate
         );
     }
 
@@ -156,7 +161,8 @@ public final class TestDataFactory {
                 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, true // tax: govt bond
+                null, null, null, null, null, null, null, null, true, // tax: govt bond
+                false, null // tvaEnabled, tvaRate
         );
     }
 

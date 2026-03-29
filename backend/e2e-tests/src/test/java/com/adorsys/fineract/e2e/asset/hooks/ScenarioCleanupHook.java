@@ -35,6 +35,8 @@ public class ScenarioCleanupHook {
         jdbcTemplate.execute("DELETE FROM user_positions");
         jdbcTemplate.execute("DELETE FROM user_favorites");
         jdbcTemplate.execute("DELETE FROM reconciliation_reports");
+        jdbcTemplate.execute("DELETE FROM settlements");
+        jdbcTemplate.execute("DELETE FROM asset_projections");
         jdbcTemplate.execute("DELETE FROM asset_prices");
         jdbcTemplate.execute("DELETE FROM assets");
     }

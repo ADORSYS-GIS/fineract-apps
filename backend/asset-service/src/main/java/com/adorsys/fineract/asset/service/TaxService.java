@@ -164,8 +164,10 @@ public class TaxService {
             cgtExemptionApplied = cgtAmount.compareTo(BigDecimal.ZERO) == 0;
         }
 
-        BigDecimal totalTax = regDutyAmount.add(cgtAmount);
-        return new TaxBreakdown(regDutyRate, regDutyAmount, cgtRate, cgtAmount, totalTax, cgtExemptionApplied);
+        BigDecimal tvaRate = getTvaRate(asset);
+        BigDecimal tvaAmount = calculateTva(asset, grossAmount);
+        BigDecimal totalTax = regDutyAmount.add(cgtAmount).add(tvaAmount);
+        return new TaxBreakdown(regDutyRate, regDutyAmount, cgtRate, cgtAmount, tvaRate, tvaAmount, totalTax, cgtExemptionApplied);
     }
 
     /**
@@ -205,5 +207,34 @@ public class TaxService {
     /** Get the resolved tax collection account ID for capital gains. */
     public Long getCapitalGainsAccountId() {
         return resolvedTaxAccounts.getCapitalGainsAccountId();
+    }
+
+    /**
+     * Calculate TVA (VAT) for a trade.
+     * @return TVA amount (0 if disabled on this asset)
+     */
+    public BigDecimal calculateTva(Asset asset, BigDecimal transactionValue) {
+        if (!Boolean.TRUE.equals(asset.getTvaEnabled())) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal rate = asset.getTvaRate() != null
+                ? asset.getTvaRate()
+                : taxConfig.getDefaultTvaRate();
+        return transactionValue.multiply(rate).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    /** Get the effective TVA rate for an asset. */
+    public BigDecimal getTvaRate(Asset asset) {
+        if (!Boolean.TRUE.equals(asset.getTvaEnabled())) {
+            return BigDecimal.ZERO;
+        }
+        return asset.getTvaRate() != null
+                ? asset.getTvaRate()
+                : taxConfig.getDefaultTvaRate();
+    }
+
+    /** Get the resolved tax collection account ID for TVA. */
+    public Long getTvaAccountId() {
+        return resolvedTaxAccounts.getTvaAccountId();
     }
 }
