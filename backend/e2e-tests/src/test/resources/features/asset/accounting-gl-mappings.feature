@@ -35,8 +35,8 @@ Feature: Accounting GL Mappings (E2E)
     And the filled order fee should be 55
     When the admin requests the trial balance
     Then the response status should be 200
-    And the trial balance GL "88" credits should have increased by 55
-    And the trial balance GL "92" debits should have increased by 220
+    And the trial balance GL "87" credits should have increased by 55
+    And the trial balance GL "91" debits should have increased by 220
 
   Scenario: Fee-tax summary reflects exact amounts after buy trade
     Given an active stock asset "ACF" with fee 0.005 and price 2000 and supply 100
@@ -44,8 +44,8 @@ Feature: Accounting GL Mappings (E2E)
     Then the trade should be FILLED
     When the admin requests the fee and tax summary
     Then the response status should be 200
-    And the fee-tax summary entry for GL "88" should have amount 55
-    And the fee-tax summary entry for GL "92" should have amount 220
+    And the fee-tax summary entry for GL "87" should have amount 55
+    And the fee-tax summary entry for GL "91" should have amount 220
     And the fee-tax summary total should be 275
 
   # -----------------------------------------------------------------
@@ -64,7 +64,7 @@ Feature: Accounting GL Mappings (E2E)
     Then the trade should be FILLED
     When the admin requests the trial balance
     Then the response status should be 200
-    And the trial balance GL "88" credits should have increased by 220
+    And the trial balance GL "87" credits should have increased by 220
 
   # -----------------------------------------------------------------
   # Trial balance with currency filter
@@ -78,7 +78,7 @@ Feature: Accounting GL Mappings (E2E)
     When the admin requests the trial balance for currency "XAF"
     Then the response status should be 200
     And the trial balance currency should be "XAF"
-    And the trial balance GL "88" credits should have increased by 55
+    And the trial balance GL "87" credits should have increased by 55
 
   # -----------------------------------------------------------------
   # SELL trade -> capital gains tax in reports
@@ -129,7 +129,7 @@ Feature: Accounting GL Mappings (E2E)
     When the admin requests the trial balance
     Then the response status should be 200
     # BUY fee: 5*2200*0.005=55, SELL fee: 3*1900*0.005=29 -> total 84 (approximate, rounding may vary)
-    And the trial balance GL "88" credits should have increased by at least 80
+    And the trial balance GL "87" credits should have increased by at least 80
 
   # -----------------------------------------------------------------
   # Double-entry integrity — adapted from gitops Phase 3
@@ -198,8 +198,8 @@ Feature: Accounting GL Mappings (E2E)
     Then the trade should be FILLED
     When the admin requests the fee and tax summary
     Then the response status should be 200
-    And the fee-tax summary entry for GL "92" should have amount greater than 0
-    And the fee-tax summary entry for GL "88" should have amount greater than 0
+    And the fee-tax summary entry for GL "91" should have amount greater than 0
+    And the fee-tax summary entry for GL "87" should have amount greater than 0
 
   # -----------------------------------------------------------------
   # GL 92 (Reg Duty) debits cross-reference with fee-tax summary
@@ -214,7 +214,7 @@ Feature: Accounting GL Mappings (E2E)
     When the admin requests the trial balance
     Then the response status should be 200
     When the admin requests the fee and tax summary
-    And the fee-tax GL "92" debits should match fee-tax summary amount
+    And the fee-tax GL "91" debits should match fee-tax summary amount
 
   # -----------------------------------------------------------------
   # Supply reconciliation via reconciliation endpoint

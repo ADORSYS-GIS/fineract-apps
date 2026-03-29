@@ -45,9 +45,20 @@ public class AdminAccountingController {
     @GetMapping("/fee-tax-summary")
     @Operation(summary = "Fee and tax summary", description = "Summary of fee and tax GL account balances.")
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
-    public ResponseEntity<TrialBalanceResponse> getFeeTaxSummary(
+    public ResponseEntity<java.util.Map<String, Object>> getFeeTaxSummary(
             @RequestParam(required = false) String currencyCode) {
-        return ResponseEntity.ok(accountingReportService.getTrialBalance(currencyCode, null, null));
+        TrialBalanceResponse tb = accountingReportService.getTrialBalance(currencyCode, null, null);
+        java.math.BigDecimal total = tb.getEntries().stream()
+                .filter(e -> !e.isHeader())
+                .map(e -> e.getCreditAmount().add(e.getDebitAmount()))
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        return ResponseEntity.ok(java.util.Map.of(
+                "reportType", "FEE_AND_TAX_SUMMARY",
+                "entries", tb.getEntries(),
+                "totalDebits", tb.getTotalDebits(),
+                "totalCredits", tb.getTotalCredits(),
+                "total", total
+        ));
     }
 
     @GetMapping("/projections")
