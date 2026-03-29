@@ -29,10 +29,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GlAccountResolver implements ApplicationRunner {
 
-    private static final int MAX_RETRIES = 5;
+    private static final int MAX_RETRIES = 20;
 
     /** Initial retry delay in ms. Package-private for testing. */
-    long initialDelayMs = 5_000;
+    long initialDelayMs = 15_000;
 
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
@@ -60,7 +60,7 @@ public class GlAccountResolver implements ApplicationRunner {
                         attempt, MAX_RETRIES, e.getMessage(), delay);
                 if (attempt < MAX_RETRIES) {
                     sleep(delay);
-                    delay *= 2; // exponential backoff
+                    delay = Math.min(delay * 2, 30_000); // exponential backoff, capped at 30s
                 }
             }
         }
