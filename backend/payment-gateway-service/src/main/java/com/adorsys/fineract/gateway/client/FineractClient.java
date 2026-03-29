@@ -227,6 +227,6 @@ public class FineractClient {
 
     private String getBasicAuth() {
         String credentials = config.getUsername() + ":" + config.getPassword();
-        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes());
+        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 }
