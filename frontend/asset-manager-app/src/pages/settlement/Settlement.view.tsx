@@ -1,5 +1,6 @@
 import {
 	Banknote,
+	BarChart3,
 	CheckCircle,
 	Clock,
 	Play,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import type { FC } from "react";
 import { useEffect, useState } from "react";
+import type { RebalanceProposal } from "@/services/assetApi";
 
 interface Settlement {
 	id: string;
@@ -51,6 +53,17 @@ interface SettlementViewProps {
 	summary?: { pendingCount: number; approvedCount: number; totalCount: number };
 	lpBalances?: LPBalance[];
 	trustBalances?: TrustBalance[];
+	showProposal: boolean;
+	setShowProposal: (v: boolean) => void;
+	reservePercent: number;
+	setReservePercent: (v: number) => void;
+	rebalanceProposal?: RebalanceProposal;
+	isProposalLoading: boolean;
+	fetchProposal: () => void;
+	executeRebalanceMutation: {
+		mutate: (transfers: RebalanceProposal["transfers"]) => void;
+		isPending: boolean;
+	};
 	isLoading: boolean;
 	isError: boolean;
 	refetch: () => void;
@@ -100,6 +113,14 @@ export const SettlementView: FC<SettlementViewProps> = ({
 	summary,
 	lpBalances,
 	trustBalances,
+	showProposal,
+	setShowProposal,
+	reservePercent,
+	setReservePercent,
+	rebalanceProposal,
+	isProposalLoading,
+	fetchProposal,
+	executeRebalanceMutation,
 	isLoading,
 	isError,
 	refetch,
@@ -124,6 +145,16 @@ export const SettlementView: FC<SettlementViewProps> = ({
 					</p>
 				</div>
 				<div className="flex gap-2">
+					<button
+						onClick={() => {
+							setShowProposal(true);
+							fetchProposal();
+						}}
+						className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+					>
+						<BarChart3 className="w-4 h-4" />
+						Propose Rebalance
+					</button>
 					<button
 						onClick={() => setShowCreateForm(true)}
 						className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -227,6 +258,184 @@ export const SettlementView: FC<SettlementViewProps> = ({
 							</div>
 						))}
 					</div>
+				</div>
+			)}
+
+			{/* Rebalance Proposal */}
+			{showProposal && (
+				<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-4">
+					<div className="flex items-center justify-between">
+						<h3 className="text-lg font-semibold dark:text-white">
+							Rebalance Proposal
+						</h3>
+						<button
+							onClick={() => setShowProposal(false)}
+							className="text-gray-400 hover:text-gray-600"
+						>
+							<X className="w-5 h-5" />
+						</button>
+					</div>
+
+					<div className="flex items-center gap-4">
+						<label className="text-sm text-gray-500 dark:text-gray-400">
+							Reserve %
+						</label>
+						<input
+							type="range"
+							min={0}
+							max={50}
+							value={reservePercent}
+							onChange={(e) => setReservePercent(Number(e.target.value))}
+							className="w-48"
+						/>
+						<span className="text-sm font-mono dark:text-white">
+							{reservePercent}%
+						</span>
+					</div>
+
+					{isProposalLoading ? (
+						<div className="text-center py-4 text-gray-500">Calculating...</div>
+					) : rebalanceProposal ? (
+						<>
+							<div className="grid grid-cols-2 gap-6">
+								<div>
+									<h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
+										Outflows Needed
+									</h4>
+									<div className="space-y-1 text-sm dark:text-gray-300">
+										<div className="flex justify-between">
+											<span>LP Owed</span>
+											<span>{fmt(rebalanceProposal.totalLpOwed)} XAF</span>
+										</div>
+										<div className="flex justify-between">
+											<span>Tax Owed</span>
+											<span>{fmt(rebalanceProposal.totalTaxOwed)} XAF</span>
+										</div>
+										<div className="flex justify-between">
+											<span>Fees Owed</span>
+											<span>{fmt(rebalanceProposal.totalFeesOwed)} XAF</span>
+										</div>
+										<div className="flex justify-between font-bold border-t pt-1 dark:border-gray-600">
+											<span>Total Outflow</span>
+											<span>
+												{fmt(rebalanceProposal.totalOutflowNeeded)} XAF
+											</span>
+										</div>
+										<div className="flex justify-between text-blue-600 mt-2">
+											<span>Need in UBA (5011)</span>
+											<span>{fmt(rebalanceProposal.needInUba)} XAF</span>
+										</div>
+										<div className="flex justify-between text-blue-600">
+											<span>Need in Afriland (5031)</span>
+											<span>{fmt(rebalanceProposal.needInAfriland)} XAF</span>
+										</div>
+									</div>
+								</div>
+								<div>
+									<h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
+										Mobile Money Sources
+									</h4>
+									<div className="space-y-1 text-sm dark:text-gray-300">
+										<div className="flex justify-between">
+											<span>MTN MoMo (5001)</span>
+											<span>{fmt(rebalanceProposal.momoBalance)} XAF</span>
+										</div>
+										<div className="flex justify-between text-gray-400">
+											<span className="pl-4">
+												Available (after {reservePercent}% reserve)
+											</span>
+											<span>{fmt(rebalanceProposal.momoAvailable)}</span>
+										</div>
+										<div className="flex justify-between">
+											<span>Orange (5002)</span>
+											<span>{fmt(rebalanceProposal.orangeBalance)} XAF</span>
+										</div>
+										<div className="flex justify-between text-gray-400">
+											<span className="pl-4">
+												Available (after {reservePercent}% reserve)
+											</span>
+											<span>{fmt(rebalanceProposal.orangeAvailable)}</span>
+										</div>
+										<div className="flex justify-between font-bold border-t pt-1 dark:border-gray-600">
+											<span>Total Available</span>
+											<span>
+												{fmt(rebalanceProposal.totalMobileAvailable)} XAF
+											</span>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							{rebalanceProposal.feasible ? (
+								<div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-2 text-sm text-green-700 dark:text-green-300">
+									Sufficient funds available
+								</div>
+							) : (
+								<div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-2 text-sm text-red-700 dark:text-red-300">
+									Shortfall: {fmt(rebalanceProposal.shortfall)} XAF — increase
+									reserve or add funds
+								</div>
+							)}
+
+							{rebalanceProposal.transfers.length > 0 && (
+								<>
+									<h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+										Proposed Transfers
+									</h4>
+									<table className="w-full text-sm">
+										<thead>
+											<tr className="text-left text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
+												<th className="pb-2">From</th>
+												<th className="pb-2">To</th>
+												<th className="pb-2 text-right">Amount</th>
+											</tr>
+										</thead>
+										<tbody>
+											{rebalanceProposal.transfers.map((t) => (
+												<tr
+													key={`${t.sourceGlCode}-${t.destinationGlCode}`}
+													className="border-b dark:border-gray-700"
+												>
+													<td className="py-2 dark:text-gray-300">
+														{t.sourceName} ({t.sourceGlCode})
+													</td>
+													<td className="py-2 dark:text-gray-300">
+														{t.destinationName} ({t.destinationGlCode})
+													</td>
+													<td className="py-2 text-right font-mono dark:text-white">
+														{fmt(t.amount)} XAF
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</>
+							)}
+
+							<div className="flex justify-end gap-2">
+								<button
+									onClick={() => setShowProposal(false)}
+									className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+								>
+									Cancel
+								</button>
+								<button
+									onClick={() =>
+										executeRebalanceMutation.mutate(rebalanceProposal.transfers)
+									}
+									disabled={
+										executeRebalanceMutation.isPending ||
+										rebalanceProposal.transfers.length === 0
+									}
+									className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+								>
+									{executeRebalanceMutation.isPending
+										? "Creating..."
+										: `Create ${rebalanceProposal.transfers.length} Settlement(s)`}
+								</button>
+							</div>
+						</>
+					) : null}
 				</div>
 			)}
 

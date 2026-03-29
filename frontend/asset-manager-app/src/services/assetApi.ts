@@ -1078,4 +1078,40 @@ export const assetApi = {
 				balance: number;
 			}[]
 		>("/admin/settlement/trust-balances"),
+	getRebalanceProposal: (reservePercent?: number) =>
+		assetClient.get<RebalanceProposal>("/admin/settlement/rebalance-proposal", {
+			params: reservePercent != null ? { reservePercent } : undefined,
+		}),
+	executeRebalanceProposal: (transfers: RebalanceProposal["transfers"]) =>
+		assetClient.post("/admin/settlement/rebalance-proposal/execute", {
+			transfers,
+		}),
 };
+
+export interface RebalanceProposal {
+	totalLpOwed: number;
+	totalTaxOwed: number;
+	totalFeesOwed: number;
+	totalOutflowNeeded: number;
+	ubaCurrentBalance: number;
+	afrilandCurrentBalance: number;
+	needInUba: number;
+	needInAfriland: number;
+	momoBalance: number;
+	orangeBalance: number;
+	momoAvailable: number;
+	orangeAvailable: number;
+	totalMobileAvailable: number;
+	reservePercent: number;
+	feasible: boolean;
+	shortfall: number;
+	transfers: {
+		settlementType: string;
+		sourceGlCode: string;
+		sourceName: string;
+		destinationGlCode: string;
+		destinationName: string;
+		amount: number;
+		description: string;
+	}[];
+}

@@ -41,6 +41,7 @@ public class AssetServiceConfig {
     private Portfolio portfolio = new Portfolio();
     private QueuedOrders queuedOrders = new QueuedOrders();
     private Quote quote = new Quote();
+    private Rebalance rebalance = new Rebalance();
 
     /** Platform-wide max portfolio exposure per user in XAF. Null = unlimited. */
     private BigDecimal portfolioExposureLimitXaf;
@@ -109,6 +110,14 @@ public class AssetServiceConfig {
         private int maxActivePerUser = 5;
         /** How often to run the expired quote cleanup scheduler, in milliseconds. */
         private long expiryCleanupIntervalMs = 30_000;
+    }
+
+    @Data
+    public static class Rebalance {
+        /** Default reserve % to keep in MoMo/Orange for client withdrawals (0.0 to 1.0). */
+        private BigDecimal defaultReservePercent = new BigDecimal("0.20");
+        /** Minimum transfer amount to include in a proposal (avoids dust entries). */
+        private BigDecimal minTransferAmount = new BigDecimal("100");
     }
 
     @Data

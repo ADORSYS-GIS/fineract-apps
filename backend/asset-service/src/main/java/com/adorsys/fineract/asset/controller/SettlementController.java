@@ -146,6 +146,22 @@ public class SettlementController {
         return ResponseEntity.ok(settlementService.getTrustBalances());
     }
 
+    @GetMapping("/rebalance-proposal")
+    @Operation(summary = "Rebalance proposal", description = "Calculate proposed MoMo/Orange → UBA/Afriland transfers to cover LP, tax, and fee obligations.")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    public ResponseEntity<com.adorsys.fineract.asset.dto.RebalanceProposalResponse> getRebalanceProposal(
+            @RequestParam(required = false) java.math.BigDecimal reservePercent) {
+        return ResponseEntity.ok(settlementService.proposeRebalance(reservePercent));
+    }
+
+    @PostMapping("/rebalance-proposal/execute")
+    @Operation(summary = "Execute rebalance proposal", description = "Batch-create all proposed settlements as PENDING.")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    public ResponseEntity<?> executeRebalanceProposal(
+            @RequestBody com.adorsys.fineract.asset.dto.ExecuteRebalanceRequest request) {
+        return ResponseEntity.ok(settlementService.executeRebalanceProposal(request, "admin"));
+    }
+
     /** Sanitize a string for CSV output — prevent formula injection (OWASP). */
     private static String sanitizeCsv(String value) {
         if (value == null) return "";

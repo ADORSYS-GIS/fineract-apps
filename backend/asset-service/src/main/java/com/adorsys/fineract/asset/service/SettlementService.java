@@ -6,6 +6,8 @@ import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
 import com.adorsys.fineract.asset.config.AdminSecurityCheck;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.dto.ExecuteRebalanceRequest;
+import com.adorsys.fineract.asset.dto.RebalanceProposalResponse;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.SettlementRepository;
@@ -272,32 +274,162 @@ public class SettlementService {
                                 Long glId, String currency) {
         if (glId == null) return;
         try {
-            var entries = fineractClient.getJournalEntries(glId, currency, null, null);
-            BigDecimal debits = BigDecimal.ZERO;
-            BigDecimal credits = BigDecimal.ZERO;
-            for (var entry : entries) {
-                BigDecimal amount = entry.get("amount") instanceof Number n
-                        ? BigDecimal.valueOf(n.doubleValue()) : BigDecimal.ZERO;
-                Object entryType = entry.get("entryType");
-                String typeValue = "";
-                if (entryType instanceof Map<?, ?> etMap) {
-                    Object val = etMap.get("value");
-                    if (val != null) typeValue = val.toString();
-                }
-                if ("DEBIT".equalsIgnoreCase(typeValue)) debits = debits.add(amount);
-                else if ("CREDIT".equalsIgnoreCase(typeValue)) credits = credits.add(amount);
-            }
-            BigDecimal balance = debits.subtract(credits);
+            BigDecimal balance = fetchGlBalance(glId, currency);
             accounts.add(Map.of(
                     "name", name,
                     "glCode", glCode,
-                    "debits", debits,
-                    "credits", credits,
                     "balance", balance
             ));
         } catch (Exception e) {
             log.warn("Failed to fetch trust balance for GL {} ({}): {}", glCode, name, e.getMessage());
         }
+    }
+
+    private BigDecimal fetchGlBalance(Long glId, String currency) {
+        var entries = fineractClient.getJournalEntries(glId, currency, null, null);
+        BigDecimal debits = BigDecimal.ZERO;
+        BigDecimal credits = BigDecimal.ZERO;
+        for (var entry : entries) {
+            BigDecimal amount = entry.get("amount") instanceof Number n
+                    ? BigDecimal.valueOf(n.doubleValue()) : BigDecimal.ZERO;
+            Object entryType = entry.get("entryType");
+            String typeValue = "";
+            if (entryType instanceof Map<?, ?> etMap) {
+                Object val = etMap.get("value");
+                if (val != null) typeValue = val.toString();
+            }
+            if ("DEBIT".equalsIgnoreCase(typeValue)) debits = debits.add(amount);
+            else if ("CREDIT".equalsIgnoreCase(typeValue)) credits = credits.add(amount);
+        }
+        return debits.subtract(credits);
+    }
+
+    private BigDecimal safeGlBalance(Long glId, String currency) {
+        try {
+            return glId != null ? fetchGlBalance(glId, currency) : BigDecimal.ZERO;
+        } catch (Exception e) {
+            log.warn("Failed to fetch GL balance for id {}: {}", glId, e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
+
+    // ── Rebalance Proposal ──
+
+    @Transactional(readOnly = true)
+    public RebalanceProposalResponse proposeRebalance(BigDecimal reservePercent) {
+        if (reservePercent == null) {
+            reservePercent = assetServiceConfig.getRebalance().getDefaultReservePercent();
+        }
+        reservePercent = reservePercent.max(BigDecimal.ZERO).min(new BigDecimal("0.99"));
+        String currency = assetServiceConfig.getSettlementCurrency();
+
+        // 1. LP demand
+        BigDecimal totalLpOwed = BigDecimal.ZERO;
+        for (var lp : getLpBalances()) {
+            totalLpOwed = totalLpOwed
+                    .add((BigDecimal) lp.get("lsavBalance"))
+                    .add((BigDecimal) lp.get("lspdBalance"));
+        }
+
+        // 2. Tax & fee demand (from GL balances — these are liability accounts, balance is negative = owed)
+        BigDecimal taxOwed = safeGlBalance(resolvedGlAccounts.getLpTaxWithholdingId(), currency).abs();
+        BigDecimal feesOwed = safeGlBalance(resolvedGlAccounts.getPlatformFeePayableId(), currency).abs();
+
+        // 3. Current bank balances
+        BigDecimal ubaBalance = safeGlBalance(resolvedGlAccounts.getUbaBankId(), currency);
+        BigDecimal afrilandBalance = safeGlBalance(resolvedGlAccounts.getTaxPayableFundSourceId(), currency);
+
+        // 4. Gap analysis
+        BigDecimal totalOutflow = totalLpOwed.add(feesOwed).add(taxOwed);
+        BigDecimal needInUba = totalLpOwed.add(feesOwed).subtract(ubaBalance).max(BigDecimal.ZERO);
+        BigDecimal needInAfriland = taxOwed.subtract(afrilandBalance).max(BigDecimal.ZERO);
+        BigDecimal totalNeeded = needInUba.add(needInAfriland);
+
+        // 5. Mobile money sources
+        BigDecimal momoBalance = safeGlBalance(resolvedGlAccounts.getMtnMoMoId(), currency);
+        BigDecimal orangeBalance = safeGlBalance(resolvedGlAccounts.getOrangeMoneyId(), currency);
+        BigDecimal momoAvail = momoBalance.subtract(momoBalance.multiply(reservePercent)).max(BigDecimal.ZERO);
+        BigDecimal orangeAvail = orangeBalance.subtract(orangeBalance.multiply(reservePercent)).max(BigDecimal.ZERO);
+        BigDecimal totalAvail = momoAvail.add(orangeAvail);
+
+        boolean feasible = totalAvail.compareTo(totalNeeded) >= 0;
+        BigDecimal shortfall = feasible ? BigDecimal.ZERO : totalNeeded.subtract(totalAvail);
+
+        // 6. Build transfers
+        List<RebalanceProposalResponse.ProposedTransfer> transfers = buildProposedTransfers(
+                needInUba, needInAfriland, momoAvail, orangeAvail, totalAvail);
+
+        return new RebalanceProposalResponse(
+                totalLpOwed, taxOwed, feesOwed, totalOutflow,
+                ubaBalance, afrilandBalance,
+                needInUba, needInAfriland,
+                momoBalance, orangeBalance, momoAvail, orangeAvail, totalAvail,
+                reservePercent, feasible, shortfall, transfers);
+    }
+
+    private List<RebalanceProposalResponse.ProposedTransfer> buildProposedTransfers(
+            BigDecimal needInUba, BigDecimal needInAfriland,
+            BigDecimal momoAvail, BigDecimal orangeAvail, BigDecimal totalAvail) {
+
+        List<RebalanceProposalResponse.ProposedTransfer> result = new ArrayList<>();
+        BigDecimal minTransfer = assetServiceConfig.getRebalance().getMinTransferAmount();
+        BigDecimal totalNeeded = needInUba.add(needInAfriland);
+
+        if (totalNeeded.compareTo(BigDecimal.ZERO) <= 0 || totalAvail.compareTo(BigDecimal.ZERO) <= 0) {
+            return result;
+        }
+
+        String momoGl = assetServiceConfig.getGlAccounts().getMtnMoMo();
+        String orangeGl = assetServiceConfig.getGlAccounts().getOrangeMoney();
+        String ubaGl = assetServiceConfig.getGlAccounts().getUbaBank();
+        String afriGl = assetServiceConfig.getGlAccounts().getTaxPayableFundSource();
+
+        String[] sources = {momoGl, orangeGl};
+        String[] sourceNames = {"MTN Mobile Money", "Orange Money"};
+        BigDecimal[] avails = {momoAvail, orangeAvail};
+
+        String[] dests = {ubaGl, afriGl};
+        String[] destNames = {"UBA Bank", "Afriland Tax"};
+        BigDecimal[] needs = {needInUba, needInAfriland};
+
+        for (int s = 0; s < sources.length; s++) {
+            if (avails[s].compareTo(BigDecimal.ZERO) <= 0) continue;
+            BigDecimal sourceProportion = totalAvail.compareTo(BigDecimal.ZERO) > 0
+                    ? avails[s].divide(totalAvail, 10, java.math.RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+
+            for (int d = 0; d < dests.length; d++) {
+                if (needs[d].compareTo(BigDecimal.ZERO) <= 0) continue;
+                BigDecimal amount = needs[d].multiply(sourceProportion)
+                        .setScale(0, java.math.RoundingMode.HALF_UP);
+
+                if (amount.compareTo(minTransfer) >= 0) {
+                    result.add(new RebalanceProposalResponse.ProposedTransfer(
+                            "TRUST_REBALANCE", sources[s], sourceNames[s],
+                            dests[d], destNames[d], amount,
+                            sourceNames[s] + " → " + destNames[d]));
+                }
+            }
+        }
+        return result;
+    }
+
+    @Transactional
+    public List<Settlement> executeRebalanceProposal(ExecuteRebalanceRequest request, String createdBy) {
+        List<Settlement> created = new ArrayList<>();
+        for (var transfer : request.transfers()) {
+            Settlement s = Settlement.builder()
+                    .settlementType(transfer.settlementType())
+                    .amount(transfer.amount())
+                    .sourceGlCode(transfer.sourceGlCode())
+                    .destinationGlCode(transfer.destinationGlCode())
+                    .description(transfer.description())
+                    .createdBy(createdBy)
+                    .build();
+            created.add(createSettlement(s));
+        }
+        log.info("Rebalance proposal executed: {} settlements created by {}", created.size(), createdBy);
+        return created;
     }
 
 }

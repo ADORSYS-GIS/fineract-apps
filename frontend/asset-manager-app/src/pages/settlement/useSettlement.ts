@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { assetApi } from "@/services/assetApi";
+import { assetApi, type RebalanceProposal } from "@/services/assetApi";
 
 export const useSettlement = () => {
 	const queryClient = useQueryClient();
 	const [statusFilter, setStatusFilter] = useState<string>("ALL");
 	const [showCreateForm, setShowCreateForm] = useState(false);
+	const [showProposal, setShowProposal] = useState(false);
+	const [reservePercent, setReservePercent] = useState(20);
 
 	const {
 		data: settlements,
@@ -37,6 +39,29 @@ export const useSettlement = () => {
 		queryKey: ["trust-balances"],
 		queryFn: () => assetApi.getTrustBalances(),
 		select: (res) => res.data,
+	});
+
+	const {
+		data: rebalanceProposal,
+		isLoading: isProposalLoading,
+		refetch: fetchProposal,
+	} = useQuery({
+		queryKey: ["rebalance-proposal", reservePercent],
+		queryFn: () => assetApi.getRebalanceProposal(reservePercent / 100),
+		select: (res) => res.data,
+		enabled: showProposal,
+	});
+
+	const executeRebalanceMutation = useMutation({
+		mutationFn: (transfers: RebalanceProposal["transfers"]) =>
+			assetApi.executeRebalanceProposal(transfers),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["settlements"] });
+			queryClient.invalidateQueries({ queryKey: ["settlement-summary"] });
+			queryClient.invalidateQueries({ queryKey: ["trust-balances"] });
+			queryClient.invalidateQueries({ queryKey: ["lp-balances"] });
+			setShowProposal(false);
+		},
 	});
 
 	const approveMutation = useMutation({
@@ -85,6 +110,14 @@ export const useSettlement = () => {
 		summary,
 		lpBalances,
 		trustBalances,
+		showProposal,
+		setShowProposal,
+		reservePercent,
+		setReservePercent,
+		rebalanceProposal,
+		isProposalLoading,
+		fetchProposal,
+		executeRebalanceMutation,
 		isLoading,
 		isError,
 		refetch,
