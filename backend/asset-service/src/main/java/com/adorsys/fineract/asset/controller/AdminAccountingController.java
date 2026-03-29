@@ -42,6 +42,14 @@ public class AdminAccountingController {
         return ResponseEntity.ok(accountingReportService.getAvailableCurrencies());
     }
 
+    @GetMapping("/fee-tax-summary")
+    @Operation(summary = "Fee and tax summary", description = "Summary of fee and tax GL account balances.")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    public ResponseEntity<TrialBalanceResponse> getFeeTaxSummary(
+            @RequestParam(required = false) String currencyCode) {
+        return ResponseEntity.ok(accountingReportService.getTrialBalance(currencyCode, null, null));
+    }
+
     @GetMapping("/projections")
     @Operation(summary = "All asset projections", description = "Denormalized per-asset trade volume, spread, fee, and tax totals.")
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")

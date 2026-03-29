@@ -104,7 +104,22 @@ public final class FineractInitializer {
                 glIncomeFromInterestId,   // incomeFromInterestId
                 glExpenseAccountId        // expenseAccountId
         );
-        log.info("Created XAF savings product: id={}", xafSavingsProductId);
+        log.info("Created XAF savings product (VSAV): id={}", xafSavingsProductId);
+
+        // 4b. Create LP savings products (LSAV, LSPD, LTAX) — required for asset provisioning
+        Integer lsavProductId = client.createSavingsProduct(
+                "LP Settlement Account", "LSAV", "XAF", 0,
+                glFundSourceId, glCustomerHoldingsId, glTransfersInSuspenseId,
+                glIncomeFromInterestId, glExpenseAccountId);
+        Integer lspdProductId = client.createSavingsProduct(
+                "LP Spread Account", "LSPD", "XAF", 0,
+                glFundSourceId, glCustomerHoldingsId, glTransfersInSuspenseId,
+                glIncomeFromInterestId, glExpenseAccountId);
+        Integer ltaxProductId = client.createSavingsProduct(
+                "LP Tax Account", "LTAX", "XAF", 0,
+                glFundSourceId, glCustomerHoldingsId, glTransfersInSuspenseId,
+                glIncomeFromInterestId, glExpenseAccountId);
+        log.info("Created LP savings products: LSAV={}, LSPD={}, LTAX={}", lsavProductId, lspdProductId, ltaxProductId);
 
         // 5. Create LP client
         lpClientId = client.createClient("E2E", "LP", null);
