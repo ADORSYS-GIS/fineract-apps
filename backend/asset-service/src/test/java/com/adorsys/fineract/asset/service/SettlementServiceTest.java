@@ -1,6 +1,8 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.config.AdminSecurityCheck;
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.exception.AssetException;
@@ -28,6 +30,8 @@ class SettlementServiceTest {
     @Mock private SettlementRepository settlementRepository;
     @Mock private FineractClient fineractClient;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
+    @Mock private AdminSecurityCheck adminSecurity;
+    @Mock private AssetServiceConfig assetServiceConfig;
 
     @InjectMocks
     private SettlementService settlementService;
@@ -121,6 +125,7 @@ class SettlementServiceTest {
         Settlement approved = Settlement.builder()
                 .id("settle-001")
                 .status("APPROVED")
+                .settlementType("LP_PAYOUT")
                 .sourceGlCode("4011")
                 .destinationGlCode("5011")
                 .amount(new BigDecimal("5000"))

@@ -21,6 +21,10 @@ spring:
           issuer-uri: https://localhost/realms/test
           jwk-set-uri: https://localhost/realms/test/protocol/openid-connect/certs
 
+app:
+  security:
+    permit-all-admin: true
+
 fineract:
   url: https://localhost
   tenant: default
