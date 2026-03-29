@@ -72,6 +72,9 @@ public record AssetDetailResponse(
     /** Fineract savings account ID for the LP's spread income collection. */
     @Schema(description = "LP spread collection account ID.", nullable = true)
     Long lpSpreadAccountId,
+    /** Fineract savings account ID for the LP's tax withholding. */
+    @Schema(description = "LP tax withholding account ID.", nullable = true)
+    Long lpTaxAccountId,
     /** Corresponding Fineract savings product ID. */
     Integer fineractProductId,
     /** Display name of the liquidity partner in Fineract. */
@@ -196,5 +199,9 @@ public record AssetDetailResponse(
     @Schema(description = "Listed on BVMAC.")
     Boolean isBvmacListed,
     @Schema(description = "Government bond (IRCM exempt).")
-    Boolean isGovernmentBond
+    Boolean isGovernmentBond,
+    @Schema(description = "TVA (VAT) enabled for trades.")
+    Boolean tvaEnabled,
+    @Schema(description = "TVA rate override.", nullable = true)
+    BigDecimal tvaRate
 ) {}

@@ -41,6 +41,13 @@ export const useDashboard = () => {
 		refetchInterval: 30000,
 	});
 
+	const { data: settlementSummary } = useQuery({
+		queryKey: ["settlement-summary"],
+		queryFn: () => assetApi.getSettlementSummary(),
+		select: (res) => res.data,
+		refetchInterval: 60000,
+	});
+
 	const handleSearch = (value: string) => {
 		setSearchValue(value);
 		setCurrentPage(1);
@@ -105,6 +112,7 @@ export const useDashboard = () => {
 		onCategoryChange: handleCategoryChange,
 		marketStatus,
 		dashboardSummary,
+		settlementSummary,
 		refetch,
 		isImportOpen,
 		onExportTemplate,

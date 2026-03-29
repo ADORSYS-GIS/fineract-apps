@@ -52,7 +52,7 @@ public class FineractClient {
     /**
      * Sealed interface for operations that can be included in an atomic Fineract batch.
      */
-    public sealed interface BatchOperation permits BatchTransferOp {}
+    public sealed interface BatchOperation permits BatchTransferOp, BatchJournalEntryOp {}
 
     /**
      * Account transfer between two savings accounts.
@@ -60,6 +60,14 @@ public class FineractClient {
     public record BatchTransferOp(
             Long fromAccountId, Long toAccountId,
             BigDecimal amount, String description
+    ) implements BatchOperation {}
+
+    /**
+     * Manual GL journal entry (debit one account, credit another).
+     */
+    public record BatchJournalEntryOp(
+            Long debitGlAccountId, Long creditGlAccountId,
+            BigDecimal amount, String currencyCode, String description
     ) implements BatchOperation {}
 
     /**
@@ -724,8 +732,6 @@ public class FineractClient {
 
             switch (op) {
                 case BatchTransferOp t -> {
-                    // Fineract requires officeId/clientId fields but resolves
-                    // the actual owner from the savings account ID.
                     body = new HashMap<>();
                     body.put("fromOfficeId", 1);
                     body.put("fromClientId", 1);
@@ -741,6 +747,18 @@ public class FineractClient {
                     body.put("locale", "en");
                     body.put("dateFormat", "dd MMMM yyyy");
                     relativeUrl = "accounttransfers";
+                }
+                case BatchJournalEntryOp j -> {
+                    body = new HashMap<>();
+                    body.put("officeId", 1);
+                    body.put("transactionDate", today);
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    body.put("currencyCode", j.currencyCode());
+                    body.put("comments", j.description() != null ? j.description() : "Settlement");
+                    body.put("debits", List.of(Map.of("glAccountId", j.debitGlAccountId(), "amount", j.amount())));
+                    body.put("credits", List.of(Map.of("glAccountId", j.creditGlAccountId(), "amount", j.amount())));
+                    relativeUrl = "journalentries";
                 }
             }
 
@@ -817,6 +835,18 @@ public class FineractClient {
             switch (op) {
                 case BatchTransferOp t -> resourceId = createAccountTransfer(
                         t.fromAccountId(), t.toAccountId(), t.amount(), t.description());
+                case BatchJournalEntryOp j -> {
+                    // Journal entries via sequential fallback — use GL code lookup
+                    Map<String, Long> glCodes = lookupGlAccounts();
+                    String debitCode = glCodes.entrySet().stream()
+                            .filter(e -> e.getValue().equals(j.debitGlAccountId()))
+                            .map(Map.Entry::getKey).findFirst().orElse("unknown");
+                    String creditCode = glCodes.entrySet().stream()
+                            .filter(e -> e.getValue().equals(j.creditGlAccountId()))
+                            .map(Map.Entry::getKey).findFirst().orElse("unknown");
+                    createJournalEntry(debitCode, creditCode, j.amount(), j.description());
+                    resourceId = 0L;
+                }
             }
             results.add(Map.of("requestId", (long) (i + 1), "statusCode", 200,
                     "body", Map.of("resourceId", resourceId)));
@@ -833,14 +863,7 @@ public class FineractClient {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Long> lookupGlAccounts() {
-        List<Map<String, Object>> accounts = webClient.get()
-                .uri("/fineract-provider/api/v1/glaccounts")
-                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                .retrieve()
-                .bodyToMono(List.class)
-                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                .block();
-
+        List<Map<String, Object>> accounts = getGlAccountsFull();
         Map<String, Long> codeToId = new HashMap<>();
         if (accounts != null) {
             for (Map<String, Object> acct : accounts) {
@@ -850,6 +873,105 @@ public class FineractClient {
             }
         }
         return codeToId;
+    }
+
+    /**
+     * Fetch all GL accounts from Fineract with full details.
+     * Returns list of maps containing: id, glCode, name, type.value, parentId, usage.value.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getGlAccountsFull() {
+        return webClient.get()
+                .uri("/fineract-provider/api/v1/glaccounts")
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                .retrieve()
+                .bodyToMono(List.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+    }
+
+    /**
+     * Fetch journal entries from Fineract for a specific GL account within a date range.
+     * Handles pagination automatically.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getJournalEntries(Long glAccountId, String currencyCode,
+                                                        String fromDate, String toDate) {
+        List<Map<String, Object>> allEntries = new ArrayList<>();
+        int offset = 0;
+        int limit = 500;
+        boolean hasMore = true;
+
+        while (hasMore) {
+            final int currentOffset = offset;
+            Map<String, Object> response = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/fineract-provider/api/v1/journalentries")
+                            .queryParam("glAccountId", glAccountId)
+                            .queryParam("currencyCode", currencyCode)
+                            .queryParam("offset", currentOffset)
+                            .queryParam("limit", limit)
+                            .queryParamIfPresent("fromDate", Optional.ofNullable(fromDate))
+                            .queryParamIfPresent("toDate", Optional.ofNullable(toDate))
+                            .build())
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            if (response != null && response.get("pageItems") instanceof List<?> items) {
+                allEntries.addAll((List<Map<String, Object>>) items);
+                int totalFiltered = response.get("totalFilteredRecords") instanceof Number n
+                        ? n.intValue() : items.size();
+                hasMore = (offset + limit) < totalFiltered;
+                offset += limit;
+            } else {
+                hasMore = false;
+            }
+        }
+        return allEntries;
+    }
+
+    /**
+     * Create a manual journal entry in Fineract (for settlement operations).
+     * @return journal entry transaction ID
+     */
+    @SuppressWarnings("unchecked")
+    public String createJournalEntry(String debitGlCode, String creditGlCode,
+                                      BigDecimal amount, String description) {
+        Map<String, Long> glCodeToId = lookupGlAccounts();
+        Long debitId = glCodeToId.get(debitGlCode);
+        Long creditId = glCodeToId.get(creditGlCode);
+        if (debitId == null || creditId == null) {
+            throw new AssetException("GL code not found: debit=" + debitGlCode + ", credit=" + creditGlCode);
+        }
+
+        String dateStr = java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy", java.util.Locale.ENGLISH));
+        Map<String, Object> body = Map.of(
+                "officeId", 1,
+                "transactionDate", dateStr,
+                "locale", "en",
+                "dateFormat", "dd MMMM yyyy",
+                "currencyCode", "XAF",
+                "comments", description != null ? description : "Settlement",
+                "debits", List.of(Map.of("glAccountId", debitId, "amount", amount)),
+                "credits", List.of(Map.of("glAccountId", creditId, "amount", amount))
+        );
+
+        Map<String, Object> response = webClient.post()
+                .uri("/fineract-provider/api/v1/journalentries")
+                .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+
+        if (response != null && response.get("transactionId") != null) {
+            return response.get("transactionId").toString();
+        }
+        return null;
     }
 
     /**

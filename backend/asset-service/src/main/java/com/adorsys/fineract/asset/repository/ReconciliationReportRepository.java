@@ -21,4 +21,8 @@ public interface ReconciliationReportRepository extends JpaRepository<Reconcilia
     long countByStatus(String status);
 
     long countByStatusAndSeverity(String status, String severity);
+
+    boolean existsByReportTypeAndAssetIdAndStatus(String reportType, String assetId, String status);
+
+    boolean existsByReportTypeAndAssetIdAndUserIdAndStatus(String reportType, String assetId, Long userId, String status);
 }

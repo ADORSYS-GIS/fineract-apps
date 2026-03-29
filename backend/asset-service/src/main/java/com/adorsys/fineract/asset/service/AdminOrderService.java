@@ -41,8 +41,10 @@ public class AdminOrderService {
     public Page<AdminOrderResponse> getFilteredOrders(OrderStatus status, String assetId,
                                                        String search, Instant fromDate,
                                                        Instant toDate, Pageable pageable) {
-        String statusStr = status != null ? status.name() : null;
-        return orderRepository.findFiltered(statusStr, assetId, search, fromDate, toDate, pageable)
+        List<String> statuses = status != null
+                ? List.of(status.name())
+                : DEFAULT_FILTER_STATUSES.stream().map(Enum::name).toList();
+        return orderRepository.findFiltered(statuses, assetId, search, fromDate, toDate, pageable)
                 .map(this::toAdminOrderResponse);
     }
 

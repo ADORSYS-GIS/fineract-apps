@@ -50,11 +50,21 @@ public class AdminAssetStepDefinitions {
         when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
         // No orphaned currencies
         when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
-        // Mock settlement product lookup — only the settlement product shortName returns a product ID
+        // Mock savings product lookups
         when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(52);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(53);
         // Cash account provisioning (null deposit amount)
         when(fineractClient.provisionSavingsAccount(anyLong(), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
+        // LP account provisioning (LSAV/LSPD/LTAX)
+        when(fineractClient.provisionSavingsAccount(anyLong(), eq(51), isNull(), isNull()))
+                .thenReturn(301L);
+        when(fineractClient.provisionSavingsAccount(anyLong(), eq(52), isNull(), isNull()))
+                .thenReturn(302L);
+        when(fineractClient.provisionSavingsAccount(anyLong(), eq(53), isNull(), isNull()))
+                .thenReturn(303L);
         // Asset product creation
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
@@ -75,11 +85,11 @@ public class AdminAssetStepDefinitions {
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
-                is_bvmac_listed, is_government_bond, ircm_exempt,
-                version, created_at, updated_at)
+                is_bvmac_listed, is_government_bond, ircm_exempt, tva_enabled,
+                trading_fee_percent, version, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 300, 10,
-                true, true, true, false, false, false,
-                0, NOW(), NOW())
+                true, true, true, false, false, false, false,
+                0.005, 0, NOW(), NOW())
             """, "dup-" + symbol, symbol, symbol, "Duplicate " + symbol);
     }
 
@@ -112,6 +122,7 @@ public class AdminAssetStepDefinitions {
         request.put("totalSupply", new BigDecimal(data.get("totalSupply")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("lpClientId", 1L);
+        request.put("tradingFeePercent", new BigDecimal("0.005"));
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -129,6 +140,7 @@ public class AdminAssetStepDefinitions {
                 "decimalPlaces", 0, "lpClientId", 1L));
         request.put("lpAskPrice", 110);
         request.put("lpBidPrice", 95);
+        request.put("tradingFeePercent", 0.005);
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))

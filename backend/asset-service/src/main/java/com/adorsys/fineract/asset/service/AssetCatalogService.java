@@ -142,7 +142,7 @@ public class AssetCatalogService {
                 asset.getDecimalPlaces(),
                 asset.getIssuerName(), asset.getIssuerPrice(),
                 asset.getLpClientId(), asset.getLpAssetAccountId(),
-                asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
+                asset.getLpCashAccountId(), asset.getLpSpreadAccountId(), asset.getLpTaxAccountId(),
                 asset.getFineractProductId(),
                 asset.getLpClientName(), asset.getName() + " Token",
                 lpMarginPerUnit, lpMarginPercent,
@@ -164,7 +164,8 @@ public class AssetCatalogService {
                 asset.getRegistrationDutyEnabled(), asset.getRegistrationDutyRate(),
                 asset.getIrcmEnabled(), asset.getIrcmRateOverride(), asset.getIrcmExempt(),
                 asset.getCapitalGainsTaxEnabled(), asset.getCapitalGainsRate(),
-                asset.getIsBvmacListed(), asset.getIsGovernmentBond()
+                asset.getIsBvmacListed(), asset.getIsGovernmentBond(),
+                asset.getTvaEnabled(), asset.getTvaRate()
         );
     }
 

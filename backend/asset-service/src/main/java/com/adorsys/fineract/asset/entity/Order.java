@@ -85,6 +85,10 @@ public class Order {
     @Column(name = "capital_gains_tax_amount", precision = 20, scale = 0)
     private BigDecimal capitalGainsTaxAmount;
 
+    /** TVA (VAT) charged for this order. Null if TVA not enabled on asset. */
+    @Column(name = "tva_amount", precision = 20, scale = 0)
+    private BigDecimal tvaAmount;
+
     /** Current order status. Defaults to PENDING. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 25)

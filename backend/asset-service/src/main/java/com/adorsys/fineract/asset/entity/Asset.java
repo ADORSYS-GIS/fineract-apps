@@ -240,6 +240,19 @@ public class Asset {
     @Column(name = "lp_spread_account_id")
     private Long lpSpreadAccountId;
 
+    /** Fineract savings account ID where tax is withheld from the LP on sell transactions. */
+    @Column(name = "lp_tax_account_id")
+    private Long lpTaxAccountId;
+
+    /** Whether TVA (VAT) is enabled for this asset. */
+    @Column(name = "tva_enabled")
+    @Builder.Default
+    private Boolean tvaEnabled = false;
+
+    /** TVA rate override for this asset. Null = use global default. */
+    @Column(name = "tva_rate", precision = 5, scale = 4)
+    private BigDecimal tvaRate;
+
     /** Timestamp when this asset record was created. Set automatically, never updated. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

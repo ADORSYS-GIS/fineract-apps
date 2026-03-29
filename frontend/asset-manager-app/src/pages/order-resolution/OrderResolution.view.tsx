@@ -126,7 +126,7 @@ export const OrderResolutionView: FC<ReturnType<typeof useOrderResolution>> = ({
 						value={statusFilter}
 						onChange={(e) => setStatusFilter(e.target.value)}
 					>
-						<option value="">All Statuses</option>
+						<option value="">Needs Attention</option>
 						<option value="NEEDS_RECONCILIATION">Needs Reconciliation</option>
 						<option value="FAILED">Failed</option>
 						<option value="MANUALLY_CLOSED">Manually Closed</option>

@@ -16,7 +16,11 @@ public record TaxBreakdown(
     BigDecimal capitalGainsRate,
     @Schema(description = "Capital gains tax amount in XAF. Zero for BUY.", nullable = true)
     BigDecimal capitalGainsTaxAmount,
-    @Schema(description = "Total tax amount (registration duty + capital gains).")
+    @Schema(description = "TVA (VAT) rate (e.g. 0.1925 = 19.25%). Zero if disabled.", nullable = true)
+    BigDecimal tvaRate,
+    @Schema(description = "TVA amount in XAF. Zero if disabled.", nullable = true)
+    BigDecimal tvaAmount,
+    @Schema(description = "Total tax amount (registration duty + capital gains + TVA).")
     BigDecimal totalTaxAmount,
     @Schema(description = "True if capital gains exemption was applied (annual gains < 500,000 XAF).")
     boolean capitalGainsExemptionApplied
