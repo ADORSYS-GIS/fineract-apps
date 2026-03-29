@@ -165,7 +165,7 @@ public class AssetCatalogService {
                 asset.getIrcmEnabled(), asset.getIrcmRateOverride(), asset.getIrcmExempt(),
                 asset.getCapitalGainsTaxEnabled(), asset.getCapitalGainsRate(),
                 asset.getIsBvmacListed(), asset.getIsGovernmentBond(),
-                asset.isTvaEnabled(), asset.getTvaRate()
+                asset.getTvaEnabled(), asset.getTvaRate()
         );
     }
 

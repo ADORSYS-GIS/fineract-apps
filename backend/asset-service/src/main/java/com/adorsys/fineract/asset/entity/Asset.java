@@ -247,7 +247,7 @@ public class Asset {
     /** Whether TVA (VAT) is enabled for this asset. */
     @Column(name = "tva_enabled")
     @Builder.Default
-    private boolean tvaEnabled = false;
+    private Boolean tvaEnabled = false;
 
     /** TVA rate override for this asset. Null = use global default. */
     @Column(name = "tva_rate", precision = 5, scale = 4)
