@@ -245,9 +245,9 @@ public class Asset {
     private Long lpTaxAccountId;
 
     /** Whether TVA (VAT) is enabled for this asset. */
-    @Column(name = "tva_enabled", nullable = false)
+    @Column(name = "tva_enabled")
     @Builder.Default
-    private Boolean tvaEnabled = false;
+    private boolean tvaEnabled = false;
 
     /** TVA rate override for this asset. Null = use global default. */
     @Column(name = "tva_rate", precision = 5, scale = 4)
