@@ -100,6 +100,21 @@ public class AssetE2ESpringConfiguration {
         // Fee Collection: resolved at startup by GlAccountResolver via external ID
         registry.add("asset-service.accounting.fee-collection-account-external-id",
                 () -> "PLATFORM-FEE-COLLECT");
+
+        // Override GL codes to match the basic Fineract GL accounts created by FineractInitializer
+        // (code 42=Asset/FundSource, 87=Income, 91=Expense — reused for all)
+        registry.add("asset-service.gl-accounts.savings-control", () -> "42");
+        registry.add("asset-service.gl-accounts.lp-settlement-control", () -> "42");
+        registry.add("asset-service.gl-accounts.lp-spread-payable", () -> "42");
+        registry.add("asset-service.gl-accounts.lp-tax-withholding", () -> "42");
+        registry.add("asset-service.gl-accounts.lp-fund-source", () -> "42");
+        registry.add("asset-service.gl-accounts.spread-income", () -> "87");
+        registry.add("asset-service.gl-accounts.platform-fee-payable", () -> "42");
+        registry.add("asset-service.gl-accounts.mtn-mo-mo", () -> "42");
+        registry.add("asset-service.gl-accounts.orange-money", () -> "42");
+        registry.add("asset-service.gl-accounts.uba-bank", () -> "42");
+        registry.add("asset-service.gl-accounts.afriland-bank", () -> "42");
+        registry.add("asset-service.gl-accounts.tax-payable-fund-source", () -> "42");
     }
 
     @TestConfiguration
