@@ -55,6 +55,8 @@ class GlAccountResolverTest {
             Map.entry("608", 1608L),    // taxExpenseRegDuty + taxExpenseCapGains + taxExpenseIrcm + taxExpenseTva
             // Equity
             Map.entry("103", 1103L),    // assetEquity
+            // Platform
+            Map.entry("4201", 4201L),   // platformFeePayable
             // Tax payable
             Map.entry("5031", 5031L)    // taxPayableFundSource
     );
@@ -289,16 +291,18 @@ class GlAccountResolverTest {
                 .thenReturn(new HashMap<>(GL_CODE_TO_ID));
         when(fineractClient.lookupPaymentTypes()).thenReturn(PAYMENT_TYPE_NAME_TO_ID);
         when(fineractClient.findSavingsAccountByExternalId("PLATFORM-FEE-COLLECT")).thenReturn(900L);
+        when(fineractClient.findSavingsAccountByExternalId("PLATFORM-CLEARING")).thenReturn(901L);
         when(fineractClient.findSavingsAccountByExternalId("TAX-REG-DUTY")).thenReturn(801L);
         when(fineractClient.findSavingsAccountByExternalId("TAX-IRCM")).thenReturn(802L);
         when(fineractClient.findSavingsAccountByExternalId("TAX-CAP-GAINS")).thenReturn(803L);
+        when(fineractClient.findSavingsAccountByExternalId("TAX-TVA")).thenReturn(804L);
 
         // Should succeed on retry (may be slow due to Thread.sleep in retry logic)
         assertDoesNotThrow(() -> resolver.run(null));
 
         // lookupGlAccounts called twice (first fails, second succeeds)
         verify(fineractClient, times(2)).lookupGlAccounts();
-        assertEquals(1042L, resolvedGlAccounts.getFundSourceId());
+        assertEquals(1502L, resolvedGlAccounts.getFundSourceId());
     }
 
     // -------------------------------------------------------------------------
