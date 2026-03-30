@@ -8,6 +8,10 @@ spring:
     locations: classpath:db/migration
 
 # GL codes (same as production - GlAccountResolver resolves them from Fineract at startup)
+app:
+  security:
+    permit-all-admin: true
+
 asset-service:
   settlement-currency: XAF
   settlement-currency-product-short-name: VSAV
@@ -20,6 +24,18 @@ asset-service:
     asset-issuance-payment-type: "Asset Issuance"
     fee-income: "87"
     fund-source: "42"
+    savings-control: "42"
+    lp-settlement-control: "42"
+    lp-spread-payable: "42"
+    lp-tax-withholding: "42"
+    lp-fund-source: "42"
+    spread-income: "87"
+    platform-fee-payable: "42"
+    mtn-mo-mo: "42"
+    orange-money: "42"
+    uba-bank: "42"
+    afriland-bank: "42"
+    tax-payable-fund-source: "42"
 
 logging:
   level:

@@ -1,4 +1,5 @@
 import {
+	Banknote,
 	BarChart3,
 	BookOpen,
 	CalendarCheck,
@@ -163,6 +164,18 @@ export const menuAssetManager: MenuItem[] = [
 		title: "sidebar.reconciliation",
 		link: "/reconciliation",
 		icon: Scale,
+	},
+	{
+		name: "accounting",
+		title: "sidebar.accounting",
+		link: "/accounting",
+		icon: BookOpen,
+	},
+	{
+		name: "settlement",
+		title: "sidebar.settlement",
+		link: "/settlement",
+		icon: Banknote,
 	},
 	{
 		name: "settings",

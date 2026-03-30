@@ -1,5 +1,6 @@
 server:
   port: 8082
+  forward-headers-strategy: framework
   servlet:
     context-path: /
   tomcat:
@@ -122,22 +123,23 @@ fineract:
   timeout-seconds: 15
   default-savings-product-id: ${FINERACT_SAVINGS_PRODUCT_ID:9}
 
-# Step-up authentication for withdrawals (disabled until frontend supports it)
 app:
   ssl:
     insecure: ${SSL_INSECURE:false}
-  stepup:
-    enabled: ${APP_STEPUP_ENABLED:false}
-    secret: ${APP_STEPUP_SECRET:}
   cleanup:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
     interval-ms: ${APP_CLEANUP_INTERVAL_MS:300000}
     processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:60}
     processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:600000}
+  dlq-retry:
+    enabled: ${APP_DLQ_RETRY_ENABLED:true}
+    interval-ms: ${APP_DLQ_RETRY_INTERVAL_MS:900000}
+    max-retries: ${APP_DLQ_RETRY_MAX:5}
+    min-age-seconds: ${APP_DLQ_RETRY_MIN_AGE:300}
   limits:
-    daily-deposit-max: ${APP_DAILY_DEPOSIT_MAX:10000000}
-    daily-withdrawal-max: ${APP_DAILY_WITHDRAWAL_MAX:5000000}
+    daily-deposit-max: ${APP_DAILY_DEPOSIT_MAX:500000}
+    daily-withdrawal-max: ${APP_DAILY_WITHDRAWAL_MAX:500000}
   rate-limit:
     enabled: true
     payment-per-minute: ${RATE_LIMIT_PAYMENT:5}

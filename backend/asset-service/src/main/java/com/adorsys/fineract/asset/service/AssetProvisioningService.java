@@ -107,23 +107,44 @@ public class AssetProvisioningService {
         Long lpAssetAccountId = null;
         Long lpCashAccountId = null;
         Long lpSpreadAccountId = null;
+        Long lpTaxAccountId = null;
 
         try {
-            // Step 1: Create a dedicated settlement currency (XAF) savings account for the LP
-            String productShortName = assetServiceConfig.getSettlementCurrencyProductShortName();
-            Integer xafProductId = fineractClient.findSavingsProductByShortName(productShortName);
-            if (xafProductId == null) {
-                throw new AssetException("Settlement currency savings product '" + productShortName
+            // Step 1a: Create LP settlement account (LSAV product)
+            Integer lsavProductId = fineractClient.findSavingsProductByShortName(
+                    assetServiceConfig.getLpSettlementProductShortName());
+            if (lsavProductId == null) {
+                throw new AssetException("LP settlement savings product '"
+                        + assetServiceConfig.getLpSettlementProductShortName()
                         + "' not found in Fineract. Please create it before provisioning assets.");
             }
             lpCashAccountId = fineractClient.provisionSavingsAccount(
-                    request.lpClientId(), xafProductId, null, null);
-            log.info("Created dedicated {} LP cash account: {}", assetServiceConfig.getSettlementCurrency(), lpCashAccountId);
+                    request.lpClientId(), lsavProductId, null, null);
+            log.info("Created LP settlement account (LSAV): {}", lpCashAccountId);
 
-            // Step 1b: Create LP spread collection account (XAF savings account under LP client)
+            // Step 1b: Create LP spread collection account (LSPD product)
+            Integer lspdProductId = fineractClient.findSavingsProductByShortName(
+                    assetServiceConfig.getLpSpreadProductShortName());
+            if (lspdProductId == null) {
+                throw new AssetException("LP spread savings product '"
+                        + assetServiceConfig.getLpSpreadProductShortName()
+                        + "' not found in Fineract. Please create it before provisioning assets.");
+            }
             lpSpreadAccountId = fineractClient.provisionSavingsAccount(
-                    request.lpClientId(), xafProductId, null, null);
-            log.info("Created LP spread collection account: {}", lpSpreadAccountId);
+                    request.lpClientId(), lspdProductId, null, null);
+            log.info("Created LP spread collection account (LSPD): {}", lpSpreadAccountId);
+
+            // Step 1c: Create LP tax withholding account (LTAX product)
+            Integer ltaxProductId = fineractClient.findSavingsProductByShortName(
+                    assetServiceConfig.getLpTaxProductShortName());
+            if (ltaxProductId == null) {
+                throw new AssetException("LP tax withholding savings product '"
+                        + assetServiceConfig.getLpTaxProductShortName()
+                        + "' not found in Fineract. Please create it before provisioning assets.");
+            }
+            lpTaxAccountId = fineractClient.provisionSavingsAccount(
+                    request.lpClientId(), ltaxProductId, null, null);
+            log.info("Created LP tax withholding account (LTAX): {}", lpTaxAccountId);
 
             // Step 2: Register custom currency in Fineract
             fineractClient.registerCurrencies(List.of(effectiveCurrencyCode));
@@ -153,10 +174,10 @@ public class AssetProvisioningService {
                     lpAssetAccountId, request.totalSupply());
 
         } catch (AssetException e) {
-            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpAssetAccountId, assetId);
+            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
             throw e;
         } catch (Exception e) {
-            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpAssetAccountId, assetId);
+            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
             log.error("Fineract provisioning failed for asset {}: {}. productId={}.",
                     assetId, e.getMessage(), productId);
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
@@ -191,6 +212,7 @@ public class AssetProvisioningService {
                 .lpAssetAccountId(lpAssetAccountId)
                 .lpCashAccountId(lpCashAccountId)
                 .lpSpreadAccountId(lpSpreadAccountId)
+                .lpTaxAccountId(lpTaxAccountId)
                 .maxPositionPercent(request.maxPositionPercent())
                 .maxOrderSize(request.maxOrderSize())
                 .dailyTradeLimitXaf(request.dailyTradeLimitXaf())
@@ -211,6 +233,8 @@ public class AssetProvisioningService {
                 .capitalGainsRate(request.capitalGainsRate())
                 .isBvmacListed(request.isBvmacListed() != null ? request.isBvmacListed() : false)
                 .isGovernmentBond(request.isGovernmentBond() != null ? request.isGovernmentBond() : false)
+                .tvaEnabled(request.tvaEnabled() != null ? request.tvaEnabled() : false)
+                .tvaRate(request.tvaRate())
                 .build();
 
         assetRepository.save(asset);
@@ -280,16 +304,45 @@ public class AssetProvisioningService {
         if (request.distributionFrequencyMonths() != null) asset.setDistributionFrequencyMonths(request.distributionFrequencyMonths());
         if (request.nextDistributionDate() != null) asset.setNextDistributionDate(request.nextDistributionDate());
 
-        // Tax configuration
-        if (request.registrationDutyEnabled() != null) asset.setRegistrationDutyEnabled(request.registrationDutyEnabled());
-        if (request.registrationDutyRate() != null) asset.setRegistrationDutyRate(request.registrationDutyRate());
-        if (request.ircmEnabled() != null) asset.setIrcmEnabled(request.ircmEnabled());
-        if (request.ircmRateOverride() != null) asset.setIrcmRateOverride(request.ircmRateOverride());
-        if (request.ircmExempt() != null) asset.setIrcmExempt(request.ircmExempt());
-        if (request.capitalGainsTaxEnabled() != null) asset.setCapitalGainsTaxEnabled(request.capitalGainsTaxEnabled());
-        if (request.capitalGainsRate() != null) asset.setCapitalGainsRate(request.capitalGainsRate());
+        // Tax configuration (with audit logging)
+        if (request.registrationDutyEnabled() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=registrationDutyEnabled, old={}, new={}", assetId, asset.getRegistrationDutyEnabled(), request.registrationDutyEnabled());
+            asset.setRegistrationDutyEnabled(request.registrationDutyEnabled());
+        }
+        if (request.registrationDutyRate() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=registrationDutyRate, old={}, new={}", assetId, asset.getRegistrationDutyRate(), request.registrationDutyRate());
+            asset.setRegistrationDutyRate(request.registrationDutyRate());
+        }
+        if (request.ircmEnabled() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=ircmEnabled, old={}, new={}", assetId, asset.getIrcmEnabled(), request.ircmEnabled());
+            asset.setIrcmEnabled(request.ircmEnabled());
+        }
+        if (request.ircmRateOverride() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=ircmRateOverride, old={}, new={}", assetId, asset.getIrcmRateOverride(), request.ircmRateOverride());
+            asset.setIrcmRateOverride(request.ircmRateOverride());
+        }
+        if (request.ircmExempt() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=ircmExempt, old={}, new={}", assetId, asset.getIrcmExempt(), request.ircmExempt());
+            asset.setIrcmExempt(request.ircmExempt());
+        }
+        if (request.capitalGainsTaxEnabled() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=capitalGainsTaxEnabled, old={}, new={}", assetId, asset.getCapitalGainsTaxEnabled(), request.capitalGainsTaxEnabled());
+            asset.setCapitalGainsTaxEnabled(request.capitalGainsTaxEnabled());
+        }
+        if (request.capitalGainsRate() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=capitalGainsRate, old={}, new={}", assetId, asset.getCapitalGainsRate(), request.capitalGainsRate());
+            asset.setCapitalGainsRate(request.capitalGainsRate());
+        }
         if (request.isBvmacListed() != null) asset.setIsBvmacListed(request.isBvmacListed());
         if (request.isGovernmentBond() != null) asset.setIsGovernmentBond(request.isGovernmentBond());
+        if (request.tvaEnabled() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=tvaEnabled, old={}, new={}", assetId, asset.getTvaEnabled(), request.tvaEnabled());
+            asset.setTvaEnabled(request.tvaEnabled());
+        }
+        if (request.tvaRate() != null) {
+            log.info("[TAX_CONFIG_CHANGE] asset={}, field=tvaRate, old={}, new={}", assetId, asset.getTvaRate(), request.tvaRate());
+            asset.setTvaRate(request.tvaRate());
+        }
 
         // Apply PENDING-only field mutations
         if (hasPendingOnlyField) {
@@ -557,12 +610,12 @@ public class AssetProvisioningService {
      * Follows the same pattern as RegistrationService.rollback().
      */
     private void rollbackFineractResources(Integer productId, String currencyCode,
-                                           Long lpCashAccountId, Long lpSpreadAccountId,
+                                           Long lpCashAccountId, Long lpSpreadAccountId, Long lpTaxAccountId,
                                            Long lpAssetAccountId, String assetId) {
         log.info("Rolling back Fineract resources for asset {}...", assetId);
 
         // Close LP accounts (best-effort, same pattern as cleanupFineractResources)
-        for (Long accountId : new Long[]{lpAssetAccountId, lpCashAccountId, lpSpreadAccountId}) {
+        for (Long accountId : new Long[]{lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId}) {
             if (accountId != null) {
                 try {
                     BigDecimal balance = fineractClient.getAccountBalance(accountId);

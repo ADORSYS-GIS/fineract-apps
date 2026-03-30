@@ -1024,4 +1024,94 @@ export const assetApi = {
 	// LP Performance - Admin
 	getLPPerformance: () =>
 		assetClient.get<LPPerformanceResponse>("/admin/lp/performance"),
+
+	// Accounting - Admin
+	getTrialBalance: (params: {
+		currencyCode?: string;
+		fromDate?: string;
+		toDate?: string;
+	}) =>
+		assetClient.get("/admin/accounting/trial-balance", {
+			params: {
+				...(params.currencyCode && {
+					currencyCode: params.currencyCode,
+				}),
+				...(params.fromDate && { fromDate: params.fromDate }),
+				...(params.toDate && { toDate: params.toDate }),
+			},
+		}),
+	getAccountingCurrencies: () =>
+		assetClient.get<string[]>("/admin/accounting/currencies"),
+
+	// Settlement - Admin
+	getSettlements: (status?: string[]) =>
+		assetClient.get("/admin/settlement", {
+			params: status?.length ? { status: status[0] } : undefined,
+		}),
+	getSettlementSummary: () => assetClient.get("/admin/settlement/summary"),
+	createSettlement: (data: {
+		settlementType: string;
+		amount: number;
+		lpClientId?: number;
+		description?: string;
+		sourceGlCode?: string;
+		destinationGlCode?: string;
+	}) => assetClient.post("/admin/settlement", data),
+	approveSettlement: (id: string) =>
+		assetClient.post(`/admin/settlement/${id}/approve`),
+	executeSettlement: (id: string) =>
+		assetClient.post(`/admin/settlement/${id}/execute`),
+	rejectSettlement: (id: string, reason?: string) =>
+		assetClient.post(`/admin/settlement/${id}/reject`, { reason }),
+	exportSettlementReport: (id: string) =>
+		assetClient.get(`/admin/settlement/${id}/report`, {
+			responseType: "blob",
+		}),
+	getLpBalances: () => assetClient.get("/admin/settlement/lp-balances"),
+	getTrustBalances: () =>
+		assetClient.get<
+			{
+				name: string;
+				glCode: string;
+				debits: number;
+				credits: number;
+				balance: number;
+			}[]
+		>("/admin/settlement/trust-balances"),
+	getRebalanceProposal: (reservePercent?: number) =>
+		assetClient.get<RebalanceProposal>("/admin/settlement/rebalance-proposal", {
+			params: reservePercent != null ? { reservePercent } : undefined,
+		}),
+	executeRebalanceProposal: (transfers: RebalanceProposal["transfers"]) =>
+		assetClient.post("/admin/settlement/rebalance-proposal/execute", {
+			transfers,
+		}),
 };
+
+export interface RebalanceProposal {
+	totalLpOwed: number;
+	totalTaxOwed: number;
+	totalFeesOwed: number;
+	totalOutflowNeeded: number;
+	ubaCurrentBalance: number;
+	afrilandCurrentBalance: number;
+	needInUba: number;
+	needInAfriland: number;
+	momoBalance: number;
+	orangeBalance: number;
+	momoAvailable: number;
+	orangeAvailable: number;
+	totalMobileAvailable: number;
+	reservePercent: number;
+	feasible: boolean;
+	shortfall: number;
+	transfers: {
+		settlementType: string;
+		sourceGlCode: string;
+		sourceName: string;
+		destinationGlCode: string;
+		destinationName: string;
+		amount: number;
+		description: string;
+	}[];
+}

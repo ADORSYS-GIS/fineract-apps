@@ -119,5 +119,11 @@ public record CreateAssetRequest(
     Boolean isBvmacListed,
     /** Whether this is a government bond (triggers IRCM exemption). */
     @Schema(description = "Government bond (triggers IRCM exemption).")
-    Boolean isGovernmentBond
+    Boolean isGovernmentBond,
+    /** Whether TVA (VAT) applies to trades of this asset. Default: false. */
+    @Schema(description = "Enable TVA (VAT) on trades.")
+    Boolean tvaEnabled,
+    /** TVA rate override. Null uses global default (0.1925 = 19.25%). */
+    @Schema(description = "TVA rate override (e.g. 0.1925 = 19.25%).")
+    BigDecimal tvaRate
 ) {}

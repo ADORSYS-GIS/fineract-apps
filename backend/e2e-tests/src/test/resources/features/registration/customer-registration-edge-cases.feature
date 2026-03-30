@@ -34,12 +34,12 @@ Feature: Customer Registration - Edge Case Scenarios
       | paymentType   | Orange Money|
     Then the approval and deposit should be successful and return a transactionId
 
-  Scenario: Attempt to approve with malformed idempotency key
+  Scenario: Attempt to approve with blank idempotency key
     Given a new customer has been registered with the following details:
-      | externalId | malformed-key-001 |
-      | fullName   | Malformed Key       |
-      | phone      | +237691234584        |
-    When the KYC manager attempts to approve and deposit with a malformed idempotency key "not-a-uuid" and details:
+      | externalId | blank-key-001   |
+      | fullName   | Blank Key       |
+      | phone      | +237691234584   |
+    When the KYC manager attempts to approve and deposit with a malformed idempotency key " " and details:
       | depositAmount | 1000         |
       | paymentType   | Orange Money |
-    Then the registration should fail with a 400 Bad Request status code
+    Then the response status should be 400

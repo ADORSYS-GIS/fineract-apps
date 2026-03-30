@@ -100,6 +100,38 @@ public class AssetE2ESpringConfiguration {
         // Fee Collection: resolved at startup by GlAccountResolver via external ID
         registry.add("asset-service.accounting.fee-collection-account-external-id",
                 () -> "PLATFORM-FEE-COLLECT");
+
+        // Override ALL GL codes to match the 6 basic GL accounts in the test Fineract:
+        // Asset type (1): 42, 47 | Liability type (2): 48, 65 | Income type (4): 87 | Expense type (5): 91
+        // Asset-type GL codes → "42"
+        registry.add("asset-service.gl-accounts.fund-source", () -> "42");
+        registry.add("asset-service.gl-accounts.digital-asset-inventory", () -> "47");
+        registry.add("asset-service.gl-accounts.savings-control", () -> "42");
+        registry.add("asset-service.gl-accounts.lp-settlement-control", () -> "42");
+        registry.add("asset-service.gl-accounts.lp-spread-payable", () -> "42");
+        registry.add("asset-service.gl-accounts.lp-tax-withholding", () -> "42");
+        registry.add("asset-service.gl-accounts.lp-fund-source", () -> "42");
+        registry.add("asset-service.gl-accounts.platform-fee-payable", () -> "42");
+        registry.add("asset-service.gl-accounts.mtn-mo-mo", () -> "42");
+        registry.add("asset-service.gl-accounts.orange-money", () -> "42");
+        registry.add("asset-service.gl-accounts.uba-bank", () -> "42");
+        registry.add("asset-service.gl-accounts.afriland-bank", () -> "42");
+        registry.add("asset-service.gl-accounts.tax-payable-fund-source", () -> "42");
+        registry.add("asset-service.gl-accounts.asset-equity", () -> "42");
+        // Liability-type GL codes → "48" or "65"
+        registry.add("asset-service.gl-accounts.customer-digital-asset-holdings", () -> "65");
+        registry.add("asset-service.gl-accounts.transfers-in-suspense", () -> "48");
+        // Income-type GL codes → "87"
+        registry.add("asset-service.gl-accounts.platform-fee-income", () -> "87");
+        registry.add("asset-service.gl-accounts.spread-income", () -> "87");
+        registry.add("asset-service.gl-accounts.income-from-interest", () -> "87");
+        registry.add("asset-service.gl-accounts.fee-income", () -> "87");
+        // Expense-type GL codes → "91"
+        registry.add("asset-service.gl-accounts.expense-account", () -> "91");
+        registry.add("asset-service.gl-accounts.tax-expense-reg-duty", () -> "91");
+        registry.add("asset-service.gl-accounts.tax-expense-cap-gains", () -> "91");
+        registry.add("asset-service.gl-accounts.tax-expense-ircm", () -> "91");
+        registry.add("asset-service.gl-accounts.tax-expense-tva", () -> "91");
     }
 
     @TestConfiguration

@@ -198,15 +198,14 @@ public class OrangeMoneyClient {
 
         return tokenCacheService.getToken(cacheKey).orElseGet(() -> {
             String credentials = Base64.getEncoder().encodeToString(
-                (config.getClientId() + ":" + config.getClientSecret()).getBytes()
+                (config.getClientId() + ":" + config.getClientSecret()).getBytes(java.nio.charset.StandardCharsets.UTF_8)
             );
 
             try {
-                WebClient tokenClient = WebClient.builder()
+                Map<String, Object> response = webClient.mutate()
                     .baseUrl(config.getTokenUrl())
-                    .build();
-
-                Map<String, Object> response = tokenClient.post()
+                    .build()
+                    .post()
                     .header(HttpHeaders.AUTHORIZATION, "Basic " + credentials)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .bodyValue("grant_type=client_credentials")

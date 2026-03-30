@@ -19,4 +19,7 @@ public class ResolvedTaxAccounts {
 
     /** Fineract savings account ID for capital gains tax collection (TAX-CAP-GAINS). */
     private Long capitalGainsAccountId;
+
+    /** Fineract savings account ID for TVA (VAT) collection (TAX-TVA). */
+    private Long tvaAccountId;
 }

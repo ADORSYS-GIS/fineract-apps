@@ -104,6 +104,12 @@ public record UpdateAssetRequest(
     /** Government bond flag. Null to keep current. */
     @Schema(description = "Government bond.")
     Boolean isGovernmentBond,
+    /** Enable/disable TVA (VAT). Null to keep current. */
+    @Schema(description = "Enable TVA (VAT) on trades.")
+    Boolean tvaEnabled,
+    /** TVA rate override. Null to keep current. */
+    @Schema(description = "TVA rate (e.g. 0.1925 = 19.25%).")
+    @PositiveOrZero BigDecimal tvaRate,
 
     // ── PENDING-only fields (rejected if asset is not PENDING) ──
 

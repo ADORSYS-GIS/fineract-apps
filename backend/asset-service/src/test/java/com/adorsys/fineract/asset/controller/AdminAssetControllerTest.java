@@ -112,7 +112,8 @@ class AdminAssetControllerTest {
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount
                 null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
-                null, null, null, null, null, null, null, null, null // tax config
+                null, null, null, null, null, null, null, null, null, // tax config
+                false, null // tvaEnabled, tvaRate
         );
 
         AssetDetailResponse response = new AssetDetailResponse(
@@ -124,7 +125,7 @@ class AdminAssetControllerTest {
                 new BigDecimal("0.005"), // tradingFeePercent
                 0, // decimalPlaces
                 null, new BigDecimal("500"), // issuerName, issuerPrice
-                1L, 200L, 300L, null, 10, // lpClientId, lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, fineractProductId
+                1L, 200L, 300L, null, null, 10, // lpClientId, lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, fineractProductId
                 "Test Company", "Test Asset Token", // lpClientName, fineractProductName
                 null, null, // lpMarginPerUnit, lpMarginPercent
                 Instant.now(), null, // createdAt, updatedAt
@@ -133,7 +134,8 @@ class AdminAssetControllerTest {
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, minOrderSize, minOrderCashAmount, lockupDays
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
                 null, null, // delistingDate, delistingRedemptionPrice
-                null, null, null, null, null, null, null, null, null // tax config fields
+                null, null, null, null, null, null, null, null, null, // tax config fields
+                false, null // tvaEnabled, tvaRate
         );
 
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);
