@@ -38,7 +38,7 @@ Feature: BTA (Discount Bond) Lifecycle (E2E)
 
   Scenario: Buy BTA units from LP
     Given an active discount bond asset "BTB" priced at 1000000 with supply 50
-    When the user buys 1 unit of "BTB"
+    When the user buys 1 units of "BTB"
     Then the response status should be 200
     And the trade should be FILLED
     And the asset circulating supply should be 1
@@ -60,7 +60,7 @@ Feature: BTA (Discount Bond) Lifecycle (E2E)
 
   Scenario: Redeem matured BTA at face value
     Given an active discount bond asset "BTD" priced at 1000000 with supply 50
-    And the user holds 1 unit of discount bond "BTD"
+    And the user holds 1 units of discount bond "BTD"
     When the maturity scheduler runs
     Then the bond should be in MATURED status
     When the admin triggers bond redemption for "BTD"

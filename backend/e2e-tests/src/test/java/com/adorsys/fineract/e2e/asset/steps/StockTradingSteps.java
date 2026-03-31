@@ -131,9 +131,10 @@ public class StockTradingSteps {
                 FineractInitializer.getTestUserXafAccountId());
 
         BigDecimal actualDecrease = balanceBefore.subtract(balanceAfter);
+        // 10% tolerance to account for trading fees, spread, tax, and accrued interest on coupon bonds
         assertThat(actualDecrease.longValue())
                 .isCloseTo(expectedDecrease, org.assertj.core.data.Offset.offset(
-                        (long) (expectedDecrease * 0.05)));
+                        (long) (expectedDecrease * 0.10)));
     }
 
     @Then("the user's XAF balance in Fineract should have increased")

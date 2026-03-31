@@ -57,6 +57,17 @@ public class AssetProvisioningSteps {
     public void testUserHasXafBalance(long expectedBalance) {
         BigDecimal balance = fineractTestClient.getAccountBalance(
                 FineractInitializer.getTestUserXafAccountId());
+
+        // Top up if balance is below the required minimum (previous scenarios may have spent funds)
+        BigDecimal required = BigDecimal.valueOf(expectedBalance);
+        if (balance.compareTo(required) < 0) {
+            BigDecimal topUp = required.subtract(balance);
+            fineractTestClient.depositToSavingsAccount(
+                    FineractInitializer.getTestUserXafAccountId(), topUp);
+            balance = fineractTestClient.getAccountBalance(
+                    FineractInitializer.getTestUserXafAccountId());
+        }
+
         assertThat(balance.longValue())
                 .isGreaterThanOrEqualTo(expectedBalance);
     }

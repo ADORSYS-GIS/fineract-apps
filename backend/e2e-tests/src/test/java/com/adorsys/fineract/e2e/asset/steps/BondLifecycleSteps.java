@@ -333,6 +333,14 @@ public class BondLifecycleSteps {
                 .post("/api/v1/admin/assets/" + assetId + "/activate");
 
         assertThat(activateResp.statusCode()).isEqualTo(200);
+
+        // Fund LP cash account to cover face-value redemption at maturity.
+        // The LP buys BTA at discount but must pay full face value on redemption.
+        Long lpCashAccountId = createResp.jsonPath().getLong("lpCashAccountId");
+        if (lpCashAccountId != null) {
+            fineractTestClient.depositToSavingsAccount(lpCashAccountId,
+                    issuerPrice.multiply(new BigDecimal(supply)));
+        }
     }
 
     @Given("the user holds {int} units of discount bond {string}")
