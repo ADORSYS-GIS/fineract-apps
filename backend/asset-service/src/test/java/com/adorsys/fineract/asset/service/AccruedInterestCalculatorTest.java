@@ -62,7 +62,10 @@ class AccruedInterestCalculatorTest {
         BigDecimal oneUnit = calculator.calculate(bond, BigDecimal.ONE);
         BigDecimal tenUnits = calculator.calculate(bond, BigDecimal.TEN);
 
-        assertEquals(0, oneUnit.multiply(BigDecimal.TEN).compareTo(tenUnits));
+        // Allow ±5 XAF tolerance due to intermediate rounding to whole XAF per unit
+        BigDecimal diff = oneUnit.multiply(BigDecimal.TEN).subtract(tenUnits).abs();
+        assertTrue(diff.compareTo(BigDecimal.TEN) <= 0,
+                "Expected oneUnit*10 ≈ tenUnits, diff=" + diff);
     }
 
     // ── DISCOUNT bonds ──

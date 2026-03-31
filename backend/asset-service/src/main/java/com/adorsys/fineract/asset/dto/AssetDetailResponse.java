@@ -57,9 +57,12 @@ public record AssetDetailResponse(
     /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
     @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)
     String issuerName,
-    /** Issuer price (face value for bonds, wholesale price for others). Used for coupon/income calculations. */
-    @Schema(description = "Issuer price used for benefit calculations.", nullable = true)
+    /** LP's acquisition cost per unit. */
+    @Schema(description = "LP acquisition cost per unit.", nullable = true)
     BigDecimal issuerPrice,
+    /** Par/redemption value per unit. For DISCOUNT bonds, higher than issuerPrice. Null defaults to issuerPrice. */
+    @Schema(description = "Face/par value per unit for redemption and coupon calculations.", nullable = true)
+    BigDecimal faceValue,
 
     // ── Liquidity Partner info ──
 

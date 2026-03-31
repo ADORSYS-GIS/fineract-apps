@@ -197,6 +197,7 @@ public class AssetProvisioningService {
                 .priceMode(PriceMode.MANUAL)
                 .manualPrice(request.issuerPrice())
                 .issuerPrice(request.issuerPrice())
+                .faceValue(request.faceValue() != null ? request.faceValue() : request.issuerPrice())
                 .decimalPlaces(request.decimalPlaces())
                 .totalSupply(request.totalSupply())
                 .circulatingSupply(BigDecimal.ZERO)
@@ -273,7 +274,8 @@ public class AssetProvisioningService {
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
 
         // PENDING-only fields: reject early before any mutations
-        boolean hasPendingOnlyField = request.issuerPrice() != null || request.totalSupply() != null
+        boolean hasPendingOnlyField = request.issuerPrice() != null || request.faceValue() != null
+                || request.totalSupply() != null
                 || request.issuerName() != null || request.isinCode() != null
                 || request.couponFrequencyMonths() != null || request.bondType() != null
                 || request.dayCountConvention() != null || request.issuerCountry() != null;
@@ -356,6 +358,7 @@ public class AssetProvisioningService {
                 asset.setIssuerPrice(request.issuerPrice());
                 asset.setManualPrice(request.issuerPrice());
             }
+            if (request.faceValue() != null) asset.setFaceValue(request.faceValue());
             if (request.totalSupply() != null) {
                 BigDecimal oldSupply = asset.getTotalSupply();
                 BigDecimal newSupply = request.totalSupply();
@@ -619,7 +622,16 @@ public class AssetProvisioningService {
                 throw new AssetException("First coupon date must be on or before the maturity date");
             }
         }
-        // BTA (DISCOUNT): coupon fields are optional/ignored — no coupon scheduling
+
+        if (request.bondType() == BondType.DISCOUNT) {
+            // BTA: faceValue required and must be > issuerPrice
+            if (request.faceValue() == null) {
+                throw new AssetException("Face value (redemption price) is required for DISCOUNT bonds");
+            }
+            if (request.faceValue().compareTo(request.issuerPrice()) <= 0) {
+                throw new AssetException("Face value must be greater than issuer price for DISCOUNT bonds");
+            }
+        }
     }
 
     /**

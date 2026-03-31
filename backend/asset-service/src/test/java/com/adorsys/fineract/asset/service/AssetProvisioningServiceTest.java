@@ -237,7 +237,7 @@ class AssetProvisioningServiceTest {
                 null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                null, null, null, null, null, // PENDING-only: issuerPrice..couponFrequencyMonths
+                null, null, null, null, null, null, // PENDING-only: issuerPrice, faceValue, totalSupply, issuerName, isinCode, couponFrequencyMonths
                 null, null, null); // PENDING-only: bondType, dayCountConvention, issuerCountry
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
@@ -255,7 +255,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     @Test
@@ -270,7 +270,7 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                new BigDecimal("6000"), new BigDecimal("2000"), "New Issuer", "SN0000038741", 6, // PENDING-only
+                new BigDecimal("6000"), null, new BigDecimal("2000"), "New Issuer", "SN0000038741", 6, // PENDING-only: issuerPrice, faceValue, totalSupply, issuerName, isinCode, couponFrequencyMonths
                 null, null, null); // bondType, dayCountConvention, issuerCountry
 
 
@@ -301,7 +301,7 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                new BigDecimal("6000"), null, null, null, null, // PENDING-only
+                new BigDecimal("6000"), null, null, null, null, null, // PENDING-only: issuerPrice, faceValue, totalSupply..
                 null, null, null); // bondType, dayCountConvention, issuerCountry
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
@@ -322,7 +322,7 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                null, new BigDecimal("1500"), null, null, null, // PENDING-only
+                null, null, new BigDecimal("1500"), null, null, null, // PENDING-only
                 null, null, null); // bondType, dayCountConvention, issuerCountry
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
@@ -346,7 +346,7 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax
                 null, null, // tvaEnabled, tvaRate
-                null, new BigDecimal("800"), null, null, null, // PENDING-only
+                null, null, new BigDecimal("800"), null, null, null, // PENDING-only
                 null, null, null); // bondType, dayCountConvention, issuerCountry
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
@@ -455,7 +455,7 @@ class AssetProvisioningServiceTest {
     void createBondAsset_missingIssuer_throws() {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
-                new BigDecimal("10000"), new BigDecimal("100"), 0,
+                new BigDecimal("10000"), null, new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
@@ -476,7 +476,7 @@ class AssetProvisioningServiceTest {
     void createBondAsset_invalidCouponFrequency_throws() {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
-                new BigDecimal("10000"), new BigDecimal("100"), 0,
+                new BigDecimal("10000"), null, new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
@@ -564,7 +564,7 @@ class AssetProvisioningServiceTest {
     void createBondAsset_pastMaturityDate_throws() {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
-                new BigDecimal("10000"), new BigDecimal("100"), 0,
+                new BigDecimal("10000"), null, new BigDecimal("100"), 0,
                 null, new BigDecimal("11000"), new BigDecimal("9500"),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits

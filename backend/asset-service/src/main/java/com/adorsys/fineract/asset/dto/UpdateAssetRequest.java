@@ -113,9 +113,12 @@ public record UpdateAssetRequest(
 
     // ── PENDING-only fields (rejected if asset is not PENDING) ──
 
-    /** New issuer/face price. Only updatable when asset is PENDING. */
-    @Schema(description = "Issuer price (face value). Only updatable when PENDING.")
+    /** New issuer/acquisition price. Only updatable when asset is PENDING. */
+    @Schema(description = "Issuer price (LP acquisition cost). Only updatable when PENDING.")
     @Positive BigDecimal issuerPrice,
+    /** New face/par value. Only updatable when asset is PENDING. */
+    @Schema(description = "Face/par value. Only updatable when PENDING.")
+    @Positive BigDecimal faceValue,
     /** New total supply. Only updatable when asset is PENDING. Adjusts LP account balance. */
     @Schema(description = "Total supply. Only updatable when PENDING.")
     @Positive BigDecimal totalSupply,
