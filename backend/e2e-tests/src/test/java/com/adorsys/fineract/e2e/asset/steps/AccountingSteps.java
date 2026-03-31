@@ -63,8 +63,6 @@ public class AccountingSteps {
         request.put("lpClientId", FineractInitializer.getLpClientId());
         request.put("tradingFeePercent", new BigDecimal(String.valueOf(feePercent)));
         request.put("registrationDutyEnabled", true);
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         Response createResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
