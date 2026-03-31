@@ -77,6 +77,9 @@ public class MtnMomoClient {
             "payeeNote", "Deposit to savings account"
         );
 
+        String callbackUrl = config.getCallbackUrl() + "/mtn/collection";
+        log.info("Sending X-Callback-Url: {}", callbackUrl);
+
         try {
             webClient.post()
                 .uri("/collection/v1_0/requesttopay")

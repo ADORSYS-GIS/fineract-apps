@@ -1,4 +1,4 @@
-# Payment Gateway — MTN Sandbox Testing Guide
+ # Payment Gateway — MTN Sandbox Testing Guide
 
 ## 1. Sandbox Readiness Checklist
 
@@ -44,7 +44,9 @@ curl -X POST "https://sandbox.momodeveloper.mtn.com/v1_0/apiuser" \
 
 # Generate API Key for the user
 curl -X POST "https://sandbox.momodeveloper.mtn.com/v1_0/apiuser/$API_USER_ID/apikey" \
-  -H "Ocp-Apim-Subscription-Key: <your-collection-subscription-key>"
+  -H "Ocp-Apim-Subscription-Key: <your-collection-subscription-key>" \
+  -d ''
+
 # Response: {"apiKey": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}
 ```
 
