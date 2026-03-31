@@ -37,8 +37,10 @@ public record AssetPublicDetailResponse(
 
     @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)
     String issuerName,
-    @Schema(description = "Issuer price (face value for bonds, wholesale for others).", nullable = true)
+    @Schema(description = "LP acquisition cost per unit.", nullable = true)
     BigDecimal issuerPrice,
+    @Schema(description = "Face/par value per unit for redemption.", nullable = true)
+    BigDecimal faceValue,
     @Schema(description = "Liquidity partner (reseller) name.", nullable = true)
     String lpName,
 

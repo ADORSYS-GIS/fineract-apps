@@ -72,7 +72,7 @@ public class IncomeCalendarService {
     private List<IncomeEvent> projectBondEvents(Asset bond, UserPosition pos, LocalDate horizon) {
         List<IncomeEvent> events = new ArrayList<>();
 
-        BigDecimal faceValue = bond.getIssuerPrice();
+        BigDecimal faceValue = bond.getEffectiveFaceValue();
         if (faceValue == null) return events;
 
         LocalDate maturity = bond.getMaturityDate();
@@ -118,7 +118,7 @@ public class IncomeCalendarService {
     private List<IncomeEvent> projectIncomeEvents(Asset asset, UserPosition pos, LocalDate horizon) {
         List<IncomeEvent> events = new ArrayList<>();
 
-        BigDecimal faceValue = asset.getIssuerPrice();
+        BigDecimal faceValue = asset.getEffectiveFaceValue();
         if (faceValue == null) {
             faceValue = assetPriceRepository.findById(asset.getId())
                     .map(p -> p.getAskPrice() != null ? p.getAskPrice() : BigDecimal.ZERO)

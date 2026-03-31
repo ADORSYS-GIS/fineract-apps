@@ -90,9 +90,21 @@ public class Asset {
     @Column(name = "trading_fee_percent", precision = 5, scale = 4)
     private BigDecimal tradingFeePercent;
 
-    /** Wholesale/face-value price from the original issuer. Used for coupon and income calculations. */
+    /** LP's acquisition cost per unit. For COUPON bonds, equals face value. For DISCOUNT bonds, the discounted purchase price from BEAC auction. Used for spread calculation: spread = executionPrice - issuerPrice. */
     @Column(name = "issuer_price", precision = 20, scale = 8)
     private BigDecimal issuerPrice;
+
+    /** Par/redemption value per unit. What the investor receives at maturity. For DISCOUNT bonds (BTA), this is higher than issuerPrice. Null defaults to issuerPrice for backward compatibility. */
+    @Column(name = "face_value", precision = 20, scale = 8)
+    private BigDecimal faceValue;
+
+    /**
+     * Returns the effective face value for coupon/income/redemption calculations.
+     * Falls back to issuerPrice when faceValue is not set (backward compatibility).
+     */
+    public BigDecimal getEffectiveFaceValue() {
+        return faceValue != null ? faceValue : issuerPrice;
+    }
 
     // ── Exposure limits (all nullable — null means no limit) ───────────────
 

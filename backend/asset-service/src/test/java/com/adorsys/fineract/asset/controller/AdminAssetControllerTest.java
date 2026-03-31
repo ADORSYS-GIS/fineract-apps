@@ -106,7 +106,7 @@ class AdminAssetControllerTest {
                 "Test Asset", "TST", "TST", // name, symbol, currencyCode
                 "A test asset", null, // description, imageUrl
                 AssetCategory.STOCKS, // category
-                new BigDecimal("500"), new BigDecimal("1000"), // issuerPrice, totalSupply
+                new BigDecimal("500"), null, new BigDecimal("1000"), // issuerPrice, faceValue, totalSupply
                 0, new BigDecimal("0.005"), // decimalPlaces, tradingFeePercent
                 new BigDecimal("550"), new BigDecimal("475"), // lpAskPrice, lpBidPrice
                 1L, // lpClientId
@@ -126,7 +126,7 @@ class AdminAssetControllerTest {
                 new BigDecimal("1000"), BigDecimal.ZERO, new BigDecimal("1000"), // totalSupply, circulatingSupply, availableSupply
                 new BigDecimal("0.005"), // tradingFeePercent
                 0, // decimalPlaces
-                null, new BigDecimal("500"), // issuerName, issuerPrice
+                null, new BigDecimal("500"), null, // issuerName, issuerPrice, faceValue
                 1L, 200L, 300L, null, null, 10, // lpClientId, lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, fineractProductId
                 "Test Company", "Test Asset Token", // lpClientName, fineractProductName
                 null, null, // lpMarginPerUnit, lpMarginPercent

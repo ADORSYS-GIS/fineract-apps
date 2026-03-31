@@ -85,7 +85,7 @@ public class AccruedInterestScheduler {
 
             // dailyAccrual = units * issuerPrice * (rate / 100) / dayCountBasis
             BigDecimal dailyAccrual = pos.getTotalUnits()
-                    .multiply(bond.getIssuerPrice())
+                    .multiply(bond.getEffectiveFaceValue())
                     .multiply(bond.getInterestRate())
                     .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP)
                     .divide(BigDecimal.valueOf(dayCountBasis), 0, RoundingMode.HALF_UP);

@@ -30,7 +30,7 @@ public class AccruedInterestCalculator {
     public BigDecimal calculate(Asset asset, BigDecimal units) {
         if (asset.getCategory() != AssetCategory.BONDS) return BigDecimal.ZERO;
         if (asset.getBondType() == BondType.DISCOUNT) return BigDecimal.ZERO;
-        if (asset.getInterestRate() == null || asset.getIssuerPrice() == null) return BigDecimal.ZERO;
+        if (asset.getInterestRate() == null || asset.getEffectiveFaceValue() == null) return BigDecimal.ZERO;
         if (asset.getCouponFrequencyMonths() == null) return BigDecimal.ZERO;
 
         LocalDate lastCouponDate = computeLastCouponDate(asset);
@@ -44,7 +44,7 @@ public class AccruedInterestCalculator {
         int dayCountBasis = convention.getBasis();
 
         return units
-                .multiply(asset.getIssuerPrice())
+                .multiply(asset.getEffectiveFaceValue())
                 .multiply(asset.getInterestRate())
                 .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(daysSinceLastCoupon))

@@ -122,6 +122,7 @@ public final class TestDataFactory {
                 null,
                 AssetCategory.STOCKS,
                 new BigDecimal("100"),
+                null, // faceValue (defaults to issuerPrice for non-bonds)
                 new BigDecimal("1000"),
                 0,
                 new BigDecimal("0.005"),
@@ -147,6 +148,7 @@ public final class TestDataFactory {
                 null,
                 AssetCategory.BONDS,
                 new BigDecimal("10000"),
+                null, // faceValue (defaults to issuerPrice for COUPON bonds)
                 new BigDecimal("500"),
                 0,
                 new BigDecimal("0.005"),

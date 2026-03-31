@@ -22,8 +22,11 @@ public record CreateAssetRequest(
     @Size(max = 500) String imageUrl,
     /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, or BONDS. */
     @NotNull AssetCategory category,
-    /** Issuer price (face value for bonds, wholesale price for others). Used for coupon/income calculations. */
+    /** LP's acquisition cost per unit. For DISCOUNT bonds, the discounted price from BEAC auction. */
     @NotNull @Positive BigDecimal issuerPrice,
+    /** Par/redemption value per unit. Required for DISCOUNT bonds (must be > issuerPrice). Defaults to issuerPrice for COUPON bonds. */
+    @Schema(description = "Face/par value per unit. Required for DISCOUNT bonds.")
+    @Positive BigDecimal faceValue,
     /** Maximum total units that can ever exist. Must be positive. */
     @NotNull @Positive BigDecimal totalSupply,
     /** Number of decimal places for fractional units (0 = whole units only, max 8). */

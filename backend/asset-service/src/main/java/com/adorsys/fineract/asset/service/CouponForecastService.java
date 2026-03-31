@@ -44,7 +44,7 @@ public class CouponForecastService {
                 .map(UserPosition::getTotalUnits)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal faceValue = bond.getIssuerPrice() != null ? bond.getIssuerPrice() : BigDecimal.ZERO;
+        BigDecimal faceValue = bond.getEffectiveFaceValue() != null ? bond.getEffectiveFaceValue() : BigDecimal.ZERO;
         BigDecimal rate = bond.getInterestRate();
         int periodMonths = bond.getCouponFrequencyMonths();
 
@@ -103,7 +103,7 @@ public class CouponForecastService {
                 .map(UserPosition::getTotalUnits)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal faceValue = bond.getIssuerPrice() != null ? bond.getIssuerPrice() : BigDecimal.ZERO;
+        BigDecimal faceValue = bond.getEffectiveFaceValue() != null ? bond.getEffectiveFaceValue() : BigDecimal.ZERO;
         BigDecimal principalAtMaturity = totalUnits.multiply(faceValue)
                 .setScale(0, RoundingMode.HALF_UP);
 

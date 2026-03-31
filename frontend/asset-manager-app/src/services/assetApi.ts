@@ -172,6 +172,7 @@ export interface AssetDetailResponse {
 	issuerCountry?: string;
 	issuerName?: string;
 	issuerPrice?: number;
+	faceValue?: number;
 	lpMarginPerUnit?: number;
 	lpMarginPercent?: number;
 	couponAmountPerUnit?: number;
@@ -200,6 +201,7 @@ export interface CreateAssetRequest {
 	imageUrl?: string;
 	category: string;
 	issuerPrice: number;
+	faceValue?: number;
 	lpBidPrice: number;
 	lpAskPrice: number;
 	tradingFeePercent?: number;

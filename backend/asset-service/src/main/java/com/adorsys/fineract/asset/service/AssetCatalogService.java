@@ -91,7 +91,7 @@ public class AssetCatalogService {
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
                 asset.getCreatedAt(), asset.getUpdatedAt(),
-                asset.getIssuerName(), asset.getIssuerPrice(), asset.getLpClientName(),
+                asset.getIssuerName(), asset.getIssuerPrice(), asset.getFaceValue(), asset.getLpClientName(),
                 asset.getBondType(), asset.getDayCountConvention(), asset.getIssuerCountry(),
                 asset.getIsinCode(), asset.getMaturityDate(),
                 asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
@@ -141,7 +141,7 @@ public class AssetCatalogService {
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
-                asset.getIssuerName(), asset.getIssuerPrice(),
+                asset.getIssuerName(), asset.getIssuerPrice(), asset.getFaceValue(),
                 asset.getLpClientId(), asset.getLpAssetAccountId(),
                 asset.getLpCashAccountId(), asset.getLpSpreadAccountId(), asset.getLpTaxAccountId(),
                 asset.getFineractProductId(),
@@ -243,8 +243,8 @@ public class AssetCatalogService {
      */
     private BigDecimal computeCurrentYield(Asset asset, BigDecimal askPrice) {
         if (asset.getCategory() != AssetCategory.BONDS) return null;
-        BigDecimal issuerPrice = asset.getIssuerPrice();
-        if (issuerPrice == null || askPrice == null
+        BigDecimal faceValue = asset.getEffectiveFaceValue();
+        if (faceValue == null || askPrice == null
                 || askPrice.compareTo(BigDecimal.ZERO) == 0) return null;
 
         if (asset.getBondType() == BondType.DISCOUNT) {
@@ -252,7 +252,7 @@ public class AssetCatalogService {
             Long residualDays = computeResidualDays(asset.getMaturityDate());
             if (residualDays == null || residualDays <= 0) return null;
             int basis = asset.getDayCountConvention() != null ? asset.getDayCountConvention().getBasis() : 360;
-            return issuerPrice
+            return faceValue
                     .divide(askPrice, 8, java.math.RoundingMode.HALF_UP)
                     .subtract(BigDecimal.ONE)
                     .multiply(BigDecimal.valueOf(basis))
@@ -261,10 +261,10 @@ public class AssetCatalogService {
                     .setScale(2, java.math.RoundingMode.HALF_UP);
         }
 
-        // COUPON bond: current yield = issuerPrice * rate / askPrice
+        // COUPON bond: current yield = faceValue * rate / askPrice
         BigDecimal rate = asset.getInterestRate();
         if (rate == null) return null;
-        return issuerPrice
+        return faceValue
                 .multiply(rate)
                 .divide(askPrice, 2, java.math.RoundingMode.HALF_UP);
     }
@@ -298,11 +298,11 @@ public class AssetCatalogService {
         if (asset.getCategory() != AssetCategory.BONDS) return null;
         // DISCOUNT bonds (BTA) have no coupons
         if (asset.getBondType() == BondType.DISCOUNT) return null;
-        BigDecimal issuerPrice = asset.getIssuerPrice();
+        BigDecimal faceValue = asset.getEffectiveFaceValue();
         BigDecimal rate = asset.getInterestRate();
         Integer freqMonths = asset.getCouponFrequencyMonths();
-        if (issuerPrice == null || rate == null || freqMonths == null) return null;
-        return issuerPrice
+        if (faceValue == null || rate == null || freqMonths == null) return null;
+        return faceValue
                 .multiply(rate)
                 .divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(freqMonths))

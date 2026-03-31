@@ -35,7 +35,7 @@ public class BondBenefitService {
             return null;
         }
 
-        BigDecimal faceValue = asset.getIssuerPrice();
+        BigDecimal faceValue = asset.getEffectiveFaceValue();
         if (faceValue == null) {
             log.warn("Bond {} has no faceValue configured", asset.getSymbol());
             return null;
@@ -92,7 +92,7 @@ public class BondBenefitService {
             return null;
         }
 
-        BigDecimal faceValue = asset.getIssuerPrice();
+        BigDecimal faceValue = asset.getEffectiveFaceValue();
         if (faceValue == null) {
             log.warn("Bond {} has no faceValue configured", asset.getSymbol());
             return null;
