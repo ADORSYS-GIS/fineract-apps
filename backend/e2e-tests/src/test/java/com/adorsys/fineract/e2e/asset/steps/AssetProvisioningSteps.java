@@ -134,13 +134,23 @@ public class AssetProvisioningSteps {
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("lpClientId", FineractInitializer.getLpClientId());
         request.put("issuerName", data.getOrDefault("issuerName", "Test Issuer"));
-        request.put("interestRate", new BigDecimal(data.getOrDefault("interestRate", "5.80")));
-        request.put("couponFrequencyMonths",
-                Integer.parseInt(data.getOrDefault("couponFrequencyMonths", "6")));
+        String bondType = data.getOrDefault("bondType", "COUPON");
+        request.put("bondType", bondType);
+        request.put("dayCountConvention", data.getOrDefault("dayCountConvention",
+                "DISCOUNT".equals(bondType) ? "ACT_360" : "ACT_365"));
+        if (data.containsKey("issuerCountry")) {
+            request.put("issuerCountry", data.get("issuerCountry"));
+        }
+
+        if ("COUPON".equals(bondType)) {
+            request.put("interestRate", new BigDecimal(data.getOrDefault("interestRate", "5.80")));
+            request.put("couponFrequencyMonths",
+                    Integer.parseInt(data.getOrDefault("couponFrequencyMonths", "6")));
+            request.put("nextCouponDate", resolveDateExpression(
+                    data.getOrDefault("nextCouponDate", "+6m")));
+        }
         request.put("maturityDate", resolveDateExpression(
                 data.getOrDefault("maturityDate", "+5y")));
-        request.put("nextCouponDate", resolveDateExpression(
-                data.getOrDefault("nextCouponDate", "+6m")));
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
@@ -276,6 +286,7 @@ public class AssetProvisioningSteps {
             return switch (unit) {
                 case "y" -> LocalDate.now().plusYears(amount).toString();
                 case "m" -> LocalDate.now().plusMonths(amount).toString();
+                case "w" -> LocalDate.now().plusWeeks(amount).toString();
                 case "d" -> LocalDate.now().plusDays(amount).toString();
                 default -> expr;
             };

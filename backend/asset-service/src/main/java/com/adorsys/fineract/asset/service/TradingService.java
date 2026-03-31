@@ -90,6 +90,7 @@ public class TradingService {
     private final ApplicationEventPublisher eventPublisher;
     private final QuoteReservationService quoteReservationService;
     private final TaxService taxService;
+    private final AccruedInterestCalculator accruedInterestCalculator;
     private final AssetProjectionRepository assetProjectionRepository;
 
     // ──────────────────────────────────────────────────────────────────────
@@ -205,7 +206,10 @@ public class TradingService {
         BigDecimal tvaAmount = taxService.calculateTva(asset, grossAmount);
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
         TaxBreakdown taxBreakdown = taxService.buildTaxBreakdown(asset, userId, grossAmount, estimatedRealizedGain, request.side() == TradeSide.SELL);
-        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee, totalTax);
+
+        // Accrued interest for coupon bonds (OTA "pied du coupon")
+        BigDecimal accruedInterestAmount = accruedInterestCalculator.calculate(asset, units);
+        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee, totalTax, accruedInterestAmount);
 
         // Remainder for amount-based mode
         if (computedFromAmount != null && units.compareTo(BigDecimal.ZERO) > 0) {
@@ -238,10 +242,10 @@ public class TradingService {
             }
             lockupService.validateLockup(asset, userId, units);
 
-            // LP capital adequacy check — LP LSAV must cover: gross + spread + tax (LP bears all on SELL)
+            // LP capital adequacy check — LP LSAV must cover: gross + spread + tax + accruedInterest (LP bears all on SELL)
             if (asset.getLpCashAccountId() != null) {
                 BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
-                BigDecimal totalLpRequired = grossAmount.add(spreadAmount).add(totalTax);
+                BigDecimal totalLpRequired = grossAmount.add(spreadAmount).add(totalTax).add(accruedInterestAmount);
                 if (lpCashBalance.compareTo(totalLpRequired) < 0) {
                     String currency = assetServiceConfig.getSettlementCurrency();
                     throw new TradingException(
@@ -272,6 +276,7 @@ public class TradingService {
                 .spreadAmount(spreadAmount)
                 .registrationDutyAmount(registrationDuty)
                 .capitalGainsTaxAmount(capitalGainsTax)
+                .accruedInterestAmount(accruedInterestAmount.compareTo(BigDecimal.ZERO) > 0 ? accruedInterestAmount : null)
                 .status(OrderStatus.QUOTED)
                 .quotedAt(now)
                 .quoteExpiresAt(expiresAt)
@@ -322,6 +327,7 @@ public class TradingService {
         return new QuoteResponse(
                 orderId, OrderStatus.QUOTED, request.assetId(), asset.getSymbol(), request.side(),
                 units, executionPrice, lpMarginPerUnit, grossAmount, fee, feePercent, spreadAmount,
+                accruedInterestAmount.compareTo(BigDecimal.ZERO) > 0 ? accruedInterestAmount : null,
                 orderCashAmount, availableBalance, availableUnits, availableSupply,
                 bondBenefit, incomeBenefit, computedFromAmount, remainder, now, expiresAt, warnings,
                 taxBreakdown);
@@ -502,7 +508,9 @@ public class TradingService {
         return new QuoteResponse(
                 order.getId(), order.getStatus(), order.getAssetId(), null,
                 order.getSide(), order.getUnits(), order.getExecutionPrice(), null,
-                null, order.getFee(), null, order.getSpreadAmount(), order.getCashAmount(),
+                null, order.getFee(), null, order.getSpreadAmount(),
+                order.getAccruedInterestAmount(),
+                order.getCashAmount(),
                 null, null, null, null, null, null, null,
                 order.getQuotedAt(), order.getQuoteExpiresAt(), warnings, null);
     }
@@ -691,7 +699,10 @@ public class TradingService {
         }
         BigDecimal tvaAmount = taxService.calculateTva(asset, grossAmount);
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
-        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee, totalTax);
+
+        // Accrued interest for coupon bonds (OTA "pied du coupon")
+        BigDecimal accruedInterestAmount = accruedInterestCalculator.calculate(asset, units);
+        BigDecimal orderCashAmount = strategy.computeOrderCashAmount(grossAmount, fee, totalTax, accruedInterestAmount);
 
         ctx.setBasePrice(lockedBasePrice);
         ctx.setExecutionPrice(executionPrice);
@@ -704,6 +715,7 @@ public class TradingService {
         ctx.setRegistrationDutyAmount(registrationDuty);
         ctx.setCapitalGainsTaxAmount(capitalGainsTax);
         ctx.setTvaAmount(tvaAmount);
+        ctx.setAccruedInterestAmount(accruedInterestAmount);
 
         // Update order with authoritative locked values
         Order order = ctx.getOrder();
@@ -715,6 +727,7 @@ public class TradingService {
         order.setRegistrationDutyAmount(registrationDuty);
         order.setCapitalGainsTaxAmount(capitalGainsTax);
         order.setTvaAmount(tvaAmount);
+        order.setAccruedInterestAmount(accruedInterestAmount.compareTo(BigDecimal.ZERO) > 0 ? accruedInterestAmount : null);
         orderRepository.save(order);
     }
 
@@ -738,8 +751,9 @@ public class TradingService {
             BigDecimal regDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
             BigDecimal cgt = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
             BigDecimal tva = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
-            // LP bears all on SELL: client proceeds + fee + spread + tax
-            BigDecimal totalLpOutflow = ctx.getGrossAmount().add(spread).add(regDuty).add(cgt).add(tva);
+            BigDecimal accruedInt = ctx.getAccruedInterestAmount() != null ? ctx.getAccruedInterestAmount() : BigDecimal.ZERO;
+            // LP bears all on SELL: client proceeds + fee + spread + tax + accrued interest
+            BigDecimal totalLpOutflow = ctx.getGrossAmount().add(spread).add(regDuty).add(cgt).add(tva).add(accruedInt);
             if (lpCashBalance.compareTo(totalLpOutflow) < 0) {
                 rejectOrder(ctx.getOrder(), "Insufficient LP funds for payout");
 
@@ -793,6 +807,8 @@ public class TradingService {
                 .fee(ctx.getFee())
                 .spreadAmount(ctx.getSpreadAmount())
                 .buybackPremium(ctx.getBuybackPremium() != null ? ctx.getBuybackPremium() : BigDecimal.ZERO)
+                .accruedInterestAmount(ctx.getAccruedInterestAmount() != null && ctx.getAccruedInterestAmount().compareTo(BigDecimal.ZERO) > 0
+                        ? ctx.getAccruedInterestAmount() : null)
                 .realizedPnl(ctx.getRealizedPnl())
                 .build();
         tradeLogRepository.save(tradeLog);
@@ -821,11 +837,12 @@ public class TradingService {
         BigDecimal capitalGainsTax = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
         BigDecimal tvaAmount = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
 
+        BigDecimal accruedInterestAmount = ctx.getAccruedInterestAmount() != null ? ctx.getAccruedInterestAmount() : BigDecimal.ZERO;
         List<BatchOperation> batchOps = buildBatchOperations(
                 side, lockedAsset, ctx.getUserCashAccountId(), ctx.getUserAssetAccountId(),
                 ctx.getGrossAmount(), ctx.getUnits(), ctx.getFee(), ctx.getSpreadAmount(),
                 ctx.getBuybackPremium(), feeCollectionAccountId,
-                registrationDuty, capitalGainsTax, tvaAmount);
+                registrationDuty, capitalGainsTax, tvaAmount, accruedInterestAmount);
 
         try {
             List<Map<String, Object>> batchResponses = fineractClient.executeAtomicBatch(batchOps);
@@ -947,16 +964,18 @@ public class TradingService {
             Long userCashAccountId, Long userAssetAccountId,
             BigDecimal grossAmount, BigDecimal units, BigDecimal fee,
             BigDecimal spreadAmount, BigDecimal buybackPremium, Long feeCollectionAccountId,
-            BigDecimal registrationDuty, BigDecimal capitalGainsTax, BigDecimal tvaAmount) {
+            BigDecimal registrationDuty, BigDecimal capitalGainsTax, BigDecimal tvaAmount,
+            BigDecimal accruedInterestAmount) {
 
         List<BatchOperation> ops = new ArrayList<>();
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
+        BigDecimal accruedInterest = accruedInterestAmount != null ? accruedInterestAmount : BigDecimal.ZERO;
 
         if (side == TradeSide.BUY) {
             // BUY: Single debit from client → clearing account, then clearing distributes.
             // Customer sees exactly ONE withdrawal in their savings history.
             Long clearingAccountId = resolvedGlAccounts.getClearingAccountId();
-            BigDecimal totalClientPays = grossAmount.add(fee).add(totalTax);
+            BigDecimal totalClientPays = grossAmount.add(fee).add(totalTax).add(accruedInterest);
 
             // Leg 1: Client pays total to Clearing (single customer-visible withdrawal)
             ops.add(new BatchTransferOp(
@@ -982,6 +1001,12 @@ public class TradingService {
                 ops.add(new BatchTransferOp(
                         clearingAccountId, feeCollectionAccountId,
                         fee, "Trading fee: BUY " + asset.getSymbol()));
+            }
+            // Leg 5b: Clearing → LP Cash (accrued interest — LP held bond since last coupon)
+            if (accruedInterest.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchTransferOp(
+                        clearingAccountId, asset.getLpCashAccountId(),
+                        accruedInterest, "Accrued interest: BUY " + asset.getSymbol()));
             }
             // Leg 6 (tax): Clearing → Tax Authority (registration duty)
             if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
@@ -1020,10 +1045,11 @@ public class TradingService {
                         asset.getLpSpreadAccountId(), asset.getLpCashAccountId(),
                         buybackPremium, "Buyback premium: SELL " + asset.getSymbol()));
             }
-            // Leg 3: LP Cash pays proceeds to investor (gross - fee) — LP bears tax separately
+            // Leg 3: LP Cash pays proceeds to investor (gross - fee + accruedInterest) — LP bears tax separately
+            BigDecimal sellProceeds = grossAmount.subtract(fee).add(accruedInterest);
             ops.add(new BatchTransferOp(
                     asset.getLpCashAccountId(), userCashAccountId,
-                    grossAmount.subtract(fee), "Asset sale proceeds: " + asset.getSymbol()));
+                    sellProceeds, "Asset sale proceeds: " + asset.getSymbol()));
             // Leg 4 (internal): LP Cash sweeps fee to Fee Collection (mandatory)
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(

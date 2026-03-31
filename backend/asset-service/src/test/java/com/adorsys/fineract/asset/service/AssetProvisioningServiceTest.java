@@ -237,7 +237,8 @@ class AssetProvisioningServiceTest {
                 null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                null, null, null, null, null); // PENDING-only fields
+                null, null, null, null, null, // PENDING-only: issuerPrice..couponFrequencyMonths
+                null, null, null); // PENDING-only: bondType, dayCountConvention, issuerCountry
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -254,7 +255,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     @Test
@@ -269,7 +270,8 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                new BigDecimal("6000"), new BigDecimal("2000"), "New Issuer", "SN0000038741", 6); // PENDING-only
+                new BigDecimal("6000"), new BigDecimal("2000"), "New Issuer", "SN0000038741", 6, // PENDING-only
+                null, null, null); // bondType, dayCountConvention, issuerCountry
 
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
@@ -299,7 +301,8 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                new BigDecimal("6000"), null, null, null, null); // PENDING-only
+                new BigDecimal("6000"), null, null, null, null, // PENDING-only
+                null, null, null); // bondType, dayCountConvention, issuerCountry
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("PENDING"));
@@ -319,7 +322,8 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                null, new BigDecimal("1500"), null, null, null); // PENDING-only
+                null, new BigDecimal("1500"), null, null, null, // PENDING-only
+                null, null, null); // bondType, dayCountConvention, issuerCountry
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -342,7 +346,8 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax
                 null, null, // tvaEnabled, tvaRate
-                null, new BigDecimal("800"), null, null, null); // PENDING-only
+                null, new BigDecimal("800"), null, null, null, // PENDING-only
+                null, null, null); // bondType, dayCountConvention, issuerCountry
 
         AssetDetailResponse expected = mock(AssetDetailResponse.class);
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
@@ -455,6 +460,7 @@ class AssetProvisioningServiceTest {
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
+                BondType.COUPON, DayCountConvention.ACT_365, null, // bondType, dayCountConvention, issuerCountry
                 null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
@@ -475,6 +481,7 @@ class AssetProvisioningServiceTest {
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
+                BondType.COUPON, DayCountConvention.ACT_365, null, // bondType, dayCountConvention, issuerCountry
                 "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
                 LocalDate.now().plusMonths(5),
                 null, null, null, null, // income fields
@@ -562,6 +569,7 @@ class AssetProvisioningServiceTest {
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
+                BondType.COUPON, DayCountConvention.ACT_365, null, // bondType, dayCountConvention, issuerCountry
                 "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields

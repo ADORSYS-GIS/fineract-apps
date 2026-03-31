@@ -68,6 +68,7 @@ class AdminAssetControllerTest {
                 new BigDecimal("500"), new BigDecimal("2.5"),
                 new BigDecimal("900"), new BigDecimal("1000"),
                 null, null, null, // issuerName, lpName, couponAmountPerUnit
+                null, // bondType
                 null, null, null, null, null // isinCode, maturityDate, interestRate, currentYield, residualDays
         );
         when(catalogService.listAllAssets(any(Pageable.class)))
@@ -110,6 +111,7 @@ class AdminAssetControllerTest {
                 new BigDecimal("550"), new BigDecimal("475"), // lpAskPrice, lpBidPrice
                 1L, // lpClientId
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount
+                null, null, null, // bondType, dayCountConvention, issuerCountry
                 null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
                 null, null, null, null, null, null, null, null, null, // tax config
@@ -129,6 +131,7 @@ class AdminAssetControllerTest {
                 "Test Company", "Test Asset Token", // lpClientName, fineractProductName
                 null, null, // lpMarginPerUnit, lpMarginPercent
                 Instant.now(), null, // createdAt, updatedAt
+                null, null, null, // bondType, dayCountConvention, issuerCountry
                 null, null, null, null, null, null, null, null, // isinCode, maturityDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, couponAmountPerUnit
                 null, null, // bidPrice, askPrice
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, minOrderSize, minOrderCashAmount, lockupDays

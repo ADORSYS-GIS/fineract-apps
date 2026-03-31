@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.dto.AssetCategory;
+import com.adorsys.fineract.asset.dto.BondType;
 import com.adorsys.fineract.asset.dto.IncomeCalendarResponse;
 import com.adorsys.fineract.asset.dto.IncomeCalendarResponse.*;
 import com.adorsys.fineract.asset.entity.Asset;
@@ -72,26 +73,32 @@ public class IncomeCalendarService {
         List<IncomeEvent> events = new ArrayList<>();
 
         BigDecimal faceValue = bond.getIssuerPrice();
-        BigDecimal rate = bond.getInterestRate();
-        Integer freqMonths = bond.getCouponFrequencyMonths();
+        if (faceValue == null) return events;
 
-        if (faceValue == null || rate == null || freqMonths == null) return events;
-
-        BigDecimal couponAmount = computeAmount(pos.getTotalUnits(), faceValue, rate, freqMonths);
-
-        LocalDate cursor = bond.getNextCouponDate();
         LocalDate maturity = bond.getMaturityDate();
-        LocalDate limit = maturity != null && maturity.isBefore(horizon) ? maturity : horizon;
 
-        if (cursor != null) {
-            while (!cursor.isAfter(limit)) {
-                if (!cursor.isBefore(LocalDate.now())) {
-                    events.add(new IncomeEvent(
-                            bond.getId(), bond.getSymbol(), bond.getName(),
-                            "COUPON", cursor, couponAmount,
-                            pos.getTotalUnits(), rate));
+        // DISCOUNT (BTA) bonds: only maturity redemption, no coupon events
+        if (bond.getBondType() != BondType.DISCOUNT) {
+            BigDecimal rate = bond.getInterestRate();
+            Integer freqMonths = bond.getCouponFrequencyMonths();
+
+            if (rate != null && freqMonths != null) {
+                BigDecimal couponAmount = computeAmount(pos.getTotalUnits(), faceValue, rate, freqMonths);
+
+                LocalDate cursor = bond.getNextCouponDate();
+                LocalDate limit = maturity != null && maturity.isBefore(horizon) ? maturity : horizon;
+
+                if (cursor != null) {
+                    while (!cursor.isAfter(limit)) {
+                        if (!cursor.isBefore(LocalDate.now())) {
+                            events.add(new IncomeEvent(
+                                    bond.getId(), bond.getSymbol(), bond.getName(),
+                                    "COUPON", cursor, couponAmount,
+                                    pos.getTotalUnits(), rate));
+                        }
+                        cursor = cursor.plusMonths(freqMonths);
+                    }
                 }
-                cursor = cursor.plusMonths(freqMonths);
             }
         }
 

@@ -201,6 +201,10 @@ public class AssetProvisioningService {
                 .totalSupply(request.totalSupply())
                 .circulatingSupply(BigDecimal.ZERO)
                 .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
+                .bondType(request.bondType())
+                .dayCountConvention(request.dayCountConvention() != null ? request.dayCountConvention()
+                        : (request.bondType() == BondType.DISCOUNT ? DayCountConvention.ACT_360 : DayCountConvention.ACT_365))
+                .issuerCountry(request.issuerCountry())
                 .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
@@ -271,10 +275,12 @@ public class AssetProvisioningService {
         // PENDING-only fields: reject early before any mutations
         boolean hasPendingOnlyField = request.issuerPrice() != null || request.totalSupply() != null
                 || request.issuerName() != null || request.isinCode() != null
-                || request.couponFrequencyMonths() != null;
+                || request.couponFrequencyMonths() != null || request.bondType() != null
+                || request.dayCountConvention() != null || request.issuerCountry() != null;
 
         if (hasPendingOnlyField && asset.getStatus() != AssetStatus.PENDING) {
-            throw new AssetException("Fields issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths "
+            throw new AssetException("Fields issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths, "
+                    + "bondType, dayCountConvention, issuerCountry "
                     + "can only be changed when asset is PENDING. Current status: " + asset.getStatus());
         }
 
@@ -372,6 +378,9 @@ public class AssetProvisioningService {
             if (request.issuerName() != null) asset.setIssuerName(request.issuerName());
             if (request.isinCode() != null) asset.setIsinCode(request.isinCode());
             if (request.couponFrequencyMonths() != null) asset.setCouponFrequencyMonths(request.couponFrequencyMonths());
+            if (request.bondType() != null) asset.setBondType(request.bondType());
+            if (request.dayCountConvention() != null) asset.setDayCountConvention(request.dayCountConvention());
+            if (request.issuerCountry() != null) asset.setIssuerCountry(request.issuerCountry());
         }
 
         assetRepository.save(asset);
@@ -588,21 +597,29 @@ public class AssetProvisioningService {
         if (!request.maturityDate().isAfter(LocalDate.now())) {
             throw new AssetException("Maturity date must be in the future");
         }
-        if (request.interestRate() == null) {
-            throw new AssetException("Interest rate is required for BONDS category");
+        if (request.bondType() == null) {
+            throw new AssetException("Bond type (COUPON or DISCOUNT) is required for BONDS category");
         }
-        if (request.couponFrequencyMonths() == null) {
-            throw new AssetException("Coupon frequency is required for BONDS category");
+
+        if (request.bondType() == BondType.COUPON) {
+            // OTA (T-Bonds): require coupon fields
+            if (request.interestRate() == null) {
+                throw new AssetException("Interest rate is required for COUPON bonds");
+            }
+            if (request.couponFrequencyMonths() == null) {
+                throw new AssetException("Coupon frequency is required for COUPON bonds");
+            }
+            if (!Set.of(1, 3, 6, 12).contains(request.couponFrequencyMonths())) {
+                throw new AssetException("Coupon frequency must be 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual)");
+            }
+            if (request.nextCouponDate() == null) {
+                throw new AssetException("First coupon date is required for COUPON bonds");
+            }
+            if (request.nextCouponDate().isAfter(request.maturityDate())) {
+                throw new AssetException("First coupon date must be on or before the maturity date");
+            }
         }
-        if (!Set.of(1, 3, 6, 12).contains(request.couponFrequencyMonths())) {
-            throw new AssetException("Coupon frequency must be 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual)");
-        }
-        if (request.nextCouponDate() == null) {
-            throw new AssetException("First coupon date is required for BONDS category");
-        }
-        if (request.nextCouponDate().isAfter(request.maturityDate())) {
-            throw new AssetException("First coupon date must be on or before the maturity date");
-        }
+        // BTA (DISCOUNT): coupon fields are optional/ignored — no coupon scheduling
     }
 
     /**

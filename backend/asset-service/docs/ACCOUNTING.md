@@ -6,7 +6,9 @@
 |------|------------|
 | **Issuer** | The original entity (e.g., government, corporation) that creates a real-world asset such as a bond or equity. The issuer sets the face value (issuer price) and contractual terms (interest rate, maturity). The issuer does **not** sell directly on the platform. |
 | **Liquidity Partner (LP)** | A reseller who purchases assets from the issuer off-platform and sells them to investors on the platform at a markup. The LP is the counterparty for all buy/sell trades. Each asset is managed by one LP, represented as a Fineract Client with `legalForm = ENTITY`. |
-| **Issuer Price** | The wholesale price at which the LP acquired the asset from the issuer. For bonds, this equals the face value. Coupon and income calculations are always based on the issuer price, not the LP's selling price. Immutable after asset creation. |
+| **Issuer Price** | The wholesale price at which the LP acquired the asset from the issuer. For OTA bonds, this equals the face value. For BTA bonds, the LP buys at discount but `issuerPrice` still represents face value (redemption value). Coupon and income calculations are always based on the issuer price, not the LP's selling price. Immutable after asset creation. |
+| **Bond Type** | `COUPON` (OTA/T-Bonds) — periodic interest payments; or `DISCOUNT` (BTA/T-Bills) — zero-coupon, bought below face value, redeemed at par. |
+| **Accrued Interest** | For COUPON bonds traded between coupon dates, the buyer compensates the seller for interest earned since the last coupon ("pied du coupon"). Calculated as: `units x faceValue x (rate/100) x daysSinceLastCoupon / dayCountBasis`. Added to BUY cost and SELL proceeds. |
 | **LP Ask Price** | The price at which the LP sells to investors (BUY side). Always >= issuer price. The difference (`askPrice - issuerPrice`) is the LP's margin on each unit sold. |
 | **LP Bid Price** | The price at which the LP buys back from investors (SELL side). Always <= ask price. |
 | **LP Margin** | The LP's profit per unit: `askPrice - issuerPrice` on BUY, `issuerPrice - bidPrice` on SELL. Swept to the LP's dedicated spread account on each trade. |
@@ -144,9 +146,21 @@ The investor's portfolio now shows:
 
 The investor interacts only with LP prices (bid/ask). But benefit calculations (coupons, income distributions) use the **issuer price** because that's the contractual face value. This means:
 
-- **Coupon per period** = units × issuerPrice × (rate/100) × (months/12)
+- **Coupon per period** (COUPON bonds only) = units × issuerPrice × (rate/100) × (months/12)
   - Example: 10 × 4,000 × (5.80/100) × (6/12) = **1,160 XAF**
 - The investor paid 5,000/unit but earns coupons on 4,000/unit — the LP markup doesn't inflate their yield
+- **DISCOUNT bonds (BTA)** have no coupons — the investor's return is `faceValue - purchasePrice` at maturity
+
+### Accrued Interest on Bond Trades ("Pied du Coupon")
+
+When a COUPON bond (OTA) is traded between coupon dates, accrued interest is calculated and included in the settlement:
+
+- **BUY**: Buyer pays `grossAmount + fee + tax + accruedInterest`. The accrued interest goes to LP Cash (LP held the bond since last coupon).
+- **SELL**: Seller receives `grossAmount - fee + accruedInterest`. The LP pays the seller for their accrual period.
+- Formula: `accruedInterest = units × faceValue × (rate/100) × daysSinceLastCoupon / dayCountBasis`
+- `dayCountBasis` = 365 for ACT/365 (OTA standard), 360 for ACT/360 (BTA standard)
+- Accrued interest appears as a separate field in the trade quote (`accruedInterestAmount`) and in the order/trade log
+- DISCOUNT bonds always have zero accrued interest
 
 ---
 

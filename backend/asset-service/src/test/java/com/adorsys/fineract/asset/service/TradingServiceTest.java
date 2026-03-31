@@ -63,6 +63,7 @@ class TradingServiceTest {
     @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
     @Mock private QuoteReservationService quoteReservationService;
     @Mock private TaxService taxService;
+    @Mock private AccruedInterestCalculator accruedInterestCalculator;
     @Mock private com.adorsys.fineract.asset.repository.AssetProjectionRepository assetProjectionRepository;
 
     @InjectMocks
@@ -135,6 +136,9 @@ class TradingServiceTest {
         lenient().when(taxService.buildTaxBreakdown(any(), anyLong(), any(), any(), anyBoolean()))
                 .thenReturn(new TaxBreakdown(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                         BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
+
+        // Accrued interest calculator defaults (returns zero for non-bond assets)
+        lenient().when(accruedInterestCalculator.calculate(any(), any())).thenReturn(BigDecimal.ZERO);
 
         // AssetMetrics timer mocks
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
