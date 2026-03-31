@@ -56,6 +56,7 @@ class TradingServiceAccountingTest {
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private QuoteReservationService quoteReservationService;
     @Mock private TaxService taxService;
+    @Mock private AccruedInterestCalculator accruedInterestCalculator;
     @Mock private AssetProjectionRepository assetProjectionRepository;
 
     @InjectMocks
@@ -98,7 +99,8 @@ class TradingServiceAccountingTest {
                 TradeSide.class, Asset.class, Long.class, Long.class,
                 BigDecimal.class, BigDecimal.class, BigDecimal.class,
                 BigDecimal.class, BigDecimal.class, Long.class,
-                BigDecimal.class, BigDecimal.class, BigDecimal.class);
+                BigDecimal.class, BigDecimal.class, BigDecimal.class,
+                BigDecimal.class);
         buildBatchOps.setAccessible(true);
     }
 
@@ -106,10 +108,17 @@ class TradingServiceAccountingTest {
     private List<BatchOperation> invoke(TradeSide side, BigDecimal gross, BigDecimal units,
             BigDecimal fee, BigDecimal spread, BigDecimal buyback,
             BigDecimal regDuty, BigDecimal cgt, BigDecimal tva) throws Exception {
+        return invoke(side, gross, units, fee, spread, buyback, regDuty, cgt, tva, BigDecimal.ZERO);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<BatchOperation> invoke(TradeSide side, BigDecimal gross, BigDecimal units,
+            BigDecimal fee, BigDecimal spread, BigDecimal buyback,
+            BigDecimal regDuty, BigDecimal cgt, BigDecimal tva, BigDecimal accruedInterest) throws Exception {
         return (List<BatchOperation>) buildBatchOps.invoke(tradingService,
                 side, testAsset, USER_CASH, USER_ASSET,
                 gross, units, fee, spread, buyback, FEE_COLLECT,
-                regDuty, cgt, tva);
+                regDuty, cgt, tva, accruedInterest);
     }
 
     // -------------------------------------------------------------------------

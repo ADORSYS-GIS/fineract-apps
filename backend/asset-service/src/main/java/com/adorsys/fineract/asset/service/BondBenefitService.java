@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.dto.BondBenefitProjection;
+import com.adorsys.fineract.asset.dto.BondType;
 import com.adorsys.fineract.asset.entity.Asset;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,12 +36,22 @@ public class BondBenefitService {
         }
 
         BigDecimal faceValue = asset.getIssuerPrice();
+        if (faceValue == null) {
+            log.warn("Bond {} has no faceValue configured", asset.getSymbol());
+            return null;
+        }
+
+        // DISCOUNT (BTA) bonds: no coupons, return comes from face value - purchase price
+        if (asset.getBondType() == BondType.DISCOUNT) {
+            return calculateDiscountForPurchase(asset, units, faceValue, investmentCost);
+        }
+
         BigDecimal rate = asset.getInterestRate();
         Integer freqMonths = asset.getCouponFrequencyMonths();
 
-        if (faceValue == null || rate == null || freqMonths == null) {
-            log.warn("Bond {} has incomplete configuration (faceValue={}, rate={}, freq={})",
-                    asset.getSymbol(), faceValue, rate, freqMonths);
+        if (rate == null || freqMonths == null) {
+            log.warn("Bond {} has incomplete coupon configuration (rate={}, freq={})",
+                    asset.getSymbol(), rate, freqMonths);
             return null;
         }
 
@@ -56,6 +67,7 @@ public class BondBenefitService {
         BigDecimal annualizedYield = computeAnnualizedYield(netProjectedProfit, investmentCost, daysToMaturity);
 
         return new BondBenefitProjection(
+                BondType.COUPON,
                 faceValue, rate, freqMonths,
                 asset.getMaturityDate(), asset.getNextCouponDate(),
                 couponPerPeriod, remainingPayments, totalCouponIncome,
@@ -81,12 +93,22 @@ public class BondBenefitService {
         }
 
         BigDecimal faceValue = asset.getIssuerPrice();
+        if (faceValue == null) {
+            log.warn("Bond {} has no faceValue configured", asset.getSymbol());
+            return null;
+        }
+
+        // DISCOUNT (BTA) bonds: no coupons, return is face value at maturity
+        if (asset.getBondType() == BondType.DISCOUNT) {
+            return calculateDiscountForHolding(asset, units, faceValue);
+        }
+
         BigDecimal rate = asset.getInterestRate();
         Integer freqMonths = asset.getCouponFrequencyMonths();
 
-        if (faceValue == null || rate == null || freqMonths == null) {
-            log.warn("Bond {} has incomplete configuration (faceValue={}, rate={}, freq={})",
-                    asset.getSymbol(), faceValue, rate, freqMonths);
+        if (rate == null || freqMonths == null) {
+            log.warn("Bond {} has incomplete coupon configuration (rate={}, freq={})",
+                    asset.getSymbol(), rate, freqMonths);
             return null;
         }
 
@@ -100,11 +122,55 @@ public class BondBenefitService {
         BigDecimal totalProjectedReturn = totalCouponIncome.add(principalAtMaturity);
 
         return new BondBenefitProjection(
+                BondType.COUPON,
                 faceValue, rate, freqMonths,
                 asset.getMaturityDate(), asset.getNextCouponDate(),
                 couponPerPeriod, remainingPayments, totalCouponIncome,
                 principalAtMaturity, null,
                 totalProjectedReturn, null, null,
+                daysToMaturity
+        );
+    }
+
+    /**
+     * Calculate benefit projection for a DISCOUNT (BTA) bond purchase.
+     * No coupons — return comes from redeeming at face value.
+     */
+    private BondBenefitProjection calculateDiscountForPurchase(Asset asset, BigDecimal units,
+                                                                BigDecimal faceValue, BigDecimal investmentCost) {
+        BigDecimal principalAtMaturity = units.multiply(faceValue).setScale(0, RoundingMode.HALF_UP);
+        long daysToMaturity = computeDaysToMaturity(asset.getMaturityDate());
+        BigDecimal totalProjectedReturn = principalAtMaturity;
+        BigDecimal netProjectedProfit = totalProjectedReturn.subtract(investmentCost);
+        int basis = asset.getDayCountConvention() != null ? asset.getDayCountConvention().getBasis() : 360;
+        BigDecimal annualizedYield = computeAnnualizedYield(netProjectedProfit, investmentCost, daysToMaturity, basis);
+
+        return new BondBenefitProjection(
+                BondType.DISCOUNT,
+                faceValue, null, null,
+                asset.getMaturityDate(), null,
+                BigDecimal.ZERO, 0, BigDecimal.ZERO,
+                principalAtMaturity, investmentCost,
+                totalProjectedReturn, netProjectedProfit, annualizedYield,
+                daysToMaturity
+        );
+    }
+
+    /**
+     * Calculate benefit projection for holding a DISCOUNT (BTA) bond.
+     */
+    private BondBenefitProjection calculateDiscountForHolding(Asset asset, BigDecimal units,
+                                                               BigDecimal faceValue) {
+        BigDecimal principalAtMaturity = units.multiply(faceValue).setScale(0, RoundingMode.HALF_UP);
+        long daysToMaturity = computeDaysToMaturity(asset.getMaturityDate());
+
+        return new BondBenefitProjection(
+                BondType.DISCOUNT,
+                faceValue, null, null,
+                asset.getMaturityDate(), null,
+                BigDecimal.ZERO, 0, BigDecimal.ZERO,
+                principalAtMaturity, null,
+                principalAtMaturity, null, null,
                 daysToMaturity
         );
     }
@@ -160,13 +226,18 @@ public class BondBenefitService {
 
     private BigDecimal computeAnnualizedYield(BigDecimal netProfit, BigDecimal investmentCost,
                                                long daysToMaturity) {
+        return computeAnnualizedYield(netProfit, investmentCost, daysToMaturity, 365);
+    }
+
+    private BigDecimal computeAnnualizedYield(BigDecimal netProfit, BigDecimal investmentCost,
+                                               long daysToMaturity, int dayCountBasis) {
         if (daysToMaturity <= 0 || investmentCost == null
                 || investmentCost.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
         return netProfit
                 .divide(investmentCost, 8, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(365))
+                .multiply(BigDecimal.valueOf(dayCountBasis))
                 .divide(BigDecimal.valueOf(daysToMaturity), 4, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
     }

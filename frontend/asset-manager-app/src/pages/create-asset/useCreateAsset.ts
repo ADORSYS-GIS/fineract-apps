@@ -20,6 +20,9 @@ export interface AssetFormData {
 	description: string;
 	imageUrl: string;
 	// Step 2b: Bond Details (when category = BONDS)
+	bondType: "COUPON" | "DISCOUNT";
+	dayCountConvention: "ACT_360" | "ACT_365" | "THIRTY_360";
+	issuerCountry: string;
 	issuerName: string;
 	isinCode: string;
 	maturityDate: string;
@@ -80,6 +83,9 @@ const initialFormData: AssetFormData = {
 	category: "REAL_ESTATE",
 	description: "",
 	imageUrl: "",
+	bondType: "COUPON",
+	dayCountConvention: "ACT_365",
+	issuerCountry: "",
 	issuerName: "",
 	isinCode: "",
 	maturityDate: "",
@@ -128,13 +134,16 @@ function validateAssetDetails(data: AssetFormData): string[] {
 
 function validateBondDetails(data: AssetFormData): string[] {
 	const errors: string[] = [];
+	if (!data.bondType) errors.push("Bond type is required");
 	if (!data.issuerName.trim()) errors.push("Issuer is required");
 	if (!data.maturityDate) errors.push("Maturity date is required");
-	if (data.interestRate <= 0)
-		errors.push("Interest rate must be greater than 0");
-	if (![1, 3, 6, 12].includes(data.couponFrequencyMonths))
-		errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
-	if (!data.nextCouponDate) errors.push("First coupon date is required");
+	if (data.bondType === "COUPON") {
+		if (data.interestRate <= 0)
+			errors.push("Interest rate must be greater than 0");
+		if (![1, 3, 6, 12].includes(data.couponFrequencyMonths))
+			errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
+		if (!data.nextCouponDate) errors.push("First coupon date is required");
+	}
 	return errors;
 }
 
@@ -242,6 +251,19 @@ export const useCreateAsset = () => {
 	const updateFormData = (updates: Partial<AssetFormData>) => {
 		setFormData((prev) => {
 			const next = { ...prev, ...updates };
+			// Auto-set dayCountConvention and clear stale coupon fields when bondType changes
+			if (
+				updates.bondType !== undefined &&
+				updates.bondType !== prev.bondType
+			) {
+				next.dayCountConvention =
+					updates.bondType === "DISCOUNT" ? "ACT_360" : "ACT_365";
+				if (updates.bondType === "DISCOUNT") {
+					next.interestRate = 0;
+					next.couponFrequencyMonths = 12;
+					next.nextCouponDate = "";
+				}
+			}
 			// Auto-set income defaults when income type changes
 			if (
 				updates.incomeType !== undefined &&
@@ -320,12 +342,18 @@ export const useCreateAsset = () => {
 				}),
 			// Bond fields (only included when category is BONDS)
 			...(formData.category === "BONDS" && {
+				bondType: formData.bondType,
+				dayCountConvention: formData.dayCountConvention || undefined,
+				issuerCountry: formData.issuerCountry || undefined,
 				issuerName: formData.issuerName,
 				isinCode: formData.isinCode || undefined,
 				maturityDate: formData.maturityDate,
-				interestRate: formData.interestRate,
-				couponFrequencyMonths: formData.couponFrequencyMonths,
-				nextCouponDate: formData.nextCouponDate,
+				// Coupon fields only for COUPON (OTA) bonds
+				...(formData.bondType === "COUPON" && {
+					interestRate: formData.interestRate,
+					couponFrequencyMonths: formData.couponFrequencyMonths,
+					nextCouponDate: formData.nextCouponDate,
+				}),
 			}),
 			// Tax configuration
 			registrationDutyEnabled: formData.registrationDutyEnabled,

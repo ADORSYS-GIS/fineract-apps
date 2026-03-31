@@ -2,6 +2,8 @@ package com.adorsys.fineract.asset.entity;
 
 import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.dto.AssetStatus;
+import com.adorsys.fineract.asset.dto.BondType;
+import com.adorsys.fineract.asset.dto.DayCountConvention;
 import com.adorsys.fineract.asset.dto.PriceMode;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -137,6 +139,20 @@ public class Asset {
     private LocalDate nextDistributionDate;
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──────────────
+
+    /** Bond payment type: COUPON (OTA/T-Bonds) or DISCOUNT (BTA/T-Bills). Null for non-bond assets. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bond_type", length = 10)
+    private BondType bondType;
+
+    /** Day count convention for interest calculations: ACT_360, ACT_365, or THIRTY_360. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "day_count_convention", length = 10)
+    private DayCountConvention dayCountConvention;
+
+    /** ISO country name of the issuing sovereign/entity (e.g. "CAMEROUN", "CONGO", "TCHAD"). */
+    @Column(name = "issuer_country", length = 50)
+    private String issuerCountry;
 
     /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
     @Column(name = "issuer_name", length = 255)

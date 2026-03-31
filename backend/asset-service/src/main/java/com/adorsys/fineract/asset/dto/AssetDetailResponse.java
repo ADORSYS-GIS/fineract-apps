@@ -98,7 +98,16 @@ public record AssetDetailResponse(
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──
 
-    /** Bond issuer name. Null for non-bond assets. */
+    /** Bond type: COUPON (OTA) or DISCOUNT (BTA). Null for non-bond assets. */
+    @Schema(description = "Bond type: COUPON (OTA/T-Bonds) or DISCOUNT (BTA/T-Bills).", nullable = true)
+    BondType bondType,
+    /** Day count convention for interest calculations. Null for non-bond assets. */
+    @Schema(description = "Day count convention: ACT_360, ACT_365, or THIRTY_360.", nullable = true)
+    DayCountConvention dayCountConvention,
+    /** Issuer country (CEMAC member state). Null for non-bond assets. */
+    @Schema(description = "Issuer country name.", nullable = true)
+    String issuerCountry,
+    /** ISIN code (ISO 6166). Null for non-bond assets. */
     @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.", nullable = true)
     String isinCode,
     /** Bond maturity date. Null for non-bond assets. */

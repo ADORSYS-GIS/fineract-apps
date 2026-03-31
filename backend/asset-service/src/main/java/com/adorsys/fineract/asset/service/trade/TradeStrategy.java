@@ -17,12 +17,17 @@ public sealed interface TradeStrategy permits BuyStrategy, SellStrategy {
     /** Apply spread to base price. BUY adds spread, SELL subtracts. */
     BigDecimal applySpread(BigDecimal basePrice, BigDecimal spreadMultiplier);
 
-    /** Compute the order's final cash amount. BUY: grossCost + fee + tax, SELL: grossProceeds - fee - tax. */
-    BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee, BigDecimal totalTax);
+    /** Compute the order's final cash amount. BUY: grossCost + fee + tax + accruedInterest, SELL: grossProceeds - fee + accruedInterest. */
+    BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee, BigDecimal totalTax, BigDecimal accruedInterest);
 
-    /** @deprecated Use {@link #computeOrderCashAmount(BigDecimal, BigDecimal, BigDecimal)} */
+    /** Overload without accrued interest (defaults to zero). */
+    default BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee, BigDecimal totalTax) {
+        return computeOrderCashAmount(grossAmount, fee, totalTax, BigDecimal.ZERO);
+    }
+
+    /** @deprecated Use {@link #computeOrderCashAmount(BigDecimal, BigDecimal, BigDecimal, BigDecimal)} */
     default BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee) {
-        return computeOrderCashAmount(grossAmount, fee, BigDecimal.ZERO);
+        return computeOrderCashAmount(grossAmount, fee, BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
     /** The circulating supply adjustment direction. BUY: +units, SELL: -units. */

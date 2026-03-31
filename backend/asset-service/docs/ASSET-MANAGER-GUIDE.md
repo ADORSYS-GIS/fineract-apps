@@ -232,18 +232,37 @@ Fill in the basic identity of your asset:
 
 ### Step 3: Bond Details (Bonds Only)
 
-This step only appears when you selected "Bonds" in Step 2.
+This step only appears when you selected "Bonds" in Step 2. The form adapts based on the selected bond type.
+
+**Bond Type (required):**
+
+| Type | Label | Description |
+|------|-------|-------------|
+| **COUPON** | OTA / T-Bonds | Periodic coupon payments until maturity. Standard for long-term CEMAC treasury bonds (2-7 years). |
+| **DISCOUNT** | BTA / T-Bills | Zero-coupon. LP buys at discount from BEAC, resells with spread. Investor redeems at face value at maturity. Standard for short-term treasury bills (26-52 weeks). |
+
+**Common Fields (all bond types):**
 
 | Field | Description | Rules |
 |-------|-------------|-------|
-| **Issuer Name** | The original bond issuer (e.g., "Etat du Senegal") | Required for bonds |
+| **Instrument Type** | COUPON (OTA) or DISCOUNT (BTA) | Required. Determines which fields are shown below. |
+| **Day Count Convention** | Interest accrual basis | Auto-set: ACT/365 for OTA, ACT/360 for BTA. Changeable. |
+| **Issuer Name** | The original bond issuer (e.g., "Republique du Cameroun") | Required |
+| **Issuer Country** | CEMAC member state | Optional. Dropdown: Cameroun, Congo, Tchad, Gabon, RCA, Guinee Equatoriale |
 | **ISIN Code** | International Securities Identification Number | Optional, 12 characters uppercase |
-| **Interest Rate (%)** | Annual coupon rate | Required (e.g., 5.80 for 5.8% annual) |
 | **Maturity Date** | When the bond principal is due | Required, must be in the future |
-| **First Coupon Date** | Date of the first coupon payment | Required |
-| **Coupon Frequency** | How often coupons are paid | Required. Options: Monthly, Quarterly, Semi-Annual, Annual |
 
-> **How coupons work:** The system automatically pays coupons to all holders on each coupon date. The amount is calculated from the **issuer price** (face value), not the LP's selling price. See [Appendix A.3](#a3-bond-coupon-payments) for the formula.
+**Coupon Fields (OTA only — hidden for BTA):**
+
+| Field | Description | Rules |
+|-------|-------------|-------|
+| **Interest Rate (%)** | Annual coupon rate | Required for OTA (e.g., 5.80 for 5.8% annual) |
+| **First Coupon Date** | Date of the first coupon payment | Required for OTA |
+| **Coupon Frequency** | How often coupons are paid | Required for OTA. Options: Monthly, Quarterly, Semi-Annual, Annual |
+
+> **OTA coupon trading:** When an OTA bond is traded between coupon dates, the buyer pays the seller accrued interest ("pied du coupon") on top of the trade price. This appears as `accruedInterestAmount` in trade quotes.
+
+> **BTA yield:** For BTA bonds, the investor's return comes from the difference between the purchase price (LP ask) and the face value at maturity. No coupons are scheduled.
 
 ### Step 4: Pricing & Fees
 

@@ -112,10 +112,13 @@ No authentication required.
 | `circulatingSupply` | integer | Units held by investors |
 | `tradingFeePercent` | number | Platform trading fee percentage |
 | `issuerName` | string | Original issuer (bonds). Null for non-bond assets. |
+| `bondType` | string | `COUPON` (OTA/T-Bonds) or `DISCOUNT` (BTA/T-Bills). Null for non-bond assets. |
+| `dayCountConvention` | string | `ACT_360`, `ACT_365`, or `THIRTY_360`. Null for non-bond assets. |
+| `issuerCountry` | string | CEMAC member state (e.g. `CAMEROUN`). Null for non-bond assets. |
 | `incomeType` | string | `RENT`, `DIVIDEND`, `HARVEST_YIELD`, `PROFIT_SHARE`, or null |
 | `incomeRate` | number | Annual income rate as percentage (non-bond assets) |
-| `interestRate` | number | Annual coupon rate as percentage (bonds only) |
-| `maturityDate` | string | Bond maturity date (bonds only) |
+| `interestRate` | number | Annual coupon rate as percentage (COUPON bonds only, null for DISCOUNT) |
+| `maturityDate` | string | Bond maturity date (all bonds) |
 
 ---
 
@@ -560,7 +563,8 @@ Exactly one of `units` or `amount` must be provided.
 | `fee` | integer | Platform trading fee in XAF |
 | `feePercent` | number | Fee percentage applied |
 | `spreadAmount` | integer | LP spread included in the price |
-| `netAmount` | integer | Total amount debited (BUY) or credited (SELL) in XAF |
+| `accruedInterestAmount` | integer | Accrued interest for COUPON bond trades ("pied du coupon"). Null for non-bond or DISCOUNT bond trades. |
+| `netAmount` | integer | Total amount debited (BUY) or credited (SELL) in XAF. For COUPON bonds: includes accrued interest. |
 | `computedFromAmount` | integer | Original XAF budget (null if unit mode) |
 | `remainder` | integer | Leftover XAF that cannot buy another unit (null if unit mode) |
 | `availableBalance` | integer | User's current XAF cash balance |

@@ -127,5 +127,14 @@ public record UpdateAssetRequest(
     @Size(max = 12) String isinCode,
     /** New coupon frequency. Only updatable when asset is PENDING. */
     @Schema(description = "Coupon frequency in months (1, 3, 6, or 12). Only updatable when PENDING.")
-    Integer couponFrequencyMonths
+    Integer couponFrequencyMonths,
+    /** Bond type: COUPON (OTA) or DISCOUNT (BTA). Only updatable when PENDING. */
+    @Schema(description = "Bond type. Only updatable when PENDING.")
+    BondType bondType,
+    /** Day count convention. Only updatable when PENDING. */
+    @Schema(description = "Day count convention. Only updatable when PENDING.")
+    DayCountConvention dayCountConvention,
+    /** Issuer country. Only updatable when PENDING. */
+    @Schema(description = "Issuer country. Only updatable when PENDING.")
+    @Size(max = 50) String issuerCountry
 ) {}

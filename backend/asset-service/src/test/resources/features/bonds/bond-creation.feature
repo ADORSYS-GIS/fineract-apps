@@ -40,4 +40,4 @@ Feature: Bond Asset Creation
   Scenario: Bond creation fails with invalid coupon frequency
     When the admin creates a bond asset with coupon frequency 5
     Then the response status should be 400
-    And the response body should contain "must be"
+    And the response body should contain "Coupon frequency must be"
