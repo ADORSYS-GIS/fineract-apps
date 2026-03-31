@@ -38,7 +38,7 @@ Feature: OTA Accrued Interest on Trade (E2E)
 
   Scenario: BUY quote includes accrued interest for OTA bond
     Given an active coupon bond asset "OTB" priced at 10000 with supply 100 and interest rate 7.00 and coupon due in 6 months
-    When the user previews a BUY of 1 unit of "OTB"
+    When the user previews a BUY of 1 units of "OTB"
     Then the response status should be 201
     And the quote response should contain "accruedInterestAmount"
     And the accrued interest in the quote should be greater than 0
@@ -50,7 +50,7 @@ Feature: OTA Accrued Interest on Trade (E2E)
   Scenario: SELL proceeds include accrued interest for OTA bond
     Given an active coupon bond asset "OTC" priced at 10000 with supply 100 and interest rate 7.00 and coupon due in 6 months
     And the user holds 2 units of coupon bond "OTC"
-    When the user previews a SELL of 1 unit of "OTC"
+    When the user previews a SELL of 1 units of "OTC"
     Then the response status should be 201
     And the quote response should contain "accruedInterestAmount"
     And the accrued interest in the quote should be greater than 0
