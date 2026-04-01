@@ -153,7 +153,9 @@ public class AssetProvisioningSteps {
             request.put("issuerCountry", data.get("issuerCountry"));
         }
 
-        if ("COUPON".equals(bondType)) {
+        if ("DISCOUNT".equals(bondType)) {
+            request.put("faceValue", bondIssuerPrice.multiply(new BigDecimal("1.1")));
+        } else { // COUPON
             request.put("interestRate", new BigDecimal(data.getOrDefault("interestRate", "5.80")));
             request.put("couponFrequencyMonths",
                     Integer.parseInt(data.getOrDefault("couponFrequencyMonths", "6")));

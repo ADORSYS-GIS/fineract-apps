@@ -301,11 +301,13 @@ public class BondLifecycleSteps {
         request.put("category", "BONDS");
         request.put("bondType", "DISCOUNT");
         request.put("dayCountConvention", "ACT_360");
-        BigDecimal issuerPrice = new BigDecimal(faceValue);
+        BigDecimal faceValueBD = new BigDecimal(faceValue);
+        BigDecimal issuerPrice = faceValueBD.multiply(new BigDecimal("0.90")); // Issue at 90% of face value
         request.put("issuerPrice", issuerPrice);
+        request.put("faceValue", faceValueBD);
         // LP sells below face value (discount) with their spread
-        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("0.94")));
-        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("0.92")));
+        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("1.04"))); // ask is higher than issue
+        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("1.02"))); // bid is lower than ask
         request.put("totalSupply", supply);
         request.put("decimalPlaces", 0);
         request.put("lpClientId", FineractInitializer.getLpClientId());
