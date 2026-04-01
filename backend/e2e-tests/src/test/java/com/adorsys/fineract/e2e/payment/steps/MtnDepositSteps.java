@@ -96,6 +96,9 @@ public class MtnDepositSteps {
 
     @When("the MTN collection callback reports SUCCESSFUL for the deposit")
     public void mtnCollectionCallbackSuccessful() {
+        String transactionId = context.getId("transactionId");
+        WireMockProviderStubs.stubMtnGetCollectionStatusSuccess(transactionId);
+
         String providerRef = context.getId("providerReference");
 
         Map<String, Object> callback = Map.of(

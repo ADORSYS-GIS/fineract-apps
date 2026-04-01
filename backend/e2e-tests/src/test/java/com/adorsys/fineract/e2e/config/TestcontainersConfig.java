@@ -163,6 +163,6 @@ public final class TestcontainersConfig {
 
     /** Get the Fineract base URL accessible from the host (for REST-Assured and FineractClient). */
     public static String getFineractBaseUrl() {
-        return "https://" + FINERACT.getHost() + ":" + FINERACT.getMappedPort(8443);
+        return "https://" + FINERACT.getHost() + ":" + FINERACT.getMappedPort(8443) + "/fineract-provider";
     }
 }
