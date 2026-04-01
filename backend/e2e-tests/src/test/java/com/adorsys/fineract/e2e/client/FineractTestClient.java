@@ -46,7 +46,7 @@ public class FineractTestClient {
 
         Response response = request()
                 .body(body)
-                .post("/api/v1/glaccounts");
+                .post("/fineract-provider/api/v1/glaccounts");
 
         assertOk(response, "createGlAccount(" + glCode + ")");
         return response.jsonPath().getLong("resourceId");
@@ -62,7 +62,7 @@ public class FineractTestClient {
 
         Response response = request()
                 .body(body)
-                .post("/api/v1/paymenttypes");
+                .post("/fineract-provider/api/v1/paymenttypes");
 
         assertOk(response, "createPaymentType(" + name + ")");
         return response.jsonPath().getLong("resourceId");
@@ -76,7 +76,7 @@ public class FineractTestClient {
 
         Response response = request()
                 .body(body)
-                .post("/api/v1/financialactivityaccounts");
+                .post("/fineract-provider/api/v1/financialactivityaccounts");
 
         assertOk(response, "createFinancialActivityAccount(" + financialActivityId
                 + " -> glAccount " + glAccountId + ")");
@@ -88,7 +88,7 @@ public class FineractTestClient {
 
         Response response = request()
                 .body(body)
-                .put("/api/v1/currencies");
+                .put("/fineract-provider/api/v1/currencies");
 
         assertOk(response, "registerCurrencies(" + currencyCodes + ")");
     }
@@ -125,7 +125,7 @@ public class FineractTestClient {
 
         Response response = request()
                 .body(body)
-                .post("/api/v1/savingsproducts");
+                .post("/fineract-provider/api/v1/savingsproducts");
 
         assertOk(response, "createSavingsProduct(" + shortName + ")");
         return response.jsonPath().getInt("resourceId");
@@ -148,7 +148,7 @@ public class FineractTestClient {
 
         Response response = request()
                 .body(body)
-                .post("/api/v1/clients");
+                .post("/fineract-provider/api/v1/clients");
 
         assertOk(response, "createClient(" + firstname + " " + lastname + ")");
         return response.jsonPath().getLong("clientId");
@@ -174,7 +174,7 @@ public class FineractTestClient {
         }
         Response createResp = request()
                 .body(createBody)
-                .post("/api/v1/savingsaccounts");
+                .post("/fineract-provider/api/v1/savingsaccounts");
         assertOk(createResp, "createSavingsAccount(clientId=" + clientId + ")");
         Long accountId = createResp.jsonPath().getLong("savingsId");
 
@@ -185,7 +185,7 @@ public class FineractTestClient {
                 "approvedOnDate", today
         );
         Response approveResp = request().body(approveBody)
-                .post("/api/v1/savingsaccounts/" + accountId
+                .post("/fineract-provider/api/v1/savingsaccounts/" + accountId
                         + "?command=approve");
         assertOk(approveResp, "approveSavingsAccount(" + accountId + ")");
 
@@ -196,7 +196,7 @@ public class FineractTestClient {
                 "activatedOnDate", today
         );
         Response activateResp = request().body(activateBody)
-                .post("/api/v1/savingsaccounts/" + accountId
+                .post("/fineract-provider/api/v1/savingsaccounts/" + accountId
                         + "?command=activate");
         assertOk(activateResp, "activateSavingsAccount(" + accountId + ")");
 
@@ -209,7 +209,7 @@ public class FineractTestClient {
                 "externalId", externalId
         );
         Response response = request().body(body)
-                .put("/api/v1/savingsaccounts/" + accountId);
+                .put("/fineract-provider/api/v1/savingsaccounts/" + accountId);
         assertOk(response, "setSavingsAccountExternalId(" + accountId + ", " + externalId + ")");
     }
 
@@ -225,7 +225,7 @@ public class FineractTestClient {
 
         Response response = request()
                 .body(body)
-                .post("/api/v1/savingsaccounts/" + accountId
+                .post("/fineract-provider/api/v1/savingsaccounts/" + accountId
                         + "/transactions?command=deposit");
 
         assertOk(response, "depositToSavingsAccount(" + accountId + ", " + amount + ")");
@@ -238,7 +238,7 @@ public class FineractTestClient {
 
     public BigDecimal getAccountBalance(Long accountId) {
         Response response = request()
-                .get("/api/v1/savingsaccounts/" + accountId);
+                .get("/fineract-provider/api/v1/savingsaccounts/" + accountId);
 
         assertOk(response, "getAccountBalance(" + accountId + ")");
 
@@ -257,7 +257,7 @@ public class FineractTestClient {
     @SuppressWarnings("unchecked")
     public Map<String, Object> getSavingsAccount(Long accountId) {
         Response response = request()
-                .get("/api/v1/savingsaccounts/" + accountId);
+                .get("/fineract-provider/api/v1/savingsaccounts/" + accountId);
 
         assertOk(response, "getSavingsAccount(" + accountId + ")");
         return response.jsonPath().getMap("");
@@ -266,7 +266,7 @@ public class FineractTestClient {
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getClientSavingsAccounts(Long clientId) {
         Response response = request()
-                .get("/api/v1/clients/" + clientId
+                .get("/fineract-provider/api/v1/clients/" + clientId
                         + "/accounts?fields=savingsAccounts");
 
         assertOk(response, "getClientSavingsAccounts(" + clientId + ")");
@@ -278,7 +278,7 @@ public class FineractTestClient {
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getAccountTransactions(Long accountId) {
         Response response = request()
-                .get("/api/v1/savingsaccounts/" + accountId
+                .get("/fineract-provider/api/v1/savingsaccounts/" + accountId
                         + "?associations=transactions");
 
         assertOk(response, "getAccountTransactions(" + accountId + ")");
@@ -290,7 +290,7 @@ public class FineractTestClient {
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getGlAccounts() {
         Response response = request()
-                .get("/api/v1/glaccounts");
+                .get("/fineract-provider/api/v1/glaccounts");
 
         assertOk(response, "getGlAccounts");
         return response.jsonPath().getList("");
@@ -299,7 +299,7 @@ public class FineractTestClient {
     @SuppressWarnings("unchecked")
     public Map<String, Object> getClientByExternalId(String externalId) {
         Response response = request()
-                .get("/api/v1/clients?externalId=" + externalId);
+                .get("/fineract-provider/api/v1/clients?externalId=" + externalId);
 
         assertOk(response, "getClientByExternalId(" + externalId + ")");
         List<Map<String, Object>> pageItems = response.jsonPath()
@@ -310,7 +310,7 @@ public class FineractTestClient {
     @SuppressWarnings("unchecked")
     public Map<String, Object> getClientById(Long clientId) {
         Response response = request()
-                .get("/api/v1/clients/" + clientId);
+                .get("/fineract-provider/api/v1/clients/" + clientId);
 
         assertOk(response, "getClientById(" + clientId + ")");
         return response.jsonPath().getMap("");
