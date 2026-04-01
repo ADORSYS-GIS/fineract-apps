@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -43,10 +44,6 @@ public class CallbackController {
 
              // TODO: Re-enable this security check for production. It is temporarily disabled
         // because the MTN Sandbox is not sending the subscription key in the callback header.
-
-        // // Detailed logging for subscription key debugging
-        // log.info("Verifying MTN subscription key. Received: [{}], Expected: [{}]",
-        //     subscriptionKey, mtnConfig.getCollectionSubscriptionKey());
 
         //     if (!isValidMtnCallback(subscriptionKey)) {
         //     log.warn("Invalid MTN collection callback: subscription key mismatch");
@@ -280,8 +277,8 @@ public class CallbackController {
         String disbursementKey = mtnConfig.getDisbursementSubscriptionKey();
 
         // Fail-closed: reject if subscription keys are not configured (null, empty, or whitespace)
-        boolean collectionConfigured = org.springframework.util.StringUtils.hasText(collectionKey);
-        boolean disbursementConfigured = org.springframework.util.StringUtils.hasText(disbursementKey);
+        boolean collectionConfigured = StringUtils.hasText(collectionKey);
+        boolean disbursementConfigured = StringUtils.hasText(disbursementKey);
         if (!collectionConfigured && !disbursementConfigured) {
             log.error("MTN subscription keys not configured. Rejecting callback for security.");
             paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "keys_not_configured");

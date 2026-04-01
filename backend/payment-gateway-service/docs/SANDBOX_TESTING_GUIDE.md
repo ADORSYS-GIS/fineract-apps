@@ -1,4 +1,4 @@
- # Payment Gateway — MTN Sandbox Testing Guide
+# Payment Gateway — MTN Sandbox Testing Guide
 
 ## 1. Sandbox Readiness Checklist
 
@@ -10,7 +10,6 @@
 - [x] Disbursements (withdrawals) via `/disbursement/v1_0/transfer`
 - [x] OAuth2 token flow with caching
 - [x] Callback endpoints: `/api/callbacks/mtn/collection` and `/api/callbacks/mtn/disbursement`
-- [x] Kubernetes deployment manifests wired for all MTN env vars
 - [x] SealedSecrets exist for dev environment with MTN keys (`mtn-api-key`, `mtn-collection-key`, `mtn-disbursement-key`)
 
 ### Missing / Action Items
@@ -50,20 +49,7 @@ curl -X POST "https://sandbox.momodeveloper.mtn.com/v1_0/apiuser/$API_USER_ID/ap
 # Response: {"apiKey": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}
 ```
 
-### Step 3: Update Kubernetes Secrets
-```bash
-# Update the payment-gateway-credentials sealed secret with real values:
-# - mtn-collection-key: Primary Key from Collections subscription
-# - mtn-disbursement-key: Primary Key from Disbursements subscription
-# - mtn-api-key: API Key from Step 2
-
-# Update values-hetzner.yaml with the API User ID:
-# paymentGateway:
-#   mtn:
-#     apiUserId: "<your-API_USER_ID-from-step-2>"
-```
-
-### Step 4: Create Callback Ingress (Required for MTN to reach us)
+### Step 3: Create Callback Ingress (Required for MTN to reach us)
 MTN sandbox sends callbacks to the URL specified in `X-Callback-Url` header. The payment gateway sets this to `${MTN_CALLBACK_URL}/mtn/collection`. For Hetzner dev, you need an ingress or route the callbacks through the BFF.
 
 **Option A**: Add ingress rule for payment gateway callbacks
@@ -152,179 +138,7 @@ curl -X POST "$BASE_URL/api/callbacks/mtn/collection" \
 
 ---
 
-## 5. Frontend + BFF Integration (What Needs to Happen)
-
-### Current State
-The self-service frontend (`frontend/self-service-app/src/routes/deposit.tsx` and `withdraw.tsx`) currently has **mock implementations**:
-```typescript
-// Current mock — does NOT call the payment gateway
-await new Promise((resolve) => setTimeout(resolve, 2000));
-setSuccess(true);
-```
-
-### What the Frontend Needs to Do
-
-#### Step 1: Add Payment Gateway API Client
-Create a payment API client in the frontend (similar to `services/api.ts`):
-
-```typescript
-// services/paymentApi.ts
-const PAYMENT_API_URL = import.meta.env.VITE_PAYMENT_GATEWAY_URL || '/api';
-
-export async function initiateDeposit(params: {
-  accountId: number;
-  amount: number;
-  provider: 'MTN_MOMO' | 'ORANGE_MONEY' | 'CINETPAY';
-  phoneNumber: string;
-  externalId: string;
-}, accessToken: string): Promise<PaymentResponse> {
-  const idempotencyKey = crypto.randomUUID();
-
-  const response = await fetch(`${PAYMENT_API_URL}/payments/deposit`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-      'X-Idempotency-Key': idempotencyKey,
-    },
-    body: JSON.stringify(params),
-  });
-
-  if (!response.ok) throw new Error(await response.text());
-  return response.json();
-}
-
-export async function initiateWithdrawal(params: {
-  accountId: number;
-  amount: number;
-  provider: 'MTN_MOMO' | 'ORANGE_MONEY' | 'CINETPAY';
-  phoneNumber: string;
-  externalId: string;
-}, accessToken: string): Promise<PaymentResponse> {
-  const idempotencyKey = crypto.randomUUID();
-
-  const response = await fetch(`${PAYMENT_API_URL}/payments/withdraw`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-      'X-Idempotency-Key': idempotencyKey,
-    },
-    body: JSON.stringify(params),
-  });
-
-  if (!response.ok) throw new Error(await response.text());
-  return response.json();
-}
-
-export async function getTransactionStatus(
-  transactionId: string,
-  accessToken: string
-): Promise<TransactionStatusResponse> {
-  const response = await fetch(`${PAYMENT_API_URL}/payments/status/${transactionId}`, {
-    headers: { 'Authorization': `Bearer ${accessToken}` },
-  });
-
-  if (!response.ok) throw new Error(await response.text());
-  return response.json();
-}
-```
-
-#### Step 2: Wire Deposit Page to Real API
-Replace the mock `handleSubmit` in `deposit.tsx`:
-
-```typescript
-const handleSubmit = async () => {
-  if (!selectedMethod || !validateAmount()) return;
-
-  setIsSubmitting(true);
-  setError(null);
-
-  try {
-    const provider = mapMethodToProvider(selectedMethod);
-    const result = await initiateDeposit({
-      accountId: userAccountId,
-      amount: parseInt(amount, 10),
-      provider,
-      phoneNumber: userPhoneNumber,
-      externalId: auth.user?.profile?.fineract_external_id as string,
-    }, auth.user?.access_token!);
-
-    // For MTN: Show "Check your phone" message, then poll status
-    if (result.status === 'PENDING') {
-      setTransactionId(result.transactionId);
-      setPendingApproval(true);
-      pollTransactionStatus(result.transactionId);
-    }
-    // For Orange/CinetPay: Redirect to payment URL
-    if (result.paymentUrl) {
-      window.location.href = result.paymentUrl;
-    }
-  } catch (err) {
-    setError(t("errors.generic"));
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-// Map frontend payment method IDs to backend provider enum
-function mapMethodToProvider(method: PaymentMethod): string {
-  switch (method) {
-    case 'mtn_transfer': return 'MTN_MOMO';
-    case 'orange_transfer': return 'ORANGE_MONEY';
-    default: return 'CINETPAY';
-  }
-}
-```
-
-#### Step 3: Add Status Polling
-After initiating an MTN deposit, poll for status (MTN uses USSD — no redirect):
-
-```typescript
-async function pollTransactionStatus(transactionId: string) {
-  const maxAttempts = 60; // 5 minutes at 5-second intervals
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise(r => setTimeout(r, 5000));
-    const status = await getTransactionStatus(transactionId, auth.user?.access_token!);
-    if (status.status === 'SUCCESSFUL') {
-      setSuccess(true);
-      return;
-    }
-    if (status.status === 'FAILED') {
-      setError('Payment was declined');
-      return;
-    }
-  }
-  setError('Payment timed out');
-}
-```
-
-### BFF Proxy (If Using BFF Instead of Direct Calls)
-If the frontend calls the BFF instead of the payment gateway directly, add proxy routes in the BFF:
-
-```yaml
-# In BFF (azamra-bff) application.yml or route config
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: payment-gateway
-          uri: http://payment-gateway-service:8082
-          predicates:
-            - Path=/api/payments/**, /api/callbacks/**
-```
-
-Or if the BFF is a Spring WebFlux app, add a route filter that forwards `/api/payments/*` to the payment gateway.
-
-### Environment Variable
-Add to frontend deployment:
-```
-VITE_PAYMENT_GATEWAY_URL=https://bff.dev.azamra.capital/api
-```
-
----
-
-## 6. Running Automated Tests
+## 5. Running Automated Tests
 
 ### Unit Tests (No Infrastructure Needed)
 ```bash
@@ -347,7 +161,7 @@ k6 run docker/k6/payment-gateway-smoke-test.js \
 
 ---
 
-## 7. Troubleshooting
+## 6. Troubleshooting
 
 ### Payment stays PENDING forever
 - **Cause**: Callback URL not reachable by MTN
@@ -368,4 +182,3 @@ k6 run docker/k6/payment-gateway-smoke-test.js \
 
 ### Stale PENDING transactions
 - The cleanup scheduler marks PENDING transactions as EXPIRED after 30 minutes
-- Check logs: `kubectl logs -l app=payment-gateway-service -n fineract --tail=200`
