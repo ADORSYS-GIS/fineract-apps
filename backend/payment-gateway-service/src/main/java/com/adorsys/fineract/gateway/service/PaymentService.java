@@ -286,9 +286,9 @@ public class PaymentService {
         log.info("MTN API returned status: {} for transactionId: {}", status, transactionId);
 
         if (status != PaymentStatus.SUCCESSFUL) {
-            log.warn("MTN collection callback for externalId {} received with status {}, but provider API reports status {}. Ignoring callback.",
+            log.warn("MTN collection callback for externalId {} received with status {}, but provider API reports status {}. Processing as failure.",
                 callback.getExternalId(), callback.getStatus(), status);
-            return;
+            callback.setStatus("FAILED");
         }
 
         log.info("Transaction status verified. Proceeding with callback processing for externalId: {}", callback.getExternalId());
@@ -318,9 +318,9 @@ public class PaymentService {
         log.info("MTN API returned status: {} for transactionId: {}", status, transactionId);
 
         if (status != PaymentStatus.SUCCESSFUL) {
-            log.warn("MTN disbursement callback for externalId {} received with status {}, but provider API reports status {}. Ignoring callback.",
+            log.warn("MTN disbursement callback for externalId {} received with status {}, but provider API reports status {}. Processing as failure.",
                 callback.getExternalId(), callback.getStatus(), status);
-            return;
+            callback.setStatus("FAILED");
         }
 
         log.info("Transaction status verified. Proceeding with callback processing for externalId: {}", callback.getExternalId());

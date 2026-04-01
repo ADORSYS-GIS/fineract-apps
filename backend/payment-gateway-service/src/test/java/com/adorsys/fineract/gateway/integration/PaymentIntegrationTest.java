@@ -125,6 +125,8 @@ class PaymentIntegrationTest {
         when(fineractClient.createDeposit(eq(ACCOUNT_ID), any(BigDecimal.class),
                 anyLong(), eq("fin-txn-abc"))).thenReturn(999L);
 
+        when(mtnClient.getCollectionStatus(idempotencyKey)).thenReturn(PaymentStatus.SUCCESSFUL);
+
         MtnCallbackRequest callback = MtnCallbackRequest.builder()
                 .referenceId("mtn-ref-id")
                 .externalId("mtn-ext-ref-001")
@@ -238,6 +240,8 @@ class PaymentIntegrationTest {
         assertThat(processingTxn.get().getStatus()).isEqualTo(PaymentStatus.PROCESSING);
 
         // Simulate successful MTN disbursement callback
+        when(mtnClient.getDisbursementStatus(idempotencyKey)).thenReturn(PaymentStatus.SUCCESSFUL);
+
         MtnCallbackRequest callback = MtnCallbackRequest.builder()
                 .externalId("mtn-ext-ref-w1")
                 .status("SUCCESSFUL")
@@ -290,6 +294,8 @@ class PaymentIntegrationTest {
                 .andExpect(status().isOk());
 
         // Simulate FAILED MTN disbursement callback
+        when(mtnClient.getDisbursementStatus(idempotencyKey)).thenReturn(PaymentStatus.FAILED);
+
         MtnCallbackRequest callback = MtnCallbackRequest.builder()
                 .externalId("mtn-ext-ref-w2")
                 .status("FAILED")
