@@ -195,6 +195,8 @@ public class MtnMomoClient {
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                 .block();
 
+            log.debug("REAL MTN API response for transaction status: {}", response);
+
             String status = (String) response.get("status");
             return mapMtnStatus(status);
 
