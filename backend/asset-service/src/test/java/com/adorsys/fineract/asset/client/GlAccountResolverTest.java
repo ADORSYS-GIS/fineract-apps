@@ -49,7 +49,6 @@ class GlAccountResolverTest {
             Map.entry("4501", 4501L),   // transfersInSuspense
             // Income
             Map.entry("701", 1701L),    // platformFeeIncome + incomeFromInterest + feeIncome
-            Map.entry("702", 1702L),    // spreadIncome
             // Expense
             Map.entry("601", 1601L),    // expenseAccount
             Map.entry("608", 1608L),    // taxExpenseRegDuty + taxExpenseCapGains + taxExpenseIrcm + taxExpenseTva
@@ -113,7 +112,6 @@ class GlAccountResolverTest {
         assertEquals(4501L, resolvedGlAccounts.getTransfersInSuspenseId());
         // Income
         assertEquals(1701L, resolvedGlAccounts.getPlatformFeeIncomeId());
-        assertEquals(1702L, resolvedGlAccounts.getSpreadIncomeId());
         assertEquals(1701L, resolvedGlAccounts.getIncomeFromInterestId());
         assertEquals(1701L, resolvedGlAccounts.getFeeIncomeId());
         // Expense

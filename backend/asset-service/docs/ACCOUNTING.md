@@ -309,16 +309,25 @@ Period margin report: `net margin = SUM(spreadAmount) - SUM(buybackPremium)`
 
 | GL Code | Name | Type | Purpose |
 |---------|------|------|---------|
-| 47 | Digital Asset Inventory | Asset | Bank's vault holding of all digital asset units |
-| 48 | Asset Transfer Suspense | Asset | Clearing account for in-flight transfers |
-| 65 | Customer Digital Asset Holdings | Liability | Obligation to customers who hold asset units |
-| 42 | Fund Source / Cash Reference | Asset | Cash reference for savings product accounting |
-| 73 | Company Asset Capital | Equity | Origin of minted asset units |
-| 87 | Asset Trading Fee Income | Income | Revenue from trading fees |
-| 91 | Expense Account | Expense | Interest on savings / write-off expenses |
-| 142 | Tax Payable - Registration Duty | Liability | Registration duty (droit d'enregistrement) payable to DGI |
-| 143 | Tax Payable - IRCM | Liability | IRCM withholding tax on investment income payable to DGI |
-| 144 | Tax Payable - Capital Gains | Liability | Capital gains tax payable to DGI |
+| 103 | Company Asset Capital | Equity | Origin of minted asset units |
+| 301 | Digital Asset Inventory | Asset | Vault holding of digital asset units across all asset types |
+| 302 | Asset Transfer Suspense | Asset | Clearing account for in-flight asset transfers |
+| 502 | Azamra Cash Register | Asset | Neutral cash reference for savings product accounting |
+| 701 | Azamra Platform Fee Income | Income | Revenue from platform trading fees |
+| 601 | Interest Expense on Savings | Expense | Interest on savings / write-off expenses |
+| 4011 | LP Settlement Control | Liability | LP cash settlement balances owed |
+| 4012 | LP Spread Payable | Liability | LP accumulated spread margin owed |
+| 4013 | LP Tax Withholding | Liability | Tax withheld from LP on sell transactions |
+| 4101 | Client Savings Control | Liability | Client XAF savings deposits |
+| 4102 | Client Digital Asset Holdings | Liability | Obligation to customers who hold asset units |
+| 4201 | Platform Fee Payable | Liability | Accrued trading fees before income recognition |
+| 4301 | Tax Payable - Registration Duty | Liability | Registration duty payable to DGI |
+| 4302 | Tax Payable - IRCM | Liability | IRCM withholding tax payable to DGI |
+| 4303 | Tax Payable - Capital Gains | Liability | Capital gains tax payable to DGI |
+| 4304 | Tax Payable - TVA | Liability | TVA payable to DGI |
+| 4501 | Transfers in Suspense | Liability | In-flight inter-account transfers |
+| 5011 | UBA Bank Account | Asset | UBA bank trust account for LP payouts |
+| 5031 | Afriland Tax Account | Asset | Afriland bank account for tax remittances |
 
 ## Savings Product Accounting Mapping
 
@@ -327,18 +336,18 @@ Each asset's savings product is configured with **Cash-based accounting** (rule 
 | Fineract Mapping | GL Account |
 |---------|------------|
 | **Asset accounts** | |
-| Savings Reference | GL 47 (Digital Asset Inventory) |
-| Overdraft Portfolio Control | GL 47 (Digital Asset Inventory) |
+| Savings Reference | GL 301 (Digital Asset Inventory) |
+| Overdraft Portfolio Control | GL 301 (Digital Asset Inventory) |
 | **Liability accounts** | |
-| Savings Control | GL 65 (Customer Digital Asset Holdings) |
-| Transfers in Suspense | GL 65 (Customer Digital Asset Holdings) |
+| Savings Control | GL 4102 (Client Digital Asset Holdings) |
+| Transfers in Suspense | GL 4501 (Transfers in Suspense) |
 | **Income accounts** | |
-| Income from Interest | GL 87 (Asset Trading Fee Income) |
-| Income from Fee | GL 87 (Asset Trading Fee Income) |
-| Income from Penalty | GL 87 (Asset Trading Fee Income) |
+| Income from Interest | GL 701 (Azamra Platform Fee Income) |
+| Income from Fee | GL 701 (Azamra Platform Fee Income) |
+| Income from Penalty | GL 701 (Azamra Platform Fee Income) |
 | **Expense accounts** | |
-| Interest on Savings | GL 91 (Expense Account) |
-| Write-Off | GL 91 (Expense Account) |
+| Interest on Savings | GL 601 (Interest Expense on Savings) |
+| Write-Off | GL 601 (Interest Expense on Savings) |
 
 ## Journal Entry Examples
 
@@ -348,8 +357,8 @@ When the admin creates an asset and deposits 100,000 units into the LP's asset a
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| GL 47 - Digital Asset Inventory | 100,000 units | |
-| GL 73 - Company Asset Capital | | 100,000 units |
+| GL 301 - Digital Asset Inventory | 100,000 units | |
+| GL 103 - Company Asset Capital | | 100,000 units |
 
 ### 2. Investor Buy Trade
 
@@ -375,8 +384,8 @@ Four Fineract account transfers (LP Cash hub):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| GL 65 - Customer Digital Asset Holdings | 10 DTT | |
-| GL 47 - Digital Asset Inventory | | 10 DTT |
+| GL 4102 - Client Digital Asset Holdings | 10 DTT | |
+| GL 301 - Digital Asset Inventory | | 10 DTT |
 
 ### 3. Investor Sell Trade (bid ≤ issuer)
 
@@ -402,8 +411,8 @@ Fineract account transfers (LP Cash hub):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| GL 47 - Digital Asset Inventory | 5 DTT | |
-| GL 65 - Customer Digital Asset Holdings | | 5 DTT |
+| GL 301 - Digital Asset Inventory | 5 DTT | |
+| GL 4102 - Client Digital Asset Holdings | | 5 DTT |
 
 ### 4. Coupon Payment (Bond Interest)
 
@@ -468,9 +477,9 @@ All monetary amounts in the system (trade costs, fees, coupon payments) use the 
 
 To verify asset accounting is correct:
 
-1. **GL 47 balance** should equal the sum of all LP asset savings account balances across all asset currencies
-2. **GL 65 balance** should equal the sum of all investor savings account balances across all asset currencies
-3. **GL 47 + GL 65** should equal the total supply of all assets (units minted via GL 73)
+1. **GL 301 balance** should equal the sum of all LP asset savings account balances across all asset currencies
+2. **GL 4102 balance** should equal the sum of all investor savings account balances across all asset currencies
+3. **GL 301 + GL 4102** should equal the total supply of all assets (units minted via GL 103)
 4. **Fee collection account balance** should match the sum of all `fee` values in both `orders` and `trade_log_archive` tables
 5. **LP Spread account balance** per asset should equal `SUM(spreadAmount) - SUM(buybackPremium)` across all orders for that asset
 6. **LP Cash account balance** per asset should reflect `SUM(issuerPrice × units)` for BUY minus `SUM(issuerPrice × units)` for SELL, adjusted for coupon/income payouts and tax disbursements

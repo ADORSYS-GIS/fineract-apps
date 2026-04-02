@@ -72,7 +72,7 @@ public record AssetDetailResponse(
     Long lpAssetAccountId,
     /** Fineract savings account ID for the LP's cash. */
     Long lpCashAccountId,
-    /** Fineract savings account ID for the LP's spread income collection. */
+    /** Fineract savings account ID for the LP's spread collection. */
     @Schema(description = "LP spread collection account ID.", nullable = true)
     Long lpSpreadAccountId,
     /** Fineract savings account ID for the LP's tax withholding. */

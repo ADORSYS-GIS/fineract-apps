@@ -607,7 +607,7 @@ class TradingServiceTest {
         // Verify 4-leg batch: token return, LP pays investor, fee, spread
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        assertEquals(6, ops.size());
+        assertEquals(5, ops.size());
         assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, units); // token return
         BigDecimal grossAmount = new BigDecimal("450"); // 5 * 90
         assertTransferOp(ops.get(1), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(fee)); // net proceeds

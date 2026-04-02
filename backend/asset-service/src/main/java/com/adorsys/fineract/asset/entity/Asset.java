@@ -264,7 +264,7 @@ public class Asset {
     @Column(name = "lp_cash_account_id")
     private Long lpCashAccountId;
 
-    /** Fineract savings account ID where the LP collects spread income (margin). */
+    /** Fineract savings account ID where the LP collects spread (margin). */
     @Column(name = "lp_spread_account_id")
     private Long lpSpreadAccountId;
 

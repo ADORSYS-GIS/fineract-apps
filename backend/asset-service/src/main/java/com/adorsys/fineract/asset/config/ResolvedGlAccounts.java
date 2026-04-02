@@ -47,8 +47,6 @@ public class ResolvedGlAccounts {
     private Long platformFeePayableId;
     /** Database ID of the platform fee income GL account. */
     private Long platformFeeIncomeId;
-    /** Database ID of the LP spread income GL account. */
-    private Long spreadIncomeId;
     /** Database ID of the income from interest GL account. */
     private Long incomeFromInterestId;
     /** Database ID of the trading fee income GL account (alias for platformFeeIncome). */
