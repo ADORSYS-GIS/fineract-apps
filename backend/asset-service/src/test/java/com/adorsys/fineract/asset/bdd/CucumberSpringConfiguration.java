@@ -50,7 +50,6 @@ public class CucumberSpringConfiguration {
             resolved.setAssetIssuancePaymentTypeId(22L);
             resolved.setFundSourceId(502L);
             resolved.setFeeIncomeId(701L);
-            resolved.setSpreadIncomeId(702L);
             resolved.setLpSettlementControlId(4011L);
             resolved.setLpSpreadPayableId(4012L);
             resolved.setLpTaxWithholdingId(4013L);

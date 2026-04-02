@@ -6,6 +6,7 @@ import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
 import com.adorsys.fineract.asset.config.AdminSecurityCheck;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.dto.ExecuteRebalanceRequest;
 import com.adorsys.fineract.asset.dto.RebalanceProposalResponse;
 import com.adorsys.fineract.asset.entity.Settlement;
@@ -37,6 +38,7 @@ public class SettlementService {
     private final SettlementRepository settlementRepository;
     private final FineractClient fineractClient;
     private final ResolvedGlAccounts resolvedGlAccounts;
+    private final ResolvedTaxAccounts resolvedTaxAccounts;
     private final AdminSecurityCheck adminSecurity;
     private final AssetServiceConfig assetServiceConfig;
     private final com.adorsys.fineract.asset.repository.AssetRepository assetRepository;
@@ -313,6 +315,15 @@ public class SettlementService {
         }
     }
 
+    private BigDecimal safeSavingsBalance(Long savingsAccountId) {
+        try {
+            return savingsAccountId != null ? fineractClient.getAccountBalance(savingsAccountId) : BigDecimal.ZERO;
+        } catch (Exception e) {
+            log.warn("Failed to fetch savings balance for account {}: {}", savingsAccountId, e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
+
     // ── Rebalance Proposal ──
 
     @Transactional(readOnly = true)
@@ -323,16 +334,24 @@ public class SettlementService {
         reservePercent = reservePercent.max(BigDecimal.ZERO).min(new BigDecimal("0.99"));
         String currency = assetServiceConfig.getSettlementCurrency();
 
-        // 1. LP demand
-        BigDecimal totalLpOwed = BigDecimal.ZERO;
+        // 1. LP demand (split by account type for separate settlement proposals)
+        BigDecimal totalLsav = BigDecimal.ZERO;
+        BigDecimal totalLspd = BigDecimal.ZERO;
         for (var lp : getLpBalances()) {
-            totalLpOwed = totalLpOwed
-                    .add((BigDecimal) lp.get("lsavBalance"))
-                    .add((BigDecimal) lp.get("lspdBalance"));
+            totalLsav = totalLsav.add((BigDecimal) lp.get("lsavBalance"));
+            totalLspd = totalLspd.add((BigDecimal) lp.get("lspdBalance"));
         }
+        BigDecimal totalLpOwed = totalLsav.add(totalLspd);
 
-        // 2. Tax & fee demand (from GL balances — these are liability accounts, balance is negative = owed)
-        BigDecimal taxOwed = safeGlBalance(resolvedGlAccounts.getLpTaxWithholdingId(), currency).abs();
+        // 2. Tax & fee demand
+        //    LP tax withholding (GL 4013) — tax withheld from LPs per-asset
+        BigDecimal lpTaxOwed = safeGlBalance(resolvedGlAccounts.getLpTaxWithholdingId(), currency).abs();
+        //    DGI tax (global tax savings accounts) — registration duty, IRCM, capital gains, TVA
+        BigDecimal dgiTaxOwed = safeSavingsBalance(resolvedTaxAccounts.getRegistrationDutyAccountId())
+                .add(safeSavingsBalance(resolvedTaxAccounts.getIrcmAccountId()))
+                .add(safeSavingsBalance(resolvedTaxAccounts.getCapitalGainsAccountId()))
+                .add(safeSavingsBalance(resolvedTaxAccounts.getTvaAccountId()));
+        BigDecimal taxOwed = lpTaxOwed.add(dgiTaxOwed);
         BigDecimal feesOwed = safeGlBalance(resolvedGlAccounts.getPlatformFeePayableId(), currency).abs();
 
         // 3. Current bank balances
@@ -358,7 +377,7 @@ public class SettlementService {
         // 6. Build transfers (rebalances + payouts)
         List<RebalanceProposalResponse.ProposedTransfer> transfers = buildProposedTransfers(
                 needInUba, needInAfriland, momoAvail, orangeAvail, totalAvail,
-                totalLpOwed, taxOwed, feesOwed);
+                totalLsav, totalLspd, lpTaxOwed, dgiTaxOwed, feesOwed);
 
         return new RebalanceProposalResponse(
                 totalLpOwed, taxOwed, feesOwed, totalOutflow,
@@ -371,7 +390,8 @@ public class SettlementService {
     private List<RebalanceProposalResponse.ProposedTransfer> buildProposedTransfers(
             BigDecimal needInUba, BigDecimal needInAfriland,
             BigDecimal momoAvail, BigDecimal orangeAvail, BigDecimal totalAvail,
-            BigDecimal totalLpOwed, BigDecimal taxOwed, BigDecimal feesOwed) {
+            BigDecimal totalLsav, BigDecimal totalLspd,
+            BigDecimal lpTaxOwed, BigDecimal dgiTaxOwed, BigDecimal feesOwed) {
 
         List<RebalanceProposalResponse.ProposedTransfer> result = new ArrayList<>();
         BigDecimal minTransfer = assetServiceConfig.getRebalance().getMinTransferAmount();
@@ -409,20 +429,32 @@ public class SettlementService {
             }
         }
 
-        // Step 2: LP Payout (clear LP liability via UBA)
-        if (totalLpOwed.compareTo(minTransfer) >= 0) {
+        // Step 2: LP Payout — separate entries for LSAV (4011) and LSPD (4012)
+        if (totalLsav.compareTo(minTransfer) >= 0) {
             result.add(new RebalanceProposalResponse.ProposedTransfer(
                     "LP_PAYOUT", "4011", "LP Settlement Control",
-                    ubaGl, "UBA Bank", totalLpOwed,
+                    ubaGl, "UBA Bank", totalLsav,
                     "LP Payout: clear LP settlement balance"));
         }
+        if (totalLspd.compareTo(minTransfer) >= 0) {
+            result.add(new RebalanceProposalResponse.ProposedTransfer(
+                    "LP_PAYOUT", "4012", "LP Spread Payable",
+                    ubaGl, "UBA Bank", totalLspd,
+                    "LP Payout: clear LP spread balance"));
+        }
 
-        // Step 3: Tax Remittance (clear tax liability via Afriland)
-        if (taxOwed.compareTo(minTransfer) >= 0) {
+        // Step 3: Tax Remittance — separate entries for LP tax (4013) and DGI tax (4301)
+        if (lpTaxOwed.compareTo(minTransfer) >= 0) {
             result.add(new RebalanceProposalResponse.ProposedTransfer(
                     "TAX_REMITTANCE", "4013", "LP Tax Withholding",
-                    afriGl, "Afriland Tax", taxOwed,
+                    afriGl, "Afriland Tax", lpTaxOwed,
                     "Tax Remittance: clear LP tax withholding"));
+        }
+        if (dgiTaxOwed.compareTo(minTransfer) >= 0) {
+            result.add(new RebalanceProposalResponse.ProposedTransfer(
+                    "TAX_REMITTANCE", "4301", "Tax Payable - Registration Duty",
+                    afriGl, "Afriland Tax", dgiTaxOwed,
+                    "Tax Remittance: clear DGI tax collection"));
         }
 
         // Step 4: Fee Collection (collect platform fees via UBA)
