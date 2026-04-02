@@ -1122,6 +1122,7 @@ export interface RebalanceProposal {
 	feasible: boolean;
 	shortfall: number;
 	transfers: {
+		phase: number;
 		settlementType: string;
 		sourceGlCode: string;
 		sourceName: string;
@@ -1129,5 +1130,6 @@ export interface RebalanceProposal {
 		destinationName: string;
 		amount: number;
 		description: string;
+		adminAction: string;
 	}[];
 }
