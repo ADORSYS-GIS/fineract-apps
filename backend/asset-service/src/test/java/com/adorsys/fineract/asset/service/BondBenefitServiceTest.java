@@ -197,8 +197,9 @@ class BondBenefitServiceTest {
     void countRemainingCoupons_quarterly_returnsCorrectCount() {
         LocalDate next = LocalDate.of(2026, 4, 1);
         LocalDate maturity = LocalDate.of(2027, 4, 1);
+        LocalDate referenceDate = LocalDate.of(2026, 3, 31); // fixed: before first coupon
 
-        int count = service.countRemainingCoupons(next, maturity, 3);
+        int count = service.countRemainingCoupons(next, maturity, 3, referenceDate);
 
         // 2026-04, 2026-07, 2026-10, 2027-01, 2027-04 = 5 payments
         assertEquals(5, count);

@@ -128,14 +128,22 @@ public class BondBenefitService {
      * Only counts coupon dates that are today or in the future.
      */
     int countRemainingCoupons(LocalDate nextCouponDate, LocalDate maturityDate, int freqMonths) {
+        return countRemainingCoupons(nextCouponDate, maturityDate, freqMonths, LocalDate.now());
+    }
+
+    /**
+     * Count coupon payments from referenceDate until maturityDate (inclusive).
+     * Package-private to allow deterministic testing with a fixed reference date.
+     */
+    int countRemainingCoupons(LocalDate nextCouponDate, LocalDate maturityDate,
+                               int freqMonths, LocalDate referenceDate) {
         if (nextCouponDate == null || maturityDate == null) {
             return 0;
         }
-        LocalDate today = LocalDate.now();
         int count = 0;
         LocalDate cursor = nextCouponDate;
         while (!cursor.isAfter(maturityDate)) {
-            if (!cursor.isBefore(today)) {
+            if (!cursor.isBefore(referenceDate)) {
                 count++;
             }
             cursor = cursor.plusMonths(freqMonths);
