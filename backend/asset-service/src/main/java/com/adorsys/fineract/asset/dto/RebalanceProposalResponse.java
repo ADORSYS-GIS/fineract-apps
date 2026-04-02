@@ -23,12 +23,14 @@ public record RebalanceProposalResponse(
     List<ProposedTransfer> transfers
 ) {
     public record ProposedTransfer(
+        int phase,
         String settlementType,
         String sourceGlCode,
         String sourceName,
         String destinationGlCode,
         String destinationName,
         BigDecimal amount,
-        String description
+        String description,
+        String adminAction
     ) {}
 }

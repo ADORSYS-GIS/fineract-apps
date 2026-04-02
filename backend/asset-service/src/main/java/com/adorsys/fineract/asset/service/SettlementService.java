@@ -421,9 +421,10 @@ public class SettlementService {
                             .setScale(0, java.math.RoundingMode.HALF_UP);
                     if (amount.compareTo(minTransfer) >= 0) {
                         result.add(new RebalanceProposalResponse.ProposedTransfer(
-                                "TRUST_REBALANCE", sources[s], sourceNames[s],
+                                1, "TRUST_REBALANCE", sources[s], sourceNames[s],
                                 dests[d], destNames[d], amount,
-                                "Rebalance: " + sourceNames[s] + " → " + destNames[d]));
+                                "Rebalance: " + sourceNames[s] + " → " + destNames[d],
+                                "Transfer from " + sourceNames[s] + " portal to " + destNames[d]));
                     }
                 }
             }
@@ -432,37 +433,42 @@ public class SettlementService {
         // Step 2: LP Payout — separate entries for LSAV (4011) and LSPD (4012)
         if (totalLsav.compareTo(minTransfer) >= 0) {
             result.add(new RebalanceProposalResponse.ProposedTransfer(
-                    "LP_PAYOUT", "4011", "LP Settlement Control",
+                    2, "LP_PAYOUT", "4011", "LP Settlement Control",
                     ubaGl, "UBA Bank", totalLsav,
-                    "LP Payout: clear LP settlement balance"));
+                    "LP Payout: clear LP settlement balance",
+                    "Wire " + totalLsav.toPlainString() + " XAF from UBA to LP's external bank account"));
         }
         if (totalLspd.compareTo(minTransfer) >= 0) {
             result.add(new RebalanceProposalResponse.ProposedTransfer(
-                    "LP_PAYOUT", "4012", "LP Spread Payable",
+                    2, "LP_PAYOUT", "4012", "LP Spread Payable",
                     ubaGl, "UBA Bank", totalLspd,
-                    "LP Payout: clear LP spread balance"));
+                    "LP Payout: clear LP spread balance",
+                    "Wire " + totalLspd.toPlainString() + " XAF from UBA to LP's external bank account"));
         }
 
         // Step 3: Tax Remittance — separate entries for LP tax (4013) and DGI tax (4301)
         if (lpTaxOwed.compareTo(minTransfer) >= 0) {
             result.add(new RebalanceProposalResponse.ProposedTransfer(
-                    "TAX_REMITTANCE", "4013", "LP Tax Withholding",
+                    3, "TAX_REMITTANCE", "4013", "LP Tax Withholding",
                     afriGl, "Afriland Tax", lpTaxOwed,
-                    "Tax Remittance: clear LP tax withholding"));
+                    "Tax Remittance: clear LP tax withholding",
+                    "Wire " + lpTaxOwed.toPlainString() + " XAF from Afriland to DGI tax authority"));
         }
         if (dgiTaxOwed.compareTo(minTransfer) >= 0) {
             result.add(new RebalanceProposalResponse.ProposedTransfer(
-                    "TAX_REMITTANCE", "4301", "Tax Payable - Registration Duty",
+                    3, "TAX_REMITTANCE", "4301", "Tax Payable - Registration Duty",
                     afriGl, "Afriland Tax", dgiTaxOwed,
-                    "Tax Remittance: clear DGI tax collection"));
+                    "Tax Remittance: clear DGI tax collection",
+                    "Wire " + dgiTaxOwed.toPlainString() + " XAF from Afriland to DGI tax authority"));
         }
 
         // Step 4: Fee Collection (collect platform fees via UBA)
         if (feesOwed.compareTo(minTransfer) >= 0) {
             result.add(new RebalanceProposalResponse.ProposedTransfer(
-                    "FEE_COLLECTION", "4201", "Platform Fee Payable",
+                    2, "FEE_COLLECTION", "4201", "Platform Fee Payable",
                     ubaGl, "UBA Bank", feesOwed,
-                    "Fee Collection: collect platform fees"));
+                    "Fee Collection: collect platform fees",
+                    "Transfer platform fees to UBA (internal)"));
         }
 
         return result;
