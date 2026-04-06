@@ -54,6 +54,7 @@ public class AccountSecurityService {
         String externalId = JwtUtils.extractExternalId(jwt);
         log.info("Looking up client ID via sub/externalId: {}", externalId);
         Map<String, Object> client = fineractService.getClientByExternalId(externalId);
+        log.debug("Fineract client lookup result for externalId {}: {}", externalId, client);
         if (client == null || !client.containsKey("id")) {
             throw new RegistrationException("NOT_FOUND", "Customer not found in Fineract", null);
         }
