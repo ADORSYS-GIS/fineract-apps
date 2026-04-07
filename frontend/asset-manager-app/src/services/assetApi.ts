@@ -191,6 +191,10 @@ export interface AssetDetailResponse {
 	ircmExempt?: boolean;
 	capitalGainsTaxEnabled?: boolean;
 	capitalGainsRate?: number;
+	isBvmacListed?: boolean;
+	isGovernmentBond?: boolean;
+	tvaEnabled?: boolean;
+	tvaRate?: number;
 }
 
 export interface CreateAssetRequest {
