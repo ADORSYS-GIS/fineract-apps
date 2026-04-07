@@ -126,6 +126,7 @@ public final class TestDataFactory {
                 new BigDecimal("1000"),
                 0,
                 new BigDecimal("0.005"),
+                null,                    // spreadPercent (null = use default 0.3%)
                 new BigDecimal("110"),
                 new BigDecimal("95"),
                 LP_CLIENT_ID,
@@ -152,6 +153,7 @@ public final class TestDataFactory {
                 new BigDecimal("500"),
                 0,
                 new BigDecimal("0.005"),
+                null,                    // spreadPercent (null = use default 0.3%)
                 new BigDecimal("11000"),
                 new BigDecimal("9500"),
                 LP_CLIENT_ID,

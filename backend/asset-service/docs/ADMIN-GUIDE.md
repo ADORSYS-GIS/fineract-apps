@@ -518,10 +518,10 @@ Exactly one of `units` or `amount` must be provided.
   "units": 100,
   "executionPrice": 5000,
   "grossAmount": 500000,
-  "fee": 2500,
-  "feePercent": 0.50,
+  "fee": 1500,
+  "feePercent": 0.30,
   "spreadAmount": 100000,
-  "netAmount": 502500,
+  "netAmount": 501500,
   "computedFromAmount": null,
   "remainder": null,
   "availableBalance": 1500000,
@@ -771,10 +771,10 @@ Headers:
   "units": 100,
   "executionPrice": 5000,
   "grossAmount": 500000,
-  "fee": 2500,
-  "feePercent": 0.50,
+  "fee": 1500,
+  "feePercent": 0.30,
   "spreadAmount": 100000,
-  "netAmount": 502500,
+  "netAmount": 501500,
   "taxBreakdown": {
     "registrationDutyRate": 0.01,
     "registrationDutyAmount": 5000,
@@ -1462,10 +1462,13 @@ Body:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `issuerPrice` | Yes | The wholesale/face value per unit from the original issuer. Immutable after creation. Used for coupon and income calculations. |
-| `lpAskPrice` | Yes | The price investors pay to buy (LP's selling price). Must be >= `issuerPrice`. |
-| `lpBidPrice` | Yes | The price investors receive when selling (LP's buying price). Must be <= `lpAskPrice`. |
+| `spreadPercent` | No | Spread % used to auto-derive ask/bid from issuerPrice (e.g. `0.003` = 0.3%). Ignored when ask/bid are provided explicitly. Default: `0.003`. |
+| `lpAskPrice` | No | The price investors pay to buy (LP's selling price). If null, auto-derived as `issuerPrice × (1 + spreadPercent)`. Must be >= `issuerPrice`. |
+| `lpBidPrice` | No | The price investors receive when selling (LP's buying price). If null, auto-derived as `issuerPrice × (1 - spreadPercent)`. Must be <= `lpAskPrice`. |
 
 The LP's margin per unit on BUY = `lpAskPrice - issuerPrice`. For bonds, the LP typically sets ask = bid = issuerPrice (no markup on face value).
+
+> **Default spread behavior:** If neither `lpAskPrice`, `lpBidPrice`, nor `spreadPercent` are provided, the system auto-derives ask = `issuerPrice × 1.003` and bid = `issuerPrice × 0.997` (0.3% spread).
 
 Bond-specific fields:
 

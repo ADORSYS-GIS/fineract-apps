@@ -479,7 +479,9 @@ class TaxServiceTest {
 
         @Test
         void calculateTva_nullEnabled_returnsZero() {
-            Asset asset = Asset.builder().build();
+            // tvaEnabled null (set explicitly via setter) is treated defensively as disabled
+            Asset asset = Asset.builder().tvaEnabled(true).build();
+            asset.setTvaEnabled(null);
             BigDecimal result = taxService.calculateTva(asset, new BigDecimal("10000"));
             assertEquals(BigDecimal.ZERO, result);
         }

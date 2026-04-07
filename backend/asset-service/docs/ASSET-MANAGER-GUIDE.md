@@ -273,9 +273,10 @@ Set the financial terms for your asset:
 | Field | Description | Rules |
 |-------|-------------|-------|
 | **Issuer Price (XAF)** | Wholesale/face value per unit | Required. **Immutable after creation.** Used for coupon and income calculations. |
-| **LP Ask Price (XAF)** | Price investors pay to BUY | Required. Must be >= issuer price. |
-| **LP Bid Price (XAF)** | Price investors receive when they SELL | Required. Must be <= ask price. |
-| **Trading Fee (%)** | Platform fee on every trade | Required. Default: 0.50%. Range: 0--10%. |
+| **LP Ask Price (XAF)** | Price investors pay to BUY | Optional. If blank, auto-derived as `issuerPrice × (1 + spreadPercent)`. Must be >= issuer price. |
+| **LP Bid Price (XAF)** | Price investors receive when they SELL | Optional. If blank, auto-derived as `issuerPrice × (1 - spreadPercent)`. Must be <= ask price. |
+| **Spread (%)** | Bid/ask spread applied to auto-derive prices | Optional. Default: 0.30%. Used only when LP ask/bid prices are not set explicitly. |
+| **Trading Fee (%)** | Platform fee on every trade | Optional. Default: 0.30%. Range: 0--10%. |
 
 A live **LP Margin** display shows the difference between ask and issuer price in XAF and as a percentage.
 
@@ -324,14 +325,21 @@ Each income type shows an info badge: **Fixed** or **Variable**.
 
 Configure Cameroon/CEMAC tax compliance settings:
 
+**TVA (Taxe sur la Valeur Ajoutée — VAT):**
+
+- Toggle **Enabled** (default: **on**)
+- **Rate**: Default 19.25% of transaction value on every BUY trade
+- TVA is always paid by the **buyer** only
+
 **Registration Duty (Droit d'enregistrement):**
 
-- Toggle **Enabled** (default: on)
+- Toggle **Enabled** (default: **off**)
 - **Rate**: Default 2% of transaction value on every trade
+- Enable for assets that require formal registration duties under applicable regulations
 
 **IRCM Withholding (Impot sur les Revenus des Capitaux Mobiliers):**
 
-- Toggle **Enabled** (default: on)
+- Toggle **Enabled** (default: **off**)
 - **IRCM Exempt** checkbox (e.g., for government bonds, setting this results in a 0% rate)
 - **Rate Override**: Leave blank for automatic rate determination. Auto rates depend on asset type:
   - Government bonds: 0%
@@ -341,7 +349,7 @@ Configure Cameroon/CEMAC tax compliance settings:
 
 **Capital Gains Tax (Impot sur les Plus-Values):**
 
-- Toggle **Enabled** (default: on)
+- Toggle **Enabled** (default: **off**)
 - **Rate**: Default 16.5%
 - A 500,000 XAF annual exemption per investor is applied automatically
 
@@ -847,29 +855,29 @@ Where `grossAmount = units x executionPrice`.
 
 **Example -- BUY:**
 
-An investor buys 100 units of DTT at an ask price of 5,000 XAF with a 0.5% trading fee.
+An investor buys 100 units of DTT at an ask price of 5,000 XAF with a 0.3% trading fee.
 
 ```
 Gross amount   = 100 units x 5,000 XAF  = 500,000 XAF
-Fee            = 500,000 x (0.50 / 100) =   2,500 XAF
+Fee            = 500,000 x (0.30 / 100) =   1,500 XAF
                                            ─────────────
-Total cost     = 500,000 + 2,500         = 502,500 XAF
+Total cost     = 500,000 + 1,500         = 501,500 XAF
 ```
 
-The investor pays **502,500 XAF** total. The 2,500 XAF fee goes to the platform fee collection account.
+The investor pays **501,500 XAF** total. The 1,500 XAF fee goes to the platform fee collection account.
 
 **Example -- SELL:**
 
-An investor sells 50 units of DTT at a bid price of 4,800 XAF with a 0.5% fee.
+An investor sells 50 units of DTT at a bid price of 4,800 XAF with a 0.3% fee.
 
 ```
 Gross proceeds = 50 units x 4,800 XAF   = 240,000 XAF
-Fee            = 240,000 x (0.50 / 100) =   1,200 XAF
+Fee            = 240,000 x (0.30 / 100) =     720 XAF
                                            ─────────────
-Net received   = 240,000 - 1,200         = 238,800 XAF
+Net received   = 240,000 - 720           = 239,280 XAF
 ```
 
-The investor receives **238,800 XAF**. The fee is deducted from the proceeds.
+The investor receives **239,280 XAF**. The fee is deducted from the proceeds.
 
 ---
 

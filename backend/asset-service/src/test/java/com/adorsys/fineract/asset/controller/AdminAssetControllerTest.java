@@ -108,6 +108,7 @@ class AdminAssetControllerTest {
                 AssetCategory.STOCKS, // category
                 new BigDecimal("500"), null, new BigDecimal("1000"), // issuerPrice, faceValue, totalSupply
                 0, new BigDecimal("0.005"), // decimalPlaces, tradingFeePercent
+                null, // spreadPercent (null = use default 0.3%)
                 new BigDecimal("550"), new BigDecimal("475"), // lpAskPrice, lpBidPrice
                 1L, // lpClientId
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount
