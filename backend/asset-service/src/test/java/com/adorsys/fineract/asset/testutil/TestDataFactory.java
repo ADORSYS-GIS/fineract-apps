@@ -122,6 +122,7 @@ public final class TestDataFactory {
                 null,
                 AssetCategory.STOCKS,
                 new BigDecimal("100"),
+                null, // faceValue (defaults to issuerPrice for non-bonds)
                 new BigDecimal("1000"),
                 0,
                 new BigDecimal("0.005"),
@@ -130,7 +131,8 @@ public final class TestDataFactory {
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits (maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays)
                 null, null, // min order size/cash
-                null, null, null, null, null, null, // bond fields
+                null, null, null, // bondType, dayCountConvention, issuerCountry
+                null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
                 null, null, null, null, // income fields
                 null, null, null, null, null, null, null, null, null, // tax fields
                 false, null // tvaEnabled, tvaRate
@@ -146,6 +148,7 @@ public final class TestDataFactory {
                 null,
                 AssetCategory.BONDS,
                 new BigDecimal("10000"),
+                null, // faceValue (defaults to issuerPrice for COUPON bonds)
                 new BigDecimal("500"),
                 0,
                 new BigDecimal("0.005"),
@@ -154,6 +157,7 @@ public final class TestDataFactory {
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
+                BondType.COUPON, DayCountConvention.ACT_365, "SENEGAL", // bondType, dayCountConvention, issuerCountry
                 "Etat du Sénégal",
                 "SN0000038741",
                 LocalDate.now().plusYears(5),
@@ -298,12 +302,29 @@ public final class TestDataFactory {
     public static Asset activeBondAsset() {
         Asset bond = activeAsset();
         bond.setCategory(AssetCategory.BONDS);
+        bond.setBondType(BondType.COUPON);
+        bond.setDayCountConvention(DayCountConvention.ACT_365);
+        bond.setIssuerCountry("SENEGAL");
         bond.setIssuerName("Etat du Sénégal");
         bond.setIsinCode("SN0000038741");
         bond.setMaturityDate(LocalDate.now().plusYears(5));
         bond.setInterestRate(new BigDecimal("5.80"));
         bond.setCouponFrequencyMonths(6);
         bond.setNextCouponDate(LocalDate.now().plusMonths(6));
+        return bond;
+    }
+
+    public static Asset activeDiscountBondAsset() {
+        Asset bond = activeAsset();
+        bond.setCategory(AssetCategory.BONDS);
+        bond.setBondType(BondType.DISCOUNT);
+        bond.setDayCountConvention(DayCountConvention.ACT_360);
+        bond.setIssuerCountry("CAMEROUN");
+        bond.setIssuerName("Republique du Cameroun");
+        bond.setIsinCode("CM1300001193");
+        bond.setIssuerPrice(new BigDecimal("1000000"));
+        bond.setMaturityDate(LocalDate.now().plusWeeks(52));
+        // No coupon fields for discount bonds
         return bond;
     }
 }

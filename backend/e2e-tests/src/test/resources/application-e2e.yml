@@ -29,7 +29,6 @@ asset-service:
     lp-spread-payable: "42"
     lp-tax-withholding: "42"
     lp-fund-source: "42"
-    spread-income: "87"
     platform-fee-payable: "42"
     mtn-mo-mo: "42"
     orange-money: "42"

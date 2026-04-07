@@ -2,6 +2,8 @@ package com.adorsys.fineract.asset.entity;
 
 import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.dto.AssetStatus;
+import com.adorsys.fineract.asset.dto.BondType;
+import com.adorsys.fineract.asset.dto.DayCountConvention;
 import com.adorsys.fineract.asset.dto.PriceMode;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -88,9 +90,21 @@ public class Asset {
     @Column(name = "trading_fee_percent", precision = 5, scale = 4)
     private BigDecimal tradingFeePercent;
 
-    /** Wholesale/face-value price from the original issuer. Used for coupon and income calculations. */
+    /** LP's acquisition cost per unit. For COUPON bonds, equals face value. For DISCOUNT bonds, the discounted purchase price from BEAC auction. Used for spread calculation: spread = executionPrice - issuerPrice. */
     @Column(name = "issuer_price", precision = 20, scale = 8)
     private BigDecimal issuerPrice;
+
+    /** Par/redemption value per unit. What the investor receives at maturity. For DISCOUNT bonds (BTA), this is higher than issuerPrice. Null defaults to issuerPrice for backward compatibility. */
+    @Column(name = "face_value", precision = 20, scale = 8)
+    private BigDecimal faceValue;
+
+    /**
+     * Returns the effective face value for coupon/income/redemption calculations.
+     * Falls back to issuerPrice when faceValue is not set (backward compatibility).
+     */
+    public BigDecimal getEffectiveFaceValue() {
+        return faceValue != null ? faceValue : issuerPrice;
+    }
 
     // ── Exposure limits (all nullable — null means no limit) ───────────────
 
@@ -137,6 +151,20 @@ public class Asset {
     private LocalDate nextDistributionDate;
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──────────────
+
+    /** Bond payment type: COUPON (OTA/T-Bonds) or DISCOUNT (BTA/T-Bills). Null for non-bond assets. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bond_type", length = 10)
+    private BondType bondType;
+
+    /** Day count convention for interest calculations: ACT_360, ACT_365, or THIRTY_360. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "day_count_convention", length = 10)
+    private DayCountConvention dayCountConvention;
+
+    /** ISO country name of the issuing sovereign/entity (e.g. "CAMEROUN", "CONGO", "TCHAD"). */
+    @Column(name = "issuer_country", length = 50)
+    private String issuerCountry;
 
     /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
     @Column(name = "issuer_name", length = 255)
@@ -236,7 +264,7 @@ public class Asset {
     @Column(name = "lp_cash_account_id")
     private Long lpCashAccountId;
 
-    /** Fineract savings account ID where the LP collects spread income (margin). */
+    /** Fineract savings account ID where the LP collects spread (margin). */
     @Column(name = "lp_spread_account_id")
     private Long lpSpreadAccountId;
 

@@ -68,6 +68,7 @@ class AdminAssetControllerTest {
                 new BigDecimal("500"), new BigDecimal("2.5"),
                 new BigDecimal("900"), new BigDecimal("1000"),
                 null, null, null, // issuerName, lpName, couponAmountPerUnit
+                null, // bondType
                 null, null, null, null, null // isinCode, maturityDate, interestRate, currentYield, residualDays
         );
         when(catalogService.listAllAssets(any(Pageable.class)))
@@ -105,11 +106,12 @@ class AdminAssetControllerTest {
                 "Test Asset", "TST", "TST", // name, symbol, currencyCode
                 "A test asset", null, // description, imageUrl
                 AssetCategory.STOCKS, // category
-                new BigDecimal("500"), new BigDecimal("1000"), // issuerPrice, totalSupply
+                new BigDecimal("500"), null, new BigDecimal("1000"), // issuerPrice, faceValue, totalSupply
                 0, new BigDecimal("0.005"), // decimalPlaces, tradingFeePercent
                 new BigDecimal("550"), new BigDecimal("475"), // lpAskPrice, lpBidPrice
                 1L, // lpClientId
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount
+                null, null, null, // bondType, dayCountConvention, issuerCountry
                 null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
                 null, null, null, null, null, null, null, null, null, // tax config
@@ -124,11 +126,12 @@ class AdminAssetControllerTest {
                 new BigDecimal("1000"), BigDecimal.ZERO, new BigDecimal("1000"), // totalSupply, circulatingSupply, availableSupply
                 new BigDecimal("0.005"), // tradingFeePercent
                 0, // decimalPlaces
-                null, new BigDecimal("500"), // issuerName, issuerPrice
+                null, new BigDecimal("500"), null, // issuerName, issuerPrice, faceValue
                 1L, 200L, 300L, null, null, 10, // lpClientId, lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, fineractProductId
                 "Test Company", "Test Asset Token", // lpClientName, fineractProductName
                 null, null, // lpMarginPerUnit, lpMarginPercent
                 Instant.now(), null, // createdAt, updatedAt
+                null, null, null, // bondType, dayCountConvention, issuerCountry
                 null, null, null, null, null, null, null, null, // isinCode, maturityDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, couponAmountPerUnit
                 null, null, // bidPrice, askPrice
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, minOrderSize, minOrderCashAmount, lockupDays

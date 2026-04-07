@@ -144,6 +144,7 @@ export interface AssetDetailResponse {
 	lpAssetAccountId?: number;
 	lpCashAccountId?: number;
 	lpSpreadAccountId?: number;
+	lpTaxAccountId?: number;
 	fineractProductId?: number;
 	lpClientName?: string;
 	fineractProductName?: string;
@@ -166,8 +167,12 @@ export interface AssetDetailResponse {
 	delistingDate?: string;
 	delistingRedemptionPrice?: number;
 	// Bond fields (null for non-bond assets)
+	bondType?: string;
+	dayCountConvention?: string;
+	issuerCountry?: string;
 	issuerName?: string;
 	issuerPrice?: number;
+	faceValue?: number;
 	lpMarginPerUnit?: number;
 	lpMarginPercent?: number;
 	couponAmountPerUnit?: number;
@@ -196,6 +201,7 @@ export interface CreateAssetRequest {
 	imageUrl?: string;
 	category: string;
 	issuerPrice: number;
+	faceValue?: number;
 	lpBidPrice: number;
 	lpAskPrice: number;
 	tradingFeePercent?: number;
@@ -218,6 +224,9 @@ export interface CreateAssetRequest {
 	distributionFrequencyMonths?: number;
 	nextDistributionDate?: string;
 	// Bond fields (required when category is BONDS)
+	bondType?: string;
+	dayCountConvention?: string;
+	issuerCountry?: string;
 	issuerName?: string;
 	isinCode?: string;
 	maturityDate?: string;
@@ -232,6 +241,10 @@ export interface CreateAssetRequest {
 	ircmExempt?: boolean;
 	capitalGainsTaxEnabled?: boolean;
 	capitalGainsRate?: number;
+	isBvmacListed?: boolean;
+	isGovernmentBond?: boolean;
+	tvaEnabled?: boolean;
+	tvaRate?: number;
 }
 
 export interface UpdateAssetRequest {
@@ -275,6 +288,9 @@ export interface UpdateAssetRequest {
 	issuerName?: string;
 	isinCode?: string;
 	couponFrequencyMonths?: number;
+	bondType?: string;
+	dayCountConvention?: string;
+	issuerCountry?: string;
 }
 
 /** Coupon payment audit record (matches backend CouponPaymentResponse). */
@@ -1106,6 +1122,7 @@ export interface RebalanceProposal {
 	feasible: boolean;
 	shortfall: number;
 	transfers: {
+		phase: number;
 		settlementType: string;
 		sourceGlCode: string;
 		sourceName: string;
@@ -1113,5 +1130,6 @@ export interface RebalanceProposal {
 		destinationName: string;
 		amount: number;
 		description: string;
+		adminAction: string;
 	}[];
 }

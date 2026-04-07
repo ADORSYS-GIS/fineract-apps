@@ -57,9 +57,12 @@ public record AssetDetailResponse(
     /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
     @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)
     String issuerName,
-    /** Issuer price (face value for bonds, wholesale price for others). Used for coupon/income calculations. */
-    @Schema(description = "Issuer price used for benefit calculations.", nullable = true)
+    /** LP's acquisition cost per unit. */
+    @Schema(description = "LP acquisition cost per unit.", nullable = true)
     BigDecimal issuerPrice,
+    /** Par/redemption value per unit. For DISCOUNT bonds, higher than issuerPrice. Null defaults to issuerPrice. */
+    @Schema(description = "Face/par value per unit for redemption and coupon calculations.", nullable = true)
+    BigDecimal faceValue,
 
     // ── Liquidity Partner info ──
 
@@ -69,7 +72,7 @@ public record AssetDetailResponse(
     Long lpAssetAccountId,
     /** Fineract savings account ID for the LP's cash. */
     Long lpCashAccountId,
-    /** Fineract savings account ID for the LP's spread income collection. */
+    /** Fineract savings account ID for the LP's spread collection. */
     @Schema(description = "LP spread collection account ID.", nullable = true)
     Long lpSpreadAccountId,
     /** Fineract savings account ID for the LP's tax withholding. */
@@ -98,7 +101,16 @@ public record AssetDetailResponse(
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──
 
-    /** Bond issuer name. Null for non-bond assets. */
+    /** Bond type: COUPON (OTA) or DISCOUNT (BTA). Null for non-bond assets. */
+    @Schema(description = "Bond type: COUPON (OTA/T-Bonds) or DISCOUNT (BTA/T-Bills).", nullable = true)
+    BondType bondType,
+    /** Day count convention for interest calculations. Null for non-bond assets. */
+    @Schema(description = "Day count convention: ACT_360, ACT_365, or THIRTY_360.", nullable = true)
+    DayCountConvention dayCountConvention,
+    /** Issuer country (CEMAC member state). Null for non-bond assets. */
+    @Schema(description = "Issuer country name.", nullable = true)
+    String issuerCountry,
+    /** ISIN code (ISO 6166). Null for non-bond assets. */
     @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.", nullable = true)
     String isinCode,
     /** Bond maturity date. Null for non-bond assets. */

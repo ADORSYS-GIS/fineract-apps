@@ -28,7 +28,9 @@ public record QuoteResponse(
     BigDecimal feePercent,
     /** Spread amount in settlement currency. Zero if spread is disabled. */
     BigDecimal spreadAmount,
-    /** BUY: grossAmount + fee (total charged). SELL: grossAmount - fee (net proceeds). */
+    /** Accrued interest for coupon bond (OTA) trades. Added to buyer cost / seller proceeds. Null for non-bond trades. */
+    BigDecimal accruedInterestAmount,
+    /** BUY: grossAmount + fee + accruedInterest (total charged). SELL: grossAmount - fee + accruedInterest (net proceeds). */
     BigDecimal netAmount,
     /** User's available cash balance, null if could not resolve. */
     BigDecimal availableBalance,

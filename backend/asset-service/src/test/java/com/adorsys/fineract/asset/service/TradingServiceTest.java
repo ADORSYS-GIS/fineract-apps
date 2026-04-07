@@ -63,6 +63,7 @@ class TradingServiceTest {
     @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
     @Mock private QuoteReservationService quoteReservationService;
     @Mock private TaxService taxService;
+    @Mock private AccruedInterestCalculator accruedInterestCalculator;
     @Mock private com.adorsys.fineract.asset.repository.AssetProjectionRepository assetProjectionRepository;
 
     @InjectMocks
@@ -135,6 +136,9 @@ class TradingServiceTest {
         lenient().when(taxService.buildTaxBreakdown(any(), anyLong(), any(), any(), anyBoolean()))
                 .thenReturn(new TaxBreakdown(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                         BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
+
+        // Accrued interest calculator defaults (returns zero for non-bond assets)
+        lenient().when(accruedInterestCalculator.calculate(any(), any())).thenReturn(BigDecimal.ZERO);
 
         // AssetMetrics timer mocks
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
@@ -603,7 +607,7 @@ class TradingServiceTest {
         // Verify 4-leg batch: token return, LP pays investor, fee, spread
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        assertEquals(6, ops.size());
+        assertEquals(5, ops.size());
         assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, units); // token return
         BigDecimal grossAmount = new BigDecimal("450"); // 5 * 90
         assertTransferOp(ops.get(1), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(fee)); // net proceeds

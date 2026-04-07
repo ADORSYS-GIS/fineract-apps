@@ -118,8 +118,6 @@ public class GlAccountResolver implements ApplicationRunner {
         // Income
         resolvedGlAccounts.setPlatformFeeIncomeId(
                 resolveGlCode(glCodeToId, glConfig.getPlatformFeeIncome(), "platformFeeIncome"));
-        resolvedGlAccounts.setSpreadIncomeId(
-                resolveGlCode(glCodeToId, glConfig.getSpreadIncome(), "spreadIncome"));
         resolvedGlAccounts.setIncomeFromInterestId(
                 resolveGlCode(glCodeToId, glConfig.getIncomeFromInterest(), "incomeFromInterest"));
         resolvedGlAccounts.setFeeIncomeId(
