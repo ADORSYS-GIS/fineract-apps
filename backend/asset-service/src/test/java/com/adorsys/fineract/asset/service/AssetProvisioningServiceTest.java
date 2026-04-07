@@ -164,6 +164,12 @@ class AssetProvisioningServiceTest {
         AssetPrice savedPrice = priceCaptor.getValue();
         assertEquals(new BigDecimal("1003"), savedPrice.getAskPrice());
         assertEquals(new BigDecimal("997"), savedPrice.getBidPrice());
+
+        // tradingFeePercent and tvaEnabled should default correctly when not provided
+        verify(assetRepository).save(assetCaptor.capture());
+        Asset saved = assetCaptor.getValue();
+        assertEquals(new BigDecimal("0.0030"), saved.getTradingFeePercent());
+        assertTrue(saved.getTvaEnabled(), "TVA should be enabled by default");
     }
 
     @Test
@@ -214,6 +220,32 @@ class AssetProvisioningServiceTest {
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Symbol already exists"));
         verify(fineractClient, never()).getClientSavingsAccounts(anyLong());
+    }
+
+    @Test
+    void createAsset_askPriceBelowIssuerPrice_throwsBeforeFineractCalls() {
+        // lpAskPrice=90 < issuerPrice=100 — should fail before any Fineract provisioning
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Test Asset", "TST", "TST", "desc", null, AssetCategory.STOCKS,
+                new BigDecimal("100"), null, new BigDecimal("1000"), 0,
+                null, null,
+                new BigDecimal("90"), new BigDecimal("85"),  // ask < issuerPrice
+                LP_CLIENT_ID,
+                null, null, null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("ask price"));
+        assertTrue(ex.getMessage().contains("issuer price"));
+        // No Fineract provisioning should have happened
+        verify(fineractClient, never()).provisionSavingsAccount(any(), any(), any(), any());
     }
 
     @Test

@@ -96,7 +96,11 @@ public class AssetProvisioningService {
                 ? request.lpBidPrice()
                 : request.issuerPrice().multiply(BigDecimal.ONE.subtract(effectiveSpread)).setScale(0, RoundingMode.HALF_UP);
 
-        // Validate bid/ask spread before provisioning Fineract resources
+        // Validate pricing before provisioning any Fineract resources
+        if (effectiveAskPrice.compareTo(request.issuerPrice()) < 0) {
+            throw new AssetException("Invalid pricing: ask price (" + effectiveAskPrice
+                    + ") must be >= issuer price (" + request.issuerPrice() + ")");
+        }
         if (effectiveBidPrice.compareTo(effectiveAskPrice) > 0) {
             throw new AssetException("Invalid spread: bid price (" + effectiveBidPrice
                     + ") must not exceed ask price (" + effectiveAskPrice + ")");
@@ -238,7 +242,7 @@ public class AssetProvisioningService {
                 .incomeRate(request.incomeRate())
                 .distributionFrequencyMonths(request.distributionFrequencyMonths())
                 .nextDistributionDate(request.nextDistributionDate())
-                // Tax configuration: TVA on by default, others off by default
+                // Tax configuration: let @Builder.Default supply defaults; only override when request is explicit
                 .registrationDutyEnabled(request.registrationDutyEnabled() != null ? request.registrationDutyEnabled() : false)
                 .registrationDutyRate(request.registrationDutyRate())
                 .ircmEnabled(request.ircmEnabled() != null ? request.ircmEnabled() : false)
@@ -248,7 +252,8 @@ public class AssetProvisioningService {
                 .capitalGainsRate(request.capitalGainsRate())
                 .isBvmacListed(request.isBvmacListed() != null ? request.isBvmacListed() : false)
                 .isGovernmentBond(request.isGovernmentBond() != null ? request.isGovernmentBond() : false)
-                .tvaEnabled(request.tvaEnabled() != null ? request.tvaEnabled() : true)
+                // tvaEnabled: null → true (default on); explicit false respected
+                .tvaEnabled(Boolean.FALSE.equals(request.tvaEnabled()) ? false : true)
                 .tvaRate(request.tvaRate())
                 .build();
 

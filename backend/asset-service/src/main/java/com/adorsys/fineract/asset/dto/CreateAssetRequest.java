@@ -141,7 +141,7 @@ public record CreateAssetRequest(
     /** Whether TVA (VAT) applies to trades of this asset. Default: true. */
     @Schema(description = "Enable TVA (VAT) on trades. Default: true.")
     Boolean tvaEnabled,
-    /** TVA rate override. Null uses global default (0.1925 = 19.25%). */
-    @Schema(description = "TVA rate override (e.g. 0.1925 = 19.25%).")
-    BigDecimal tvaRate
+    /** TVA rate override. Null uses global default (0.1925 = 19.25%). Max 1.0 (100%). */
+    @Schema(description = "TVA rate override (e.g. 0.1925 = 19.25%). Max: 1.0.")
+    @PositiveOrZero @DecimalMax("1.00") BigDecimal tvaRate
 ) {}

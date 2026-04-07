@@ -353,6 +353,7 @@ class TaxServiceTest {
             Asset asset = activeAsset();
             asset.setRegistrationDutyEnabled(true);
             asset.setCapitalGainsTaxEnabled(true);
+            asset.setTvaEnabled(false); // test focuses on reg duty + capital gains only
 
             TaxBreakdown breakdown = taxService.buildTaxBreakdown(
                     asset, USER_ID, new BigDecimal("100000"), BigDecimal.ZERO, false);
@@ -370,6 +371,7 @@ class TaxServiceTest {
             Asset asset = activeAsset();
             asset.setRegistrationDutyEnabled(true);
             asset.setCapitalGainsTaxEnabled(true);
+            asset.setTvaEnabled(false); // test focuses on reg duty + capital gains only
             // Gain of 700K exceeds 500K threshold → taxes 200K * 0.165 = 33K
             when(taxTransactionRepository.sumCapitalGainsByUserAndYear(eq(USER_ID), anyInt()))
                     .thenReturn(BigDecimal.ZERO);
@@ -388,6 +390,7 @@ class TaxServiceTest {
             Asset asset = activeAsset();
             asset.setRegistrationDutyEnabled(true);
             asset.setCapitalGainsTaxEnabled(true);
+            asset.setTvaEnabled(false); // test focuses on reg duty + capital gains only
             // Gain of 200K < 500K threshold → exempt
 
             TaxBreakdown breakdown = taxService.buildTaxBreakdown(

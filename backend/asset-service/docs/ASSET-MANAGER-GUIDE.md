@@ -1124,16 +1124,16 @@ The investor pays **8,250 XAF** in capital gains tax, deducted from the sale pro
 
 **Combined tax example -- Full SELL transaction:**
 
-Selling 120 units at 700 XAF, cost basis 62,000 XAF (see FIFO example below), 0.5% fee, 2% registration duty, 16.5% capital gains:
+Selling 120 units at 700 XAF, cost basis 62,000 XAF (see FIFO example below), 0.3% fee, 2% registration duty (if enabled), 16.5% capital gains (if enabled):
 
 ```
 Gross proceeds        = 120 x 700           = 84,000 XAF
-Trading fee           = 84,000 x 0.005      =    420 XAF
-Registration duty     = 84,000 x 0.02       =  1,680 XAF
+Trading fee           = 84,000 x 0.003      =    252 XAF
+Registration duty     = 84,000 x 0.02       =  1,680 XAF  (only if enabled on asset)
 Realized gain         = 84,000 - 62,000     = 22,000 XAF
-Capital gains tax     = 22,000 x 0.165      =  3,630 XAF  (assuming exemption used)
+Capital gains tax     = 22,000 x 0.165      =  3,630 XAF  (only if enabled; assuming exemption used)
                                                ──────────
-Net to investor       = 84,000 - 420 - 1,680 - 3,630 = 78,270 XAF
+Net to investor       = 84,000 - 252 - 1,680 - 3,630 = 78,438 XAF
 ```
 
 ---
