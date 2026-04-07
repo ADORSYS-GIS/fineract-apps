@@ -24,7 +24,6 @@ import com.adorsys.fineract.asset.service.trade.BuyStrategy;
 import com.adorsys.fineract.asset.service.trade.SellStrategy;
 import com.adorsys.fineract.asset.service.trade.TradeContext;
 import com.adorsys.fineract.asset.service.trade.TradeStrategy;
-import com.adorsys.fineract.asset.util.JwtUtils;
 import com.adorsys.fineract.asset.event.OrderStatusChangedEvent;
 import com.adorsys.fineract.asset.event.TradeExecutedEvent;
 import com.adorsys.fineract.asset.event.TreasuryShortfallEvent;
@@ -35,7 +34,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,15 +100,14 @@ public class TradingService {
      * persists a QUOTED order with locked bid/ask prices. No Redis lock, no Fineract mutations.
      */
     @Transactional(timeout = 15)
-    public QuoteResponse createQuote(QuoteRequest request, Jwt jwt, String idempotencyKey) {
+    public QuoteResponse createQuote(QuoteRequest request, Long userId, String externalId, String idempotencyKey) {
         List<String> warnings = new ArrayList<>();
 
         // Idempotency: return existing quote if same key
         var existing = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             Order o = existing.get();
-            String requestingExternalId = JwtUtils.extractExternalId(jwt);
-            if (!o.getUserExternalId().equals(requestingExternalId)) {
+            if (!o.getUserExternalId().equals(externalId)) {
                 throw new TradingException("Idempotency key already used", "IDEMPOTENCY_KEY_CONFLICT");
             }
             if (o.getStatus() == OrderStatus.QUOTED) {
@@ -120,11 +117,6 @@ public class TradingService {
                     "Idempotency key already used for a non-quote order (status=" + o.getStatus() + ")",
                     "IDEMPOTENCY_KEY_CONFLICT");
         }
-
-        // Resolve user from JWT
-        String externalId = JwtUtils.extractExternalId(jwt);
-        Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
-        Long userId = ((Number) clientData.get("id")).longValue();
 
         // Max active quotes per user
         long activeQuotes = orderRepository.countByUserIdAndStatus(userId, OrderStatus.QUOTED);

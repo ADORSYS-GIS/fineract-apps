@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.controller;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.service.SseEmitterManager;
 import com.adorsys.fineract.asset.service.TradingService;
+import com.adorsys.fineract.asset.util.JwtUtils;
 import com.adorsys.fineract.asset.util.UserIdentityResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,7 +44,9 @@ public class TradeController {
             @Valid @RequestBody QuoteRequest request,
             @AuthenticationPrincipal Jwt jwt,
             @NotBlank @RequestHeader("X-Idempotency-Key") String idempotencyKey) {
-        QuoteResponse quote = tradingService.createQuote(request, jwt, idempotencyKey);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
+        String externalId = JwtUtils.extractExternalId(jwt);
+        QuoteResponse quote = tradingService.createQuote(request, userId, externalId, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(quote);
     }
 
