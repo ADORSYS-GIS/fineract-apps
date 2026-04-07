@@ -18,14 +18,14 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Step definitions for MTN MoMo deposit scenarios.
- * Exercises: POST /api/payments/deposit, POST /api/callbacks/mtn/collection
- * WireMock stubs: MTN OAuth token, RequestToPay
+ * Step definitions for payment provider error scenarios.
+ * Tests: API failures, duplicate callbacks, late callbacks after terminal state.
  */
-public class MtnDepositSteps {
+public class ProviderErrorSteps {
 
     @LocalServerPort
     private int port;
@@ -40,32 +40,32 @@ public class MtnDepositSteps {
     // Given
     // ---------------------------------------------------------------
 
-    @Given("the MTN provider is available for collections")
-    public void mtnProviderAvailable() {
-        WireMockProviderStubs.stubMtnRequestToPaySuccess();
+    @Given("the MTN collection API is returning errors")
+    public void mtnCollectionApiReturningErrors() {
+        // Stub token endpoint (needed before the collection call)
+        WireMockProviderStubs.stubMtnCollectionToken();
+        // Stub collection to return 500
+        stubFor(post(urlPathEqualTo("/collection/v1_0/requesttopay"))
+                .willReturn(aResponse().withStatus(500)
+                        .withBody("{\"error\":\"INTERNAL_PROCESSING_ERROR\"}")));
     }
 
-    @Given("the user has a Fineract XAF account with sufficient balance")
-    public void userHasXafAccount() {
-        assertThat(FineractInitializer.getTestUserXafAccountId()).isNotNull();
-        BigDecimal balance = fineractTestClient.getAccountBalance(
-                FineractInitializer.getTestUserXafAccountId());
-        assertThat(balance).isGreaterThan(BigDecimal.ZERO);
+    @Given("the MTN disbursement API is returning errors")
+    public void mtnDisbursementApiReturningErrors() {
+        WireMockProviderStubs.stubMtnTransferFailed();
     }
 
     // ---------------------------------------------------------------
     // When
     // ---------------------------------------------------------------
 
-    @When("the user initiates an MTN deposit of {long} XAF")
-    public void userInitiatesMtnDeposit(long amount) {
-        // Record Fineract balance before deposit
+    @When("the user attempts an MTN deposit of {long} XAF expecting failure")
+    public void userAttemptsMtnDepositExpectingFailure(long amount) {
         BigDecimal balanceBefore = fineractTestClient.getAccountBalance(
                 FineractInitializer.getTestUserXafAccountId());
         context.storeValue("xafBalanceBefore", balanceBefore);
 
         String idempotencyKey = UUID.randomUUID().toString();
-        context.storeId("idempotencyKey", idempotencyKey);
 
         Map<String, Object> request = Map.of(
                 "externalId", FineractInitializer.TEST_USER_EXTERNAL_ID,
@@ -84,21 +84,37 @@ public class MtnDepositSteps {
                 .post("/api/payments/deposit");
 
         context.setLastResponse(response);
-
-        // Store the transaction ID for callback simulation
-        if (response.statusCode() == 200) {
-            String transactionId = response.jsonPath().getString("transactionId");
-            context.storeId("transactionId", transactionId);
-            String providerRef = response.jsonPath().getString("providerReference");
-            context.storeId("providerReference", providerRef);
-        }
     }
 
-    @When("the MTN collection callback reports SUCCESSFUL for the deposit")
-    public void mtnCollectionCallbackSuccessful() {
-        String transactionId = context.getId("transactionId");
-        WireMockProviderStubs.stubMtnGetCollectionStatusSuccess(transactionId);
+    @When("the user attempts an MTN withdrawal of {long} XAF expecting failure")
+    public void userAttemptsMtnWithdrawalExpectingFailure(long amount) {
+        BigDecimal balanceBefore = fineractTestClient.getAccountBalance(
+                FineractInitializer.getTestUserXafAccountId());
+        context.storeValue("xafBalanceBefore", balanceBefore);
 
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        Map<String, Object> request = Map.of(
+                "externalId", FineractInitializer.TEST_USER_EXTERNAL_ID,
+                "accountId", FineractInitializer.getTestUserXafAccountId(),
+                "amount", amount,
+                "provider", "MTN_MOMO",
+                "phoneNumber", "237670000001"
+        );
+
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .header("X-Idempotency-Key", idempotencyKey)
+                .header("Authorization", "Bearer " + paymentUserJwt())
+                .body(request)
+                .post("/api/payments/withdraw");
+
+        context.setLastResponse(response);
+    }
+
+    @When("the same MTN collection callback reports SUCCESSFUL again")
+    public void sameMtnCallbackAgain() {
         String providerRef = context.getId("providerReference");
 
         Map<String, Object> callback = Map.of(
@@ -107,7 +123,7 @@ public class MtnDepositSteps {
                 "externalId", providerRef,
                 "amount", "5000",
                 "currency", "XAF",
-                "financialTransactionId", "mtn-fin-txn-" + UUID.randomUUID()
+                "financialTransactionId", "mtn-fin-txn-duplicate-" + UUID.randomUUID()
         );
 
         Response response = RestAssured.given()
@@ -117,18 +133,21 @@ public class MtnDepositSteps {
                 .body(callback)
                 .post("/api/callbacks/mtn/collection");
 
+        // Callbacks always return 200 (safe-to-fail pattern)
         assertThat(response.statusCode()).isEqualTo(200);
     }
 
-    @When("the MTN collection callback reports FAILED for the deposit")
-    public void mtnCollectionCallbackFailed() {
+    @When("a late MTN collection callback reports SUCCESSFUL for the same deposit")
+    public void lateMtnCallbackSuccessful() {
         String providerRef = context.getId("providerReference");
 
         Map<String, Object> callback = Map.of(
                 "referenceId", UUID.randomUUID().toString(),
-                "status", "FAILED",
+                "status", "SUCCESSFUL",
                 "externalId", providerRef,
-                "reason", "PAYER_NOT_FOUND"
+                "amount", "5000",
+                "currency", "XAF",
+                "financialTransactionId", "mtn-fin-txn-late-" + UUID.randomUUID()
         );
 
         Response response = RestAssured.given()
@@ -145,51 +164,17 @@ public class MtnDepositSteps {
     // Then
     // ---------------------------------------------------------------
 
-    @Then("the deposit should be in PENDING status")
-    public void depositShouldBePending() {
-        assertThat(context.getStatusCode()).isEqualTo(200);
-        String status = context.jsonPath("status");
-        assertThat(status).isEqualTo("PENDING");
+    @Then("the deposit response should indicate an error")
+    public void depositResponseShouldIndicateError() {
+        int statusCode = context.getStatusCode();
+        // Provider failure should return 4xx or 5xx
+        assertThat(statusCode).isGreaterThanOrEqualTo(400);
     }
 
-    @Then("the deposit transaction should exist with provider MTN_MOMO")
-    public void depositTransactionShouldExist() {
-        assertThat(context.getStatusCode()).isEqualTo(200);
-        String provider = context.jsonPath("provider");
-        assertThat(provider).isEqualTo("MTN_MOMO");
-    }
-
-    @Then("the transaction status should be {string}")
-    public void transactionStatusShouldBe(String expectedStatus) {
-        String transactionId = context.getId("transactionId");
-
-        Response response = RestAssured.given()
-                .baseUri("http://localhost:" + port)
-                .header("Authorization", "Bearer " + paymentUserJwt())
-                .get("/api/payments/status/" + transactionId);
-
-        assertThat(response.statusCode()).isEqualTo(200);
-        String status = response.jsonPath().getString("status");
-        assertThat(status).isEqualTo(expectedStatus);
-    }
-
-    @Then("the user's Fineract XAF balance should have increased by {long}")
-    public void fineractBalanceShouldHaveIncreased(long expectedIncrease) {
-        BigDecimal balanceBefore = context.getValue("xafBalanceBefore");
-        BigDecimal balanceAfter = fineractTestClient.getAccountBalance(
-                FineractInitializer.getTestUserXafAccountId());
-
-        BigDecimal actualIncrease = balanceAfter.subtract(balanceBefore);
-        assertThat(actualIncrease.longValue()).isEqualTo(expectedIncrease);
-    }
-
-    @Then("the user's Fineract XAF balance should not have changed")
-    public void fineractBalanceShouldNotHaveChanged() {
-        BigDecimal balanceBefore = context.getValue("xafBalanceBefore");
-        BigDecimal balanceAfter = fineractTestClient.getAccountBalance(
-                FineractInitializer.getTestUserXafAccountId());
-
-        assertThat(balanceAfter).isEqualByComparingTo(balanceBefore);
+    @Then("the withdrawal response should indicate an error")
+    public void withdrawalResponseShouldIndicateError() {
+        int statusCode = context.getStatusCode();
+        assertThat(statusCode).isGreaterThanOrEqualTo(400);
     }
 
     // ---------------------------------------------------------------

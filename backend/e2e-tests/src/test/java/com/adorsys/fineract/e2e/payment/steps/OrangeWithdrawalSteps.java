@@ -6,7 +6,6 @@ import com.adorsys.fineract.e2e.payment.support.WireMockProviderStubs;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
 import com.adorsys.fineract.e2e.support.JwtTokenFactory;
 import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -21,10 +20,11 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Step definitions for MTN MoMo withdrawal scenarios.
- * Exercises: POST /api/payments/withdraw, POST /api/callbacks/mtn/disbursement
+ * Step definitions for Orange Money withdrawal scenarios.
+ * Exercises: POST /api/payments/withdraw, POST /api/callbacks/orange/cashout
+ * WireMock stubs: Orange OAuth token, CashOut
  */
-public class MtnWithdrawalSteps {
+public class OrangeWithdrawalSteps {
 
     @LocalServerPort
     private int port;
@@ -35,13 +35,24 @@ public class MtnWithdrawalSteps {
     @Autowired
     private FineractTestClient fineractTestClient;
 
-    @Given("the MTN provider is available for disbursements")
-    public void mtnProviderAvailableForDisbursements() {
-        WireMockProviderStubs.stubMtnTransferSuccess();
+    private static final String NOTIF_TOKEN = "test-orange-cashout-notif-token";
+    private static final String CASHOUT_TXN_ID = "orange-cashout-txn-001";
+
+    // ---------------------------------------------------------------
+    // Given
+    // ---------------------------------------------------------------
+
+    @Given("the Orange provider is available for cashouts")
+    public void orangeProviderAvailableForCashouts() {
+        WireMockProviderStubs.stubOrangeCashOutSuccess(CASHOUT_TXN_ID);
     }
 
-    @When("the user initiates an MTN withdrawal of {long} XAF")
-    public void userInitiatesMtnWithdrawal(long amount) {
+    // ---------------------------------------------------------------
+    // When
+    // ---------------------------------------------------------------
+
+    @When("the user initiates an Orange withdrawal of {long} XAF")
+    public void userInitiatesOrangeWithdrawal(long amount) {
         BigDecimal balanceBefore = fineractTestClient.getAccountBalance(
                 FineractInitializer.getTestUserXafAccountId());
         context.storeValue("xafBalanceBefore", balanceBefore);
@@ -53,8 +64,8 @@ public class MtnWithdrawalSteps {
                 "externalId", FineractInitializer.TEST_USER_EXTERNAL_ID,
                 "accountId", FineractInitializer.getTestUserXafAccountId(),
                 "amount", amount,
-                "provider", "MTN_MOMO",
-                "phoneNumber", "237670000001"
+                "provider", "ORANGE_MONEY",
+                "phoneNumber", "237655000001"
         );
 
         Response response = RestAssured.given()
@@ -75,69 +86,54 @@ public class MtnWithdrawalSteps {
         }
     }
 
-    @Then("the withdrawal should be in PROCESSING status")
-    public void withdrawalShouldBeProcessing() {
-        assertThat(context.getStatusCode()).isEqualTo(200);
-        String status = context.jsonPath("status");
-        assertThat(status).isEqualTo("PROCESSING");
-    }
-
-    @When("the MTN disbursement callback reports SUCCESSFUL for the withdrawal")
-    public void mtnDisbursementCallbackSuccessful() {
+    @When("the Orange cashout callback reports SUCCESSFUL for the withdrawal")
+    public void orangeCashoutCallbackSuccessful() {
         String transactionId = context.getId("transactionId");
-        WireMockProviderStubs.stubMtnGetDisbursementStatusSuccess(transactionId);
-
-        String providerRef = context.getId("providerReference");
 
         Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "SUCCESSFUL",
-                "externalId", providerRef,
+                "order_id", transactionId,
+                "txnid", CASHOUT_TXN_ID,
+                "status", "SUCCESS",
                 "amount", "5000",
                 "currency", "XAF",
-                "financialTransactionId", "mtn-fin-txn-" + UUID.randomUUID()
+                "notif_token", NOTIF_TOKEN
         );
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
                 .body(callback)
-                .post("/api/callbacks/mtn/disbursement");
+                .post("/api/callbacks/orange/cashout");
 
         assertThat(response.statusCode()).isEqualTo(200);
     }
 
-    @When("the MTN disbursement callback reports FAILED for the withdrawal")
-    public void mtnDisbursementCallbackFailed() {
-        String providerRef = context.getId("providerReference");
+    @When("the Orange cashout callback reports CANCELLED for the withdrawal")
+    public void orangeCashoutCallbackCancelled() {
+        String transactionId = context.getId("transactionId");
 
         Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "FAILED",
-                "externalId", providerRef,
-                "reason", "PAYER_NOT_FOUND"
+                "order_id", transactionId,
+                "txnid", CASHOUT_TXN_ID,
+                "status", "CANCELLED",
+                "amount", "5000",
+                "currency", "XAF",
+                "notif_token", NOTIF_TOKEN,
+                "message", "User cancelled"
         );
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)
-                .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
                 .body(callback)
-                .post("/api/callbacks/mtn/disbursement");
+                .post("/api/callbacks/orange/cashout");
 
         assertThat(response.statusCode()).isEqualTo(200);
     }
 
-    @Then("the user's Fineract XAF balance should have decreased by {long}")
-    public void fineractBalanceShouldHaveDecreased(long expectedDecrease) {
-        BigDecimal balanceBefore = context.getValue("xafBalanceBefore");
-        BigDecimal balanceAfter = fineractTestClient.getAccountBalance(
-                FineractInitializer.getTestUserXafAccountId());
-
-        BigDecimal actualDecrease = balanceBefore.subtract(balanceAfter);
-        assertThat(actualDecrease.longValue()).isEqualTo(expectedDecrease);
-    }
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
 
     private String paymentUserJwt() {
         return JwtTokenFactory.generatePaymentToken(
