@@ -53,7 +53,7 @@ class TradeControllerTest {
 
         // Act & Assert
         // With addFilters=false, the @AuthenticationPrincipal Jwt is null.
-        // The controller calls JwtUtils.extractUserId(jwt) which will NPE.
+        // The controller calls userIdentityResolver.resolveUserId(jwt) which will NPE.
         // This verifies the endpoint is mapped; the NPE becomes a 500 from the
         // GlobalExceptionHandler's generic handler, proving the route exists.
         mockMvc.perform(get("/trades/orders")
@@ -61,7 +61,7 @@ class TradeControllerTest {
                         .param("size", "20"))
                 .andExpect(status().isInternalServerError());
         // The 500 (not 404) confirms the route is correctly mapped.
-        // The error is expected: JwtUtils.extractUserId receives null jwt.
+        // The error is expected: userIdentityResolver.resolveUserId receives null jwt.
     }
 
     // -------------------------------------------------------------------------
