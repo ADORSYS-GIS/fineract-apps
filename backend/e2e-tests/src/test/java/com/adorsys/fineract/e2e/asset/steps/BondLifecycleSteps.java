@@ -66,6 +66,7 @@ public class BondLifecycleSteps {
         request.put("totalSupply", supply);
         request.put("decimalPlaces", 0);
         request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("tvaEnabled", false); // TVA tested separately; disable here for clean balance assertions
         request.put("issuerName", "E2E Test Issuer");
         request.put("bondType", "COUPON");
         request.put("dayCountConvention", "ACT_365");

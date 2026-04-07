@@ -53,6 +53,7 @@ public class StockTradingSteps {
         ));
         request.put("decimalPlaces", 0);
         request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("tvaEnabled", false); // TVA tested separately; disable here for clean balance assertions
 
         Response createResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
