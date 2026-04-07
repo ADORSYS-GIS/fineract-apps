@@ -23,6 +23,10 @@ public class UserIdentityResolver {
 
     private final FineractClient fineractClient;
 
+    public String resolveExternalId(Jwt jwt) {
+        return JwtUtils.extractExternalId(jwt);
+    }
+
     public Long resolveUserId(Jwt jwt) {
         Long clientId = JwtUtils.extractClientId(jwt);
         if (clientId != null) {

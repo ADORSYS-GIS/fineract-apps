@@ -23,7 +23,6 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -41,6 +40,7 @@ class TradeControllerTest {
     @BeforeEach
     void setUp() {
         when(userIdentityResolver.resolveUserId(any())).thenReturn(42L);
+        when(userIdentityResolver.resolveExternalId(any())).thenReturn("test-sub");
     }
 
     // -------------------------------------------------------------------------
@@ -88,7 +88,6 @@ class TradeControllerTest {
         QuoteRequest request = new QuoteRequest("asset-001", TradeSide.BUY, new BigDecimal("10"), null);
 
         mockMvc.perform(post("/trades/quote")
-                        .with(jwt().jwt(j -> j.subject("test-sub")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Idempotency-Key", "test-key")
                         .content(objectMapper.writeValueAsString(request)))
