@@ -126,6 +126,85 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
+    void createAsset_noAskBidProvided_autoDerivesFrom03PercentSpread() {
+        // Request omits lpAskPrice and lpBidPrice — should auto-derive from issuerPrice ± 0.3%
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Test Asset", "TST", "TST", "desc", null, AssetCategory.STOCKS,
+                new BigDecimal("1000"), new BigDecimal("1000"), 0,
+                null, null,  // tradingFeePercent, spreadPercent (both default)
+                null, null,  // lpAskPrice, lpBidPrice (omitted)
+                LP_CLIENT_ID,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(10);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong())).thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(mock(AssetDetailResponse.class));
+
+        service.createAsset(request);
+
+        // issuerPrice=1000, spread=0.003 → askPrice=1003, bidPrice=997
+        verify(assetPriceRepository).save(priceCaptor.capture());
+        AssetPrice savedPrice = priceCaptor.getValue();
+        assertEquals(new BigDecimal("1003"), savedPrice.getAskPrice());
+        assertEquals(new BigDecimal("997"), savedPrice.getBidPrice());
+    }
+
+    @Test
+    void createAsset_customSpreadPercent_derivesCorrectAskBid() {
+        // spreadPercent=0.01 (1%), issuerPrice=1000 → askPrice=1010, bidPrice=990
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Test Asset", "TST", "TST", "desc", null, AssetCategory.STOCKS,
+                new BigDecimal("1000"), new BigDecimal("1000"), 0,
+                null, new BigDecimal("0.01"),  // tradingFeePercent=null, spreadPercent=1%
+                null, null,  // lpAskPrice, lpBidPrice (omitted)
+                LP_CLIENT_ID,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(10);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong())).thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(mock(AssetDetailResponse.class));
+
+        service.createAsset(request);
+
+        verify(assetPriceRepository).save(priceCaptor.capture());
+        AssetPrice savedPrice = priceCaptor.getValue();
+        assertEquals(new BigDecimal("1010"), savedPrice.getAskPrice());
+        assertEquals(new BigDecimal("990"), savedPrice.getBidPrice());
+    }
+
+    @Test
     void createAsset_duplicateSymbol_throws() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.of(activeAsset()));
@@ -451,7 +530,7 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                null, null, new BigDecimal("11000"), new BigDecimal("9500"),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
@@ -471,7 +550,7 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                null, null, new BigDecimal("11000"), new BigDecimal("9500"),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
@@ -558,7 +637,7 @@ class AssetProvisioningServiceTest {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
                 new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                null, null, new BigDecimal("11000"), new BigDecimal("9500"),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash

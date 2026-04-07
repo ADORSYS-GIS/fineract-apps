@@ -86,10 +86,20 @@ public class AssetProvisioningService {
                     + "This may be from a previously failed creation.");
         }
 
+        // Derive effective ask/bid: use provided values, or auto-compute from issuerPrice ± spreadPercent
+        BigDecimal effectiveSpread = request.spreadPercent() != null
+                ? request.spreadPercent() : new BigDecimal("0.0030");
+        BigDecimal effectiveAskPrice = request.lpAskPrice() != null
+                ? request.lpAskPrice()
+                : request.issuerPrice().multiply(BigDecimal.ONE.add(effectiveSpread)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal effectiveBidPrice = request.lpBidPrice() != null
+                ? request.lpBidPrice()
+                : request.issuerPrice().multiply(BigDecimal.ONE.subtract(effectiveSpread)).setScale(0, RoundingMode.HALF_UP);
+
         // Validate bid/ask spread before provisioning Fineract resources
-        if (request.lpBidPrice().compareTo(request.lpAskPrice()) > 0) {
-            throw new AssetException("Invalid spread: bid price (" + request.lpBidPrice()
-                    + ") must not exceed ask price (" + request.lpAskPrice() + ")");
+        if (effectiveBidPrice.compareTo(effectiveAskPrice) > 0) {
+            throw new AssetException("Invalid spread: bid price (" + effectiveBidPrice
+                    + ") must not exceed ask price (" + effectiveAskPrice + ")");
         }
 
         // Validate bond-specific fields when category is BONDS
@@ -200,7 +210,7 @@ public class AssetProvisioningService {
                 .decimalPlaces(request.decimalPlaces())
                 .totalSupply(request.totalSupply())
                 .circulatingSupply(BigDecimal.ZERO)
-                .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
+                .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0030"))
                 .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
@@ -223,31 +233,31 @@ public class AssetProvisioningService {
                 .incomeRate(request.incomeRate())
                 .distributionFrequencyMonths(request.distributionFrequencyMonths())
                 .nextDistributionDate(request.nextDistributionDate())
-                // Tax configuration (defaults applied by @Builder.Default on entity)
-                .registrationDutyEnabled(request.registrationDutyEnabled() != null ? request.registrationDutyEnabled() : true)
+                // Tax configuration: TVA on by default, others off by default
+                .registrationDutyEnabled(request.registrationDutyEnabled() != null ? request.registrationDutyEnabled() : false)
                 .registrationDutyRate(request.registrationDutyRate())
-                .ircmEnabled(request.ircmEnabled() != null ? request.ircmEnabled() : true)
+                .ircmEnabled(request.ircmEnabled() != null ? request.ircmEnabled() : false)
                 .ircmRateOverride(request.ircmRateOverride())
                 .ircmExempt(request.ircmExempt() != null ? request.ircmExempt() : false)
-                .capitalGainsTaxEnabled(request.capitalGainsTaxEnabled() != null ? request.capitalGainsTaxEnabled() : true)
+                .capitalGainsTaxEnabled(request.capitalGainsTaxEnabled() != null ? request.capitalGainsTaxEnabled() : false)
                 .capitalGainsRate(request.capitalGainsRate())
                 .isBvmacListed(request.isBvmacListed() != null ? request.isBvmacListed() : false)
                 .isGovernmentBond(request.isGovernmentBond() != null ? request.isGovernmentBond() : false)
-                .tvaEnabled(request.tvaEnabled() != null ? request.tvaEnabled() : false)
+                .tvaEnabled(request.tvaEnabled() != null ? request.tvaEnabled() : true)
                 .tvaRate(request.tvaRate())
                 .build();
 
         assetRepository.save(asset);
 
-        // Step 6: Initialize price row with LP bid/ask prices
+        // Step 6: Initialize price row with effective bid/ask prices
         AssetPrice price = AssetPrice.builder()
                 .assetId(assetId)
-                .dayOpen(request.lpAskPrice())
-                .dayHigh(request.lpAskPrice())
-                .dayLow(request.lpAskPrice())
-                .dayClose(request.lpAskPrice())
-                .bidPrice(request.lpBidPrice())
-                .askPrice(request.lpAskPrice())
+                .dayOpen(effectiveAskPrice)
+                .dayHigh(effectiveAskPrice)
+                .dayLow(effectiveAskPrice)
+                .dayClose(effectiveAskPrice)
+                .bidPrice(effectiveBidPrice)
+                .askPrice(effectiveAskPrice)
                 .change24hPercent(BigDecimal.ZERO)
                 .updatedAt(Instant.now())
                 .build();

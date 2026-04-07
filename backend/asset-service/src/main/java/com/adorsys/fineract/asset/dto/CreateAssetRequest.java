@@ -30,10 +30,16 @@ public record CreateAssetRequest(
     @NotNull @Min(0) @Max(8) Integer decimalPlaces,
     /** Optional trading fee as a percentage (e.g. 0.005 = 0.5%). Null means no fee. */
     @PositiveOrZero @DecimalMax("0.50") BigDecimal tradingFeePercent,
-    /** LP's ask price (what investors pay to buy). Must be >= issuerPrice. */
-    @NotNull @Positive BigDecimal lpAskPrice,
-    /** LP's bid price (what investors receive when selling). Must be <= lpAskPrice. */
-    @NotNull @Positive BigDecimal lpBidPrice,
+    /**
+     * Spread percentage used to auto-derive ask/bid from issuerPrice (e.g. 0.003 = 0.3%).
+     * Ignored when lpAskPrice and lpBidPrice are provided explicitly. Default: 0.003.
+     */
+    @Schema(description = "Spread % to auto-derive ask/bid from issuerPrice (e.g. 0.003 = 0.3%). Default: 0.003.")
+    @PositiveOrZero @DecimalMax("0.50") BigDecimal spreadPercent,
+    /** LP's ask price (what investors pay to buy). If null, auto-derived from issuerPrice + spreadPercent. */
+    @Positive BigDecimal lpAskPrice,
+    /** LP's bid price (what investors receive when selling). If null, auto-derived from issuerPrice - spreadPercent. */
+    @Positive BigDecimal lpBidPrice,
     /** Fineract client ID of the liquidity partner (reseller) that will hold this asset's inventory. */
     @NotNull Long lpClientId,
 
@@ -93,14 +99,14 @@ public record CreateAssetRequest(
 
     // ── Tax configuration (Cameroon/CEMAC) ──
 
-    /** Whether registration duty applies to trades. Default: true. */
-    @Schema(description = "Enable registration duty (2%) on trades of this asset.")
+    /** Whether registration duty applies to trades. Default: false. */
+    @Schema(description = "Enable registration duty (2%) on trades of this asset. Default: false.")
     Boolean registrationDutyEnabled,
     /** Registration duty rate override. Null uses global default (0.02). */
     @Schema(description = "Registration duty rate override (e.g. 0.02 = 2%).")
     @PositiveOrZero BigDecimal registrationDutyRate,
-    /** Whether IRCM withholding applies to income distributions. Default: true. */
-    @Schema(description = "Enable IRCM withholding on income distributions.")
+    /** Whether IRCM withholding applies to income distributions. Default: false. */
+    @Schema(description = "Enable IRCM withholding on income distributions. Default: false.")
     Boolean ircmEnabled,
     /** IRCM rate override. Null uses auto-determination. */
     @Schema(description = "IRCM rate override (e.g. 0.165 = 16.5%).")
@@ -108,8 +114,8 @@ public record CreateAssetRequest(
     /** Whether this asset is IRCM-exempt (e.g. government bonds). */
     @Schema(description = "Exempt from IRCM (e.g. government bonds).")
     Boolean ircmExempt,
-    /** Whether capital gains tax applies to profitable sales. Default: true. */
-    @Schema(description = "Enable capital gains tax on profitable sales.")
+    /** Whether capital gains tax applies to profitable sales. Default: false. */
+    @Schema(description = "Enable capital gains tax on profitable sales. Default: false.")
     Boolean capitalGainsTaxEnabled,
     /** Capital gains tax rate override. Null uses global default (0.165). */
     @Schema(description = "Capital gains tax rate override (e.g. 0.165 = 16.5%).")
@@ -120,8 +126,8 @@ public record CreateAssetRequest(
     /** Whether this is a government bond (triggers IRCM exemption). */
     @Schema(description = "Government bond (triggers IRCM exemption).")
     Boolean isGovernmentBond,
-    /** Whether TVA (VAT) applies to trades of this asset. Default: false. */
-    @Schema(description = "Enable TVA (VAT) on trades.")
+    /** Whether TVA (VAT) applies to trades of this asset. Default: true. */
+    @Schema(description = "Enable TVA (VAT) on trades. Default: true.")
     Boolean tvaEnabled,
     /** TVA rate override. Null uses global default (0.1925 = 19.25%). */
     @Schema(description = "TVA rate override (e.g. 0.1925 = 19.25%).")

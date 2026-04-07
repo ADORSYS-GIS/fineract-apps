@@ -179,7 +179,7 @@ public class Asset {
     /** Whether registration duty (2% droit d'enregistrement) applies to trades of this asset. */
     @Column(name = "registration_duty_enabled", nullable = false)
     @Builder.Default
-    private Boolean registrationDutyEnabled = true;
+    private Boolean registrationDutyEnabled = false;
 
     /** Registration duty rate override. Null uses global default (0.02). */
     @Column(name = "registration_duty_rate", precision = 5, scale = 4)
@@ -188,7 +188,7 @@ public class Asset {
     /** Whether IRCM withholding applies to income distributions from this asset. */
     @Column(name = "ircm_enabled", nullable = false)
     @Builder.Default
-    private Boolean ircmEnabled = true;
+    private Boolean ircmEnabled = false;
 
     /** IRCM rate override. Null uses auto-determination based on asset type/listing status. */
     @Column(name = "ircm_rate_override", precision = 5, scale = 4)
@@ -202,7 +202,7 @@ public class Asset {
     /** Whether capital gains tax applies to profitable sales of this asset. */
     @Column(name = "capital_gains_tax_enabled", nullable = false)
     @Builder.Default
-    private Boolean capitalGainsTaxEnabled = true;
+    private Boolean capitalGainsTaxEnabled = false;
 
     /** Capital gains tax rate override. Null uses global default (0.165). */
     @Column(name = "capital_gains_rate", precision = 5, scale = 4)
@@ -247,7 +247,7 @@ public class Asset {
     /** Whether TVA (VAT) is enabled for this asset. */
     @Column(name = "tva_enabled")
     @Builder.Default
-    private Boolean tvaEnabled = false;
+    private Boolean tvaEnabled = true;
 
     /** TVA rate override for this asset. Null = use global default. */
     @Column(name = "tva_rate", precision = 5, scale = 4)
