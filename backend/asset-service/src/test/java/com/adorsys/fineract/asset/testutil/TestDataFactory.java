@@ -49,7 +49,8 @@ public final class TestDataFactory {
                 .lpAssetAccountId(LP_ASSET_ACCOUNT)
                 .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
                 .lpTaxAccountId(360L)
-                .tvaEnabled(true)
+                .tvaEnabled(false)
+                .registrationDutyEnabled(true)
                 .fineractProductId(10)
                 .createdAt(Instant.now())
                 .build();

@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
@@ -16,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -31,6 +33,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AssetProvisioningServiceTest {
+
+    @Spy private TaxConfig taxConfig = new TaxConfig();
 
     @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
@@ -165,11 +169,12 @@ class AssetProvisioningServiceTest {
         assertEquals(new BigDecimal("1003"), savedPrice.getAskPrice());
         assertEquals(new BigDecimal("997"), savedPrice.getBidPrice());
 
-        // tradingFeePercent and tvaEnabled should default correctly when not provided
+        // tradingFeePercent, tvaEnabled, registrationDutyEnabled should default correctly
         verify(assetRepository).save(assetCaptor.capture());
         Asset saved = assetCaptor.getValue();
         assertEquals(new BigDecimal("0.0030"), saved.getTradingFeePercent());
-        assertTrue(saved.getTvaEnabled(), "TVA should be enabled by default");
+        assertFalse(saved.getTvaEnabled(), "TVA should be disabled by default");
+        assertTrue(saved.getRegistrationDutyEnabled(), "Registration duty should be enabled by default");
     }
 
     @Test

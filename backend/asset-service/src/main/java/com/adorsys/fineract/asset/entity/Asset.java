@@ -204,10 +204,10 @@ public class Asset {
 
     // ── Tax configuration (Cameroon/CEMAC) ───────────────────────────────
 
-    /** Whether registration duty (2% droit d'enregistrement) applies to trades of this asset. */
+    /** Whether registration duty (2% droit d'enregistrement) applies to trades of this asset. Default on. */
     @Column(name = "registration_duty_enabled", nullable = false)
     @Builder.Default
-    private Boolean registrationDutyEnabled = false;
+    private Boolean registrationDutyEnabled = true;
 
     /** Registration duty rate override. Null uses global default (0.02). */
     @Column(name = "registration_duty_rate", precision = 5, scale = 4)
@@ -272,10 +272,10 @@ public class Asset {
     @Column(name = "lp_tax_account_id")
     private Long lpTaxAccountId;
 
-    /** Whether TVA (VAT) is enabled for this asset. */
+    /** Whether TVA (VAT) is enabled for this asset. Default off — enabled explicitly per asset when applicable. */
     @Column(name = "tva_enabled")
     @Builder.Default
-    private Boolean tvaEnabled = true;
+    private Boolean tvaEnabled = false;
 
     /** TVA rate override for this asset. Null = use global default. */
     @Column(name = "tva_rate", precision = 5, scale = 4)

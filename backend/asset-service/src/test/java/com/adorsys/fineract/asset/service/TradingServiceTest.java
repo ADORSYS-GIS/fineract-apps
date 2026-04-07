@@ -133,7 +133,7 @@ class TradingServiceTest {
         lenient().when(taxService.calculateTva(any(), any())).thenReturn(BigDecimal.ZERO);
         lenient().when(taxService.getRegistrationDutyRate(any())).thenReturn(BigDecimal.ZERO);
         lenient().when(taxService.getTvaRate(any())).thenReturn(BigDecimal.ZERO);
-        lenient().when(taxService.buildTaxBreakdown(any(), anyLong(), any(), any(), anyBoolean()))
+        lenient().when(taxService.buildTaxBreakdown(any(), anyLong(), any(), any(), any(), anyBoolean()))
                 .thenReturn(new TaxBreakdown(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                         BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
 

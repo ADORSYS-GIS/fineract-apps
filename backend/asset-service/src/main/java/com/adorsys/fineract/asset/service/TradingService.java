@@ -203,9 +203,9 @@ public class TradingService {
                 capitalGainsTax = taxService.calculateCapitalGainsTax(asset, userId, estimatedRealizedGain);
             }
         }
-        BigDecimal tvaAmount = taxService.calculateTva(asset, grossAmount);
+        BigDecimal tvaAmount = taxService.calculateTva(asset, fee); // TVA base = fee
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
-        TaxBreakdown taxBreakdown = taxService.buildTaxBreakdown(asset, userId, grossAmount, estimatedRealizedGain, request.side() == TradeSide.SELL);
+        TaxBreakdown taxBreakdown = taxService.buildTaxBreakdown(asset, userId, grossAmount, fee, estimatedRealizedGain, request.side() == TradeSide.SELL);
 
         // Accrued interest for coupon bonds (OTA "pied du coupon")
         BigDecimal accruedInterestAmount = accruedInterestCalculator.calculate(asset, units);
@@ -697,7 +697,7 @@ public class TradingService {
                 capitalGainsTax = taxService.calculateCapitalGainsTax(asset, ctx.getUserId(), estimatedGain);
             }
         }
-        BigDecimal tvaAmount = taxService.calculateTva(asset, grossAmount);
+        BigDecimal tvaAmount = taxService.calculateTva(asset, fee); // TVA base = fee
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
 
         // Accrued interest for coupon bonds (OTA "pied du coupon")

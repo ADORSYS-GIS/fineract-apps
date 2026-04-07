@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
@@ -49,6 +50,7 @@ public class AssetProvisioningService {
     private final AssetServiceConfig assetServiceConfig;
     private final ResolvedGlAccounts resolvedGlAccounts;
     private final FileStorageService fileStorageService;
+    private final TaxConfig taxConfig;
 
     /**
      * Create a new asset with full Fineract provisioning.
@@ -242,19 +244,22 @@ public class AssetProvisioningService {
                 .incomeRate(request.incomeRate())
                 .distributionFrequencyMonths(request.distributionFrequencyMonths())
                 .nextDistributionDate(request.nextDistributionDate())
-                // Tax configuration: let @Builder.Default supply defaults; only override when request is explicit
-                .registrationDutyEnabled(request.registrationDutyEnabled() != null ? request.registrationDutyEnabled() : false)
-                .registrationDutyRate(request.registrationDutyRate())
+                // Tax configuration — defaults: registration duty ON, TVA OFF, others OFF
+                .registrationDutyEnabled(request.registrationDutyEnabled() != null ? request.registrationDutyEnabled() : true)
+                .registrationDutyRate(request.registrationDutyRate() != null
+                        ? request.registrationDutyRate() : taxConfig.getDefaultRegistrationDutyRate())
                 .ircmEnabled(request.ircmEnabled() != null ? request.ircmEnabled() : false)
                 .ircmRateOverride(request.ircmRateOverride())
                 .ircmExempt(request.ircmExempt() != null ? request.ircmExempt() : false)
                 .capitalGainsTaxEnabled(request.capitalGainsTaxEnabled() != null ? request.capitalGainsTaxEnabled() : false)
-                .capitalGainsRate(request.capitalGainsRate())
+                .capitalGainsRate(request.capitalGainsRate() != null
+                        ? request.capitalGainsRate() : taxConfig.getDefaultCapitalGainsRate())
                 .isBvmacListed(request.isBvmacListed() != null ? request.isBvmacListed() : false)
                 .isGovernmentBond(request.isGovernmentBond() != null ? request.isGovernmentBond() : false)
-                // tvaEnabled: null → true (default on); explicit false respected
-                .tvaEnabled(Boolean.FALSE.equals(request.tvaEnabled()) ? false : true)
-                .tvaRate(request.tvaRate())
+                // tvaEnabled: null → false (disabled by default); explicit true respected
+                .tvaEnabled(Boolean.TRUE.equals(request.tvaEnabled()))
+                .tvaRate(request.tvaRate() != null
+                        ? request.tvaRate() : taxConfig.getDefaultTvaRate())
                 .build();
 
         assetRepository.save(asset);

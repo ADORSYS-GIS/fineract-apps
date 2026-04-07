@@ -1486,6 +1486,32 @@ General fields (all categories):
 
 | Field | Required | Description |
 |-------|----------|-------------|
+| `tradingFeePercent` | No | Platform fee as a decimal (e.g. `0.003` = 0.3%). Default: `0.003`. |
+| `totalSupply` | Yes | Total units available for trade. |
+| `decimalPlaces` | No | Number of decimal places for fractional trading. Default: `0`. |
+| `lpClientId` | Yes | Fineract client ID of the liquidity partner. |
+
+### Tax Configuration
+
+Each asset carries tax flags that determine which taxes apply to trades. Rates default to OHADA/CEMAC standards but can be overridden per asset.
+
+| Tax | Default | Rate | Base | Who pays | Override fields |
+|---|---|---|---|---|---|
+| **Registration Duty** | **On** | **2%** | Gross trade amount | Buyer on BUY; LP on SELL | `registrationDutyEnabled`, `registrationDutyRate` |
+| **TVA (VAT)** | Off | 19.25% | **Trading fee only** | Buyer on BUY; LP on SELL | `tvaEnabled`, `tvaRate` |
+| **Capital Gains Tax** | Off | 16.5% | Realized profit on SELL | LP absorbs | `capitalGainsTaxEnabled`, `capitalGainsRate` |
+| **IRCM — bonds ≥5y** | Off | 5.5% | Coupon / interest income | Withheld from investor | `ircmEnabled`, `ircmRateOverride` |
+| **IRCM — BVMAC equities** | Off | 11% | Dividend income | Withheld from investor | `ircmEnabled`, `isBvmacListed` |
+| **IRCM — other equities** | Off | 16.5% | Dividend income | Withheld from investor | `ircmEnabled` |
+
+**Important notes:**
+
+- **TVA applies to the platform fee, not the full investment amount.** Example: buying 10,000 XAF of bonds at 0.3% fee → fee = 30 XAF → TVA = 30 × 19.25% = 6 XAF. This is correct under OHADA/CEMAC law where TVA is a service consumption tax.
+- **Registration duty** (droit d'enregistrement) is a securities transfer stamp tax on the full transaction value. It is **on by default** and applies to all trades.
+- **Capital gains** has a 500,000 XAF annual exemption per investor. Tax applies only to cumulative gains exceeding this threshold.
+- **Government bonds** (`isGovernmentBond: true`) are automatically IRCM-exempt.
+- All tax fields (`*Enabled`, `*Rate`) can be updated post-creation via `PATCH /api/admin/assets/{id}`.
+
 ### What Happens on Create
 
 1. Auto-detects the LP's active XAF savings account for trade settlements

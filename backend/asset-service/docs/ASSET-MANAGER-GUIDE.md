@@ -323,35 +323,44 @@ Each income type shows an info badge: **Fixed** or **Variable**.
 
 ### Step 7: Tax Configuration
 
-Configure Cameroon/CEMAC tax compliance settings:
+Configure Cameroon/CEMAC tax compliance settings. The platform supports four tax types:
 
-**TVA (Taxe sur la Valeur Ajoutée — VAT):**
+| Tax | Default | Rate | Base | Paid by |
+|---|---|---|---|---|
+| Registration Duty | **On** | **2%** | Gross trade value | Buyer (BUY); LP (SELL) |
+| TVA (VAT) | Off | 19.25% | **Platform fee only** | Buyer (BUY); LP (SELL) |
+| Capital Gains Tax | Off | 16.5% | Realized profit | LP absorbs |
+| IRCM Withholding | Off | 5.5–16.5% | Coupon/dividend income | Withheld from investor |
 
-- Toggle **Enabled** (default: **on**)
-- **Rate**: Default 19.25% of transaction value on every BUY trade
-- TVA is always paid by the **buyer** only
+**Registration Duty (Droit d'enregistrement) — default ON:**
 
-**Registration Duty (Droit d'enregistrement):**
+- Standard OHADA/CEMAC securities transfer stamp tax, applicable to all asset trades
+- **Rate**: Default **2%** of the full trade value (e.g. 100,000 XAF trade → 2,000 XAF duty)
+- Paid by buyer on BUY trades; absorbed by the LP on SELL trades
 
-- Toggle **Enabled** (default: **off**)
-- **Rate**: Default 2% of transaction value on every trade
-- Enable for assets that require formal registration duties under applicable regulations
+**TVA (Taxe sur la Valeur Ajoutée — VAT) — default OFF:**
 
-**IRCM Withholding (Impot sur les Revenus des Capitaux Mobiliers):**
+- TVA applies to the **platform service fee**, not to the full investment amount
+- **Rate**: Default **19.25%** of the trading fee (e.g. fee = 300 XAF → TVA = 58 XAF)
+- Paid by buyer on BUY trades; absorbed by the LP on SELL trades
+- Enable per asset where the regulatory context requires TVA on brokerage fees
 
-- Toggle **Enabled** (default: **off**)
-- **IRCM Exempt** checkbox (e.g., for government bonds, setting this results in a 0% rate)
-- **Rate Override**: Leave blank for automatic rate determination. Auto rates depend on asset type:
-  - Government bonds: 0%
-  - Bonds with maturity >= 5 years: 5.5%
-  - BVMAC-listed securities: 11%
-  - All others (dividends, rent, etc.): 16.5%
+**IRCM Withholding (Impot sur les Revenus des Capitaux Mobiliers) — default OFF:**
 
-**Capital Gains Tax (Impot sur les Plus-Values):**
+- Withholding tax on investment income (coupons and dividends), **not on trades**
+- Check **IRCM Exempt** for government bonds (results in 0% automatically)
+- **Rate Override**: Leave blank for automatic rate selection:
+  - Government bonds: **0%** (exempt)
+  - Bonds with maturity ≥ 5 years: **5.5%**
+  - BVMAC-listed equities: **11%**
+  - All others (dividends, rental income, etc.): **16.5%**
 
-- Toggle **Enabled** (default: **off**)
-- **Rate**: Default 16.5%
-- A 500,000 XAF annual exemption per investor is applied automatically
+**Capital Gains Tax (Impot sur les Plus-Values) — default OFF:**
+
+- Tax on the profit when an investor sells at a gain
+- **Rate**: Default **16.5%** of realized gain
+- A **500,000 XAF annual exemption** per investor is applied automatically — gains below this threshold are tax-free each fiscal year
+- The LP absorbs this tax (not deducted from the seller's proceeds)
 
 See [Appendix A.5](#a5-tax-calculations) for detailed tax calculation examples.
 
@@ -1122,19 +1131,45 @@ Capital gains tax    = 50,000 x 0.165    = 8,250 XAF
 
 The investor pays **8,250 XAF** in capital gains tax, deducted from the sale proceeds.
 
+#### A.5.4 TVA (Taxe sur la Valeur Ajoutée — VAT)
+
+TVA applies to the **platform trading fee**, not the full investment amount. This is correct under OHADA/CEMAC tax law: TVA is a service consumption tax on the brokerage service provided.
+
+**Formula:**
+
+```
+tvaAmount = tradingFee x tvaRate
+```
+
+**Example — BUY trade:**
+
+An investor buys 100 units at 10,000 XAF each. Fee = 0.3%.
+
+```
+Gross value    = 100 x 10,000           = 1,000,000 XAF
+Trading fee    = 1,000,000 x 0.003      =      3,000 XAF
+TVA            = 3,000 x 0.1925         =        578 XAF
+                                           ──────────────
+Total investor pays = 1,000,000 + 3,000 + 578 = 1,003,578 XAF
+```
+
+Note: TVA is **disabled by default**. Enable it per asset where applicable.
+
 **Combined tax example -- Full SELL transaction:**
 
-Selling 120 units at 700 XAF, cost basis 62,000 XAF (see FIFO example below), 0.3% fee, 2% registration duty (if enabled), 16.5% capital gains (if enabled):
+Selling 120 units at 700 XAF, cost basis 62,000 XAF (see FIFO example below), 0.3% fee, registration duty ON (default), TVA OFF (default), capital gains enabled:
 
 ```
 Gross proceeds        = 120 x 700           = 84,000 XAF
 Trading fee           = 84,000 x 0.003      =    252 XAF
-Registration duty     = 84,000 x 0.02       =  1,680 XAF  (only if enabled on asset)
+Registration duty     = 84,000 x 0.02       =  1,680 XAF  (ON by default)
 Realized gain         = 84,000 - 62,000     = 22,000 XAF
 Capital gains tax     = 22,000 x 0.165      =  3,630 XAF  (only if enabled; assuming exemption used)
                                                ──────────
 Net to investor       = 84,000 - 252 - 1,680 - 3,630 = 78,438 XAF
 ```
+
+If TVA were also enabled: TVA = 252 × 0.1925 = 49 XAF → net to investor = 78,389 XAF.
 
 ---
 
