@@ -53,5 +53,9 @@ public record QuoteResponse(
     /** Warning codes (e.g. MARKET_CLOSED). Empty if no warnings. */
     List<String> warnings,
     /** Tax breakdown: registration duty, capital gains, total. Null if taxes disabled. */
-    TaxBreakdown taxBreakdown
+    TaxBreakdown taxBreakdown,
+    /** Whether the transaction can proceed given current balances. Always true for SELL. */
+    boolean feasible,
+    /** "INSUFFICIENT_FUNDS: Required X, Available Y (shortfall: Z)" if feasible is false. Null if feasible. */
+    String feasibilityReason
 ) {}

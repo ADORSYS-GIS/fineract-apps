@@ -290,13 +290,25 @@ public class TradingService {
         log.info("Quote created: orderId={}, side={}, asset={}, units={}, price={}, expiresAt={}",
                 orderId, request.side(), asset.getSymbol(), units, executionPrice, expiresAt);
 
-        // Resolve balances for response (soft-fail)
+        // Resolve balances for response and compute BUY feasibility (soft-fail on Fineract errors)
         BigDecimal availableBalance = null;
         BigDecimal availableUnits = null;
         BigDecimal availableSupply = null;
+        boolean feasible = true;
+        String feasibilityReason = null;
         try {
-            Long cashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, assetServiceConfig.getSettlementCurrency());
-            if (cashAccountId != null) availableBalance = fineractClient.getAccountBalance(cashAccountId);
+            String currency = assetServiceConfig.getSettlementCurrency();
+            Long cashAccountId = fineractClient.findClientSavingsAccountByCurrency(userId, currency);
+            if (cashAccountId != null) {
+                availableBalance = fineractClient.getAccountBalance(cashAccountId);
+                if (request.side() == TradeSide.BUY && availableBalance.compareTo(orderCashAmount) < 0) {
+                    feasible = false;
+                    BigDecimal shortfall = orderCashAmount.subtract(availableBalance);
+                    feasibilityReason = "INSUFFICIENT_FUNDS: Required " + orderCashAmount
+                            + " " + currency + ", Available " + availableBalance
+                            + " " + currency + " (shortfall: " + shortfall + " " + currency + ")";
+                }
+            }
             if (request.side() == TradeSide.SELL) {
                 var position = userPositionRepository.findByUserIdAndAssetId(userId, request.assetId());
                 if (position.isPresent()) availableUnits = position.get().getTotalUnits();
@@ -322,7 +334,7 @@ public class TradingService {
                 accruedInterestAmount.compareTo(BigDecimal.ZERO) > 0 ? accruedInterestAmount : null,
                 orderCashAmount, availableBalance, availableUnits, availableSupply,
                 bondBenefit, incomeBenefit, computedFromAmount, remainder, now, expiresAt, warnings,
-                taxBreakdown);
+                taxBreakdown, feasible, feasibilityReason);
     }
 
     /**
