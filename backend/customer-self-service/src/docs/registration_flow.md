@@ -45,8 +45,7 @@ Clients must generate a unique key (e.g., a UUID) for each distinct transaction.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `firstName` | `String` | **Yes** | The customer's first name. |
-| `lastName` | `String` | **Yes** | The customer's last name. |
+| `fullName` | `String` | **Yes** | The customer's full name. |
 | `email` | `String` | No | The customer's email address. |
 | `phone` | `String` | **Yes** | The customer's mobile phone number. |
 | `externalId`| `String` | **Yes** | A unique identifier from the external identity system. |
@@ -142,8 +141,7 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
-    "firstName": "Brenda",
-    "lastName": "Biya",
+    "fullName": "Brenda Biya",
     "email": "brenda.biya@example.cm",
     "phone": "+237691111111",
     "externalId": "external-id-001"
@@ -229,8 +227,7 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
-    "firstName": "Brenda",
-    "lastName": "Biya",
+    "fullName": "Brenda Biya",
     "email": "brenda.biya@example.cm",
     "phone": "+237691111111",
     "externalId": "external-id-001"
@@ -242,12 +239,11 @@ curl --location --request POST 'http://localhost:8081/api/registration/register'
 **Expected Result:** `400 Bad Request`
 
 ```bash
-# Missing "lastName"
+# Missing "fullName"
 curl --location --request POST 'http://localhost:8081/api/registration/register' \
 --header 'Content-Type: application/json' \
 --header "Authorization: Bearer $TOKEN" \
 --data-raw '{
-    "firstName": "John",
     "email": "john.doe@example.cm",
     "phone": "+237692222222",
     "externalId": "external-id-003"

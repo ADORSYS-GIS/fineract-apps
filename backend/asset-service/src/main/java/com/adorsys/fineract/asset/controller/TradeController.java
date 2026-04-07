@@ -4,6 +4,7 @@ import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.service.SseEmitterManager;
 import com.adorsys.fineract.asset.service.TradingService;
 import com.adorsys.fineract.asset.util.JwtUtils;
+import com.adorsys.fineract.asset.util.UserIdentityResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,6 +33,7 @@ public class TradeController {
 
     private final TradingService tradingService;
     private final SseEmitterManager sseEmitterManager;
+    private final UserIdentityResolver userIdentityResolver;
 
     // ── Quote-based async flow ──────────────────────────────────────────
 
@@ -42,7 +44,9 @@ public class TradeController {
             @Valid @RequestBody QuoteRequest request,
             @AuthenticationPrincipal Jwt jwt,
             @NotBlank @RequestHeader("X-Idempotency-Key") String idempotencyKey) {
-        QuoteResponse quote = tradingService.createQuote(request, jwt, idempotencyKey);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
+        String externalId = JwtUtils.extractExternalId(jwt);
+        QuoteResponse quote = tradingService.createQuote(request, userId, externalId, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(quote);
     }
 
@@ -52,7 +56,7 @@ public class TradeController {
     public ResponseEntity<OrderResponse> confirmOrder(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         OrderResponse response = tradingService.confirmOrder(id, userId);
         return ResponseEntity.accepted().body(response);
     }
@@ -63,7 +67,7 @@ public class TradeController {
     public SseEmitter streamOrderStatus(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         tradingService.getOrder(id, userId); // verify ownership
         return sseEmitterManager.subscribe(id);
     }
@@ -76,7 +80,7 @@ public class TradeController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String assetId,
             Pageable pageable) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         return ResponseEntity.ok(tradingService.getUserOrders(userId, assetId, pageable));
     }
 
@@ -85,7 +89,7 @@ public class TradeController {
     public ResponseEntity<OrderResponse> getOrder(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         return ResponseEntity.ok(tradingService.getOrder(id, userId));
     }
 
@@ -94,7 +98,7 @@ public class TradeController {
     public ResponseEntity<OrderResponse> cancelOrder(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         return ResponseEntity.ok(tradingService.cancelOrder(id, userId));
     }
 }

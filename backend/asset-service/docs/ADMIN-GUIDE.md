@@ -1,6 +1,1390 @@
-# Admin Guide - Asset Manager
+# Asset Service API Guide
 
-This guide covers all admin operations for managing the asset marketplace.
+> **Looking for the UI guide?** See [ASSET-MANAGER-GUIDE.md](./ASSET-MANAGER-GUIDE.md) for step-by-step instructions using the Asset Manager web application.
+
+This guide covers both the **customer-facing API** (Part 1) for frontend developers building the investor app, and the **admin API** (Part 2) for managing the asset marketplace.
+
+---
+
+# Part 1: Customer-Facing API
+
+These endpoints power the investor mobile and web applications. Public endpoints require no authentication. Authenticated endpoints require a JWT bearer token.
+
+**Base URL:** `/api/v1`
+
+**Common Headers (authenticated endpoints):**
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | `Bearer {jwt}` — JWT issued by the auth service |
+| `X-Idempotency-Key` | For trades | UUID v4 — prevents duplicate order submission |
+| `Content-Type` | For POST/PUT | `application/json` |
+
+---
+
+## 1. Asset Catalog (Public)
+
+### List Active Assets
+
+```
+GET /api/v1/assets?category=REAL_ESTATE&search=douala&page=0&size=20
+```
+
+No authentication required.
+
+**Query Parameters:**
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `category` | No | — | Filter by category: `REAL_ESTATE`, `BONDS`, `AGRICULTURE`, `STOCKS`, `COMMODITIES` |
+| `search` | No | — | Full-text search on name, symbol, description |
+| `page` | No | `0` | Page number (zero-based) |
+| `size` | No | `20` | Page size (max 100) |
+
+**Response:**
+
+```json
+{
+  "content": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Douala Tower Token",
+      "symbol": "DTT",
+      "description": "Tokenized commercial real estate in Douala",
+      "category": "REAL_ESTATE",
+      "status": "ACTIVE",
+      "imageUrl": "https://cdn.example.com/assets/dtt.jpg",
+      "currentPrice": 5000,
+      "priceChange24h": 2.5,
+      "priceChange24hPercent": 0.05,
+      "totalSupply": 100000,
+      "circulatingSupply": 15000,
+      "tradingFeePercent": 0.30,
+      "issuerName": null,
+      "incomeType": "RENT",
+      "incomeRate": 8.0,
+      "interestRate": null,
+      "maturityDate": null
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Senegal Treasury Bond 5.80%",
+      "symbol": "SEN580",
+      "description": "Government bond issued by Etat du Senegal",
+      "category": "BONDS",
+      "status": "ACTIVE",
+      "imageUrl": "https://cdn.example.com/assets/sen580.jpg",
+      "currentPrice": 10000,
+      "priceChange24h": 0,
+      "priceChange24hPercent": 0,
+      "totalSupply": 50000,
+      "circulatingSupply": 12000,
+      "tradingFeePercent": 0.25,
+      "issuerName": "Etat du Senegal",
+      "incomeType": null,
+      "incomeRate": null,
+      "interestRate": 5.80,
+      "maturityDate": "2028-06-30"
+    }
+  ],
+  "totalElements": 42,
+  "totalPages": 3,
+  "number": 0,
+  "size": 20,
+  "first": true,
+  "last": false
+}
+```
+
+**Field Descriptions:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Unique asset identifier |
+| `name` | string | Display name |
+| `symbol` | string | Trading symbol (e.g. `DTT`) |
+| `category` | string | Asset category |
+| `status` | string | `ACTIVE`, `PENDING`, `HALTED`, `DELISTING`, `MATURED`, `DELISTED` |
+| `currentPrice` | integer | Current ask price in XAF |
+| `priceChange24h` | number | Absolute price change in the last 24 hours |
+| `priceChange24hPercent` | number | Percentage price change in the last 24 hours |
+| `totalSupply` | integer | Total units ever minted |
+| `circulatingSupply` | integer | Units held by investors |
+| `tradingFeePercent` | number | Platform trading fee percentage |
+| `issuerName` | string | Original issuer (bonds). Null for non-bond assets. |
+| `bondType` | string | `COUPON` (OTA/T-Bonds) or `DISCOUNT` (BTA/T-Bills). Null for non-bond assets. |
+| `dayCountConvention` | string | `ACT_360`, `ACT_365`, or `THIRTY_360`. Null for non-bond assets. |
+| `issuerCountry` | string | CEMAC member state (e.g. `CAMEROUN`). Null for non-bond assets. |
+| `incomeType` | string | `RENT`, `DIVIDEND`, `HARVEST_YIELD`, `PROFIT_SHARE`, or null |
+| `incomeRate` | number | Annual income rate as percentage (non-bond assets) |
+| `interestRate` | number | Annual coupon rate as percentage (COUPON bonds only, null for DISCOUNT) |
+| `maturityDate` | string | Bond maturity date (all bonds) |
+
+---
+
+### Get Asset Detail
+
+```
+GET /api/v1/assets/{id}
+```
+
+No authentication required.
+
+**Response:**
+
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "Douala Tower Token",
+  "symbol": "DTT",
+  "description": "Tokenized commercial real estate in Douala",
+  "category": "REAL_ESTATE",
+  "status": "ACTIVE",
+  "imageUrl": "https://cdn.example.com/assets/dtt.jpg",
+  "currentPrice": 5000,
+  "bidPrice": 4800,
+  "askPrice": 5000,
+  "issuerPrice": 4000,
+  "priceChange24h": 2.5,
+  "priceChange24hPercent": 0.05,
+  "totalSupply": 100000,
+  "circulatingSupply": 15000,
+  "availableSupply": 85000,
+  "tradingFeePercent": 0.30,
+  "decimalPlaces": 0,
+  "issuerName": null,
+  "isinCode": null,
+  "incomeType": "RENT",
+  "incomeRate": 8.0,
+  "distributionFrequencyMonths": 1,
+  "nextDistributionDate": "2026-04-01",
+  "interestRate": null,
+  "couponFrequencyMonths": null,
+  "maturityDate": null,
+  "currentYield": null,
+  "lockupDays": 30,
+  "ohlc": {
+    "open": 4950,
+    "high": 5100,
+    "low": 4900,
+    "close": 5000,
+    "volume": 3200,
+    "date": "2026-03-15"
+  }
+}
+```
+
+**Additional fields vs. list endpoint:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `bidPrice` | integer | LP's buying price (what investors receive on SELL) |
+| `askPrice` | integer | LP's selling price (what investors pay on BUY) |
+| `issuerPrice` | integer | Face/wholesale value per unit |
+| `availableSupply` | integer | Units remaining in LP inventory |
+| `decimalPlaces` | integer | Fractional unit precision (0 = whole units only) |
+| `isinCode` | string | International Securities Identification Number (bonds) |
+| `distributionFrequencyMonths` | integer | Income payout frequency in months |
+| `nextDistributionDate` | string | Next scheduled income/coupon date |
+| `couponFrequencyMonths` | integer | Bond coupon frequency in months |
+| `currentYield` | number | Effective annual return for bonds (issuerPrice x rate / askPrice) |
+| `lockupDays` | integer | Days after purchase before SELL is allowed (0 = none) |
+| `ohlc` | object | Today's Open/High/Low/Close/Volume |
+
+---
+
+### Recent Trades
+
+```
+GET /api/v1/assets/{id}/recent-trades
+```
+
+No authentication required. Returns the last 20 anonymous trades for the asset.
+
+**Response:**
+
+```json
+[
+  {
+    "side": "BUY",
+    "units": 50,
+    "price": 5000,
+    "amount": 250000,
+    "executedAt": "2026-03-15T14:32:10Z"
+  },
+  {
+    "side": "SELL",
+    "units": 20,
+    "price": 4800,
+    "amount": 96000,
+    "executedAt": "2026-03-15T14:28:45Z"
+  }
+]
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `side` | string | `BUY` or `SELL` |
+| `units` | integer | Number of units traded |
+| `price` | integer | Execution price per unit in XAF |
+| `amount` | integer | Total trade value in XAF |
+| `executedAt` | string | ISO-8601 timestamp |
+
+---
+
+### Discover Upcoming Assets
+
+```
+GET /api/v1/discover
+```
+
+No authentication required. Returns assets in `PENDING` status with expected launch dates.
+
+**Response:**
+
+```json
+[
+  {
+    "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+    "name": "Yaounde Agri-Fund",
+    "symbol": "YAF",
+    "description": "Agricultural investment fund covering cocoa and coffee plantations",
+    "category": "AGRICULTURE",
+    "status": "PENDING",
+    "imageUrl": "https://cdn.example.com/assets/yaf.jpg",
+    "issuerPrice": 2000,
+    "lpAskPrice": 2500,
+    "totalSupply": 200000,
+    "incomeType": "HARVEST_YIELD",
+    "incomeRate": 6.5,
+    "incomeRate": 6.5
+  }
+]
+```
+
+---
+
+## 2. Prices (Public)
+
+### Current Price
+
+```
+GET /api/v1/prices/{assetId}
+```
+
+No authentication required.
+
+**Response:**
+
+```json
+{
+  "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "symbol": "DTT",
+  "currentPrice": 5000,
+  "bidPrice": 4800,
+  "askPrice": 5000,
+  "priceChange24h": 2.5,
+  "priceChange24hPercent": 0.05,
+  "high24h": 5100,
+  "low24h": 4900,
+  "volume24h": 3200,
+  "ohlc": {
+    "open": 4950,
+    "high": 5100,
+    "low": 4900,
+    "close": 5000,
+    "volume": 3200,
+    "date": "2026-03-15"
+  },
+  "updatedAt": "2026-03-15T14:35:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `currentPrice` | integer | Current ask price in XAF |
+| `bidPrice` | integer | LP bid price (investor sell price) |
+| `askPrice` | integer | LP ask price (investor buy price) |
+| `priceChange24h` | number | Absolute 24h change |
+| `priceChange24hPercent` | number | Percentage 24h change |
+| `high24h` | integer | 24-hour high |
+| `low24h` | integer | 24-hour low |
+| `volume24h` | integer | 24-hour trade volume in units |
+| `ohlc` | object | Today's OHLC candlestick |
+| `updatedAt` | string | Last price update timestamp |
+
+---
+
+### OHLC Candlestick Data
+
+```
+GET /api/v1/prices/{assetId}/ohlc
+```
+
+No authentication required. Returns daily OHLC candlestick data.
+
+**Response:**
+
+```json
+[
+  {
+    "date": "2026-03-15",
+    "open": 4950,
+    "high": 5100,
+    "low": 4900,
+    "close": 5000,
+    "volume": 3200
+  },
+  {
+    "date": "2026-03-14",
+    "open": 4900,
+    "high": 5000,
+    "low": 4850,
+    "close": 4950,
+    "volume": 2800
+  }
+]
+```
+
+---
+
+### Price History (for Charts)
+
+```
+GET /api/v1/prices/{assetId}/history?period=1M
+```
+
+No authentication required.
+
+**Query Parameters:**
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `period` | No | `1M` | Time period: `1D`, `1W`, `1M`, `3M`, `1Y`, `ALL` |
+
+**Response:**
+
+```json
+{
+  "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "symbol": "DTT",
+  "period": "1M",
+  "dataPoints": [
+    {
+      "date": "2026-02-15",
+      "price": 4500,
+      "volume": 1500
+    },
+    {
+      "date": "2026-02-16",
+      "price": 4550,
+      "volume": 1800
+    },
+    {
+      "date": "2026-03-15",
+      "price": 5000,
+      "volume": 3200
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `period` | string | Requested period |
+| `dataPoints` | array | One entry per day (or per hour for `1D`) |
+| `dataPoints[].date` | string | Date or datetime of data point |
+| `dataPoints[].price` | integer | Closing price in XAF |
+| `dataPoints[].volume` | integer | Trade volume in units |
+
+---
+
+## 3. Market Status (Public)
+
+### Get Market Status
+
+```
+GET /api/v1/market/status
+```
+
+No authentication required.
+
+**Response (market open):**
+
+```json
+{
+  "open": true,
+  "currentTime": "2026-03-15T10:30:00Z",
+  "timezone": "Africa/Lagos",
+  "schedule": {
+    "openTime": "08:00",
+    "closeTime": "20:00",
+    "tradingDays": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]
+  },
+  "nextClose": "2026-03-15T19:00:00Z",
+  "nextCloseCountdownSeconds": 30600,
+  "nextOpen": null,
+  "nextOpenCountdownSeconds": null
+}
+```
+
+**Response (market closed):**
+
+```json
+{
+  "open": false,
+  "currentTime": "2026-03-15T21:00:00Z",
+  "timezone": "Africa/Lagos",
+  "schedule": {
+    "openTime": "08:00",
+    "closeTime": "20:00",
+    "tradingDays": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]
+  },
+  "nextClose": null,
+  "nextCloseCountdownSeconds": null,
+  "nextOpen": "2026-03-16T07:00:00Z",
+  "nextOpenCountdownSeconds": 36000
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `open` | boolean | Whether trading is currently allowed |
+| `currentTime` | string | Server time (UTC) |
+| `timezone` | string | Market timezone |
+| `schedule.openTime` | string | Daily open time (local) |
+| `schedule.closeTime` | string | Daily close time (local) |
+| `schedule.tradingDays` | array | Days when market is open |
+| `nextClose` | string | Next market close (UTC), null if closed |
+| `nextCloseCountdownSeconds` | integer | Seconds until close, null if closed |
+| `nextOpen` | string | Next market open (UTC), null if open |
+| `nextOpenCountdownSeconds` | integer | Seconds until open, null if open |
+
+---
+
+## 4. Trading (Authenticated)
+
+Trading follows a **quote-based async flow**: request a quote (locks price for 30 seconds), confirm the quote, then track execution via SSE.
+
+### Create Trade Quote
+
+```
+POST /api/v1/trades/quote
+Headers:
+  Authorization: Bearer {jwt}
+  X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+  Content-Type: application/json
+```
+
+**Request Body (unit mode):**
+
+```json
+{
+  "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "side": "BUY",
+  "units": 100
+}
+```
+
+**Request Body (amount mode):**
+
+```json
+{
+  "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "side": "BUY",
+  "amount": 500000
+}
+```
+
+Exactly one of `units` or `amount` must be provided.
+
+**Request Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `assetId` | UUID | Yes | Asset to trade |
+| `side` | string | Yes | `BUY` or `SELL` |
+| `units` | integer | One of units/amount | Number of units to trade |
+| `amount` | integer | One of units/amount | XAF budget (BUY only). System computes max whole units. |
+
+**Response (200 OK):**
+
+```json
+{
+  "orderId": "d4e5f6a7-b8c9-0123-def0-123456789abc",
+  "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "symbol": "DTT",
+  "side": "BUY",
+  "units": 100,
+  "executionPrice": 5000,
+  "grossAmount": 500000,
+  "fee": 1500,
+  "feePercent": 0.30,
+  "spreadAmount": 100000,
+  "netAmount": 501500,
+  "computedFromAmount": null,
+  "remainder": null,
+  "availableBalance": 1500000,
+  "availableUnits": null,
+  "availableSupply": 85000,
+  "bondBenefit": null,
+  "incomeBenefit": {
+    "incomeType": "RENT",
+    "incomeRate": 8.0,
+    "distributionFrequencyMonths": 1,
+    "nextDistributionDate": "2026-04-01",
+    "incomePerPeriod": 2667,
+    "estimatedAnnualIncome": 32004,
+    "estimatedYieldPercent": 7.82,
+    "variableIncome": false
+  },
+  "taxBreakdown": {
+    "registrationDutyRate": 0.01,
+    "registrationDutyAmount": 5000,
+    "capitalGainsRate": 0,
+    "capitalGainsTaxAmount": 0,
+    "totalTax": 5000
+  },
+  "warnings": [],
+  "expiresAt": "2026-03-15T14:35:30Z",
+  "status": "QUOTED"
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `orderId` | UUID | Order ID (use this to confirm, cancel, or track) |
+| `side` | string | `BUY` or `SELL` |
+| `units` | integer | Number of units (computed if amount mode) |
+| `executionPrice` | integer | Price per unit in XAF |
+| `grossAmount` | integer | `units x executionPrice` |
+| `fee` | integer | Platform trading fee in XAF |
+| `feePercent` | number | Fee percentage applied |
+| `spreadAmount` | integer | LP spread included in the price |
+| `accruedInterestAmount` | integer | Accrued interest for COUPON bond trades ("pied du coupon"). Null for non-bond or DISCOUNT bond trades. |
+| `netAmount` | integer | Total amount debited (BUY) or credited (SELL) in XAF. For COUPON bonds: includes accrued interest. |
+| `computedFromAmount` | integer | Original XAF budget (null if unit mode) |
+| `remainder` | integer | Leftover XAF that cannot buy another unit (null if unit mode) |
+| `availableBalance` | integer | User's current XAF cash balance |
+| `availableUnits` | integer | User's current units of this asset (SELL only) |
+| `availableSupply` | integer | LP inventory remaining |
+| `bondBenefit` | object | Bond yield projections (null for non-bonds). Contains `couponFrequencyMonths`, `nextCouponDate`, `couponPerPeriod`, `estimatedAnnualCoupon`, `currentYield`. |
+| `incomeBenefit` | object | Income projections for non-bond assets (null for bonds) |
+| `taxBreakdown` | object | Applicable tax breakdown |
+| `taxBreakdown.registrationDutyRate` | number | Registration duty rate |
+| `taxBreakdown.registrationDutyAmount` | integer | Registration duty in XAF |
+| `taxBreakdown.capitalGainsRate` | number | Capital gains tax rate (SELL only) |
+| `taxBreakdown.capitalGainsTaxAmount` | integer | Capital gains tax in XAF (SELL only) |
+| `taxBreakdown.totalTax` | integer | Total taxes in XAF |
+| `warnings` | array | Non-blocking warnings (e.g. `["APPROACHING_POSITION_LIMIT"]`) |
+| `expiresAt` | string | Quote expiry (30 seconds). Must confirm before this time. |
+| `status` | string | `QUOTED` |
+
+**Error Codes:**
+
+| HTTP | Code | Description |
+|------|------|-------------|
+| 400 | `INSUFFICIENT_FUNDS` | XAF balance too low for BUY |
+| 400 | `INSUFFICIENT_INVENTORY` | LP does not have enough units |
+| 400 | `MIN_ORDER_SIZE_NOT_MET` | Order below minimum unit requirement |
+| 400 | `ORDER_SIZE_LIMIT_EXCEEDED` | Order exceeds max order size |
+| 400 | `POSITION_LIMIT_EXCEEDED` | Would exceed max position percentage |
+| 400 | `DAILY_LIMIT_EXCEEDED` | Would exceed daily XAF trade limit |
+| 400 | `AMOUNT_TOO_SMALL` | Amount cannot buy even 1 unit |
+| 400 | `LOCKUP_PERIOD_ACTIVE` | Units still in lockup (SELL only) |
+| 404 | `ASSET_NOT_FOUND` | Asset ID does not exist |
+| 409 | `IDEMPOTENCY_CONFLICT` | Duplicate idempotency key with different params |
+| 409 | `MAX_QUOTES_EXCEEDED` | Too many active quotes (max 3 concurrent) |
+| 422 | `TRADING_HALTED` | Asset trading is halted |
+| 422 | `ASSET_DELISTING` | Asset is delisting (BUY blocked) |
+| 422 | `MARKET_CLOSED` | Market is closed. Response includes `nextOpenAt` and `nextOpenCountdownSeconds`. |
+
+---
+
+### Confirm Order
+
+```
+POST /api/v1/trades/orders/{id}/confirm
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+No request body.
+
+**Response (202 Accepted):**
+
+```json
+{
+  "orderId": "d4e5f6a7-b8c9-0123-def0-123456789abc",
+  "status": "PENDING",
+  "message": "Order confirmed and queued for execution."
+}
+```
+
+The order transitions to:
+- **PENDING** if the market is currently open — execution starts immediately
+- **QUEUED** if the market is closed — will execute at next market open
+
+**Error Codes:**
+
+| HTTP | Code | Description |
+|------|------|-------------|
+| 400 | `QUOTE_EXPIRED` | Quote expired (older than 30 seconds) |
+| 404 | `ORDER_NOT_FOUND` | Order ID does not exist or does not belong to user |
+| 409 | `INVALID_STATUS_TRANSITION` | Order is not in QUOTED status |
+
+---
+
+### Stream Order Status (SSE)
+
+```
+GET /api/v1/trades/orders/{id}/stream
+Headers:
+  Authorization: Bearer {jwt}
+  Accept: text/event-stream
+```
+
+**Response:** Server-Sent Events stream (`Content-Type: text/event-stream`).
+
+Pushes an event each time the order status changes:
+
+```
+event: status
+data: {"orderId":"d4e5f6a7-b8c9-0123-def0-123456789abc","status":"PENDING","timestamp":"2026-03-15T14:35:02Z"}
+
+event: status
+data: {"orderId":"d4e5f6a7-b8c9-0123-def0-123456789abc","status":"EXECUTING","timestamp":"2026-03-15T14:35:03Z"}
+
+event: status
+data: {"orderId":"d4e5f6a7-b8c9-0123-def0-123456789abc","status":"FILLED","timestamp":"2026-03-15T14:35:05Z","executionPrice":5000,"units":100,"netAmount":502500}
+```
+
+The stream auto-closes when the order reaches a terminal state (`FILLED`, `FAILED`, `REJECTED`, `CANCELLED`).
+
+**Terminal event data includes:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | Terminal status |
+| `executionPrice` | integer | Final execution price (FILLED only) |
+| `units` | integer | Units traded (FILLED only) |
+| `netAmount` | integer | Net XAF amount (FILLED only) |
+| `failureReason` | string | Reason for failure (FAILED/REJECTED only) |
+
+---
+
+### Cancel Order
+
+```
+POST /api/v1/trades/orders/{id}/cancel
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+No request body. Cancels an order in `QUOTED`, `PENDING`, or `QUEUED` status.
+
+**Response (200 OK):**
+
+```json
+{
+  "orderId": "d4e5f6a7-b8c9-0123-def0-123456789abc",
+  "status": "CANCELLED",
+  "message": "Order cancelled."
+}
+```
+
+**Error Codes:**
+
+| HTTP | Code | Description |
+|------|------|-------------|
+| 404 | `ORDER_NOT_FOUND` | Order does not exist or does not belong to user |
+| 409 | `CANCEL_NOT_ALLOWED` | Order is already executing or in a terminal state |
+
+---
+
+### Order History
+
+```
+GET /api/v1/trades/orders?assetId=a1b2c3d4-e5f6-7890-abcd-ef1234567890&page=0&size=20
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Query Parameters:**
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `assetId` | No | — | Filter by asset UUID |
+| `page` | No | `0` | Page number |
+| `size` | No | `20` | Page size |
+
+**Response:**
+
+```json
+{
+  "content": [
+    {
+      "id": "d4e5f6a7-b8c9-0123-def0-123456789abc",
+      "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "assetName": "Douala Tower Token",
+      "symbol": "DTT",
+      "side": "BUY",
+      "units": 100,
+      "executionPrice": 5000,
+      "grossAmount": 500000,
+      "fee": 2500,
+      "netAmount": 502500,
+      "status": "FILLED",
+      "failureReason": null,
+      "createdAt": "2026-03-15T14:34:00Z",
+      "executedAt": "2026-03-15T14:35:05Z"
+    }
+  ],
+  "totalElements": 15,
+  "totalPages": 1,
+  "number": 0,
+  "size": 20
+}
+```
+
+---
+
+### Get Single Order
+
+```
+GET /api/v1/trades/orders/{id}
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response:**
+
+```json
+{
+  "id": "d4e5f6a7-b8c9-0123-def0-123456789abc",
+  "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "assetName": "Douala Tower Token",
+  "symbol": "DTT",
+  "side": "BUY",
+  "units": 100,
+  "executionPrice": 5000,
+  "grossAmount": 500000,
+  "fee": 1500,
+  "feePercent": 0.30,
+  "spreadAmount": 100000,
+  "netAmount": 501500,
+  "taxBreakdown": {
+    "registrationDutyRate": 0.01,
+    "registrationDutyAmount": 5000,
+    "capitalGainsRate": 0,
+    "capitalGainsTaxAmount": 0,
+    "totalTax": 5000
+  },
+  "status": "FILLED",
+  "failureReason": null,
+  "idempotencyKey": "550e8400-e29b-41d4-a716-446655440000",
+  "createdAt": "2026-03-15T14:34:00Z",
+  "confirmedAt": "2026-03-15T14:34:30Z",
+  "executedAt": "2026-03-15T14:35:05Z"
+}
+```
+
+**Error Codes:**
+
+| HTTP | Code | Description |
+|------|------|-------------|
+| 404 | `ORDER_NOT_FOUND` | Order does not exist or does not belong to user |
+
+---
+
+## 5. Portfolio (Authenticated)
+
+### Full Portfolio
+
+```
+GET /api/v1/portfolio
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response:**
+
+```json
+{
+  "positions": [
+    {
+      "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "symbol": "DTT",
+      "assetName": "Douala Tower Token",
+      "category": "REAL_ESTATE",
+      "imageUrl": "https://cdn.example.com/assets/dtt.jpg",
+      "totalUnits": 250,
+      "avgPurchasePrice": 4800,
+      "totalCostBasis": 1200000,
+      "currentPrice": 5000,
+      "currentValue": 1250000,
+      "unrealizedPnl": 50000,
+      "unrealizedPnlPercent": 4.17,
+      "accruedInterest": 0,
+      "incomeType": "RENT"
+    },
+    {
+      "assetId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "symbol": "SEN580",
+      "assetName": "Senegal Treasury Bond 5.80%",
+      "category": "BONDS",
+      "imageUrl": "https://cdn.example.com/assets/sen580.jpg",
+      "totalUnits": 50,
+      "avgPurchasePrice": 10000,
+      "totalCostBasis": 500000,
+      "currentPrice": 10000,
+      "currentValue": 500000,
+      "unrealizedPnl": 0,
+      "unrealizedPnlPercent": 0,
+      "accruedInterest": 3972,
+      "incomeType": null
+    }
+  ],
+  "totalValue": 1750000,
+  "totalCostBasis": 1700000,
+  "unrealizedPnl": 50000,
+  "realizedPnl": 15000
+}
+```
+
+**Top-Level Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `positions` | array | All positions with non-zero units |
+| `totalValue` | integer | Sum of all position current values in XAF |
+| `totalCostBasis` | integer | Sum of all position cost bases in XAF |
+| `unrealizedPnl` | integer | `totalValue - totalCostBasis` |
+| `realizedPnl` | integer | Cumulative realized profit/loss from closed trades |
+
+**Position Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `assetId` | UUID | Asset identifier |
+| `symbol` | string | Trading symbol |
+| `assetName` | string | Asset display name |
+| `category` | string | Asset category |
+| `totalUnits` | integer | Units held |
+| `avgPurchasePrice` | integer | Volume-weighted average purchase price |
+| `totalCostBasis` | integer | `totalUnits x avgPurchasePrice` |
+| `currentPrice` | integer | Current ask price |
+| `currentValue` | integer | `totalUnits x currentPrice` |
+| `unrealizedPnl` | integer | `currentValue - totalCostBasis` |
+| `unrealizedPnlPercent` | number | Percentage unrealized gain/loss |
+| `accruedInterest` | integer | Accrued but unpaid bond interest in XAF |
+| `incomeType` | string | Income type if applicable, null otherwise |
+
+---
+
+### Single Position Detail
+
+```
+GET /api/v1/portfolio/positions/{assetId}
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response:**
+
+```json
+{
+  "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "symbol": "DTT",
+  "assetName": "Douala Tower Token",
+  "category": "REAL_ESTATE",
+  "totalUnits": 250,
+  "avgPurchasePrice": 4800,
+  "totalCostBasis": 1200000,
+  "currentPrice": 5000,
+  "currentValue": 1250000,
+  "unrealizedPnl": 50000,
+  "unrealizedPnlPercent": 4.17,
+  "realizedPnl": 15000,
+  "accruedInterest": 0,
+  "firstPurchaseDate": "2026-01-15T09:00:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `realizedPnl` | integer | Realized P&L for this specific asset |
+| `firstPurchaseDate` | string | Date of first purchase (used for lockup fallback) |
+
+---
+
+### Portfolio Value History (for Charts)
+
+```
+GET /api/v1/portfolio/history?period=3M
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Query Parameters:**
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `period` | No | `1M` | `1M`, `3M`, `6M`, `1Y` |
+
+**Response:**
+
+```json
+{
+  "period": "3M",
+  "dataPoints": [
+    {
+      "date": "2026-01-15",
+      "totalValue": 500000,
+      "totalCostBasis": 500000,
+      "unrealizedPnl": 0,
+      "positionCount": 1
+    },
+    {
+      "date": "2026-02-15",
+      "totalValue": 1200000,
+      "totalCostBasis": 1100000,
+      "unrealizedPnl": 100000,
+      "positionCount": 2
+    },
+    {
+      "date": "2026-03-15",
+      "totalValue": 1750000,
+      "totalCostBasis": 1700000,
+      "unrealizedPnl": 50000,
+      "positionCount": 2
+    }
+  ]
+}
+```
+
+Data points are daily snapshots taken at market close (20:30 WAT).
+
+---
+
+### Income Calendar
+
+```
+GET /api/v1/portfolio/income-calendar?months=12
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Query Parameters:**
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `months` | No | `12` | Projection window: 1 to 36 months |
+
+**Response:**
+
+```json
+{
+  "months": 12,
+  "events": [
+    {
+      "date": "2026-04-01",
+      "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "symbol": "DTT",
+      "assetName": "Douala Tower Token",
+      "type": "RENT",
+      "estimatedAmount": 6667,
+      "units": 250,
+      "rate": 8.0,
+      "frequencyMonths": 1
+    },
+    {
+      "date": "2026-06-30",
+      "assetId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "symbol": "SEN580",
+      "assetName": "Senegal Treasury Bond 5.80%",
+      "type": "COUPON",
+      "estimatedAmount": 14500,
+      "units": 50,
+      "rate": 5.80,
+      "frequencyMonths": 6
+    }
+  ],
+  "totalEstimatedIncome": 94504
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `events` | array | Projected income events sorted by date |
+| `events[].type` | string | `COUPON` (bonds) or `RENT`, `DIVIDEND`, `HARVEST_YIELD`, `PROFIT_SHARE` |
+| `events[].estimatedAmount` | integer | Projected payout in XAF based on current holdings |
+| `totalEstimatedIncome` | integer | Sum of all projected events in the window |
+
+---
+
+## 6. Favorites / Watchlist (Authenticated)
+
+### List Favorites
+
+```
+GET /api/v1/favorites
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response:**
+
+```json
+[
+  {
+    "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Douala Tower Token",
+    "symbol": "DTT",
+    "category": "REAL_ESTATE",
+    "imageUrl": "https://cdn.example.com/assets/dtt.jpg",
+    "currentPrice": 5000,
+    "priceChange24h": 2.5,
+    "priceChange24hPercent": 0.05,
+    "addedAt": "2026-02-10T08:00:00Z"
+  }
+]
+```
+
+---
+
+### Add to Watchlist
+
+```
+POST /api/v1/favorites/{assetId}
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+No request body. Idempotent — adding an already-favorited asset returns 200 OK.
+
+**Response (200 OK):**
+
+```json
+{
+  "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "addedAt": "2026-03-15T14:40:00Z"
+}
+```
+
+**Error Codes:**
+
+| HTTP | Code | Description |
+|------|------|-------------|
+| 404 | `ASSET_NOT_FOUND` | Asset does not exist |
+
+---
+
+### Remove from Watchlist
+
+```
+DELETE /api/v1/favorites/{assetId}
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response (204 No Content):** Empty body.
+
+---
+
+## 7. Notifications (Authenticated)
+
+### List Notifications
+
+```
+GET /api/v1/notifications?page=0&size=20
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response:**
+
+```json
+{
+  "content": [
+    {
+      "id": "e5f6a7b8-c9d0-1234-ef01-23456789abcd",
+      "eventType": "TRADE_EXECUTED",
+      "title": "Order Filled",
+      "message": "Your BUY order for 100 DTT has been filled at 5,000 XAF/unit.",
+      "data": {
+        "orderId": "d4e5f6a7-b8c9-0123-def0-123456789abc",
+        "assetId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "symbol": "DTT",
+        "side": "BUY",
+        "units": 100,
+        "executionPrice": 5000
+      },
+      "read": false,
+      "createdAt": "2026-03-15T14:35:06Z"
+    },
+    {
+      "id": "f6a7b8c9-d0e1-2345-f012-3456789abcde",
+      "eventType": "COUPON_PAID",
+      "title": "Coupon Payment Received",
+      "message": "You received 14,500 XAF coupon payment for SEN580.",
+      "data": {
+        "assetId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "symbol": "SEN580",
+        "amount": 14500,
+        "couponDate": "2026-06-30"
+      },
+      "read": true,
+      "createdAt": "2026-06-30T00:16:00Z"
+    }
+  ],
+  "totalElements": 25,
+  "totalPages": 2,
+  "number": 0,
+  "size": 20
+}
+```
+
+**Notification Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Notification identifier |
+| `eventType` | string | Event type (see table below) |
+| `title` | string | Short title for display |
+| `message` | string | Human-readable message |
+| `data` | object | Structured payload (varies by event type) |
+| `read` | boolean | Whether the user has read this notification |
+| `createdAt` | string | When the notification was created |
+
+**Event Types:**
+
+| Event Type | Trigger | Data Fields |
+|------------|---------|-------------|
+| `TRADE_EXECUTED` | Order filled | `orderId`, `assetId`, `symbol`, `side`, `units`, `executionPrice` |
+| `COUPON_PAID` | Bond coupon deposited | `assetId`, `symbol`, `amount`, `couponDate` |
+| `INCOME_PAID` | Non-bond income deposited | `assetId`, `symbol`, `amount`, `incomeType` |
+| `REDEMPTION_COMPLETED` | Bond principal redeemed | `assetId`, `symbol`, `units`, `amount` |
+| `ORDER_STUCK` | Order stuck > 30 min | `orderId`, `assetId`, `symbol` |
+| `ASSET_STATUS_CHANGED` | Asset status transition | `assetId`, `symbol`, `oldStatus`, `newStatus` |
+| `LP_SHORTFALL` | LP cannot cover obligations | `assetId`, `symbol`, `shortfallAmount` |
+| `DELISTING_ANNOUNCED` | Asset enters DELISTING | `assetId`, `symbol`, `delistingDate`, `redemptionPrice` |
+
+---
+
+### Unread Count
+
+```
+GET /api/v1/notifications/unread-count
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response:**
+
+```json
+{
+  "unreadCount": 3
+}
+```
+
+---
+
+### Mark Single as Read
+
+```
+POST /api/v1/notifications/{id}/read
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "id": "e5f6a7b8-c9d0-1234-ef01-23456789abcd",
+  "read": true
+}
+```
+
+---
+
+### Mark All as Read
+
+```
+POST /api/v1/notifications/read-all
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "markedCount": 3
+}
+```
+
+---
+
+### Get Notification Preferences
+
+```
+GET /api/v1/notifications/preferences
+Headers:
+  Authorization: Bearer {jwt}
+```
+
+**Response:**
+
+```json
+{
+  "tradeExecuted": true,
+  "couponPaid": true,
+  "incomePaid": true,
+  "redemptionCompleted": true,
+  "assetStatusChanged": false,
+  "orderStuck": true,
+  "lpShortfall": true,
+  "delistingAnnounced": true
+}
+```
+
+---
+
+### Update Notification Preferences
+
+```
+PUT /api/v1/notifications/preferences
+Headers:
+  Authorization: Bearer {jwt}
+  Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "tradeExecuted": true,
+  "couponPaid": true,
+  "incomePaid": true,
+  "redemptionCompleted": true,
+  "assetStatusChanged": false,
+  "orderStuck": true,
+  "lpShortfall": true,
+  "delistingAnnounced": true
+}
+```
+
+All fields are optional. Only provided fields are updated.
+
+**Preference Fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `tradeExecuted` | boolean | `true` | Notify when a trade order is filled |
+| `couponPaid` | boolean | `true` | Notify when a bond coupon is deposited |
+| `incomePaid` | boolean | `true` | Notify when non-bond income is deposited |
+| `redemptionCompleted` | boolean | `true` | Notify when bond principal is redeemed |
+| `assetStatusChanged` | boolean | `false` | Notify when an asset changes status |
+| `orderStuck` | boolean | `true` | Notify when an order is stuck in execution |
+| `lpShortfall` | boolean | `true` | Notify when LP may not cover obligations |
+| `delistingAnnounced` | boolean | `true` | Notify when an asset you hold is being delisted |
+
+**Response (200 OK):** Returns the full updated preferences object (same shape as GET).
+
+---
+
+## 8. Error Handling
+
+All error responses follow a consistent format:
+
+```json
+{
+  "error": "INSUFFICIENT_FUNDS",
+  "message": "Insufficient XAF balance. Required: 502,500 XAF, available: 300,000 XAF.",
+  "timestamp": "2026-03-15T14:35:00Z",
+  "path": "/api/v1/trades/quote",
+  "details": {
+    "required": 502500,
+    "available": 300000
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `error` | string | Machine-readable error code |
+| `message` | string | Human-readable description |
+| `timestamp` | string | When the error occurred |
+| `path` | string | Request path that caused the error |
+| `details` | object | Additional context (varies by error) |
+
+### Error Code Reference
+
+#### 400 Bad Request — Validation Errors
+
+| Code | Description | Details |
+|------|-------------|---------|
+| `INSUFFICIENT_FUNDS` | XAF balance too low for BUY | `required`, `available` |
+| `INSUFFICIENT_INVENTORY` | LP does not have enough units | `requested`, `available` |
+| `MIN_ORDER_SIZE_NOT_MET` | Order below minimum units | `minimum`, `requested` |
+| `ORDER_SIZE_LIMIT_EXCEEDED` | Order exceeds max units | `maximum`, `requested` |
+| `POSITION_LIMIT_EXCEEDED` | Would exceed max % of supply | `maxPercent`, `currentPercent`, `requestedPercent` |
+| `DAILY_LIMIT_EXCEEDED` | Would exceed daily XAF limit | `dailyLimit`, `usedToday`, `requested` |
+| `AMOUNT_TOO_SMALL` | Amount cannot buy 1 unit | `minimumAmount`, `provided` |
+| `LOCKUP_PERIOD_ACTIVE` | Units still in lockup (SELL) | `requestedUnits`, `unlockedUnits`, `nextUnlockDate` |
+
+#### 404 Not Found
+
+| Code | Description |
+|------|-------------|
+| `ASSET_NOT_FOUND` | Asset UUID does not exist |
+| `ORDER_NOT_FOUND` | Order UUID does not exist or does not belong to the authenticated user |
+
+#### 409 Conflict
+
+| Code | Description | Details |
+|------|-------------|---------|
+| `IDEMPOTENCY_CONFLICT` | Same idempotency key used with different parameters | `existingOrderId` |
+| `MAX_QUOTES_EXCEEDED` | User has too many active (unexpired) quotes | `maxQuotes`, `activeQuotes` |
+
+#### 422 Unprocessable Entity
+
+| Code | Description | Details |
+|------|-------------|---------|
+| `TRADING_HALTED` | Asset trading is halted by admin | — |
+| `ASSET_DELISTING` | Asset is in delisting period (BUY blocked) | `delistingDate`, `redemptionPrice` |
+| `MARKET_CLOSED` | Market is currently closed | `nextOpenAt`, `nextOpenCountdownSeconds` |
+
+#### 429 Too Many Requests
+
+Rate limits apply per authenticated user:
+
+| Limit | Scope | Window |
+|-------|-------|--------|
+| 10 requests | Trade endpoints (`/trades/*`) | Per minute |
+| 100 requests | All authenticated endpoints | Per minute |
+
+Response includes `Retry-After` header with seconds until the limit resets.
+
+```json
+{
+  "error": "RATE_LIMITED",
+  "message": "Too many requests. Please retry after 12 seconds.",
+  "retryAfterSeconds": 12
+}
+```
+
+---
+
+---
+
+# Part 2: Admin API
+
+> The following endpoints are used by the Asset Manager admin panel. They are documented here for reference.
 
 ## 1. Set Up the Fee Collection Account
 
@@ -37,13 +1421,10 @@ Body:
   "issuerPrice": 4000,
   "lpAskPrice": 5000,
   "lpBidPrice": 4800,
-  "tradingFeePercent": 0.50,
+  "tradingFeePercent": 0.30,
   "totalSupply": 100000,
   "decimalPlaces": 0,
-  "lpClientId": 42,
-  "subscriptionStartDate": "2025-12-15",
-  "subscriptionEndDate": "2026-03-15",
-  "capitalOpenedPercent": 44.44
+  "lpClientId": 42
 }
 ```
 
@@ -68,8 +1449,6 @@ Body:
   "totalSupply": 50000,
   "decimalPlaces": 0,
   "lpClientId": 42,
-  "subscriptionStartDate": "2025-12-01",
-  "subscriptionEndDate": "2026-06-30",
   "issuerName": "Etat du Senegal",
   "isinCode": "SN0000000001",
   "maturityDate": "2028-06-30",
@@ -83,10 +1462,13 @@ Body:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `issuerPrice` | Yes | The wholesale/face value per unit from the original issuer. Immutable after creation. Used for coupon and income calculations. |
-| `lpAskPrice` | Yes | The price investors pay to buy (LP's selling price). Must be >= `issuerPrice`. |
-| `lpBidPrice` | Yes | The price investors receive when selling (LP's buying price). Must be <= `lpAskPrice`. |
+| `spreadPercent` | No | Spread % used to auto-derive ask/bid from issuerPrice (e.g. `0.003` = 0.3%). Ignored when ask/bid are provided explicitly. Default: `0.003`. |
+| `lpAskPrice` | No | The price investors pay to buy (LP's selling price). If null, auto-derived as `issuerPrice × (1 + spreadPercent)`. Must be >= `issuerPrice`. |
+| `lpBidPrice` | No | The price investors receive when selling (LP's buying price). If null, auto-derived as `issuerPrice × (1 - spreadPercent)`. Must be <= `lpAskPrice`. |
 
 The LP's margin per unit on BUY = `lpAskPrice - issuerPrice`. For bonds, the LP typically sets ask = bid = issuerPrice (no markup on face value).
+
+> **Default spread behavior:** If neither `lpAskPrice`, `lpBidPrice`, nor `spreadPercent` are provided, the system auto-derives ask = `issuerPrice × 1.003` and bid = `issuerPrice × 0.997` (0.3% spread).
 
 Bond-specific fields:
 
@@ -104,9 +1486,31 @@ General fields (all categories):
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `subscriptionStartDate` | Yes | Start of the subscription window. BUY orders are rejected before this date. |
-| `subscriptionEndDate` | Yes | End of the subscription window. BUY orders are rejected after this date; SELL is always allowed. |
-| `capitalOpenedPercent` | No | Percentage of capital opened for subscription (e.g. 44.44 for RENAPROV-style offerings). |
+| `tradingFeePercent` | No | Platform fee as a decimal (e.g. `0.003` = 0.3%). Default: `0.003`. |
+| `totalSupply` | Yes | Total units available for trade. |
+| `decimalPlaces` | No | Number of decimal places for fractional trading. Default: `0`. |
+| `lpClientId` | Yes | Fineract client ID of the liquidity partner. |
+
+### Tax Configuration
+
+Each asset carries tax flags that determine which taxes apply to trades. Rates default to OHADA/CEMAC standards but can be overridden per asset.
+
+| Tax | Default | Rate | Base | Who pays | Override fields |
+|---|---|---|---|---|---|
+| **Registration Duty** | **On** | **2%** | Gross trade amount | Buyer on BUY; LP on SELL | `registrationDutyEnabled`, `registrationDutyRate` |
+| **TVA (VAT)** | Off | 19.25% | **Trading fee only** | Buyer on BUY; LP on SELL | `tvaEnabled`, `tvaRate` |
+| **Capital Gains Tax** | Off | 16.5% | Realized profit on SELL | LP absorbs | `capitalGainsTaxEnabled`, `capitalGainsRate` |
+| **IRCM — bonds ≥5y** | Off | 5.5% | Coupon / interest income | Withheld from investor | `ircmEnabled`, `ircmRateOverride` |
+| **IRCM — BVMAC equities** | Off | 11% | Dividend income | Withheld from investor | `ircmEnabled`, `isBvmacListed` |
+| **IRCM — other equities** | Off | 16.5% | Dividend income | Withheld from investor | `ircmEnabled` |
+
+**Important notes:**
+
+- **TVA applies to the platform fee, not the full investment amount.** Example: buying 10,000 XAF of bonds at 0.3% fee → fee = 30 XAF → TVA = 30 × 19.25% = 6 XAF. This is correct under OHADA/CEMAC law where TVA is a service consumption tax.
+- **Registration duty** (droit d'enregistrement) is a securities transfer stamp tax on the full transaction value. It is **on by default** and applies to all trades.
+- **Capital gains** has a 500,000 XAF annual exemption per investor. Tax applies only to cumulative gains exceeding this threshold.
+- **Government bonds** (`isGovernmentBond: true`) are automatically IRCM-exempt.
+- All tax fields (`*Enabled`, `*Rate`) can be updated post-creation via `PATCH /api/admin/assets/{id}`.
 
 ### What Happens on Create
 
@@ -244,9 +1648,6 @@ Body:
   "tradingFeePercent": 0.75,
   "lpAskPrice": 5500,
   "lpBidPrice": 5200,
-  "subscriptionStartDate": "2026-01-01",
-  "subscriptionEndDate": "2026-12-31",
-  "capitalOpenedPercent": 50.00,
   "interestRate": 6.25,
   "maturityDate": "2029-06-30"
 }
@@ -254,9 +1655,22 @@ Body:
 
 All fields are optional. Only provided fields are updated.
 
-**Editable fields:** name, description, imageUrl, category, tradingFeePercent, lpAskPrice, lpBidPrice, subscriptionStartDate, subscriptionEndDate, capitalOpenedPercent, maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, income config.
+**Editable fields (all states):** name, description, imageUrl, category, tradingFeePercent, lpAskPrice, lpBidPrice, maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount, income config, tax config.
 
-**Immutable fields (cannot be changed after creation):** symbol, currencyCode, issuerPrice, issuerName, lpClientId, totalSupply, decimalPlaces, interestRate, couponFrequencyMonths, maturityDate (bond contractual terms).
+**Editable fields (PENDING only):** issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths. These fields are rejected with HTTP 400 if the asset is not in PENDING status. When `totalSupply` is changed, the LP asset account balance is automatically adjusted (minted/burned) to match.
+
+**Immutable fields (cannot be changed after creation):** symbol, currencyCode, decimalPlaces. To change these, delete the PENDING asset and recreate it.
+
+**Example — updating a PENDING asset's issuer price and total supply:**
+
+```
+PUT /api/admin/assets/{id}
+Body:
+{
+  "issuerPrice": 6000,
+  "totalSupply": 150000
+}
+```
 
 ---
 
@@ -1071,7 +2485,7 @@ In addition to specifying units, the trade preview API accepts an XAF **amount**
 ### Request (amount mode)
 
 ```
-POST /api/trades/preview
+POST /api/trades/quote
 Body: {
   "assetId": "uuid",
   "side": "BUY",
@@ -1120,3 +2534,55 @@ For non-bond assets with an income type set, BUY previews include an `incomeBene
 ```
 
 Note: Income is calculated from the `issuerPrice`, not the LP's ask price. The `estimatedYieldPercent` reflects the true yield based on the issuer price.
+
+---
+
+## 19. Bulk Asset Import via Excel
+
+The Asset Manager UI provides an Excel-based import workflow for creating multiple assets at once.
+
+### Workflow
+
+1. **Export Template** — Click "Export Template" on the Dashboard. This downloads `asset-import-template.xlsx` with:
+   - Header row with all column names (mandatory columns marked with `*` and highlighted in red)
+   - Example data row (row 2) with realistic sample values
+   - Cell comments on each header explaining the field, valid values, and format
+   - Dropdown validation for enum fields (category, incomeType, couponFrequencyMonths, boolean fields)
+
+2. **Fill In Data** — Open the template in Excel/Google Sheets. Keep the header row, optionally delete the example row, and add one row per asset. All required fields must be filled.
+
+3. **Import** — Click "Import Assets" on the Dashboard, select the filled .xlsx file. The system will:
+   - Parse and validate the file client-side
+   - Show a preview of parsed rows with any validation errors highlighted
+   - On confirmation, create each asset one-by-one using the standard asset creation endpoint
+   - Display per-row results (success or failure with error message)
+
+### Template Columns
+
+| Column | Required | Description |
+|--------|----------|-------------|
+| name | Yes | Display name (max 200 chars) |
+| symbol | Yes | Ticker symbol (max 10 chars, unique) |
+| currencyCode | Yes | ISO currency code (max 10 chars, unique) |
+| category | Yes | REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, BONDS |
+| issuerPrice | Yes | Face value in XAF |
+| totalSupply | Yes | Maximum units |
+| decimalPlaces | Yes | Fractional digits (0–8) |
+| lpAskPrice | Yes | Investor buy price (XAF) |
+| lpBidPrice | Yes | Investor sell price (XAF) |
+| lpClientId | Yes | Fineract LP client ID |
+| description | No | Long description |
+| tradingFeePercent | No | Decimal (e.g. 0.005 = 0.5%) |
+| maxPositionPercent | No | Max % of supply per user |
+| maxOrderSize / minOrderSize | No | Order unit limits |
+| dailyTradeLimitXaf / minOrderCashAmount | No | XAF limits |
+| lockupDays | No | Hold period in days |
+| issuerName / isinCode | No | Bond identity fields |
+| maturityDate / interestRate / couponFrequencyMonths / nextCouponDate | No | Bond fields |
+| incomeType / incomeRate / distributionFrequencyMonths / nextDistributionDate | No | Income fields |
+| registrationDutyEnabled, registrationDutyRate | No | Registration duty tax config |
+| ircmEnabled, ircmRateOverride, ircmExempt | No | IRCM tax config |
+| capitalGainsTaxEnabled, capitalGainsRate | No | Capital gains tax config |
+| isBvmacListed, isGovernmentBond | No | Special tax treatment flags |
+
+All imported assets are created in **PENDING** status. Use the Activate endpoint to make them available for trading.

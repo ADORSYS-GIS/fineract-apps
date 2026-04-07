@@ -99,8 +99,8 @@ public class TreasuryShortfallScheduler {
 
         if (holders.isEmpty()) return;
 
-        BigDecimal faceValue = asset.getIssuerPrice() != null
-                ? asset.getIssuerPrice() : BigDecimal.ZERO;
+        BigDecimal faceValue = asset.getEffectiveFaceValue() != null
+                ? asset.getEffectiveFaceValue() : BigDecimal.ZERO;
 
         BigDecimal rate = asset.getIncomeRate();
         int frequencyMonths = asset.getDistributionFrequencyMonths();
@@ -153,7 +153,7 @@ public class TreasuryShortfallScheduler {
 
         if (holders.isEmpty()) return;
 
-        BigDecimal faceValue = bond.getIssuerPrice() != null ? bond.getIssuerPrice() : BigDecimal.ZERO;
+        BigDecimal faceValue = bond.getEffectiveFaceValue() != null ? bond.getEffectiveFaceValue() : BigDecimal.ZERO;
         BigDecimal rate = bond.getInterestRate();
         int periodMonths = bond.getCouponFrequencyMonths();
 

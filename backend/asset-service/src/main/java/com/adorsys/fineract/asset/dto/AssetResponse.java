@@ -30,10 +30,6 @@ public record AssetResponse(
     BigDecimal availableSupply,
     /** Maximum total units that can ever exist. */
     BigDecimal totalSupply,
-    /** Start of the subscription period. */
-    LocalDate subscriptionStartDate,
-    /** End of the subscription period. */
-    LocalDate subscriptionEndDate,
     // ── Issuer & LP info ──
 
     @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)
@@ -45,6 +41,8 @@ public record AssetResponse(
 
     // ── Bond summary fields (null for non-bond assets) ──
 
+    @Schema(description = "Bond type: COUPON (OTA) or DISCOUNT (BTA). Null for non-bond assets.", nullable = true)
+    BondType bondType,
     @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.")
     String isinCode,
     @Schema(description = "Bond maturity date. Null for non-bond assets.")
@@ -54,7 +52,5 @@ public record AssetResponse(
     @Schema(description = "Current yield: effective annual return based on ask price. Bonds only.", nullable = true)
     BigDecimal currentYield,
     @Schema(description = "Days remaining until maturity date. Computed at query time.")
-    Long residualDays,
-    @Schema(description = "True if subscriptionEndDate has passed and new BUY orders are blocked.")
-    Boolean subscriptionClosed
+    Long residualDays
 ) {}

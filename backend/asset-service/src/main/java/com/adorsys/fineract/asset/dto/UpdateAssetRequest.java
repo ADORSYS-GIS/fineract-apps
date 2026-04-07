@@ -27,12 +27,6 @@ public record UpdateAssetRequest(
     /** New LP bid price (what investors receive when selling). Null to keep current. */
     @Positive BigDecimal lpBidPrice,
 
-    /** New subscription start date. Null to keep current. */
-    @Schema(description = "New subscription start date.")
-    LocalDate subscriptionStartDate,
-    /** New subscription end date. Null to keep current. */
-    @Schema(description = "New subscription end date.")
-    LocalDate subscriptionEndDate,
     // ── Exposure limits ──
 
     /** New max position percent. Null to keep current. */
@@ -109,5 +103,41 @@ public record UpdateAssetRequest(
     Boolean isBvmacListed,
     /** Government bond flag. Null to keep current. */
     @Schema(description = "Government bond.")
-    Boolean isGovernmentBond
+    Boolean isGovernmentBond,
+    /** Enable/disable TVA (VAT). Null to keep current. */
+    @Schema(description = "Enable TVA (VAT) on trades.")
+    Boolean tvaEnabled,
+    /** TVA rate override. Null to keep current. */
+    @Schema(description = "TVA rate (e.g. 0.1925 = 19.25%).")
+    @PositiveOrZero BigDecimal tvaRate,
+
+    // ── PENDING-only fields (rejected if asset is not PENDING) ──
+
+    /** New issuer/acquisition price. Only updatable when asset is PENDING. */
+    @Schema(description = "Issuer price (LP acquisition cost). Only updatable when PENDING.")
+    @Positive BigDecimal issuerPrice,
+    /** New face/par value. Only updatable when asset is PENDING. */
+    @Schema(description = "Face/par value. Only updatable when PENDING.")
+    @Positive BigDecimal faceValue,
+    /** New total supply. Only updatable when asset is PENDING. Adjusts LP account balance. */
+    @Schema(description = "Total supply. Only updatable when PENDING.")
+    @Positive BigDecimal totalSupply,
+    /** New issuer name. Only updatable when asset is PENDING. */
+    @Schema(description = "Issuer name. Only updatable when PENDING.")
+    @Size(max = 255) String issuerName,
+    /** New ISIN code. Only updatable when asset is PENDING. */
+    @Schema(description = "ISIN code (ISO 6166). Only updatable when PENDING.")
+    @Size(max = 12) String isinCode,
+    /** New coupon frequency. Only updatable when asset is PENDING. */
+    @Schema(description = "Coupon frequency in months (1, 3, 6, or 12). Only updatable when PENDING.")
+    Integer couponFrequencyMonths,
+    /** Bond type: COUPON (OTA) or DISCOUNT (BTA). Only updatable when PENDING. */
+    @Schema(description = "Bond type. Only updatable when PENDING.")
+    BondType bondType,
+    /** Day count convention. Only updatable when PENDING. */
+    @Schema(description = "Day count convention. Only updatable when PENDING.")
+    DayCountConvention dayCountConvention,
+    /** Issuer country. Only updatable when PENDING. */
+    @Schema(description = "Issuer country. Only updatable when PENDING.")
+    @Size(max = 50) String issuerCountry
 ) {}

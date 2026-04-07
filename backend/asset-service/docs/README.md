@@ -84,10 +84,41 @@ http://localhost:8083/actuator/health
 | `TAX_DEFAULT_CAPITAL_GAINS_RATE` | `0.165` | Default capital gains tax rate (16.5%) |
 | `TAX_CAPITAL_GAINS_ANNUAL_EXEMPTION` | `500000` | Annual capital gains exemption in XAF |
 
+## Bond Types (CEMAC Treasury Instruments)
+
+The asset service supports two types of bonds aligned with the CEMAC treasury market:
+
+### OTA — Obligations du Tresor Assimilables (T-Bonds)
+- `bondType: COUPON`, `dayCountConvention: ACT_365`
+- Periodic coupon payments (annual, semi-annual, quarterly, or monthly)
+- Trades include **accrued interest** ("pied du coupon") — buyer compensates seller for interest accrued since the last coupon payment
+- Accrued interest formula: `units x faceValue x (rate/100) x daysSinceLastCoupon / 365`
+- The `accruedInterestAmount` field appears in trade quotes, orders, and trade logs
+
+### BTA — Bons du Tresor Assimilables (T-Bills)
+- `bondType: DISCOUNT`, `dayCountConvention: ACT_360`
+- Zero-coupon instruments — LP buys at discount from BEAC auction, resells with spread
+- No coupon scheduling, no accrued interest
+- Yield based on discount: `(faceValue/askPrice - 1) x (360/daysToMaturity) x 100`
+- Return to investor = face value at maturity minus purchase price
+
+### LP Reseller Model
+The LP subscribes to BEAC primary market auctions and resells to retail investors via bid/ask spreads. Investors never subscribe directly — they only see the LP's prices.
+
+| Field | Description | OTA | BTA |
+|-------|-------------|-----|-----|
+| `bondType` | COUPON or DISCOUNT | COUPON | DISCOUNT |
+| `dayCountConvention` | ACT_360, ACT_365, or THIRTY_360 | ACT_365 | ACT_360 |
+| `issuerCountry` | CEMAC member state | Optional | Optional |
+| `interestRate` | Annual coupon rate % | Required | N/A |
+| `couponFrequencyMonths` | 1, 3, 6, or 12 | Required | N/A |
+| `nextCouponDate` | Next coupon payment date | Required | N/A |
+| `maturityDate` | Redemption date | Required | Required |
+
 ## Database
 
 Flyway migrations create the following tables:
-- `assets` — Asset catalog (symbol, currency code, category, status, supply, bond fields)
+- `assets` — Asset catalog (symbol, currency code, category, status, supply, bond fields, bondType, dayCountConvention)
 - `asset_prices` — Current price + OHLC data
 - `price_history` — Time-series for charts
 - `user_positions` — WAP tracking per user per asset
@@ -96,28 +127,42 @@ Flyway migrations create the following tables:
 - `user_favorites` — Watchlist
 - `interest_payments` — Bond coupon payment audit log
 - `portfolio_snapshots` — Daily portfolio value snapshots for performance charting
+- `purchase_lots` — FIFO cost basis tracking per user per asset
+- `principal_redemptions` — Bond redemption payment history
+- `income_distributions` — Non-bond income payment history
+- `scheduled_payments` — Pending coupon/income payment schedules awaiting admin confirmation
+- `reconciliation_reports` — Discrepancy reports between asset-service and Fineract
+- `audit_log` — Admin action audit trail (IP, user agent, duration)
+- `notification_log` — User and admin broadcast notifications
+- `notification_preferences` — Per-user notification event toggles
+- `category_snapshots` — Per-category daily portfolio value snapshots
 - `orders_archive` — Archived old orders (moved by ArchivalScheduler)
 - `trade_log_archive` — Archived old trade logs (moved by ArchivalScheduler)
 - `tax_transactions` — Tax calculation and collection audit trail (registration duty, IRCM, capital gains)
 
-## API Documentation
+## Documentation
 
-- [Customer API Guide](CUSTOMER-API-GUIDE.md) - Integration guide for the customer-facing app
-- [Admin Guide](ADMIN-GUIDE.md) - Asset management operations
-- [Accounting Guide](ACCOUNTING.md) - GL account mappings and journal entries
+- [API Guide](ADMIN-GUIDE.md) - Complete API reference (Part 1: Customer-facing API, Part 2: Admin API)
+- [Asset Manager UI Guide](ASSET-MANAGER-GUIDE.md) - Step-by-step guide for using the Asset Manager web application
+- [Accounting Guide](ACCOUNTING.md) - GL account mappings, settlement flows, and journal entries
 
 ## Scheduled Jobs
 
 | Job | Schedule | Purpose |
 |-----|----------|---------|
 | MaturityScheduler | 00:05 WAT daily | Transitions ACTIVE bonds to MATURED when maturity date passes |
-| InterestPaymentScheduler | 00:15 WAT daily | Pays bond coupons to all holders of eligible bonds |
+| InterestPaymentScheduler | 00:15 WAT daily | Pays bond coupons to all holders of eligible COUPON bonds (skips DISCOUNT/BTA) |
 | QuoteExpiryScheduler | Every 10s | Cancels expired QUOTED orders and releases soft-reserved inventory |
 | TradeWorkerService | Every 5s (fallback) | Picks up PENDING orders for async execution (also event-driven) |
 | StaleOrderCleanupScheduler | Every 5 min | Fails stale PENDING orders, flags stuck EXECUTING as NEEDS_RECONCILIATION |
 | PriceSnapshotScheduler | Hourly (configurable) | Captures price snapshots for chart history |
 | OhlcScheduler | Every 60s | Resets/closes daily OHLC candles at market open/close |
 | PortfolioSnapshotScheduler | 20:30 WAT daily | Takes daily portfolio value snapshots for performance charting |
+| IncomeDistributionScheduler | 00:30 WAT daily | Creates pending income distribution schedules for eligible non-bond assets |
+| AccruedInterestScheduler | 00:30 WAT daily | Accrues daily interest on COUPON bond positions (skips DISCOUNT/BTA). Uses dayCountConvention |
+| DelistingScheduler | Daily | Executes forced buyback on delisting date |
+| ReconciliationScheduler | 01:30 WAT daily | Compares asset-service state vs Fineract, creates discrepancy reports |
+| TreasuryShortfallScheduler | Daily | Checks LP cash coverage for upcoming coupon/income obligations |
 | ArchivalScheduler | 03:00 WAT 1st of month | Archives trade_log + orders older than retention period (default 12 months) |
 
 ## Market Hours

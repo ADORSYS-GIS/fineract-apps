@@ -258,6 +258,15 @@ public class ReconciliationService {
     private void createReport(LocalDate reportDate, String reportType, String assetId,
                                 Long userId, BigDecimal expected, BigDecimal actual,
                                 BigDecimal discrepancy, String severity) {
+        // Skip if an identical OPEN report already exists (idempotency)
+        boolean exists = userId != null
+                ? reportRepository.existsByReportTypeAndAssetIdAndUserIdAndStatus(reportType, assetId, userId, "OPEN")
+                : reportRepository.existsByReportTypeAndAssetIdAndStatus(reportType, assetId, "OPEN");
+        if (exists) {
+            log.debug("Skipping duplicate report: type={}, asset={}, user={} (OPEN report exists)", reportType, assetId, userId);
+            return;
+        }
+
         ReconciliationReport report = ReconciliationReport.builder()
                 .reportDate(reportDate)
                 .reportType(reportType)

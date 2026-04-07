@@ -58,41 +58,42 @@ class JwtUtilsTest {
     }
 
     // -------------------------------------------------------------------------
-    // extractUserId tests
+    // extractClientId tests
     // -------------------------------------------------------------------------
 
     @Test
-    void extractUserId_validClaim_returnsLong() {
+    void extractClientId_validLongClaim_returnsLong() {
         // Arrange
         Jwt jwt = buildJwt("some-subject", Map.of("fineract_client_id", 42L));
 
         // Act
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long clientId = JwtUtils.extractClientId(jwt);
 
         // Assert
-        assertEquals(42L, userId);
+        assertEquals(42L, clientId);
     }
 
     @Test
-    void extractUserId_integerClaim_returnsLong() {
+    void extractClientId_integerClaim_returnsLong() {
         // Arrange: claim value is an Integer, not a Long
         Jwt jwt = buildJwt("some-subject", Map.of("fineract_client_id", 99));
 
         // Act
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long clientId = JwtUtils.extractClientId(jwt);
 
         // Assert
-        assertEquals(99L, userId);
+        assertEquals(99L, clientId);
     }
 
     @Test
-    void extractUserId_missingClaim_throwsIllegalState() {
-        // Arrange: JWT without fineract_client_id
+    void extractClientId_missingClaim_returnsNull() {
+        // Arrange: JWT without fineract_client_id — caller must fall back to externalId lookup
         Jwt jwt = buildJwt("some-subject", Map.of());
 
-        // Act & Assert
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> JwtUtils.extractUserId(jwt));
-        assertTrue(ex.getMessage().contains("fineract_client_id"));
+        // Act
+        Long clientId = JwtUtils.extractClientId(jwt);
+
+        // Assert
+        assertNull(clientId);
     }
 }

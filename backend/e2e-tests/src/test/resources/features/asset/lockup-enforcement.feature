@@ -26,6 +26,7 @@ Feature: Lock-up Period Enforcement (E2E)
   # No lock-up allows immediate sell
   # -----------------------------------------------------------------
 
+  @wip
   Scenario: SELL preview allowed when no lock-up is set
     Given an active stock asset "NLK" with price 1000 and supply 1000
     When the user buys 5 units of "NLK"

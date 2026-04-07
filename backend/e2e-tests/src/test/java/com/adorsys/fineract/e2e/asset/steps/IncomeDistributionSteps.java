@@ -42,8 +42,6 @@ public class IncomeDistributionSteps {
         request.put("totalSupply", supply);
         request.put("decimalPlaces", 0);
         request.put("lpClientId", FineractInitializer.getLpClientId());
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
         request.put("incomeType", incomeType);
         request.put("incomeRate", rate);
         request.put("distributionFrequencyMonths", frequency);

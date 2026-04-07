@@ -70,16 +70,16 @@ public class BondStepDefinitions {
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
-                lp_asset_account_id, lp_cash_account_id, fineract_product_id, version,
+                lp_asset_account_id, lp_cash_account_id, fineract_product_id, trading_fee_percent, version,
                 interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
-                subscription_start_date, subscription_end_date,
+                bond_type, day_count_convention,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
-                is_bvmac_listed, is_government_bond, ircm_exempt,
+                is_bvmac_listed, is_government_bond, ircm_exempt, tva_enabled,
                 created_at, updated_at)
-            VALUES (?, ?, 'XAF', ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL, 0,
+            VALUES (?, ?, 'XAF', ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL, 0.005, 0,
                 ?, ?, ?, ?,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
-                true, true, true, false, ?, ?,
+                'COUPON', 'ACT_365',
+                true, true, true, false, ?, ?, false,
                 NOW(), NOW())
             """, bondId, shortSymbol(bondId), "Bond " + bondId,
                 new BigDecimal(data.get("issuerPrice")),
@@ -145,8 +145,12 @@ public class BondStepDefinitions {
         request.put("totalSupply", new BigDecimal(data.get("totalSupply")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("lpClientId", 1L);
+        request.put("tradingFeePercent", 0.005);
         request.put("issuerName", data.get("issuerName"));
         if (data.containsKey("isinCode")) request.put("isinCode", data.get("isinCode"));
+        request.put("bondType", data.getOrDefault("bondType", "COUPON"));
+        request.put("dayCountConvention", data.getOrDefault("dayCountConvention", "ACT_365"));
+        if (data.containsKey("issuerCountry")) request.put("issuerCountry", data.get("issuerCountry"));
         request.put("interestRate", new BigDecimal(data.get("interestRate")));
         request.put("couponFrequencyMonths", Integer.parseInt(data.get("couponFrequencyMonths")));
 
@@ -154,16 +158,6 @@ public class BondStepDefinitions {
         request.put("maturityDate", resolveDateExpression(maturity));
         String nextCoupon = data.get("nextCouponDate");
         request.put("nextCouponDate", resolveDateExpression(nextCoupon));
-        if (data.containsKey("subscriptionStartDate")) {
-            request.put("subscriptionStartDate", resolveDateExpression(data.get("subscriptionStartDate")));
-        } else {
-            request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        }
-        if (data.containsKey("subscriptionEndDate")) {
-            request.put("subscriptionEndDate", resolveDateExpression(data.get("subscriptionEndDate")));
-        } else {
-            request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
-        }
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -179,12 +173,12 @@ public class BondStepDefinitions {
         request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
         request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
         request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
+        request.put("tradingFeePercent", 0.005);
         request.put("lpAskPrice", 11000); request.put("lpBidPrice", 9500);
+        request.put("bondType", "COUPON");
         request.put("interestRate", 5.0); request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().plusYears(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -200,13 +194,13 @@ public class BondStepDefinitions {
         request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
         request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
         request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
+        request.put("tradingFeePercent", 0.005);
         request.put("lpAskPrice", 11000); request.put("lpBidPrice", 9500);
+        request.put("bondType", "COUPON");
         request.put("issuerName", "Test Issuer"); request.put("interestRate", 5.0);
         request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().minusDays(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -222,13 +216,13 @@ public class BondStepDefinitions {
         request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
         request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
         request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
+        request.put("tradingFeePercent", 0.005);
         request.put("lpAskPrice", 11000); request.put("lpBidPrice", 9500);
+        request.put("bondType", "COUPON");
         request.put("issuerName", "Test Issuer"); request.put("interestRate", 5.0);
         request.put("couponFrequencyMonths", frequency);
         request.put("maturityDate", LocalDate.now().plusYears(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -324,16 +318,16 @@ public class BondStepDefinitions {
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
-                lp_asset_account_id, lp_cash_account_id, fineract_product_id, version,
+                lp_asset_account_id, lp_cash_account_id, fineract_product_id, trading_fee_percent, version,
                 issuer_name, interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
-                subscription_start_date, subscription_end_date,
+                bond_type, day_count_convention,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
-                is_bvmac_listed, is_government_bond, ircm_exempt,
+                is_bvmac_listed, is_government_bond, ircm_exempt, tva_enabled,
                 created_at, updated_at)
-            VALUES (?, ?, 'XAF', ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, NULL, 0,
+            VALUES (?, ?, 'XAF', ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, NULL, 0.005, 0,
                 'Test Issuer', 5.80, 6, ?, ?,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
-                true, true, true, false, false, false,
+                'COUPON', 'ACT_365',
+                true, true, true, false, false, false, false,
                 NOW(), NOW())
             """, bondId, shortSymbol(bondId), "Bond " + bondId, status, nextCouponDate, maturityDate);
 

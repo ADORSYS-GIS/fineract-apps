@@ -22,22 +22,27 @@ public record CreateAssetRequest(
     @Size(max = 500) String imageUrl,
     /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, or BONDS. */
     @NotNull AssetCategory category,
-    /** Issuer price (face value for bonds, wholesale price for others). Used for coupon/income calculations. */
+    /** LP's acquisition cost per unit. For DISCOUNT bonds, the discounted price from BEAC auction. */
     @NotNull @Positive BigDecimal issuerPrice,
+    /** Par/redemption value per unit. Required for DISCOUNT bonds (must be > issuerPrice). Defaults to issuerPrice for COUPON bonds. */
+    @Schema(description = "Face/par value per unit. Required for DISCOUNT bonds.")
+    @Positive BigDecimal faceValue,
     /** Maximum total units that can ever exist. Must be positive. */
     @NotNull @Positive BigDecimal totalSupply,
     /** Number of decimal places for fractional units (0 = whole units only, max 8). */
     @NotNull @Min(0) @Max(8) Integer decimalPlaces,
     /** Optional trading fee as a percentage (e.g. 0.005 = 0.5%). Null means no fee. */
     @PositiveOrZero @DecimalMax("0.50") BigDecimal tradingFeePercent,
-    /** LP's ask price (what investors pay to buy). Must be >= issuerPrice. */
-    @NotNull @Positive BigDecimal lpAskPrice,
-    /** LP's bid price (what investors receive when selling). Must be <= lpAskPrice. */
-    @NotNull @Positive BigDecimal lpBidPrice,
-    /** Start of the subscription period. BUY orders rejected before this date. */
-    @NotNull LocalDate subscriptionStartDate,
-    /** End of the subscription period. BUY orders rejected after this date; SELL always allowed. */
-    @NotNull LocalDate subscriptionEndDate,
+    /**
+     * Spread percentage used to auto-derive ask/bid from issuerPrice (e.g. 0.003 = 0.3%).
+     * Ignored when lpAskPrice and lpBidPrice are provided explicitly. Default: 0.003.
+     */
+    @Schema(description = "Spread % to auto-derive ask/bid from issuerPrice (e.g. 0.003 = 0.3%). Default: 0.003.")
+    @PositiveOrZero @DecimalMax("0.50") BigDecimal spreadPercent,
+    /** LP's ask price (what investors pay to buy). If null, auto-derived from issuerPrice + spreadPercent. */
+    @Positive BigDecimal lpAskPrice,
+    /** LP's bid price (what investors receive when selling). If null, auto-derived from issuerPrice - spreadPercent. */
+    @Positive BigDecimal lpBidPrice,
     /** Fineract client ID of the liquidity partner (reseller) that will hold this asset's inventory. */
     @NotNull Long lpClientId,
 
@@ -64,6 +69,15 @@ public record CreateAssetRequest(
 
     // ── Bond / fixed-income fields (required when category = BONDS) ──
 
+    /** Bond type: COUPON (OTA/T-Bonds) or DISCOUNT (BTA/T-Bills). Required for BONDS. */
+    @Schema(description = "Bond type: COUPON (OTA) or DISCOUNT (BTA). Required when category is BONDS.")
+    BondType bondType,
+    /** Day count convention: ACT_360, ACT_365, THIRTY_360. Defaults to ACT_365 for COUPON, ACT_360 for DISCOUNT. */
+    @Schema(description = "Day count convention for interest calculations.")
+    DayCountConvention dayCountConvention,
+    /** Issuer country (e.g. "CAMEROUN", "CONGO", "TCHAD"). Optional. */
+    @Schema(description = "Issuer country name (CEMAC member state).")
+    @Size(max = 50) String issuerCountry,
     /** Issuer name (e.g. "Etat du Sénégal"). Required for BONDS, optional for others. */
     @Schema(description = "Asset issuer name. Required when category is BONDS.")
     @Size(max = 255) String issuerName,
@@ -73,14 +87,14 @@ public record CreateAssetRequest(
     /** Bond maturity date. Required for BONDS, must be in the future. */
     @Schema(description = "Bond maturity date. Required when category is BONDS.")
     LocalDate maturityDate,
-    /** Annual coupon rate as a percentage (e.g. 5.80 = 5.80%). Required for BONDS. */
-    @Schema(description = "Annual coupon interest rate as percentage. Required when category is BONDS.")
+    /** Annual coupon rate as a percentage (e.g. 5.80 = 5.80%). Required for COUPON bonds, null for DISCOUNT. */
+    @Schema(description = "Annual coupon interest rate as percentage. Required for COUPON bonds.")
     @PositiveOrZero BigDecimal interestRate,
-    /** Coupon payment frequency: 1=Monthly, 3=Quarterly, 6=Semi-Annual, 12=Annual. Required for BONDS. */
-    @Schema(description = "Coupon frequency in months: 1, 3, 6, or 12. Required when category is BONDS.")
+    /** Coupon payment frequency: 1=Monthly, 3=Quarterly, 6=Semi-Annual, 12=Annual. Required for COUPON bonds. */
+    @Schema(description = "Coupon frequency in months: 1, 3, 6, or 12. Required for COUPON bonds.")
     Integer couponFrequencyMonths,
-    /** First coupon payment date. Required for BONDS, must be on or before maturityDate. */
-    @Schema(description = "First coupon payment date. Required when category is BONDS.")
+    /** First coupon payment date. Required for COUPON bonds, must be on or before maturityDate. */
+    @Schema(description = "First coupon payment date. Required for COUPON bonds.")
     LocalDate nextCouponDate,
 
     // ── Income distribution fields (optional, for non-bond income-bearing assets) ──
@@ -97,14 +111,14 @@ public record CreateAssetRequest(
 
     // ── Tax configuration (Cameroon/CEMAC) ──
 
-    /** Whether registration duty applies to trades. Default: true. */
-    @Schema(description = "Enable registration duty (2%) on trades of this asset.")
+    /** Whether registration duty applies to trades. Default: false. */
+    @Schema(description = "Enable registration duty (2%) on trades of this asset. Default: false.")
     Boolean registrationDutyEnabled,
     /** Registration duty rate override. Null uses global default (0.02). */
     @Schema(description = "Registration duty rate override (e.g. 0.02 = 2%).")
     @PositiveOrZero BigDecimal registrationDutyRate,
-    /** Whether IRCM withholding applies to income distributions. Default: true. */
-    @Schema(description = "Enable IRCM withholding on income distributions.")
+    /** Whether IRCM withholding applies to income distributions. Default: false. */
+    @Schema(description = "Enable IRCM withholding on income distributions. Default: false.")
     Boolean ircmEnabled,
     /** IRCM rate override. Null uses auto-determination. */
     @Schema(description = "IRCM rate override (e.g. 0.165 = 16.5%).")
@@ -112,8 +126,8 @@ public record CreateAssetRequest(
     /** Whether this asset is IRCM-exempt (e.g. government bonds). */
     @Schema(description = "Exempt from IRCM (e.g. government bonds).")
     Boolean ircmExempt,
-    /** Whether capital gains tax applies to profitable sales. Default: true. */
-    @Schema(description = "Enable capital gains tax on profitable sales.")
+    /** Whether capital gains tax applies to profitable sales. Default: false. */
+    @Schema(description = "Enable capital gains tax on profitable sales. Default: false.")
     Boolean capitalGainsTaxEnabled,
     /** Capital gains tax rate override. Null uses global default (0.165). */
     @Schema(description = "Capital gains tax rate override (e.g. 0.165 = 16.5%).")
@@ -123,5 +137,11 @@ public record CreateAssetRequest(
     Boolean isBvmacListed,
     /** Whether this is a government bond (triggers IRCM exemption). */
     @Schema(description = "Government bond (triggers IRCM exemption).")
-    Boolean isGovernmentBond
+    Boolean isGovernmentBond,
+    /** Whether TVA (VAT) applies to trades of this asset. Default: true. */
+    @Schema(description = "Enable TVA (VAT) on trades. Default: true.")
+    Boolean tvaEnabled,
+    /** TVA rate override. Null uses global default (0.1925 = 19.25%). Max 1.0 (100%). */
+    @Schema(description = "TVA rate override (e.g. 0.1925 = 19.25%). Max: 1.0.")
+    @PositiveOrZero @DecimalMax("1.00") BigDecimal tvaRate
 ) {}

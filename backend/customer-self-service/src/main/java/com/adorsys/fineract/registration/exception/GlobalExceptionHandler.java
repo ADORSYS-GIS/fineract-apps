@@ -1,5 +1,6 @@
 package com.adorsys.fineract.registration.exception;
 
+import com.adorsys.fineract.registration.exception.security.SecurityException;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.security.access.AccessDeniedException;
@@ -20,6 +22,8 @@ import java.util.UUID;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final String VALIDATION_ERROR = "VALIDATION_ERROR";
 
     @ExceptionHandler(RegistrationException.class)
     public ResponseEntity<ErrorResponse> handleRegistrationException(RegistrationException ex) {
@@ -35,7 +39,7 @@ public class GlobalExceptionHandler {
                 .build();
 
         HttpStatus status = switch (ex.getErrorCode()) {
-            case "EMAIL_ALREADY_EXISTS", "PHONE_ALREADY_EXISTS", "VALIDATION_ERROR" -> HttpStatus.BAD_REQUEST;
+            case "EMAIL_ALREADY_EXISTS", "PHONE_ALREADY_EXISTS", VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
             case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
             case "FORBIDDEN" -> HttpStatus.FORBIDDEN;
             case "CONFLICT" -> HttpStatus.CONFLICT;
@@ -59,7 +63,7 @@ public class GlobalExceptionHandler {
         String firstError = errors.get(firstField);
 
         ErrorResponse response = ErrorResponse.builder()
-                .error("VALIDATION_ERROR")
+                .error(VALIDATION_ERROR)
                 .message(firstError)
                 .field(firstField)
                 .validationErrors(errors)
@@ -84,6 +88,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
  
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingHeaderException(MissingRequestHeaderException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        log.warn("Missing required header [correlationId={}]: {}", correlationId, ex.getMessage());
+
+        ErrorResponse response = ErrorResponse.builder()
+                .error(VALIDATION_ERROR)
+                .message(ex.getMessage())
+                .field(ex.getHeaderName())
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         String correlationId = UUID.randomUUID().toString();
@@ -98,6 +118,59 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ErrorResponse> handleSecurityException(SecurityException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        log.warn("Security error [correlationId={}]: {}", correlationId, ex.getMessage(), ex);
+
+        ErrorResponse response = ErrorResponse.builder()
+                .error(ex.getErrorCode())
+                .message(ex.getMessage())
+                .field(ex.getField())
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .build();
+
+        HttpStatus status = switch (ex.getErrorCode()) {
+            case "IDENTITY_CLAIM_MISSING" -> HttpStatus.UNAUTHORIZED;
+            default -> HttpStatus.FORBIDDEN;
+        };
+
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(ValidationException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        log.warn("Validation error [correlationId={}]: {}", correlationId, ex.getMessage(), ex);
+
+        ErrorResponse response = ErrorResponse.builder()
+                .error(ex.getErrorCode())
+                .message(ex.getMessage())
+                .field(ex.getField())
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(IdempotencyException.class)
+    public ResponseEntity<ErrorResponse> handleIdempotencyException(IdempotencyException ex) {
+        String correlationId = UUID.randomUUID().toString();
+        log.warn("Idempotency error [correlationId={}]: {}", correlationId, ex.getMessage(), ex);
+
+        ErrorResponse response = ErrorResponse.builder()
+                .error("IDEMPOTENCY_ERROR")
+                .message(ex.getMessage())
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
 
     @Data
     @Builder

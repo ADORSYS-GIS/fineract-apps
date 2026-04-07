@@ -255,6 +255,15 @@ public class FineractTestClient {
     }
 
     @SuppressWarnings("unchecked")
+    public Map<String, Object> getSavingsAccount(Long accountId) {
+        Response response = request()
+                .get("/fineract-provider/api/v1/savingsaccounts/" + accountId);
+
+        assertOk(response, "getSavingsAccount(" + accountId + ")");
+        return response.jsonPath().getMap("");
+    }
+
+    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getClientSavingsAccounts(Long clientId) {
         Response response = request()
                 .get("/fineract-provider/api/v1/clients/" + clientId
@@ -296,6 +305,15 @@ public class FineractTestClient {
         List<Map<String, Object>> pageItems = response.jsonPath()
                 .getList("pageItems");
         return pageItems != null && !pageItems.isEmpty() ? pageItems.get(0) : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getClientById(Long clientId) {
+        Response response = request()
+                .get("/fineract-provider/api/v1/clients/" + clientId);
+
+        assertOk(response, "getClientById(" + clientId + ")");
+        return response.jsonPath().getMap("");
     }
 
     // ---------------------------------------------------------------

@@ -145,9 +145,14 @@ public class TaxService {
 
     /**
      * Build a tax breakdown for a trade quote response.
+     *
+     * <p>TVA is calculated on the {@code fee} (the platform service charge), not on the full
+     * gross trade amount. This is correct under OHADA/CEMAC tax law: TVA is a consumption tax
+     * on financial services (the brokerage fee), not on the capital investment itself.
+     * Registration duty stays on {@code grossAmount} as it is a securities transfer stamp tax.
      */
     public TaxBreakdown buildTaxBreakdown(Asset asset, Long userId, BigDecimal grossAmount,
-                                           BigDecimal realizedGain, boolean isSell) {
+                                           BigDecimal fee, BigDecimal realizedGain, boolean isSell) {
         BigDecimal regDutyRate = getRegistrationDutyRate(asset);
         BigDecimal regDutyAmount = calculateRegistrationDuty(asset, grossAmount);
 
@@ -164,8 +169,10 @@ public class TaxService {
             cgtExemptionApplied = cgtAmount.compareTo(BigDecimal.ZERO) == 0;
         }
 
-        BigDecimal totalTax = regDutyAmount.add(cgtAmount);
-        return new TaxBreakdown(regDutyRate, regDutyAmount, cgtRate, cgtAmount, totalTax, cgtExemptionApplied);
+        BigDecimal tvaRate = getTvaRate(asset);
+        BigDecimal tvaAmount = calculateTva(asset, fee); // TVA base = fee, not gross
+        BigDecimal totalTax = regDutyAmount.add(cgtAmount).add(tvaAmount);
+        return new TaxBreakdown(regDutyRate, regDutyAmount, cgtRate, cgtAmount, tvaRate, tvaAmount, totalTax, cgtExemptionApplied);
     }
 
     /**
@@ -205,5 +212,34 @@ public class TaxService {
     /** Get the resolved tax collection account ID for capital gains. */
     public Long getCapitalGainsAccountId() {
         return resolvedTaxAccounts.getCapitalGainsAccountId();
+    }
+
+    /**
+     * Calculate TVA (VAT) for a trade.
+     * @return TVA amount (0 if disabled on this asset)
+     */
+    public BigDecimal calculateTva(Asset asset, BigDecimal transactionValue) {
+        if (!Boolean.TRUE.equals(asset.getTvaEnabled())) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal rate = asset.getTvaRate() != null
+                ? asset.getTvaRate()
+                : taxConfig.getDefaultTvaRate();
+        return transactionValue.multiply(rate).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    /** Get the effective TVA rate for an asset. */
+    public BigDecimal getTvaRate(Asset asset) {
+        if (!Boolean.TRUE.equals(asset.getTvaEnabled())) {
+            return BigDecimal.ZERO;
+        }
+        return asset.getTvaRate() != null
+                ? asset.getTvaRate()
+                : taxConfig.getDefaultTvaRate();
+    }
+
+    /** Get the resolved tax collection account ID for TVA. */
+    public Long getTvaAccountId() {
+        return resolvedTaxAccounts.getTvaAccountId();
     }
 }

@@ -7,6 +7,7 @@ import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
 import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
 import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
+import com.adorsys.fineract.registration.exception.ValidationException;
 import com.adorsys.fineract.registration.exception.JsonSerializationException;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
@@ -58,19 +59,7 @@ public class RegistrationService {
         Map<String, Object> client = fineractService.getClientByExternalId(externalId);
 
         if (!client.isEmpty()) {
-            Long fineractClientId = ((Number) client.get("id")).longValue();
-            log.info("Client with externalId {} already exists. Found Fineract client ID: {}", externalId, fineractClientId);
-            List<Map<String, Object>> savingsAccounts = fineractService.getSavingsAccountsByClientId(fineractClientId);
-            if (!savingsAccounts.isEmpty()) {
-                Long savingsAccountId = ((Number) savingsAccounts.get(0).get("id")).longValue();
-                log.info("Savings account for Fineract client ID {} already exists. Savings account ID: {}", fineractClientId, savingsAccountId);
-                ClientAndAccountResponse response = new ClientAndAccountResponse();
-                response.setSuccess(true);
-                response.setStatus(STATUS_SUCCESS);
-                response.setFineractClientId(fineractClientId);
-                response.setSavingsAccountId(savingsAccountId);
-                return response;
-            }
+            throw new RegistrationException("CONFLICT", "Client with externalId " + externalId + " already exists.");
         }
 
         List<BatchRequest> batchRequests = buildClientAndAccountBatchRequests(request);
@@ -147,8 +136,16 @@ public class RegistrationService {
     public DepositResponse fundAccount(DepositRequest request, String idempotencyKey) {
         log.info("Starting account funding process for savings account: {}", request.getSavingsAccountId());
 
+        if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidationException("Deposit amount cannot be negative.", "depositAmount");
+        }
+
         Map<String, Object> savingsAccount = fineractAccountService.getSavingsAccount(request.getSavingsAccountId());
-        if (savingsAccount != null && savingsAccount.get("status") instanceof Map) {
+        if (savingsAccount == null || savingsAccount.isEmpty()) {
+            throw new RegistrationException("NOT_FOUND", "Savings account with id " + request.getSavingsAccountId() + " not found.");
+        }
+        
+        if (savingsAccount.get("status") instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<String, Object> status = (Map<String, Object>) savingsAccount.get("status");
             if (SAVINGS_ACCOUNT_STATUS_PENDING_APPROVAL.equals(status.get("code"))) {

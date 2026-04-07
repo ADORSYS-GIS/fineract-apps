@@ -2,6 +2,8 @@ package com.adorsys.fineract.asset.entity;
 
 import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.dto.AssetStatus;
+import com.adorsys.fineract.asset.dto.BondType;
+import com.adorsys.fineract.asset.dto.DayCountConvention;
 import com.adorsys.fineract.asset.dto.PriceMode;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -88,13 +90,21 @@ public class Asset {
     @Column(name = "trading_fee_percent", precision = 5, scale = 4)
     private BigDecimal tradingFeePercent;
 
-    /** Wholesale/face-value price from the original issuer. Used for coupon and income calculations. */
+    /** LP's acquisition cost per unit. For COUPON bonds, equals face value. For DISCOUNT bonds, the discounted purchase price from BEAC auction. Used for spread calculation: spread = executionPrice - issuerPrice. */
     @Column(name = "issuer_price", precision = 20, scale = 8)
     private BigDecimal issuerPrice;
 
-    /** Start of the subscription period. BUY orders are rejected before this date. */
-    @Column(name = "subscription_start_date", nullable = false)
-    private LocalDate subscriptionStartDate;
+    /** Par/redemption value per unit. What the investor receives at maturity. For DISCOUNT bonds (BTA), this is higher than issuerPrice. Null defaults to issuerPrice for backward compatibility. */
+    @Column(name = "face_value", precision = 20, scale = 8)
+    private BigDecimal faceValue;
+
+    /**
+     * Returns the effective face value for coupon/income/redemption calculations.
+     * Falls back to issuerPrice when faceValue is not set (backward compatibility).
+     */
+    public BigDecimal getEffectiveFaceValue() {
+        return faceValue != null ? faceValue : issuerPrice;
+    }
 
     // ── Exposure limits (all nullable — null means no limit) ───────────────
 
@@ -142,6 +152,20 @@ public class Asset {
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──────────────
 
+    /** Bond payment type: COUPON (OTA/T-Bonds) or DISCOUNT (BTA/T-Bills). Null for non-bond assets. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bond_type", length = 10)
+    private BondType bondType;
+
+    /** Day count convention for interest calculations: ACT_360, ACT_365, or THIRTY_360. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "day_count_convention", length = 10)
+    private DayCountConvention dayCountConvention;
+
+    /** ISO country name of the issuing sovereign/entity (e.g. "CAMEROUN", "CONGO", "TCHAD"). */
+    @Column(name = "issuer_country", length = 50)
+    private String issuerCountry;
+
     /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
     @Column(name = "issuer_name", length = 255)
     private String issuerName;
@@ -166,10 +190,6 @@ public class Asset {
     @Column(name = "next_coupon_date")
     private LocalDate nextCouponDate;
 
-    /** End of the subscription period. BUY orders are rejected after this date; SELL is always allowed. */
-    @Column(name = "subscription_end_date", nullable = false)
-    private LocalDate subscriptionEndDate;
-
     // ── Delisting fields ─────────────────────────────────────────────────────
 
     /** Date on which forced buyback will occur. Set when delisting is initiated. */
@@ -184,7 +204,7 @@ public class Asset {
 
     // ── Tax configuration (Cameroon/CEMAC) ───────────────────────────────
 
-    /** Whether registration duty (2% droit d'enregistrement) applies to trades of this asset. */
+    /** Whether registration duty (2% droit d'enregistrement) applies to trades of this asset. Default on. */
     @Column(name = "registration_duty_enabled", nullable = false)
     @Builder.Default
     private Boolean registrationDutyEnabled = true;
@@ -196,7 +216,7 @@ public class Asset {
     /** Whether IRCM withholding applies to income distributions from this asset. */
     @Column(name = "ircm_enabled", nullable = false)
     @Builder.Default
-    private Boolean ircmEnabled = true;
+    private Boolean ircmEnabled = false;
 
     /** IRCM rate override. Null uses auto-determination based on asset type/listing status. */
     @Column(name = "ircm_rate_override", precision = 5, scale = 4)
@@ -210,7 +230,7 @@ public class Asset {
     /** Whether capital gains tax applies to profitable sales of this asset. */
     @Column(name = "capital_gains_tax_enabled", nullable = false)
     @Builder.Default
-    private Boolean capitalGainsTaxEnabled = true;
+    private Boolean capitalGainsTaxEnabled = false;
 
     /** Capital gains tax rate override. Null uses global default (0.165). */
     @Column(name = "capital_gains_rate", precision = 5, scale = 4)
@@ -244,9 +264,22 @@ public class Asset {
     @Column(name = "lp_cash_account_id")
     private Long lpCashAccountId;
 
-    /** Fineract savings account ID where the LP collects spread income (margin). */
+    /** Fineract savings account ID where the LP collects spread (margin). */
     @Column(name = "lp_spread_account_id")
     private Long lpSpreadAccountId;
+
+    /** Fineract savings account ID where tax is withheld from the LP on sell transactions. */
+    @Column(name = "lp_tax_account_id")
+    private Long lpTaxAccountId;
+
+    /** Whether TVA (VAT) is enabled for this asset. Default off — enabled explicitly per asset when applicable. */
+    @Column(name = "tva_enabled")
+    @Builder.Default
+    private Boolean tvaEnabled = false;
+
+    /** TVA rate override for this asset. Null = use global default. */
+    @Column(name = "tva_rate", precision = 5, scale = 4)
+    private BigDecimal tvaRate;
 
     /** Timestamp when this asset record was created. Set automatically, never updated. */
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -20,6 +20,9 @@ export interface AssetFormData {
 	description: string;
 	imageUrl: string;
 	// Step 2b: Bond Details (when category = BONDS)
+	bondType: "COUPON" | "DISCOUNT";
+	dayCountConvention: "ACT_360" | "ACT_365" | "THIRTY_360";
+	issuerCountry: string;
 	issuerName: string;
 	isinCode: string;
 	maturityDate: string;
@@ -38,11 +41,9 @@ export interface AssetFormData {
 	// Step 3 continued: Min order size
 	minOrderSize: number;
 	minOrderCashAmount: number;
-	// Step 4: Supply & Subscription
+	// Step 4: Supply
 	totalSupply: number;
 	decimalPlaces: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 	lockupDays: number;
 	// Income distribution (non-bond)
 	incomeType: string;
@@ -60,7 +61,6 @@ export interface AssetFormData {
 }
 
 const toDateStr = (d: Date) => d.toISOString().split("T")[0];
-const today = () => toDateStr(new Date());
 const daysFromNow = (n: number) =>
 	toDateStr(new Date(Date.now() + n * 86400000));
 
@@ -83,6 +83,9 @@ const initialFormData: AssetFormData = {
 	category: "REAL_ESTATE",
 	description: "",
 	imageUrl: "",
+	bondType: "COUPON",
+	dayCountConvention: "ACT_365",
+	issuerCountry: "",
 	issuerName: "",
 	isinCode: "",
 	maturityDate: "",
@@ -100,8 +103,6 @@ const initialFormData: AssetFormData = {
 	minOrderCashAmount: 0,
 	totalSupply: 0,
 	decimalPlaces: 0,
-	subscriptionStartDate: today(),
-	subscriptionEndDate: daysFromNow(90),
 	lockupDays: 0,
 	incomeType: "",
 	incomeRate: 0,
@@ -115,6 +116,56 @@ const initialFormData: AssetFormData = {
 	capitalGainsTaxEnabled: true,
 	capitalGainsRate: 0,
 };
+
+function validateLiquidityPartner(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (!data.lpClientId) errors.push("Select a liquidity partner");
+	return errors;
+}
+
+function validateAssetDetails(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (!data.name.trim()) errors.push("Name is required");
+	if (!data.symbol.trim()) errors.push("Symbol is required");
+	else if (!/^[A-Z]{3}$/.test(data.symbol))
+		errors.push("Symbol must be exactly 3 uppercase letters");
+	return errors;
+}
+
+function validateBondDetails(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (!data.bondType) errors.push("Bond type is required");
+	if (!data.issuerName.trim()) errors.push("Issuer is required");
+	if (!data.maturityDate) errors.push("Maturity date is required");
+	if (data.bondType === "COUPON") {
+		if (data.interestRate <= 0)
+			errors.push("Interest rate must be greater than 0");
+		if (![1, 3, 6, 12].includes(data.couponFrequencyMonths))
+			errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
+		if (!data.nextCouponDate) errors.push("First coupon date is required");
+	}
+	return errors;
+}
+
+function validatePricingFees(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (data.issuerPrice <= 0) errors.push("Issuer price must be greater than 0");
+	if (data.tradingFeePercent < 0 || data.tradingFeePercent > 50)
+		errors.push("Trading fee must be 0-50%");
+	if (data.lpAskPrice <= 0) errors.push("LP ask price must be greater than 0");
+	if (data.lpAskPrice < data.issuerPrice)
+		errors.push("LP ask price must be >= issuer price");
+	if (data.lpBidPrice < 0) errors.push("LP bid price must be >= 0");
+	if (data.lpBidPrice > 0 && data.lpBidPrice > data.lpAskPrice)
+		errors.push("LP bid price must be <= LP ask price");
+	return errors;
+}
+
+function validateSupply(data: AssetFormData): string[] {
+	const errors: string[] = [];
+	if (data.totalSupply <= 0) errors.push("Total supply must be greater than 0");
+	return errors;
+}
 
 export const useCreateAsset = () => {
 	const navigate = useNavigate();
@@ -158,9 +209,11 @@ export const useCreateAsset = () => {
 					legalForm?: { id?: number };
 					displayName?: string;
 				};
+				const name = client.displayName?.toLowerCase() ?? "";
 				return (
 					client.legalForm?.id === 2 &&
-					!client.displayName?.toLowerCase().includes("platform fee collector")
+					!name.includes("platform fee collector") &&
+					!name.includes("tax authority")
 				);
 			}),
 	});
@@ -180,71 +233,37 @@ export const useCreateAsset = () => {
 	const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
 	const validateStep = (step: number): string[] => {
-		const errors: string[] = [];
-		// Map logical step to validation based on whether bond step is present
 		const stepName = steps[step];
-		switch (stepName) {
-			case "Select Liquidity Partner":
-				if (!formData.lpClientId) errors.push("Select a liquidity partner");
-				break;
-			case "Asset Details":
-				if (!formData.name.trim()) errors.push("Name is required");
-				if (!formData.symbol.trim()) errors.push("Symbol is required");
-				else if (!/^[A-Z]{3}$/.test(formData.symbol))
-					errors.push("Symbol must be exactly 3 uppercase letters");
-				break;
-			case "Bond Details":
-				if (!formData.issuerName.trim()) errors.push("Issuer is required");
-				if (!formData.maturityDate) errors.push("Maturity date is required");
-				if (formData.interestRate <= 0)
-					errors.push("Interest rate must be greater than 0");
-				if (![1, 3, 6, 12].includes(formData.couponFrequencyMonths))
-					errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
-				if (!formData.nextCouponDate)
-					errors.push("First coupon date is required");
-				break;
-			case "Pricing & Fees":
-				if (formData.issuerPrice <= 0)
-					errors.push("Issuer price must be greater than 0");
-				if (formData.tradingFeePercent < 0 || formData.tradingFeePercent > 50)
-					errors.push("Trading fee must be 0-50%");
-				if (formData.lpAskPrice <= 0)
-					errors.push("LP ask price must be greater than 0");
-				if (formData.lpAskPrice < formData.issuerPrice)
-					errors.push("LP ask price must be >= issuer price");
-				if (formData.lpBidPrice < 0) errors.push("LP bid price must be >= 0");
-				if (
-					formData.lpBidPrice > 0 &&
-					formData.lpBidPrice > formData.lpAskPrice
-				)
-					errors.push("LP bid price must be <= LP ask price");
-				break;
-			case "Supply":
-				if (formData.totalSupply <= 0)
-					errors.push("Total supply must be greater than 0");
-				if (!formData.subscriptionStartDate)
-					errors.push("Subscription start date is required");
-				if (!formData.subscriptionEndDate)
-					errors.push("Subscription end date is required");
-				if (
-					formData.subscriptionStartDate &&
-					formData.subscriptionEndDate &&
-					formData.subscriptionEndDate < formData.subscriptionStartDate
-				)
-					errors.push(
-						"Subscription end date must be on or after the start date",
-					);
-				break;
-			case "Income Distribution":
-				// All income fields are optional
-				break;
-		}
-		return errors;
+		const validators: Record<string, (data: AssetFormData) => string[]> = {
+			"Select Liquidity Partner": validateLiquidityPartner,
+			"Asset Details": validateAssetDetails,
+			"Bond Details": validateBondDetails,
+			"Pricing & Fees": validatePricingFees,
+			Supply: validateSupply,
+			"Income Distribution": () => [],
+			"Tax Configuration": () => [],
+			"Review & Create": () => [],
+		};
+		const validator = validators[stepName];
+		return validator ? validator(formData) : [];
 	};
 
 	const updateFormData = (updates: Partial<AssetFormData>) => {
 		setFormData((prev) => {
 			const next = { ...prev, ...updates };
+			// Auto-set dayCountConvention and clear stale coupon fields when bondType changes
+			if (
+				updates.bondType !== undefined &&
+				updates.bondType !== prev.bondType
+			) {
+				next.dayCountConvention =
+					updates.bondType === "DISCOUNT" ? "ACT_360" : "ACT_365";
+				if (updates.bondType === "DISCOUNT") {
+					next.interestRate = 0;
+					next.couponFrequencyMonths = 12;
+					next.nextCouponDate = "";
+				}
+			}
 			// Auto-set income defaults when income type changes
 			if (
 				updates.incomeType !== undefined &&
@@ -302,8 +321,6 @@ export const useCreateAsset = () => {
 			tradingFeePercent: formData.tradingFeePercent / 100,
 			totalSupply: formData.totalSupply,
 			decimalPlaces: formData.decimalPlaces,
-			subscriptionStartDate: formData.subscriptionStartDate,
-			subscriptionEndDate: formData.subscriptionEndDate,
 			lpClientId: formData.lpClientId,
 			// Exposure limits (only if set)
 			maxPositionPercent: formData.maxPositionPercent || undefined,
@@ -325,12 +342,18 @@ export const useCreateAsset = () => {
 				}),
 			// Bond fields (only included when category is BONDS)
 			...(formData.category === "BONDS" && {
+				bondType: formData.bondType,
+				dayCountConvention: formData.dayCountConvention || undefined,
+				issuerCountry: formData.issuerCountry || undefined,
 				issuerName: formData.issuerName,
 				isinCode: formData.isinCode || undefined,
 				maturityDate: formData.maturityDate,
-				interestRate: formData.interestRate,
-				couponFrequencyMonths: formData.couponFrequencyMonths,
-				nextCouponDate: formData.nextCouponDate,
+				// Coupon fields only for COUPON (OTA) bonds
+				...(formData.bondType === "COUPON" && {
+					interestRate: formData.interestRate,
+					couponFrequencyMonths: formData.couponFrequencyMonths,
+					nextCouponDate: formData.nextCouponDate,
+				}),
 			}),
 			// Tax configuration
 			registrationDutyEnabled: formData.registrationDutyEnabled,

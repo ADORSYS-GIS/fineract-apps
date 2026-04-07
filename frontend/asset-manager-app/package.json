@@ -26,13 +26,16 @@
 		"react-i18next": "^15.0.0",
 		"recharts": "^3.7.0",
 		"zod": "^4.1.9",
-		"zod-formik-adapter": "2.0.0"
+		"zod-formik-adapter": "2.0.0",
+		"exceljs": "^4.4.0",
+		"file-saver": "^2.0.5"
 	},
 	"devDependencies": {
 		"@fineract-apps/config": "workspace:*",
 		"@tanstack/router-plugin": "^1.131.44",
 		"@types/react": "^19.1.10",
 		"@types/react-dom": "^19.1.7",
+		"@types/file-saver": "^2.0.7",
 		"@vitejs/plugin-react-swc": "^4.0.0",
 		"typescript": "~5.8.3",
 		"vite": "^7.1.2"

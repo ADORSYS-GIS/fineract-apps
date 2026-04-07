@@ -1,8 +1,9 @@
 import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
-import { PlusCircle } from "lucide-react";
+import { Download, PlusCircle, Upload } from "lucide-react";
 import { FC } from "react";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import { ImportAssetsDialog } from "@/components/ImportAssetsDialog";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { ASSET_CATEGORIES_WITH_ALL } from "@/constants/categories";
@@ -36,7 +37,12 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	onCategoryChange,
 	marketStatus,
 	dashboardSummary,
+	settlementSummary,
 	refetch,
+	isImportOpen,
+	onExportTemplate,
+	onOpenImport,
+	onCloseImport,
 }) => {
 	return (
 		<div className="bg-gray-50 min-h-screen">
@@ -61,7 +67,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 							</p>
 						)}
 					</div>
-					<div className="flex items-center gap-3 w-full md:w-auto">
+					<div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
 						<SearchBar
 							value={searchValue}
 							onValueChange={onSearchValueChange}
@@ -69,6 +75,22 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 							placeholder="Search assets..."
 							className="w-full md:w-64"
 						/>
+						<Button
+							variant="outline"
+							onClick={onExportTemplate}
+							className="flex items-center gap-2 whitespace-nowrap"
+						>
+							<Download className="h-4 w-4" />
+							<span>Export Template</span>
+						</Button>
+						<Button
+							variant="outline"
+							onClick={onOpenImport}
+							className="flex items-center gap-2 whitespace-nowrap"
+						>
+							<Upload className="h-4 w-4" />
+							<span>Import Assets</span>
+						</Button>
 						<Link to="/create-asset">
 							<Button className="flex items-center gap-2 whitespace-nowrap">
 								<PlusCircle className="h-4 w-4" />
@@ -197,6 +219,28 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 					</div>
 				)}
 
+				{/* Settlement Alert */}
+				{settlementSummary && settlementSummary.pendingCount > 0 && (
+					<div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 flex items-center justify-between">
+						<div>
+							<p className="font-semibold text-yellow-800 dark:text-yellow-200">
+								{settlementSummary.pendingCount} pending settlement(s)
+							</p>
+							<p className="text-sm text-yellow-600 dark:text-yellow-400">
+								{settlementSummary.approvedCount > 0
+									? `${settlementSummary.approvedCount} approved and ready for execution`
+									: "Awaiting approval"}
+							</p>
+						</div>
+						<Link
+							to="/settlement"
+							className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm"
+						>
+							View Settlements
+						</Link>
+					</div>
+				)}
+
 				{/* Assets Table */}
 				{isAssetsError ? (
 					<ErrorFallback message="Failed to load assets." onRetry={refetch} />
@@ -305,6 +349,12 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 					</>
 				)}
 			</main>
+
+			<ImportAssetsDialog
+				isOpen={isImportOpen}
+				onClose={onCloseImport}
+				onSuccess={refetch}
+			/>
 		</div>
 	);
 };

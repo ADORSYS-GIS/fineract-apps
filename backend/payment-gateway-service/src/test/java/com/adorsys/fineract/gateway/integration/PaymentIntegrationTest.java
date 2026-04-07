@@ -105,8 +105,7 @@ class PaymentIntegrationTest {
                 .build();
 
         MvcResult depositResult = mockMvc.perform(post("/api/payments/deposit")
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID)))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(depositRequest)))
@@ -125,10 +124,13 @@ class PaymentIntegrationTest {
         when(fineractClient.createDeposit(eq(ACCOUNT_ID), any(BigDecimal.class),
                 anyLong(), eq("fin-txn-abc"))).thenReturn(999L);
 
+        when(mtnClient.getCollectionStatus(idempotencyKey)).thenReturn(PaymentStatus.SUCCESSFUL);
+
         MtnCallbackRequest callback = MtnCallbackRequest.builder()
                 .referenceId("mtn-ref-id")
                 .externalId("mtn-ext-ref-001")
                 .status("SUCCESSFUL")
+                .amount("10000")
                 .financialTransactionId("fin-txn-abc")
                 .build();
 
@@ -169,8 +171,7 @@ class PaymentIntegrationTest {
 
         // First call
         mockMvc.perform(post("/api/payments/deposit")
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID)))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -181,8 +182,7 @@ class PaymentIntegrationTest {
         reset(mtnClient);
 
         mockMvc.perform(post("/api/payments/deposit")
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID)))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -223,8 +223,7 @@ class PaymentIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/payments/withdraw")
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID)))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -237,6 +236,8 @@ class PaymentIntegrationTest {
         assertThat(processingTxn.get().getStatus()).isEqualTo(PaymentStatus.PROCESSING);
 
         // Simulate successful MTN disbursement callback
+        when(mtnClient.getDisbursementStatus(idempotencyKey)).thenReturn(PaymentStatus.SUCCESSFUL);
+
         MtnCallbackRequest callback = MtnCallbackRequest.builder()
                 .externalId("mtn-ext-ref-w1")
                 .status("SUCCESSFUL")
@@ -281,14 +282,15 @@ class PaymentIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/payments/withdraw")
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID)))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         // Simulate FAILED MTN disbursement callback
+        when(mtnClient.getDisbursementStatus(idempotencyKey)).thenReturn(PaymentStatus.FAILED);
+
         MtnCallbackRequest callback = MtnCallbackRequest.builder()
                 .externalId("mtn-ext-ref-w2")
                 .status("FAILED")
@@ -346,8 +348,7 @@ class PaymentIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/payments/deposit")
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID)))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -393,8 +394,7 @@ class PaymentIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/payments/deposit")
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID)))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -402,8 +402,7 @@ class PaymentIntegrationTest {
 
         // Check status via API
         mockMvc.perform(get("/api/payments/status/{transactionId}", idempotencyKey)
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID))))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transactionId").value(idempotencyKey))
                 .andExpect(jsonPath("$.status").value("PENDING"))
@@ -430,8 +429,7 @@ class PaymentIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/payments/deposit")
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID)))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -439,8 +437,7 @@ class PaymentIntegrationTest {
 
         // Try to view as user B
         mockMvc.perform(get("/api/payments/status/{transactionId}", idempotencyKey)
-                        .with(jwt().jwt(j -> j.subject("user-2")
-                                .claim("fineract_external_id", "b2c3d4e5-f6a7-8901-bcde-f12345678901"))))
+                        .with(jwt().jwt(j -> j.subject("b2c3d4e5-f6a7-8901-bcde-f12345678901"))))
                 .andExpect(status().isForbidden());
     }
 
@@ -459,8 +456,7 @@ class PaymentIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/payments/deposit")
-                        .with(jwt().jwt(j -> j.subject("user-1")
-                                .claim("fineract_external_id", EXTERNAL_ID)))
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
