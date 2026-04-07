@@ -4,6 +4,7 @@ import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.service.SseEmitterManager;
 import com.adorsys.fineract.asset.service.TradingService;
 import com.adorsys.fineract.asset.util.UserIdentityResolver;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -117,11 +117,11 @@ class TradeControllerTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void streamOrderStatus_routeExists() {
-        // Route is mapped — resolver returns 42L, ownership check passes (returns null),
-        // sseEmitterManager.subscribe returns null which Spring handles as empty response
-        assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/trades/orders/order-001/stream")
-                        .accept(MediaType.TEXT_EVENT_STREAM)));
+    void streamOrderStatus_returns200() throws Exception {
+        when(sseEmitterManager.subscribe("order-001")).thenReturn(new SseEmitter());
+
+        mockMvc.perform(get("/trades/orders/order-001/stream")
+                        .accept(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(status().isOk());
     }
 }
