@@ -516,7 +516,7 @@ public class TradingService {
                 order.getAccruedInterestAmount(),
                 order.getCashAmount(),
                 null, null, null, null, null, null, null,
-                order.getQuotedAt(), order.getQuoteExpiresAt(), warnings, null);
+                order.getQuotedAt(), order.getQuoteExpiresAt(), warnings, null, true, null);
     }
 
     private OrderResponse toOrderResponse(Order order) {
