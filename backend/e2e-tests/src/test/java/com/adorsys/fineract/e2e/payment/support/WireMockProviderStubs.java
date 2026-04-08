@@ -90,7 +90,7 @@ public final class WireMockProviderStubs {
     /** Stub MTN disbursement status poll returning SUCCESSFUL. */
     public static void stubMtnGetDisbursementStatusSuccess(String referenceId) {
         stubMtnDisbursementToken();
-        WIRE_MOCK.stubFor(get(urlPathEqualTo("/disbursement/v1_0/requesttopay/" + referenceId))
+        WIRE_MOCK.stubFor(get(urlPathEqualTo("/disbursement/v1_0/transfer/" + referenceId))
                 .willReturn(okJson("{\"status\":\"SUCCESSFUL\",\"amount\":\"5000\",\"currency\":\"XAF\"}")));
     }
 

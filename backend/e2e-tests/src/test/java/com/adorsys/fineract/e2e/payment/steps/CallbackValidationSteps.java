@@ -3,6 +3,7 @@ package com.adorsys.fineract.e2e.payment.steps;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
 import com.adorsys.fineract.e2e.support.JwtTokenFactory;
+import com.adorsys.fineract.e2e.payment.support.WireMockProviderStubs;
 import io.cucumber.java.en.When;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -29,6 +30,8 @@ public class CallbackValidationSteps {
 
     @When("an MTN collection callback with wrong subscription key is sent")
     public void mtnCallbackWithWrongKey() {
+        String transactionId = context.getId("transactionId");
+        WireMockProviderStubs.stubMtnGetCollectionStatusSuccess(transactionId);
         String providerRef = context.getId("providerReference");
 
         Map<String, Object> callback = Map.of(

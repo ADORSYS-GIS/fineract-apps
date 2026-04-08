@@ -77,6 +77,9 @@ public class MtnMomoClient {
             "payeeNote", "Deposit to savings account"
         );
 
+        String callbackUrl = config.getCallbackUrl() + "/mtn/collection";
+        log.info("Sending X-Callback-Url: {}", callbackUrl);
+
         try {
             webClient.post()
                 .uri("/collection/v1_0/requesttopay")
@@ -191,6 +194,8 @@ public class MtnMomoClient {
                 .bodyToMono(Map.class)
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                 .block();
+
+            log.debug("REAL MTN API response for transaction status: {}", response);
 
             String status = (String) response.get("status");
             return mapMtnStatus(status);

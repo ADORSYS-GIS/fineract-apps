@@ -6,7 +6,7 @@ import com.adorsys.fineract.asset.dto.PortfolioSummaryResponse;
 import com.adorsys.fineract.asset.dto.PositionResponse;
 import com.adorsys.fineract.asset.service.IncomeCalendarService;
 import com.adorsys.fineract.asset.service.PortfolioService;
-import com.adorsys.fineract.asset.util.JwtUtils;
+import com.adorsys.fineract.asset.util.UserIdentityResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -26,11 +26,12 @@ public class PortfolioController {
 
     private final PortfolioService portfolioService;
     private final IncomeCalendarService incomeCalendarService;
+    private final UserIdentityResolver userIdentityResolver;
 
     @GetMapping
     @Operation(summary = "Get full portfolio", description = "All positions with P&L summary")
     public ResponseEntity<PortfolioSummaryResponse> getPortfolio(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         return ResponseEntity.ok(portfolioService.getPortfolio(userId));
     }
 
@@ -38,7 +39,7 @@ public class PortfolioController {
     @Operation(summary = "Single position detail")
     public ResponseEntity<PositionResponse> getPosition(@PathVariable String assetId,
                                                          @AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         return ResponseEntity.ok(portfolioService.getPosition(userId, assetId));
     }
 
@@ -47,7 +48,7 @@ public class PortfolioController {
     public ResponseEntity<PortfolioHistoryResponse> getPortfolioHistory(
             @RequestParam(defaultValue = "1M") String period,
             @AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         return ResponseEntity.ok(portfolioService.getPortfolioHistory(userId, period));
     }
 
@@ -57,7 +58,7 @@ public class PortfolioController {
     public ResponseEntity<IncomeCalendarResponse> getIncomeCalendar(
             @RequestParam(defaultValue = "12") int months,
             @AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         if (months < 1 || months > 36) {
             throw new IllegalArgumentException("Months must be between 1 and 36");
         }

@@ -2,7 +2,7 @@ package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.FavoriteResponse;
 import com.adorsys.fineract.asset.service.FavoriteService;
-import com.adorsys.fineract.asset.util.JwtUtils;
+import com.adorsys.fineract.asset.util.UserIdentityResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -24,18 +24,19 @@ import java.util.List;
 public class FavoriteController {
 
     private final FavoriteService favoriteService;
+    private final UserIdentityResolver userIdentityResolver;
 
     @GetMapping
     @Operation(summary = "Get user's watchlist")
     public ResponseEntity<List<FavoriteResponse>> getFavorites(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         return ResponseEntity.ok(favoriteService.getFavorites(userId));
     }
 
     @PostMapping("/{assetId}")
     @Operation(summary = "Add to watchlist")
     public ResponseEntity<Void> addFavorite(@PathVariable String assetId, @AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         favoriteService.addFavorite(userId, assetId);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -43,7 +44,7 @@ public class FavoriteController {
     @DeleteMapping("/{assetId}")
     @Operation(summary = "Remove from watchlist")
     public ResponseEntity<Void> removeFavorite(@PathVariable String assetId, @AuthenticationPrincipal Jwt jwt) {
-        Long userId = JwtUtils.extractUserId(jwt);
+        Long userId = userIdentityResolver.resolveUserId(jwt);
         favoriteService.removeFavorite(userId, assetId);
         return ResponseEntity.noContent().build();
     }

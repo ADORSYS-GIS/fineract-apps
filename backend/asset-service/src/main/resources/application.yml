@@ -135,7 +135,6 @@ asset-service:
     platform-fee-payable: ${GL_PLATFORM_FEE_PAYABLE:4201}
     # Income
     platform-fee-income: ${GL_PLATFORM_FEE_INCOME:701}
-    spread-income: ${GL_SPREAD_INCOME:702}
     income-from-interest: ${GL_INCOME_FROM_INTEREST:701}
     fee-income: ${GL_FEE_INCOME:701}
     # Expense

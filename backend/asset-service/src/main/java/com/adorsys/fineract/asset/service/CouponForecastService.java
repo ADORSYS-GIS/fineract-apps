@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.dto.BondType;
 import com.adorsys.fineract.asset.dto.CouponForecastResponse;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.UserPosition;
@@ -28,8 +29,13 @@ public class CouponForecastService {
         Asset bond = assetRepository.findById(assetId)
                 .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + assetId));
 
+        // DISCOUNT (BTA) bonds have no coupons — return principal-only forecast
+        if (bond.getBondType() == BondType.DISCOUNT) {
+            return getDiscountForecast(bond);
+        }
+
         if (bond.getInterestRate() == null || bond.getCouponFrequencyMonths() == null) {
-            throw new IllegalArgumentException("Asset " + assetId + " is not a bond (no interest rate or coupon frequency)");
+            throw new IllegalArgumentException("Asset " + assetId + " is not a coupon bond (no interest rate or coupon frequency)");
         }
 
         List<UserPosition> holders = userPositionRepository.findHoldersByAssetId(
@@ -38,7 +44,7 @@ public class CouponForecastService {
                 .map(UserPosition::getTotalUnits)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal faceValue = bond.getIssuerPrice() != null ? bond.getIssuerPrice() : BigDecimal.ZERO;
+        BigDecimal faceValue = bond.getEffectiveFaceValue() != null ? bond.getEffectiveFaceValue() : BigDecimal.ZERO;
         BigDecimal rate = bond.getInterestRate();
         int periodMonths = bond.getCouponFrequencyMonths();
 
@@ -87,6 +93,37 @@ public class CouponForecastService {
                 lpCashBalance,
                 shortfall,
                 couponsCovered
+        );
+    }
+
+    private CouponForecastResponse getDiscountForecast(Asset bond) {
+        List<UserPosition> holders = userPositionRepository.findHoldersByAssetId(
+                bond.getId(), BigDecimal.ZERO);
+        BigDecimal totalUnits = holders.stream()
+                .map(UserPosition::getTotalUnits)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal faceValue = bond.getEffectiveFaceValue() != null ? bond.getEffectiveFaceValue() : BigDecimal.ZERO;
+        BigDecimal principalAtMaturity = totalUnits.multiply(faceValue)
+                .setScale(0, RoundingMode.HALF_UP);
+
+        BigDecimal lpCashBalance = BigDecimal.ZERO;
+        try {
+            lpCashBalance = fineractClient.getAccountBalance(bond.getLpCashAccountId());
+        } catch (Exception e) {
+            log.warn("Could not fetch LP cash balance for bond {}: {}", bond.getSymbol(), e.getMessage());
+        }
+
+        BigDecimal shortfall = principalAtMaturity.subtract(lpCashBalance);
+
+        return new CouponForecastResponse(
+                bond.getId(), bond.getSymbol(),
+                BigDecimal.ZERO, 0,
+                bond.getMaturityDate(), null,
+                totalUnits, faceValue,
+                BigDecimal.ZERO, 0, BigDecimal.ZERO,
+                principalAtMaturity, principalAtMaturity,
+                lpCashBalance, shortfall, 0
         );
     }
 

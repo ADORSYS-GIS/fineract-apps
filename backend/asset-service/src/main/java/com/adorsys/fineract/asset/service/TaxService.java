@@ -145,9 +145,14 @@ public class TaxService {
 
     /**
      * Build a tax breakdown for a trade quote response.
+     *
+     * <p>TVA is calculated on the {@code fee} (the platform service charge), not on the full
+     * gross trade amount. This is correct under OHADA/CEMAC tax law: TVA is a consumption tax
+     * on financial services (the brokerage fee), not on the capital investment itself.
+     * Registration duty stays on {@code grossAmount} as it is a securities transfer stamp tax.
      */
     public TaxBreakdown buildTaxBreakdown(Asset asset, Long userId, BigDecimal grossAmount,
-                                           BigDecimal realizedGain, boolean isSell) {
+                                           BigDecimal fee, BigDecimal realizedGain, boolean isSell) {
         BigDecimal regDutyRate = getRegistrationDutyRate(asset);
         BigDecimal regDutyAmount = calculateRegistrationDuty(asset, grossAmount);
 
@@ -165,7 +170,7 @@ public class TaxService {
         }
 
         BigDecimal tvaRate = getTvaRate(asset);
-        BigDecimal tvaAmount = calculateTva(asset, grossAmount);
+        BigDecimal tvaAmount = calculateTva(asset, fee); // TVA base = fee, not gross
         BigDecimal totalTax = regDutyAmount.add(cgtAmount).add(tvaAmount);
         return new TaxBreakdown(regDutyRate, regDutyAmount, cgtRate, cgtAmount, tvaRate, tvaAmount, totalTax, cgtExemptionApplied);
     }

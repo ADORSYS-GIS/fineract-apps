@@ -71,7 +71,7 @@ public class FineractClient {
 
         try {
             Map<String, Object> response = webClient.post()
-                .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}/transactions?command=deposit", accountId)
+                .uri("/api/v1/savingsaccounts/{accountId}/transactions?command=deposit", accountId)
                 .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
@@ -122,7 +122,7 @@ public class FineractClient {
 
         try {
             Map<String, Object> response = webClient.post()
-                .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}/transactions?command=withdrawal", accountId)
+                .uri("/api/v1/savingsaccounts/{accountId}/transactions?command=withdrawal", accountId)
                 .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
@@ -153,7 +153,7 @@ public class FineractClient {
     public Map<String, Object> getSavingsAccount(Long accountId) {
         try {
             return webClient.get()
-                .uri("/fineract-provider/api/v1/savingsaccounts/{accountId}", accountId)
+                .uri("/api/v1/savingsaccounts/{accountId}", accountId)
                 .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                 .retrieve()
                 .bodyToMono(Map.class)
@@ -172,7 +172,7 @@ public class FineractClient {
     public Map<String, Object> getClientByExternalId(String externalId) {
         try {
             Map<String, Object> response = webClient.get()
-                .uri("/fineract-provider/api/v1/clients?externalId={externalId}", externalId)
+                .uri("/api/v1/clients?externalId={externalId}", externalId)
                 .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                 .retrieve()
                 .bodyToMono(Map.class)
