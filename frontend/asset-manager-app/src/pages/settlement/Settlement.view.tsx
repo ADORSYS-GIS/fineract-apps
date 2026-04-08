@@ -382,33 +382,68 @@ export const SettlementView: FC<SettlementViewProps> = ({
 									<h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400">
 										Proposed Transfers
 									</h4>
-									<table className="w-full text-sm">
-										<thead>
-											<tr className="text-left text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
-												<th className="pb-2">From</th>
-												<th className="pb-2">To</th>
-												<th className="pb-2 text-right">Amount</th>
-											</tr>
-										</thead>
-										<tbody>
-											{rebalanceProposal.transfers.map((t) => (
-												<tr
-													key={`${t.sourceGlCode}-${t.destinationGlCode}`}
-													className="border-b dark:border-gray-700"
-												>
-													<td className="py-2 dark:text-gray-300">
-														{t.sourceName} ({t.sourceGlCode})
-													</td>
-													<td className="py-2 dark:text-gray-300">
-														{t.destinationName} ({t.destinationGlCode})
-													</td>
-													<td className="py-2 text-right font-mono dark:text-white">
-														{fmt(t.amount)} XAF
-													</td>
-												</tr>
-											))}
-										</tbody>
-									</table>
+									{[
+										{
+											phase: 1,
+											title: "Phase 1: Trust Rebalance",
+											icon: "arrow-right-left",
+											hint: "Move cash from mobile wallets to bank accounts (internal Azamra transfers)",
+										},
+										{
+											phase: 2,
+											title: "Phase 2: LP Payout & Fee Collection",
+											icon: "banknotes",
+											hint: "After trust rebalance, wire funds from UBA to LP's external bank account",
+										},
+										{
+											phase: 3,
+											title: "Phase 3: Tax Remittance",
+											icon: "building-library",
+											hint: "After trust rebalance, wire funds from Afriland to DGI tax authority",
+										},
+									].map(({ phase, title, hint }) => {
+										const phaseTransfers = rebalanceProposal.transfers.filter(
+											(t) => t.phase === phase,
+										);
+										if (phaseTransfers.length === 0) return null;
+										return (
+											<div key={phase} className="mb-4">
+												<h5 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mt-3 mb-1">
+													{title}
+												</h5>
+												<p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+													{phase === 1 ? "\u2139\uFE0F" : "\u26A0\uFE0F"} {hint}
+												</p>
+												<table className="w-full text-sm">
+													<thead>
+														<tr className="text-left text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
+															<th className="pb-2">From</th>
+															<th className="pb-2">To</th>
+															<th className="pb-2 text-right">Amount</th>
+														</tr>
+													</thead>
+													<tbody>
+														{phaseTransfers.map((t) => (
+															<tr
+																key={`${t.sourceGlCode}-${t.destinationGlCode}`}
+																className="border-b dark:border-gray-700"
+															>
+																<td className="py-2 dark:text-gray-300">
+																	{t.sourceName} ({t.sourceGlCode})
+																</td>
+																<td className="py-2 dark:text-gray-300">
+																	{t.destinationName} ({t.destinationGlCode})
+																</td>
+																<td className="py-2 text-right font-mono dark:text-white">
+																	{fmt(t.amount)} XAF
+																</td>
+															</tr>
+														))}
+													</tbody>
+												</table>
+											</div>
+										);
+									})}
 								</>
 							)}
 
@@ -480,8 +515,8 @@ export const SettlementView: FC<SettlementViewProps> = ({
 							<tr className="border-b dark:border-gray-700 text-left text-gray-500 dark:text-gray-400">
 								<th className="px-4 py-3">TYPE</th>
 								<th className="px-4 py-3">AMOUNT</th>
-								<th className="px-4 py-3">LP</th>
 								<th className="px-4 py-3">GL FLOW</th>
+								<th className="px-4 py-3">ACTION REQUIRED</th>
 								<th className="px-4 py-3">STATUS</th>
 								<th className="px-4 py-3">CREATED</th>
 								<th className="px-4 py-3">ACTIONS</th>
@@ -491,7 +526,7 @@ export const SettlementView: FC<SettlementViewProps> = ({
 							{items.length === 0 ? (
 								<tr>
 									<td
-										colSpan={7}
+										colSpan={8}
 										className="px-4 py-8 text-center text-gray-400"
 									>
 										No settlements found
@@ -506,13 +541,29 @@ export const SettlementView: FC<SettlementViewProps> = ({
 										<td className="px-4 py-2 font-mono dark:text-gray-200">
 											{fmt(s.amount)} XAF
 										</td>
-										<td className="px-4 py-2 dark:text-gray-200">
-											{s.lpClientId ?? "-"}
-										</td>
 										<td className="px-4 py-2 font-mono text-xs dark:text-gray-400">
 											{s.sourceGlCode && s.destinationGlCode
 												? `${s.sourceGlCode} → ${s.destinationGlCode}`
 												: "-"}
+										</td>
+										<td className="px-4 py-2 text-xs dark:text-gray-400">
+											{s.settlementType === "TRUST_REBALANCE" &&
+												s.status === "PENDING" &&
+												"Initiate transfer in MoMo/Orange portal"}
+											{s.settlementType === "TRUST_REBALANCE" &&
+												s.status === "APPROVED" &&
+												"Confirm transfer received in bank"}
+											{s.settlementType === "LP_PAYOUT" &&
+												(s.status === "PENDING" || s.status === "APPROVED") &&
+												"Wire from UBA to LP bank account"}
+											{s.settlementType === "TAX_REMITTANCE" &&
+												(s.status === "PENDING" || s.status === "APPROVED") &&
+												"Wire from Afriland to DGI"}
+											{s.settlementType === "FEE_COLLECTION" &&
+												(s.status === "PENDING" || s.status === "APPROVED") &&
+												"Internal fee transfer"}
+											{s.status === "EXECUTED" && "\u2705 Completed"}
+											{s.status === "REJECTED" && "\u274C Rejected"}
 										</td>
 										<td className="px-4 py-2">
 											<span

@@ -8,11 +8,13 @@ import java.time.LocalDate;
  * All monetary amounts are in settlement currency. Null for non-bond assets.
  */
 public record BondBenefitProjection(
+    /** Bond type: COUPON (OTA) or DISCOUNT (BTA). */
+    BondType bondType,
     /** Face value per unit (same as asset's issuerPrice). */
     BigDecimal faceValue,
-    /** Annual coupon rate as percentage (e.g. 5.80). */
+    /** Annual coupon rate as percentage (e.g. 5.80). Null for DISCOUNT bonds. */
     BigDecimal interestRate,
-    /** Coupon payment frequency in months (1, 3, 6, or 12). */
+    /** Coupon payment frequency in months (1, 3, 6, or 12). Null for DISCOUNT bonds. */
     Integer couponFrequencyMonths,
     /** Bond maturity date. */
     LocalDate maturityDate,

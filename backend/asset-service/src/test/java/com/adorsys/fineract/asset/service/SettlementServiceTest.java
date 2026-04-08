@@ -4,6 +4,7 @@ import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AdminSecurityCheck;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.SettlementRepository;
@@ -30,6 +31,7 @@ class SettlementServiceTest {
     @Mock private SettlementRepository settlementRepository;
     @Mock private FineractClient fineractClient;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
+    @Mock private ResolvedTaxAccounts resolvedTaxAccounts;
     @Mock private AdminSecurityCheck adminSecurity;
     @Mock private AssetServiceConfig assetServiceConfig;
 

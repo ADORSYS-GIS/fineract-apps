@@ -68,7 +68,7 @@ public class PaymentE2ESpringConfiguration {
         registry.add("spring.data.redis.password", () -> "");
 
         // Fineract (basic auth)
-        registry.add("fineract.url", TestcontainersConfig::getFineractBaseUrl);
+        registry.add("fineract.url", () -> TestcontainersConfig.getFineractBaseUrl() + "/fineract-provider");
         registry.add("fineract.auth-type", () -> "basic");
         registry.add("fineract.username", () -> "mifos");
         registry.add("fineract.password", () -> "password");
