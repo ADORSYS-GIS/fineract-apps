@@ -1,6 +1,7 @@
 package com.adorsys.fineract.gateway.controller;
 
 import com.adorsys.fineract.gateway.dto.*;
+import com.adorsys.fineract.gateway.exception.PermissionDeniedException;
 import com.adorsys.fineract.gateway.service.PaymentService;
 import com.adorsys.fineract.gateway.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,18 +39,10 @@ public class PaymentController {
             @AuthenticationPrincipal Jwt jwt) {
 
         String userExternalId = JwtUtils.extractExternalId(jwt);
-        if (userExternalId == null) {
-            log.warn("JWT missing sub claim");
-            return ResponseEntity.status(403).build();
-        }
         log.info("Deposit request from user: {}, amount: {}, provider: {}",
             userExternalId, request.getAmount(), request.getProvider());
 
-        if (!userExternalId.equals(request.getExternalId())) {
-            log.warn("User {} attempted deposit for different externalId: {}",
-                userExternalId, request.getExternalId());
-            return ResponseEntity.status(403).build();
-        }
+        verifyOwnership(userExternalId, request.getExternalId());
 
         PaymentResponse response = paymentService.initiateDeposit(request, idempotencyKey);
         return ResponseEntity.ok(response);
@@ -66,18 +59,10 @@ public class PaymentController {
             @AuthenticationPrincipal Jwt jwt) {
 
         String userExternalId = JwtUtils.extractExternalId(jwt);
-        if (userExternalId == null) {
-            log.warn("JWT missing sub claim");
-            return ResponseEntity.status(403).build();
-        }
         log.info("Withdrawal request from user: {}, amount: {}, provider: {}",
             userExternalId, request.getAmount(), request.getProvider());
 
-        if (!userExternalId.equals(request.getExternalId())) {
-            log.warn("User {} attempted withdrawal for different externalId: {}",
-                userExternalId, request.getExternalId());
-            return ResponseEntity.status(403).build();
-        }
+        verifyOwnership(userExternalId, request.getExternalId());
 
         PaymentResponse response = paymentService.initiateWithdrawal(request, idempotencyKey);
         return ResponseEntity.ok(response);
@@ -93,19 +78,20 @@ public class PaymentController {
             @AuthenticationPrincipal Jwt jwt) {
 
         String userExternalId = JwtUtils.extractExternalId(jwt);
-        if (userExternalId == null) {
-            log.warn("JWT missing sub claim");
-            return ResponseEntity.status(403).build();
-        }
         log.info("Transaction status request: txnId={}, user={}", transactionId, userExternalId);
 
         TransactionStatusResponse status = paymentService.getTransactionStatus(transactionId);
 
-        if (!userExternalId.equals(status.getExternalId())) {
-            log.warn("User {} attempted to view transaction for different user", userExternalId);
-            return ResponseEntity.status(403).build();
-        }
+        verifyOwnership(userExternalId, status.getExternalId());
 
         return ResponseEntity.ok(status);
+    }
+
+    private void verifyOwnership(String userExternalId, String requestExternalId) {
+        if (!userExternalId.equals(requestExternalId)) {
+            log.warn("User {} attempted operation for different externalId: {}",
+                userExternalId, requestExternalId);
+            throw new PermissionDeniedException("Cannot perform operation for a different user");
+        }
     }
 }

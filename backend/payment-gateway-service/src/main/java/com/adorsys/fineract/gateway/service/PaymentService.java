@@ -78,7 +78,7 @@ public class PaymentService {
 
 
         // Fast path: return existing transaction for genuine retries
-        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
             return mapToResponse(existing.get());
@@ -91,18 +91,18 @@ public class PaymentService {
             throw new PaymentException("Account does not belong to the customer");
         }
 
-        String transactionId = idempotencyKey;
+        String transactionId = UUID.randomUUID().toString();
         String currency = getProviderCurrency(request.getProvider());
 
         // Atomically enforce daily limit + reserve idempotency key (advisory lock prevents races)
         int inserted = reservationService.reserveWithLimitCheck(
-            transactionId, request.getExternalId(), request.getAccountId(),
+            transactionId, idempotencyKey, request.getExternalId(), request.getAccountId(),
             request.getProvider().name(), PaymentResponse.TransactionType.DEPOSIT.name(),
             request.getAmount(), currency, dailyDepositMax
         );
         if (inserted == 0) {
             log.info("Concurrent idempotency key collision, returning existing: {}", idempotencyKey);
-            return transactionRepository.findById(idempotencyKey)
+            return transactionRepository.findByIdempotencyKey(idempotencyKey)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new PaymentException("Concurrent transaction conflict"));
         }
@@ -147,7 +147,7 @@ public class PaymentService {
 
 
         // Fast path: return existing transaction for genuine retries
-        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
             return mapToResponse(existing.get());
@@ -170,7 +170,7 @@ public class PaymentService {
             throw new PaymentException("Insufficient funds");
         }
 
-        String transactionId = idempotencyKey;
+        String transactionId = UUID.randomUUID().toString();
         String currency = getProviderCurrency(request.getProvider());
 
         // Fix #4: For CinetPay, detect actual provider from phone number for correct GL mapping
@@ -185,13 +185,13 @@ public class PaymentService {
 
         // Atomically enforce daily limit + reserve idempotency key (advisory lock prevents races)
         int inserted = reservationService.reserveWithLimitCheck(
-            transactionId, request.getExternalId(), request.getAccountId(),
+            transactionId, idempotencyKey, request.getExternalId(), request.getAccountId(),
             request.getProvider().name(), PaymentResponse.TransactionType.WITHDRAWAL.name(),
             request.getAmount(), currency, dailyWithdrawalMax
         );
         if (inserted == 0) {
             log.info("Concurrent idempotency key collision, returning existing: {}", idempotencyKey);
-            return transactionRepository.findById(idempotencyKey)
+            return transactionRepository.findByIdempotencyKey(idempotencyKey)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new PaymentException("Concurrent transaction conflict"));
         }

@@ -92,7 +92,7 @@ class PaymentIntegrationTest {
 
         // Mock external clients
         when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
-        when(mtnClient.requestToPay(eq(idempotencyKey), any(BigDecimal.class),
+        when(mtnClient.requestToPay(anyString(), any(BigDecimal.class),
                 eq(PHONE), anyString())).thenReturn("mtn-ext-ref-001");
 
         // Step 1: Initiate deposit
@@ -111,11 +111,11 @@ class PaymentIntegrationTest {
                         .content(objectMapper.writeValueAsString(depositRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PENDING"))
-                .andExpect(jsonPath("$.transactionId").value(idempotencyKey))
+                .andExpect(jsonPath("$.transactionId").isNotEmpty())
                 .andReturn();
 
         // Verify PENDING in DB
-        Optional<PaymentTransaction> pendingTxn = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> pendingTxn = transactionRepository.findByIdempotencyKey(idempotencyKey);
         assertThat(pendingTxn).isPresent();
         assertThat(pendingTxn.get().getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(pendingTxn.get().getProviderReference()).isEqualTo("mtn-ext-ref-001");
@@ -124,7 +124,7 @@ class PaymentIntegrationTest {
         when(fineractClient.createDeposit(eq(ACCOUNT_ID), any(BigDecimal.class),
                 anyLong(), eq("fin-txn-abc"))).thenReturn(999L);
 
-        when(mtnClient.getCollectionStatus(idempotencyKey)).thenReturn(PaymentStatus.SUCCESSFUL);
+        when(mtnClient.getCollectionStatus(anyString())).thenReturn(PaymentStatus.SUCCESSFUL);
 
         MtnCallbackRequest callback = MtnCallbackRequest.builder()
                 .referenceId("mtn-ref-id")
@@ -141,7 +141,7 @@ class PaymentIntegrationTest {
                 .andExpect(status().isOk());
 
         // Step 3: Verify SUCCESSFUL in DB
-        Optional<PaymentTransaction> completedTxn = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> completedTxn = transactionRepository.findByIdempotencyKey(idempotencyKey);
         assertThat(completedTxn).isPresent();
         assertThat(completedTxn.get().getStatus()).isEqualTo(PaymentStatus.SUCCESSFUL);
         assertThat(completedTxn.get().getFineractTransactionId()).isEqualTo(999L);
@@ -158,7 +158,7 @@ class PaymentIntegrationTest {
         String idempotencyKey = UUID.randomUUID().toString();
 
         when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
-        when(mtnClient.requestToPay(eq(idempotencyKey), any(BigDecimal.class), eq(PHONE), anyString()))
+        when(mtnClient.requestToPay(anyString(), any(BigDecimal.class), eq(PHONE), anyString()))
                 .thenReturn("mtn-ext-ref-002");
 
         DepositRequest request = DepositRequest.builder()
@@ -176,7 +176,7 @@ class PaymentIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transactionId").value(idempotencyKey));
+                .andExpect(jsonPath("$.transactionId").isNotEmpty());
 
         // Second call with same key - should return same result without calling provider again
         reset(mtnClient);
@@ -187,7 +187,7 @@ class PaymentIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transactionId").value(idempotencyKey));
+                .andExpect(jsonPath("$.transactionId").isNotEmpty());
 
         // MTN should NOT have been called again
         verify(mtnClient, never()).requestToPay(any(), any(), any(), any());
@@ -210,8 +210,8 @@ class PaymentIntegrationTest {
         when(fineractClient.getSavingsAccount(ACCOUNT_ID))
                 .thenReturn(Map.of("availableBalance", 50000));
         when(fineractClient.createWithdrawal(eq(ACCOUNT_ID), any(BigDecimal.class),
-                anyLong(), eq(idempotencyKey))).thenReturn(789L);
-        when(mtnClient.transfer(eq(idempotencyKey), any(BigDecimal.class),
+                anyLong(), anyString())).thenReturn(789L);
+        when(mtnClient.transfer(anyString(), any(BigDecimal.class),
                 eq(PHONE), anyString())).thenReturn("mtn-ext-ref-w1");
 
         WithdrawalRequest request = WithdrawalRequest.builder()
@@ -231,12 +231,12 @@ class PaymentIntegrationTest {
                 .andExpect(jsonPath("$.status").value("PROCESSING"));
 
         // Verify PROCESSING in DB
-        Optional<PaymentTransaction> processingTxn = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> processingTxn = transactionRepository.findByIdempotencyKey(idempotencyKey);
         assertThat(processingTxn).isPresent();
         assertThat(processingTxn.get().getStatus()).isEqualTo(PaymentStatus.PROCESSING);
 
         // Simulate successful MTN disbursement callback
-        when(mtnClient.getDisbursementStatus(idempotencyKey)).thenReturn(PaymentStatus.SUCCESSFUL);
+        when(mtnClient.getDisbursementStatus(anyString())).thenReturn(PaymentStatus.SUCCESSFUL);
 
         MtnCallbackRequest callback = MtnCallbackRequest.builder()
                 .externalId("mtn-ext-ref-w1")
@@ -250,7 +250,7 @@ class PaymentIntegrationTest {
                 .andExpect(status().isOk());
 
         // Verify SUCCESSFUL in DB
-        Optional<PaymentTransaction> completedTxn = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> completedTxn = transactionRepository.findByIdempotencyKey(idempotencyKey);
         assertThat(completedTxn).isPresent();
         assertThat(completedTxn.get().getStatus()).isEqualTo(PaymentStatus.SUCCESSFUL);
     }
@@ -269,8 +269,8 @@ class PaymentIntegrationTest {
         when(fineractClient.getSavingsAccount(ACCOUNT_ID))
                 .thenReturn(Map.of("availableBalance", 50000));
         when(fineractClient.createWithdrawal(eq(ACCOUNT_ID), any(BigDecimal.class),
-                anyLong(), eq(idempotencyKey))).thenReturn(111L);
-        when(mtnClient.transfer(eq(idempotencyKey), any(BigDecimal.class),
+                anyLong(), anyString())).thenReturn(111L);
+        when(mtnClient.transfer(anyString(), any(BigDecimal.class),
                 eq(PHONE), anyString())).thenReturn("mtn-ext-ref-w2");
 
         WithdrawalRequest request = WithdrawalRequest.builder()
@@ -289,7 +289,7 @@ class PaymentIntegrationTest {
                 .andExpect(status().isOk());
 
         // Simulate FAILED MTN disbursement callback
-        when(mtnClient.getDisbursementStatus(idempotencyKey)).thenReturn(PaymentStatus.FAILED);
+        when(mtnClient.getDisbursementStatus(anyString())).thenReturn(PaymentStatus.FAILED);
 
         MtnCallbackRequest callback = MtnCallbackRequest.builder()
                 .externalId("mtn-ext-ref-w2")
@@ -304,12 +304,12 @@ class PaymentIntegrationTest {
                 .andExpect(status().isOk());
 
         // Verify FAILED in DB and reversal was called
-        Optional<PaymentTransaction> failedTxn = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> failedTxn = transactionRepository.findByIdempotencyKey(idempotencyKey);
         assertThat(failedTxn).isPresent();
         assertThat(failedTxn.get().getStatus()).isEqualTo(PaymentStatus.FAILED);
 
         verify(fineractClient).createDeposit(eq(ACCOUNT_ID), any(BigDecimal.class),
-                anyLong(), eq("REVERSAL-" + idempotencyKey));
+                anyLong(), startsWith("REVERSAL-"));
     }
 
     // =========================================================================
@@ -381,7 +381,7 @@ class PaymentIntegrationTest {
         String idempotencyKey = UUID.randomUUID().toString();
 
         when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
-        when(mtnClient.requestToPay(eq(idempotencyKey), any(BigDecimal.class), eq(PHONE), anyString()))
+        when(mtnClient.requestToPay(anyString(), any(BigDecimal.class), eq(PHONE), anyString()))
                 .thenReturn("mtn-ext-ref-status");
 
         // Initiate deposit
@@ -393,18 +393,23 @@ class PaymentIntegrationTest {
                 .phoneNumber(PHONE)
                 .build();
 
-        mockMvc.perform(post("/api/payments/deposit")
+        MvcResult result = mockMvc.perform(post("/api/payments/deposit")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn();
 
-        // Check status via API
-        mockMvc.perform(get("/api/payments/status/{transactionId}", idempotencyKey)
+        // Extract the server-generated transactionId from the response
+        String transactionId = objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("transactionId").asText();
+
+        // Check status via API using the transactionId (not idempotency key)
+        mockMvc.perform(get("/api/payments/status/{transactionId}", transactionId)
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transactionId").value(idempotencyKey))
+                .andExpect(jsonPath("$.transactionId").value(transactionId))
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.externalId").value(EXTERNAL_ID));
     }
@@ -416,7 +421,7 @@ class PaymentIntegrationTest {
         String idempotencyKey = UUID.randomUUID().toString();
 
         when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
-        when(mtnClient.requestToPay(eq(idempotencyKey), any(BigDecimal.class), eq(PHONE), anyString()))
+        when(mtnClient.requestToPay(anyString(), any(BigDecimal.class), eq(PHONE), anyString()))
                 .thenReturn("mtn-ext-ref-other");
 
         // Create a deposit as user A
@@ -428,15 +433,19 @@ class PaymentIntegrationTest {
                 .phoneNumber(PHONE)
                 .build();
 
-        mockMvc.perform(post("/api/payments/deposit")
+        MvcResult result = mockMvc.perform(post("/api/payments/deposit")
                         .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                         .header("X-Idempotency-Key", idempotencyKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String transactionId = objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("transactionId").asText();
 
         // Try to view as user B
-        mockMvc.perform(get("/api/payments/status/{transactionId}", idempotencyKey)
+        mockMvc.perform(get("/api/payments/status/{transactionId}", transactionId)
                         .with(jwt().jwt(j -> j.subject("b2c3d4e5-f6a7-8901-bcde-f12345678901"))))
                 .andExpect(status().isForbidden());
     }
