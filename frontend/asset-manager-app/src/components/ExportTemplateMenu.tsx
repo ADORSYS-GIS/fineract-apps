@@ -1,7 +1,7 @@
 import { Button } from "@fineract-apps/ui";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Download, FileSpreadsheet, X } from "lucide-react";
-import { type FC, useRef, useState } from "react";
+import { type FC, useState } from "react";
 import { fineractApi } from "@/services/api";
 import {
 	exportAssetTemplate,
@@ -22,6 +22,7 @@ interface CemacDialogProps {
 const CemacExportDialog: FC<CemacDialogProps> = ({ onClose }) => {
 	const [selectedLpId, setSelectedLpId] = useState<number | "">("");
 	const [isExporting, setIsExporting] = useState(false);
+	const [exportError, setExportError] = useState<string | null>(null);
 
 	const { data: clients = [], isLoading } = useQuery({
 		queryKey: ["entity-clients"],
@@ -49,11 +50,13 @@ const CemacExportDialog: FC<CemacDialogProps> = ({ onClose }) => {
 	const handleExport = async () => {
 		if (!selectedLpId) return;
 		setIsExporting(true);
+		setExportError(null);
 		try {
 			await exportCemacBulletinTemplate(selectedLpId);
 			onClose();
 		} catch (err) {
 			console.error("Failed to export CEMAC template:", err);
+			setExportError("Failed to generate the file. Please try again.");
 		} finally {
 			setIsExporting(false);
 		}
@@ -112,6 +115,10 @@ const CemacExportDialog: FC<CemacDialogProps> = ({ onClose }) => {
 					)}
 				</div>
 
+				{exportError && (
+					<p className="text-sm text-red-600 mb-3">{exportError}</p>
+				)}
+
 				<div className="flex justify-end gap-3">
 					<Button variant="outline" onClick={onClose} disabled={isExporting}>
 						Cancel
@@ -141,7 +148,6 @@ export const ExportTemplateMenu: FC<ExportTemplateMenuProps> = ({
 }) => {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [isCemacDialogOpen, setIsCemacDialogOpen] = useState(false);
-	const menuRef = useRef<HTMLDivElement>(null);
 
 	const handleEmptyTemplate = () => {
 		setIsMenuOpen(false);
@@ -157,7 +163,7 @@ export const ExportTemplateMenu: FC<ExportTemplateMenuProps> = ({
 
 	return (
 		<>
-			<div className={`relative ${className ?? ""}`} ref={menuRef}>
+			<div className={`relative ${className ?? ""}`}>
 				<Button
 					variant="outline"
 					onClick={() => setIsMenuOpen((o) => !o)}

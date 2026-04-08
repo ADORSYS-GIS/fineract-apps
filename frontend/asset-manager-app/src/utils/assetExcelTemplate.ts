@@ -636,7 +636,6 @@ const TAX_BASE = {
 	ircmEnabled: false,
 	ircmExempt: false,
 	capitalGainsTaxEnabled: false,
-	capitalGainsRate: "",
 	isBvmacListed: false,
 	isGovernmentBond: false,
 };
@@ -690,7 +689,6 @@ function cemacBta(
 	isinCode: string,
 	maturityDate: string,
 	totalSupply: number,
-	interestRate: number,
 	issuerCountry: string,
 	lpClientId: number,
 ): Record<string, string | number | boolean> {
@@ -712,7 +710,9 @@ function cemacBta(
 		issuerCountry,
 		dayCountConvention: "ACT_360",
 		maturityDate,
-		interestRate,
+		// No interestRate: DISCOUNT bonds have no coupon — setting this could
+		// trigger the backend coupon scheduler. The yield is in the bulletin only.
+		interestRate: "",
 		couponFrequencyMonths: "",
 		nextCouponDate: "",
 		incomeType: "",
@@ -763,7 +763,7 @@ function cemacOta(
 	};
 }
 
-function buildCemacRows(
+export function buildCemacRows(
 	lpClientId: number,
 ): Record<string, string | number | boolean>[] {
 	return [
@@ -784,7 +784,6 @@ function buildCemacRows(
 			"CM1300001193",
 			"2027-03-31",
 			2000000,
-			6.0,
 			"Cameroun",
 			lpClientId,
 		),
@@ -853,7 +852,6 @@ function buildCemacRows(
 			"CG1200001952",
 			"2026-10-01",
 			1000000,
-			5.5,
 			"Congo",
 			lpClientId,
 		),
@@ -863,12 +861,14 @@ function buildCemacRows(
 			"CG1300001133",
 			"2027-04-01",
 			1000000,
-			6.0,
 			"Congo",
 			lpClientId,
 		),
 
 		// ── Congo OTAs ────────────────────────────────────────────────────────
+		// GO1: 1-year bond — nextCouponDate equals maturityDate intentionally
+		// (single coupon paid at redemption). The backend scheduler must handle
+		// nextCouponDate >= maturityDate by not re-advancing after payment.
 		cemacOta(
 			"GO1",
 			"Congo OTA 1 AN 2027",
@@ -888,7 +888,6 @@ function buildCemacRows(
 			"TD1200002178",
 			"2026-10-02",
 			1500000,
-			5.5,
 			"Tchad",
 			lpClientId,
 		),
