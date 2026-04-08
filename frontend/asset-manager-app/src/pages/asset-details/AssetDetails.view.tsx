@@ -453,11 +453,13 @@ function BondInfoCard({
 							? `${asset.couponAmountPerUnit.toLocaleString()} XAF/unit`
 							: "—"}
 					</p>
-					{asset.interestRate != null && (
-						<p className="text-xs text-gray-400">
-							({asset.interestRate}% p.a.)
-						</p>
-					)}
+					{asset.interestRate != null &&
+						asset.couponFrequencyMonths != null && (
+							<p className="text-xs text-gray-400">
+								= faceValue &times; {asset.interestRate}% &times;{" "}
+								{asset.couponFrequencyMonths}/12
+							</p>
+						)}
 				</div>
 				<div>
 					<p className="text-gray-500">Current Yield</p>
@@ -466,11 +468,20 @@ function BondInfoCard({
 							? `${asset.currentYield.toFixed(2)}%`
 							: "—"}
 					</p>
-					{asset.interestRate != null && asset.currentYield != null && (
+					{asset.currentYield != null && asset.bondType === "DISCOUNT" && (
 						<p className="text-xs text-gray-400">
-							Coupon: {asset.interestRate}% p.a.
+							= ((faceValue / askPrice) &minus; 1) &times; (
+							{asset.dayCountConvention === "ACT_365" ? "365" : "360"} /
+							daysToMaturity) &times; 100
 						</p>
 					)}
+					{asset.currentYield != null &&
+						asset.bondType === "COUPON" &&
+						asset.interestRate != null && (
+							<p className="text-xs text-gray-400">
+								= faceValue &times; {asset.interestRate}% / askPrice
+							</p>
+						)}
 				</div>
 				<div>
 					<p className="text-gray-500">Coupon Frequency</p>
