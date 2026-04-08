@@ -72,6 +72,21 @@ class ArchivalSchedulerTest {
     }
 
     @Test
+    void archiveTradeLogs_includesAccruedInterestColumn() {
+        when(jdbcTemplate.update(contains("INSERT INTO trade_log_archive"), any(Instant.class), eq(1000)))
+                .thenReturn(0);
+
+        scheduler.archiveTradeLogs(Instant.now(), 1000);
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate, atLeastOnce()).update(sqlCaptor.capture(), any(Instant.class), eq(1000));
+
+        boolean hasColumn = sqlCaptor.getAllValues().stream()
+                .anyMatch(sql -> sql.contains("INSERT INTO trade_log_archive") && sql.contains("accrued_interest_amount"));
+        assertTrue(hasColumn, "trade_log_archive INSERT must include accrued_interest_amount");
+    }
+
+    @Test
     void archiveOrders_noRowsToArchive_returnsZero() {
         when(jdbcTemplate.update(contains("INSERT INTO orders_archive"), any(Instant.class), eq(1000)))
                 .thenReturn(0);
@@ -101,6 +116,25 @@ class ArchivalSchedulerTest {
         boolean hasTerminalFilter = sqlCaptor.getAllValues().stream()
                 .anyMatch(sql -> sql.contains("FILLED") && sql.contains("FAILED") && sql.contains("REJECTED"));
         assertTrue(hasTerminalFilter, "Query should filter for terminal statuses only");
+    }
+
+    @Test
+    void archiveOrders_includesTaxColumns() {
+        when(jdbcTemplate.update(contains("INSERT INTO orders_archive"), any(Instant.class), eq(1000)))
+                .thenReturn(0);
+
+        scheduler.archiveOrders(Instant.now(), 1000);
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate, atLeastOnce()).update(sqlCaptor.capture(), any(Instant.class), eq(1000));
+
+        boolean hasTaxColumns = sqlCaptor.getAllValues().stream()
+                .anyMatch(sql -> sql.contains("INSERT INTO orders_archive")
+                        && sql.contains("registration_duty_amount")
+                        && sql.contains("capital_gains_tax_amount")
+                        && sql.contains("tva_amount")
+                        && sql.contains("accrued_interest_amount"));
+        assertTrue(hasTaxColumns, "orders_archive INSERT must include all tax columns added in V2/V5/V7");
     }
 
     @Test
