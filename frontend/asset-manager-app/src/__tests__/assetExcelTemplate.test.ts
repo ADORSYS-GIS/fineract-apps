@@ -372,7 +372,8 @@ describe("assetExcelTemplate", () => {
 				const row = rows.find((r) => r.symbol === sym);
 				expect(row?.bondType).toBe("DISCOUNT");
 				expect(row?.dayCountConvention).toBe("ACT_360");
-				expect(row?.issuerPrice).toBe(10000);
+				expect(row?.issuerPrice).toBe(9800);
+				expect(row?.faceValue).toBe(10000);
 				expect(row?.interestRate).toBe("");
 			}
 		});
