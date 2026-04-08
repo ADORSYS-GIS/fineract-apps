@@ -539,15 +539,20 @@ Exactly one of `units` or `amount` must be provided.
     "variableIncome": false
   },
   "taxBreakdown": {
-    "registrationDutyRate": 0.01,
-    "registrationDutyAmount": 5000,
+    "registrationDutyRate": 0.02,
+    "registrationDutyAmount": 10000,
     "capitalGainsRate": 0,
     "capitalGainsTaxAmount": 0,
-    "totalTax": 5000
+    "tvaRate": 0,
+    "tvaAmount": 0,
+    "totalTaxAmount": 10000,
+    "capitalGainsExemptionApplied": false
   },
   "warnings": [],
   "expiresAt": "2026-03-15T14:35:30Z",
-  "status": "QUOTED"
+  "status": "QUOTED",
+  "feasible": true,
+  "feasibilityReason": null
 }
 ```
 
@@ -572,21 +577,29 @@ Exactly one of `units` or `amount` must be provided.
 | `availableSupply` | integer | LP inventory remaining |
 | `bondBenefit` | object | Bond yield projections (null for non-bonds). Contains `couponFrequencyMonths`, `nextCouponDate`, `couponPerPeriod`, `estimatedAnnualCoupon`, `currentYield`. |
 | `incomeBenefit` | object | Income projections for non-bond assets (null for bonds) |
-| `taxBreakdown` | object | Applicable tax breakdown |
-| `taxBreakdown.registrationDutyRate` | number | Registration duty rate |
+| `taxBreakdown` | object | Applicable tax breakdown. Null if all taxes are disabled for this asset. |
+| `taxBreakdown.registrationDutyRate` | number | Registration duty rate (e.g. `0.02` = 2%) |
 | `taxBreakdown.registrationDutyAmount` | integer | Registration duty in XAF |
-| `taxBreakdown.capitalGainsRate` | number | Capital gains tax rate (SELL only) |
-| `taxBreakdown.capitalGainsTaxAmount` | integer | Capital gains tax in XAF (SELL only) |
-| `taxBreakdown.totalTax` | integer | Total taxes in XAF |
+| `taxBreakdown.capitalGainsRate` | number | Capital gains tax rate (SELL only; 0 for BUY) |
+| `taxBreakdown.capitalGainsTaxAmount` | integer | Capital gains tax in XAF (SELL only; 0 for BUY) |
+| `taxBreakdown.tvaRate` | number | TVA rate (e.g. `0.1925` = 19.25%). 0 if TVA is disabled for this asset. |
+| `taxBreakdown.tvaAmount` | integer | TVA in XAF, applied to the trading fee only. 0 if TVA is disabled. |
+| `taxBreakdown.totalTaxAmount` | integer | Total taxes in XAF (registration duty + capital gains + TVA) |
+| `taxBreakdown.capitalGainsExemptionApplied` | boolean | True if the 500,000 XAF annual capital gains exemption was applied |
 | `warnings` | array | Non-blocking warnings (e.g. `["APPROACHING_POSITION_LIMIT"]`) |
 | `expiresAt` | string | Quote expiry (30 seconds). Must confirm before this time. |
 | `status` | string | `QUOTED` |
+| `feasible` | boolean | Whether the user can afford this order given their current balance. Always `true` for SELL. |
+| `feasibilityReason` | string | `"INSUFFICIENT_FUNDS: Required X, Available Y (shortfall: Z)"` if `feasible` is false. Null otherwise. |
+
+**Insufficient Funds:**
+
+When a BUY quote is created but the user cannot afford the order, the API returns **200** with `feasible: false` and a `feasibilityReason` string rather than a 400 error. The quote is still created and price-locked; the balance check runs again at execution time as a hard safety net.
 
 **Error Codes:**
 
 | HTTP | Code | Description |
 |------|------|-------------|
-| 400 | `INSUFFICIENT_FUNDS` | XAF balance too low for BUY |
 | 400 | `INSUFFICIENT_INVENTORY` | LP does not have enough units |
 | 400 | `MIN_ORDER_SIZE_NOT_MET` | Order below minimum unit requirement |
 | 400 | `ORDER_SIZE_LIMIT_EXCEEDED` | Order exceeds max order size |
