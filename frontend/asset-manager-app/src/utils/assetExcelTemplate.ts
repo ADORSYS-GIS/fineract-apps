@@ -198,6 +198,35 @@ const COLUMNS: ColumnDef[] = [
 		type: "string",
 	},
 	{
+		key: "bondType",
+		header: "bondType",
+		required: false,
+		comment:
+			"Bond type: COUPON for interest-bearing bonds (OTA / T-Bonds with periodic coupon payments), DISCOUNT for zero-coupon bills (BTA / T-Bills bought at a discount and redeemed at face value). Required when category is BONDS.",
+		example: "COUPON",
+		type: "string",
+		validation: ["", "COUPON", "DISCOUNT"],
+	},
+	{
+		key: "issuerCountry",
+		header: "issuerCountry",
+		required: false,
+		comment:
+			"Country of the issuer (e.g. 'Cameroun', 'Congo', 'Tchad'). Used for bond classification and display.",
+		example: "Cameroun",
+		type: "string",
+	},
+	{
+		key: "dayCountConvention",
+		header: "dayCountConvention",
+		required: false,
+		comment:
+			"Day count convention for interest accrual. ACT_360: standard for BTAs (T-Bills) in CEMAC. ACT_365: standard for OTAs (T-Bonds) in CEMAC. THIRTY_360: European convention.",
+		example: "ACT_365",
+		type: "string",
+		validation: ["", "ACT_360", "ACT_365", "THIRTY_360"],
+	},
+	{
 		key: "maturityDate",
 		header: "maturityDate",
 		required: false,
@@ -387,6 +416,9 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		lockupDays: 14,
 		issuerName: "",
 		isinCode: "",
+		bondType: "",
+		issuerCountry: "",
+		dayCountConvention: "",
 		maturityDate: "",
 		interestRate: "",
 		couponFrequencyMonths: "",
@@ -427,6 +459,9 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		lockupDays: 0,
 		issuerName: "Republic of Cameroon",
 		isinCode: "CM0000001234",
+		bondType: "COUPON",
+		issuerCountry: "Cameroun",
+		dayCountConvention: "ACT_365",
 		maturityDate: "2030-12-31",
 		interestRate: 5.8,
 		couponFrequencyMonths: 6,
@@ -467,6 +502,9 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		lockupDays: 30,
 		issuerName: "",
 		isinCode: "",
+		bondType: "",
+		issuerCountry: "",
+		dayCountConvention: "",
 		maturityDate: "",
 		interestRate: "",
 		couponFrequencyMonths: "",
@@ -487,12 +525,23 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 	},
 ];
 
-export async function exportAssetTemplate(): Promise<void> {
+// ─── Shared workbook builder ────────────────────────────────────────────────
+
+interface WorkbookOptions {
+	sheetName: string;
+	/** Row 2: italic grey example row (skipped during import). Pass null to omit. */
+	exampleRow: Record<string, string | number | boolean> | null;
+	/** Data rows starting at row 2 (or row 3 if exampleRow is set). */
+	dataRows: Record<string, string | number | boolean>[];
+	/** First data row index for dropdown validation (1-based). */
+	firstDataRow: number;
+}
+
+async function buildWorkbook(opts: WorkbookOptions): Promise<ArrayBuffer> {
 	const ExcelJS = await import("exceljs");
-	const { saveAs } = await import("file-saver");
 
 	const workbook = new ExcelJS.Workbook();
-	const sheet = workbook.addWorksheet("Asset Import Template", {
+	const sheet = workbook.addWorksheet(opts.sheetName, {
 		views: [{ state: "frozen", ySplit: 1 }],
 	});
 
@@ -517,35 +566,30 @@ export async function exportAssetTemplate(): Promise<void> {
 		cell.border = {
 			bottom: { style: "thin", color: { argb: "FF000000" } },
 		};
-
-		// Add comment with field description
 		cell.note = {
 			texts: [{ text: col.comment, font: { size: 10 } }],
 		};
 	});
 
-	// Add example row (row 2 — skipped during import)
-	const exampleData: Record<string, string | number | boolean> = {};
-	for (const col of COLUMNS) {
-		exampleData[col.key] = col.example;
-	}
-	const exampleRow = sheet.addRow(exampleData);
-	exampleRow.eachCell((cell) => {
-		cell.font = { italic: true, color: { argb: "FF6B7280" } };
-	});
-
-	// Add sample data rows (rows 3-5 — these WILL be imported)
-	for (const sampleData of SAMPLE_ROWS) {
-		sheet.addRow(sampleData);
+	// Optional example row (row 2 — skipped during import)
+	if (opts.exampleRow) {
+		const row = sheet.addRow(opts.exampleRow);
+		row.eachCell((cell) => {
+			cell.font = { italic: true, color: { argb: "FF6B7280" } };
+		});
 	}
 
-	// Add data validation for dropdowns (range-based for efficiency)
+	// Data rows
+	for (const data of opts.dataRows) {
+		sheet.addRow(data);
+	}
+
+	// Dropdown validation (applied to user-input rows only)
 	for (let i = 0; i < COLUMNS.length; i++) {
 		const col = COLUMNS[i];
 		if (col.validation && col.validation.length > 0) {
 			const colRef = sheet.getColumn(i + 1).letter;
-			// Apply validation from row 6 onwards (row 1 = header, row 2 = example, rows 3-5 = samples)
-			for (let row = 6; row <= 105; row++) {
+			for (let row = opts.firstDataRow; row <= opts.firstDataRow + 99; row++) {
 				sheet.getCell(`${colRef}${row}`).dataValidation = {
 					type: "list",
 					allowBlank: !col.required,
@@ -558,11 +602,339 @@ export async function exportAssetTemplate(): Promise<void> {
 		}
 	}
 
-	const buffer = await workbook.xlsx.writeBuffer();
+	return workbook.xlsx.writeBuffer();
+}
+
+// ─── Generic empty template ──────────────────────────────────────────────────
+
+export async function exportAssetTemplate(): Promise<void> {
+	const { saveAs } = await import("file-saver");
+
+	const exampleData: Record<string, string | number | boolean> = {};
+	for (const col of COLUMNS) {
+		exampleData[col.key] = col.example;
+	}
+
+	const buffer = await buildWorkbook({
+		sheetName: "Asset Import Template",
+		exampleRow: exampleData,
+		dataRows: SAMPLE_ROWS,
+		firstDataRow: 6, // row 1=header, row 2=example, rows 3-5=samples → user rows start at 6
+	});
+
 	const blob = new Blob([buffer], {
 		type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 	});
 	saveAs(blob, "asset-import-template.xlsx");
+}
+
+// ─── CEMAC bulletin pre-filled template ──────────────────────────────────────
+
+const TAX_BASE = {
+	registrationDutyEnabled: true,
+	registrationDutyRate: 0.02,
+	ircmEnabled: false,
+	ircmExempt: false,
+	capitalGainsTaxEnabled: false,
+	capitalGainsRate: "",
+	isBvmacListed: false,
+	isGovernmentBond: false,
+};
+
+function spread(issuerPrice: number) {
+	return {
+		lpAskPrice: Math.round(issuerPrice * 1.003),
+		lpBidPrice: Math.round(issuerPrice * 0.997),
+	};
+}
+
+function cemacStock(
+	symbol: string,
+	name: string,
+	issuerPrice: number,
+	totalSupply: number,
+	lpClientId: number,
+): Record<string, string | number | boolean> {
+	return {
+		name,
+		symbol,
+		currencyCode: symbol,
+		category: "STOCKS",
+		issuerPrice,
+		totalSupply,
+		decimalPlaces: 0,
+		...spread(issuerPrice),
+		lpClientId,
+		tradingFeePercent: 0.003,
+		issuerName: "",
+		isinCode: "",
+		bondType: "",
+		issuerCountry: "",
+		dayCountConvention: "",
+		maturityDate: "",
+		interestRate: "",
+		couponFrequencyMonths: "",
+		nextCouponDate: "",
+		incomeType: "",
+		incomeRate: "",
+		distributionFrequencyMonths: "",
+		nextDistributionDate: "",
+		...TAX_BASE,
+		isBvmacListed: true,
+	};
+}
+
+function cemacBta(
+	symbol: string,
+	name: string,
+	isinCode: string,
+	maturityDate: string,
+	totalSupply: number,
+	interestRate: number,
+	issuerCountry: string,
+	lpClientId: number,
+): Record<string, string | number | boolean> {
+	const issuerPrice = 10000;
+	return {
+		name,
+		symbol,
+		currencyCode: symbol,
+		category: "BONDS",
+		issuerPrice,
+		totalSupply,
+		decimalPlaces: 0,
+		...spread(issuerPrice),
+		lpClientId,
+		tradingFeePercent: 0.003,
+		issuerName: issuerCountry,
+		isinCode,
+		bondType: "DISCOUNT",
+		issuerCountry,
+		dayCountConvention: "ACT_360",
+		maturityDate,
+		interestRate,
+		couponFrequencyMonths: "",
+		nextCouponDate: "",
+		incomeType: "",
+		incomeRate: "",
+		distributionFrequencyMonths: "",
+		nextDistributionDate: "",
+		...TAX_BASE,
+	};
+}
+
+function cemacOta(
+	symbol: string,
+	name: string,
+	isinCode: string,
+	maturityDate: string,
+	totalSupply: number,
+	interestRate: number,
+	nextCouponDate: string,
+	issuerCountry: string,
+	lpClientId: number,
+): Record<string, string | number | boolean> {
+	const issuerPrice = 100000;
+	return {
+		name,
+		symbol,
+		currencyCode: symbol,
+		category: "BONDS",
+		issuerPrice,
+		totalSupply,
+		decimalPlaces: 0,
+		...spread(issuerPrice),
+		lpClientId,
+		tradingFeePercent: 0.003,
+		issuerName: issuerCountry,
+		isinCode,
+		bondType: "COUPON",
+		issuerCountry,
+		dayCountConvention: "ACT_365",
+		maturityDate,
+		interestRate,
+		couponFrequencyMonths: 12,
+		nextCouponDate,
+		incomeType: "",
+		incomeRate: "",
+		distributionFrequencyMonths: "",
+		nextDistributionDate: "",
+		...TAX_BASE,
+	};
+}
+
+function buildCemacRows(
+	lpClientId: number,
+): Record<string, string | number | boolean>[] {
+	return [
+		// ── BVMAC Stocks ──────────────────────────────────────────────────────
+		// Source: Bulletin officiel de la cote (BOC) BVMAC du 27/03/2026
+		// totalSupply = BID (shares offered on BVMAC), or ASK when BID=0
+		cemacStock("SMC", "SEMC", 50000, 103, lpClientId),
+		cemacStock("SFC", "SAFACAM", 33000, 303, lpClientId),
+		cemacStock("SCP", "SOCAPALM", 55000, 197, lpClientId),
+		cemacStock("LRG", "LA REGIONALE", 42000, 242, lpClientId),
+		cemacStock("BNG", "BANGE", 228085, 3, lpClientId),
+		cemacStock("SGR", "SCG-RE", 21500, 353, lpClientId),
+
+		// ── Cameroun BTAs (T-Bills) ───────────────────────────────────────────
+		cemacBta(
+			"CB1",
+			"Cameroun BTA 52S 2027",
+			"CM1300001193",
+			"2027-03-31",
+			2000000,
+			6.0,
+			"Cameroun",
+			lpClientId,
+		),
+
+		// ── Cameroun OTAs (T-Bonds) ───────────────────────────────────────────
+		cemacOta(
+			"CO2",
+			"Cameroun OTA 2 ANS 2028",
+			"CM2A00000146",
+			"2028-04-01",
+			300000,
+			6.0,
+			"2027-04-01",
+			"Cameroun",
+			lpClientId,
+		),
+		cemacOta(
+			"CO3",
+			"Cameroun OTA 3 ANS 2029",
+			"CM2J00000220",
+			"2029-04-01",
+			350000,
+			6.5,
+			"2027-04-01",
+			"Cameroun",
+			lpClientId,
+		),
+		cemacOta(
+			"CO4",
+			"Cameroun OTA 4 ANS 2030",
+			"CM2K00000110",
+			"2030-04-01",
+			300000,
+			6.7,
+			"2027-04-01",
+			"Cameroun",
+			lpClientId,
+		),
+		cemacOta(
+			"CO5",
+			"Cameroun OTA 5 ANS 2031",
+			"CM2B00000210",
+			"2031-04-01",
+			200000,
+			6.8,
+			"2027-04-01",
+			"Cameroun",
+			lpClientId,
+		),
+		cemacOta(
+			"CO7",
+			"Cameroun OTA 7 ANS 2032",
+			"CM2L00000119",
+			"2032-04-01",
+			200000,
+			7.0,
+			"2027-04-01",
+			"Cameroun",
+			lpClientId,
+		),
+
+		// ── Congo BTAs ────────────────────────────────────────────────────────
+		cemacBta(
+			"GB6",
+			"Congo BTA 26S 2026",
+			"CG1200001952",
+			"2026-10-01",
+			1000000,
+			5.5,
+			"Congo",
+			lpClientId,
+		),
+		cemacBta(
+			"GB1",
+			"Congo BTA 52S 2027",
+			"CG1300001133",
+			"2027-04-01",
+			1000000,
+			6.0,
+			"Congo",
+			lpClientId,
+		),
+
+		// ── Congo OTAs ────────────────────────────────────────────────────────
+		cemacOta(
+			"GO1",
+			"Congo OTA 1 AN 2027",
+			"CG2A00000684",
+			"2027-07-17",
+			100000,
+			5.9,
+			"2027-07-17",
+			"Congo",
+			lpClientId,
+		),
+
+		// ── Tchad BTAs ────────────────────────────────────────────────────────
+		cemacBta(
+			"TB6",
+			"Tchad BTA 26S 2026",
+			"TD1200002178",
+			"2026-10-02",
+			1500000,
+			5.5,
+			"Tchad",
+			lpClientId,
+		),
+
+		// ── Tchad OTAs ────────────────────────────────────────────────────────
+		cemacOta(
+			"TO2",
+			"Tchad OTA 2 ANS 2028",
+			"TD2A00001105",
+			"2028-04-03",
+			100000,
+			6.0,
+			"2027-04-03",
+			"Tchad",
+			lpClientId,
+		),
+		cemacOta(
+			"TO3",
+			"Tchad OTA 3 ANS 2029",
+			"TD2J00001015",
+			"2029-04-03",
+			100000,
+			6.5,
+			"2027-04-03",
+			"Tchad",
+			lpClientId,
+		),
+	];
+}
+
+export async function exportCemacBulletinTemplate(
+	lpClientId: number,
+): Promise<void> {
+	const { saveAs } = await import("file-saver");
+
+	const buffer = await buildWorkbook({
+		sheetName: "CEMAC Bulletin 30-03-2026",
+		exampleRow: null, // no example row — all rows are real data
+		dataRows: buildCemacRows(lpClientId),
+		firstDataRow: 2, // row 1=header, rows 2+=data (no example row)
+	});
+
+	const blob = new Blob([buffer], {
+		type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	});
+	saveAs(blob, "cemac-bulletin-2026-03-30.xlsx");
 }
 
 export interface ParseError {
@@ -704,6 +1076,9 @@ export async function parseAssetExcel(
 			"description",
 			"issuerName",
 			"isinCode",
+			"bondType",
+			"issuerCountry",
+			"dayCountConvention",
 			"incomeType",
 		] as const;
 		const assetAny = asset as unknown as Record<string, unknown>;
@@ -747,6 +1122,8 @@ export async function parseAssetExcel(
 			"ircmEnabled",
 			"ircmExempt",
 			"capitalGainsTaxEnabled",
+			"isBvmacListed",
+			"isGovernmentBond",
 		] as const;
 		for (const k of optionalBool) {
 			const v = parseBoolean(raw[k]);

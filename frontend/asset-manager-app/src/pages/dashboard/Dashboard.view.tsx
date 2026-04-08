@@ -1,8 +1,9 @@
 import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
-import { Download, PlusCircle, Upload } from "lucide-react";
+import { PlusCircle, Upload } from "lucide-react";
 import { FC } from "react";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import { ExportTemplateMenu } from "@/components/ExportTemplateMenu";
 import { ImportAssetsDialog } from "@/components/ImportAssetsDialog";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TableSkeleton } from "@/components/TableSkeleton";
@@ -40,7 +41,6 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	settlementSummary,
 	refetch,
 	isImportOpen,
-	onExportTemplate,
 	onOpenImport,
 	onCloseImport,
 }) => {
@@ -75,14 +75,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 							placeholder="Search assets..."
 							className="w-full md:w-64"
 						/>
-						<Button
-							variant="outline"
-							onClick={onExportTemplate}
-							className="flex items-center gap-2 whitespace-nowrap"
-						>
-							<Download className="h-4 w-4" />
-							<span>Export Template</span>
-						</Button>
+						<ExportTemplateMenu />
 						<Button
 							variant="outline"
 							onClick={onOpenImport}
