@@ -40,7 +40,7 @@ jobs:
           elif [ "${{ github.event.inputs.services }}" == "all" ] || [ "${{ github.event.inputs.services }}" == "" ]; then
             echo 'services=["asset-service","customer-self-service","payment-gateway-service","user-sync-service"]' >> $GITHUB_OUTPUT
           else
-            SERVICES=$(echo "${{ github.event.inputs.services }}" | jq -R 'split(",") | map(. | gsub(" "; ""))')
+            SERVICES=$(echo "${{ github.event.inputs.services }}" | jq -Rc 'split(",") | map(. | gsub(" "; ""))')
             echo "services=$SERVICES" >> $GITHUB_OUTPUT
           fi
 
