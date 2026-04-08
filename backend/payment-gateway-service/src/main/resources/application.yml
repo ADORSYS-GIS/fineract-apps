@@ -125,7 +125,7 @@ fineract:
 
 app:
   ssl:
-    insecure: ${SSL_INSECURE:false}
+    insecure: ${SSL_INSECURE:true}
   cleanup:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
