@@ -1,6 +1,7 @@
 import { Button } from "@fineract-apps/ui";
 import { Field, Form, Formik } from "formik";
 import { type FC, useEffect, useRef, useState } from "react";
+import { BOND_TYPE_OPTIONS } from "@/constants/bondTypes";
 import { ASSET_CATEGORIES } from "@/constants/categories";
 import { FREQUENCY_OPTIONS } from "@/constants/frequencies";
 import { INCOME_TYPES } from "@/constants/incomeTypes";
@@ -47,10 +48,14 @@ interface EditFormValues {
 	nextCouponDate: string;
 	// PENDING-only fields
 	issuerPrice: string;
+	faceValue: string;
 	totalSupply: string;
 	issuerName: string;
 	isinCode: string;
 	couponFrequencyMonths: string;
+	bondType: string;
+	dayCountConvention: string;
+	issuerCountry: string;
 }
 
 function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
@@ -101,10 +106,14 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 		nextCouponDate: asset.nextCouponDate ?? "",
 		// PENDING-only fields
 		issuerPrice: asset.issuerPrice?.toString() ?? "",
+		faceValue: asset.faceValue?.toString() ?? "",
 		totalSupply: asset.totalSupply?.toString() ?? "",
 		issuerName: asset.issuerName ?? "",
 		isinCode: asset.isinCode ?? "",
 		couponFrequencyMonths: asset.couponFrequencyMonths?.toString() ?? "",
+		bondType: asset.bondType ?? "",
+		dayCountConvention: asset.dayCountConvention ?? "",
+		issuerCountry: asset.issuerCountry ?? "",
 	};
 }
 
@@ -135,6 +144,7 @@ const NUM_FIELDS: (keyof EditFormValues)[] = [
 	"distributionFrequencyMonths",
 	"interestRate",
 	"issuerPrice",
+	"faceValue",
 	"totalSupply",
 	"couponFrequencyMonths",
 ];
@@ -154,6 +164,9 @@ const STR_FIELDS: (keyof EditFormValues)[] = [
 	"nextCouponDate",
 	"issuerName",
 	"isinCode",
+	"bondType",
+	"dayCountConvention",
+	"issuerCountry",
 ];
 
 const BOOL_FIELDS: (keyof EditFormValues)[] = [
@@ -351,7 +364,21 @@ const CoreFieldsSection: FC<{
 							placeholder="e.g. 5000"
 						/>
 						<p className="text-xs text-gray-400 mt-1">
-							Face value for coupon/income calculations
+							LP acquisition cost per unit
+						</p>
+					</div>
+					<div>
+						<label className={LABEL_CLASS}>Face Value (XAF)</label>
+						<Field
+							name="faceValue"
+							type="number"
+							className={INPUT_CLASS}
+							min={0}
+							placeholder="e.g. 10000"
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Par/redemption value. Required for DISCOUNT bonds (must be &gt;
+							issuer price).
 						</p>
 					</div>
 					<div>
@@ -370,14 +397,51 @@ const CoreFieldsSection: FC<{
 				</div>
 				{asset.category === "BONDS" && (
 					<>
-						<div>
-							<label className={LABEL_CLASS}>Issuer Name</label>
-							<Field
-								name="issuerName"
-								className={INPUT_CLASS}
-								maxLength={255}
-								placeholder="e.g. Etat du Sénégal"
-							/>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<label className={LABEL_CLASS}>Bond Type</label>
+								<Field as="select" name="bondType" className={INPUT_CLASS}>
+									<option value="">Select...</option>
+									{BOND_TYPE_OPTIONS.map((b) => (
+										<option key={b.value} value={b.value}>
+											{b.label}
+										</option>
+									))}
+								</Field>
+							</div>
+							<div>
+								<label className={LABEL_CLASS}>Day Count Convention</label>
+								<Field
+									as="select"
+									name="dayCountConvention"
+									className={INPUT_CLASS}
+								>
+									<option value="">Select...</option>
+									<option value="ACT_360">ACT/360 (BTA standard)</option>
+									<option value="ACT_365">ACT/365 (OTA standard)</option>
+									<option value="THIRTY_360">30/360</option>
+								</Field>
+							</div>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<label className={LABEL_CLASS}>Issuer Name</label>
+								<Field
+									name="issuerName"
+									className={INPUT_CLASS}
+									maxLength={255}
+									placeholder="e.g. Etat du Sénégal"
+								/>
+							</div>
+							<div>
+								<label className={LABEL_CLASS}>Issuer Country</label>
+								<Field
+									name="issuerCountry"
+									className={INPUT_CLASS}
+									maxLength={255}
+									placeholder="e.g. Cameroun"
+								/>
+							</div>
 						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<div>
