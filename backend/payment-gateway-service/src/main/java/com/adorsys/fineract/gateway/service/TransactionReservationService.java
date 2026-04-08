@@ -56,9 +56,9 @@ public class TransactionReservationService {
      * @return 1 if inserted, 0 if the idempotency key already existed
      */
     @Transactional
-    public int reserveWithLimitCheck(String transactionId, String externalId, Long accountId,
-                                      String provider, String type, BigDecimal amount,
-                                      String currency, BigDecimal maxDaily) {
+    public int reserveWithLimitCheck(String transactionId, String idempotencyKey, String externalId,
+                                      Long accountId, String provider, String type,
+                                      BigDecimal amount, String currency, BigDecimal maxDaily) {
         // Acquire advisory lock on externalId — serializes concurrent requests from this user.
         // Only works on PostgreSQL; gracefully skipped for other databases (e.g., H2 in tests).
         acquireAdvisoryLockIfPostgres(externalId);
@@ -81,7 +81,7 @@ public class TransactionReservationService {
 
         // Insert the transaction record
         return transactionRepository.insertIfAbsent(
-            transactionId, externalId, accountId,
+            transactionId, idempotencyKey, externalId, accountId,
             provider, type, amount, currency, PaymentStatus.PENDING.name()
         );
     }

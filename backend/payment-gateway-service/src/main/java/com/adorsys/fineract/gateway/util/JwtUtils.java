@@ -1,5 +1,6 @@
 package com.adorsys.fineract.gateway.util;
 
+import com.adorsys.fineract.gateway.exception.IdentityClaimException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 public final class JwtUtils {
@@ -7,15 +8,32 @@ public final class JwtUtils {
     private JwtUtils() {}
 
     /**
+     * Extract the Fineract client ID from the JWT (fast path).
+     * Returns null if the claim is absent or malformed — caller must handle the fallback.
+     */
+    public static Long extractClientId(Jwt jwt) {
+        Object claim = jwt.getClaim("fineract_client_id");
+        if (claim instanceof Number n) return n.longValue();
+        if (claim instanceof String s) {
+            try {
+                return Long.parseLong(s);
+            } catch (NumberFormatException ignored) {}
+        }
+        return null;
+    }
+
+    /**
      * Extract the Keycloak subject UUID, used as externalId in Fineract.
      * The {@code sub} claim is always present in Keycloak tokens and equals the
      * Keycloak user UUID, which Fineract stores as the client's {@code externalId}.
-     * This is the same value previously read from the {@code fineract_external_id}
-     * user-attribute claim, which is only set after KYC approval.
      *
-     * @return the subject UUID, or null if absent (should never happen with Keycloak)
+     * @throws IdentityClaimException if sub is absent (should never happen with Keycloak)
      */
     public static String extractExternalId(Jwt jwt) {
-        return jwt.getSubject();
+        String sub = jwt.getSubject();
+        if (sub == null || sub.isBlank()) {
+            throw new IdentityClaimException("Missing identity claims in token");
+        }
+        return sub;
     }
 }
