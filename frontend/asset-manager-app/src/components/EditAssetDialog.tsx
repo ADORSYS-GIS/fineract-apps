@@ -37,6 +37,14 @@ interface EditFormValues {
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
 	capitalGainsRate: string;
+	isBvmacListed: boolean;
+	isGovernmentBond: boolean;
+	tvaEnabled: boolean;
+	tvaRate: string;
+	// Bond-specific updatable fields
+	interestRate: string;
+	maturityDate: string;
+	nextCouponDate: string;
 	// PENDING-only fields
 	issuerPrice: string;
 	totalSupply: string;
@@ -84,6 +92,13 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 			asset.capitalGainsRate != null
 				? (asset.capitalGainsRate * 100).toString()
 				: "",
+		isBvmacListed: asset.isBvmacListed ?? false,
+		isGovernmentBond: asset.isGovernmentBond ?? false,
+		tvaEnabled: asset.tvaEnabled ?? false,
+		tvaRate: asset.tvaRate != null ? (asset.tvaRate * 100).toString() : "",
+		interestRate: asset.interestRate?.toString() ?? "",
+		maturityDate: asset.maturityDate ?? "",
+		nextCouponDate: asset.nextCouponDate ?? "",
 		// PENDING-only fields
 		issuerPrice: asset.issuerPrice?.toString() ?? "",
 		totalSupply: asset.totalSupply?.toString() ?? "",
@@ -94,7 +109,7 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 }
 
 /** Maps form field names to their transform for the API request. */
-const num = (v: string) => (v ? Number(v) : undefined);
+const num = (v: string) => (v !== "" ? Number(v) : undefined);
 const pct = (v: string) => (v ? Number(v) / 100 : undefined);
 const str = (v: string) => v || undefined;
 
@@ -118,6 +133,7 @@ const NUM_FIELDS: (keyof EditFormValues)[] = [
 	"lockupDays",
 	"incomeRate",
 	"distributionFrequencyMonths",
+	"interestRate",
 	"issuerPrice",
 	"totalSupply",
 	"couponFrequencyMonths",
@@ -128,11 +144,14 @@ const PCT_FIELDS: (keyof EditFormValues)[] = [
 	"registrationDutyRate",
 	"ircmRateOverride",
 	"capitalGainsRate",
+	"tvaRate",
 ];
 
 const STR_FIELDS: (keyof EditFormValues)[] = [
 	"incomeType",
 	"nextDistributionDate",
+	"maturityDate",
+	"nextCouponDate",
 	"issuerName",
 	"isinCode",
 ];
@@ -142,6 +161,9 @@ const BOOL_FIELDS: (keyof EditFormValues)[] = [
 	"ircmEnabled",
 	"ircmExempt",
 	"capitalGainsTaxEnabled",
+	"isBvmacListed",
+	"isGovernmentBond",
+	"tvaEnabled",
 ];
 
 function buildUpdateRequest(
@@ -612,12 +634,18 @@ const TaxSection: FC<{
 	ircmEnabled: boolean;
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
+	isBvmacListed: boolean;
+	isGovernmentBond: boolean;
+	tvaEnabled: boolean;
 	setFieldValue: (field: string, value: boolean | string) => void;
 }> = ({
 	registrationDutyEnabled,
 	ircmEnabled,
 	ircmExempt,
 	capitalGainsTaxEnabled,
+	isBvmacListed,
+	isGovernmentBond,
+	tvaEnabled,
 	setFieldValue,
 }) => (
 	<>
@@ -735,6 +763,67 @@ const TaxSection: FC<{
 					max={100}
 					step="0.1"
 					placeholder="Default: 16.5%"
+				/>
+			</div>
+		)}
+		{/* BVMAC listing */}
+		<div className="flex items-center justify-between">
+			<div>
+				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+					BVMAC Listed
+				</p>
+				<p className="text-xs text-gray-400">Triggers reduced 11% IRCM rate</p>
+			</div>
+			<input
+				type="checkbox"
+				checked={isBvmacListed}
+				onChange={(e) => setFieldValue("isBvmacListed", e.target.checked)}
+				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+			/>
+		</div>
+		{/* Government bond */}
+		<div className="flex items-center justify-between">
+			<div>
+				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+					Government Bond
+				</p>
+				<p className="text-xs text-gray-400">
+					Government-issued bond (affects tax treatment)
+				</p>
+			</div>
+			<input
+				type="checkbox"
+				checked={isGovernmentBond}
+				onChange={(e) => setFieldValue("isGovernmentBond", e.target.checked)}
+				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+			/>
+		</div>
+		{/* TVA */}
+		<div className="flex items-center justify-between">
+			<div>
+				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+					TVA (VAT)
+				</p>
+				<p className="text-xs text-gray-400">VAT on trades</p>
+			</div>
+			<input
+				type="checkbox"
+				checked={tvaEnabled}
+				onChange={(e) => setFieldValue("tvaEnabled", e.target.checked)}
+				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+			/>
+		</div>
+		{tvaEnabled && (
+			<div>
+				<label className={LABEL_CLASS}>Rate (%)</label>
+				<Field
+					name="tvaRate"
+					type="number"
+					className={INPUT_CLASS}
+					min={0}
+					max={100}
+					step="0.01"
+					placeholder="Default: 19.25%"
 				/>
 			</div>
 		)}
@@ -868,6 +957,43 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 								{asset.category !== "BONDS" && (
 									<IncomeSection incomeType={formik.values.incomeType} />
 								)}
+								{asset.category === "BONDS" && asset.status !== "PENDING" && (
+									<>
+										<hr className="border-gray-200 dark:border-gray-600" />
+										<p className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+											Bond Terms
+										</p>
+										<div className="grid grid-cols-2 gap-4">
+											<div>
+												<label className={LABEL_CLASS}>Coupon Rate (%)</label>
+												<Field
+													name="interestRate"
+													type="number"
+													className={INPUT_CLASS}
+													min={0}
+													step="0.01"
+													placeholder="e.g. 5.80"
+												/>
+											</div>
+											<div>
+												<label className={LABEL_CLASS}>Maturity Date</label>
+												<Field
+													name="maturityDate"
+													type="date"
+													className={INPUT_CLASS}
+												/>
+											</div>
+										</div>
+										<div>
+											<label className={LABEL_CLASS}>Next Coupon Date</label>
+											<Field
+												name="nextCouponDate"
+												type="date"
+												className={INPUT_CLASS}
+											/>
+										</div>
+									</>
+								)}
 								<TaxSection
 									registrationDutyEnabled={
 										formik.values.registrationDutyEnabled
@@ -875,6 +1001,9 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 									ircmEnabled={formik.values.ircmEnabled}
 									ircmExempt={formik.values.ircmExempt}
 									capitalGainsTaxEnabled={formik.values.capitalGainsTaxEnabled}
+									isBvmacListed={formik.values.isBvmacListed}
+									isGovernmentBond={formik.values.isGovernmentBond}
+									tvaEnabled={formik.values.tvaEnabled}
 									setFieldValue={formik.setFieldValue}
 								/>
 							</div>

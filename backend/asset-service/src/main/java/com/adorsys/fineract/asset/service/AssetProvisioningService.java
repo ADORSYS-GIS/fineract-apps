@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
@@ -49,6 +50,7 @@ public class AssetProvisioningService {
     private final AssetServiceConfig assetServiceConfig;
     private final ResolvedGlAccounts resolvedGlAccounts;
     private final FileStorageService fileStorageService;
+    private final TaxConfig taxConfig;
 
     /**
      * Create a new asset with full Fineract provisioning.
@@ -86,10 +88,24 @@ public class AssetProvisioningService {
                     + "This may be from a previously failed creation.");
         }
 
-        // Validate bid/ask spread before provisioning Fineract resources
-        if (request.lpBidPrice().compareTo(request.lpAskPrice()) > 0) {
-            throw new AssetException("Invalid spread: bid price (" + request.lpBidPrice()
-                    + ") must not exceed ask price (" + request.lpAskPrice() + ")");
+        // Derive effective ask/bid: use provided values, or auto-compute from issuerPrice ± spreadPercent
+        BigDecimal effectiveSpread = request.spreadPercent() != null
+                ? request.spreadPercent() : new BigDecimal("0.0030");
+        BigDecimal effectiveAskPrice = request.lpAskPrice() != null
+                ? request.lpAskPrice()
+                : request.issuerPrice().multiply(BigDecimal.ONE.add(effectiveSpread)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal effectiveBidPrice = request.lpBidPrice() != null
+                ? request.lpBidPrice()
+                : request.issuerPrice().multiply(BigDecimal.ONE.subtract(effectiveSpread)).setScale(0, RoundingMode.HALF_UP);
+
+        // Validate pricing before provisioning any Fineract resources
+        if (effectiveAskPrice.compareTo(request.issuerPrice()) < 0) {
+            throw new AssetException("Invalid pricing: ask price (" + effectiveAskPrice
+                    + ") must be >= issuer price (" + request.issuerPrice() + ")");
+        }
+        if (effectiveBidPrice.compareTo(effectiveAskPrice) > 0) {
+            throw new AssetException("Invalid spread: bid price (" + effectiveBidPrice
+                    + ") must not exceed ask price (" + effectiveAskPrice + ")");
         }
 
         // Validate bond-specific fields when category is BONDS
@@ -197,10 +213,15 @@ public class AssetProvisioningService {
                 .priceMode(PriceMode.MANUAL)
                 .manualPrice(request.issuerPrice())
                 .issuerPrice(request.issuerPrice())
+                .faceValue(request.faceValue() != null ? request.faceValue() : request.issuerPrice())
                 .decimalPlaces(request.decimalPlaces())
                 .totalSupply(request.totalSupply())
                 .circulatingSupply(BigDecimal.ZERO)
-                .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
+                .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0030"))
+                .bondType(request.bondType())
+                .dayCountConvention(request.dayCountConvention() != null ? request.dayCountConvention()
+                        : (request.bondType() == BondType.DISCOUNT ? DayCountConvention.ACT_360 : DayCountConvention.ACT_365))
+                .issuerCountry(request.issuerCountry())
                 .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
@@ -223,31 +244,35 @@ public class AssetProvisioningService {
                 .incomeRate(request.incomeRate())
                 .distributionFrequencyMonths(request.distributionFrequencyMonths())
                 .nextDistributionDate(request.nextDistributionDate())
-                // Tax configuration (defaults applied by @Builder.Default on entity)
+                // Tax configuration — defaults: registration duty ON, TVA OFF, others OFF
                 .registrationDutyEnabled(request.registrationDutyEnabled() != null ? request.registrationDutyEnabled() : true)
-                .registrationDutyRate(request.registrationDutyRate())
-                .ircmEnabled(request.ircmEnabled() != null ? request.ircmEnabled() : true)
+                .registrationDutyRate(request.registrationDutyRate() != null
+                        ? request.registrationDutyRate() : taxConfig.getDefaultRegistrationDutyRate())
+                .ircmEnabled(request.ircmEnabled() != null ? request.ircmEnabled() : false)
                 .ircmRateOverride(request.ircmRateOverride())
                 .ircmExempt(request.ircmExempt() != null ? request.ircmExempt() : false)
-                .capitalGainsTaxEnabled(request.capitalGainsTaxEnabled() != null ? request.capitalGainsTaxEnabled() : true)
-                .capitalGainsRate(request.capitalGainsRate())
+                .capitalGainsTaxEnabled(request.capitalGainsTaxEnabled() != null ? request.capitalGainsTaxEnabled() : false)
+                .capitalGainsRate(request.capitalGainsRate() != null
+                        ? request.capitalGainsRate() : taxConfig.getDefaultCapitalGainsRate())
                 .isBvmacListed(request.isBvmacListed() != null ? request.isBvmacListed() : false)
                 .isGovernmentBond(request.isGovernmentBond() != null ? request.isGovernmentBond() : false)
-                .tvaEnabled(request.tvaEnabled() != null ? request.tvaEnabled() : false)
-                .tvaRate(request.tvaRate())
+                // tvaEnabled: null → false (disabled by default); explicit true respected
+                .tvaEnabled(Boolean.TRUE.equals(request.tvaEnabled()))
+                .tvaRate(request.tvaRate() != null
+                        ? request.tvaRate() : taxConfig.getDefaultTvaRate())
                 .build();
 
         assetRepository.save(asset);
 
-        // Step 6: Initialize price row with LP bid/ask prices
+        // Step 6: Initialize price row with effective bid/ask prices
         AssetPrice price = AssetPrice.builder()
                 .assetId(assetId)
-                .dayOpen(request.lpAskPrice())
-                .dayHigh(request.lpAskPrice())
-                .dayLow(request.lpAskPrice())
-                .dayClose(request.lpAskPrice())
-                .bidPrice(request.lpBidPrice())
-                .askPrice(request.lpAskPrice())
+                .dayOpen(effectiveAskPrice)
+                .dayHigh(effectiveAskPrice)
+                .dayLow(effectiveAskPrice)
+                .dayClose(effectiveAskPrice)
+                .bidPrice(effectiveBidPrice)
+                .askPrice(effectiveAskPrice)
                 .change24hPercent(BigDecimal.ZERO)
                 .updatedAt(Instant.now())
                 .build();
@@ -269,12 +294,15 @@ public class AssetProvisioningService {
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
 
         // PENDING-only fields: reject early before any mutations
-        boolean hasPendingOnlyField = request.issuerPrice() != null || request.totalSupply() != null
+        boolean hasPendingOnlyField = request.issuerPrice() != null || request.faceValue() != null
+                || request.totalSupply() != null
                 || request.issuerName() != null || request.isinCode() != null
-                || request.couponFrequencyMonths() != null;
+                || request.couponFrequencyMonths() != null || request.bondType() != null
+                || request.dayCountConvention() != null || request.issuerCountry() != null;
 
         if (hasPendingOnlyField && asset.getStatus() != AssetStatus.PENDING) {
-            throw new AssetException("Fields issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths "
+            throw new AssetException("Fields issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths, "
+                    + "bondType, dayCountConvention, issuerCountry "
                     + "can only be changed when asset is PENDING. Current status: " + asset.getStatus());
         }
 
@@ -350,6 +378,7 @@ public class AssetProvisioningService {
                 asset.setIssuerPrice(request.issuerPrice());
                 asset.setManualPrice(request.issuerPrice());
             }
+            if (request.faceValue() != null) asset.setFaceValue(request.faceValue());
             if (request.totalSupply() != null) {
                 BigDecimal oldSupply = asset.getTotalSupply();
                 BigDecimal newSupply = request.totalSupply();
@@ -372,6 +401,9 @@ public class AssetProvisioningService {
             if (request.issuerName() != null) asset.setIssuerName(request.issuerName());
             if (request.isinCode() != null) asset.setIsinCode(request.isinCode());
             if (request.couponFrequencyMonths() != null) asset.setCouponFrequencyMonths(request.couponFrequencyMonths());
+            if (request.bondType() != null) asset.setBondType(request.bondType());
+            if (request.dayCountConvention() != null) asset.setDayCountConvention(request.dayCountConvention());
+            if (request.issuerCountry() != null) asset.setIssuerCountry(request.issuerCountry());
         }
 
         assetRepository.save(asset);
@@ -588,20 +620,37 @@ public class AssetProvisioningService {
         if (!request.maturityDate().isAfter(LocalDate.now())) {
             throw new AssetException("Maturity date must be in the future");
         }
-        if (request.interestRate() == null) {
-            throw new AssetException("Interest rate is required for BONDS category");
+        if (request.bondType() == null) {
+            throw new AssetException("Bond type (COUPON or DISCOUNT) is required for BONDS category");
         }
-        if (request.couponFrequencyMonths() == null) {
-            throw new AssetException("Coupon frequency is required for BONDS category");
+
+        if (request.bondType() == BondType.COUPON) {
+            // OTA (T-Bonds): require coupon fields
+            if (request.interestRate() == null) {
+                throw new AssetException("Interest rate is required for COUPON bonds");
+            }
+            if (request.couponFrequencyMonths() == null) {
+                throw new AssetException("Coupon frequency is required for COUPON bonds");
+            }
+            if (!Set.of(1, 3, 6, 12).contains(request.couponFrequencyMonths())) {
+                throw new AssetException("Coupon frequency must be 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual)");
+            }
+            if (request.nextCouponDate() == null) {
+                throw new AssetException("First coupon date is required for COUPON bonds");
+            }
+            if (request.nextCouponDate().isAfter(request.maturityDate())) {
+                throw new AssetException("First coupon date must be on or before the maturity date");
+            }
         }
-        if (!Set.of(1, 3, 6, 12).contains(request.couponFrequencyMonths())) {
-            throw new AssetException("Coupon frequency must be 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual)");
-        }
-        if (request.nextCouponDate() == null) {
-            throw new AssetException("First coupon date is required for BONDS category");
-        }
-        if (request.nextCouponDate().isAfter(request.maturityDate())) {
-            throw new AssetException("First coupon date must be on or before the maturity date");
+
+        if (request.bondType() == BondType.DISCOUNT) {
+            // BTA: faceValue required and must be > issuerPrice
+            if (request.faceValue() == null) {
+                throw new AssetException("Face value (redemption price) is required for DISCOUNT bonds");
+            }
+            if (request.faceValue().compareTo(request.issuerPrice()) <= 0) {
+                throw new AssetException("Face value must be greater than issuer price for DISCOUNT bonds");
+            }
         }
     }
 

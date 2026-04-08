@@ -84,6 +84,9 @@ public class MtnWithdrawalSteps {
 
     @When("the MTN disbursement callback reports SUCCESSFUL for the withdrawal")
     public void mtnDisbursementCallbackSuccessful() {
+        String transactionId = context.getId("transactionId");
+        WireMockProviderStubs.stubMtnGetDisbursementStatusSuccess(transactionId);
+
         String providerRef = context.getId("providerReference");
 
         Map<String, Object> callback = Map.of(

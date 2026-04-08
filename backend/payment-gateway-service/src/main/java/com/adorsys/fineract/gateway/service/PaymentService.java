@@ -270,8 +270,28 @@ public class PaymentService {
     @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public void handleMtnCollectionCallback(MtnCallbackRequest callback) {
-        log.info("Processing MTN collection callback: ref={}, status={}",
-            callback.getReferenceId(), callback.getStatus());
+        log.info("Processing MTN collection callback: externalId={}, status={}",
+            callback.getExternalId(), callback.getStatus());
+
+        Optional<PaymentTransaction> transactionOpt = transactionRepository.findByProviderReference(callback.getExternalId());
+        if (transactionOpt.isEmpty()) {
+            log.warn("Received MTN collection callback for unknown externalId: {}. Ignoring.", callback.getExternalId());
+            return;
+        }
+        PaymentTransaction transaction = transactionOpt.get();
+        String transactionId = transaction.getTransactionId();
+
+        log.info("Verifying transaction status with MTN for transactionId: {}", transactionId);
+        PaymentStatus status = mtnClient.getCollectionStatus(transactionId);
+        log.info("MTN API returned status: {} for transactionId: {}", status, transactionId);
+
+        if (status != PaymentStatus.SUCCESSFUL) {
+            log.warn("MTN collection callback for externalId {} received with status {}, but provider API reports status {}. Processing as failure.",
+                callback.getExternalId(), callback.getStatus(), status);
+            callback.setStatus("FAILED");
+        }
+
+        log.info("Transaction status verified. Proceeding with callback processing for externalId: {}", callback.getExternalId());
         callbackDelegate.processMtnCollectionCallback(callback);
     }
 
@@ -282,8 +302,28 @@ public class PaymentService {
     @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public void handleMtnDisbursementCallback(MtnCallbackRequest callback) {
-        log.info("Processing MTN disbursement callback: ref={}, status={}",
-            callback.getReferenceId(), callback.getStatus());
+        log.info("Processing MTN disbursement callback: externalId={}, status={}",
+            callback.getExternalId(), callback.getStatus());
+
+        Optional<PaymentTransaction> transactionOpt = transactionRepository.findByProviderReference(callback.getExternalId());
+        if (transactionOpt.isEmpty()) {
+            log.warn("Received MTN disbursement callback for unknown externalId: {}. Ignoring.", callback.getExternalId());
+            return;
+        }
+        PaymentTransaction transaction = transactionOpt.get();
+        String transactionId = transaction.getTransactionId();
+
+        log.info("Verifying transaction status with MTN for transactionId: {}", transactionId);
+        PaymentStatus status = mtnClient.getDisbursementStatus(transactionId);
+        log.info("MTN API returned status: {} for transactionId: {}", status, transactionId);
+
+        if (status != PaymentStatus.SUCCESSFUL) {
+            log.warn("MTN disbursement callback for externalId {} received with status {}, but provider API reports status {}. Processing as failure.",
+                callback.getExternalId(), callback.getStatus(), status);
+            callback.setStatus("FAILED");
+        }
+
+        log.info("Transaction status verified. Proceeding with callback processing for externalId: {}", callback.getExternalId());
         CallbackHandlerDelegate.CallbackResult result = callbackDelegate.processMtnDisbursementCallback(callback);
         if (result.reversalNeeded()) {
             reversalService.reverseWithdrawal(result.transaction());

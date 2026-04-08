@@ -352,6 +352,11 @@ class PaymentServiceTest {
                     .status("SUCCESSFUL")
                     .build();
 
+            PaymentTransaction transaction = new PaymentTransaction();
+            transaction.setTransactionId("txn-1");
+            when(transactionRepository.findByProviderReference("mtn-ref-1")).thenReturn(Optional.of(transaction));
+            when(mtnClient.getCollectionStatus("txn-1")).thenReturn(PaymentStatus.SUCCESSFUL);
+
             paymentService.handleMtnCollectionCallback(callback);
 
             verify(callbackDelegate).processMtnCollectionCallback(callback);
@@ -369,6 +374,11 @@ class PaymentServiceTest {
                     .externalId("mtn-ref-w1")
                     .status("SUCCESSFUL")
                     .build();
+
+            PaymentTransaction transaction = new PaymentTransaction();
+            transaction.setTransactionId("txn-w1");
+            when(transactionRepository.findByProviderReference("mtn-ref-w1")).thenReturn(Optional.of(transaction));
+            when(mtnClient.getDisbursementStatus("txn-w1")).thenReturn(PaymentStatus.SUCCESSFUL);
 
             when(callbackDelegate.processMtnDisbursementCallback(callback))
                     .thenReturn(CallbackHandlerDelegate.CallbackResult.noReversal());
@@ -392,6 +402,9 @@ class PaymentServiceTest {
                     .status("FAILED")
                     .reason("Provider error")
                     .build();
+
+            when(transactionRepository.findByProviderReference("mtn-ref-w2")).thenReturn(Optional.of(txn));
+            when(mtnClient.getDisbursementStatus("txn-w2")).thenReturn(PaymentStatus.SUCCESSFUL);
 
             when(callbackDelegate.processMtnDisbursementCallback(callback))
                     .thenReturn(CallbackHandlerDelegate.CallbackResult.needsReversal(txn));
