@@ -75,7 +75,7 @@ public class PaymentService {
         log.info("Initiating deposit: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
-        validateIdempotencyKey(idempotencyKey);
+
 
         // Fast path: return existing transaction for genuine retries
         Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
@@ -144,7 +144,7 @@ public class PaymentService {
         log.info("Initiating withdrawal: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
-        validateIdempotencyKey(idempotencyKey);
+
 
         // Fast path: return existing transaction for genuine retries
         Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
@@ -582,13 +582,7 @@ public class PaymentService {
         };
     }
 
-    private void validateIdempotencyKey(String idempotencyKey) {
-        try {
-            UUID.fromString(idempotencyKey);
-        } catch (IllegalArgumentException e) {
-            throw new PaymentException("X-Idempotency-Key must be a valid UUID");
-        }
-    }
+
 
     private PaymentResponse mapToResponse(PaymentTransaction txn) {
         return PaymentResponse.builder()
