@@ -180,6 +180,15 @@ const COLUMNS: ColumnDef[] = [
 
 	// Bond fields
 	{
+		key: "faceValue",
+		header: "faceValue",
+		required: false,
+		comment:
+			"Par / redemption value per unit. REQUIRED for DISCOUNT bonds (BTA). Must be greater than issuerPrice for DISCOUNT bonds. For COUPON bonds, defaults to issuerPrice if omitted.",
+		example: 10000,
+		type: "number",
+	},
+	{
 		key: "issuerName",
 		header: "issuerName",
 		required: false,
@@ -443,6 +452,7 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		symbol: "CGB",
 		category: "BONDS",
 		issuerPrice: 10000,
+		faceValue: 10000,
 		totalSupply: 100000,
 		decimalPlaces: 0,
 		lpAskPrice: 10200,
@@ -692,13 +702,15 @@ function cemacBta(
 	issuerCountry: string,
 	lpClientId: number,
 ): Record<string, string | number | boolean> {
-	const issuerPrice = 10000;
+	const faceValue = 10000; // Par/redemption value — standard BTA denomination
+	const issuerPrice = 9800; // Discounted purchase price (typical ~2% discount)
 	return {
 		name,
 		symbol,
 		currencyCode: symbol,
 		category: "BONDS",
 		issuerPrice,
+		faceValue,
 		totalSupply,
 		decimalPlaces: 0,
 		...spread(issuerPrice),
@@ -1093,6 +1105,7 @@ export async function parseAssetExcel(
 			"minOrderCashAmount",
 			"dailyTradeLimitXaf",
 			"lockupDays",
+			"faceValue",
 			"interestRate",
 			"couponFrequencyMonths",
 			"incomeRate",

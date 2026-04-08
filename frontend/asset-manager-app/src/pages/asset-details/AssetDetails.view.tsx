@@ -26,6 +26,7 @@ import { IncomeSummaryCard } from "@/components/IncomeSummaryCard";
 import { MintSupplyDialog } from "@/components/MintSupplyDialog";
 import { RedemptionHistoryTable } from "@/components/RedemptionHistoryTable";
 import { StatusBadge } from "@/components/StatusBadge";
+import { BOND_TYPE_LABELS } from "@/constants/bondTypes";
 import { FREQUENCY_LABELS } from "@/constants/frequencies";
 import {
 	INCOME_TYPE_LABELS,
@@ -418,6 +419,14 @@ function BondInfoCard({
 			</h2>
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
 				<div>
+					<p className="text-gray-500">Bond Type</p>
+					<p className="font-medium">
+						{asset.bondType
+							? (BOND_TYPE_LABELS[asset.bondType] ?? asset.bondType)
+							: "—"}
+					</p>
+				</div>
+				<div>
 					<p className="text-gray-500">Issuer</p>
 					<p className="font-medium">{asset.issuerName ?? "—"}</p>
 				</div>
@@ -429,6 +438,14 @@ function BondInfoCard({
 					<p className="text-gray-500">Maturity Date</p>
 					<p className="font-medium">{asset.maturityDate ?? "—"}</p>
 				</div>
+				{asset.faceValue != null && (
+					<div>
+						<p className="text-gray-500">Face Value</p>
+						<p className="font-medium">
+							{asset.faceValue.toLocaleString()} XAF
+						</p>
+					</div>
+				)}
 				<div>
 					<p className="text-gray-500">Coupon Amount</p>
 					<p className="font-medium">
