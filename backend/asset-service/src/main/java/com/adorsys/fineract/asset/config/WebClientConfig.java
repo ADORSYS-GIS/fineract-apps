@@ -7,11 +7,15 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import javax.net.ssl.SSLException;
@@ -48,7 +52,8 @@ public class WebClientConfig {
         }
 
         return WebClient.builder()
-            .clientConnector(new ReactorClientHttpConnector(httpClient));
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .filter(correlationIdForwardFilter());
     }
 
     @Bean("fineractWebClient")
@@ -57,5 +62,26 @@ public class WebClientConfig {
             .baseUrl(config.getUrl())
             .defaultHeader("Fineract-Platform-TenantId", config.getTenant())
             .build();
+    }
+
+    /**
+     * WebClient filter that forwards {@code X-Correlation-ID} from MDC to all outgoing requests.
+     *
+     * <p>If a correlation ID is already present on the request it is left unchanged.
+     * This ensures the same ID flows through the entire Fineract → asset-service → upstream call chain.
+     */
+    private ExchangeFilterFunction correlationIdForwardFilter() {
+        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
+            if (clientRequest.headers().containsKey(CorrelationIdFilter.HEADER_NAME)) {
+                return Mono.just(clientRequest);
+            }
+            String correlationId = MDC.get(CorrelationIdFilter.MDC_KEY);
+            if (correlationId == null || correlationId.isBlank()) {
+                return Mono.just(clientRequest);
+            }
+            return Mono.just(ClientRequest.from(clientRequest)
+                .header(CorrelationIdFilter.HEADER_NAME, correlationId)
+                .build());
+        });
     }
 }

@@ -232,7 +232,7 @@ logging:
     com.adorsys.fineract.asset: DEBUG
     org.springframework.security: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] [%X{correlationId:-}] %logger{36} - %msg%n"
 
 # OpenAPI Configuration
 springdoc:
