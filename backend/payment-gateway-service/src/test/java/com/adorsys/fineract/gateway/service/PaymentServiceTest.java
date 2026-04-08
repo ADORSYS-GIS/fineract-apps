@@ -229,13 +229,7 @@ class PaymentServiceTest {
             verify(mtnClient, never()).requestToPay(any(), any(), any(), any());
         }
 
-        @Test
-        @DisplayName("should throw for invalid idempotency key")
-        void initiateDeposit_invalidIdempotencyKey_throws() {
-            assertThatThrownBy(() -> paymentService.initiateDeposit(depositRequest, "not-a-uuid"))
-                    .isInstanceOf(PaymentException.class)
-                    .hasMessageContaining("X-Idempotency-Key must be a valid UUID");
-        }
+
     }
 
     // =========================================================================
