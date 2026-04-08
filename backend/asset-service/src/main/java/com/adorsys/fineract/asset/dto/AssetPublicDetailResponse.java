@@ -37,13 +37,21 @@ public record AssetPublicDetailResponse(
 
     @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)
     String issuerName,
-    @Schema(description = "Issuer price (face value for bonds, wholesale for others).", nullable = true)
+    @Schema(description = "LP acquisition cost per unit.", nullable = true)
     BigDecimal issuerPrice,
+    @Schema(description = "Face/par value per unit for redemption.", nullable = true)
+    BigDecimal faceValue,
     @Schema(description = "Liquidity partner (reseller) name.", nullable = true)
     String lpName,
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──
 
+    @Schema(description = "Bond type: COUPON (OTA) or DISCOUNT (BTA). Null for non-bond assets.", nullable = true)
+    BondType bondType,
+    @Schema(description = "Day count convention: ACT_360, ACT_365, or THIRTY_360.", nullable = true)
+    DayCountConvention dayCountConvention,
+    @Schema(description = "Issuer country name.", nullable = true)
+    String issuerCountry,
     @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.")
     String isinCode,
     @Schema(description = "Bond maturity date. Null for non-bond assets.")

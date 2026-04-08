@@ -81,8 +81,8 @@ public class PortfolioService {
             totalValue = totalValue.add(marketValue);
             totalCostBasis = totalCostBasis.add(pos.getTotalCostBasis());
 
-            BigDecimal faceValue = asset != null && asset.getIssuerPrice() != null
-                    ? asset.getIssuerPrice() : marketPrice;
+            BigDecimal faceValue = asset != null && asset.getEffectiveFaceValue() != null
+                    ? asset.getEffectiveFaceValue() : marketPrice;
             BondBenefitProjection bondBenefit = asset != null
                     ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), marketPrice)
                     : null;
@@ -136,9 +136,9 @@ public class PortfolioService {
             Asset asset = assetMap.get(pos.getAssetId());
             if (asset != null && asset.getCategory() == AssetCategory.BONDS
                     && asset.getInterestRate() != null && asset.getCouponFrequencyMonths() != null
-                    && asset.getIssuerPrice() != null) {
+                    && asset.getEffectiveFaceValue() != null) {
                 BigDecimal couponPerPeriod = pos.getTotalUnits()
-                        .multiply(asset.getIssuerPrice())
+                        .multiply(asset.getEffectiveFaceValue())
                         .multiply(asset.getInterestRate())
                         .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(asset.getCouponFrequencyMonths()))
@@ -186,8 +186,8 @@ public class PortfolioService {
                         .multiply(new BigDecimal("100"))
                 : BigDecimal.ZERO;
 
-        BigDecimal faceValue = asset != null && asset.getIssuerPrice() != null
-                ? asset.getIssuerPrice() : marketPrice;
+        BigDecimal faceValue = asset != null && asset.getEffectiveFaceValue() != null
+                ? asset.getEffectiveFaceValue() : marketPrice;
         BondBenefitProjection bondBenefit = asset != null
                 ? bondBenefitService.calculateForHolding(asset, pos.getTotalUnits(), marketPrice)
                 : null;

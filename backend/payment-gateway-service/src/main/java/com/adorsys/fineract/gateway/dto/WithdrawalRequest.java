@@ -21,8 +21,6 @@ public class WithdrawalRequest {
      * Customer's Fineract external ID (from Keycloak token)
      */
     @NotBlank(message = "External ID is required")
-    @Size(min = 36, max = 36, message = "External ID must be a valid UUID")
-    @Pattern(regexp = "^[a-f0-9-]{36}$", message = "External ID must be a valid UUID format")
     private String externalId;
 
     /**

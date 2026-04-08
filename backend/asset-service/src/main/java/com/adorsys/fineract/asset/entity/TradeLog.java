@@ -67,6 +67,10 @@ public class TradeLog {
     @Column(name = "buyback_premium", nullable = false, precision = 20, scale = 0)
     private BigDecimal buybackPremium;
 
+    /** Accrued interest amount for coupon bond (OTA) trades. Null for non-bond trades. */
+    @Column(name = "accrued_interest_amount", precision = 20, scale = 0)
+    private BigDecimal accruedInterestAmount;
+
     /** Realized profit/loss from this trade, in settlement currency. Only set for SELL trades: (sellPrice - avgPurchasePrice) × units. Null for BUY trades. */
     @Column(name = "realized_pnl", precision = 20, scale = 0)
     private BigDecimal realizedPnl;

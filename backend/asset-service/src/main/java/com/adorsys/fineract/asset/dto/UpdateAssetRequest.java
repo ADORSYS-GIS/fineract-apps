@@ -113,9 +113,12 @@ public record UpdateAssetRequest(
 
     // ── PENDING-only fields (rejected if asset is not PENDING) ──
 
-    /** New issuer/face price. Only updatable when asset is PENDING. */
-    @Schema(description = "Issuer price (face value). Only updatable when PENDING.")
+    /** New issuer/acquisition price. Only updatable when asset is PENDING. */
+    @Schema(description = "Issuer price (LP acquisition cost). Only updatable when PENDING.")
     @Positive BigDecimal issuerPrice,
+    /** New face/par value. Only updatable when asset is PENDING. */
+    @Schema(description = "Face/par value. Only updatable when PENDING.")
+    @Positive BigDecimal faceValue,
     /** New total supply. Only updatable when asset is PENDING. Adjusts LP account balance. */
     @Schema(description = "Total supply. Only updatable when PENDING.")
     @Positive BigDecimal totalSupply,
@@ -127,5 +130,14 @@ public record UpdateAssetRequest(
     @Size(max = 12) String isinCode,
     /** New coupon frequency. Only updatable when asset is PENDING. */
     @Schema(description = "Coupon frequency in months (1, 3, 6, or 12). Only updatable when PENDING.")
-    Integer couponFrequencyMonths
+    Integer couponFrequencyMonths,
+    /** Bond type: COUPON (OTA) or DISCOUNT (BTA). Only updatable when PENDING. */
+    @Schema(description = "Bond type. Only updatable when PENDING.")
+    BondType bondType,
+    /** Day count convention. Only updatable when PENDING. */
+    @Schema(description = "Day count convention. Only updatable when PENDING.")
+    DayCountConvention dayCountConvention,
+    /** Issuer country. Only updatable when PENDING. */
+    @Schema(description = "Issuer country. Only updatable when PENDING.")
+    @Size(max = 50) String issuerCountry
 ) {}
