@@ -209,6 +209,8 @@ public class MtnMomoClient {
                 ? config.getCollectionSubscriptionKey()
                 : config.getDisbursementSubscriptionKey();
 
+            log.info("Attempting to get MTN access token with userId: {} and subscriptionKey: {}", config.getApiUserId(), subscriptionKey);
+
             String credentials = Base64.getEncoder().encodeToString(
                 (config.getApiUserId() + ":" + config.getApiKey()).getBytes(java.nio.charset.StandardCharsets.UTF_8)
             );
