@@ -24,8 +24,8 @@ public final class BuyStrategy implements TradeStrategy {
     }
 
     @Override
-    public BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee, BigDecimal totalTax) {
-        return grossAmount.add(fee).add(totalTax);
+    public BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee, BigDecimal totalTax, BigDecimal accruedInterest) {
+        return grossAmount.add(fee).add(totalTax).add(accruedInterest);
     }
 
     @Override

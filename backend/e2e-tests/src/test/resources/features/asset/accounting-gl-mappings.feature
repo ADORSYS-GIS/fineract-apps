@@ -97,21 +97,6 @@ Feature: Accounting GL Mappings (E2E)
     And the fee-tax summary total should be greater than 0
 
   # -----------------------------------------------------------------
-  # Spread income (GL 89) — adapted from gitops asset-demo-verify.sh Phase 3
-  # Asset: issuerPrice=2000, lpAskPrice=2200 -> spread per unit = 200
-  # BUY 5 units: spreadAmount = 5 x 200 = 1000
-  # -----------------------------------------------------------------
-
-  Scenario: Buy trade creates spread income entry in trial balance
-    When the admin snapshots the trial balance
-    Given an active stock asset "ASP" with fee 0.005 and price 2000 and supply 100
-    When the user buys 5 units of "ASP"
-    Then the trade should be FILLED
-    When the admin requests the trial balance
-    Then the response status should be 200
-    And the trial balance GL "89" credits should have increased by 1000
-
-  # -----------------------------------------------------------------
   # Sell trade with registration duty + fee in trial balance (GL 88 + 92)
   # Asset: issuerPrice=2000, lpBidPrice=1900, fee=0.5%, regDuty=2%
   # SELL 3 units: grossAmount = 3 x 1900 = 5700

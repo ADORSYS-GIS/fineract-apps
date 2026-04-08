@@ -73,7 +73,7 @@ public class ScheduledPaymentService {
 
         if ("COUPON".equals(paymentType)) {
             estimatedRate = asset.getInterestRate();
-            BigDecimal faceValue = asset.getIssuerPrice();
+            BigDecimal faceValue = asset.getEffectiveFaceValue();
             if (faceValue == null) {
                 faceValue = BigDecimal.ZERO;
             }
@@ -90,8 +90,8 @@ public class ScheduledPaymentService {
             }
         } else {
             estimatedRate = asset.getIncomeRate();
-            BigDecimal faceValue = asset.getIssuerPrice() != null
-                    ? asset.getIssuerPrice() : BigDecimal.ZERO;
+            BigDecimal faceValue = asset.getEffectiveFaceValue() != null
+                    ? asset.getEffectiveFaceValue() : BigDecimal.ZERO;
             int frequencyMonths = asset.getDistributionFrequencyMonths();
             estimatedAmountPerUnit = faceValue
                     .multiply(estimatedRate)
@@ -400,7 +400,7 @@ public class ScheduledPaymentService {
                 .assetId(bond.getId())
                 .userId(holder.getUserId())
                 .units(holder.getTotalUnits())
-                .faceValue(bond.getIssuerPrice())
+                .faceValue(bond.getEffectiveFaceValue())
                 .annualRate(bond.getInterestRate())
                 .periodMonths(bond.getCouponFrequencyMonths())
                 .cashAmount(netPayment)

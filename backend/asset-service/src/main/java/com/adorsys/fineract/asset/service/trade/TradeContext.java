@@ -50,6 +50,9 @@ public class TradeContext {
     private BigDecimal capitalGainsTaxAmount;
     private BigDecimal tvaAmount;
 
+    // -- Accrued interest (OTA coupon bonds) --
+    private BigDecimal accruedInterestAmount;
+
     // -- Output --
     private BigDecimal realizedPnl;
 }

@@ -3,8 +3,8 @@ package com.adorsys.fineract.registration.service.account;
 import java.util.List;
 
 import com.adorsys.fineract.registration.exception.RegistrationException;
-import com.adorsys.fineract.registration.exception.security.IdentityClaimException;
 import com.adorsys.fineract.registration.service.FineractService;
+import com.adorsys.fineract.registration.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * Ensures customers can only access their own accounts by:
  * 1. Extracting fineract_client_id from JWT (fast path)
- * 2. Falling back to fineract_external_id lookup if needed
+ * 2. Falling back to sub claim (Keycloak UUID = Fineract externalId) lookup
  * 3. Caching customer's account list for fast ownership checks
  */
 @Slf4j
@@ -42,37 +42,26 @@ public class AccountSecurityService {
      * @throws RegistrationException if client ID cannot be determined
      */
     public Long getCustomerClientId(Jwt jwt) {
-        // Primary: Try fineract_client_id claim (fast path)
-        Object clientIdClaim = jwt.getClaim("fineract_client_id");
-        if (clientIdClaim != null) {
-            if (clientIdClaim instanceof Number) {
-                return ((Number) clientIdClaim).longValue();
-            }
-            if (clientIdClaim instanceof String) {
-                try {
-                    return Long.parseLong((String) clientIdClaim);
-                } catch (NumberFormatException e) {
-                    log.warn("Invalid fineract_client_id format in JWT: {}", clientIdClaim);
-                }
-            }
+        // Fast path: fineract_client_id is set after KYC approval
+        Long clientId = JwtUtils.extractClientId(jwt);
+        if (clientId != null) {
+            return clientId;
         }
 
-        // Fallback: Lookup via fineract_external_id
-        String externalId = jwt.getClaimAsString("fineract_external_id");
-        if (externalId == null) {
-            throw new IdentityClaimException("Missing identity claims in token");
-        }
-
-        log.info("Looking up client ID via external ID: {}", externalId);
+        // Fallback: resolve via sub claim (Keycloak UUID = Fineract externalId).
+        // The sub claim is always present — unlike fineract_external_id which is also
+        // a user attribute set only after KYC, making it an equally unreliable fallback.
+        String externalId = JwtUtils.extractExternalId(jwt);
+        log.info("Looking up client ID via sub/externalId: {}", externalId);
         Map<String, Object> client = fineractService.getClientByExternalId(externalId);
+        log.debug("Fineract client lookup result for externalId {}: {}", externalId, client);
         if (client == null || !client.containsKey("id")) {
             throw new RegistrationException("NOT_FOUND", "Customer not found in Fineract", null);
         }
 
-        Long clientId = ((Number) client.get("id")).longValue();
-        log.info("Resolved client ID {} from external ID {}", clientId, externalId);
-
-        return clientId;
+        Long resolvedClientId = ((Number) client.get("id")).longValue();
+        log.info("Resolved client ID {} from externalId {}", resolvedClientId, externalId);
+        return resolvedClientId;
     }
 
     /**
