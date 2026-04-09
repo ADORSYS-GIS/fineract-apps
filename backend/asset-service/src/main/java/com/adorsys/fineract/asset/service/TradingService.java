@@ -91,6 +91,8 @@ public class TradingService {
     private final AccruedInterestCalculator accruedInterestCalculator;
     private final AssetProjectionRepository assetProjectionRepository;
 
+    private static final List<OrderStatus> HIDDEN_FROM_USER_HISTORY = List.of(OrderStatus.CANCELLED);
+
     // ──────────────────────────────────────────────────────────────────────
     // Quote-based async trade flow
     // ──────────────────────────────────────────────────────────────────────
@@ -1154,9 +1156,9 @@ public class TradingService {
         Pageable stablePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), stable);
         Page<Order> orders;
         if (assetId != null) {
-            orders = orderRepository.findByUserIdAndAssetId(userId, assetId, stablePageable);
+            orders = orderRepository.findByUserIdAndAssetIdAndStatusNotIn(userId, assetId, HIDDEN_FROM_USER_HISTORY, stablePageable);
         } else {
-            orders = orderRepository.findByUserId(userId, stablePageable);
+            orders = orderRepository.findByUserIdAndStatusNotIn(userId, HIDDEN_FROM_USER_HISTORY, stablePageable);
         }
 
         return orders.map(o -> {
