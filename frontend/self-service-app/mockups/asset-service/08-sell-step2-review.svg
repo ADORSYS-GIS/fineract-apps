@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 900" width="390" height="900">
   <defs>
     <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
     <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#00000018"/></filter>
   </defs>
 
   <!-- Background -->
-  <rect width="390" height="844" fill="#f3f4f6"/>
+  <rect width="390" height="900" fill="#f3f4f6"/>
 
   <!-- Status Bar -->
   <rect width="390" height="44" fill="#ef4444"/>
@@ -23,83 +23,79 @@
   <text x="16" y="154" fill="#ef4444" font-size="12" font-weight="600">Step 2 of 3 · Review &amp; Confirm</text>
 
   <!-- Review Banner -->
-  <rect x="16" y="166" width="358" height="44" rx="12" fill="#fef2f2"/>
-  <text x="195" y="193" fill="#dc2626" font-size="13" text-anchor="middle">📋 Please review your sale order carefully</text>
+  <rect x="16" y="166" width="358" height="36" rx="12" fill="#fef2f2"/>
+  <text x="195" y="189" fill="#dc2626" font-size="12" text-anchor="middle">📋 Please review your sale order carefully</text>
 
   <!-- Sale Summary Card -->
-  <rect x="16" y="220" width="358" height="280" rx="14" fill="white" filter="url(#shadow)"/>
-  <text x="32" y="248" fill="#111827" font-size="15" font-weight="700">Sale Summary</text>
+  <rect x="16" y="210" width="358" height="348" rx="14" fill="white" filter="url(#shadow)"/>
+  <text x="32" y="238" fill="#111827" font-size="15" font-weight="700">Sale Summary</text>
 
-  <line x1="32" y1="258" x2="358" y2="258" stroke="#f3f4f6" stroke-width="1"/>
+  <line x1="32" y1="248" x2="358" y2="248" stroke="#f3f4f6" stroke-width="1"/>
 
   <!-- Asset -->
-  <circle cx="48" cy="282" r="16" fill="#fef3c7"/>
-  <text x="48" y="288" fill="#d97706" font-size="14" text-anchor="middle">🏠</text>
-  <text x="72" y="277" fill="#6b7280" font-size="12">Asset</text>
-  <text x="72" y="293" fill="#111827" font-size="14" font-weight="600">Immo Plus (IMMO)</text>
-  <text x="358" y="285" fill="#6b7280" font-size="12" text-anchor="end">Real Estate</text>
+  <circle cx="48" cy="272" r="16" fill="#fef3c7"/>
+  <text x="48" y="278" fill="#d97706" font-size="14" text-anchor="middle">🏠</text>
+  <text x="72" y="267" fill="#6b7280" font-size="12">Asset</text>
+  <text x="72" y="283" fill="#111827" font-size="14" font-weight="600">Immo Plus (IMMO)</text>
+  <text x="358" y="275" fill="#6b7280" font-size="12" text-anchor="end">Real Estate</text>
 
-  <line x1="32" y1="308" x2="358" y2="308" stroke="#f3f4f6" stroke-width="1"/>
+  <line x1="32" y1="298" x2="358" y2="298" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="32" y="320" fill="#6b7280" font-size="13">Order Type</text>
+  <rect x="276" y="308" width="76" height="22" rx="11" fill="#fecaca"/>
+  <text x="314" y="323" fill="#dc2626" font-size="12" font-weight="600" text-anchor="middle">📉 SELL</text>
 
-  <!-- Order type -->
-  <text x="32" y="332" fill="#6b7280" font-size="13">Order Type</text>
-  <rect x="276" y="319" width="76" height="22" rx="11" fill="#fecaca"/>
-  <text x="314" y="334" fill="#dc2626" font-size="12" font-weight="600" text-anchor="middle">📉 SELL</text>
+  <line x1="32" y1="338" x2="358" y2="338" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="32" y="360" fill="#6b7280" font-size="13">Units to sell</text>
+  <text x="358" y="360" fill="#111827" font-size="14" font-weight="700" text-anchor="end">5 units</text>
 
-  <line x1="32" y1="348" x2="358" y2="348" stroke="#f3f4f6" stroke-width="1"/>
+  <line x1="32" y1="376" x2="358" y2="376" stroke="#f3f4f6" stroke-width="1"/>
+  <!-- Bid price already includes LP spread baked in -->
+  <text x="32" y="398" fill="#6b7280" font-size="13">Bid price per unit</text>
+  <text x="358" y="398" fill="#111827" font-size="14" text-anchor="end">5,100 XAF</text>
 
-  <!-- Units -->
-  <text x="32" y="372" fill="#6b7280" font-size="13">Units to sell</text>
-  <text x="358" y="372" fill="#111827" font-size="14" font-weight="700" text-anchor="end">5 units</text>
+  <line x1="32" y1="414" x2="358" y2="414" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="32" y="436" fill="#6b7280" font-size="13">Gross proceeds</text>
+  <text x="358" y="436" fill="#111827" font-size="14" text-anchor="end">25,500 XAF</text>
 
-  <line x1="32" y1="388" x2="358" y2="388" stroke="#f3f4f6" stroke-width="1"/>
+  <line x1="32" y1="452" x2="358" y2="452" stroke="#f3f4f6" stroke-width="1"/>
+  <!-- Trading fee deducted from proceeds -->
+  <text x="32" y="472" fill="#6b7280" font-size="13">Trading fee (0.3%)</text>
+  <text x="358" y="472" fill="#ef4444" font-size="13" text-anchor="end">-77 XAF</text>
 
-  <!-- Bid price -->
-  <text x="32" y="412" fill="#6b7280" font-size="13">Bid price per unit</text>
-  <text x="358" y="412" fill="#111827" font-size="14" text-anchor="end">5,100 XAF</text>
+  <line x1="32" y1="488" x2="358" y2="488" stroke="#f3f4f6" stroke-width="1"/>
+  <!-- TVA on fee -->
+  <text x="32" y="508" fill="#6b7280" font-size="13">TVA (19.25% on fee)</text>
+  <text x="358" y="508" fill="#ef4444" font-size="13" text-anchor="end">-15 XAF</text>
 
-  <line x1="32" y1="428" x2="358" y2="428" stroke="#f3f4f6" stroke-width="1"/>
-
-  <!-- Gross proceeds -->
-  <text x="32" y="452" fill="#6b7280" font-size="13">Gross proceeds</text>
-  <text x="358" y="452" fill="#111827" font-size="14" text-anchor="end">25,500 XAF</text>
-
-  <line x1="32" y1="468" x2="358" y2="468" stroke="#f3f4f6" stroke-width="1"/>
-
-  <!-- Trading fee -->
-  <text x="32" y="492" fill="#6b7280" font-size="13">Trading fee (0.5%)</text>
-  <text x="358" y="492" fill="#ef4444" font-size="14" text-anchor="end">-127.50 XAF</text>
-
-  <line x1="32" y1="490" x2="358" y2="490" stroke="#e5e7eb" stroke-width="1.5"/>
-
-  <!-- Net proceeds -->
-  <text x="32" y="496" fill="#111827" font-size="15" font-weight="700">Net Proceeds</text>
-  <text x="358" y="496" fill="#ef4444" font-size="20" font-weight="700" text-anchor="end">25,372.50 XAF</text>
+  <!-- Net proceeds divider -->
+  <line x1="16" y1="524" x2="374" y2="524" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="32" y="548" fill="#111827" font-size="15" font-weight="700">Net Proceeds</text>
+  <text x="358" y="548" fill="#ef4444" font-size="20" font-weight="700" text-anchor="end">25,408 XAF</text>
 
   <!-- Remaining holdings -->
-  <rect x="16" y="512" width="358" height="56" rx="12" fill="#f0fdf4"/>
-  <text x="32" y="536" fill="#6b7280" font-size="13">Remaining holdings after sale</text>
-  <text x="358" y="536" fill="#15803d" font-size="14" font-weight="700" text-anchor="end">5 units</text>
-  <text x="32" y="556" fill="#9ca3af" font-size="12">You currently hold: 10 units → After sale: 5 units</text>
+  <rect x="16" y="570" width="358" height="52" rx="12" fill="#f0fdf4"/>
+  <text x="32" y="592" fill="#6b7280" font-size="13">Remaining holdings after sale</text>
+  <text x="358" y="592" fill="#15803d" font-size="14" font-weight="700" text-anchor="end">5 units</text>
+  <text x="32" y="610" fill="#9ca3af" font-size="12">You currently hold: 10 units → After sale: 5 units</text>
 
   <!-- Important notes -->
-  <rect x="16" y="580" width="358" height="80" rx="12" fill="#fffbeb"/>
-  <text x="32" y="602" fill="#92400e" font-size="13" font-weight="600">⚠️ Important Notes</text>
-  <text x="32" y="622" fill="#92400e" font-size="12">• Sale price may change slightly at execution time</text>
-  <text x="32" y="640" fill="#92400e" font-size="12">• Proceeds credited to wallet within 1 business day</text>
-  <text x="32" y="658" fill="#92400e" font-size="12">• Sold units cannot be recovered after confirmation</text>
+  <rect x="16" y="634" width="358" height="76" rx="12" fill="#fffbeb"/>
+  <text x="32" y="656" fill="#92400e" font-size="13" font-weight="600">⚠️ Important Notes</text>
+  <text x="32" y="674" fill="#92400e" font-size="12">• Sale price may change slightly at execution time</text>
+  <text x="32" y="690" fill="#92400e" font-size="12">• Proceeds credited to wallet within 1 business day</text>
+  <text x="32" y="706" fill="#92400e" font-size="12">• Sold units cannot be recovered after confirmation</text>
 
   <!-- Confirm Sale Button -->
-  <rect x="16" y="674" width="358" height="52" rx="14" fill="#ef4444" filter="url(#shadow)"/>
-  <text x="195" y="705" fill="white" font-size="16" font-weight="700" text-anchor="middle">✓  Confirm Sale</text>
+  <rect x="16" y="722" width="358" height="52" rx="14" fill="#ef4444" filter="url(#shadow)"/>
+  <text x="195" y="753" fill="white" font-size="16" font-weight="700" text-anchor="middle">✓  Confirm Sale</text>
 
   <!-- Go Back -->
-  <text x="195" y="744" fill="#ef4444" font-size="14" text-anchor="middle">← Go Back</text>
+  <text x="195" y="792" fill="#ef4444" font-size="14" text-anchor="middle">← Go Back</text>
 
   <!-- Bottom Nav -->
-  <rect x="0" y="796" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="48" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
-  <text x="146" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">📊 Market</text>
-  <text x="244" y="826" fill="#ef4444" font-size="10" text-anchor="middle" font-weight="600">💼 Portfolio</text>
-  <text x="342" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
+  <rect x="0" y="852" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="48" y="882" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
+  <text x="146" y="882" fill="#9ca3af" font-size="10" text-anchor="middle">📊 Market</text>
+  <text x="244" y="882" fill="#ef4444" font-size="10" text-anchor="middle" font-weight="600">💼 Portfolio</text>
+  <text x="342" y="882" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
 </svg>
