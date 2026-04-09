@@ -11,6 +11,7 @@ import com.adorsys.fineract.asset.entity.CategorySnapshot;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.CategorySnapshotRepository;
+import com.adorsys.fineract.asset.dto.OrderStatus;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
 import com.adorsys.fineract.asset.repository.PurchaseLotRepository;
@@ -175,7 +176,7 @@ public class PortfolioService {
                 .orElse(null);
 
         List<OrderResponse> orderHistory = orderRepository
-                .findByUserIdAndAssetId(userId, assetId,
+                .findByUserIdAndAssetIdAndStatusNotIn(userId, assetId, List.of(OrderStatus.CANCELLED),
                         PageRequest.of(0, 200, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .getContent()
                 .stream()
