@@ -40,8 +40,9 @@ public class CinetPayCallbackSteps {
         context.storeId("cinetpayTxnId", txnId);
         jdbcTemplate.update(
                 "INSERT INTO payment_transactions " +
-                "(transaction_id, external_id, account_id, provider, type, amount, currency, status) " +
-                "VALUES (?, ?, ?, 'CINETPAY', 'DEPOSIT', 5000.00, 'XAF', 'PENDING')",
+                "(transaction_id, idempotency_key, external_id, account_id, provider, type, amount, currency, status) " +
+                "VALUES (?, ?, ?, ?, 'CINETPAY', 'DEPOSIT', 5000.00, 'XAF', 'PENDING')",
+                txnId,
                 txnId,
                 FineractInitializer.TEST_USER_EXTERNAL_ID,
                 FineractInitializer.getTestUserXafAccountId());
@@ -53,8 +54,9 @@ public class CinetPayCallbackSteps {
         context.storeId("cinetpayTxnId", txnId);
         jdbcTemplate.update(
                 "INSERT INTO payment_transactions " +
-                "(transaction_id, external_id, account_id, provider, type, amount, currency, status) " +
-                "VALUES (?, ?, ?, 'CINETPAY', 'WITHDRAWAL', 5000.00, 'XAF', 'PENDING')",
+                "(transaction_id, idempotency_key, external_id, account_id, provider, type, amount, currency, status) " +
+                "VALUES (?, ?, ?, ?, 'CINETPAY', 'WITHDRAWAL', 5000.00, 'XAF', 'PENDING')",
+                txnId,
                 txnId,
                 FineractInitializer.TEST_USER_EXTERNAL_ID,
                 FineractInitializer.getTestUserXafAccountId());

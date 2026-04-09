@@ -10,8 +10,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Stores the current and intra-day price data for an asset.
- * One row per asset (1:1 with Asset). Updated by the price scheduler or admin price-set operations.
+ * Stores the live and intra-day price data for a single asset.
+ * One row per asset (1:1 with {@link Asset}), created when the asset is activated
+ * and updated in-place on every price tick. The ask/bid spread is the LP's quoted
+ * market for that asset: buyers pay {@code askPrice}, sellers receive {@code bidPrice}.
+ * <p>
+ * Day OHLC values (open/high/low/close) are reset at market open (08:00 WAT) by
+ * the PriceScheduler and finalized at market close (20:00 WAT). The
+ * {@code previousClose} and {@code change24hPercent} are computed from the prior
+ * day's {@code dayClose} when the day resets.
  */
 @Data
 @Entity

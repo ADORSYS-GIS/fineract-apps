@@ -55,7 +55,8 @@ class TradeControllerTest {
                 TradeSide.BUY, new BigDecimal("10"),
                 new BigDecimal("101"), new BigDecimal("1015"),
                 new BigDecimal("5"), new BigDecimal("10"), OrderStatus.FILLED,
-                Instant.now()
+                Instant.now(),
+                null, null, null, null
         );
         when(tradingService.getUserOrders(eq(42L), any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(order)));
@@ -105,7 +106,8 @@ class TradeControllerTest {
                 TradeSide.BUY, new BigDecimal("10"),
                 new BigDecimal("101"), new BigDecimal("1010"),
                 new BigDecimal("5"), new BigDecimal("10"), OrderStatus.PENDING,
-                Instant.now()
+                Instant.now(),
+                null, null, null, null
         );
         when(tradingService.confirmOrder("order-001", 42L)).thenReturn(response);
 

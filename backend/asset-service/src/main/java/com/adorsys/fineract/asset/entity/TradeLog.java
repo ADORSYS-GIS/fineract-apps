@@ -11,8 +11,19 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Immutable record of an executed trade. Created once when an order is filled.
- * Stores the execution details and, for SELL trades, the realized P&L.
+ * Immutable execution record of a filled trade. Created exactly once by the order
+ * execution service immediately after the Fineract batch transfer succeeds, and
+ * linked to the parent {@link Order} by {@code orderId}.
+ * <p>
+ * While {@link Order} tracks the command and its lifecycle state, {@code TradeLog}
+ * is the append-only ledger of what actually happened: units moved, prices paid,
+ * fees charged, and realized P&amp;L computed. Rows must never be updated or deleted.
+ * <p>
+ * The no-args constructor has protected access ({@code @NoArgsConstructor(access = PROTECTED)})
+ * to enforce builder-only construction and prevent accidental mutation via reflection.
+ * <p>
+ * For BUY trades: {@code totalAmount = units * pricePerUnit} (gross cost before fees).
+ * For SELL trades: {@code totalAmount} is the net proceeds after fee and spread deduction.
  */
 @Getter
 @Entity

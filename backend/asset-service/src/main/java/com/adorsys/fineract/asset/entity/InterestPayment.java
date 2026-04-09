@@ -11,10 +11,16 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * Audit record for a coupon (interest) payment made to a bond holder.
+ * Audit record for a single coupon (interest) payment made to one bond holder.
+ * One row is created per user per bond per coupon date when the
+ * InterestPaymentScheduler confirms a COUPON-type {@link ScheduledPayment}.
  * <p>
- * Each row represents one cash transfer from the treasury cash account to a user's settlement currency account.
- * The payment amount is calculated as:
+ * Each row represents one Fineract cash transfer from the LP's treasury cash
+ * account ({@link Asset#lpCashAccountId}) to the user's settlement currency account.
+ * All input values are snapshotted at payment time so the row remains accurate
+ * even if the asset's rate or face value changes later.
+ * <p>
+ * Payment amount formula:
  * {@code cashAmount = units * faceValue * (annualRate / 100) * (periodMonths / 12)}
  */
 @Data
@@ -25,6 +31,7 @@ import java.time.LocalDate;
 @Table(name = "interest_payments")
 public class InterestPayment {
 
+    /** Auto-generated sequential primary key. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

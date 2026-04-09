@@ -16,8 +16,28 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * Represents a tradeable asset (e.g. real estate token, commodity unit).
- * Each asset is backed by a Fineract savings product and has its own treasury accounts.
+ * Central configuration entity for a tradeable asset on the platform.
+ * An asset can represent a real estate token, commodity unit, agricultural yield share,
+ * stock, crypto, or a fixed-income instrument (coupon bond / discount bill).
+ * <p>
+ * Each asset is paired with a Fineract savings product ({@code fineractProductId}) that
+ * holds the unit balances for all holders. It also owns four Fineract savings accounts
+ * on behalf of the liquidity partner: asset inventory ({@code lpAssetAccountId}), cash
+ * settlement ({@code lpCashAccountId}), spread/margin ({@code lpSpreadAccountId}), and
+ * tax holding ({@code lpTaxAccountId}).
+ * <p>
+ * Key invariants:
+ * <ul>
+ *   <li>{@code circulatingSupply} must never exceed {@code totalSupply}.</li>
+ *   <li>Trading is only permitted when {@code status == ACTIVE} and the market is open.</li>
+ *   <li>{@code manualPrice} is the single source of truth for pricing when
+ *       {@code priceMode == MANUAL}; it is also the execution price for all orders.</li>
+ *   <li>Bond-specific fields ({@code interestRate}, {@code couponFrequencyMonths}, etc.)
+ *       are only meaningful when {@code bondType} is non-null.</li>
+ * </ul>
+ * <p>
+ * Optimistic locking ({@code @Version}) prevents concurrent admin updates from
+ * silently overwriting each other's changes.
  */
 @Data
 @Entity

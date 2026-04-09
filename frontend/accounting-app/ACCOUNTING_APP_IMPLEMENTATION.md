@@ -2,9 +2,9 @@
 
 This document tracks the implementation progress of the Accounting Application based on the PRD requirements.
 
-**Last Updated:** 2025-11-17
-**Current Status:** Phase 6 RBAC - Role-Based Access Control Implemented
-**Overall Completion:** 78% (28/36 tasks complete, 5 phases done, Phase 6 67%)
+**Last Updated:** 2026-04-08
+**Current Status:** Phases 1–6 shipped. Phase 7 (polish/export/testing) not yet started.
+**Overall Completion:** 78% (28/36 tasks complete; Phases 1–6 done except audit trail enhancements 12.1–12.3)
 
 ---
 
@@ -316,35 +316,32 @@ This document tracks the implementation progress of the Accounting Application b
 
 ## API Endpoints Used
 
-### Currently Configured (not yet used):
-- OpenAPI base URL: `/fineract-provider/api/v1`
-- Basic auth with username/password
-- Tenant ID header
-
-### Endpoints to Implement:
+All endpoints go through the Fineract API base URL `/fineract-provider/api/v1` with basic auth and tenant ID header.
 
 #### GL Accounts
-- `GET /glaccounts` - List all GL accounts ✅ (to implement)
-- `POST /glaccounts` - Create GL account (Admin only)
-- `PUT /glaccounts/{id}` - Update GL account (Admin only)
-- `DELETE /glaccounts/{id}` - Disable GL account (Admin only)
-- `GET /glaccounts/{id}` - Get GL account details
+- `GET /glaccounts` — List all GL accounts (with type, usage, balance filters)
+- `POST /glaccounts` — Create GL account (Admin only)
+- `PUT /glaccounts/{id}` — Update GL account (Admin only)
+- `DELETE /glaccounts/{id}` — Delete GL account (Admin only)
 
 #### Journal Entries
-- `GET /journalentries` - List journal entries ✅ (to implement)
-- `POST /journalentries` - Create journal entry (maker-checker) ✅ (to implement)
-- `GET /journalentries/{id}` - Get entry details
-- `POST /journalentries/{id}/reverse` - Reverse entry (if available)
+- `GET /journalentries` — List journal entries with date range filter
+- `POST /journalentries` — Create manual entry (submitted via maker-checker)
+- `GET /journalentries/{transactionId}` — Get entry detail (debit/credit breakdown)
+- `POST /journalentries/{transactionId}?command=reverse` — Reverse an entry
 
 #### Accounting Closures
-- `GET /accounting/closures` - List closures
-- `POST /accounting/closures` - Create closure (Admin only)
-- `GET /accounting/closures/{id}` - Get closure details
+- `GET /glclosures` — List period-end closures
+- `POST /glclosures` — Create closure (Admin only)
+- `DELETE /glclosures/{id}` — Delete closure (Admin only)
 
 #### Maker-Checker / Approvals
-- `GET /makercheckers` - List pending approvals (if exists)
-- `POST /makercheckers/{id}/approve` - Approve (Admin only)
-- `POST /makercheckers/{id}/reject` - Reject (Admin only)
+- `GET /audits?processingResult=CHECKER_APPROVED_NEEDED` — List pending approvals
+- `POST /makercheckers/{auditId}?command=approve` — Approve entry (Admin only)
+- `DELETE /makercheckers/{auditId}` — Reject entry (Admin only)
+
+#### Authentication
+- `POST /authentication` — Fetch user roles and permissions (cached indefinitely)
 
 ---
 
@@ -375,8 +372,5 @@ This document tracks the implementation progress of the Accounting Application b
 
 ## Next Steps
 
-1. Start with Phase 1, Step 1.1 (Dashboard API integration)
-2. Update this document with ✅ after each sub-task completion
-3. Test build after each step
-4. Commit after completing each major step
-5. Deploy and verify in development environment
+1. Complete Phase 6 audit trail enhancements (12.1–12.3) if prioritised
+2. Begin Phase 7 polish items (enhanced dashboard widgets, Excel/PDF export, unit/integration tests)

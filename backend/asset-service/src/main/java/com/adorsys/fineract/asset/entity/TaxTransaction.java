@@ -10,8 +10,22 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Audit record for a tax collected on a trade or income distribution.
- * Used for capital gains exemption tracking and DGI reporting.
+ * Audit record for a single tax amount collected from a user on a trade or income
+ * distribution. One row is created per tax type per taxable event — a single order
+ * may produce two rows (registration duty + capital gains tax) if both apply.
+ * <p>
+ * Three tax types are currently in use:
+ * <ul>
+ *   <li>{@code REGISTRATION_DUTY} — 2% droit d'enregistrement on the trade cash amount.
+ *       Linked to an {@link Order} via {@code orderId}.</li>
+ *   <li>{@code CAPITAL_GAINS} — 16.5% on the realized gain of a profitable SELL.
+ *       Linked to an {@link Order} via {@code orderId}.</li>
+ *   <li>{@code IRCM} — Impôt sur le Revenu des Capitaux Mobiliers withheld from coupon
+ *       and income payments. Linked to a {@link ScheduledPayment} via {@code scheduledPaymentId}.</li>
+ * </ul>
+ * <p>
+ * Used for DGI (Direction Générale des Impôts) tax reporting exports and for enforcing
+ * annual capital gains tax-free allowances at the user level.
  */
 @Data
 @Entity
