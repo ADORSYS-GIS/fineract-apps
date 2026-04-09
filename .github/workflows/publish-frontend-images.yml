@@ -5,7 +5,7 @@ on:
     branches:
       - develop
       - main
-      - feature/asset-service
+      - test/ci-optimization
     paths:
       - 'frontend/**'
       - 'packages/**'
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       apps:
-        description: 'Apps to build (comma-separated: admin,account-manager,branch-manager,cashier,reporting,accounting or "all")'
+        description: 'Apps to build (comma-separated: admin,account-manager,branch-manager,cashier,reporting,accounting,asset-manager,self-service or "all")'
         required: false
         default: 'all'
 
@@ -33,23 +33,97 @@ jobs:
       apps: ${{ steps.set-apps.outputs.apps }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Set apps matrix
         id: set-apps
         run: |
-          BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-          if [ "$BRANCH" == "feature/asset-service" ]; then
-            echo 'apps=["asset-manager"]' >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.inputs.apps }}" == "all" ] || [ "${{ github.event.inputs.apps }}" == "" ]; then
-            echo 'apps=["admin","account-manager","branch-manager","cashier","reporting","accounting","asset-manager","self-service"]' >> $GITHUB_OUTPUT
+          ALL_APPS='["admin","account-manager","branch-manager","cashier","reporting","accounting","asset-manager","self-service"]'
+
+          # workflow_dispatch: honour manual input unchanged
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            INPUT="${{ github.event.inputs.apps }}"
+            if [ "$INPUT" == "all" ] || [ -z "$INPUT" ]; then
+              echo "apps=$ALL_APPS" >> $GITHUB_OUTPUT
+            else
+              APPS=$(echo "$INPUT" | jq -R 'split(",") | map(. | gsub(" "; ""))')
+              echo "apps=$APPS" >> $GITHUB_OUTPUT
+            fi
+            exit 0
+          fi
+
+          # push event: git diff-based detection
+          BEFORE="${{ github.event.before }}"
+          SHA="${{ github.sha }}"
+
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            # First push to branch: diff from root commit to avoid HEAD~1 failing
+            # on orphan branches or shallow clones
+            ROOT=$(git rev-list --max-parents=0 HEAD 2>/dev/null || echo "")
+            if [ -n "$ROOT" ]; then
+              CHANGED=$(git diff --name-only "$ROOT" HEAD -- 2>/dev/null || echo "")
+            else
+              CHANGED=""
+            fi
           else
-            APPS=$(echo "${{ github.event.inputs.apps }}" | jq -R 'split(",") | map(. | gsub(" "; ""))')
-            echo "apps=$APPS" >> $GITHUB_OUTPUT
+            CHANGED=$(git diff --name-only "$BEFORE" "$SHA" -- 2>/dev/null || echo "")
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          # Safety net: workflow file itself changed → rebuild all
+          if echo "$CHANGED" | grep -qE "^\.github/workflows/publish-frontend-images\.yml$"; then
+            echo "Workflow file changed — rebuilding all apps"
+            echo "apps=$ALL_APPS" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Shared packages changed → rebuild all apps (they share these deps)
+          if echo "$CHANGED" | grep -qE "^packages/"; then
+            echo "Shared packages changed — rebuilding all apps"
+            echo "apps=$ALL_APPS" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Per-app detection: source directory OR its root-level Dockerfile
+          # Use exact directory anchoring to avoid prefix matches
+          declare -A APP_DIRS=(
+            ["admin"]="frontend/admin-app"
+            ["account-manager"]="frontend/account-manager-app"
+            ["branch-manager"]="frontend/branchmanager-app"
+            ["cashier"]="frontend/cashier-app"
+            ["reporting"]="frontend/reporting-app"
+            ["accounting"]="frontend/accounting-app"
+            ["asset-manager"]="frontend/asset-manager-app"
+            ["self-service"]="frontend/self-service-app"
+          )
+
+          APPS=()
+          for app in "admin" "account-manager" "branch-manager" "cashier" "reporting" "accounting" "asset-manager" "self-service"; do
+            DIR="${APP_DIRS[$app]}"
+            # Match source dir (with boundary) OR the Dockerfile at repo root
+            if echo "$CHANGED" | grep -qE "^${DIR}(/|$)|^Dockerfile\.${app}$"; then
+              APPS+=("\"$app\"")
+              echo "Detected change in: $app"
+            fi
+          done
+
+          if [ ${#APPS[@]} -eq 0 ]; then
+            echo "No app directories changed — skipping builds"
+            echo 'apps=[]' >> $GITHUB_OUTPUT
+          else
+            echo "apps=[$(IFS=,; echo "${APPS[*]}")]" >> $GITHUB_OUTPUT
           fi
 
   build-and-push:
     name: Build and Push ${{ matrix.app }}
     runs-on: ubuntu-latest
     needs: determine-apps
+    if: needs.determine-apps.outputs.apps != '[]'
 
     strategy:
       matrix:
@@ -79,8 +153,8 @@ jobs:
           BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
 
-          # Sanitize branch name for use as Docker tag (no slashes allowed)
-          SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          # Sanitize branch name and truncate to Docker tag max length (128 chars)
+          SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-128)
           echo "safe_branch=$SAFE_BRANCH" >> $GITHUB_OUTPUT
 
           # Extract git hashes
@@ -89,19 +163,8 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "long_sha=$LONG_SHA" >> $GITHUB_OUTPUT
 
-          # Determine image tags
-          if [ "$BRANCH" == "develop" ]; then
-            TAGS="develop,$SHORT_SHA,$LONG_SHA"
-          elif [ "$BRANCH" == "main" ]; then
-            TAGS="main,$SHORT_SHA,$LONG_SHA"
-          else
-            TAGS="$SAFE_BRANCH,$SHORT_SHA"
-          fi
-
-          echo "tags=$TAGS" >> $GITHUB_OUTPUT
-          echo "Image tags: $TAGS"
-
       - name: Build and push ${{ matrix.app }} image
+        if: github.ref != 'refs/heads/main'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -117,16 +180,49 @@ jobs:
           build-args: |
             COMMIT_SHA=${{ steps.meta.outputs.short_sha }}
             BUILD_TAG=${{ steps.meta.outputs.branch }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Scope cache per branch+app to avoid cross-branch cache poisoning
+          cache-from: type=gha,scope=build-${{ github.ref_name }}-${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=build-${{ github.ref_name }}-${{ matrix.app }}
+
+      # Promote the develop image to main — same binary, no recompilation
+      - name: Verify develop image exists before promotion
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMAGE="${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app"
+          echo "Checking develop image exists: $IMAGE:develop"
+          if ! docker manifest inspect "$IMAGE:develop" > /dev/null 2>&1; then
+            echo "::error::Develop image not found for ${{ matrix.app }}. The develop build must complete successfully before promoting to main."
+            exit 1
+          fi
+          echo "Develop image confirmed — proceeding with promotion"
+
+      - name: Promote develop image to main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMAGE="${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app"
+          docker pull "$IMAGE:develop"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE:develop" 2>/dev/null || echo "unknown")
+          echo "Source digest: $DIGEST"
+          docker tag "$IMAGE:develop" "$IMAGE:main"
+          docker tag "$IMAGE:develop" "$IMAGE:${{ steps.meta.outputs.short_sha }}"
+          docker push "$IMAGE:main"
+          docker push "$IMAGE:${{ steps.meta.outputs.short_sha }}"
+          echo "Promoted $IMAGE:develop → main + ${{ steps.meta.outputs.short_sha }}"
 
       - name: Generate build summary
+        if: success()
         run: |
-          echo "### ${{ matrix.app }} Image Built Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+          BRANCH="${{ steps.meta.outputs.branch }}"
+          if [ "$BRANCH" == "main" ]; then
+            ACTION="Promoted (develop → main)"
+          else
+            ACTION="Built from source"
+          fi
+          echo "### ${{ matrix.app }} Image Published ($ACTION)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Registry**: \`${{ env.REGISTRY }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Repository**: \`adorsys-gis/fineract-apps/${{ matrix.app }}-app\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags**: \`${{ steps.meta.outputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**SHA**: \`${{ steps.meta.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pull Command**:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
@@ -135,8 +231,9 @@ jobs:
 
   trigger-gitops-update:
     name: Trigger GitOps Update
-    needs: build-and-push
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    needs: [determine-apps, build-and-push]
+    # Only fire when builds actually succeeded — prevents dispatching with empty/partial data
+    if: (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && needs.build-and-push.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -157,8 +254,11 @@ jobs:
         run: |
           BRANCH="${{ steps.meta.outputs.branch }}"
           TAG="${{ steps.meta.outputs.short_sha }}"
+          APPS='${{ needs.determine-apps.outputs.apps }}'
 
-          # Trigger update for all frontend apps with a single dispatch
+          # Validate JSON array before dispatching to catch malformed output early
+          echo "$APPS" | jq -e 'if type == "array" and length > 0 then . else error("invalid or empty apps array") end'
+
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
@@ -166,11 +266,12 @@ jobs:
             -f event_type='update-frontend-images' \
             -f client_payload[tag]="$TAG" \
             -f client_payload[branch]="$BRANCH" \
-            -f client_payload[apps]='["admin","account-manager","branch-manager","cashier","reporting","accounting","asset-manager","self-service"]'
+            -f client_payload[apps]="$APPS"
 
           echo "### GitOps Update Triggered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tag**: \`$TAG\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch**: \`$BRANCH\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Apps**: \`$APPS\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "A PR will be created in the fineract-gitops repository to update image tags." >> $GITHUB_STEP_SUMMARY
