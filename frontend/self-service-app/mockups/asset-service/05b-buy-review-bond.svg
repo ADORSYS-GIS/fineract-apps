@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1020" width="390" height="1020">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 984" width="390" height="984">
   <defs>
     <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
     <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#00000018"/></filter>
   </defs>
 
   <!-- Background -->
-  <rect width="390" height="1020" fill="#f3f4f6"/>
+  <rect width="390" height="984" fill="#f3f4f6"/>
 
   <!-- Status Bar -->
   <rect width="390" height="44" fill="#1a56db"/>
@@ -26,8 +26,8 @@
   <rect x="16" y="166" width="358" height="36" rx="12" fill="#eff6ff"/>
   <text x="195" y="189" fill="#1e40af" font-size="12" text-anchor="middle">📋 Please review your bond order carefully before confirming</text>
 
-  <!-- Order Summary Card -->
-  <rect x="16" y="210" width="358" height="462" rx="14" fill="white" filter="url(#shadow)"/>
+  <!-- Order Summary Card — LP spread removed, card height 426 -->
+  <rect x="16" y="210" width="358" height="426" rx="14" fill="white" filter="url(#shadow)"/>
   <text x="32" y="238" fill="#111827" font-size="15" font-weight="700">Order Summary</text>
 
   <!-- Asset row -->
@@ -48,82 +48,77 @@
   <text x="358" y="356" fill="#111827" font-size="14" font-weight="700" text-anchor="end">10 units</text>
 
   <line x1="32" y1="372" x2="358" y2="372" stroke="#f3f4f6" stroke-width="1"/>
-  <text x="32" y="392" fill="#6b7280" font-size="13">Clean price per unit</text>
+  <!-- Price per unit (ask) already includes LP spread — not itemised -->
+  <text x="32" y="392" fill="#6b7280" font-size="13">Ask price per unit</text>
   <text x="358" y="392" fill="#111827" font-size="14" text-anchor="end">9,750 XAF</text>
 
   <line x1="32" y1="408" x2="358" y2="408" stroke="#f3f4f6" stroke-width="1"/>
-  <text x="32" y="428" fill="#6b7280" font-size="13">Gross amount (clean)</text>
+  <text x="32" y="428" fill="#6b7280" font-size="13">Gross amount</text>
   <text x="358" y="428" fill="#111827" font-size="14" text-anchor="end">97,500 XAF</text>
 
   <line x1="32" y1="444" x2="358" y2="444" stroke="#f3f4f6" stroke-width="1"/>
   <!-- accrued interest -->
   <text x="32" y="464" fill="#6b7280" font-size="13">Accrued interest</text>
-  <text x="32" y="478" fill="#9ca3af" font-size="10">ⓘ Paid to seller; you receive full next coupon</text>
+  <text x="32" y="478" fill="#9ca3af" font-size="10">ⓘ Paid to seller; you receive full next coupon on Apr 1</text>
   <text x="358" y="464" fill="#7c3aed" font-size="13" font-weight="600" text-anchor="end">+3,250 XAF</text>
 
   <line x1="32" y1="490" x2="358" y2="490" stroke="#f3f4f6" stroke-width="1"/>
-  <text x="32" y="510" fill="#6b7280" font-size="13">LP spread (0.3%)</text>
-  <text x="358" y="510" fill="#ef4444" font-size="13" text-anchor="end">+300 XAF</text>
+  <text x="32" y="510" fill="#6b7280" font-size="13">Trading fee (0.3%)</text>
+  <text x="358" y="510" fill="#ef4444" font-size="13" text-anchor="end">+303 XAF</text>
 
   <line x1="32" y1="526" x2="358" y2="526" stroke="#f3f4f6" stroke-width="1"/>
-  <text x="32" y="546" fill="#6b7280" font-size="13">Trading fee (0.3%)</text>
-  <text x="358" y="546" fill="#ef4444" font-size="13" text-anchor="end">+303 XAF</text>
+  <text x="32" y="546" fill="#6b7280" font-size="13">IRCM tax</text>
+  <text x="358" y="546" fill="#ef4444" font-size="13" text-anchor="end">+250 XAF</text>
 
   <line x1="32" y1="562" x2="358" y2="562" stroke="#f3f4f6" stroke-width="1"/>
-  <!-- IRCM tax -->
-  <text x="32" y="582" fill="#6b7280" font-size="13">IRCM tax</text>
-  <text x="358" y="582" fill="#ef4444" font-size="13" text-anchor="end">+250 XAF</text>
-
-  <line x1="32" y1="598" x2="358" y2="598" stroke="#f3f4f6" stroke-width="1"/>
-  <!-- TVA -->
-  <text x="32" y="618" fill="#6b7280" font-size="13">TVA (19.25% on fee)</text>
-  <text x="358" y="618" fill="#ef4444" font-size="13" text-anchor="end">+58 XAF</text>
+  <text x="32" y="582" fill="#6b7280" font-size="13">TVA (19.25% on fee)</text>
+  <text x="358" y="582" fill="#ef4444" font-size="13" text-anchor="end">+58 XAF</text>
 
   <!-- Total divider -->
-  <line x1="16" y1="634" x2="374" y2="634" stroke="#e5e7eb" stroke-width="2"/>
-  <text x="32" y="658" fill="#111827" font-size="15" font-weight="700">Total</text>
-  <text x="358" y="658" fill="#1a56db" font-size="20" font-weight="700" text-anchor="end">101,661 XAF</text>
+  <line x1="16" y1="598" x2="374" y2="598" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="32" y="622" fill="#111827" font-size="15" font-weight="700">Total</text>
+  <text x="358" y="622" fill="#1a56db" font-size="20" font-weight="700" text-anchor="end">101,361 XAF</text>
 
-  <!-- Balance after -->
-  <text x="32" y="676" fill="#6b7280" font-size="12">Available balance</text>
-  <text x="358" y="676" fill="#15803d" font-size="13" font-weight="600" text-anchor="end">✓ 850,000 XAF</text>
+  <!-- Balance -->
+  <text x="32" y="640" fill="#6b7280" font-size="12">Available balance</text>
+  <text x="358" y="640" fill="#15803d" font-size="13" font-weight="600" text-anchor="end">✓ 850,000 XAF</text>
 
   <!-- Bond Benefit Projection Card -->
-  <rect x="16" y="682" width="358" height="130" rx="14" fill="#eff6ff" filter="url(#shadow)"/>
-  <text x="32" y="706" fill="#1e40af" font-size="14" font-weight="600">📊 Investment Projection</text>
-  <line x1="32" y1="716" x2="358" y2="716" stroke="#dbeafe" stroke-width="1"/>
+  <rect x="16" y="646" width="358" height="130" rx="14" fill="#eff6ff" filter="url(#shadow)"/>
+  <text x="32" y="670" fill="#1e40af" font-size="14" font-weight="600">📊 Investment Projection</text>
+  <line x1="32" y1="680" x2="358" y2="680" stroke="#dbeafe" stroke-width="1"/>
 
-  <text x="32" y="734" fill="#6b7280" font-size="12">Est. annual coupon income</text>
-  <text x="358" y="734" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">7,500 XAF / year</text>
+  <text x="32" y="698" fill="#6b7280" font-size="12">Est. annual coupon income</text>
+  <text x="358" y="698" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">7,500 XAF / year</text>
 
-  <line x1="32" y1="742" x2="358" y2="742" stroke="#dbeafe" stroke-width="1"/>
-  <text x="32" y="760" fill="#6b7280" font-size="12">Next coupon (Apr 1, 2026)</text>
-  <text x="358" y="760" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">3,750 XAF</text>
+  <line x1="32" y1="706" x2="358" y2="706" stroke="#dbeafe" stroke-width="1"/>
+  <text x="32" y="724" fill="#6b7280" font-size="12">Next coupon (Apr 1, 2026)</text>
+  <text x="358" y="724" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">3,750 XAF</text>
 
-  <line x1="32" y1="768" x2="358" y2="768" stroke="#dbeafe" stroke-width="1"/>
-  <text x="32" y="786" fill="#6b7280" font-size="12">Yield to maturity</text>
-  <text x="358" y="786" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">7.8% p.a.</text>
+  <line x1="32" y1="732" x2="358" y2="732" stroke="#dbeafe" stroke-width="1"/>
+  <text x="32" y="750" fill="#6b7280" font-size="12">Yield to maturity</text>
+  <text x="358" y="750" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">7.8% p.a.</text>
 
-  <line x1="32" y1="794" x2="358" y2="794" stroke="#dbeafe" stroke-width="1"/>
-  <text x="32" y="812" fill="#6b7280" font-size="12">Principal at maturity (Oct 2034)</text>
-  <text x="358" y="812" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">100,000 XAF</text>
+  <line x1="32" y1="758" x2="358" y2="758" stroke="#dbeafe" stroke-width="1"/>
+  <text x="32" y="776" fill="#6b7280" font-size="12">Principal at maturity (Oct 2034)</text>
+  <text x="358" y="776" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">100,000 XAF</text>
 
   <!-- Warning note -->
-  <rect x="16" y="822" width="358" height="44" rx="12" fill="#fffbeb"/>
-  <text x="32" y="840" fill="#92400e" font-size="13" font-weight="600">⚠️ Important</text>
-  <text x="32" y="856" fill="#92400e" font-size="12">Price locked 30 s · Lock-up: 180 days after purchase</text>
+  <rect x="16" y="786" width="358" height="44" rx="12" fill="#fffbeb"/>
+  <text x="32" y="804" fill="#92400e" font-size="13" font-weight="600">⚠️ Important</text>
+  <text x="32" y="820" fill="#92400e" font-size="12">Price locked 30 s · Lock-up: 180 days after purchase</text>
 
   <!-- Confirm Button -->
-  <rect x="16" y="876" width="358" height="52" rx="14" fill="#1a56db" filter="url(#shadow)"/>
-  <text x="195" y="907" fill="white" font-size="16" font-weight="700" text-anchor="middle">✓  Confirm &amp; Buy Bond</text>
+  <rect x="16" y="840" width="358" height="52" rx="14" fill="#1a56db" filter="url(#shadow)"/>
+  <text x="195" y="871" fill="white" font-size="16" font-weight="700" text-anchor="middle">✓  Confirm &amp; Buy Bond</text>
 
   <!-- Go Back -->
-  <text x="195" y="946" fill="#1a56db" font-size="14" text-anchor="middle">← Go Back</text>
+  <text x="195" y="910" fill="#1a56db" font-size="14" text-anchor="middle">← Go Back</text>
 
   <!-- Bottom Nav -->
-  <rect x="0" y="972" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="48" y="1002" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
-  <text x="146" y="1002" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">📊 Market</text>
-  <text x="244" y="1002" fill="#9ca3af" font-size="10" text-anchor="middle">💼 Portfolio</text>
-  <text x="342" y="1002" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
+  <rect x="0" y="936" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="48" y="966" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
+  <text x="146" y="966" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">📊 Market</text>
+  <text x="244" y="966" fill="#9ca3af" font-size="10" text-anchor="middle">💼 Portfolio</text>
+  <text x="342" y="966" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
 </svg>
