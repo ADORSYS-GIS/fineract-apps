@@ -20,162 +20,85 @@ export const SupplyStep: FC<Props> = ({
 		<div className="space-y-6">
 			<div>
 				<h2 className="text-lg font-semibold text-gray-800 mb-1">
-					Supply & Subscription
+					Supply & Precision
 				</h2>
 				<p className="text-sm text-gray-500">
-					Define the total supply, precision, and subscription period for this
-					asset.
+					Define the total supply, fractional precision, and holding
+					restrictions for this asset.
 				</p>
 			</div>
 
-			{/* Supply & Precision */}
-			<div>
-				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-					Supply & Precision
-				</h3>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Total Supply (Units) *
-						</label>
-						<input
-							type="number"
-							aria-label="Total supply"
-							className={inputClass("supply")}
-							placeholder="e.g. 100000"
-							value={formData.totalSupply || ""}
-							onChange={(e) =>
-								updateFormData({ totalSupply: Number(e.target.value) })
-							}
-							min={1}
-						/>
-						{fieldError("supply") ? (
-							<p className="text-xs text-red-600 mt-1">
-								{fieldError("supply")}
-							</p>
-						) : (
-							<p className="text-xs text-gray-400 mt-1">
-								Total units created and deposited into the LP account. This is
-								the maximum that can be sold to investors (you can mint more
-								later)
-							</p>
-						)}
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Decimal Places
-						</label>
-						<select
-							aria-label="Decimal places"
-							className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-							value={formData.decimalPlaces}
-							onChange={(e) =>
-								updateFormData({ decimalPlaces: Number(e.target.value) })
-							}
-						>
-							<option value={0}>0 (whole units only)</option>
-							<option value={2}>2 (e.g. 1.50 units)</option>
-							<option value={4}>4 (e.g. 1.0050 units)</option>
-							<option value={8}>8 (high precision)</option>
-						</select>
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Total Supply (Units) *
+					</label>
+					<input
+						type="number"
+						aria-label="Total supply"
+						className={inputClass("supply")}
+						placeholder="e.g. 100000"
+						value={formData.totalSupply || ""}
+						onChange={(e) =>
+							updateFormData({ totalSupply: Number(e.target.value) })
+						}
+						min={1}
+					/>
+					{fieldError("supply") ? (
+						<p className="text-xs text-red-600 mt-1">{fieldError("supply")}</p>
+					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Controls fractional ownership. 0 = whole units only, 2 = 0.01 unit
-							precision, 8 = very fine-grained. Most assets use 0
+							Total units created and deposited into the LP account. This is the
+							maximum that can be sold to investors (you can mint more later)
 						</p>
-					</div>
+					)}
 				</div>
-			</div>
 
-			{/* Subscription Period */}
-			<div>
-				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-					Subscription Period
-				</h3>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Subscription Start Date *
-						</label>
-						<input
-							type="date"
-							aria-label="Subscription start date"
-							className={inputClass("subscription start")}
-							value={formData.subscriptionStartDate}
-							onChange={(e) =>
-								updateFormData({ subscriptionStartDate: e.target.value })
-							}
-						/>
-						{fieldError("subscription start") ? (
-							<p className="text-xs text-red-600 mt-1">
-								{fieldError("subscription start")}
-							</p>
-						) : (
-							<p className="text-xs text-gray-400 mt-1">
-								Users cannot buy until this date. Use this to schedule a future
-								launch
-							</p>
-						)}
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Subscription End Date *
-						</label>
-						<input
-							type="date"
-							aria-label="Subscription end date"
-							className={inputClass("subscription end")}
-							value={formData.subscriptionEndDate}
-							onChange={(e) =>
-								updateFormData({ subscriptionEndDate: e.target.value })
-							}
-						/>
-						{fieldError("subscription end") ? (
-							<p className="text-xs text-red-600 mt-1">
-								{fieldError("subscription end")}
-							</p>
-						) : (
-							<p className="text-xs text-gray-400 mt-1">
-								Users cannot buy after this date. SELL orders remain allowed
-							</p>
-						)}
-					</div>
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Decimal Places
+					</label>
+					<select
+						aria-label="Decimal places"
+						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						value={formData.decimalPlaces}
+						onChange={(e) =>
+							updateFormData({ decimalPlaces: Number(e.target.value) })
+						}
+					>
+						<option value={0}>0 (whole units only)</option>
+						<option value={2}>2 (e.g. 1.50 units)</option>
+						<option value={4}>4 (e.g. 1.0050 units)</option>
+						<option value={8}>8 (high precision)</option>
+					</select>
+					<p className="text-xs text-gray-400 mt-1">
+						Controls fractional ownership. 0 = whole units only, 2 = 0.01 unit
+						precision, 8 = very fine-grained. Most assets use 0
+					</p>
 				</div>
-			</div>
 
-			{/* Lock-up Period */}
-			<div>
-				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-					Lock-up Period (Optional)
-				</h3>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Lock-up Days
-						</label>
-						<input
-							type="number"
-							aria-label="Lock-up days"
-							className={inputClass("lockup")}
-							placeholder="e.g. 30"
-							value={formData.lockupDays || ""}
-							onChange={(e) =>
-								updateFormData({ lockupDays: Number(e.target.value) })
-							}
-							min={0}
-						/>
-						{fieldError("lockup") ? (
-							<p className="text-xs text-red-600 mt-1">
-								{fieldError("lockup")}
-							</p>
-						) : (
-							<p className="text-xs text-gray-400 mt-1">
-								Minimum holding period. After buying, a user must wait this many
-								days before selling. Prevents pump-and-dump. 0 = no lock-up
-							</p>
-						)}
-					</div>
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Lock-up Days
+					</label>
+					<input
+						type="number"
+						aria-label="Lock-up days"
+						className={inputClass("lockup")}
+						placeholder="0 (no lock-up)"
+						value={formData.lockupDays || ""}
+						onChange={(e) =>
+							updateFormData({ lockupDays: Number(e.target.value) })
+						}
+						min={0}
+					/>
+					{fieldError("lockup") ? (
+						<p className="text-xs text-red-600 mt-1">{fieldError("lockup")}</p>
+					) : (
+						<p className="text-xs text-gray-400 mt-1">
+							Minimum holding period before an investor can sell. 0 = no lock-up
+						</p>
+					)}
 				</div>
 			</div>
 

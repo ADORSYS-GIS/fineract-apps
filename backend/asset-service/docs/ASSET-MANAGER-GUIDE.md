@@ -18,7 +18,7 @@
   - [Step 2: Asset Details](#step-2-asset-details)
   - [Step 3: Bond Details (Bonds Only)](#step-3-bond-details-bonds-only)
   - [Step 4: Pricing & Fees](#step-4-pricing--fees)
-  - [Step 5: Supply & Subscription](#step-5-supply--subscription)
+  - [Step 5: Supply & Precision](#step-5-supply--precision)
   - [Step 6: Income Distribution (Non-Bond Assets)](#step-6-income-distribution-non-bond-assets)
   - [Step 7: Tax Configuration](#step-7-tax-configuration)
   - [Step 8: Review & Create](#step-8-review--create)
@@ -169,8 +169,35 @@ Below the summary cards, a table lists all assets:
 ### 2.4 Quick Actions
 
 - Click **"Create Asset"** (top right) to start the creation wizard.
+- Click **"Export Template"** to download an Excel template for bulk asset import.
+- Click **"Import Assets"** to upload a filled template and create multiple assets at once.
 - Click **"Manage"** on any asset row to open its details page.
 
+### 2.5 Bulk Asset Import
+
+If you need to create many assets at once, the Excel import workflow is faster than creating them one by one:
+
+1. **Download the template** — Click the **"Export Template"** button. An `.xlsx` file downloads with:
+   - All column headers matching the asset creation fields
+   - Mandatory columns marked with `*` and highlighted in red
+   - An example row (row 2) showing realistic sample data
+   - Hover over any header cell to see a description of that field
+
+2. **Fill in the template** — Open the file in Excel or Google Sheets:
+   - Keep the header row (row 1) intact
+   - You can delete or keep the example row (it will be skipped during import)
+   - Add one row per asset you want to create
+   - Fill in all mandatory fields (marked with `*`)
+   - Use the dropdown menus for category, income type, frequencies, and boolean fields
+
+3. **Import the file** — Click **"Import Assets"** on the Dashboard:
+   - Select your filled `.xlsx` file
+   - A preview shows all parsed rows with any validation errors highlighted
+   - Click **"Import X Assets"** to start creating them
+   - A progress bar shows how many have been created
+   - Results show success/failure for each row with error details
+
+All imported assets are created in **PENDING** status. You can then review and activate them individually.
 ---
 
 ## 3. Creating a New Asset
@@ -205,18 +232,37 @@ Fill in the basic identity of your asset:
 
 ### Step 3: Bond Details (Bonds Only)
 
-This step only appears when you selected "Bonds" in Step 2.
+This step only appears when you selected "Bonds" in Step 2. The form adapts based on the selected bond type.
+
+**Bond Type (required):**
+
+| Type | Label | Description |
+|------|-------|-------------|
+| **COUPON** | OTA / T-Bonds | Periodic coupon payments until maturity. Standard for long-term CEMAC treasury bonds (2-7 years). |
+| **DISCOUNT** | BTA / T-Bills | Zero-coupon. LP buys at discount from BEAC, resells with spread. Investor redeems at face value at maturity. Standard for short-term treasury bills (26-52 weeks). |
+
+**Common Fields (all bond types):**
 
 | Field | Description | Rules |
 |-------|-------------|-------|
-| **Issuer Name** | The original bond issuer (e.g., "Etat du Senegal") | Required for bonds |
+| **Instrument Type** | COUPON (OTA) or DISCOUNT (BTA) | Required. Determines which fields are shown below. |
+| **Day Count Convention** | Interest accrual basis | Auto-set: ACT/365 for OTA, ACT/360 for BTA. Changeable. |
+| **Issuer Name** | The original bond issuer (e.g., "Republique du Cameroun") | Required |
+| **Issuer Country** | CEMAC member state | Optional. Dropdown: Cameroun, Congo, Tchad, Gabon, RCA, Guinee Equatoriale |
 | **ISIN Code** | International Securities Identification Number | Optional, 12 characters uppercase |
-| **Interest Rate (%)** | Annual coupon rate | Required (e.g., 5.80 for 5.8% annual) |
 | **Maturity Date** | When the bond principal is due | Required, must be in the future |
-| **First Coupon Date** | Date of the first coupon payment | Required |
-| **Coupon Frequency** | How often coupons are paid | Required. Options: Monthly, Quarterly, Semi-Annual, Annual |
 
-> **How coupons work:** The system automatically pays coupons to all holders on each coupon date. The amount is calculated from the **issuer price** (face value), not the LP's selling price. See [Appendix A.3](#a3-bond-coupon-payments) for the formula.
+**Coupon Fields (OTA only — hidden for BTA):**
+
+| Field | Description | Rules |
+|-------|-------------|-------|
+| **Interest Rate (%)** | Annual coupon rate | Required for OTA (e.g., 5.80 for 5.8% annual) |
+| **First Coupon Date** | Date of the first coupon payment | Required for OTA |
+| **Coupon Frequency** | How often coupons are paid | Required for OTA. Options: Monthly, Quarterly, Semi-Annual, Annual |
+
+> **OTA coupon trading:** When an OTA bond is traded between coupon dates, the buyer pays the seller accrued interest ("pied du coupon") on top of the trade price. This appears as `accruedInterestAmount` in trade quotes.
+
+> **BTA yield:** For BTA bonds, the investor's return comes from the difference between the purchase price (LP ask) and the face value at maturity. No coupons are scheduled.
 
 ### Step 4: Pricing & Fees
 
@@ -227,9 +273,10 @@ Set the financial terms for your asset:
 | Field | Description | Rules |
 |-------|-------------|-------|
 | **Issuer Price (XAF)** | Wholesale/face value per unit | Required. **Immutable after creation.** Used for coupon and income calculations. |
-| **LP Ask Price (XAF)** | Price investors pay to BUY | Required. Must be >= issuer price. |
-| **LP Bid Price (XAF)** | Price investors receive when they SELL | Required. Must be <= ask price. |
-| **Trading Fee (%)** | Platform fee on every trade | Required. Default: 0.50%. Range: 0--10%. |
+| **LP Ask Price (XAF)** | Price investors pay to BUY | Optional. If blank, auto-derived as `issuerPrice × (1 + spreadPercent)`. Must be >= issuer price. |
+| **LP Bid Price (XAF)** | Price investors receive when they SELL | Optional. If blank, auto-derived as `issuerPrice × (1 - spreadPercent)`. Must be <= ask price. |
+| **Spread (%)** | Bid/ask spread applied to auto-derive prices | Optional. Default: 0.30%. Used only when LP ask/bid prices are not set explicitly. |
+| **Trading Fee (%)** | Platform fee on every trade | Optional. Default: 0.30%. Range: 0--10%. |
 
 A live **LP Margin** display shows the difference between ask and issuer price in XAF and as a percentage.
 
@@ -245,14 +292,12 @@ A live **LP Margin** display shows the difference between ask and issuer price i
 | **Min Order Size (units)** | Minimum units per trade |
 | **Min Order Amount (XAF)** | Minimum cash amount per trade |
 
-### Step 5: Supply & Subscription
+### Step 5: Supply & Precision
 
 | Field | Description | Rules |
 |-------|-------------|-------|
 | **Total Supply** | Total units to create | Required. Deposited into LP's asset account. Can mint more later. |
 | **Decimal Places** | Fractional unit precision | Options: 0 (whole units), 2, 4, or 8 |
-| **Subscription Start Date** | When BUY orders become accepted | Required. BUY orders are rejected before this date. |
-| **Subscription End Date** | When BUY orders stop being accepted | Required. SELL is always allowed regardless of this date. |
 | **Lock-up Days** | Minimum holding period after purchase | Optional. 0 or blank = no lock-up. |
 
 A **Supply Summary** box shows: total supply, price per unit, and total market cap.
@@ -278,28 +323,44 @@ Each income type shows an info badge: **Fixed** or **Variable**.
 
 ### Step 7: Tax Configuration
 
-Configure Cameroon/CEMAC tax compliance settings:
+Configure Cameroon/CEMAC tax compliance settings. The platform supports four tax types:
 
-**Registration Duty (Droit d'enregistrement):**
+| Tax | Default | Rate | Base | Paid by |
+|---|---|---|---|---|
+| Registration Duty | **On** | **2%** | Gross trade value | Buyer (BUY); LP (SELL) |
+| TVA (VAT) | Off | 19.25% | **Platform fee only** | Buyer (BUY); LP (SELL) |
+| Capital Gains Tax | Off | 16.5% | Realized profit | LP absorbs |
+| IRCM Withholding | Off | 5.5–16.5% | Coupon/dividend income | Withheld from investor |
 
-- Toggle **Enabled** (default: on)
-- **Rate**: Default 2% of transaction value on every trade
+**Registration Duty (Droit d'enregistrement) — default ON:**
 
-**IRCM Withholding (Impot sur les Revenus des Capitaux Mobiliers):**
+- Standard OHADA/CEMAC securities transfer stamp tax, applicable to all asset trades
+- **Rate**: Default **2%** of the full trade value (e.g. 100,000 XAF trade → 2,000 XAF duty)
+- Paid by buyer on BUY trades; absorbed by the LP on SELL trades
 
-- Toggle **Enabled** (default: on)
-- **IRCM Exempt** checkbox (e.g., for government bonds, setting this results in a 0% rate)
-- **Rate Override**: Leave blank for automatic rate determination. Auto rates depend on asset type:
-  - Government bonds: 0%
-  - Bonds with maturity >= 5 years: 5.5%
-  - BVMAC-listed securities: 11%
-  - All others (dividends, rent, etc.): 16.5%
+**TVA (Taxe sur la Valeur Ajoutée — VAT) — default OFF:**
 
-**Capital Gains Tax (Impot sur les Plus-Values):**
+- TVA applies to the **platform service fee**, not to the full investment amount
+- **Rate**: Default **19.25%** of the trading fee (e.g. fee = 300 XAF → TVA = 58 XAF)
+- Paid by buyer on BUY trades; absorbed by the LP on SELL trades
+- Enable per asset where the regulatory context requires TVA on brokerage fees
 
-- Toggle **Enabled** (default: on)
-- **Rate**: Default 16.5%
-- A 500,000 XAF annual exemption per investor is applied automatically
+**IRCM Withholding (Impot sur les Revenus des Capitaux Mobiliers) — default OFF:**
+
+- Withholding tax on investment income (coupons and dividends), **not on trades**
+- Check **IRCM Exempt** for government bonds (results in 0% automatically)
+- **Rate Override**: Leave blank for automatic rate selection:
+  - Government bonds: **0%** (exempt)
+  - Bonds with maturity ≥ 5 years: **5.5%**
+  - BVMAC-listed equities: **11%**
+  - All others (dividends, rental income, etc.): **16.5%**
+
+**Capital Gains Tax (Impot sur les Plus-Values) — default OFF:**
+
+- Tax on the profit when an investor sells at a gain
+- **Rate**: Default **16.5%** of realized gain
+- A **500,000 XAF annual exemption** per investor is applied automatically — gains below this threshold are tax-free each fiscal year
+- The LP absorbs this tax (not deducted from the seller's proceeds)
 
 See [Appendix A.5](#a5-tax-calculations) for detailed tax calculation examples.
 
@@ -312,7 +373,6 @@ A read-only summary shows all the information you entered, organized into cards:
 - Bond Details (if applicable)
 - Pricing & Fees
 - Supply & Precision
-- Subscription Period
 - Income Distribution (if configured)
 - Tax Configuration
 
@@ -373,10 +433,15 @@ The buttons you see depend on the asset's current status:
 2. A dialog opens where you can update:
    - Name, description, image URL
    - Trading fee %, LP ask/bid prices
-   - Subscription dates, exposure limits
+   - Exposure limits
    - Income configuration, tax settings
-3. You **cannot change**: symbol, currency code, issuer price, LP client (these are immutable).
-4. Click **"Save"** to apply changes.
+3. **When the asset is PENDING**, you can also edit:
+   - Issuer price (face value)
+   - Total supply
+   - Issuer name, ISIN code, coupon frequency (bond assets)
+4. You **cannot change**: symbol, currency code, decimal places. To change these, delete the PENDING asset and recreate it.
+5. Once an asset is **ACTIVE or beyond**, the core fields (issuer price, total supply, etc.) become read-only.
+6. Click **"Save"** to apply changes.
 
 ### 4.7 Minting Additional Supply
 
@@ -443,10 +508,6 @@ The Asset Details page displays several information cards:
 **Bond Information** (bonds only):
 
 - Issuer, ISIN, Maturity Date, Coupon Amount per unit, Current Yield, Coupon Frequency, Next Coupon Date, Residual Days until maturity
-
-**Subscription Period:**
-
-- Start and end dates, "Closed" badge if past the end date
 
 **Pricing & Limits:**
 
@@ -803,29 +864,29 @@ Where `grossAmount = units x executionPrice`.
 
 **Example -- BUY:**
 
-An investor buys 100 units of DTT at an ask price of 5,000 XAF with a 0.5% trading fee.
+An investor buys 100 units of DTT at an ask price of 5,000 XAF with a 0.3% trading fee.
 
 ```
 Gross amount   = 100 units x 5,000 XAF  = 500,000 XAF
-Fee            = 500,000 x (0.50 / 100) =   2,500 XAF
+Fee            = 500,000 x (0.30 / 100) =   1,500 XAF
                                            ─────────────
-Total cost     = 500,000 + 2,500         = 502,500 XAF
+Total cost     = 500,000 + 1,500         = 501,500 XAF
 ```
 
-The investor pays **502,500 XAF** total. The 2,500 XAF fee goes to the platform fee collection account.
+The investor pays **501,500 XAF** total. The 1,500 XAF fee goes to the platform fee collection account.
 
 **Example -- SELL:**
 
-An investor sells 50 units of DTT at a bid price of 4,800 XAF with a 0.5% fee.
+An investor sells 50 units of DTT at a bid price of 4,800 XAF with a 0.3% fee.
 
 ```
 Gross proceeds = 50 units x 4,800 XAF   = 240,000 XAF
-Fee            = 240,000 x (0.50 / 100) =   1,200 XAF
+Fee            = 240,000 x (0.30 / 100) =     720 XAF
                                            ─────────────
-Net received   = 240,000 - 1,200         = 238,800 XAF
+Net received   = 240,000 - 720           = 239,280 XAF
 ```
 
-The investor receives **238,800 XAF**. The fee is deducted from the proceeds.
+The investor receives **239,280 XAF**. The fee is deducted from the proceeds.
 
 ---
 
@@ -1070,19 +1131,45 @@ Capital gains tax    = 50,000 x 0.165    = 8,250 XAF
 
 The investor pays **8,250 XAF** in capital gains tax, deducted from the sale proceeds.
 
+#### A.5.4 TVA (Taxe sur la Valeur Ajoutée — VAT)
+
+TVA applies to the **platform trading fee**, not the full investment amount. This is correct under OHADA/CEMAC tax law: TVA is a service consumption tax on the brokerage service provided.
+
+**Formula:**
+
+```
+tvaAmount = tradingFee x tvaRate
+```
+
+**Example — BUY trade:**
+
+An investor buys 100 units at 10,000 XAF each. Fee = 0.3%.
+
+```
+Gross value    = 100 x 10,000           = 1,000,000 XAF
+Trading fee    = 1,000,000 x 0.003      =      3,000 XAF
+TVA            = 3,000 x 0.1925         =        578 XAF
+                                           ──────────────
+Total investor pays = 1,000,000 + 3,000 + 578 = 1,003,578 XAF
+```
+
+Note: TVA is **disabled by default**. Enable it per asset where applicable.
+
 **Combined tax example -- Full SELL transaction:**
 
-Selling 120 units at 700 XAF, cost basis 62,000 XAF (see FIFO example below), 0.5% fee, 2% registration duty, 16.5% capital gains:
+Selling 120 units at 700 XAF, cost basis 62,000 XAF (see FIFO example below), 0.3% fee, registration duty ON (default), TVA OFF (default), capital gains enabled:
 
 ```
 Gross proceeds        = 120 x 700           = 84,000 XAF
-Trading fee           = 84,000 x 0.005      =    420 XAF
-Registration duty     = 84,000 x 0.02       =  1,680 XAF
+Trading fee           = 84,000 x 0.003      =    252 XAF
+Registration duty     = 84,000 x 0.02       =  1,680 XAF  (ON by default)
 Realized gain         = 84,000 - 62,000     = 22,000 XAF
-Capital gains tax     = 22,000 x 0.165      =  3,630 XAF  (assuming exemption used)
+Capital gains tax     = 22,000 x 0.165      =  3,630 XAF  (only if enabled; assuming exemption used)
                                                ──────────
-Net to investor       = 84,000 - 420 - 1,680 - 3,630 = 78,270 XAF
+Net to investor       = 84,000 - 252 - 1,680 - 3,630 = 78,438 XAF
 ```
+
+If TVA were also enabled: TVA = 252 × 0.1925 = 49 XAF → net to investor = 78,389 XAF.
 
 ---
 

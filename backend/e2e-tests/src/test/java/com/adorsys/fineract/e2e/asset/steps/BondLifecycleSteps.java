@@ -4,6 +4,7 @@ import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
 import com.adorsys.fineract.e2e.support.JwtTokenFactory;
+import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.scheduler.MaturityScheduler;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -44,6 +45,9 @@ public class BondLifecycleSteps {
     @Autowired
     private MaturityScheduler maturityScheduler;
 
+    @Autowired
+    private InterestPaymentScheduler interestPaymentScheduler;
+
     // ---------------------------------------------------------------
     // Given steps
     // ---------------------------------------------------------------
@@ -62,13 +66,15 @@ public class BondLifecycleSteps {
         request.put("totalSupply", supply);
         request.put("decimalPlaces", 0);
         request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("tvaEnabled", false);              // taxes disabled here for clean balance assertions
+        request.put("registrationDutyEnabled", false); // both TVA and reg duty tested in unit tests
         request.put("issuerName", "E2E Test Issuer");
+        request.put("bondType", "COUPON");
+        request.put("dayCountConvention", "ACT_365");
         request.put("interestRate", interestRate);
         request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().plusYears(5).toString());
         request.put("nextCouponDate", LocalDate.now().toString());
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         Response createResp = RestAssured.given()
                 .baseUri("http://localhost:" + port)
@@ -282,6 +288,178 @@ public class BondLifecycleSteps {
         assertThat(response.statusCode()).isEqualTo(200);
         int totalElements = response.jsonPath().getInt("totalElements");
         assertThat(totalElements).isGreaterThan(0);
+    }
+
+    // ---------------------------------------------------------------
+    // BTA (Discount Bond) steps
+    // ---------------------------------------------------------------
+
+    @Given("an active discount bond asset {string} priced at {int} with supply {int}")
+    public void activeDiscountBondAsset(String symbolRef, int faceValue, int supply) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("name", "BTA " + symbolRef);
+        request.put("symbol", symbolRef);
+        request.put("currencyCode", symbolRef);
+        request.put("category", "BONDS");
+        request.put("bondType", "DISCOUNT");
+        request.put("dayCountConvention", "ACT_360");
+        BigDecimal faceValueBD = new BigDecimal(faceValue);
+        BigDecimal issuerPrice = faceValueBD.multiply(new BigDecimal("0.90")); // Issue at 90% of face value
+        request.put("issuerPrice", issuerPrice);
+        request.put("faceValue", faceValueBD);
+        // LP sells below face value (discount) with their spread
+        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("1.04"))); // ask is higher than issue
+        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("1.02"))); // bid is lower than ask
+        request.put("totalSupply", supply);
+        request.put("decimalPlaces", 0);
+        request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("issuerName", "Republique du Cameroun");
+        request.put("issuerCountry", "CAMEROUN");
+        request.put("maturityDate", LocalDate.now().plusWeeks(52).toString());
+
+        Response createResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/api/v1/admin/assets");
+
+        assertThat(createResp.statusCode())
+                .as("Create BTA %s: %s", symbolRef, createResp.body().asString())
+                .isEqualTo(201);
+        String assetId = createResp.jsonPath().getString("id");
+        context.storeId("lastAssetId", assetId);
+        context.storeValue("lastSymbol", symbolRef);
+
+        // Activate
+        Response activateResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
+
+        assertThat(activateResp.statusCode()).isEqualTo(200);
+
+        // Fund LP cash account to cover face-value redemption at maturity.
+        // The LP buys BTA at discount but must pay full face value on redemption.
+        Long lpCashAccountId = createResp.jsonPath().getLong("lpCashAccountId");
+        if (lpCashAccountId != null) {
+            fineractTestClient.depositToSavingsAccount(lpCashAccountId,
+                    issuerPrice.multiply(new BigDecimal(supply)));
+        }
+    }
+
+    @Given("the user holds {int} units of discount bond {string}")
+    public void userHoldsDiscountBondUnits(int units, String symbolRef) {
+        userHoldsBondUnits(units, symbolRef);
+    }
+
+    @When("the interest payment scheduler runs for {string}")
+    public void interestPaymentSchedulerRunsFor(String symbolRef) {
+        // Set the bond's nextCouponDate to today so the scheduler picks it up (if it's a coupon bond)
+        String assetId = context.getId("lastAssetId");
+        jdbcTemplate.update(
+                "UPDATE assets SET next_coupon_date = ? WHERE id = ? AND next_coupon_date IS NOT NULL",
+                java.sql.Date.valueOf(LocalDate.now()), assetId);
+
+        // Run the scheduler — for DISCOUNT bonds, nextCouponDate is NULL so the update above is a no-op
+        interestPaymentScheduler.processCouponPayments();
+    }
+
+    @Then("no pending scheduled payments should exist for {string}")
+    public void noPendingScheduledPayments(String symbolRef) {
+        String assetId = context.getId("lastAssetId");
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM scheduled_payments WHERE asset_id = ? AND status = 'PENDING'",
+                Integer.class, assetId);
+        assertThat(count).isEqualTo(0);
+    }
+
+    @Then("the accrued interest for the user on {string} should be {int}")
+    public void accruedInterestShouldBe(String symbolRef, int expected) {
+        String assetId = context.getId("lastAssetId");
+        BigDecimal accrued = jdbcTemplate.queryForObject(
+                "SELECT COALESCE(accrued_interest, 0) FROM user_positions WHERE asset_id = ? AND user_id = ?",
+                BigDecimal.class, assetId, FineractInitializer.getTestUserClientId());
+        assertThat(accrued.intValue()).isEqualTo(expected);
+    }
+
+    @Then("the user's XAF balance should have increased by approximately {int}")
+    public void xafBalanceShouldHaveIncreasedByApprox(int expectedIncrease) {
+        BigDecimal balanceBefore = context.getValue("xafBalanceBefore");
+        BigDecimal balanceAfter = fineractTestClient.getAccountBalance(
+                FineractInitializer.getTestUserXafAccountId());
+        BigDecimal actualIncrease = balanceAfter.subtract(balanceBefore);
+        // Allow 10% tolerance for fees
+        BigDecimal expectedBD = new BigDecimal(expectedIncrease);
+        assertThat(actualIncrease).isGreaterThan(expectedBD.multiply(new BigDecimal("0.90")));
+    }
+
+    // ---------------------------------------------------------------
+    // OTA (Coupon Bond with Accrued Interest) steps
+    // ---------------------------------------------------------------
+
+    @Given("an active coupon bond asset {string} priced at {int} with supply {int} and interest rate {double} and coupon due in {int} months")
+    public void activeCouponBondWithAccruedInterest(String symbolRef, int price, int supply, double interestRate, int couponDueMonths) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("name", "OTA " + symbolRef);
+        request.put("symbol", symbolRef);
+        request.put("currencyCode", symbolRef);
+        request.put("category", "BONDS");
+        request.put("bondType", "COUPON");
+        request.put("dayCountConvention", "ACT_365");
+        BigDecimal issuerPrice = new BigDecimal(price);
+        request.put("issuerPrice", issuerPrice);
+        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("1.10")));
+        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("0.95")));
+        request.put("totalSupply", supply);
+        request.put("decimalPlaces", 0);
+        request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("issuerName", "Republique du Cameroun");
+        request.put("issuerCountry", "CAMEROUN");
+        request.put("interestRate", interestRate);
+        request.put("couponFrequencyMonths", 12);
+        request.put("maturityDate", LocalDate.now().plusYears(5).toString());
+        // Set next coupon in the future — means last coupon was 12-couponDueMonths ago
+        // This creates accrued interest from the last coupon to now
+        request.put("nextCouponDate", LocalDate.now().plusMonths(couponDueMonths).toString());
+
+        Response createResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/api/v1/admin/assets");
+
+        assertThat(createResp.statusCode())
+                .as("Create OTA %s: %s", symbolRef, createResp.body().asString())
+                .isEqualTo(201);
+        String assetId = createResp.jsonPath().getString("id");
+        context.storeId("lastAssetId", assetId);
+        context.storeValue("lastSymbol", symbolRef);
+
+        // Activate
+        Response activateResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
+
+        assertThat(activateResp.statusCode()).isEqualTo(200);
+    }
+
+    @Given("the user holds {int} units of coupon bond {string}")
+    public void userHoldsCouponBondUnits(int units, String symbolRef) {
+        userHoldsBondUnits(units, symbolRef);
+    }
+
+    @Then("the quote response should contain {string}")
+    public void quoteResponseShouldContain(String fieldName) {
+        String body = context.getBody();
+        assertThat(body).contains(fieldName);
+    }
+
+    @Then("the accrued interest in the quote should be greater than {int}")
+    public void accruedInterestInQuoteShouldBeGreaterThan(int threshold) {
+        Number accruedInterest = context.jsonPath("accruedInterestAmount");
+        assertThat(accruedInterest).isNotNull();
+        assertThat(accruedInterest.doubleValue()).isGreaterThan(threshold);
     }
 
     // ---------------------------------------------------------------

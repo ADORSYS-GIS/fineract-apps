@@ -44,7 +44,8 @@ public class RateLimitConfig {
 
     // Paths to skip rate limiting
     private static final Set<String> SKIP_PATHS = Set.of(
-            "/actuator", "/swagger-ui", "/api-docs"
+            "/actuator", "/swagger-ui", "/api-docs","/api/registration/register"
+
     );
 
     private final Map<String, Bucket> registrationBuckets = new ConcurrentHashMap<>();

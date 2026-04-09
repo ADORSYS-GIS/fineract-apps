@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettlementRouteImport } from './routes/settlement'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScheduledPaymentsRouteImport } from './routes/scheduled-payments'
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
@@ -20,11 +21,17 @@ import { Route as IncomeCalendarRouteImport } from './routes/income-calendar'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CreateAssetRouteImport } from './routes/create-asset'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
+import { Route as AccountingRouteImport } from './routes/accounting'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PricingAssetIdRouteImport } from './routes/pricing.$assetId'
 import { Route as PaymentResultsPaymentIdRouteImport } from './routes/payment-results.$paymentId'
 import { Route as AssetDetailsAssetIdRouteImport } from './routes/asset-details.$assetId'
 
+const SettlementRoute = SettlementRouteImport.update({
+  id: '/settlement',
+  path: '/settlement',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -80,6 +87,11 @@ const AuditLogRoute = AuditLogRouteImport.update({
   path: '/audit-log',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountingRoute = AccountingRouteImport.update({
+  id: '/accounting',
+  path: '/accounting',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -103,6 +115,7 @@ const AssetDetailsAssetIdRoute = AssetDetailsAssetIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
@@ -114,12 +127,14 @@ export interface FileRoutesByFullPath {
   '/reconciliation': typeof ReconciliationRoute
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
+  '/settlement': typeof SettlementRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/payment-results/$paymentId': typeof PaymentResultsPaymentIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
@@ -131,6 +146,7 @@ export interface FileRoutesByTo {
   '/reconciliation': typeof ReconciliationRoute
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
+  '/settlement': typeof SettlementRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/payment-results/$paymentId': typeof PaymentResultsPaymentIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -138,6 +154,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
@@ -149,6 +166,7 @@ export interface FileRoutesById {
   '/reconciliation': typeof ReconciliationRoute
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
+  '/settlement': typeof SettlementRoute
   '/asset-details/$assetId': typeof AssetDetailsAssetIdRoute
   '/payment-results/$paymentId': typeof PaymentResultsPaymentIdRoute
   '/pricing/$assetId': typeof PricingAssetIdRoute
@@ -157,6 +175,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accounting'
     | '/audit-log'
     | '/create-asset'
     | '/dashboard'
@@ -168,12 +187,14 @@ export interface FileRouteTypes {
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
+    | '/settlement'
     | '/asset-details/$assetId'
     | '/payment-results/$paymentId'
     | '/pricing/$assetId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/accounting'
     | '/audit-log'
     | '/create-asset'
     | '/dashboard'
@@ -185,12 +206,14 @@ export interface FileRouteTypes {
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
+    | '/settlement'
     | '/asset-details/$assetId'
     | '/payment-results/$paymentId'
     | '/pricing/$assetId'
   id:
     | '__root__'
     | '/'
+    | '/accounting'
     | '/audit-log'
     | '/create-asset'
     | '/dashboard'
@@ -202,6 +225,7 @@ export interface FileRouteTypes {
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
+    | '/settlement'
     | '/asset-details/$assetId'
     | '/payment-results/$paymentId'
     | '/pricing/$assetId'
@@ -209,6 +233,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountingRoute: typeof AccountingRoute
   AuditLogRoute: typeof AuditLogRoute
   CreateAssetRoute: typeof CreateAssetRoute
   DashboardRoute: typeof DashboardRoute
@@ -220,6 +245,7 @@ export interface RootRouteChildren {
   ReconciliationRoute: typeof ReconciliationRoute
   ScheduledPaymentsRoute: typeof ScheduledPaymentsRoute
   SettingsRoute: typeof SettingsRoute
+  SettlementRoute: typeof SettlementRoute
   AssetDetailsAssetIdRoute: typeof AssetDetailsAssetIdRoute
   PaymentResultsPaymentIdRoute: typeof PaymentResultsPaymentIdRoute
   PricingAssetIdRoute: typeof PricingAssetIdRoute
@@ -227,6 +253,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settlement': {
+      id: '/settlement'
+      path: '/settlement'
+      fullPath: '/settlement'
+      preLoaderRoute: typeof SettlementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -304,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditLogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/accounting': {
+      id: '/accounting'
+      path: '/accounting'
+      fullPath: '/accounting'
+      preLoaderRoute: typeof AccountingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -337,6 +377,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountingRoute: AccountingRoute,
   AuditLogRoute: AuditLogRoute,
   CreateAssetRoute: CreateAssetRoute,
   DashboardRoute: DashboardRoute,
@@ -348,6 +389,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReconciliationRoute: ReconciliationRoute,
   ScheduledPaymentsRoute: ScheduledPaymentsRoute,
   SettingsRoute: SettingsRoute,
+  SettlementRoute: SettlementRoute,
   AssetDetailsAssetIdRoute: AssetDetailsAssetIdRoute,
   PaymentResultsPaymentIdRoute: PaymentResultsPaymentIdRoute,
   PricingAssetIdRoute: PricingAssetIdRoute,

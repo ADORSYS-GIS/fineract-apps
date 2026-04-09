@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { type AssetResponse, assetApi } from "@/services/assetApi";
 
 export const useDashboard = () => {
@@ -40,6 +40,13 @@ export const useDashboard = () => {
 		refetchInterval: 30000,
 	});
 
+	const { data: settlementSummary } = useQuery({
+		queryKey: ["settlement-summary"],
+		queryFn: () => assetApi.getSettlementSummary(),
+		select: (res) => res.data,
+		refetchInterval: 60000,
+	});
+
 	const handleSearch = (value: string) => {
 		setSearchValue(value);
 		setCurrentPage(1);
@@ -74,6 +81,16 @@ export const useDashboard = () => {
 		return filtered;
 	}, [allAssets, categoryFilter, debouncedSearch]);
 
+	const [isImportOpen, setIsImportOpen] = useState(false);
+
+	const onOpenImport = useCallback(() => {
+		setIsImportOpen(true);
+	}, []);
+
+	const onCloseImport = useCallback(() => {
+		setIsImportOpen(false);
+	}, []);
+
 	return {
 		searchValue,
 		onSearchValueChange: setSearchValue,
@@ -88,6 +105,10 @@ export const useDashboard = () => {
 		onCategoryChange: handleCategoryChange,
 		marketStatus,
 		dashboardSummary,
+		settlementSummary,
 		refetch,
+		isImportOpen,
+		onOpenImport,
+		onCloseImport,
 	};
 };

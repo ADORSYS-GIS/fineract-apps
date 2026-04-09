@@ -6,7 +6,9 @@
 |------|------------|
 | **Issuer** | The original entity (e.g., government, corporation) that creates a real-world asset such as a bond or equity. The issuer sets the face value (issuer price) and contractual terms (interest rate, maturity). The issuer does **not** sell directly on the platform. |
 | **Liquidity Partner (LP)** | A reseller who purchases assets from the issuer off-platform and sells them to investors on the platform at a markup. The LP is the counterparty for all buy/sell trades. Each asset is managed by one LP, represented as a Fineract Client with `legalForm = ENTITY`. |
-| **Issuer Price** | The wholesale price at which the LP acquired the asset from the issuer. For bonds, this equals the face value. Coupon and income calculations are always based on the issuer price, not the LP's selling price. Immutable after asset creation. |
+| **Issuer Price** | The wholesale price at which the LP acquired the asset from the issuer. For OTA bonds, this equals the face value. For BTA bonds, the LP buys at discount but `issuerPrice` still represents face value (redemption value). Coupon and income calculations are always based on the issuer price, not the LP's selling price. Immutable after asset creation. |
+| **Bond Type** | `COUPON` (OTA/T-Bonds) — periodic interest payments; or `DISCOUNT` (BTA/T-Bills) — zero-coupon, bought below face value, redeemed at par. |
+| **Accrued Interest** | For COUPON bonds traded between coupon dates, the buyer compensates the seller for interest earned since the last coupon ("pied du coupon"). Calculated as: `units x faceValue x (rate/100) x daysSinceLastCoupon / dayCountBasis`. Added to BUY cost and SELL proceeds. |
 | **LP Ask Price** | The price at which the LP sells to investors (BUY side). Always >= issuer price. The difference (`askPrice - issuerPrice`) is the LP's margin on each unit sold. |
 | **LP Bid Price** | The price at which the LP buys back from investors (SELL side). Always <= ask price. |
 | **LP Margin** | The LP's profit per unit: `askPrice - issuerPrice` on BUY, `issuerPrice - bidPrice` on SELL. Swept to the LP's dedicated spread account on each trade. |
@@ -94,7 +96,7 @@ The investor pays the LP's **ask price** per unit plus the trading fee, all in a
 
 #### Step 1: Trade Preview
 
-The app calls `POST /api/trades/preview` to show the investor what they'll pay:
+The app calls `POST /api/trades/quote` to lock a price and show the investor what they'll pay:
 
 ```
 Units:              10
@@ -144,9 +146,21 @@ The investor's portfolio now shows:
 
 The investor interacts only with LP prices (bid/ask). But benefit calculations (coupons, income distributions) use the **issuer price** because that's the contractual face value. This means:
 
-- **Coupon per period** = units × issuerPrice × (rate/100) × (months/12)
+- **Coupon per period** (COUPON bonds only) = units × issuerPrice × (rate/100) × (months/12)
   - Example: 10 × 4,000 × (5.80/100) × (6/12) = **1,160 XAF**
 - The investor paid 5,000/unit but earns coupons on 4,000/unit — the LP markup doesn't inflate their yield
+- **DISCOUNT bonds (BTA)** have no coupons — the investor's return is `faceValue - purchasePrice` at maturity
+
+### Accrued Interest on Bond Trades ("Pied du Coupon")
+
+When a COUPON bond (OTA) is traded between coupon dates, accrued interest is calculated and included in the settlement:
+
+- **BUY**: Buyer pays `grossAmount + fee + tax + accruedInterest`. The accrued interest goes to LP Cash (LP held the bond since last coupon).
+- **SELL**: Seller receives `grossAmount - fee + accruedInterest`. The LP pays the seller for their accrual period.
+- Formula: `accruedInterest = units × faceValue × (rate/100) × daysSinceLastCoupon / dayCountBasis`
+- `dayCountBasis` = 365 for ACT/365 (OTA standard), 360 for ACT/360 (BTA standard)
+- Accrued interest appears as a separate field in the trade quote (`accruedInterestAmount`) and in the order/trade log
+- DISCOUNT bonds always have zero accrued interest
 
 ---
 
@@ -227,7 +241,7 @@ LP Spread balance = **+2,000 XAF** = net LP profit from bid-ask spread.
 
 All trades use the **LP Cash hub model** — money flows through LP Cash, then gets distributed internally. The investor sees at most **1 XAF transaction** per trade (fee bundled, spread invisible).
 
-### BUY (3-6 legs)
+### BUY (2-5 legs)
 
 1. Investor XAF → LP Cash: `grossAmount + fee + registrationDuty` (single investor debit)
 2. LP Asset → Investor Asset: `units` (token delivery)
@@ -235,7 +249,7 @@ All trades use the **LP Cash hub model** — money flows through LP Cash, then g
 4. LP Cash → Fee Collection: `fee` (internal, if > 0)
 5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 
-### SELL, bid ≤ issuer (3-7 legs)
+### SELL, bid ≤ issuer (2-6 legs)
 
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Cash → Investor XAF: `grossAmount - fee - registrationDuty - capitalGainsTax` (single investor credit)
@@ -244,7 +258,7 @@ All trades use the **LP Cash hub model** — money flows through LP Cash, then g
 5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 6. LP Cash → TAX-CAP-GAINS: `capitalGainsTax` (tax, if gain > 0 and above exemption)
 
-### SELL, bid > issuer (3-7 legs)
+### SELL, bid > issuer (3-6 legs)
 
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Spread → LP Cash: `buybackPremium` (internal, funds the premium)
@@ -253,30 +267,32 @@ All trades use the **LP Cash hub model** — money flows through LP Cash, then g
 5. LP Cash → TAX-REG-DUTY: `registrationDuty` (tax, if > 0)
 6. LP Cash → TAX-CAP-GAINS: `capitalGainsTax` (tax, if gain > 0 and above exemption)
 
-### Coupon/Income Payment (2-3 legs)
+### Coupon/Income Payment (1-2 legs)
 
 1. LP Cash → Investor XAF: `grossIncome - ircmAmount` (net payment)
 2. LP Cash → TAX-IRCM: `ircmAmount` (withholding tax, if > 0)
 
-### Bond Principal Redemption (2 legs)
+Both coupon and income payments use atomic batch execution when IRCM applies.
 
-At maturity, the admin triggers redemption. Each holder receives face value:
+### Bond Principal Redemption (2 transfers per holder, non-atomic)
+
+At maturity, the admin triggers redemption via `POST /api/admin/assets/{id}/redeem`. Each holder receives face value:
 
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Cash → Investor XAF: `units × issuerPrice` (face value payout)
 
-No fee, no spread, no tax. Each holder is processed independently — partial failures do not block others.
+No fee, no spread, no tax. Each holder is processed independently — partial failures do not block others. Unlike trade settlement, these two transfers are executed as **individual Fineract account transfers** (not an atomic batch). The asset leg executes first; if the cash leg fails, the asset units have already been returned to LP. Failed holders can be retried by calling the endpoint again (already-succeeded holders are skipped).
 
-### Delisting / Forced Buyback (2 legs)
+### Delisting / Forced Buyback (2 transfers per holder, non-atomic)
 
 On the delisting date, the scheduler force-buys all remaining holdings:
 
 1. Investor Asset → LP Asset: `units` (token return)
 2. LP Cash → Investor XAF: `units × delistingRedemptionPrice` (buyback payout)
 
-No fee, no spread, no tax. Uses the redemption price set during delisting initiation (falls back to last ask price if not set).
+No fee, no spread, no tax. Uses the redemption price set during delisting initiation (falls back to the current ask price from the asset price table if not set). Each holder is processed independently — partial failures do not block others. Like principal redemption, these are **individual Fineract account transfers**, not an atomic batch.
 
-All legs execute atomically via the Fineract Batch API — if any fails, all are reversed.
+**Trade settlement** (BUY/SELL) legs execute atomically via the Fineract Batch API (`enclosingTransaction=true`) — if any fails, all are reversed. **Coupon/income payments** also use atomic batches when IRCM withholding applies.
 
 ### Order Record Fields (always positive)
 
@@ -293,25 +309,45 @@ Period margin report: `net margin = SUM(spreadAmount) - SUM(buybackPremium)`
 
 | GL Code | Name | Type | Purpose |
 |---------|------|------|---------|
-| 47 | Digital Asset Inventory | Asset | Bank's vault holding of all digital asset units |
-| 48 | Asset Transfer Suspense | Asset | Clearing account for in-flight transfers |
-| 65 | Customer Digital Asset Holdings | Liability | Obligation to customers who hold asset units |
-| 42 | Fund Source / Cash Reference | Asset | Cash reference for savings product accounting |
-| 73 | Company Asset Capital | Equity | Origin of minted asset units |
-| 87 | Asset Trading Fee Income | Income | Revenue from trading fees |
-| 91 | Expense Account | Expense | Interest on savings / write-off expenses |
-| 142 | Tax Payable - Registration Duty | Liability | Registration duty (droit d'enregistrement) payable to DGI |
-| 143 | Tax Payable - IRCM | Liability | IRCM withholding tax on investment income payable to DGI |
-| 144 | Tax Payable - Capital Gains | Liability | Capital gains tax payable to DGI |
+| 103 | Company Asset Capital | Equity | Origin of minted asset units |
+| 301 | Digital Asset Inventory | Asset | Vault holding of digital asset units across all asset types |
+| 302 | Asset Transfer Suspense | Asset | Clearing account for in-flight asset transfers |
+| 502 | Azamra Cash Register | Asset | Neutral cash reference for savings product accounting |
+| 701 | Azamra Platform Fee Income | Income | Revenue from platform trading fees |
+| 601 | Interest Expense on Savings | Expense | Interest on savings / write-off expenses |
+| 4011 | LP Settlement Control | Liability | LP cash settlement balances owed |
+| 4012 | LP Spread Payable | Liability | LP accumulated spread margin owed |
+| 4013 | LP Tax Withholding | Liability | Tax withheld from LP on sell transactions |
+| 4101 | Client Savings Control | Liability | Client XAF savings deposits |
+| 4102 | Client Digital Asset Holdings | Liability | Obligation to customers who hold asset units |
+| 4201 | Platform Fee Payable | Liability | Accrued trading fees before income recognition |
+| 4301 | Tax Payable - Registration Duty | Liability | Registration duty payable to DGI |
+| 4302 | Tax Payable - IRCM | Liability | IRCM withholding tax payable to DGI |
+| 4303 | Tax Payable - Capital Gains | Liability | Capital gains tax payable to DGI |
+| 4304 | Tax Payable - TVA | Liability | TVA payable to DGI |
+| 4501 | Transfers in Suspense | Liability | In-flight inter-account transfers |
+| 5011 | UBA Bank Account | Asset | UBA bank trust account for LP payouts |
+| 5031 | Afriland Tax Account | Asset | Afriland bank account for tax remittances |
 
 ## Savings Product Accounting Mapping
 
 Each asset's savings product is configured with **Cash-based accounting** (rule = 2):
 
-| Mapping | GL Account |
+| Fineract Mapping | GL Account |
 |---------|------------|
-| Savings Reference | GL 47 (Digital Asset Inventory) |
-| Savings Control | GL 65 (Customer Digital Asset Holdings) |
+| **Asset accounts** | |
+| Savings Reference | GL 301 (Digital Asset Inventory) |
+| Overdraft Portfolio Control | GL 301 (Digital Asset Inventory) |
+| **Liability accounts** | |
+| Savings Control | GL 4102 (Client Digital Asset Holdings) |
+| Transfers in Suspense | GL 4501 (Transfers in Suspense) |
+| **Income accounts** | |
+| Income from Interest | GL 701 (Azamra Platform Fee Income) |
+| Income from Fee | GL 701 (Azamra Platform Fee Income) |
+| Income from Penalty | GL 701 (Azamra Platform Fee Income) |
+| **Expense accounts** | |
+| Interest on Savings | GL 601 (Interest Expense on Savings) |
+| Write-Off | GL 601 (Interest Expense on Savings) |
 
 ## Journal Entry Examples
 
@@ -321,8 +357,8 @@ When the admin creates an asset and deposits 100,000 units into the LP's asset a
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| GL 47 - Digital Asset Inventory | 100,000 units | |
-| GL 73 - Company Asset Capital | | 100,000 units |
+| GL 301 - Digital Asset Inventory | 100,000 units | |
+| GL 103 - Company Asset Capital | | 100,000 units |
 
 ### 2. Investor Buy Trade
 
@@ -348,8 +384,8 @@ Four Fineract account transfers (LP Cash hub):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| GL 65 - Customer Digital Asset Holdings | 10 DTT | |
-| GL 47 - Digital Asset Inventory | | 10 DTT |
+| GL 4102 - Client Digital Asset Holdings | 10 DTT | |
+| GL 301 - Digital Asset Inventory | | 10 DTT |
 
 ### 3. Investor Sell Trade (bid ≤ issuer)
 
@@ -375,8 +411,8 @@ Fineract account transfers (LP Cash hub):
 
 | Account | Debit | Credit |
 |---------|-------|--------|
-| GL 47 - Digital Asset Inventory | 5 DTT | |
-| GL 65 - Customer Digital Asset Holdings | | 5 DTT |
+| GL 301 - Digital Asset Inventory | 5 DTT | |
+| GL 4102 - Client Digital Asset Holdings | | 5 DTT |
 
 ### 4. Coupon Payment (Bond Interest)
 
@@ -410,13 +446,16 @@ For non-bond assets (REAL_ESTATE, AGRICULTURE, etc.) with income configured, per
 
 - Formula: `units × issuerPrice × (incomeRate / 100) × (frequencyMonths / 12)`
 - Example: Investor holds 50 units. Issuer price = 4,000 XAF, income rate = 8%, monthly:
-  - Income = 50 × 4,000 × (8 / 100) × (1 / 12) = **1,333 XAF**
+  - Gross income = 50 × 4,000 × (8 / 100) × (1 / 12) = **1,333 XAF**
 
-Single Fineract account transfer:
+IRCM withholding tax is deducted from the gross income before payment, using the same rate logic as coupon payments:
 
 | Transfer | From | To | Amount |
 |----------|------|----|--------|
-| Income payment | LP Cash | Investor XAF | 1,333 XAF |
+| Income payment | LP Cash | Investor XAF | 1,333 - IRCM |
+| IRCM collection | LP Cash | TAX-IRCM | IRCM amount |
+
+Each payment is recorded in the `income_distributions` table. Tax is recorded in `tax_transactions` table.
 
 ## Payment Types
 
@@ -438,9 +477,9 @@ All monetary amounts in the system (trade costs, fees, coupon payments) use the 
 
 To verify asset accounting is correct:
 
-1. **GL 47 balance** should equal the sum of all LP asset savings account balances across all asset currencies
-2. **GL 65 balance** should equal the sum of all investor savings account balances across all asset currencies
-3. **GL 47 + GL 65** should equal the total supply of all assets (units minted via GL 73)
+1. **GL 301 balance** should equal the sum of all LP asset savings account balances across all asset currencies
+2. **GL 4102 balance** should equal the sum of all investor savings account balances across all asset currencies
+3. **GL 301 + GL 4102** should equal the total supply of all assets (units minted via GL 103)
 4. **Fee collection account balance** should match the sum of all `fee` values in both `orders` and `trade_log_archive` tables
 5. **LP Spread account balance** per asset should equal `SUM(spreadAmount) - SUM(buybackPremium)` across all orders for that asset
 6. **LP Cash account balance** per asset should reflect `SUM(issuerPrice × units)` for BUY minus `SUM(issuerPrice × units)` for SELL, adjusted for coupon/income payouts and tax disbursements

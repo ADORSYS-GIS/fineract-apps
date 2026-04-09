@@ -3,7 +3,10 @@ package com.adorsys.fineract.asset.controller;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.service.SseEmitterManager;
 import com.adorsys.fineract.asset.service.TradingService;
+import com.adorsys.fineract.asset.util.UserIdentityResolver;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,7 +21,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -33,6 +35,13 @@ class TradeControllerTest {
 
     @MockBean private TradingService tradingService;
     @MockBean private SseEmitterManager sseEmitterManager;
+    @MockBean private UserIdentityResolver userIdentityResolver;
+
+    @BeforeEach
+    void setUp() {
+        when(userIdentityResolver.resolveUserId(any())).thenReturn(42L);
+        when(userIdentityResolver.resolveExternalId(any())).thenReturn("test-sub");
+    }
 
     // -------------------------------------------------------------------------
     // GET /api/trades/orders
@@ -46,22 +55,16 @@ class TradeControllerTest {
                 TradeSide.BUY, new BigDecimal("10"),
                 new BigDecimal("101"), new BigDecimal("1015"),
                 new BigDecimal("5"), new BigDecimal("10"), OrderStatus.FILLED,
-                Instant.now()
+                Instant.now(),
+                null, null, null, null
         );
-        when(tradingService.getUserOrders(any(), any(), any(Pageable.class)))
+        when(tradingService.getUserOrders(eq(42L), any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(order)));
 
-        // Act & Assert
-        // With addFilters=false, the @AuthenticationPrincipal Jwt is null.
-        // The controller calls JwtUtils.extractUserId(jwt) which will NPE.
-        // This verifies the endpoint is mapped; the NPE becomes a 500 from the
-        // GlobalExceptionHandler's generic handler, proving the route exists.
         mockMvc.perform(get("/trades/orders")
                         .param("page", "0")
                         .param("size", "20"))
-                .andExpect(status().isInternalServerError());
-        // The 500 (not 404) confirms the route is correctly mapped.
-        // The error is expected: JwtUtils.extractUserId receives null jwt.
+                .andExpect(status().isOk());
     }
 
     // -------------------------------------------------------------------------
@@ -97,10 +100,19 @@ class TradeControllerTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void confirmOrder_routeExists_returns500WithoutJwt() throws Exception {
-        // Confirms route mapping — NPE on null JWT = 500 (not 404)
+    void confirmOrder_returns202() throws Exception {
+        OrderResponse response = new OrderResponse(
+                "order-001", "asset-001", "TST",
+                TradeSide.BUY, new BigDecimal("10"),
+                new BigDecimal("101"), new BigDecimal("1010"),
+                new BigDecimal("5"), new BigDecimal("10"), OrderStatus.PENDING,
+                Instant.now(),
+                null, null, null, null
+        );
+        when(tradingService.confirmOrder("order-001", 42L)).thenReturn(response);
+
         mockMvc.perform(post("/trades/orders/order-001/confirm"))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isAccepted());
     }
 
     // -------------------------------------------------------------------------
@@ -108,10 +120,11 @@ class TradeControllerTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void streamOrderStatus_routeExists_throwsOnNullJwt() {
-        // Confirms route mapping for SSE endpoint — NPE on null JWT (not 404)
-        assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/trades/orders/order-001/stream")
-                        .accept(MediaType.TEXT_EVENT_STREAM)));
+    void streamOrderStatus_returns200() throws Exception {
+        when(sseEmitterManager.subscribe("order-001")).thenReturn(new SseEmitter());
+
+        mockMvc.perform(get("/trades/orders/order-001/stream")
+                        .accept(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(status().isOk());
     }
 }

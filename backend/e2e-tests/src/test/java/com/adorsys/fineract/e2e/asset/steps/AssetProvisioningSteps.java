@@ -57,6 +57,17 @@ public class AssetProvisioningSteps {
     public void testUserHasXafBalance(long expectedBalance) {
         BigDecimal balance = fineractTestClient.getAccountBalance(
                 FineractInitializer.getTestUserXafAccountId());
+
+        // Top up if balance is below the required minimum (previous scenarios may have spent funds)
+        BigDecimal required = BigDecimal.valueOf(expectedBalance);
+        if (balance.compareTo(required) < 0) {
+            BigDecimal topUp = required.subtract(balance);
+            fineractTestClient.depositToSavingsAccount(
+                    FineractInitializer.getTestUserXafAccountId(), topUp);
+            balance = fineractTestClient.getAccountBalance(
+                    FineractInitializer.getTestUserXafAccountId());
+        }
+
         assertThat(balance.longValue())
                 .isGreaterThanOrEqualTo(expectedBalance);
     }
@@ -84,8 +95,6 @@ public class AssetProvisioningSteps {
         request.put("totalSupply", new BigDecimal(data.getOrDefault("totalSupply", "10000")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("lpClientId", FineractInitializer.getLpClientId());
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         // Optional income distribution fields
         if (data.containsKey("incomeType")) {
@@ -136,15 +145,25 @@ public class AssetProvisioningSteps {
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("lpClientId", FineractInitializer.getLpClientId());
         request.put("issuerName", data.getOrDefault("issuerName", "Test Issuer"));
-        request.put("interestRate", new BigDecimal(data.getOrDefault("interestRate", "5.80")));
-        request.put("couponFrequencyMonths",
-                Integer.parseInt(data.getOrDefault("couponFrequencyMonths", "6")));
+        String bondType = data.getOrDefault("bondType", "COUPON");
+        request.put("bondType", bondType);
+        request.put("dayCountConvention", data.getOrDefault("dayCountConvention",
+                "DISCOUNT".equals(bondType) ? "ACT_360" : "ACT_365"));
+        if (data.containsKey("issuerCountry")) {
+            request.put("issuerCountry", data.get("issuerCountry"));
+        }
+
+        if ("DISCOUNT".equals(bondType)) {
+            request.put("faceValue", bondIssuerPrice.multiply(new BigDecimal("1.1")));
+        } else { // COUPON
+            request.put("interestRate", new BigDecimal(data.getOrDefault("interestRate", "5.80")));
+            request.put("couponFrequencyMonths",
+                    Integer.parseInt(data.getOrDefault("couponFrequencyMonths", "6")));
+            request.put("nextCouponDate", resolveDateExpression(
+                    data.getOrDefault("nextCouponDate", "+6m")));
+        }
         request.put("maturityDate", resolveDateExpression(
                 data.getOrDefault("maturityDate", "+5y")));
-        request.put("nextCouponDate", resolveDateExpression(
-                data.getOrDefault("nextCouponDate", "+6m")));
-        request.put("subscriptionStartDate", LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", LocalDate.now().plusYears(1).toString());
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
@@ -280,6 +299,7 @@ public class AssetProvisioningSteps {
             return switch (unit) {
                 case "y" -> LocalDate.now().plusYears(amount).toString();
                 case "m" -> LocalDate.now().plusMonths(amount).toString();
+                case "w" -> LocalDate.now().plusWeeks(amount).toString();
                 case "d" -> LocalDate.now().plusDays(amount).toString();
                 default -> expr;
             };

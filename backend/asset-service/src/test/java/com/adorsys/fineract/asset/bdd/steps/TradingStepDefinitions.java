@@ -80,11 +80,6 @@ public class TradingStepDefinitions {
         jdbcTemplate.update("UPDATE assets SET circulating_supply = circulating_supply + ? WHERE id = ?", units, assetId);
     }
 
-    @Given("asset {string} has a subscription end date of yesterday")
-    public void assetHasExpiredSubscription(String assetId) {
-        jdbcTemplate.update("UPDATE assets SET subscription_end_date = DATEADD('DAY', -1, CURRENT_DATE) WHERE id = ?", assetId);
-    }
-
     // -------------------------------------------------------------------------
     // When steps — Quote-based trading flow
     // -------------------------------------------------------------------------

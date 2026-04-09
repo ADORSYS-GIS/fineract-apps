@@ -1,131 +1,163 @@
 # Payment Gateway Service
 
-A Spring Boot service for integrating mobile money payment providers (MTN MoMo, Orange Money) with Apache Fineract for the Webank self-service banking application.
+Spring Boot microservice that integrates mobile money payment providers (MTN MoMo, Orange Money, CinetPay) with Apache Fineract for the Webank self-service banking application.
 
-## Features
-
-- **Deposits**: Collect funds from customers via mobile money and credit their Fineract savings accounts
-- **Withdrawals**: Debit Fineract savings accounts and disburse funds to customers via mobile money
-- **Multi-provider support**: MTN Mobile Money and Orange Money
-- **Async callbacks**: Handle payment status updates from providers
-- **JWT authentication**: Secured with Keycloak OAuth2/OIDC
+**Port:** 8082 | **Java 21** | **Spring Boot 3.2** | **PostgreSQL** | **Redis**
 
 ## Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│  Self-Service   │────▶│  Payment Gateway     │────▶│  MTN MoMo API   │
-│  Frontend App   │     │  Service             │     └─────────────────┘
-└─────────────────┘     │                      │     ┌─────────────────┐
-                        │  - Deposits          │────▶│ Orange Money API│
-                        │  - Withdrawals       │     └─────────────────┘
-                        │  - Callbacks         │     ┌─────────────────┐
-                        │  - Status Queries    │────▶│  Fineract API   │
-                        └──────────────────────┘     └─────────────────┘
+                                          ┌─────────────────────┐
+┌──────────────┐    JWT     ┌─────────────┤   MTN MoMo API      │
+│ Self-Service │───────────▶│  Payment    │└─────────────────────┘
+│ Frontend     │            │  Gateway    │┌─────────────────────┐
+└──────────────┘            │  Service    ├┤  Orange Money API   │
+                            │             │└─────────────────────┘
+┌──────────────┐  Callbacks │  Port 8082  │┌─────────────────────┐
+│ MTN/Orange/  │───────────▶│             ├┤  CinetPay API       │
+│ CinetPay     │            │             │└─────────────────────┘
+└──────────────┘            │             │┌─────────────────────┐
+                            │             ├┤  Apache Fineract    │
+                            │             │└─────────────────────┘
+                            │             │┌─────────────────────┐
+                            │             ├┤  PostgreSQL         │
+                            │             │└─────────────────────┘
+                            │             │┌─────────────────────┐
+                            │             ├┤  Redis (token cache)│
+                            └─────────────┘└─────────────────────┘
 ```
 
 ## API Endpoints
 
-### Payments
+### Payment Operations (JWT required)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/payments/deposit` | Initiate a deposit |
-| POST | `/api/payments/withdraw` | Initiate a withdrawal |
+| POST | `/api/payments/deposit` | Initiate a deposit from mobile money |
+| POST | `/api/payments/withdraw` | Initiate a withdrawal to mobile money |
 | GET | `/api/payments/status/{id}` | Get transaction status |
 
-### Callbacks (Provider webhooks)
+### Provider Callbacks (no auth, IP whitelist optional)
+
+| Method | Endpoint | Provider |
+|--------|----------|----------|
+| POST | `/api/callbacks/mtn/collection` | MTN deposit |
+| POST | `/api/callbacks/mtn/disbursement` | MTN withdrawal |
+| POST | `/api/callbacks/orange/payment` | Orange deposit |
+| POST | `/api/callbacks/orange/cashout` | Orange withdrawal |
+| POST | `/api/callbacks/cinetpay/payment` | CinetPay deposit |
+| POST | `/api/callbacks/cinetpay/transfer` | CinetPay withdrawal |
+
+### Admin (ADMIN role required)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/callbacks/mtn/collection` | MTN deposit callback |
-| POST | `/api/callbacks/mtn/disbursement` | MTN withdrawal callback |
-| POST | `/api/callbacks/orange/payment` | Orange deposit callback |
-| POST | `/api/callbacks/orange/cashout` | Orange withdrawal callback |
+| GET | `/api/admin/reversals/dlq` | List unresolved reversal failures |
+| PATCH | `/api/admin/reversals/dlq/{id}` | Resolve a DLQ entry |
+| GET | `/api/admin/reversals/dlq/count` | Count unresolved entries |
 
-## Payment Flows
-
-### Deposit Flow
-1. Customer initiates deposit from mobile app
-2. Payment Gateway calls MTN/Orange API to request payment
-3. Customer approves payment on their phone (USSD prompt)
-4. Provider sends callback on completion
-5. Payment Gateway creates Fineract deposit transaction
-
-### Withdrawal Flow
-1. Customer initiates withdrawal from mobile app
-2. Payment Gateway creates Fineract withdrawal transaction
-3. Payment Gateway calls MTN/Orange API to disburse funds
-4. Provider sends funds to customer's mobile money account
-5. Provider sends callback confirming transfer
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `KEYCLOAK_ISSUER_URI` | Keycloak realm issuer URL | - |
-| `FINERACT_URL` | Fineract API base URL | - |
-| `FINERACT_USERNAME` | Fineract API username | - |
-| `FINERACT_PASSWORD` | Fineract API password | - |
-| `MTN_BASE_URL` | MTN MoMo API base URL | sandbox URL |
-| `MTN_COLLECTION_KEY` | MTN collection subscription key | - |
-| `MTN_DISBURSEMENT_KEY` | MTN disbursement subscription key | - |
-| `MTN_API_USER_ID` | MTN API user ID | - |
-| `MTN_API_KEY` | MTN API key | - |
-| `ORANGE_CLIENT_ID` | Orange API OAuth client ID | - |
-| `ORANGE_CLIENT_SECRET` | Orange API OAuth client secret | - |
-| `ORANGE_MERCHANT_CODE` | Orange merchant code | - |
-
-## Development
+## Quick Start
 
 ### Prerequisites
-- Java 21
-- Maven 3.9+
+- Java 21, Maven 3.9+
+- PostgreSQL 15+
+- Redis 7+
 - Docker (optional)
 
-### Build
+### Build & Run
 ```bash
 mvn clean package
-```
-
-### Run locally
-```bash
 mvn spring-boot:run
 ```
 
-### Build Docker image
+### Docker
 ```bash
 docker build -t payment-gateway:latest .
+docker run -p 8082:8082 payment-gateway:latest
 ```
 
 ### API Documentation
-When running, OpenAPI documentation is available at:
 - Swagger UI: http://localhost:8082/swagger-ui.html
 - OpenAPI spec: http://localhost:8082/api-docs
 
+## Configuration
+
+### Core
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `KEYCLOAK_ISSUER_URI` | Keycloak realm issuer URL | `http://localhost:8080/realms/fineract` |
+| `KEYCLOAK_JWK_SET_URI` | Keycloak JWK set URL | (derived from issuer) |
+| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC URL | `jdbc:postgresql://localhost:5432/payment_gateway` |
+| `SPRING_DATASOURCE_USERNAME` | DB username | `payment_gateway` |
+| `SPRING_DATASOURCE_PASSWORD` | DB password | `password` |
+| `REDIS_HOST` | Redis host | `localhost` |
+| `REDIS_PORT` | Redis port | `6379` |
+
+### Fineract
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FINERACT_URL` | Fineract API base URL | `https://localhost` |
+| `FINERACT_AUTH_TYPE` | Auth type: `oauth` or `basic` | `basic` |
+| `FINERACT_USERNAME` | Basic auth username | `mifos` |
+| `FINERACT_PASSWORD` | Basic auth password | `password` |
+| `FINERACT_CLIENT_ID` | OAuth client ID | `fineract-service` |
+| `FINERACT_CLIENT_SECRET` | OAuth client secret | - |
+
+### MTN MoMo
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MTN_BASE_URL` | MTN MoMo API URL | sandbox URL |
+| `MTN_COLLECTION_KEY` | Collection subscription key | - |
+| `MTN_DISBURSEMENT_KEY` | Disbursement subscription key | - |
+| `MTN_API_USER_ID` | API user ID | - |
+| `MTN_API_KEY` | API key | - |
+| `MTN_FINERACT_PAYMENT_TYPE_ID` | Fineract payment type for MTN | `1` |
+
+### Orange Money
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ORANGE_BASE_URL` | Orange Money API URL | `https://api.orange.com/...` |
+| `ORANGE_TOKEN_URL` | OAuth token URL | `https://api.orange.com/oauth/v3/token` |
+| `ORANGE_CLIENT_ID` | OAuth client ID | - |
+| `ORANGE_CLIENT_SECRET` | OAuth client secret | - |
+| `ORANGE_MERCHANT_CODE` | Merchant code | - |
+| `ORANGE_FINERACT_PAYMENT_TYPE_ID` | Fineract payment type for Orange | `2` |
+
+### CinetPay
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CINETPAY_BASE_URL` | CinetPay checkout API URL | `https://api-checkout.cinetpay.com` |
+| `CINETPAY_TRANSFER_URL` | CinetPay transfer API URL | `https://client.cinetpay.com` |
+| `CINETPAY_API_KEY` | API key | - |
+| `CINETPAY_SITE_ID` | Site ID | - |
+| `CINETPAY_SECRET_KEY` | HMAC secret key | - |
+| `CINETPAY_TRANSFER_PASSWORD` | Transfer API password | - |
+
+### Operational
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `APP_DAILY_DEPOSIT_MAX` | Daily deposit limit (XAF) | `500000` |
+| `APP_DAILY_WITHDRAWAL_MAX` | Daily withdrawal limit (XAF) | `500000` |
+| `RATE_LIMIT_PAYMENT` | Payments per minute per user | `5` |
+| `RATE_LIMIT_STATUS` | Status checks per minute | `50` |
+| `RATE_LIMIT_CALLBACK` | Callbacks per minute per IP | `100` |
+| `APP_CLEANUP_ENABLED` | Enable stale transaction cleanup | `true` |
+| `APP_DLQ_RETRY_ENABLED` | Enable DLQ auto-retry | `true` |
+| `CALLBACK_IP_WHITELIST_ENABLED` | Enable callback IP filtering | `false` |
+
 ## Kubernetes Deployment
 
-The `k8s/` directory contains Kustomize manifests for Kubernetes deployment.
-
 ```bash
-# Deploy to Kubernetes
 kubectl apply -k k8s/base/
 ```
 
-## Security Considerations
+## Documentation
 
-- All endpoints require JWT authentication (except callbacks)
-- Callback endpoints should be secured with IP whitelisting at ingress level
-- Secrets (API keys, passwords) are stored in Kubernetes Secrets
-- Provider callback signatures should be verified (TODO)
-
-## TODO
-
-- [ ] Implement transaction reversal for failed withdrawals
-- [ ] Add WebAuthn step-up authentication for withdrawals
-- [ ] Persist transactions to database (currently in-memory)
-- [ ] Implement provider callback signature verification
-- [ ] Add retry mechanism for failed Fineract transactions
-- [ ] Implement idempotency for callback handling
+- [API Reference](docs/API_REFERENCE.md) - Endpoint specs, request/response examples, error codes
+- [Architecture Guide](docs/ARCHITECTURE.md) - Internal design, payment flows, security, database schema

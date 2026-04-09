@@ -7,6 +7,7 @@ import com.adorsys.fineract.registration.dto.profile.AddressResponse;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateRequest;
 import com.adorsys.fineract.registration.dto.profile.ProfileUpdateResponse;
 import com.adorsys.fineract.registration.service.FineractService;
+import com.adorsys.fineract.registration.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -61,18 +62,20 @@ public class CustomerProfileService {
     }
 
     private Long getClientIdFromJwt(Jwt jwt) {
-        String fineractClientId = jwt.getClaimAsString("fineract_client_id");
-        if (fineractClientId == null) {
-            String fineractExternalId = jwt.getClaimAsString("fineract_external_id");
-            if (fineractExternalId == null) {
-                throw new IllegalArgumentException("fineract_client_id and fineract_external_id claims are missing from JWT");
-            }
-            Map<String, Object> client = fineractService.getClientByExternalId(fineractExternalId);
-            if (client == null || client.isEmpty()) {
-                throw new IllegalArgumentException("Client not found with external id " + fineractExternalId);
-            }
-            fineractClientId = String.valueOf(client.get("id"));
+        // Fast path: fineract_client_id is set after KYC approval
+        Long clientId = JwtUtils.extractClientId(jwt);
+        if (clientId != null) {
+            return clientId;
         }
-        return Long.valueOf(fineractClientId);
+
+        // Fallback: resolve via sub claim (Keycloak UUID = Fineract externalId).
+        // fineract_external_id is also a user attribute set only after KYC, so it
+        // fails exactly when fineract_client_id fails — sub is always present.
+        String externalId = JwtUtils.extractExternalId(jwt);
+        Map<String, Object> client = fineractService.getClientByExternalId(externalId);
+        if (client == null || client.isEmpty()) {
+            throw new IllegalArgumentException("Client not found with externalId " + externalId);
+        }
+        return ((Number) client.get("id")).longValue();
     }
 }

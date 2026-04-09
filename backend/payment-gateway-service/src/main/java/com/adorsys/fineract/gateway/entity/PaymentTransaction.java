@@ -15,7 +15,8 @@ import java.time.Instant;
 @Table(name = "payment_transactions", indexes = {
     @Index(name = "idx_provider_reference", columnList = "providerReference"),
     @Index(name = "idx_external_id_created", columnList = "externalId, createdAt"),
-    @Index(name = "idx_status", columnList = "status")
+    @Index(name = "idx_status", columnList = "status"),
+    @Index(name = "idx_idempotency_key", columnList = "idempotencyKey", unique = true)
 })
 @Getter
 @Setter
@@ -24,7 +25,10 @@ public class PaymentTransaction {
 
     @Id
     @Column(length = 36)
-    private String transactionId;  // UUID - serves as idempotency key
+    private String transactionId;  // Server-generated UUID, also used as MTN X-Reference-Id
+
+    @Column(nullable = false, length = 255)
+    private String idempotencyKey;  // Client-provided dedup token (unique constraint)
 
     @Column(length = 255)
     private String providerReference;
@@ -77,10 +81,12 @@ public class PaymentTransaction {
     }
 
     // Builder-style constructor for convenience
-    public PaymentTransaction(String transactionId, String providerReference, String externalId,
-                              Long accountId, PaymentProvider provider, TransactionType type,
-                              BigDecimal amount, String currency, PaymentStatus status) {
+    public PaymentTransaction(String transactionId, String idempotencyKey, String providerReference,
+                              String externalId, Long accountId, PaymentProvider provider,
+                              TransactionType type, BigDecimal amount, String currency,
+                              PaymentStatus status) {
         this.transactionId = transactionId;
+        this.idempotencyKey = idempotencyKey;
         this.providerReference = providerReference;
         this.externalId = externalId;
         this.accountId = accountId;

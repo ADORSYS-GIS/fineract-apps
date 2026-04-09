@@ -12,8 +12,7 @@ Feature: Customer Registration - Edge Case Scenarios
   Scenario: Idempotency with different payload
     Given a new customer has been registered with the following details:
       | externalId | idempotency-payload-001 |
-      | firstName  | Iden               |
-      | lastName   | Potent               |
+      | fullName   | Iden Potent         |
       | phone      | +237691234582      |
     When the KYC manager approves, activates, and deposits into the account with the following details:
       | depositAmount | 2000        |
@@ -27,8 +26,7 @@ Feature: Customer Registration - Edge Case Scenarios
   Scenario: Attempt to deposit to an already active account
     Given a new customer has been registered with the following details:
       | externalId | already-active-001 |
-      | firstName  | Active               |
-      | lastName   | User                 |
+      | fullName   | Active User         |
       | phone      | +237691234583      |
     And the account is already active
     When the KYC manager approves, activates, and deposits into the account with the following details:
@@ -36,13 +34,12 @@ Feature: Customer Registration - Edge Case Scenarios
       | paymentType   | Orange Money|
     Then the approval and deposit should be successful and return a transactionId
 
-  Scenario: Attempt to approve with malformed idempotency key
+  Scenario: Attempt to approve with blank idempotency key
     Given a new customer has been registered with the following details:
-      | externalId | malformed-key-001 |
-      | firstName  | Malformed            |
-      | lastName   | Key                  |
-      | phone      | +237691234584        |
-    When the KYC manager attempts to approve and deposit with a malformed idempotency key "not-a-uuid" and details:
+      | externalId | blank-key-001   |
+      | fullName   | Blank Key       |
+      | phone      | +237691234584   |
+    When the KYC manager attempts to approve and deposit with a malformed idempotency key " " and details:
       | depositAmount | 1000         |
       | paymentType   | Orange Money |
-    Then the registration should fail with a 400 Bad Request status code
+    Then the response status should be 400

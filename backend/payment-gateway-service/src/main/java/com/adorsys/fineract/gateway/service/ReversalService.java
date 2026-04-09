@@ -66,7 +66,7 @@ public class ReversalService {
             txn.getAmount(), txn.getAccountId(), ex);
 
         try {
-            deadLetterRepository.save(new ReversalDeadLetter(
+            ReversalDeadLetter dlq = new ReversalDeadLetter(
                 txn.getTransactionId(),
                 txn.getFineractTransactionId(),
                 txn.getAccountId(),
@@ -74,7 +74,10 @@ public class ReversalService {
                 txn.getCurrency(),
                 txn.getProvider(),
                 truncate(ex.getMessage(), 500)
-            ));
+            );
+            // For CinetPay, persist underlying provider hint for correct GL mapping on DLQ retry
+            dlq.setProviderHint(txn.getNotifToken());
+            deadLetterRepository.save(dlq);
         } catch (Exception dlqEx) {
             log.error("CRITICAL: Failed to persist reversal to dead-letter queue! transactionId={}",
                 txn.getTransactionId(), dlqEx);
@@ -89,11 +92,11 @@ public class ReversalService {
      * Resolve payment type ID for a provider.
      * For CinetPay, uses the notifToken field (repurposed to store the detected underlying provider).
      */
-    Long getPaymentTypeId(PaymentProvider provider) {
+    public Long getPaymentTypeId(PaymentProvider provider) {
         return getPaymentTypeId(provider, null);
     }
 
-    Long getPaymentTypeId(PaymentProvider provider, String underlyingProviderHint) {
+    public Long getPaymentTypeId(PaymentProvider provider, String underlyingProviderHint) {
         return switch (provider) {
             case MTN_MOMO -> mtnConfig.getFineractPaymentTypeId();
             case ORANGE_MONEY -> orangeConfig.getFineractPaymentTypeId();

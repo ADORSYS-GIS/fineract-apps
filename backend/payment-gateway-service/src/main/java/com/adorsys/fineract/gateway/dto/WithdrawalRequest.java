@@ -21,8 +21,6 @@ public class WithdrawalRequest {
      * Customer's Fineract external ID (from Keycloak token)
      */
     @NotBlank(message = "External ID is required")
-    @Size(min = 36, max = 36, message = "External ID must be a valid UUID")
-    @Pattern(regexp = "^[a-f0-9-]{36}$", message = "External ID must be a valid UUID format")
     private String externalId;
 
     /**
@@ -72,9 +70,4 @@ public class WithdrawalRequest {
     @Size(max = 100, message = "Reference cannot exceed 100 characters")
     private String reference;
 
-    /**
-     * Step-up authentication token (from WebAuthn verification)
-     */
-    @Size(max = 2048, message = "Step-up token is too long")
-    private String stepUpToken;
 }

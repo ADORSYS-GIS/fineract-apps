@@ -353,9 +353,11 @@ class TaxServiceTest {
             Asset asset = activeAsset();
             asset.setRegistrationDutyEnabled(true);
             asset.setCapitalGainsTaxEnabled(true);
+            // tvaEnabled is false by default — test focuses on reg duty + capital gains only
 
+            // fee = grossAmount × 0.003 = 100000 × 0.003 = 300
             TaxBreakdown breakdown = taxService.buildTaxBreakdown(
-                    asset, USER_ID, new BigDecimal("100000"), BigDecimal.ZERO, false);
+                    asset, USER_ID, new BigDecimal("100000"), new BigDecimal("300"), BigDecimal.ZERO, false);
 
             assertEquals(new BigDecimal("0.02"), breakdown.registrationDutyRate());
             assertEquals(new BigDecimal("2000"), breakdown.registrationDutyAmount());
@@ -370,12 +372,13 @@ class TaxServiceTest {
             Asset asset = activeAsset();
             asset.setRegistrationDutyEnabled(true);
             asset.setCapitalGainsTaxEnabled(true);
+            // tvaEnabled is false by default — test focuses on reg duty + capital gains only
             // Gain of 700K exceeds 500K threshold → taxes 200K * 0.165 = 33K
             when(taxTransactionRepository.sumCapitalGainsByUserAndYear(eq(USER_ID), anyInt()))
                     .thenReturn(BigDecimal.ZERO);
 
             TaxBreakdown breakdown = taxService.buildTaxBreakdown(
-                    asset, USER_ID, new BigDecimal("100000"), new BigDecimal("700000"), true);
+                    asset, USER_ID, new BigDecimal("100000"), new BigDecimal("300"), new BigDecimal("700000"), true);
 
             assertEquals(new BigDecimal("2000"), breakdown.registrationDutyAmount());
             assertEquals(new BigDecimal("33000"), breakdown.capitalGainsTaxAmount());
@@ -388,15 +391,33 @@ class TaxServiceTest {
             Asset asset = activeAsset();
             asset.setRegistrationDutyEnabled(true);
             asset.setCapitalGainsTaxEnabled(true);
+            // tvaEnabled is false by default — test focuses on reg duty + capital gains only
             // Gain of 200K < 500K threshold → exempt
 
+            // fee = 50000 × 0.003 = 150
             TaxBreakdown breakdown = taxService.buildTaxBreakdown(
-                    asset, USER_ID, new BigDecimal("50000"), new BigDecimal("200000"), true);
+                    asset, USER_ID, new BigDecimal("50000"), new BigDecimal("150"), new BigDecimal("200000"), true);
 
             assertEquals(new BigDecimal("1000"), breakdown.registrationDutyAmount());
             assertEquals(BigDecimal.ZERO, breakdown.capitalGainsTaxAmount());
             assertEquals(new BigDecimal("1000"), breakdown.totalTaxAmount());
             assertTrue(breakdown.capitalGainsExemptionApplied());
+        }
+
+        @Test
+        void buildTaxBreakdown_tvaOnFeeNotGross() {
+            // TVA should be calculated on the fee, not the gross trade amount
+            Asset asset = activeAsset();
+            asset.setRegistrationDutyEnabled(false);
+            asset.setTvaEnabled(true);
+
+            // gross = 100,000 XAF, fee = 300 XAF (0.3%)
+            // TVA = 300 × 0.1925 = 57.75 → rounded to 58
+            TaxBreakdown breakdown = taxService.buildTaxBreakdown(
+                    asset, USER_ID, new BigDecimal("100000"), new BigDecimal("300"), BigDecimal.ZERO, false);
+
+            assertEquals(new BigDecimal("58"), breakdown.tvaAmount());
+            assertEquals(new BigDecimal("58"), breakdown.totalTaxAmount());
         }
     }
 
@@ -452,6 +473,67 @@ class TaxServiceTest {
         void getCapitalGainsAccountId_delegatesToResolved() {
             when(resolvedTaxAccounts.getCapitalGainsAccountId()).thenReturn(300L);
             assertEquals(300L, taxService.getCapitalGainsAccountId());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // TVA (VAT) Calculation
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class TvaCalculation {
+
+        @Test
+        void calculateTva_enabled_usesDefaultRate() {
+            Asset asset = Asset.builder().tvaEnabled(true).build();
+            BigDecimal result = taxService.calculateTva(asset, new BigDecimal("10000"));
+            // Default rate = 0.1925, so 10000 * 0.1925 = 1925
+            assertEquals(new BigDecimal("1925"), result);
+        }
+
+        @Test
+        void calculateTva_disabled_returnsZero() {
+            Asset asset = Asset.builder().tvaEnabled(false).build();
+            BigDecimal result = taxService.calculateTva(asset, new BigDecimal("10000"));
+            assertEquals(BigDecimal.ZERO, result);
+        }
+
+        @Test
+        void calculateTva_nullEnabled_returnsZero() {
+            // tvaEnabled null (set explicitly via setter) is treated defensively as disabled
+            Asset asset = Asset.builder().tvaEnabled(true).build();
+            asset.setTvaEnabled(null);
+            BigDecimal result = taxService.calculateTva(asset, new BigDecimal("10000"));
+            assertEquals(BigDecimal.ZERO, result);
+        }
+
+        @Test
+        void calculateTva_customRate_usesAssetRate() {
+            Asset asset = Asset.builder()
+                    .tvaEnabled(true)
+                    .tvaRate(new BigDecimal("0.10"))
+                    .build();
+            BigDecimal result = taxService.calculateTva(asset, new BigDecimal("10000"));
+            // Custom rate = 0.10, so 10000 * 0.10 = 1000
+            assertEquals(new BigDecimal("1000"), result);
+        }
+
+        @Test
+        void getTvaRate_enabled_returnsDefaultRate() {
+            Asset asset = Asset.builder().tvaEnabled(true).build();
+            assertEquals(new BigDecimal("0.1925"), taxService.getTvaRate(asset));
+        }
+
+        @Test
+        void getTvaRate_disabled_returnsZero() {
+            Asset asset = Asset.builder().tvaEnabled(false).build();
+            assertEquals(BigDecimal.ZERO, taxService.getTvaRate(asset));
+        }
+
+        @Test
+        void getTvaAccountId_delegatesToResolvedAccounts() {
+            when(resolvedTaxAccounts.getTvaAccountId()).thenReturn(400L);
+            assertEquals(400L, taxService.getTvaAccountId());
         }
     }
 }

@@ -22,7 +22,9 @@ public final class TestDataFactory {
     public static final Long LP_CASH_ACCOUNT = 300L;
     public static final Long LP_ASSET_ACCOUNT = 400L;
     public static final Long LP_SPREAD_ACCOUNT = 500L;
+    public static final Long LP_TAX_ACCOUNT = 360L;
     public static final Long FEE_COLLECTION_ACCOUNT = 999L;
+    public static final Long CLEARING_ACCOUNT = 901L;
     public static final String IDEMPOTENCY_KEY = "idem-key-1";
     public static final Long LP_CLIENT_ID = 1L;
 
@@ -40,15 +42,16 @@ public final class TestDataFactory {
                 .issuerPrice(new BigDecimal("100"))
                 .totalSupply(new BigDecimal("1000"))
                 .circulatingSupply(BigDecimal.ZERO)
-                .tradingFeePercent(new BigDecimal("0.005"))
+                .tradingFeePercent(new BigDecimal("0.003"))
                 .decimalPlaces(0)
                 .lpClientId(LP_CLIENT_ID)
                 .lpCashAccountId(LP_CASH_ACCOUNT)
                 .lpAssetAccountId(LP_ASSET_ACCOUNT)
                 .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
+                .lpTaxAccountId(360L)
+                .tvaEnabled(false)
+                .registrationDutyEnabled(true)
                 .fineractProductId(10)
-                .subscriptionStartDate(LocalDate.now().minusMonths(1))
-                .subscriptionEndDate(LocalDate.now().plusYears(1))
                 .createdAt(Instant.now())
                 .build();
     }
@@ -120,19 +123,21 @@ public final class TestDataFactory {
                 null,
                 AssetCategory.STOCKS,
                 new BigDecimal("100"),
+                null, // faceValue (defaults to issuerPrice for non-bonds)
                 new BigDecimal("1000"),
                 0,
                 new BigDecimal("0.005"),
+                null,                    // spreadPercent (null = use default 0.3%)
                 new BigDecimal("110"),
                 new BigDecimal("95"),
-                LocalDate.now().minusMonths(1),
-                LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits (maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays)
                 null, null, // min order size/cash
-                null, null, null, null, null, null, // bond fields
+                null, null, null, // bondType, dayCountConvention, issuerCountry
+                null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, null // tax fields
+                null, null, null, null, null, null, null, null, null, // tax fields
+                false, null // tvaEnabled, tvaRate
         );
     }
 
@@ -145,16 +150,17 @@ public final class TestDataFactory {
                 null,
                 AssetCategory.BONDS,
                 new BigDecimal("10000"),
+                null, // faceValue (defaults to issuerPrice for COUPON bonds)
                 new BigDecimal("500"),
                 0,
                 new BigDecimal("0.005"),
+                null,                    // spreadPercent (null = use default 0.3%)
                 new BigDecimal("11000"),
                 new BigDecimal("9500"),
-                LocalDate.now().minusMonths(1),
-                LocalDate.now().plusYears(1),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
+                BondType.COUPON, DayCountConvention.ACT_365, "SENEGAL", // bondType, dayCountConvention, issuerCountry
                 "Etat du Sénégal",
                 "SN0000038741",
                 LocalDate.now().plusYears(5),
@@ -162,7 +168,8 @@ public final class TestDataFactory {
                 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
-                null, null, null, null, null, null, null, null, true // tax: govt bond
+                null, null, null, null, null, null, null, null, true, // tax: govt bond
+                false, null // tvaEnabled, tvaRate
         );
     }
 
@@ -298,13 +305,29 @@ public final class TestDataFactory {
     public static Asset activeBondAsset() {
         Asset bond = activeAsset();
         bond.setCategory(AssetCategory.BONDS);
+        bond.setBondType(BondType.COUPON);
+        bond.setDayCountConvention(DayCountConvention.ACT_365);
+        bond.setIssuerCountry("SENEGAL");
         bond.setIssuerName("Etat du Sénégal");
         bond.setIsinCode("SN0000038741");
         bond.setMaturityDate(LocalDate.now().plusYears(5));
         bond.setInterestRate(new BigDecimal("5.80"));
         bond.setCouponFrequencyMonths(6);
         bond.setNextCouponDate(LocalDate.now().plusMonths(6));
-        bond.setSubscriptionEndDate(LocalDate.now().plusYears(1));
+        return bond;
+    }
+
+    public static Asset activeDiscountBondAsset() {
+        Asset bond = activeAsset();
+        bond.setCategory(AssetCategory.BONDS);
+        bond.setBondType(BondType.DISCOUNT);
+        bond.setDayCountConvention(DayCountConvention.ACT_360);
+        bond.setIssuerCountry("CAMEROUN");
+        bond.setIssuerName("Republique du Cameroun");
+        bond.setIsinCode("CM1300001193");
+        bond.setIssuerPrice(new BigDecimal("1000000"));
+        bond.setMaturityDate(LocalDate.now().plusWeeks(52));
+        // No coupon fields for discount bonds
         return bond;
     }
 }

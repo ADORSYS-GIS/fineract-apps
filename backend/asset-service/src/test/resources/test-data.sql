@@ -15,30 +15,32 @@ DELETE FROM assets;
 -- Active asset for integration tests
 INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
     issuer_price, total_supply, circulating_supply, trading_fee_percent,
-    decimal_places, subscription_start_date, subscription_end_date,
-    lp_client_id, lp_asset_account_id, lp_cash_account_id,
+    decimal_places,
+    lp_client_id, lp_asset_account_id, lp_cash_account_id, lp_spread_account_id, lp_tax_account_id,
     fineract_product_id, version, created_at, updated_at,
     registration_duty_enabled, registration_duty_rate, ircm_enabled, ircm_rate_override,
-    ircm_exempt, capital_gains_tax_enabled, capital_gains_rate, is_bvmac_listed, is_government_bond)
+    ircm_exempt, capital_gains_tax_enabled, capital_gains_rate, is_bvmac_listed, is_government_bond,
+    tva_enabled, tva_rate)
 VALUES ('asset-001', 'TST', 'TST', 'Test Asset', 'STOCKS', 'ACTIVE', 'MANUAL',
     100.00, 1000, 0, 0.005, 0,
-    DATEADD('MONTH', -1, CURRENT_DATE), DATEADD('YEAR', 1, CURRENT_DATE),
-    1, 400, 300, 10, 0, NOW(), NOW(),
-    true, 0.0200, true, null, false, true, 0.1650, false, false);
+    1, 400, 300, 350, 360, 10, 0, NOW(), NOW(),
+    true, 0.0200, true, null, false, true, 0.1650, false, false,
+    false, null);
 
 -- Pending asset for admin lifecycle tests
 INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
     issuer_price, total_supply, circulating_supply, trading_fee_percent,
-    decimal_places, subscription_start_date, subscription_end_date,
-    lp_client_id, lp_asset_account_id, lp_cash_account_id,
+    decimal_places,
+    lp_client_id, lp_asset_account_id, lp_cash_account_id, lp_spread_account_id, lp_tax_account_id,
     fineract_product_id, version, created_at, updated_at,
     registration_duty_enabled, registration_duty_rate, ircm_enabled, ircm_rate_override,
-    ircm_exempt, capital_gains_tax_enabled, capital_gains_rate, is_bvmac_listed, is_government_bond)
+    ircm_exempt, capital_gains_tax_enabled, capital_gains_rate, is_bvmac_listed, is_government_bond,
+    tva_enabled, tva_rate)
 VALUES ('asset-002', 'PND', 'PND', 'Pending Asset', 'COMMODITIES', 'PENDING', 'MANUAL',
     50.00, 500, 0, 0.01, 0,
-    DATEADD('MONTH', -1, CURRENT_DATE), DATEADD('YEAR', 1, CURRENT_DATE),
-    1, 401, 301, 11, 0, NOW(), NOW(),
-    true, 0.0200, true, null, false, true, 0.1650, false, false);
+    1, 401, 301, 351, 361, 11, 0, NOW(), NOW(),
+    true, 0.0200, true, null, false, true, 0.1650, false, false,
+    false, null);
 
 -- Price data for active asset
 INSERT INTO asset_prices (asset_id, bid_price, ask_price, day_open, day_high, day_low,

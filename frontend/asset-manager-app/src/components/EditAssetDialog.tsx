@@ -1,6 +1,7 @@
 import { Button } from "@fineract-apps/ui";
 import { Field, Form, Formik } from "formik";
 import { type FC, useEffect, useRef, useState } from "react";
+import { BOND_TYPE_OPTIONS } from "@/constants/bondTypes";
 import { ASSET_CATEGORIES } from "@/constants/categories";
 import { FREQUENCY_OPTIONS } from "@/constants/frequencies";
 import { INCOME_TYPES } from "@/constants/incomeTypes";
@@ -37,6 +38,24 @@ interface EditFormValues {
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
 	capitalGainsRate: string;
+	isBvmacListed: boolean;
+	isGovernmentBond: boolean;
+	tvaEnabled: boolean;
+	tvaRate: string;
+	// Bond-specific updatable fields
+	interestRate: string;
+	maturityDate: string;
+	nextCouponDate: string;
+	// PENDING-only fields
+	issuerPrice: string;
+	faceValue: string;
+	totalSupply: string;
+	issuerName: string;
+	isinCode: string;
+	couponFrequencyMonths: string;
+	bondType: string;
+	dayCountConvention: string;
+	issuerCountry: string;
 }
 
 function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
@@ -78,74 +97,108 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 			asset.capitalGainsRate != null
 				? (asset.capitalGainsRate * 100).toString()
 				: "",
+		isBvmacListed: asset.isBvmacListed ?? false,
+		isGovernmentBond: asset.isGovernmentBond ?? false,
+		tvaEnabled: asset.tvaEnabled ?? false,
+		tvaRate: asset.tvaRate != null ? (asset.tvaRate * 100).toString() : "",
+		interestRate: asset.interestRate?.toString() ?? "",
+		maturityDate: asset.maturityDate ?? "",
+		nextCouponDate: asset.nextCouponDate ?? "",
+		// PENDING-only fields
+		issuerPrice: asset.issuerPrice?.toString() ?? "",
+		faceValue: asset.faceValue?.toString() ?? "",
+		totalSupply: asset.totalSupply?.toString() ?? "",
+		issuerName: asset.issuerName ?? "",
+		isinCode: asset.isinCode ?? "",
+		couponFrequencyMonths: asset.couponFrequencyMonths?.toString() ?? "",
+		bondType: asset.bondType ?? "",
+		dayCountConvention: asset.dayCountConvention ?? "",
+		issuerCountry: asset.issuerCountry ?? "",
 	};
 }
+
+/** Maps form field names to their transform for the API request. */
+const num = (v: string) => (v !== "" ? Number(v) : undefined);
+const pct = (v: string) => (v ? Number(v) / 100 : undefined);
+const str = (v: string) => v || undefined;
+
+type FieldTransform = (v: string) => unknown;
+
+const STRING_FIELDS: (keyof EditFormValues)[] = [
+	"name",
+	"description",
+	"imageUrl",
+	"category",
+];
+
+const NUM_FIELDS: (keyof EditFormValues)[] = [
+	"lpBidPrice",
+	"lpAskPrice",
+	"maxPositionPercent",
+	"maxOrderSize",
+	"minOrderSize",
+	"minOrderCashAmount",
+	"dailyTradeLimitXaf",
+	"lockupDays",
+	"incomeRate",
+	"distributionFrequencyMonths",
+	"interestRate",
+	"issuerPrice",
+	"faceValue",
+	"totalSupply",
+	"couponFrequencyMonths",
+];
+
+const PCT_FIELDS: (keyof EditFormValues)[] = [
+	"tradingFeePercent",
+	"registrationDutyRate",
+	"ircmRateOverride",
+	"capitalGainsRate",
+	"tvaRate",
+];
+
+const STR_FIELDS: (keyof EditFormValues)[] = [
+	"incomeType",
+	"nextDistributionDate",
+	"maturityDate",
+	"nextCouponDate",
+	"issuerName",
+	"isinCode",
+	"bondType",
+	"dayCountConvention",
+	"issuerCountry",
+];
+
+const BOOL_FIELDS: (keyof EditFormValues)[] = [
+	"registrationDutyEnabled",
+	"ircmEnabled",
+	"ircmExempt",
+	"capitalGainsTaxEnabled",
+	"isBvmacListed",
+	"isGovernmentBond",
+	"tvaEnabled",
+];
 
 function buildUpdateRequest(
 	values: EditFormValues,
 	initial: EditFormValues,
 ): UpdateAssetRequest | null {
-	const data: UpdateAssetRequest = {};
-	const num = (v: string) => (v ? Number(v) : undefined);
+	const data: Record<string, unknown> = {};
 
-	if (values.name !== initial.name) data.name = values.name;
-	if (values.description !== initial.description)
-		data.description = values.description;
-	if (values.imageUrl !== initial.imageUrl) data.imageUrl = values.imageUrl;
-	if (values.category !== initial.category) data.category = values.category;
-	if (values.tradingFeePercent !== initial.tradingFeePercent)
-		data.tradingFeePercent = values.tradingFeePercent
-			? Number(values.tradingFeePercent) / 100
-			: undefined;
-	if (values.lpBidPrice !== initial.lpBidPrice)
-		data.lpBidPrice = num(values.lpBidPrice);
-	if (values.lpAskPrice !== initial.lpAskPrice)
-		data.lpAskPrice = num(values.lpAskPrice);
-	if (values.maxPositionPercent !== initial.maxPositionPercent)
-		data.maxPositionPercent = num(values.maxPositionPercent);
-	if (values.maxOrderSize !== initial.maxOrderSize)
-		data.maxOrderSize = num(values.maxOrderSize);
-	if (values.minOrderSize !== initial.minOrderSize)
-		data.minOrderSize = num(values.minOrderSize);
-	if (values.minOrderCashAmount !== initial.minOrderCashAmount)
-		data.minOrderCashAmount = num(values.minOrderCashAmount);
-	if (values.dailyTradeLimitXaf !== initial.dailyTradeLimitXaf)
-		data.dailyTradeLimitXaf = num(values.dailyTradeLimitXaf);
-	if (values.lockupDays !== initial.lockupDays)
-		data.lockupDays = num(values.lockupDays);
-	if (values.incomeType !== initial.incomeType)
-		data.incomeType = values.incomeType || undefined;
-	if (values.incomeRate !== initial.incomeRate)
-		data.incomeRate = num(values.incomeRate);
-	if (
-		values.distributionFrequencyMonths !== initial.distributionFrequencyMonths
-	)
-		data.distributionFrequencyMonths = num(values.distributionFrequencyMonths);
-	if (values.nextDistributionDate !== initial.nextDistributionDate)
-		data.nextDistributionDate = values.nextDistributionDate || undefined;
-	// Tax configuration
-	if (values.registrationDutyEnabled !== initial.registrationDutyEnabled)
-		data.registrationDutyEnabled = values.registrationDutyEnabled;
-	if (values.registrationDutyRate !== initial.registrationDutyRate)
-		data.registrationDutyRate = values.registrationDutyRate
-			? Number(values.registrationDutyRate) / 100
-			: undefined;
-	if (values.ircmEnabled !== initial.ircmEnabled)
-		data.ircmEnabled = values.ircmEnabled;
-	if (values.ircmRateOverride !== initial.ircmRateOverride)
-		data.ircmRateOverride = values.ircmRateOverride
-			? Number(values.ircmRateOverride) / 100
-			: undefined;
-	if (values.ircmExempt !== initial.ircmExempt)
-		data.ircmExempt = values.ircmExempt;
-	if (values.capitalGainsTaxEnabled !== initial.capitalGainsTaxEnabled)
-		data.capitalGainsTaxEnabled = values.capitalGainsTaxEnabled;
-	if (values.capitalGainsRate !== initial.capitalGainsRate)
-		data.capitalGainsRate = values.capitalGainsRate
-			? Number(values.capitalGainsRate) / 100
-			: undefined;
+	const diffAndSet = (key: keyof EditFormValues, transform: FieldTransform) => {
+		if (values[key] !== initial[key])
+			data[key] = transform(values[key] as string);
+	};
 
-	return Object.keys(data).length > 0 ? data : null;
+	for (const k of STRING_FIELDS) diffAndSet(k, (v) => v);
+	for (const k of NUM_FIELDS) diffAndSet(k, num);
+	for (const k of PCT_FIELDS) diffAndSet(k, pct);
+	for (const k of STR_FIELDS) diffAndSet(k, str);
+	for (const k of BOOL_FIELDS) {
+		if (values[k] !== initial[k]) data[k] = values[k];
+	}
+
+	return Object.keys(data).length > 0 ? (data as UpdateAssetRequest) : null;
 }
 
 const INPUT_CLASS =
@@ -265,6 +318,197 @@ const BasicInfoSection: FC<{
 		</div>
 	</>
 );
+
+const CoreFieldsSection: FC<{
+	isPending: boolean;
+	asset: AssetDetailResponse;
+}> = ({ isPending, asset }) => {
+	if (isPending) {
+		return (
+			<>
+				{/* Read-only identity fields */}
+				<div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+					<p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+						Asset Identity (read-only — delete and recreate to change)
+					</p>
+					<div className="grid grid-cols-3 gap-x-4 gap-y-1 text-sm">
+						<div>
+							<span className="text-gray-500 dark:text-gray-400">Symbol</span>
+							<span className="block font-mono font-medium text-gray-800 dark:text-gray-200">
+								{asset.symbol}
+							</span>
+						</div>
+						<div>
+							<span className="text-gray-500 dark:text-gray-400">Currency</span>
+							<span className="block font-mono font-medium text-gray-800 dark:text-gray-200">
+								{asset.currencyCode}
+							</span>
+						</div>
+						<div>
+							<span className="text-gray-500 dark:text-gray-400">Decimals</span>
+							<span className="block font-medium text-gray-800 dark:text-gray-200">
+								{asset.decimalPlaces}
+							</span>
+						</div>
+					</div>
+				</div>
+				{/* Editable core fields */}
+				<div className="grid grid-cols-2 gap-4">
+					<div>
+						<label className={LABEL_CLASS}>Issuer Price (XAF)</label>
+						<Field
+							name="issuerPrice"
+							type="number"
+							className={INPUT_CLASS}
+							min={0}
+							placeholder="e.g. 5000"
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							LP acquisition cost per unit
+						</p>
+					</div>
+					<div>
+						<label className={LABEL_CLASS}>Face Value (XAF)</label>
+						<Field
+							name="faceValue"
+							type="number"
+							className={INPUT_CLASS}
+							min={0}
+							placeholder="e.g. 10000"
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Par/redemption value. Required for DISCOUNT bonds (must be &gt;
+							issuer price).
+						</p>
+					</div>
+					<div>
+						<label className={LABEL_CLASS}>Total Supply</label>
+						<Field
+							name="totalSupply"
+							type="number"
+							className={INPUT_CLASS}
+							min={0}
+							placeholder="e.g. 100000"
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							Maximum units that can exist
+						</p>
+					</div>
+				</div>
+				{asset.category === "BONDS" && (
+					<>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<label className={LABEL_CLASS}>Bond Type</label>
+								<Field as="select" name="bondType" className={INPUT_CLASS}>
+									<option value="">Select...</option>
+									{BOND_TYPE_OPTIONS.map((b) => (
+										<option key={b.value} value={b.value}>
+											{b.label}
+										</option>
+									))}
+								</Field>
+							</div>
+							<div>
+								<label className={LABEL_CLASS}>Day Count Convention</label>
+								<Field
+									as="select"
+									name="dayCountConvention"
+									className={INPUT_CLASS}
+								>
+									<option value="">Select...</option>
+									<option value="ACT_360">ACT/360 (BTA standard)</option>
+									<option value="ACT_365">ACT/365 (OTA standard)</option>
+									<option value="THIRTY_360">30/360</option>
+								</Field>
+							</div>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<label className={LABEL_CLASS}>Issuer Name</label>
+								<Field
+									name="issuerName"
+									className={INPUT_CLASS}
+									maxLength={255}
+									placeholder="e.g. Etat du Sénégal"
+								/>
+							</div>
+							<div>
+								<label className={LABEL_CLASS}>Issuer Country</label>
+								<Field
+									name="issuerCountry"
+									className={INPUT_CLASS}
+									maxLength={255}
+									placeholder="e.g. Cameroun"
+								/>
+							</div>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<label className={LABEL_CLASS}>ISIN Code</label>
+								<Field
+									name="isinCode"
+									className={INPUT_CLASS}
+									maxLength={12}
+									placeholder="e.g. SN0000038741"
+								/>
+							</div>
+							<div>
+								<label className={LABEL_CLASS}>Coupon Frequency</label>
+								<Field
+									as="select"
+									name="couponFrequencyMonths"
+									className={INPUT_CLASS}
+								>
+									<option value="">Select...</option>
+									{FREQUENCY_OPTIONS.map((f) => (
+										<option key={f.value} value={f.value}>
+											{f.label}
+										</option>
+									))}
+								</Field>
+							</div>
+						</div>
+					</>
+				)}
+			</>
+		);
+	}
+
+	return (
+		<div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+			<p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+				Asset Identity (read-only)
+			</p>
+			<div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+				<div className="text-gray-500 dark:text-gray-400">Symbol</div>
+				<div className="font-mono font-medium text-gray-800 dark:text-gray-200">
+					{asset.symbol}
+				</div>
+				<div className="text-gray-500 dark:text-gray-400">Issuer Price</div>
+				<div className="font-medium text-gray-800 dark:text-gray-200">
+					{asset.issuerPrice != null
+						? `${asset.issuerPrice.toLocaleString()} XAF`
+						: "—"}
+				</div>
+				<div className="text-gray-500 dark:text-gray-400">Total Supply</div>
+				<div className="font-medium text-gray-800 dark:text-gray-200">
+					{asset.totalSupply?.toLocaleString()} units
+				</div>
+				{asset.category === "BONDS" && asset.maturityDate && (
+					<>
+						<div className="text-gray-500 dark:text-gray-400">
+							Maturity Date
+						</div>
+						<div className="font-medium text-gray-800 dark:text-gray-200">
+							{asset.maturityDate}
+						</div>
+					</>
+				)}
+			</div>
+		</div>
+	);
+};
 
 const PricingSection: FC = () => (
 	<>
@@ -454,12 +698,18 @@ const TaxSection: FC<{
 	ircmEnabled: boolean;
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
+	isBvmacListed: boolean;
+	isGovernmentBond: boolean;
+	tvaEnabled: boolean;
 	setFieldValue: (field: string, value: boolean | string) => void;
 }> = ({
 	registrationDutyEnabled,
 	ircmEnabled,
 	ircmExempt,
 	capitalGainsTaxEnabled,
+	isBvmacListed,
+	isGovernmentBond,
+	tvaEnabled,
 	setFieldValue,
 }) => (
 	<>
@@ -580,6 +830,67 @@ const TaxSection: FC<{
 				/>
 			</div>
 		)}
+		{/* BVMAC listing */}
+		<div className="flex items-center justify-between">
+			<div>
+				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+					BVMAC Listed
+				</p>
+				<p className="text-xs text-gray-400">Triggers reduced 11% IRCM rate</p>
+			</div>
+			<input
+				type="checkbox"
+				checked={isBvmacListed}
+				onChange={(e) => setFieldValue("isBvmacListed", e.target.checked)}
+				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+			/>
+		</div>
+		{/* Government bond */}
+		<div className="flex items-center justify-between">
+			<div>
+				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+					Government Bond
+				</p>
+				<p className="text-xs text-gray-400">
+					Government-issued bond (affects tax treatment)
+				</p>
+			</div>
+			<input
+				type="checkbox"
+				checked={isGovernmentBond}
+				onChange={(e) => setFieldValue("isGovernmentBond", e.target.checked)}
+				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+			/>
+		</div>
+		{/* TVA */}
+		<div className="flex items-center justify-between">
+			<div>
+				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+					TVA (VAT)
+				</p>
+				<p className="text-xs text-gray-400">VAT on trades</p>
+			</div>
+			<input
+				type="checkbox"
+				checked={tvaEnabled}
+				onChange={(e) => setFieldValue("tvaEnabled", e.target.checked)}
+				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+			/>
+		</div>
+		{tvaEnabled && (
+			<div>
+				<label className={LABEL_CLASS}>Rate (%)</label>
+				<Field
+					name="tvaRate"
+					type="number"
+					className={INPUT_CLASS}
+					min={0}
+					max={100}
+					step="0.01"
+					placeholder="Default: 19.25%"
+				/>
+			</div>
+		)}
 	</>
 );
 
@@ -673,39 +984,6 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 					Edit Asset
 				</h3>
 
-				{/* Read-only context */}
-				<div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 mb-4">
-					<p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-						Asset Identity (read-only)
-					</p>
-					<div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-						<div className="text-gray-500 dark:text-gray-400">Symbol</div>
-						<div className="font-mono font-medium text-gray-800 dark:text-gray-200">
-							{asset.symbol}
-						</div>
-						<div className="text-gray-500 dark:text-gray-400">Issuer Price</div>
-						<div className="font-medium text-gray-800 dark:text-gray-200">
-							{asset.issuerPrice != null
-								? `${asset.issuerPrice.toLocaleString()} XAF`
-								: "—"}
-						</div>
-						<div className="text-gray-500 dark:text-gray-400">Total Supply</div>
-						<div className="font-medium text-gray-800 dark:text-gray-200">
-							{asset.totalSupply?.toLocaleString()} units
-						</div>
-						{asset.category === "BONDS" && asset.maturityDate && (
-							<>
-								<div className="text-gray-500 dark:text-gray-400">
-									Maturity Date
-								</div>
-								<div className="font-medium text-gray-800 dark:text-gray-200">
-									{asset.maturityDate}
-								</div>
-							</>
-						)}
-					</div>
-				</div>
-
 				<Formik
 					initialValues={initialValues}
 					enableReinitialize
@@ -720,6 +998,13 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 				>
 					{(formik) => (
 						<Form>
+							{/* Core fields — editable when PENDING, read-only otherwise */}
+							<div className="mb-4">
+								<CoreFieldsSection
+									isPending={asset.status === "PENDING"}
+									asset={asset}
+								/>
+							</div>
 							<div className="space-y-4">
 								<BasicInfoSection
 									previewUrl={previewUrl}
@@ -736,6 +1021,43 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 								{asset.category !== "BONDS" && (
 									<IncomeSection incomeType={formik.values.incomeType} />
 								)}
+								{asset.category === "BONDS" && asset.status !== "PENDING" && (
+									<>
+										<hr className="border-gray-200 dark:border-gray-600" />
+										<p className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+											Bond Terms
+										</p>
+										<div className="grid grid-cols-2 gap-4">
+											<div>
+												<label className={LABEL_CLASS}>Coupon Rate (%)</label>
+												<Field
+													name="interestRate"
+													type="number"
+													className={INPUT_CLASS}
+													min={0}
+													step="0.01"
+													placeholder="e.g. 5.80"
+												/>
+											</div>
+											<div>
+												<label className={LABEL_CLASS}>Maturity Date</label>
+												<Field
+													name="maturityDate"
+													type="date"
+													className={INPUT_CLASS}
+												/>
+											</div>
+										</div>
+										<div>
+											<label className={LABEL_CLASS}>Next Coupon Date</label>
+											<Field
+												name="nextCouponDate"
+												type="date"
+												className={INPUT_CLASS}
+											/>
+										</div>
+									</>
+								)}
 								<TaxSection
 									registrationDutyEnabled={
 										formik.values.registrationDutyEnabled
@@ -743,6 +1065,9 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 									ircmEnabled={formik.values.ircmEnabled}
 									ircmExempt={formik.values.ircmExempt}
 									capitalGainsTaxEnabled={formik.values.capitalGainsTaxEnabled}
+									isBvmacListed={formik.values.isBvmacListed}
+									isGovernmentBond={formik.values.isGovernmentBond}
+									tvaEnabled={formik.values.tvaEnabled}
 									setFieldValue={formik.setFieldValue}
 								/>
 							</div>

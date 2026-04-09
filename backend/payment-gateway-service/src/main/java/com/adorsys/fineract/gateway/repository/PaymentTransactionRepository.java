@@ -32,8 +32,9 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     Optional<PaymentTransaction> findByProviderReferenceForUpdate(@Param("ref") String ref);
 
     /**
-     * Find transaction by ID with pessimistic write lock (SELECT FOR UPDATE).
-     * Used by Orange/CinetPay callback handlers to prevent race conditions.
+     * Find transaction by internal transactionId with pessimistic write lock (SELECT FOR UPDATE).
+     * Used by Orange (orderId = our transactionId) and CinetPay (transaction_id = our transactionId)
+     * callback handlers. MTN uses providerReference instead (findByProviderReferenceForUpdate).
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM PaymentTransaction t WHERE t.transactionId = :id")
@@ -44,6 +45,11 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
      */
     List<PaymentTransaction> findByExternalIdAndCreatedAtBetween(
         String externalId, Instant start, Instant end);
+
+    /**
+     * Find transaction by client-provided idempotency key (for dedup on retries).
+     */
+    Optional<PaymentTransaction> findByIdempotencyKey(String idempotencyKey);
 
     /**
      * Check if transaction exists (for idempotency)
@@ -82,10 +88,11 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     @Transactional
     @Modifying
     @Query(value = "INSERT INTO payment_transactions " +
-           "(transaction_id, external_id, account_id, provider, type, amount, currency, status, created_at, version) " +
-           "SELECT :txnId, :externalId, :accountId, :provider, :type, :amount, :currency, :status, NOW(), 0 " +
-           "WHERE NOT EXISTS (SELECT 1 FROM payment_transactions WHERE transaction_id = :txnId)", nativeQuery = true)
+           "(transaction_id, idempotency_key, external_id, account_id, provider, type, amount, currency, status, created_at, version) " +
+           "SELECT :txnId, :idempotencyKey, :externalId, :accountId, :provider, :type, :amount, :currency, :status, NOW(), 0 " +
+           "WHERE NOT EXISTS (SELECT 1 FROM payment_transactions WHERE idempotency_key = :idempotencyKey)", nativeQuery = true)
     int insertIfAbsent(@Param("txnId") String txnId,
+                       @Param("idempotencyKey") String idempotencyKey,
                        @Param("externalId") String externalId,
                        @Param("accountId") Long accountId,
                        @Param("provider") String provider,

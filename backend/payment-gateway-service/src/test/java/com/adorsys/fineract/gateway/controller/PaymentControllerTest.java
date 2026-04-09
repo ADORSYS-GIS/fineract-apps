@@ -3,7 +3,6 @@ package com.adorsys.fineract.gateway.controller;
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.exception.PaymentException;
 import com.adorsys.fineract.gateway.service.PaymentService;
-import com.adorsys.fineract.gateway.service.StepUpAuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,9 +37,6 @@ class PaymentControllerTest {
 
     @MockBean
     private PaymentService paymentService;
-
-    @MockBean
-    private StepUpAuthService stepUpAuthService;
 
     @MockBean
     private JwtDecoder jwtDecoder;
@@ -85,8 +81,7 @@ class PaymentControllerTest {
                     .thenReturn(response);
 
             mockMvc.perform(post("/api/payments/deposit")
-                            .with(jwt().jwt(j -> j.subject("user-1")
-                                    .claim("fineract_external_id", EXTERNAL_ID)))
+                            .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                             .header("X-Idempotency-Key", idempotencyKey)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -108,8 +103,7 @@ class PaymentControllerTest {
                     .build();
 
             mockMvc.perform(post("/api/payments/deposit")
-                            .with(jwt().jwt(j -> j.subject("user-1")
-                                    .claim("fineract_external_id", EXTERNAL_ID)))
+                            .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                             .header("X-Idempotency-Key", UUID.randomUUID().toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -146,8 +140,7 @@ class PaymentControllerTest {
                     .build();
 
             mockMvc.perform(post("/api/payments/deposit")
-                            .with(jwt().jwt(j -> j.subject("user-1")
-                                    .claim("fineract_external_id", EXTERNAL_ID)))
+                            .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                             .header("X-Idempotency-Key", UUID.randomUUID().toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -191,8 +184,7 @@ class PaymentControllerTest {
                     .thenReturn(response);
 
             mockMvc.perform(post("/api/payments/withdraw")
-                            .with(jwt().jwt(j -> j.subject("user-1")
-                                    .claim("fineract_external_id", EXTERNAL_ID)))
+                            .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                             .header("X-Idempotency-Key", idempotencyKey)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -200,8 +192,6 @@ class PaymentControllerTest {
                     .andExpect(jsonPath("$.transactionId").value(idempotencyKey))
                     .andExpect(jsonPath("$.status").value("PROCESSING"))
                     .andExpect(jsonPath("$.fineractTransactionId").value(789));
-
-            verify(stepUpAuthService).validateStepUpToken(eq(EXTERNAL_ID), isNull());
         }
 
         @Test
@@ -216,8 +206,7 @@ class PaymentControllerTest {
                     .build();
 
             mockMvc.perform(post("/api/payments/withdraw")
-                            .with(jwt().jwt(j -> j.subject("user-1")
-                                    .claim("fineract_external_id", EXTERNAL_ID)))
+                            .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                             .header("X-Idempotency-Key", UUID.randomUUID().toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -242,8 +231,7 @@ class PaymentControllerTest {
                     .thenThrow(new PaymentException("Insufficient funds"));
 
             mockMvc.perform(post("/api/payments/withdraw")
-                            .with(jwt().jwt(j -> j.subject("user-1")
-                                    .claim("fineract_external_id", EXTERNAL_ID)))
+                            .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
                             .header("X-Idempotency-Key", idempotencyKey)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -279,8 +267,7 @@ class PaymentControllerTest {
             when(paymentService.getTransactionStatus("txn-123")).thenReturn(response);
 
             mockMvc.perform(get("/api/payments/status/{transactionId}", "txn-123")
-                            .with(jwt().jwt(j -> j.subject("user-1")
-                                    .claim("fineract_external_id", EXTERNAL_ID))))
+                            .with(jwt().jwt(j -> j.subject(EXTERNAL_ID))))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.transactionId").value("txn-123"))
                     .andExpect(jsonPath("$.status").value("SUCCESSFUL"));
@@ -297,8 +284,7 @@ class PaymentControllerTest {
             when(paymentService.getTransactionStatus("txn-123")).thenReturn(response);
 
             mockMvc.perform(get("/api/payments/status/{transactionId}", "txn-123")
-                            .with(jwt().jwt(j -> j.subject("user-1")
-                                    .claim("fineract_external_id", EXTERNAL_ID))))
+                            .with(jwt().jwt(j -> j.subject(EXTERNAL_ID))))
                     .andExpect(status().isForbidden());
         }
     }

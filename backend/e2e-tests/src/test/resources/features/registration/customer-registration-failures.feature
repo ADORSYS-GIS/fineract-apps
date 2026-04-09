@@ -12,40 +12,28 @@ Feature: Customer Registration (Stage 1) - Failure Scenarios
   Scenario: Attempt to register with a duplicate externalId
     Given a customer has already been registered with the following details:
       | externalId | duplicate-external-id-001 |
-      | firstName  | John                      |
-      | lastName   | Doe                       |
+      | fullName   | John Doe                  |
       | phone      | +237691234570             |
     When a new customer is registered with the following details:
       | externalId | duplicate-external-id-001 |
-      | firstName  | Jane                      |
-      | lastName   | Doe                       |
+      | fullName   | Jane Doe                  |
       | phone      | +237691234571             |
     Then the registration should fail with a 409 Conflict status code
 
-  Scenario: Attempt to register with a missing firstName
+  Scenario: Attempt to register with a missing fullName
     When a new customer is registered with the following details:
-      | externalId | missing-firstname-001 |
-      | lastName   | Doe                     |
+      | externalId | missing-fullName-001 |
       | phone      | +237691234572           |
-    Then the registration should fail with a 400 Bad Request status code
-
-  Scenario: Attempt to register with a missing lastName
-    When a new customer is registered with the following details:
-      | externalId | missing-lastname-001 |
-      | firstName  | John                    |
-      | phone      | +237691234573           |
     Then the registration should fail with a 400 Bad Request status code
 
   Scenario: Attempt to register with a missing phone number
     When a new customer is registered with the following details:
       | externalId | missing-phone-001 |
-      | firstName  | John              |
-      | lastName   | Doe               |
+      | fullName   | John Doe          |
     Then the registration should fail with a 400 Bad Request status code
 
   Scenario: Attempt to register with a missing externalId
     When a new customer is registered with the following details:
-      | firstName | John              |
-      | lastName  | Doe               |
+      | fullName  | John Doe          |
       | phone     | +237691234574     |
     Then the registration should fail with a 400 Bad Request status code

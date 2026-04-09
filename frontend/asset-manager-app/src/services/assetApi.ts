@@ -105,8 +105,6 @@ export interface AssetResponse {
 	change24hPercent: number;
 	availableSupply: number;
 	totalSupply: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 	// Bond fields (null for non-bond assets)
 	issuerName?: string;
 	isinCode?: string;
@@ -114,7 +112,6 @@ export interface AssetResponse {
 	interestRate?: number;
 	currentYield?: number;
 	residualDays?: number;
-	subscriptionClosed?: boolean;
 	lpName?: string;
 	couponAmountPerUnit?: number;
 }
@@ -142,13 +139,12 @@ export interface AssetDetailResponse {
 	availableSupply: number;
 	tradingFeePercent?: number;
 	decimalPlaces: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 
 	lpClientId: number;
 	lpAssetAccountId?: number;
 	lpCashAccountId?: number;
 	lpSpreadAccountId?: number;
+	lpTaxAccountId?: number;
 	fineractProductId?: number;
 	lpClientName?: string;
 	fineractProductName?: string;
@@ -171,8 +167,12 @@ export interface AssetDetailResponse {
 	delistingDate?: string;
 	delistingRedemptionPrice?: number;
 	// Bond fields (null for non-bond assets)
+	bondType?: string;
+	dayCountConvention?: string;
+	issuerCountry?: string;
 	issuerName?: string;
 	issuerPrice?: number;
+	faceValue?: number;
 	lpMarginPerUnit?: number;
 	lpMarginPercent?: number;
 	couponAmountPerUnit?: number;
@@ -183,7 +183,6 @@ export interface AssetDetailResponse {
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
 	residualDays?: number;
-	subscriptionClosed?: boolean;
 	// Tax configuration (Cameroon/CEMAC)
 	registrationDutyEnabled?: boolean;
 	registrationDutyRate?: number;
@@ -192,6 +191,10 @@ export interface AssetDetailResponse {
 	ircmExempt?: boolean;
 	capitalGainsTaxEnabled?: boolean;
 	capitalGainsRate?: number;
+	isBvmacListed?: boolean;
+	isGovernmentBond?: boolean;
+	tvaEnabled?: boolean;
+	tvaRate?: number;
 }
 
 export interface CreateAssetRequest {
@@ -202,13 +205,12 @@ export interface CreateAssetRequest {
 	imageUrl?: string;
 	category: string;
 	issuerPrice: number;
+	faceValue?: number;
 	lpBidPrice: number;
 	lpAskPrice: number;
 	tradingFeePercent?: number;
 	totalSupply: number;
 	decimalPlaces: number;
-	subscriptionStartDate: string;
-	subscriptionEndDate: string;
 
 	lpClientId: number;
 	// Exposure limits
@@ -226,6 +228,9 @@ export interface CreateAssetRequest {
 	distributionFrequencyMonths?: number;
 	nextDistributionDate?: string;
 	// Bond fields (required when category is BONDS)
+	bondType?: string;
+	dayCountConvention?: string;
+	issuerCountry?: string;
 	issuerName?: string;
 	isinCode?: string;
 	maturityDate?: string;
@@ -240,6 +245,10 @@ export interface CreateAssetRequest {
 	ircmExempt?: boolean;
 	capitalGainsTaxEnabled?: boolean;
 	capitalGainsRate?: number;
+	isBvmacListed?: boolean;
+	isGovernmentBond?: boolean;
+	tvaEnabled?: boolean;
+	tvaRate?: number;
 }
 
 export interface UpdateAssetRequest {
@@ -250,8 +259,6 @@ export interface UpdateAssetRequest {
 	tradingFeePercent?: number;
 	lpBidPrice?: number;
 	lpAskPrice?: number;
-	subscriptionStartDate?: string;
-	subscriptionEndDate?: string;
 
 	// Exposure limits
 	maxPositionPercent?: number;
@@ -278,6 +285,16 @@ export interface UpdateAssetRequest {
 	ircmExempt?: boolean;
 	capitalGainsTaxEnabled?: boolean;
 	capitalGainsRate?: number;
+
+	// PENDING-only fields (rejected if asset is not PENDING)
+	issuerPrice?: number;
+	totalSupply?: number;
+	issuerName?: string;
+	isinCode?: string;
+	couponFrequencyMonths?: number;
+	bondType?: string;
+	dayCountConvention?: string;
+	issuerCountry?: string;
 }
 
 /** Coupon payment audit record (matches backend CouponPaymentResponse). */
@@ -441,6 +458,125 @@ export interface MarketStatusResponse {
 export interface PriceHistoryPoint {
 	price: number;
 	capturedAt: string;
+}
+
+/**
+ * Order history entry for the authenticated user (matches backend OrderResponse).
+ *
+ * Amount breakdown:
+ *   BUY:  totalAmount = (units × pricePerUnit) + fee + registrationDutyAmount + tvaAmount + accruedInterestAmount
+ *   SELL: totalAmount = (units × pricePerUnit) - fee - registrationDutyAmount - capitalGainsTaxAmount - tvaAmount + accruedInterestAmount
+ *
+ * Tax fields are undefined when not applicable (e.g. capitalGainsTaxAmount is always absent on BUY).
+ */
+export interface OrderResponse {
+	/** UUID of the order. */
+	orderId: string;
+	/** ID of the asset that was traded. */
+	assetId: string;
+	/** Ticker symbol, e.g. "BRVM-TST". */
+	symbol?: string;
+	/** Direction of the trade. */
+	side: "BUY" | "SELL";
+	/** Number of units traded. Absent while order is QUOTED or PENDING. */
+	units?: number;
+	/** LP execution price per unit in XAF. Absent while order is QUOTED or PENDING. */
+	pricePerUnit?: number;
+	/**
+	 * Net amount that cleared the user's account in XAF.
+	 * BUY: total debited (gross + fee + taxes + accrued interest).
+	 * SELL: total credited (gross - fee - taxes + accrued interest).
+	 */
+	totalAmount: number;
+	/** Platform trading fee in XAF. Deducted on BUY; deducted from proceeds on SELL. */
+	fee?: number;
+	/** LP spread collected in XAF. Zero if spread is disabled for this asset. */
+	spreadAmount?: number;
+	/** Lifecycle status of the order (QUOTED, PENDING, EXECUTING, FILLED, FAILED, REJECTED, CANCELLED…). */
+	status: string;
+	/** ISO-8601 timestamp when the order was created. */
+	createdAt: string;
+	/** Registration duty (droit d'enregistrement) in XAF. Absent if not applicable. */
+	registrationDutyAmount?: number;
+	/** Capital gains tax in XAF. Only present on SELL orders where a gain was realised. */
+	capitalGainsTaxAmount?: number;
+	/** TVA (VAT) charged on the platform fee in XAF. Absent if not applicable. */
+	tvaAmount?: number;
+	/** Accrued interest (pied du coupon) for bond assets in XAF. Absent for non-bond assets. */
+	accruedInterestAmount?: number;
+}
+
+/**
+ * Single asset position in the user's portfolio (matches backend PositionResponse).
+ *
+ * Price vs. value:
+ *   avgPurchasePrice and marketPrice are per-unit prices.
+ *   costBasis and marketValue are total position amounts (price × totalUnits).
+ *
+ * Example — bought 10 units @ 1 000 XAF, then 10 more @ 1 200 XAF, market now at 1 300 XAF:
+ *   avgPurchasePrice = 1 100      (weighted average per unit)
+ *   costBasis        = 22 000     (1 100 × 20 — total spent)
+ *   marketPrice      = 1 300      (current ask price per unit)
+ *   marketValue      = 26 000     (1 300 × 20 — current worth)
+ *   unrealizedPnl    = +4 000     (26 000 - 22 000 — paper profit)
+ */
+export interface PositionResponse {
+	/** Internal asset identifier. */
+	assetId: string;
+	/** Ticker symbol, e.g. "BRVM-TST". */
+	symbol?: string;
+	/** Human-readable asset name. */
+	name?: string;
+	/** Units currently held. Increases on BUY, decreases on SELL. */
+	totalUnits: number;
+	/**
+	 * Weighted average purchase price per unit in XAF.
+	 * Recalculated after every BUY; unchanged on SELL.
+	 * Multiply by totalUnits to get costBasis.
+	 */
+	avgPurchasePrice: number;
+	/**
+	 * Current market price per unit (LP ask price) in XAF.
+	 * What a new buyer would pay today.
+	 * Multiply by totalUnits to get marketValue.
+	 */
+	marketPrice: number;
+	/**
+	 * Current market value of the entire position in XAF (marketPrice × totalUnits).
+	 * Recalculated at read time; not persisted.
+	 */
+	marketValue: number;
+	/**
+	 * Total amount spent to acquire current holdings in XAF (avgPurchasePrice × totalUnits).
+	 * Break-even value: marketValue > costBasis means the position is in profit.
+	 */
+	costBasis: number;
+	/**
+	 * Unrealized (paper) P&L in XAF (marketValue - costBasis).
+	 * Positive = paper profit; negative = paper loss.
+	 * Calculated at read time; not persisted.
+	 */
+	unrealizedPnl: number;
+	/**
+	 * Unrealized P&L as a percentage of costBasis (e.g. 18.18 means +18.18%).
+	 * Zero when costBasis is zero.
+	 */
+	unrealizedPnlPercent: number;
+	/**
+	 * Cumulative realized P&L from all completed SELL trades in XAF.
+	 * Calculated at execution via FIFO lot matching and persisted.
+	 */
+	realizedPnl: number;
+	/** Coupon schedule and principal redemption projections. Absent for non-bond assets. */
+	bondBenefit?: BondBenefitProjection;
+	/** Dividend, rent, or yield projections. Absent for bond and non-income assets. */
+	incomeBenefit?: IncomeBenefitProjection;
+	/**
+	 * Full trade history for this position, newest first (up to 200 entries).
+	 * Each entry includes the complete amount breakdown: totalAmount, fee, and all tax fields.
+	 * Empty array if the user has no orders for this asset.
+	 */
+	orders: OrderResponse[];
 }
 
 /** Admin order view (matches backend AdminOrderResponse). */
@@ -1020,6 +1156,24 @@ export const assetApi = {
 			params: { admin, notes },
 		}),
 
+	// User order history
+	getUserOrders: (params?: {
+		assetId?: string;
+		page?: number;
+		size?: number;
+	}) =>
+		assetClient.get<{
+			content: OrderResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>("/trades/orders", { params }),
+	getUserOrder: (orderId: string) =>
+		assetClient.get<OrderResponse>(`/trades/orders/${orderId}`),
+
+	// Portfolio positions
+	getPosition: (assetId: string) =>
+		assetClient.get<PositionResponse>(`/portfolio/positions/${assetId}`),
+
 	// Order Cancellation
 	cancelOrder: (orderId: string) =>
 		assetClient.post(`/trades/orders/${orderId}/cancel`),
@@ -1027,4 +1181,96 @@ export const assetApi = {
 	// LP Performance - Admin
 	getLPPerformance: () =>
 		assetClient.get<LPPerformanceResponse>("/admin/lp/performance"),
+
+	// Accounting - Admin
+	getTrialBalance: (params: {
+		currencyCode?: string;
+		fromDate?: string;
+		toDate?: string;
+	}) =>
+		assetClient.get("/admin/accounting/trial-balance", {
+			params: {
+				...(params.currencyCode && {
+					currencyCode: params.currencyCode,
+				}),
+				...(params.fromDate && { fromDate: params.fromDate }),
+				...(params.toDate && { toDate: params.toDate }),
+			},
+		}),
+	getAccountingCurrencies: () =>
+		assetClient.get<string[]>("/admin/accounting/currencies"),
+
+	// Settlement - Admin
+	getSettlements: (status?: string[]) =>
+		assetClient.get("/admin/settlement", {
+			params: status?.length ? { status: status[0] } : undefined,
+		}),
+	getSettlementSummary: () => assetClient.get("/admin/settlement/summary"),
+	createSettlement: (data: {
+		settlementType: string;
+		amount: number;
+		lpClientId?: number;
+		description?: string;
+		sourceGlCode?: string;
+		destinationGlCode?: string;
+	}) => assetClient.post("/admin/settlement", data),
+	approveSettlement: (id: string) =>
+		assetClient.post(`/admin/settlement/${id}/approve`),
+	executeSettlement: (id: string) =>
+		assetClient.post(`/admin/settlement/${id}/execute`),
+	rejectSettlement: (id: string, reason?: string) =>
+		assetClient.post(`/admin/settlement/${id}/reject`, { reason }),
+	exportSettlementReport: (id: string) =>
+		assetClient.get(`/admin/settlement/${id}/report`, {
+			responseType: "blob",
+		}),
+	getLpBalances: () => assetClient.get("/admin/settlement/lp-balances"),
+	getTrustBalances: () =>
+		assetClient.get<
+			{
+				name: string;
+				glCode: string;
+				debits: number;
+				credits: number;
+				balance: number;
+			}[]
+		>("/admin/settlement/trust-balances"),
+	getRebalanceProposal: (reservePercent?: number) =>
+		assetClient.get<RebalanceProposal>("/admin/settlement/rebalance-proposal", {
+			params: reservePercent != null ? { reservePercent } : undefined,
+		}),
+	executeRebalanceProposal: (transfers: RebalanceProposal["transfers"]) =>
+		assetClient.post("/admin/settlement/rebalance-proposal/execute", {
+			transfers,
+		}),
 };
+
+export interface RebalanceProposal {
+	totalLpOwed: number;
+	totalTaxOwed: number;
+	totalFeesOwed: number;
+	totalOutflowNeeded: number;
+	ubaCurrentBalance: number;
+	afrilandCurrentBalance: number;
+	needInUba: number;
+	needInAfriland: number;
+	momoBalance: number;
+	orangeBalance: number;
+	momoAvailable: number;
+	orangeAvailable: number;
+	totalMobileAvailable: number;
+	reservePercent: number;
+	feasible: boolean;
+	shortfall: number;
+	transfers: {
+		phase: number;
+		settlementType: string;
+		sourceGlCode: string;
+		sourceName: string;
+		destinationGlCode: string;
+		destinationName: string;
+		amount: number;
+		description: string;
+		adminAction: string;
+	}[];
+}

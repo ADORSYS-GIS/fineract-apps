@@ -33,19 +33,19 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     long countByStatus(OrderStatus status);
 
     @Query(value = "SELECT * FROM orders o WHERE "
-         + "(CAST(:status AS varchar) IS NULL OR o.status = CAST(:status AS varchar)) AND "
+         + "o.status IN (:statuses) AND "
          + "(CAST(:assetId AS varchar) IS NULL OR o.asset_id = CAST(:assetId AS varchar)) AND "
          + "(CAST(:search AS varchar) IS NULL OR o.user_external_id LIKE '%' || CAST(:search AS varchar) || '%') AND "
          + "(CAST(:fromDate AS timestamptz) IS NULL OR o.created_at >= CAST(:fromDate AS timestamptz)) AND "
          + "(CAST(:toDate AS timestamptz) IS NULL OR o.created_at <= CAST(:toDate AS timestamptz))",
          countQuery = "SELECT count(*) FROM orders o WHERE "
-         + "(CAST(:status AS varchar) IS NULL OR o.status = CAST(:status AS varchar)) AND "
+         + "o.status IN (:statuses) AND "
          + "(CAST(:assetId AS varchar) IS NULL OR o.asset_id = CAST(:assetId AS varchar)) AND "
          + "(CAST(:search AS varchar) IS NULL OR o.user_external_id LIKE '%' || CAST(:search AS varchar) || '%') AND "
          + "(CAST(:fromDate AS timestamptz) IS NULL OR o.created_at >= CAST(:fromDate AS timestamptz)) AND "
          + "(CAST(:toDate AS timestamptz) IS NULL OR o.created_at <= CAST(:toDate AS timestamptz))",
          nativeQuery = true)
-    Page<Order> findFiltered(@Param("status") String status,
+    Page<Order> findFiltered(@Param("statuses") List<String> statuses,
                              @Param("assetId") String assetId,
                              @Param("search") String search,
                              @Param("fromDate") Instant fromDate,

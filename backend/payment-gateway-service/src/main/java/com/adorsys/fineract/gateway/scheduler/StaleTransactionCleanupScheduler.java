@@ -150,10 +150,11 @@ public class StaleTransactionCleanupScheduler {
         try {
             return switch (txn.getProvider()) {
                 case MTN_MOMO -> {
+                    // MTN status polling uses transactionId (= X-Reference-Id sent during creation)
                     if (txn.getType() == PaymentResponse.TransactionType.DEPOSIT) {
-                        yield mtnClient.getCollectionStatus(txn.getProviderReference());
+                        yield mtnClient.getCollectionStatus(txn.getTransactionId());
                     } else {
-                        yield mtnClient.getDisbursementStatus(txn.getProviderReference());
+                        yield mtnClient.getDisbursementStatus(txn.getTransactionId());
                     }
                 }
                 case ORANGE_MONEY -> orangeClient.getTransactionStatus(

@@ -1,7 +1,9 @@
 import { Card } from "@fineract-apps/ui";
 import { CheckCircle } from "lucide-react";
 import { FC } from "react";
+import { BOND_TYPE_LABELS } from "@/constants/bondTypes";
 import { ASSET_CATEGORY_LABELS } from "@/constants/categories";
+import { DAY_COUNT_LABELS } from "@/constants/dayCountConventions";
 import { FREQUENCY_LABELS } from "@/constants/frequencies";
 import type { AssetFormData } from "../useCreateAsset";
 
@@ -65,25 +67,44 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 						Bond Details
 					</h3>
 					<div className="grid grid-cols-2 gap-2 text-sm">
+						<div className="text-gray-600">Bond Type:</div>
+						<div className="font-medium">
+							{BOND_TYPE_LABELS[formData.bondType] ?? formData.bondType}
+						</div>
+						<div className="text-gray-600">Day Count:</div>
+						<div className="font-medium">
+							{DAY_COUNT_LABELS[formData.dayCountConvention] ??
+								formData.dayCountConvention}
+						</div>
 						<div className="text-gray-600">Issuer:</div>
 						<div className="font-medium">{formData.issuerName}</div>
+						{formData.issuerCountry && (
+							<>
+								<div className="text-gray-600">Issuer Country:</div>
+								<div className="font-medium">{formData.issuerCountry}</div>
+							</>
+						)}
 						{formData.isinCode && (
 							<>
 								<div className="text-gray-600">ISIN Code:</div>
 								<div className="font-medium font-mono">{formData.isinCode}</div>
 							</>
 						)}
-						<div className="text-gray-600">Interest Rate:</div>
-						<div className="font-medium">{formData.interestRate}%</div>
 						<div className="text-gray-600">Maturity Date:</div>
 						<div className="font-medium">{formData.maturityDate}</div>
-						<div className="text-gray-600">Coupon Frequency:</div>
-						<div className="font-medium">
-							{FREQUENCY_LABELS[formData.couponFrequencyMonths] ??
-								`${formData.couponFrequencyMonths} months`}
-						</div>
-						<div className="text-gray-600">First Coupon Date:</div>
-						<div className="font-medium">{formData.nextCouponDate}</div>
+						{formData.bondType === "COUPON" && (
+							<>
+								<div className="text-gray-600">Interest Rate:</div>
+								<div className="font-medium">{formData.interestRate}%</div>
+								<div className="text-gray-600">Coupon Frequency:</div>
+								<div className="font-medium">
+									{FREQUENCY_LABELS[formData.couponFrequencyMonths] ??
+										`${formData.couponFrequencyMonths} months`}
+								</div>
+								<div className="text-gray-600">First Coupon Date:</div>
+								<div className="font-medium">{formData.nextCouponDate}</div>
+							</>
+						)}
 					</div>
 				</Card>
 			)}
@@ -150,7 +171,7 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 				</div>
 			</Card>
 
-			{/* Supply */}
+			{/* Supply & Precision */}
 			<Card className="p-4">
 				<h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
 					Supply & Precision
@@ -166,19 +187,6 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="font-medium">
 						{(formData.totalSupply * formData.issuerPrice).toLocaleString()} XAF
 					</div>
-				</div>
-			</Card>
-
-			{/* Subscription Period */}
-			<Card className="p-4">
-				<h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
-					Subscription Period
-				</h3>
-				<div className="grid grid-cols-2 gap-2 text-sm">
-					<div className="text-gray-600">Subscription Start:</div>
-					<div className="font-medium">{formData.subscriptionStartDate}</div>
-					<div className="text-gray-600">Subscription End:</div>
-					<div className="font-medium">{formData.subscriptionEndDate}</div>
 					{formData.lockupDays > 0 && (
 						<>
 							<div className="text-gray-600">Lock-up Period:</div>

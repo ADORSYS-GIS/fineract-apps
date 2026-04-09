@@ -59,14 +59,12 @@ No authentication required.
       "priceChange24hPercent": 0.05,
       "totalSupply": 100000,
       "circulatingSupply": 15000,
-      "tradingFeePercent": 0.50,
+      "tradingFeePercent": 0.30,
       "issuerName": null,
       "incomeType": "RENT",
       "incomeRate": 8.0,
       "interestRate": null,
-      "maturityDate": null,
-      "subscriptionStartDate": "2025-12-15",
-      "subscriptionEndDate": "2026-03-15"
+      "maturityDate": null
     },
     {
       "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
@@ -86,9 +84,7 @@ No authentication required.
       "incomeType": null,
       "incomeRate": null,
       "interestRate": 5.80,
-      "maturityDate": "2028-06-30",
-      "subscriptionStartDate": "2025-12-01",
-      "subscriptionEndDate": "2026-06-30"
+      "maturityDate": "2028-06-30"
     }
   ],
   "totalElements": 42,
@@ -116,12 +112,13 @@ No authentication required.
 | `circulatingSupply` | integer | Units held by investors |
 | `tradingFeePercent` | number | Platform trading fee percentage |
 | `issuerName` | string | Original issuer (bonds). Null for non-bond assets. |
+| `bondType` | string | `COUPON` (OTA/T-Bonds) or `DISCOUNT` (BTA/T-Bills). Null for non-bond assets. |
+| `dayCountConvention` | string | `ACT_360`, `ACT_365`, or `THIRTY_360`. Null for non-bond assets. |
+| `issuerCountry` | string | CEMAC member state (e.g. `CAMEROUN`). Null for non-bond assets. |
 | `incomeType` | string | `RENT`, `DIVIDEND`, `HARVEST_YIELD`, `PROFIT_SHARE`, or null |
 | `incomeRate` | number | Annual income rate as percentage (non-bond assets) |
-| `interestRate` | number | Annual coupon rate as percentage (bonds only) |
-| `maturityDate` | string | Bond maturity date (bonds only) |
-| `subscriptionStartDate` | string | When BUY orders start being accepted |
-| `subscriptionEndDate` | string | When BUY orders stop being accepted |
+| `interestRate` | number | Annual coupon rate as percentage (COUPON bonds only, null for DISCOUNT) |
+| `maturityDate` | string | Bond maturity date (all bonds) |
 
 ---
 
@@ -153,7 +150,7 @@ No authentication required.
   "totalSupply": 100000,
   "circulatingSupply": 15000,
   "availableSupply": 85000,
-  "tradingFeePercent": 0.50,
+  "tradingFeePercent": 0.30,
   "decimalPlaces": 0,
   "issuerName": null,
   "isinCode": null,
@@ -165,9 +162,6 @@ No authentication required.
   "couponFrequencyMonths": null,
   "maturityDate": null,
   "currentYield": null,
-  "subscriptionStartDate": "2025-12-15",
-  "subscriptionEndDate": "2026-03-15",
-  "capitalOpenedPercent": 44.44,
   "lockupDays": 30,
   "ohlc": {
     "open": 4950,
@@ -194,7 +188,6 @@ No authentication required.
 | `nextDistributionDate` | string | Next scheduled income/coupon date |
 | `couponFrequencyMonths` | integer | Bond coupon frequency in months |
 | `currentYield` | number | Effective annual return for bonds (issuerPrice x rate / askPrice) |
-| `capitalOpenedPercent` | number | Percentage of capital opened for subscription |
 | `lockupDays` | integer | Days after purchase before SELL is allowed (0 = none) |
 | `ohlc` | object | Today's Open/High/Low/Close/Volume |
 
@@ -264,9 +257,7 @@ No authentication required. Returns assets in `PENDING` status with expected lau
     "totalSupply": 200000,
     "incomeType": "HARVEST_YIELD",
     "incomeRate": 6.5,
-    "subscriptionStartDate": "2026-04-01",
-    "subscriptionEndDate": "2026-09-30",
-    "capitalOpenedPercent": 30.00
+    "incomeRate": 6.5
   }
 ]
 ```
@@ -527,10 +518,10 @@ Exactly one of `units` or `amount` must be provided.
   "units": 100,
   "executionPrice": 5000,
   "grossAmount": 500000,
-  "fee": 2500,
-  "feePercent": 0.50,
+  "fee": 1500,
+  "feePercent": 0.30,
   "spreadAmount": 100000,
-  "netAmount": 502500,
+  "netAmount": 501500,
   "computedFromAmount": null,
   "remainder": null,
   "availableBalance": 1500000,
@@ -548,15 +539,20 @@ Exactly one of `units` or `amount` must be provided.
     "variableIncome": false
   },
   "taxBreakdown": {
-    "registrationDutyRate": 0.01,
-    "registrationDutyAmount": 5000,
+    "registrationDutyRate": 0.02,
+    "registrationDutyAmount": 10000,
     "capitalGainsRate": 0,
     "capitalGainsTaxAmount": 0,
-    "totalTax": 5000
+    "tvaRate": 0,
+    "tvaAmount": 0,
+    "totalTaxAmount": 10000,
+    "capitalGainsExemptionApplied": false
   },
   "warnings": [],
   "expiresAt": "2026-03-15T14:35:30Z",
-  "status": "QUOTED"
+  "status": "QUOTED",
+  "feasible": true,
+  "feasibilityReason": null
 }
 ```
 
@@ -572,7 +568,8 @@ Exactly one of `units` or `amount` must be provided.
 | `fee` | integer | Platform trading fee in XAF |
 | `feePercent` | number | Fee percentage applied |
 | `spreadAmount` | integer | LP spread included in the price |
-| `netAmount` | integer | Total amount debited (BUY) or credited (SELL) in XAF |
+| `accruedInterestAmount` | integer | Accrued interest for COUPON bond trades ("pied du coupon"). Null for non-bond or DISCOUNT bond trades. |
+| `netAmount` | integer | Total amount debited (BUY) or credited (SELL) in XAF. For COUPON bonds: includes accrued interest. |
 | `computedFromAmount` | integer | Original XAF budget (null if unit mode) |
 | `remainder` | integer | Leftover XAF that cannot buy another unit (null if unit mode) |
 | `availableBalance` | integer | User's current XAF cash balance |
@@ -580,21 +577,29 @@ Exactly one of `units` or `amount` must be provided.
 | `availableSupply` | integer | LP inventory remaining |
 | `bondBenefit` | object | Bond yield projections (null for non-bonds). Contains `couponFrequencyMonths`, `nextCouponDate`, `couponPerPeriod`, `estimatedAnnualCoupon`, `currentYield`. |
 | `incomeBenefit` | object | Income projections for non-bond assets (null for bonds) |
-| `taxBreakdown` | object | Applicable tax breakdown |
-| `taxBreakdown.registrationDutyRate` | number | Registration duty rate |
+| `taxBreakdown` | object | Applicable tax breakdown. Null if all taxes are disabled for this asset. |
+| `taxBreakdown.registrationDutyRate` | number | Registration duty rate (e.g. `0.02` = 2%) |
 | `taxBreakdown.registrationDutyAmount` | integer | Registration duty in XAF |
-| `taxBreakdown.capitalGainsRate` | number | Capital gains tax rate (SELL only) |
-| `taxBreakdown.capitalGainsTaxAmount` | integer | Capital gains tax in XAF (SELL only) |
-| `taxBreakdown.totalTax` | integer | Total taxes in XAF |
+| `taxBreakdown.capitalGainsRate` | number | Capital gains tax rate (SELL only; 0 for BUY) |
+| `taxBreakdown.capitalGainsTaxAmount` | integer | Capital gains tax in XAF (SELL only; 0 for BUY) |
+| `taxBreakdown.tvaRate` | number | TVA rate (e.g. `0.1925` = 19.25%). 0 if TVA is disabled for this asset. |
+| `taxBreakdown.tvaAmount` | integer | TVA in XAF, applied to the trading fee only. 0 if TVA is disabled. |
+| `taxBreakdown.totalTaxAmount` | integer | Total taxes in XAF (registration duty + capital gains + TVA) |
+| `taxBreakdown.capitalGainsExemptionApplied` | boolean | True if the 500,000 XAF annual capital gains exemption was applied |
 | `warnings` | array | Non-blocking warnings (e.g. `["APPROACHING_POSITION_LIMIT"]`) |
 | `expiresAt` | string | Quote expiry (30 seconds). Must confirm before this time. |
 | `status` | string | `QUOTED` |
+| `feasible` | boolean | Whether the user can afford this order given their current balance. Always `true` for SELL. |
+| `feasibilityReason` | string | `"INSUFFICIENT_FUNDS: Required X, Available Y (shortfall: Z)"` if `feasible` is false. Null otherwise. |
+
+**Insufficient Funds:**
+
+When a BUY quote is created but the user cannot afford the order, the API returns **200** with `feasible: false` and a `feasibilityReason` string rather than a 400 error. The quote is still created and price-locked; the balance check runs again at execution time as a hard safety net.
 
 **Error Codes:**
 
 | HTTP | Code | Description |
 |------|------|-------------|
-| 400 | `INSUFFICIENT_FUNDS` | XAF balance too low for BUY |
 | 400 | `INSUFFICIENT_INVENTORY` | LP does not have enough units |
 | 400 | `MIN_ORDER_SIZE_NOT_MET` | Order below minimum unit requirement |
 | 400 | `ORDER_SIZE_LIMIT_EXCEEDED` | Order exceeds max order size |
@@ -608,8 +613,6 @@ Exactly one of `units` or `amount` must be provided.
 | 422 | `TRADING_HALTED` | Asset trading is halted |
 | 422 | `ASSET_DELISTING` | Asset is delisting (BUY blocked) |
 | 422 | `MARKET_CLOSED` | Market is closed. Response includes `nextOpenAt` and `nextOpenCountdownSeconds`. |
-| 422 | `SUBSCRIPTION_NOT_STARTED` | BUY before subscription start date |
-| 422 | `SUBSCRIPTION_ENDED` | BUY after subscription end date |
 
 ---
 
@@ -781,10 +784,10 @@ Headers:
   "units": 100,
   "executionPrice": 5000,
   "grossAmount": 500000,
-  "fee": 2500,
-  "feePercent": 0.50,
+  "fee": 1500,
+  "feePercent": 0.30,
   "spreadAmount": 100000,
-  "netAmount": 502500,
+  "netAmount": 501500,
   "taxBreakdown": {
     "registrationDutyRate": 0.01,
     "registrationDutyAmount": 5000,
@@ -1368,8 +1371,6 @@ All error responses follow a consistent format:
 | `TRADING_HALTED` | Asset trading is halted by admin | — |
 | `ASSET_DELISTING` | Asset is in delisting period (BUY blocked) | `delistingDate`, `redemptionPrice` |
 | `MARKET_CLOSED` | Market is currently closed | `nextOpenAt`, `nextOpenCountdownSeconds` |
-| `SUBSCRIPTION_NOT_STARTED` | BUY attempted before subscription start | `subscriptionStartDate` |
-| `SUBSCRIPTION_ENDED` | BUY attempted after subscription end | `subscriptionEndDate` |
 
 #### 429 Too Many Requests
 
@@ -1433,13 +1434,10 @@ Body:
   "issuerPrice": 4000,
   "lpAskPrice": 5000,
   "lpBidPrice": 4800,
-  "tradingFeePercent": 0.50,
+  "tradingFeePercent": 0.30,
   "totalSupply": 100000,
   "decimalPlaces": 0,
-  "lpClientId": 42,
-  "subscriptionStartDate": "2025-12-15",
-  "subscriptionEndDate": "2026-03-15",
-  "capitalOpenedPercent": 44.44
+  "lpClientId": 42
 }
 ```
 
@@ -1464,8 +1462,6 @@ Body:
   "totalSupply": 50000,
   "decimalPlaces": 0,
   "lpClientId": 42,
-  "subscriptionStartDate": "2025-12-01",
-  "subscriptionEndDate": "2026-06-30",
   "issuerName": "Etat du Senegal",
   "isinCode": "SN0000000001",
   "maturityDate": "2028-06-30",
@@ -1479,10 +1475,13 @@ Body:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `issuerPrice` | Yes | The wholesale/face value per unit from the original issuer. Immutable after creation. Used for coupon and income calculations. |
-| `lpAskPrice` | Yes | The price investors pay to buy (LP's selling price). Must be >= `issuerPrice`. |
-| `lpBidPrice` | Yes | The price investors receive when selling (LP's buying price). Must be <= `lpAskPrice`. |
+| `spreadPercent` | No | Spread % used to auto-derive ask/bid from issuerPrice (e.g. `0.003` = 0.3%). Ignored when ask/bid are provided explicitly. Default: `0.003`. |
+| `lpAskPrice` | No | The price investors pay to buy (LP's selling price). If null, auto-derived as `issuerPrice × (1 + spreadPercent)`. Must be >= `issuerPrice`. |
+| `lpBidPrice` | No | The price investors receive when selling (LP's buying price). If null, auto-derived as `issuerPrice × (1 - spreadPercent)`. Must be <= `lpAskPrice`. |
 
 The LP's margin per unit on BUY = `lpAskPrice - issuerPrice`. For bonds, the LP typically sets ask = bid = issuerPrice (no markup on face value).
+
+> **Default spread behavior:** If neither `lpAskPrice`, `lpBidPrice`, nor `spreadPercent` are provided, the system auto-derives ask = `issuerPrice × 1.003` and bid = `issuerPrice × 0.997` (0.3% spread).
 
 Bond-specific fields:
 
@@ -1500,9 +1499,31 @@ General fields (all categories):
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `subscriptionStartDate` | Yes | Start of the subscription window. BUY orders are rejected before this date. |
-| `subscriptionEndDate` | Yes | End of the subscription window. BUY orders are rejected after this date; SELL is always allowed. |
-| `capitalOpenedPercent` | No | Percentage of capital opened for subscription (e.g. 44.44 for RENAPROV-style offerings). |
+| `tradingFeePercent` | No | Platform fee as a decimal (e.g. `0.003` = 0.3%). Default: `0.003`. |
+| `totalSupply` | Yes | Total units available for trade. |
+| `decimalPlaces` | No | Number of decimal places for fractional trading. Default: `0`. |
+| `lpClientId` | Yes | Fineract client ID of the liquidity partner. |
+
+### Tax Configuration
+
+Each asset carries tax flags that determine which taxes apply to trades. Rates default to OHADA/CEMAC standards but can be overridden per asset.
+
+| Tax | Default | Rate | Base | Who pays | Override fields |
+|---|---|---|---|---|---|
+| **Registration Duty** | **On** | **2%** | Gross trade amount | Buyer on BUY; LP on SELL | `registrationDutyEnabled`, `registrationDutyRate` |
+| **TVA (VAT)** | Off | 19.25% | **Trading fee only** | Buyer on BUY; LP on SELL | `tvaEnabled`, `tvaRate` |
+| **Capital Gains Tax** | Off | 16.5% | Realized profit on SELL | LP absorbs | `capitalGainsTaxEnabled`, `capitalGainsRate` |
+| **IRCM — bonds ≥5y** | Off | 5.5% | Coupon / interest income | Withheld from investor | `ircmEnabled`, `ircmRateOverride` |
+| **IRCM — BVMAC equities** | Off | 11% | Dividend income | Withheld from investor | `ircmEnabled`, `isBvmacListed` |
+| **IRCM — other equities** | Off | 16.5% | Dividend income | Withheld from investor | `ircmEnabled` |
+
+**Important notes:**
+
+- **TVA applies to the platform fee, not the full investment amount.** Example: buying 10,000 XAF of bonds at 0.3% fee → fee = 30 XAF → TVA = 30 × 19.25% = 6 XAF. This is correct under OHADA/CEMAC law where TVA is a service consumption tax.
+- **Registration duty** (droit d'enregistrement) is a securities transfer stamp tax on the full transaction value. It is **on by default** and applies to all trades.
+- **Capital gains** has a 500,000 XAF annual exemption per investor. Tax applies only to cumulative gains exceeding this threshold.
+- **Government bonds** (`isGovernmentBond: true`) are automatically IRCM-exempt.
+- All tax fields (`*Enabled`, `*Rate`) can be updated post-creation via `PATCH /api/admin/assets/{id}`.
 
 ### What Happens on Create
 
@@ -1640,9 +1661,6 @@ Body:
   "tradingFeePercent": 0.75,
   "lpAskPrice": 5500,
   "lpBidPrice": 5200,
-  "subscriptionStartDate": "2026-01-01",
-  "subscriptionEndDate": "2026-12-31",
-  "capitalOpenedPercent": 50.00,
   "interestRate": 6.25,
   "maturityDate": "2029-06-30"
 }
@@ -1650,9 +1668,22 @@ Body:
 
 All fields are optional. Only provided fields are updated.
 
-**Editable fields:** name, description, imageUrl, category, tradingFeePercent, lpAskPrice, lpBidPrice, subscriptionStartDate, subscriptionEndDate, capitalOpenedPercent, maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, income config.
+**Editable fields (all states):** name, description, imageUrl, category, tradingFeePercent, lpAskPrice, lpBidPrice, maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount, income config, tax config.
 
-**Immutable fields (cannot be changed after creation):** symbol, currencyCode, issuerPrice, issuerName, lpClientId, totalSupply, decimalPlaces, interestRate, couponFrequencyMonths, maturityDate (bond contractual terms).
+**Editable fields (PENDING only):** issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths. These fields are rejected with HTTP 400 if the asset is not in PENDING status. When `totalSupply` is changed, the LP asset account balance is automatically adjusted (minted/burned) to match.
+
+**Immutable fields (cannot be changed after creation):** symbol, currencyCode, decimalPlaces. To change these, delete the PENDING asset and recreate it.
+
+**Example — updating a PENDING asset's issuer price and total supply:**
+
+```
+PUT /api/admin/assets/{id}
+Body:
+{
+  "issuerPrice": 6000,
+  "totalSupply": 150000
+}
+```
 
 ---
 
@@ -2467,7 +2498,7 @@ In addition to specifying units, the trade preview API accepts an XAF **amount**
 ### Request (amount mode)
 
 ```
-POST /api/trades/preview
+POST /api/trades/quote
 Body: {
   "assetId": "uuid",
   "side": "BUY",
@@ -2516,3 +2547,55 @@ For non-bond assets with an income type set, BUY previews include an `incomeBene
 ```
 
 Note: Income is calculated from the `issuerPrice`, not the LP's ask price. The `estimatedYieldPercent` reflects the true yield based on the issuer price.
+
+---
+
+## 19. Bulk Asset Import via Excel
+
+The Asset Manager UI provides an Excel-based import workflow for creating multiple assets at once.
+
+### Workflow
+
+1. **Export Template** — Click "Export Template" on the Dashboard. This downloads `asset-import-template.xlsx` with:
+   - Header row with all column names (mandatory columns marked with `*` and highlighted in red)
+   - Example data row (row 2) with realistic sample values
+   - Cell comments on each header explaining the field, valid values, and format
+   - Dropdown validation for enum fields (category, incomeType, couponFrequencyMonths, boolean fields)
+
+2. **Fill In Data** — Open the template in Excel/Google Sheets. Keep the header row, optionally delete the example row, and add one row per asset. All required fields must be filled.
+
+3. **Import** — Click "Import Assets" on the Dashboard, select the filled .xlsx file. The system will:
+   - Parse and validate the file client-side
+   - Show a preview of parsed rows with any validation errors highlighted
+   - On confirmation, create each asset one-by-one using the standard asset creation endpoint
+   - Display per-row results (success or failure with error message)
+
+### Template Columns
+
+| Column | Required | Description |
+|--------|----------|-------------|
+| name | Yes | Display name (max 200 chars) |
+| symbol | Yes | Ticker symbol (max 10 chars, unique) |
+| currencyCode | Yes | ISO currency code (max 10 chars, unique) |
+| category | Yes | REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, BONDS |
+| issuerPrice | Yes | Face value in XAF |
+| totalSupply | Yes | Maximum units |
+| decimalPlaces | Yes | Fractional digits (0–8) |
+| lpAskPrice | Yes | Investor buy price (XAF) |
+| lpBidPrice | Yes | Investor sell price (XAF) |
+| lpClientId | Yes | Fineract LP client ID |
+| description | No | Long description |
+| tradingFeePercent | No | Decimal (e.g. 0.005 = 0.5%) |
+| maxPositionPercent | No | Max % of supply per user |
+| maxOrderSize / minOrderSize | No | Order unit limits |
+| dailyTradeLimitXaf / minOrderCashAmount | No | XAF limits |
+| lockupDays | No | Hold period in days |
+| issuerName / isinCode | No | Bond identity fields |
+| maturityDate / interestRate / couponFrequencyMonths / nextCouponDate | No | Bond fields |
+| incomeType / incomeRate / distributionFrequencyMonths / nextDistributionDate | No | Income fields |
+| registrationDutyEnabled, registrationDutyRate | No | Registration duty tax config |
+| ircmEnabled, ircmRateOverride, ircmExempt | No | IRCM tax config |
+| capitalGainsTaxEnabled, capitalGainsRate | No | Capital gains tax config |
+| isBvmacListed, isGovernmentBond | No | Special tax treatment flags |
+
+All imported assets are created in **PENDING** status. Use the Activate endpoint to make them available for trading.

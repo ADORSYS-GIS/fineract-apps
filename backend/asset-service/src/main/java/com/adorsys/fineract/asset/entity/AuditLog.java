@@ -9,8 +9,14 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 /**
- * Persistent record of an admin action. Created by AuditLogAspect for every
- * mutation on AdminAssetController, AdminOrderController, and AdminReconciliationController.
+ * Immutable audit trail record for every admin-initiated mutation. Created by
+ * {@code AuditLogAspect} via an around-advice on all write endpoints in
+ * {@code AdminAssetController}, {@code AdminOrderController}, and
+ * {@code AdminReconciliationController}. Rows are append-only and must never
+ * be updated or deleted after creation.
+ * <p>
+ * The three indexes support the most common audit query patterns: filtering
+ * by admin identity, by target asset, and by time range.
  */
 @Data
 @Entity
@@ -24,50 +30,63 @@ import java.time.Instant;
 })
 public class AuditLog {
 
+    /** Auto-generated sequential primary key. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Controller method name, e.g. createAsset, activateAsset, resolveOrder. */
+    /** Controller method name that was invoked (e.g. {@code createAsset}, {@code activateAsset}, {@code resolveOrder}). */
     @Column(nullable = false, length = 100)
     private String action;
 
-    /** JWT subject of the admin who performed the action. */
+    /** JWT {@code sub} claim of the admin who performed the action. Used to trace actions back to a specific admin account. */
     @Column(nullable = false, length = 255)
     private String adminSubject;
 
-    /** Target asset ID, if applicable. Null for non-asset-specific actions. */
+    /** Asset ID the action targeted, if applicable. Null for actions that are not scoped to a single asset. */
     @Column(length = 36)
     private String targetAssetId;
 
-    /** Denormalized asset symbol for human readability. */
+    /**
+     * Denormalized asset symbol (e.g. {@code BRVM}) copied at write time for human-readable
+     * log displays without requiring a join. May become stale if the asset's symbol changes,
+     * but the {@code targetAssetId} remains authoritative.
+     */
     @Column(length = 10)
     private String targetAssetSymbol;
 
-    /** SUCCESS or FAILURE. */
+    /** Outcome of the action: {@code SUCCESS} if the controller method returned normally, {@code FAILURE} if it threw. */
     @Column(nullable = false, length = 10)
     private String result;
 
-    /** Exception message on failure, truncated to 500 chars. Null on success. */
+    /** Exception message captured on failure, truncated to 500 characters. Null when {@code result} is SUCCESS. */
     @Column(length = 500)
     private String errorMessage;
 
-    /** Execution duration in milliseconds. */
+    /** Wall-clock duration of the admin request in milliseconds, measured by the audit aspect. */
     private long durationMs;
 
-    /** Key request parameters serialized as JSON, e.g. {"price":1500}. */
+    /**
+     * Key request parameters serialized as a compact JSON string by the audit aspect,
+     * e.g. {@code {"price":1500,"symbol":"GOLD"}}. Sensitive fields (passwords, tokens)
+     * are redacted before serialization. Stored as TEXT to accommodate large request bodies.
+     */
     @Column(columnDefinition = "TEXT")
     private String requestSummary;
 
-    /** Client IP address (from X-Forwarded-For or RemoteAddr). */
+    /**
+     * Originating IP address of the HTTP request, resolved from the
+     * {@code X-Forwarded-For} header (first hop) or {@code RemoteAddr} as fallback.
+     * IPv6 addresses may be up to 45 characters.
+     */
     @Column(name = "client_ip", length = 45)
     private String clientIp;
 
-    /** User-Agent header from the HTTP request. */
+    /** {@code User-Agent} HTTP header from the admin's request, for device/browser forensics. */
     @Column(name = "user_agent", length = 500)
     private String userAgent;
 
-    /** When the action was performed. */
+    /** Timestamp when the admin action was performed. Set automatically on insert if not provided. */
     @Column(nullable = false)
     private Instant performedAt;
 

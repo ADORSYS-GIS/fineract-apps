@@ -54,6 +54,34 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(IdentityClaimException.class)
+    public ResponseEntity<ErrorResponse> handleIdentityClaimException(IdentityClaimException ex) {
+        log.warn("Identity claim error: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+            ex.getErrorCode(),
+            ex.getMessage(),
+            null,
+            Instant.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler(PermissionDeniedException.class)
+    public ResponseEntity<ErrorResponse> handlePermissionDeniedException(PermissionDeniedException ex) {
+        log.warn("Permission denied: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+            ex.getErrorCode(),
+            ex.getMessage(),
+            null,
+            Instant.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage());

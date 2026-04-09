@@ -56,8 +56,8 @@ public class IncomeDistributionService {
             return;
         }
 
-        BigDecimal faceValue = asset.getIssuerPrice() != null
-                ? asset.getIssuerPrice() : BigDecimal.ZERO;
+        BigDecimal faceValue = asset.getEffectiveFaceValue() != null
+                ? asset.getEffectiveFaceValue() : BigDecimal.ZERO;
 
         BigDecimal rate = asset.getIncomeRate();
         int frequencyMonths = asset.getDistributionFrequencyMonths();

@@ -90,14 +90,13 @@ public class AssetCatalogService {
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
-                asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
                 asset.getCreatedAt(), asset.getUpdatedAt(),
-                asset.getIssuerName(), asset.getIssuerPrice(), asset.getLpClientName(),
+                asset.getIssuerName(), asset.getIssuerPrice(), asset.getFaceValue(), asset.getLpClientName(),
+                asset.getBondType(), asset.getDayCountConvention(), asset.getIssuerCountry(),
                 asset.getIsinCode(), asset.getMaturityDate(),
                 asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
-                isSubscriptionClosed(asset.getSubscriptionEndDate()),
                 couponAmountPerUnit,
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
@@ -142,19 +141,18 @@ public class AssetCatalogService {
                 asset.getTotalSupply(), asset.getCirculatingSupply(),
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
-                asset.getSubscriptionStartDate(), asset.getSubscriptionEndDate(),
-                asset.getIssuerName(), asset.getIssuerPrice(),
+                asset.getIssuerName(), asset.getIssuerPrice(), asset.getFaceValue(),
                 asset.getLpClientId(), asset.getLpAssetAccountId(),
-                asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
+                asset.getLpCashAccountId(), asset.getLpSpreadAccountId(), asset.getLpTaxAccountId(),
                 asset.getFineractProductId(),
                 asset.getLpClientName(), asset.getName() + " Token",
                 lpMarginPerUnit, lpMarginPercent,
                 asset.getCreatedAt(), asset.getUpdatedAt(),
+                asset.getBondType(), asset.getDayCountConvention(), asset.getIssuerCountry(),
                 asset.getIsinCode(), asset.getMaturityDate(),
                 asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
-                isSubscriptionClosed(asset.getSubscriptionEndDate()),
                 couponAmountPerUnit,
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
@@ -168,7 +166,8 @@ public class AssetCatalogService {
                 asset.getRegistrationDutyEnabled(), asset.getRegistrationDutyRate(),
                 asset.getIrcmEnabled(), asset.getIrcmRateOverride(), asset.getIrcmExempt(),
                 asset.getCapitalGainsTaxEnabled(), asset.getCapitalGainsRate(),
-                asset.getIsBvmacListed(), asset.getIsGovernmentBond()
+                asset.getIsBvmacListed(), asset.getIsGovernmentBond(),
+                asset.getTvaEnabled(), asset.getTvaRate()
         );
     }
 
@@ -179,16 +178,10 @@ public class AssetCatalogService {
     public Page<DiscoverAssetResponse> discoverAssets(Pageable pageable) {
         Page<Asset> assets = assetRepository.findByStatus(AssetStatus.PENDING, withIdTiebreaker(pageable));
 
-        return assets.map(a -> {
-            long daysUntilSubscription = 0;
-            if (a.getSubscriptionStartDate() != null && a.getSubscriptionStartDate().isAfter(LocalDate.now())) {
-                daysUntilSubscription = ChronoUnit.DAYS.between(LocalDate.now(), a.getSubscriptionStartDate());
-            }
-            return new DiscoverAssetResponse(
+        return assets.map(a -> new DiscoverAssetResponse(
                     a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
-                    a.getCategory(), a.getStatus(), a.getSubscriptionStartDate(), daysUntilSubscription
-            );
-        });
+                    a.getCategory(), a.getStatus()
+        ));
     }
 
     /**
@@ -234,27 +227,44 @@ public class AssetCatalogService {
                 a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
                 a.getCategory(), a.getStatus(), askPrice, change,
                 available, a.getTotalSupply(),
-                a.getSubscriptionStartDate(), a.getSubscriptionEndDate(),
                 a.getIssuerName(), a.getLpClientName(), couponAmountPerUnit,
+                a.getBondType(),
                 a.getIsinCode(), a.getMaturityDate(),
                 a.getInterestRate(), currentYield,
-                computeResidualDays(a.getMaturityDate()),
-                isSubscriptionClosed(a.getSubscriptionEndDate())
+                computeResidualDays(a.getMaturityDate())
         );
     }
 
     /**
      * Compute the current yield for bond assets.
-     * Formula: issuerPrice * interestRate / askPrice
+     * COUPON bonds: issuerPrice * interestRate / askPrice (current yield from coupons).
+     * DISCOUNT bonds: (faceValue/askPrice - 1) * (dayCountBasis/daysToMaturity) * 100.
      * Returns null for non-bond assets or when askPrice is zero/null.
      */
     private BigDecimal computeCurrentYield(Asset asset, BigDecimal askPrice) {
         if (asset.getCategory() != AssetCategory.BONDS) return null;
-        BigDecimal issuerPrice = asset.getIssuerPrice();
-        BigDecimal rate = asset.getInterestRate();
-        if (issuerPrice == null || rate == null || askPrice == null
+        BigDecimal faceValue = asset.getEffectiveFaceValue();
+        if (faceValue == null || askPrice == null
                 || askPrice.compareTo(BigDecimal.ZERO) == 0) return null;
-        return issuerPrice
+
+        if (asset.getBondType() == BondType.DISCOUNT) {
+            // BTA yield: (faceValue/askPrice - 1) * (basis/daysToMaturity) * 100
+            Long residualDays = computeResidualDays(asset.getMaturityDate());
+            if (residualDays == null || residualDays <= 0) return null;
+            int basis = asset.getDayCountConvention() != null ? asset.getDayCountConvention().getBasis() : 360;
+            return faceValue
+                    .divide(askPrice, 8, java.math.RoundingMode.HALF_UP)
+                    .subtract(BigDecimal.ONE)
+                    .multiply(BigDecimal.valueOf(basis))
+                    .divide(BigDecimal.valueOf(residualDays), 4, java.math.RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+
+        // COUPON bond: current yield = faceValue * rate / askPrice
+        BigDecimal rate = asset.getInterestRate();
+        if (rate == null) return null;
+        return faceValue
                 .multiply(rate)
                 .divide(askPrice, 2, java.math.RoundingMode.HALF_UP);
     }
@@ -286,11 +296,13 @@ public class AssetCatalogService {
      */
     private BigDecimal computeCouponAmountPerUnit(Asset asset) {
         if (asset.getCategory() != AssetCategory.BONDS) return null;
-        BigDecimal issuerPrice = asset.getIssuerPrice();
+        // DISCOUNT bonds (BTA) have no coupons
+        if (asset.getBondType() == BondType.DISCOUNT) return null;
+        BigDecimal faceValue = asset.getEffectiveFaceValue();
         BigDecimal rate = asset.getInterestRate();
         Integer freqMonths = asset.getCouponFrequencyMonths();
-        if (issuerPrice == null || rate == null || freqMonths == null) return null;
-        return issuerPrice
+        if (faceValue == null || rate == null || freqMonths == null) return null;
+        return faceValue
                 .multiply(rate)
                 .divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(freqMonths))
@@ -307,17 +319,6 @@ public class AssetCatalogService {
         if (maturityDate == null) return null;
         long days = ChronoUnit.DAYS.between(LocalDate.now(), maturityDate);
         return Math.max(0, days);
-    }
-
-    /**
-     * Checks whether the subscription period has ended.
-     *
-     * @param subscriptionEndDate the subscription deadline
-     * @return true if ended, false if still open
-     */
-    private Boolean isSubscriptionClosed(LocalDate subscriptionEndDate) {
-        if (subscriptionEndDate == null) return null;
-        return !subscriptionEndDate.isAfter(LocalDate.now());
     }
 
     /**

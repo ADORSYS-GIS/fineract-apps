@@ -12,8 +12,22 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Represents a BUY or SELL order placed by a user. Tracks the order through its lifecycle:
- * PENDING → EXECUTING → FILLED or FAILED/REJECTED.
+ * Represents a BUY or SELL order placed by a user against a single asset.
+ * Orders are the primary unit of trade execution and travel through the following
+ * lifecycle states managed by the order execution service:
+ * <ol>
+ *   <li>{@code PENDING} — order received, awaiting market-hours check and validation.</li>
+ *   <li>{@code QUOTED} — a price-locked quote has been issued; the user must confirm within the TTL.</li>
+ *   <li>{@code QUEUED} — market is closed; order queued for execution at next market open.</li>
+ *   <li>{@code EXECUTING} — Fineract batch transfer in flight.</li>
+ *   <li>{@code FILLED} — transfers completed; a {@link TradeLog} row has been written.</li>
+ *   <li>{@code FAILED} — Fineract transfer failed; the order may be retried or manually resolved.</li>
+ *   <li>{@code REJECTED} — validation rejected the order before any transfer was attempted.</li>
+ * </ol>
+ * <p>
+ * An {@link Order} is the command; a {@link TradeLog} is the immutable execution record
+ * produced when the order fills. Tax amounts recorded here are informational — authoritative
+ * tax records are in {@link TaxTransaction}.
  */
 @Data
 @Entity
@@ -84,6 +98,14 @@ public class Order {
     /** Capital gains tax charged for this SELL order. Null for BUY or pre-tax orders. */
     @Column(name = "capital_gains_tax_amount", precision = 20, scale = 0)
     private BigDecimal capitalGainsTaxAmount;
+
+    /** TVA (VAT) charged for this order. Null if TVA not enabled on asset. */
+    @Column(name = "tva_amount", precision = 20, scale = 0)
+    private BigDecimal tvaAmount;
+
+    /** Accrued interest amount for coupon bond (OTA) trades. Added to buyer cost / seller proceeds. Null for non-bond trades. */
+    @Column(name = "accrued_interest_amount", precision = 20, scale = 0)
+    private BigDecimal accruedInterestAmount;
 
     /** Current order status. Defaults to PENDING. */
     @Enumerated(EnumType.STRING)

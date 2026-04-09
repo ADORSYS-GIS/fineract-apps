@@ -48,6 +48,20 @@ public class CucumberSpringConfiguration {
             resolved.setTransfersInSuspenseId(48L);
             resolved.setIncomeFromInterestId(87L);
             resolved.setAssetIssuancePaymentTypeId(22L);
+            resolved.setFundSourceId(502L);
+            resolved.setFeeIncomeId(701L);
+            resolved.setLpSettlementControlId(4011L);
+            resolved.setLpSpreadPayableId(4012L);
+            resolved.setLpTaxWithholdingId(4013L);
+            resolved.setLpFundSourceId(5011L);
+            resolved.setPlatformFeePayableId(4201L);
+            resolved.setMtnMoMoId(5001L);
+            resolved.setOrangeMoneyId(5002L);
+            resolved.setUbaBankId(5011L);
+            resolved.setAfrilandBankId(5012L);
+            resolved.setTaxPayableFundSourceId(5031L);
+            resolved.setClearingAccountId(901L);
+            resolved.setFeeCollectionAccountId(900L);
             return resolved;
         }
     }

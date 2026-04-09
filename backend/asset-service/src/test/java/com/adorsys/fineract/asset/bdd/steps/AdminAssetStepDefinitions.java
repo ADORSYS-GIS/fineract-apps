@@ -46,11 +46,25 @@ public class AdminAssetStepDefinitions {
     public void fineractProvisioningMocked() {
         // Mock client name lookup
         when(fineractClient.getClientDisplayName(anyLong())).thenReturn("Test Company");
-        // Mock settlement product lookup and cash account provisioning
-        when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(50);
+        // Default: no orphaned products (orphan check returns null)
+        when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
+        // No orphaned currencies
+        when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
+        // Mock savings product lookups
+        when(fineractClient.findSavingsProductByShortName("VSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(52);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(53);
         // Cash account provisioning (null deposit amount)
         when(fineractClient.provisionSavingsAccount(anyLong(), eq(50), isNull(), isNull()))
                 .thenReturn(300L);
+        // LP account provisioning (LSAV/LSPD/LTAX)
+        when(fineractClient.provisionSavingsAccount(anyLong(), eq(51), isNull(), isNull()))
+                .thenReturn(301L);
+        when(fineractClient.provisionSavingsAccount(anyLong(), eq(52), isNull(), isNull()))
+                .thenReturn(302L);
+        when(fineractClient.provisionSavingsAccount(anyLong(), eq(53), isNull(), isNull()))
+                .thenReturn(303L);
         // Asset product creation
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
@@ -70,14 +84,12 @@ public class AdminAssetStepDefinitions {
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id,
-                subscription_start_date, subscription_end_date,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
-                is_bvmac_listed, is_government_bond, ircm_exempt,
-                version, created_at, updated_at)
+                is_bvmac_listed, is_government_bond, ircm_exempt, tva_enabled,
+                trading_fee_percent, version, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 300, 10,
-                CURRENT_DATE, DATEADD('YEAR', 1, CURRENT_DATE),
-                true, true, true, false, false, false,
-                0, NOW(), NOW())
+                true, true, true, false, false, false, false,
+                0.005, 0, NOW(), NOW())
             """, "dup-" + symbol, symbol, symbol, "Duplicate " + symbol);
     }
 
@@ -110,10 +122,7 @@ public class AdminAssetStepDefinitions {
         request.put("totalSupply", new BigDecimal(data.get("totalSupply")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("lpClientId", 1L);
-        request.put("subscriptionStartDate", data.getOrDefault("subscriptionStartDate",
-                java.time.LocalDate.now().minusMonths(1).toString()));
-        request.put("subscriptionEndDate", data.getOrDefault("subscriptionEndDate",
-                java.time.LocalDate.now().plusYears(1).toString()));
+        request.put("tradingFeePercent", new BigDecimal("0.005"));
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -131,8 +140,7 @@ public class AdminAssetStepDefinitions {
                 "decimalPlaces", 0, "lpClientId", 1L));
         request.put("lpAskPrice", 110);
         request.put("lpBidPrice", 95);
-        request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
+        request.put("tradingFeePercent", 0.005);
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -150,8 +158,6 @@ public class AdminAssetStepDefinitions {
                 "decimalPlaces", 0, "lpClientId", 1L));
         request.put("lpAskPrice", 110);
         request.put("lpBidPrice", 95);
-        request.put("subscriptionStartDate", java.time.LocalDate.now().minusMonths(1).toString());
-        request.put("subscriptionEndDate", java.time.LocalDate.now().plusYears(1).toString());
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
@@ -217,6 +223,30 @@ public class AdminAssetStepDefinitions {
     public void adminUpdatesTradingFee(String assetId, String fee) throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("tradingFeePercent", new BigDecimal(fee));
+        MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
+                        .with(jwt().authorities(ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn();
+        context.setLastResult(result);
+    }
+
+    @When("the admin updates asset {string} with issuerPrice {string}")
+    public void adminUpdatesIssuerPrice(String assetId, String price) throws Exception {
+        Map<String, Object> request = new HashMap<>();
+        request.put("issuerPrice", new BigDecimal(price));
+        MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
+                        .with(jwt().authorities(ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn();
+        context.setLastResult(result);
+    }
+
+    @When("the admin updates asset {string} with issuerName {string}")
+    public void adminUpdatesIssuerName(String assetId, String issuerName) throws Exception {
+        Map<String, Object> request = new HashMap<>();
+        request.put("issuerName", issuerName);
         MvcResult result = mockMvc.perform(put("/admin/assets/" + assetId)
                         .with(jwt().authorities(ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)

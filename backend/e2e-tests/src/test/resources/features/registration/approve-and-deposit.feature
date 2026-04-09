@@ -12,8 +12,7 @@ Feature: Customer Registration (Stage 2) - Approve and Deposit
   Scenario: Successful approval, activation, and deposit
     Given a new customer has been registered with the following details:
       | externalId | approve-deposit-001 |
-      | firstName  | Alice               |
-      | lastName   | Smith               |
+      | fullName   | Alice Smith         |
       | phone      | +237691234575       |
     When the KYC manager approves, activates, and deposits into the account with the following details:
       | depositAmount | 1000        |
@@ -23,8 +22,7 @@ Feature: Customer Registration (Stage 2) - Approve and Deposit
   Scenario: Successful approval and activation only
     Given a new customer has been registered with the following details:
       | externalId | approve-only-001 |
-      | firstName  | Bob                |
-      | lastName   | Brown              |
+      | fullName   | Bob Brown           |
       | phone      | +237691234576      |
     When the KYC manager approves, activates, and deposits into the account with the following details:
       | depositAmount | 0           |
@@ -34,8 +32,7 @@ Feature: Customer Registration (Stage 2) - Approve and Deposit
   Scenario: Idempotency check for approve and deposit
     Given a new customer has been registered with the following details:
       | externalId | idempotency-001 |
-      | firstName  | Carol             |
-      | lastName   | Danvers           |
+      | fullName   | Carol Danvers       |
       | phone      | +237691234577     |
     When the KYC manager approves, activates, and deposits into the account with the following details:
       | depositAmount | 1500        |
@@ -47,8 +44,7 @@ Feature: Customer Registration (Stage 2) - Approve and Deposit
   Scenario: Attempt to approve with non-existent savings account
     Given a new customer has been registered with the following details:
       | externalId | non-existent-account-001 |
-      | firstName  | Eve                      |
-      | lastName   | Frollo                   |
+      | fullName   | Eve Frollo          |
       | phone      | +237691234578            |
     When the KYC manager attempts to approve and deposit for a non-existent account with details:
       | depositAmount | 1000         |
@@ -58,8 +54,7 @@ Feature: Customer Registration (Stage 2) - Approve and Deposit
   Scenario: Attempt to approve with missing idempotency key
     Given a new customer has been registered with the following details:
       | externalId | missing-idempotency-key-001 |
-      | firstName  | Gaston                   |
-      | lastName   | Tremaine                 |
+      | fullName   | Gaston Tremaine     |
       | phone      | +237691234579            |
     When the KYC manager attempts to approve and deposit without an idempotency key with details:
       | depositAmount | 1000         |
@@ -69,8 +64,7 @@ Feature: Customer Registration (Stage 2) - Approve and Deposit
   Scenario: Attempt to approve with invalid payment type
     Given a new customer has been registered with the following details:
       | externalId | invalid-payment-type-001 |
-      | firstName  | Hades                    |
-      | lastName   | Horned-King              |
+      | fullName   | Hades Horned-King   |
       | phone      | +237691234580            |
     When the KYC manager approves, activates, and deposits into the account with the following details:
       | depositAmount | 1000                  |
@@ -80,8 +74,7 @@ Feature: Customer Registration (Stage 2) - Approve and Deposit
   Scenario: Attempt to approve with negative deposit amount
     Given a new customer has been registered with the following details:
       | externalId | negative-deposit-001 |
-      | firstName  | Jafar                |
-      | lastName   | Maleficent           |
+      | fullName   | Jafar Maleficent    |
       | phone      | +237691234581        |
     When the KYC manager approves, activates, and deposits into the account with the following details:
       | depositAmount | -1000        |

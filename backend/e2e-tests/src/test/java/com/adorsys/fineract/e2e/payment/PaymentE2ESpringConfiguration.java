@@ -68,7 +68,7 @@ public class PaymentE2ESpringConfiguration {
         registry.add("spring.data.redis.password", () -> "");
 
         // Fineract (basic auth)
-        registry.add("fineract.url", TestcontainersConfig::getFineractBaseUrl);
+        registry.add("fineract.url", () -> TestcontainersConfig.getFineractBaseUrl() + "/fineract-provider");
         registry.add("fineract.auth-type", () -> "basic");
         registry.add("fineract.username", () -> "mifos");
         registry.add("fineract.password", () -> "password");
@@ -130,9 +130,9 @@ public class PaymentE2ESpringConfiguration {
 
         // Disable schedulers and rate limiting for tests
         registry.add("app.cleanup.enabled", () -> "false");
+        registry.add("app.dlq-retry.enabled", () -> "false");
         registry.add("app.rate-limit.enabled", () -> "false");
         registry.add("app.callbacks.ip-whitelist.enabled", () -> "false");
-        registry.add("app.stepup.enabled", () -> "false");
 
         // Testable daily limits (100,000 XAF)
         registry.add("app.limits.daily-deposit-max", () -> "100000");

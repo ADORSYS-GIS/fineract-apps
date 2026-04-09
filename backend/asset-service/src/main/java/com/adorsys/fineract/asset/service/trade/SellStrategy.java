@@ -24,8 +24,9 @@ public final class SellStrategy implements TradeStrategy {
     }
 
     @Override
-    public BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee, BigDecimal totalTax) {
-        return grossAmount.subtract(fee).subtract(totalTax);
+    public BigDecimal computeOrderCashAmount(BigDecimal grossAmount, BigDecimal fee, BigDecimal totalTax, BigDecimal accruedInterest) {
+        // LP bears tax on SELL — client receives grossAmount - fee + accruedInterest (seller gets compensated for accrued)
+        return grossAmount.subtract(fee).add(accruedInterest);
     }
 
     @Override

@@ -9,8 +9,13 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 /**
- * Tracks which assets a user has marked as favorites (watchlist).
- * One row per (userId, assetId) pair.
+ * Tracks which assets a user has added to their personal watchlist (favorites).
+ * One row per (userId, assetId) pair; the unique constraint prevents duplicate entries.
+ * Rows are created by the watchlist toggle endpoint and deleted when the user
+ * removes the asset from their favorites. No update ever occurs on this entity.
+ * <p>
+ * Used by the mobile app to pre-filter the asset discovery screen and to
+ * prioritize favorite assets on the Portfolio home screen.
  */
 @Data
 @Entity

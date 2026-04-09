@@ -71,7 +71,7 @@ public class PrincipalRedemptionService {
             throw new AssetException("Bond " + bond.getSymbol() + " is missing LP account configuration");
         }
 
-        BigDecimal faceValue = bond.getIssuerPrice();
+        BigDecimal faceValue = bond.getEffectiveFaceValue();
         if (faceValue == null || faceValue.compareTo(BigDecimal.ZERO) <= 0) {
             throw new AssetException("Bond " + bond.getSymbol() + " has no face value configured");
         }
