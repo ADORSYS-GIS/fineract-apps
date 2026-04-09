@@ -64,7 +64,7 @@ mtn:
     api-key: ${MTN_API_KEY:}
     target-environment: ${MTN_TARGET_ENV:sandbox}
     callback-url: ${MTN_CALLBACK_URL:http://localhost:8082/api/callbacks}
-    currency: XAF
+    currency: EUR
     timeout-seconds: 60
     fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:1}
     gl-account-code: ${MTN_GL_ACCOUNT_CODE:}
