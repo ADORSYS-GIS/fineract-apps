@@ -175,7 +175,7 @@ public class PortfolioService {
                 .orElse(null);
 
         List<OrderResponse> orderHistory = orderRepository
-                .findByUserIdAndAssetId(userId, assetId,
+                .findByUserIdAndAssetIdAndStatusNotIn(userId, assetId, List.of(OrderStatus.CANCELLED),
                         PageRequest.of(0, 200, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .getContent()
                 .stream()
