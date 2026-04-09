@@ -39,11 +39,13 @@ jobs:
       - name: Set services matrix
         id: set-services
         run: |
-          # workflow_dispatch: honour manual input unchanged
+          ALL_SERVICES='["asset-service","customer-self-service","payment-gateway-service","user-sync-service"]'
+
+          # workflow_dispatch: honour manual input, no changes to existing behaviour
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             INPUT="${{ github.event.inputs.services }}"
             if [ "$INPUT" == "all" ] || [ -z "$INPUT" ]; then
-              echo 'services=["asset-service","customer-self-service","payment-gateway-service","user-sync-service"]' >> $GITHUB_OUTPUT
+              echo "services=$ALL_SERVICES" >> $GITHUB_OUTPUT
             else
               SERVICES=$(echo "$INPUT" | jq -Rc 'split(",") | map(. | gsub(" "; ""))')
               echo "services=$SERVICES" >> $GITHUB_OUTPUT
@@ -55,26 +57,33 @@ jobs:
           BEFORE="${{ github.event.before }}"
           SHA="${{ github.sha }}"
 
-          # Handle first push to a branch (before is all zeros)
           if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-            CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+            # First push to branch: diff from the root commit to avoid HEAD~1 failing
+            # on orphan branches or shallow clones
+            ROOT=$(git rev-list --max-parents=0 HEAD 2>/dev/null || echo "")
+            if [ -n "$ROOT" ]; then
+              CHANGED=$(git diff --name-only "$ROOT" HEAD -- 2>/dev/null || echo "")
+            else
+              CHANGED=""
+            fi
           else
-            CHANGED=$(git diff --name-only "$BEFORE" "$SHA" 2>/dev/null || echo "")
+            CHANGED=$(git diff --name-only "$BEFORE" "$SHA" -- 2>/dev/null || echo "")
           fi
 
           echo "Changed files:"
           echo "$CHANGED"
 
           # Safety net: if the workflow file itself changed, rebuild all
-          if echo "$CHANGED" | grep -q "^\.github/workflows/publish-backend-images\.yml"; then
+          if echo "$CHANGED" | grep -qE "^\.github/workflows/publish-backend-images\.yml$"; then
             echo "Workflow file changed — rebuilding all services"
-            echo 'services=["asset-service","customer-self-service","payment-gateway-service","user-sync-service"]' >> $GITHUB_OUTPUT
+            echo "services=$ALL_SERVICES" >> $GITHUB_OUTPUT
             exit 0
           fi
 
           SERVICES=()
           for service in "asset-service" "customer-self-service" "payment-gateway-service" "user-sync-service"; do
-            if echo "$CHANGED" | grep -q "^backend/$service/"; then
+            # Use word-boundary anchor to avoid prefix matches (e.g. asset-service-backup)
+            if echo "$CHANGED" | grep -qE "^backend/${service}(/|$)"; then
               SERVICES+=("\"$service\"")
               echo "Detected change in: $service"
             fi
@@ -121,8 +130,8 @@ jobs:
           BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
 
-          # Sanitize branch name for use as Docker tag (no slashes allowed)
-          SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          # Sanitize branch name and truncate to Docker tag max length (128 chars)
+          SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-128)
           echo "safe_branch=$SAFE_BRANCH" >> $GITHUB_OUTPUT
 
           # Extract git hashes
@@ -153,14 +162,29 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ steps.meta.outputs.long_sha }}
             org.opencontainers.image.created=${{ github.event.repository.updated_at }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Scope cache per branch+service to avoid cross-branch cache poisoning
+          cache-from: type=gha,scope=build-${{ github.ref_name }}-${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=build-${{ github.ref_name }}-${{ matrix.service }}
+
+      # Promote the develop image to main — same binary, no recompilation
+      - name: Verify develop image exists before promotion
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMAGE="${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.service }}"
+          echo "Checking develop image exists: $IMAGE:develop"
+          if ! docker manifest inspect "$IMAGE:develop" > /dev/null 2>&1; then
+            echo "::error::Develop image not found for ${{ matrix.service }}. The develop build must complete successfully before promoting to main."
+            exit 1
+          fi
+          echo "Develop image confirmed — proceeding with promotion"
 
       - name: Promote develop image to main
         if: github.ref == 'refs/heads/main'
         run: |
           IMAGE="${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.service }}"
           docker pull "$IMAGE:develop"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE:develop" 2>/dev/null || echo "unknown")
+          echo "Source digest: $DIGEST"
           docker tag "$IMAGE:develop" "$IMAGE:main"
           docker tag "$IMAGE:develop" "$IMAGE:${{ steps.meta.outputs.short_sha }}"
           docker push "$IMAGE:main"
@@ -168,6 +192,7 @@ jobs:
           echo "Promoted $IMAGE:develop → main + ${{ steps.meta.outputs.short_sha }}"
 
       - name: Generate build summary
+        if: success()
         run: |
           BRANCH="${{ steps.meta.outputs.branch }}"
           if [ "$BRANCH" == "main" ]; then
@@ -189,7 +214,8 @@ jobs:
   trigger-gitops-update:
     name: Trigger GitOps Update
     needs: [determine-services, build-and-push]
-    if: (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && needs.determine-services.outputs.services != '[]'
+    # Only fire when builds actually succeeded — prevents dispatching with empty/partial data
+    if: (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && needs.build-and-push.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -211,6 +237,9 @@ jobs:
           BRANCH="${{ steps.meta.outputs.branch }}"
           TAG="${{ steps.meta.outputs.short_sha }}"
           SERVICES='${{ needs.determine-services.outputs.services }}'
+
+          # Validate JSON array before dispatching to catch malformed output early
+          echo "$SERVICES" | jq -e 'if type == "array" and length > 0 then . else error("invalid or empty services array") end'
 
           gh api \
             --method POST \

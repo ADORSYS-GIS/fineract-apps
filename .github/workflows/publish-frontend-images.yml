@@ -59,46 +59,54 @@ jobs:
           BEFORE="${{ github.event.before }}"
           SHA="${{ github.sha }}"
 
-          # Handle first push to a branch (before is all zeros)
           if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-            CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+            # First push to branch: diff from root commit to avoid HEAD~1 failing
+            # on orphan branches or shallow clones
+            ROOT=$(git rev-list --max-parents=0 HEAD 2>/dev/null || echo "")
+            if [ -n "$ROOT" ]; then
+              CHANGED=$(git diff --name-only "$ROOT" HEAD -- 2>/dev/null || echo "")
+            else
+              CHANGED=""
+            fi
           else
-            CHANGED=$(git diff --name-only "$BEFORE" "$SHA" 2>/dev/null || echo "")
+            CHANGED=$(git diff --name-only "$BEFORE" "$SHA" -- 2>/dev/null || echo "")
           fi
 
           echo "Changed files:"
           echo "$CHANGED"
 
-          # Safety net: if the workflow file itself changed, rebuild all
-          if echo "$CHANGED" | grep -q "^\.github/workflows/publish-frontend-images\.yml"; then
+          # Safety net: workflow file itself changed → rebuild all
+          if echo "$CHANGED" | grep -qE "^\.github/workflows/publish-frontend-images\.yml$"; then
             echo "Workflow file changed — rebuilding all apps"
             echo "apps=$ALL_APPS" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Shared packages changed → rebuild all apps (shared deps)
-          if echo "$CHANGED" | grep -q "^packages/"; then
+          # Shared packages changed → rebuild all apps (they share these deps)
+          if echo "$CHANGED" | grep -qE "^packages/"; then
             echo "Shared packages changed — rebuilding all apps"
             echo "apps=$ALL_APPS" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Per-app detection: check source directory OR Dockerfile
+          # Per-app detection: source directory OR its root-level Dockerfile
+          # Use exact directory anchoring to avoid prefix matches
           declare -A APP_DIRS=(
-            ["admin"]="frontend/admin-app/"
-            ["account-manager"]="frontend/account-manager-app/"
-            ["branch-manager"]="frontend/branchmanager-app/"
-            ["cashier"]="frontend/cashier-app/"
-            ["reporting"]="frontend/reporting-app/"
-            ["accounting"]="frontend/accounting-app/"
-            ["asset-manager"]="frontend/asset-manager-app/"
-            ["self-service"]="frontend/self-service-app/"
+            ["admin"]="frontend/admin-app"
+            ["account-manager"]="frontend/account-manager-app"
+            ["branch-manager"]="frontend/branchmanager-app"
+            ["cashier"]="frontend/cashier-app"
+            ["reporting"]="frontend/reporting-app"
+            ["accounting"]="frontend/accounting-app"
+            ["asset-manager"]="frontend/asset-manager-app"
+            ["self-service"]="frontend/self-service-app"
           )
 
           APPS=()
           for app in "admin" "account-manager" "branch-manager" "cashier" "reporting" "accounting" "asset-manager" "self-service"; do
             DIR="${APP_DIRS[$app]}"
-            if echo "$CHANGED" | grep -qE "^${DIR}|^Dockerfile\.${app}$"; then
+            # Match source dir (with boundary) OR the Dockerfile at repo root
+            if echo "$CHANGED" | grep -qE "^${DIR}(/|$)|^Dockerfile\.${app}$"; then
               APPS+=("\"$app\"")
               echo "Detected change in: $app"
             fi
@@ -145,8 +153,8 @@ jobs:
           BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
 
-          # Sanitize branch name for use as Docker tag (no slashes allowed)
-          SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          # Sanitize branch name and truncate to Docker tag max length (128 chars)
+          SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-128)
           echo "safe_branch=$SAFE_BRANCH" >> $GITHUB_OUTPUT
 
           # Extract git hashes
@@ -172,14 +180,29 @@ jobs:
           build-args: |
             COMMIT_SHA=${{ steps.meta.outputs.short_sha }}
             BUILD_TAG=${{ steps.meta.outputs.branch }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Scope cache per branch+app to avoid cross-branch cache poisoning
+          cache-from: type=gha,scope=build-${{ github.ref_name }}-${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=build-${{ github.ref_name }}-${{ matrix.app }}
+
+      # Promote the develop image to main — same binary, no recompilation
+      - name: Verify develop image exists before promotion
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMAGE="${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app"
+          echo "Checking develop image exists: $IMAGE:develop"
+          if ! docker manifest inspect "$IMAGE:develop" > /dev/null 2>&1; then
+            echo "::error::Develop image not found for ${{ matrix.app }}. The develop build must complete successfully before promoting to main."
+            exit 1
+          fi
+          echo "Develop image confirmed — proceeding with promotion"
 
       - name: Promote develop image to main
         if: github.ref == 'refs/heads/main'
         run: |
           IMAGE="${{ env.REGISTRY }}/adorsys-gis/fineract-apps/${{ matrix.app }}-app"
           docker pull "$IMAGE:develop"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE:develop" 2>/dev/null || echo "unknown")
+          echo "Source digest: $DIGEST"
           docker tag "$IMAGE:develop" "$IMAGE:main"
           docker tag "$IMAGE:develop" "$IMAGE:${{ steps.meta.outputs.short_sha }}"
           docker push "$IMAGE:main"
@@ -187,6 +210,7 @@ jobs:
           echo "Promoted $IMAGE:develop → main + ${{ steps.meta.outputs.short_sha }}"
 
       - name: Generate build summary
+        if: success()
         run: |
           BRANCH="${{ steps.meta.outputs.branch }}"
           if [ "$BRANCH" == "main" ]; then
@@ -208,7 +232,8 @@ jobs:
   trigger-gitops-update:
     name: Trigger GitOps Update
     needs: [determine-apps, build-and-push]
-    if: (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && needs.determine-apps.outputs.apps != '[]'
+    # Only fire when builds actually succeeded — prevents dispatching with empty/partial data
+    if: (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && needs.build-and-push.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -230,6 +255,9 @@ jobs:
           BRANCH="${{ steps.meta.outputs.branch }}"
           TAG="${{ steps.meta.outputs.short_sha }}"
           APPS='${{ needs.determine-apps.outputs.apps }}'
+
+          # Validate JSON array before dispatching to catch malformed output early
+          echo "$APPS" | jq -e 'if type == "array" and length > 0 then . else error("invalid or empty apps array") end'
 
           gh api \
             --method POST \
