@@ -28,7 +28,9 @@ public record QuoteResponse(
     BigDecimal feePercent,
     /** Spread amount in settlement currency. Zero if spread is disabled. */
     BigDecimal spreadAmount,
-    /** BUY: grossAmount + fee (total charged). SELL: grossAmount - fee (net proceeds). */
+    /** Accrued interest for coupon bond (OTA) trades. Added to buyer cost / seller proceeds. Null for non-bond trades. */
+    BigDecimal accruedInterestAmount,
+    /** BUY: grossAmount + fee + accruedInterest (total charged). SELL: grossAmount - fee + accruedInterest (net proceeds). */
     BigDecimal netAmount,
     /** User's available cash balance, null if could not resolve. */
     BigDecimal availableBalance,
@@ -51,5 +53,9 @@ public record QuoteResponse(
     /** Warning codes (e.g. MARKET_CLOSED). Empty if no warnings. */
     List<String> warnings,
     /** Tax breakdown: registration duty, capital gains, total. Null if taxes disabled. */
-    TaxBreakdown taxBreakdown
+    TaxBreakdown taxBreakdown,
+    /** Whether the transaction can proceed given current balances. Always true for SELL. */
+    boolean feasible,
+    /** "INSUFFICIENT_FUNDS: Required X, Available Y (shortfall: Z)" if feasible is false. Null if feasible. */
+    String feasibilityReason
 ) {}

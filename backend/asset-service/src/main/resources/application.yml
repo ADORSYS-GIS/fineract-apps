@@ -135,7 +135,6 @@ asset-service:
     platform-fee-payable: ${GL_PLATFORM_FEE_PAYABLE:4201}
     # Income
     platform-fee-income: ${GL_PLATFORM_FEE_INCOME:701}
-    spread-income: ${GL_SPREAD_INCOME:702}
     income-from-interest: ${GL_INCOME_FROM_INTEREST:701}
     fee-income: ${GL_FEE_INCOME:701}
     # Expense
@@ -233,7 +232,7 @@ logging:
     com.adorsys.fineract.asset: DEBUG
     org.springframework.security: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] [%X{correlationId:-}] %logger{36} - %msg%n"
 
 # OpenAPI Configuration
 springdoc:

@@ -123,7 +123,6 @@ public class AssetE2ESpringConfiguration {
         registry.add("asset-service.gl-accounts.transfers-in-suspense", () -> "48");
         // Income-type GL codes → "87"
         registry.add("asset-service.gl-accounts.platform-fee-income", () -> "87");
-        registry.add("asset-service.gl-accounts.spread-income", () -> "87");
         registry.add("asset-service.gl-accounts.income-from-interest", () -> "87");
         registry.add("asset-service.gl-accounts.fee-income", () -> "87");
         // Expense-type GL codes → "91"

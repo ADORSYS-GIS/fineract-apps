@@ -75,10 +75,10 @@ public class PaymentService {
         log.info("Initiating deposit: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
-        validateIdempotencyKey(idempotencyKey);
+
 
         // Fast path: return existing transaction for genuine retries
-        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
             return mapToResponse(existing.get());
@@ -91,18 +91,18 @@ public class PaymentService {
             throw new PaymentException("Account does not belong to the customer");
         }
 
-        String transactionId = idempotencyKey;
+        String transactionId = UUID.randomUUID().toString();
         String currency = getProviderCurrency(request.getProvider());
 
         // Atomically enforce daily limit + reserve idempotency key (advisory lock prevents races)
         int inserted = reservationService.reserveWithLimitCheck(
-            transactionId, request.getExternalId(), request.getAccountId(),
+            transactionId, idempotencyKey, request.getExternalId(), request.getAccountId(),
             request.getProvider().name(), PaymentResponse.TransactionType.DEPOSIT.name(),
             request.getAmount(), currency, dailyDepositMax
         );
         if (inserted == 0) {
             log.info("Concurrent idempotency key collision, returning existing: {}", idempotencyKey);
-            return transactionRepository.findById(idempotencyKey)
+            return transactionRepository.findByIdempotencyKey(idempotencyKey)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new PaymentException("Concurrent transaction conflict"));
         }
@@ -144,10 +144,10 @@ public class PaymentService {
         log.info("Initiating withdrawal: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
-        validateIdempotencyKey(idempotencyKey);
+
 
         // Fast path: return existing transaction for genuine retries
-        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
             return mapToResponse(existing.get());
@@ -170,7 +170,7 @@ public class PaymentService {
             throw new PaymentException("Insufficient funds");
         }
 
-        String transactionId = idempotencyKey;
+        String transactionId = UUID.randomUUID().toString();
         String currency = getProviderCurrency(request.getProvider());
 
         // Fix #4: For CinetPay, detect actual provider from phone number for correct GL mapping
@@ -185,13 +185,13 @@ public class PaymentService {
 
         // Atomically enforce daily limit + reserve idempotency key (advisory lock prevents races)
         int inserted = reservationService.reserveWithLimitCheck(
-            transactionId, request.getExternalId(), request.getAccountId(),
+            transactionId, idempotencyKey, request.getExternalId(), request.getAccountId(),
             request.getProvider().name(), PaymentResponse.TransactionType.WITHDRAWAL.name(),
             request.getAmount(), currency, dailyWithdrawalMax
         );
         if (inserted == 0) {
             log.info("Concurrent idempotency key collision, returning existing: {}", idempotencyKey);
-            return transactionRepository.findById(idempotencyKey)
+            return transactionRepository.findByIdempotencyKey(idempotencyKey)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new PaymentException("Concurrent transaction conflict"));
         }
@@ -270,8 +270,28 @@ public class PaymentService {
     @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public void handleMtnCollectionCallback(MtnCallbackRequest callback) {
-        log.info("Processing MTN collection callback: ref={}, status={}",
-            callback.getReferenceId(), callback.getStatus());
+        log.info("Processing MTN collection callback: externalId={}, status={}",
+            callback.getExternalId(), callback.getStatus());
+
+        Optional<PaymentTransaction> transactionOpt = transactionRepository.findByProviderReference(callback.getExternalId());
+        if (transactionOpt.isEmpty()) {
+            log.warn("Received MTN collection callback for unknown externalId: {}. Ignoring.", callback.getExternalId());
+            return;
+        }
+        PaymentTransaction transaction = transactionOpt.get();
+        String transactionId = transaction.getTransactionId();
+
+        log.info("Verifying transaction status with MTN for transactionId: {}", transactionId);
+        PaymentStatus status = mtnClient.getCollectionStatus(transactionId);
+        log.info("MTN API returned status: {} for transactionId: {}", status, transactionId);
+
+        if (status != PaymentStatus.SUCCESSFUL) {
+            log.warn("MTN collection callback for externalId {} received with status {}, but provider API reports status {}. Processing as failure.",
+                callback.getExternalId(), callback.getStatus(), status);
+            callback.setStatus("FAILED");
+        }
+
+        log.info("Transaction status verified. Proceeding with callback processing for externalId: {}", callback.getExternalId());
         callbackDelegate.processMtnCollectionCallback(callback);
     }
 
@@ -282,8 +302,28 @@ public class PaymentService {
     @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public void handleMtnDisbursementCallback(MtnCallbackRequest callback) {
-        log.info("Processing MTN disbursement callback: ref={}, status={}",
-            callback.getReferenceId(), callback.getStatus());
+        log.info("Processing MTN disbursement callback: externalId={}, status={}",
+            callback.getExternalId(), callback.getStatus());
+
+        Optional<PaymentTransaction> transactionOpt = transactionRepository.findByProviderReference(callback.getExternalId());
+        if (transactionOpt.isEmpty()) {
+            log.warn("Received MTN disbursement callback for unknown externalId: {}. Ignoring.", callback.getExternalId());
+            return;
+        }
+        PaymentTransaction transaction = transactionOpt.get();
+        String transactionId = transaction.getTransactionId();
+
+        log.info("Verifying transaction status with MTN for transactionId: {}", transactionId);
+        PaymentStatus status = mtnClient.getDisbursementStatus(transactionId);
+        log.info("MTN API returned status: {} for transactionId: {}", status, transactionId);
+
+        if (status != PaymentStatus.SUCCESSFUL) {
+            log.warn("MTN disbursement callback for externalId {} received with status {}, but provider API reports status {}. Processing as failure.",
+                callback.getExternalId(), callback.getStatus(), status);
+            callback.setStatus("FAILED");
+        }
+
+        log.info("Transaction status verified. Proceeding with callback processing for externalId: {}", callback.getExternalId());
         CallbackHandlerDelegate.CallbackResult result = callbackDelegate.processMtnDisbursementCallback(callback);
         if (result.reversalNeeded()) {
             reversalService.reverseWithdrawal(result.transaction());
@@ -582,13 +622,7 @@ public class PaymentService {
         };
     }
 
-    private void validateIdempotencyKey(String idempotencyKey) {
-        try {
-            UUID.fromString(idempotencyKey);
-        } catch (IllegalArgumentException e) {
-            throw new PaymentException("X-Idempotency-Key must be a valid UUID");
-        }
-    }
+
 
     private PaymentResponse mapToResponse(PaymentTransaction txn) {
         return PaymentResponse.builder()

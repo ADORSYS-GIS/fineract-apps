@@ -41,6 +41,8 @@ public record AssetResponse(
 
     // ── Bond summary fields (null for non-bond assets) ──
 
+    @Schema(description = "Bond type: COUPON (OTA) or DISCOUNT (BTA). Null for non-bond assets.", nullable = true)
+    BondType bondType,
     @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.")
     String isinCode,
     @Schema(description = "Bond maturity date. Null for non-bond assets.")

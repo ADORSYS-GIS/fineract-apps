@@ -22,6 +22,8 @@ public class MarketHoursService {
 
     private final AssetServiceConfig config;
 
+    private Clock clock = Clock.systemUTC();
+
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
 
     /**
@@ -39,9 +41,13 @@ public class MarketHoursService {
     /**
      * Check if the market is currently open.
      */
+    void setClock(Clock clock) {
+        this.clock = clock;
+    }
+
     public boolean isMarketOpen() {
         ZoneId zone = getTimezone();
-        ZonedDateTime now = ZonedDateTime.now(zone);
+        ZonedDateTime now = Instant.now(clock).atZone(zone);
 
         if (isWeekend(now) && !config.getMarketHours().isWeekendTradingEnabled()) {
             return false;
@@ -59,7 +65,7 @@ public class MarketHoursService {
      */
     public MarketStatusResponse getMarketStatus() {
         ZoneId zone = getTimezone();
-        ZonedDateTime now = ZonedDateTime.now(zone);
+        ZonedDateTime now = Instant.now(clock).atZone(zone);
         LocalTime openTime = LocalTime.parse(config.getMarketHours().getOpen());
         LocalTime closeTime = LocalTime.parse(config.getMarketHours().getClose());
 

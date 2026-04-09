@@ -89,6 +89,10 @@ public class Order {
     @Column(name = "tva_amount", precision = 20, scale = 0)
     private BigDecimal tvaAmount;
 
+    /** Accrued interest amount for coupon bond (OTA) trades. Added to buyer cost / seller proceeds. Null for non-bond trades. */
+    @Column(name = "accrued_interest_amount", precision = 20, scale = 0)
+    private BigDecimal accruedInterestAmount;
+
     /** Current order status. Defaults to PENDING. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 25)

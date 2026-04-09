@@ -47,6 +47,11 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
         String externalId, Instant start, Instant end);
 
     /**
+     * Find transaction by client-provided idempotency key (for dedup on retries).
+     */
+    Optional<PaymentTransaction> findByIdempotencyKey(String idempotencyKey);
+
+    /**
      * Check if transaction exists (for idempotency)
      */
     boolean existsByTransactionId(String transactionId);
@@ -83,10 +88,11 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     @Transactional
     @Modifying
     @Query(value = "INSERT INTO payment_transactions " +
-           "(transaction_id, external_id, account_id, provider, type, amount, currency, status, created_at, version) " +
-           "SELECT :txnId, :externalId, :accountId, :provider, :type, :amount, :currency, :status, NOW(), 0 " +
-           "WHERE NOT EXISTS (SELECT 1 FROM payment_transactions WHERE transaction_id = :txnId)", nativeQuery = true)
+           "(transaction_id, idempotency_key, external_id, account_id, provider, type, amount, currency, status, created_at, version) " +
+           "SELECT :txnId, :idempotencyKey, :externalId, :accountId, :provider, :type, :amount, :currency, :status, NOW(), 0 " +
+           "WHERE NOT EXISTS (SELECT 1 FROM payment_transactions WHERE idempotency_key = :idempotencyKey)", nativeQuery = true)
     int insertIfAbsent(@Param("txnId") String txnId,
+                       @Param("idempotencyKey") String idempotencyKey,
                        @Param("externalId") String externalId,
                        @Param("accountId") Long accountId,
                        @Param("provider") String provider,

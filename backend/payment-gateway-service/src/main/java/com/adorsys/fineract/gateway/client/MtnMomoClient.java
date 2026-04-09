@@ -77,6 +77,9 @@ public class MtnMomoClient {
             "payeeNote", "Deposit to savings account"
         );
 
+        String callbackUrl = config.getCallbackUrl() + "/mtn/collection";
+        log.info("Sending X-Callback-Url: {}", callbackUrl);
+
         try {
             webClient.post()
                 .uri("/collection/v1_0/requesttopay")
@@ -192,6 +195,8 @@ public class MtnMomoClient {
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                 .block();
 
+            log.debug("REAL MTN API response for transaction status: {}", response);
+
             String status = (String) response.get("status");
             return mapMtnStatus(status);
 
@@ -208,6 +213,8 @@ public class MtnMomoClient {
             String subscriptionKey = "collection".equals(product)
                 ? config.getCollectionSubscriptionKey()
                 : config.getDisbursementSubscriptionKey();
+
+            log.info("Attempting to get MTN access token with userId: {} and subscriptionKey: {}", config.getApiUserId(), subscriptionKey);
 
             String credentials = Base64.getEncoder().encodeToString(
                 (config.getApiUserId() + ":" + config.getApiKey()).getBytes(java.nio.charset.StandardCharsets.UTF_8)

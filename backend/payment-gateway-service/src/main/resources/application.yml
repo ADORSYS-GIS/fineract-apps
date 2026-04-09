@@ -64,7 +64,7 @@ mtn:
     api-key: ${MTN_API_KEY:}
     target-environment: ${MTN_TARGET_ENV:sandbox}
     callback-url: ${MTN_CALLBACK_URL:http://localhost:8082/api/callbacks}
-    currency: EUR
+    currency: ${MTN_CURRENCY:XAF}
     timeout-seconds: 60
     fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:1}
     gl-account-code: ${MTN_GL_ACCOUNT_CODE:}
@@ -80,7 +80,7 @@ orange:
     callback-url: ${ORANGE_CALLBACK_URL:http://localhost:8082/api/callbacks}
     return-url: ${ORANGE_RETURN_URL:http://localhost:3000/self-service/transactions}
     cancel-url: ${ORANGE_CANCEL_URL:http://localhost:3000/self-service/transactions}
-    currency: XAF
+    currency: ${ORANGE_CURRENCY:XAF}
     timeout-seconds: 30
     fineract-payment-type-id: ${ORANGE_FINERACT_PAYMENT_TYPE_ID:2}
     gl-account-code: ${ORANGE_GL_ACCOUNT_CODE:}
@@ -95,7 +95,7 @@ cinetpay:
   api-password: ${CINETPAY_API_PASSWORD:}
   transfer-password: ${CINETPAY_TRANSFER_PASSWORD:} 
   secret-key: ${CINETPAY_SECRET_KEY:}
-  currency: XAF
+  currency: ${CINETPAY_CURRENCY:XAF}
   timeout-seconds: 30
 
 # Base URLs for dynamic callback/return URL construction
@@ -125,7 +125,7 @@ fineract:
 
 app:
   ssl:
-    insecure: ${SSL_INSECURE:false}
+    insecure: ${SSL_INSECURE:true}
   cleanup:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
