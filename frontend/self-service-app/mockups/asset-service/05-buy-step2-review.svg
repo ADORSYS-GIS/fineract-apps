@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 924" width="390" height="924">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 960" width="390" height="960">
   <defs>
     <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
     <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#00000018"/></filter>
   </defs>
 
   <!-- Background -->
-  <rect width="390" height="924" fill="#f3f4f6"/>
+  <rect width="390" height="960" fill="#f3f4f6"/>
 
   <!-- Status Bar -->
   <rect width="390" height="44" fill="#1a56db"/>
@@ -31,8 +31,8 @@
   <rect x="16" y="218" width="358" height="36" rx="12" fill="#eff6ff"/>
   <text x="195" y="241" fill="#1e40af" font-size="12" text-anchor="middle">📋 Please review your order carefully before confirming</text>
 
-  <!-- Order Summary Card — LP spread removed, card height shrunk by 34px -->
-  <rect x="16" y="262" width="358" height="372" rx="14" fill="white" filter="url(#shadow)"/>
+  <!-- Order Summary Card — fee + TVA + registration duty -->
+  <rect x="16" y="262" width="358" height="408" rx="14" fill="white" filter="url(#shadow)"/>
   <text x="32" y="290" fill="#111827" font-size="15" font-weight="700">Order Summary</text>
 
   <!-- Asset row -->
@@ -69,42 +69,47 @@
   <text x="32" y="556" fill="#6b7280" font-size="13">TVA (19.25% on fee)</text>
   <text x="358" y="556" fill="#ef4444" font-size="13" text-anchor="end">+30 XAF</text>
 
+  <line x1="32" y1="572" x2="358" y2="572" stroke="#f3f4f6" stroke-width="1"/>
+  <!-- Registration duty — asset-configurable tax, shown here as example (2% of gross) -->
+  <text x="32" y="592" fill="#6b7280" font-size="13">Registration duty (2%)</text>
+  <text x="358" y="592" fill="#ef4444" font-size="13" text-anchor="end">+1,040 XAF</text>
+
   <!-- Total divider -->
-  <line x1="16" y1="572" x2="374" y2="572" stroke="#e5e7eb" stroke-width="2"/>
-  <text x="32" y="594" fill="#111827" font-size="15" font-weight="700">Total</text>
-  <text x="358" y="594" fill="#1a56db" font-size="20" font-weight="700" text-anchor="end">52,186 XAF</text>
+  <line x1="16" y1="608" x2="374" y2="608" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="32" y="630" fill="#111827" font-size="15" font-weight="700">Total</text>
+  <text x="358" y="630" fill="#1a56db" font-size="20" font-weight="700" text-anchor="end">53,226 XAF</text>
 
   <!-- Remainder (computedFromAmount leftover) -->
-  <text x="195" y="614" fill="#9ca3af" font-size="11" text-anchor="middle">↩  208 XAF remainder returned to your wallet</text>
+  <text x="195" y="650" fill="#9ca3af" font-size="11" text-anchor="middle">↩  168 XAF remainder returned to your wallet</text>
 
   <!-- Feasibility row (feasible=true) -->
-  <line x1="32" y1="624" x2="358" y2="624" stroke="#f3f4f6" stroke-width="1"/>
-  <text x="32" y="642" fill="#6b7280" font-size="13">Available balance</text>
-  <text x="358" y="642" fill="#15803d" font-size="13" font-weight="600" text-anchor="end">✓ 850,000 XAF</text>
+  <line x1="32" y1="660" x2="358" y2="660" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="32" y="678" fill="#6b7280" font-size="13">Available balance</text>
+  <text x="358" y="678" fill="#15803d" font-size="13" font-weight="600" text-anchor="end">✓ 850,000 XAF</text>
 
   <!-- Balance after -->
-  <rect x="16" y="648" width="358" height="44" rx="10" fill="#f0fdf4"/>
-  <text x="32" y="666" fill="#6b7280" font-size="12">After purchase</text>
-  <text x="358" y="666" fill="#15803d" font-size="14" font-weight="700" text-anchor="end">797,814 XAF</text>
-  <text x="32" y="684" fill="#9ca3af" font-size="11">850,000 → 797,814 XAF</text>
+  <rect x="16" y="684" width="358" height="44" rx="10" fill="#f0fdf4"/>
+  <text x="32" y="702" fill="#6b7280" font-size="12">After purchase</text>
+  <text x="358" y="702" fill="#15803d" font-size="14" font-weight="700" text-anchor="end">796,774 XAF</text>
+  <text x="32" y="720" fill="#9ca3af" font-size="11">850,000 → 796,774 XAF</text>
 
   <!-- Important note -->
-  <rect x="16" y="702" width="358" height="52" rx="12" fill="#fffbeb"/>
-  <text x="32" y="722" fill="#92400e" font-size="13" font-weight="600">⚠️ Important</text>
-  <text x="32" y="738" fill="#92400e" font-size="12">• Lock-up period: 90 days after purchase</text>
-  <text x="32" y="754" fill="#92400e" font-size="12">• Price locked 30 s — confirm before it expires</text>
+  <rect x="16" y="738" width="358" height="52" rx="12" fill="#fffbeb"/>
+  <text x="32" y="758" fill="#92400e" font-size="13" font-weight="600">⚠️ Important</text>
+  <text x="32" y="774" fill="#92400e" font-size="12">• Lock-up period: 90 days after purchase</text>
+  <text x="32" y="790" fill="#92400e" font-size="12">• Price locked 30 s — confirm before it expires</text>
 
   <!-- Confirm Button -->
-  <rect x="16" y="764" width="358" height="52" rx="14" fill="#1a56db" filter="url(#shadow)"/>
-  <text x="195" y="795" fill="white" font-size="16" font-weight="700" text-anchor="middle">✓  Confirm &amp; Buy</text>
+  <rect x="16" y="800" width="358" height="52" rx="14" fill="#1a56db" filter="url(#shadow)"/>
+  <text x="195" y="831" fill="white" font-size="16" font-weight="700" text-anchor="middle">✓  Confirm &amp; Buy</text>
 
   <!-- Go Back -->
-  <text x="195" y="834" fill="#1a56db" font-size="14" text-anchor="middle">← Go Back</text>
+  <text x="195" y="870" fill="#1a56db" font-size="14" text-anchor="middle">← Go Back</text>
 
   <!-- Bottom Nav -->
-  <rect x="0" y="876" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="48" y="906" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
-  <text x="146" y="906" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">📊 Market</text>
-  <text x="244" y="906" fill="#9ca3af" font-size="10" text-anchor="middle">💼 Portfolio</text>
-  <text x="342" y="906" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
+  <rect x="0" y="912" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="48" y="942" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
+  <text x="146" y="942" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">📊 Market</text>
+  <text x="244" y="942" fill="#9ca3af" font-size="10" text-anchor="middle">💼 Portfolio</text>
+  <text x="342" y="942" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
 </svg>
