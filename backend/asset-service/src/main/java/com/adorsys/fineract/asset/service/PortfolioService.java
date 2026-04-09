@@ -11,11 +11,14 @@ import com.adorsys.fineract.asset.entity.CategorySnapshot;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.CategorySnapshotRepository;
+import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
 import com.adorsys.fineract.asset.repository.PurchaseLotRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +46,7 @@ public class PortfolioService {
     private final IncomeBenefitService incomeBenefitService;
     private final PortfolioSnapshotRepository portfolioSnapshotRepository;
     private final CategorySnapshotRepository categorySnapshotRepository;
+    private final OrderRepository orderRepository;
 
     /**
      * Get full portfolio summary for a user including positions and holdings.
@@ -97,7 +101,8 @@ public class PortfolioService {
                     pos.getTotalUnits(), pos.getAvgPurchasePrice(), marketPrice,
                     marketValue, pos.getTotalCostBasis(),
                     unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
-                    bondBenefit, incomeBenefit
+                    bondBenefit, incomeBenefit,
+                    List.of()
             ));
         }
 
@@ -169,11 +174,27 @@ public class PortfolioService {
         UserPosition pos = userPositionRepository.findByUserIdAndAssetId(userId, assetId)
                 .orElse(null);
 
+        List<OrderResponse> orderHistory = orderRepository
+                .findByUserIdAndAssetId(userId, assetId,
+                        PageRequest.of(0, 200, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .getContent()
+                .stream()
+                .map(o -> new OrderResponse(
+                        o.getId(), o.getAssetId(),
+                        o.getAsset() != null ? o.getAsset().getSymbol() : null,
+                        o.getSide(), o.getUnits(), o.getExecutionPrice(),
+                        o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
+                        o.getRegistrationDutyAmount(), o.getCapitalGainsTaxAmount(),
+                        o.getTvaAmount(), o.getAccruedInterestAmount()
+                ))
+                .toList();
+
         if (pos == null) {
             return new PositionResponse(assetId, null, null,
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                     BigDecimal.ZERO, BigDecimal.ZERO,
-                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null, null);
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null, null,
+                    orderHistory);
         }
 
         Asset asset = assetRepository.findById(assetId).orElse(null);
@@ -202,7 +223,8 @@ public class PortfolioService {
                 pos.getTotalUnits(), pos.getAvgPurchasePrice(), marketPrice,
                 marketValue, pos.getTotalCostBasis(),
                 unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
-                bondBenefit, incomeBenefit
+                bondBenefit, incomeBenefit,
+                orderHistory
         );
     }
 

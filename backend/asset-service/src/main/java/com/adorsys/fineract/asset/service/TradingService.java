@@ -524,7 +524,9 @@ public class TradingService {
                 order.getId(), order.getAssetId(), null,
                 order.getSide(), order.getUnits(), order.getExecutionPrice(),
                 order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
-                order.getStatus(), order.getCreatedAt());
+                order.getStatus(), order.getCreatedAt(),
+                order.getRegistrationDutyAmount(), order.getCapitalGainsTaxAmount(),
+                order.getTvaAmount(), order.getAccruedInterestAmount());
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -1163,7 +1165,9 @@ public class TradingService {
                     o.getId(), o.getAssetId(),
                     orderAsset != null ? orderAsset.getSymbol() : null,
                     o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                    o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt()
+                    o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
+                    o.getRegistrationDutyAmount(), o.getCapitalGainsTaxAmount(),
+                    o.getTvaAmount(), o.getAccruedInterestAmount()
             );
         });
     }
@@ -1183,7 +1187,9 @@ public class TradingService {
                 o.getId(), o.getAssetId(),
                 orderAsset != null ? orderAsset.getSymbol() : null,
                 o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt()
+                o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
+                o.getRegistrationDutyAmount(), o.getCapitalGainsTaxAmount(),
+                o.getTvaAmount(), o.getAccruedInterestAmount()
         );
     }
 
@@ -1229,7 +1235,9 @@ public class TradingService {
                 orderAsset != null ? orderAsset.getSymbol() : null,
                 order.getSide(), order.getUnits(), order.getExecutionPrice(),
                 order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
-                order.getStatus(), order.getCreatedAt()
+                order.getStatus(), order.getCreatedAt(),
+                order.getRegistrationDutyAmount(), order.getCapitalGainsTaxAmount(),
+                order.getTvaAmount(), order.getAccruedInterestAmount()
         );
     }
 

@@ -11,11 +11,20 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * Audit record for a bond principal redemption paid to a holder at maturity.
+ * Audit record for the principal redemption paid to a single bond holder at maturity.
+ * One row is created per user per asset by the MaturityRedemptionService when an admin
+ * triggers the maturity redemption batch for a bond whose {@link Asset#maturityDate}
+ * has been reached.
  * <p>
- * Each row represents a pair of Fineract transfers: asset units returned to treasury,
- * and cash (face value) paid to the holder. The cash amount is calculated as:
- * {@code cashAmount = units * faceValue} (no fee or spread).
+ * Each row represents a pair of atomic Fineract transfers:
+ * <ol>
+ *   <li>Asset unit transfer — the holder's bond units are returned to the LP's asset account
+ *       ({@link Asset#lpAssetAccountId}), reducing their {@link UserPosition}.</li>
+ *   <li>Cash transfer — {@code units * faceValue} XAF is debited from the LP's cash account
+ *       ({@link Asset#lpCashAccountId}) and credited to the holder's settlement account.</li>
+ * </ol>
+ * No fee, spread, or tax is deducted from a principal redemption.
+ * Cash amount formula: {@code cashAmount = units * faceValue}
  */
 @Data
 @Entity
@@ -29,6 +38,7 @@ import java.time.LocalDate;
        })
 public class PrincipalRedemption {
 
+    /** Auto-generated sequential primary key. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

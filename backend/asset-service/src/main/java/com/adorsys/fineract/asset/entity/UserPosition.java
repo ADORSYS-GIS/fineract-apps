@@ -10,8 +10,23 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Tracks a user's holding in a specific asset. One row per (userId, assetId) pair.
- * Updated on each BUY (increases units/cost) and SELL (decreases units, accumulates realizedPnl).
+ * Tracks a user's current holding in a single asset. One row per (userId, assetId) pair,
+ * created on the user's first BUY and kept permanently even after they sell all units.
+ * <p>
+ * Mutated atomically with each trade execution:
+ * <ul>
+ *   <li><b>BUY:</b> {@code totalUnits} and {@code totalCostBasis} increase; {@code avgPurchasePrice}
+ *       is recalculated as {@code (oldCostBasis + newCost) / (oldUnits + newUnits)}.</li>
+ *   <li><b>SELL:</b> {@code totalUnits} and {@code totalCostBasis} decrease; {@code realizedPnl}
+ *       increases by {@code (sellPrice - avgPurchasePrice) * unitsSold}.</li>
+ * </ul>
+ * <p>
+ * The position is the source of truth for the user's current holdings in the asset service.
+ * It mirrors the balance in the user's Fineract savings account ({@code fineractSavingsAccountId});
+ * the reconciliation job validates these stay in sync.
+ * <p>
+ * Optimistic locking ({@code @Version}) prevents double-fill races where two orders for the same
+ * user+asset complete concurrently and would corrupt the running averages.
  */
 @Data
 @Entity

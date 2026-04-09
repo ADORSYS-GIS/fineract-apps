@@ -7,213 +7,424 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * Full asset detail including OHLC data, supply stats, fee configuration, Fineract links,
- * and bond-specific fields (when category is BONDS).
- * Returned by the admin and customer asset detail endpoints.
+ * Full asset detail including OHLC data, supply stats, fee configuration, Fineract account links,
+ * and bond-specific fields (when category is BONDS). Returned by both the admin asset detail
+ * endpoint ({@code GET /admin/assets/{id}}) and the authenticated customer detail endpoint
+ * ({@code GET /assets/{id}}). This is the most complete representation of an asset — the
+ * public variant ({@link AssetPublicDetailResponse}) strips internal Fineract infrastructure
+ * IDs before returning to the client.
+ *
+ * <p>All bond-specific fields ({@code bondType}, {@code interestRate}, {@code maturityDate}, etc.)
+ * are null for non-bond assets. All monetary amounts are in XAF (Central African Franc) unless
+ * a specific currency code is noted.</p>
  */
 public record AssetDetailResponse(
-    /** Internal asset identifier. */
+    /** Internal asset identifier (UUID). */
     String id,
-    /** Human-readable asset name. */
+    /** Human-readable asset name (e.g. "Bon du Trésor Assimilable 2024"). */
     String name,
-    /** Ticker symbol, e.g. "BRVM". */
+    /** Ticker symbol used in trading (e.g. "BTA2024"). */
     String symbol,
-    /** ISO-style currency code for this asset in Fineract, e.g. "BRV". */
+    /**
+     * ISO-style currency code used to identify this asset's savings product in Fineract
+     * (e.g. "BRV"). Not an ISO 4217 currency code — it is a Fineract product shortcode.
+     */
     String currencyCode,
-    /** Long-form description of the asset. */
+    /** Long-form marketing description of the asset. Null if not provided at creation. */
     @Schema(nullable = true)
     String description,
-    /** URL to the asset's logo or image. */
+    /** URL to the asset's logo or promotional image. Null if not provided. */
     @Schema(nullable = true)
     String imageUrl,
-    /** Classification: REAL_ESTATE, COMMODITIES, AGRICULTURE, STOCKS, CRYPTO, or BONDS. */
+    /** Classification bucket for this asset (e.g. BONDS, REAL_ESTATE). */
     AssetCategory category,
-    /** Lifecycle status: PENDING, ACTIVE, HALTED, DELISTED, or MATURED. */
+    /** Current lifecycle status controlling what operations are permitted. */
     AssetStatus status,
-    /** How the price is determined: AUTO or MANUAL. */
+    /**
+     * How the current ask price is determined. AUTO means the price is derived from
+     * external market feeds; MANUAL means an admin sets it explicitly via {@code SetPriceRequest}.
+     */
     PriceMode priceMode,
-    /** 24-hour price change as a percentage (e.g. 2.5 = +2.5%). */
+    /**
+     * Percentage price change over the past 24 hours relative to the opening price.
+     * Positive values indicate appreciation; negative values indicate depreciation.
+     * Expressed as a percentage (e.g. 2.5 means +2.5%).
+     */
     BigDecimal change24hPercent,
-    /** Opening price for the current trading day, in settlement currency. */
+    /** Opening ask price for the current calendar trading day, in XAF. */
     BigDecimal dayOpen,
-    /** Highest price reached during the current trading day, in settlement currency. */
+    /** Highest ask price reached during the current calendar trading day, in XAF. */
     BigDecimal dayHigh,
-    /** Lowest price reached during the current trading day, in settlement currency. */
+    /** Lowest ask price reached during the current calendar trading day, in XAF. */
     BigDecimal dayLow,
-    /** Closing price for the current trading day, in settlement currency. */
+    /** Closing ask price for the current calendar trading day, in XAF. */
     BigDecimal dayClose,
-    /** Maximum total units that can ever exist. */
+    /** Maximum number of units that can ever exist for this asset. Set at creation and immutable. */
     BigDecimal totalSupply,
-    /** Units currently in circulation (held by users). */
+    /** Units currently held by users (in their Fineract savings accounts). */
     BigDecimal circulatingSupply,
-    /** Units available for purchase: totalSupply - circulatingSupply. */
+    /**
+     * Units the LP still has available to sell: {@code totalSupply - circulatingSupply}.
+     * When this reaches zero, no further BUY orders can be filled.
+     */
     BigDecimal availableSupply,
-    /** Trading fee as a percentage (e.g. 0.005 = 0.5%). */
+    /**
+     * Platform trading fee as a decimal percentage charged on every filled order.
+     * Applied to the gross trade amount (e.g. 0.005 = 0.5%). Stored per-asset so that
+     * different asset classes can carry different fee tiers.
+     */
     BigDecimal tradingFeePercent,
-    /** Number of decimal places for fractional units (0-8). */
+    /**
+     * Number of decimal places allowed for fractional unit quantities (0–8).
+     * Controls order validation and display rounding in the frontend.
+     */
     Integer decimalPlaces,
+
     // ── Issuer info ──
 
-    /** Issuer name (e.g. "Etat du Sénégal"). Required for bonds, optional for others. */
+    /**
+     * Name of the entity that issued or backs this asset (e.g. "Etat du Sénégal").
+     * Required for bond assets; optional for other categories.
+     */
     @Schema(description = "Asset issuer name. Required for bonds, optional for others.", nullable = true)
     String issuerName,
-    /** LP's acquisition cost per unit. */
+    /**
+     * The LP's cost basis per unit — the price at which the liquidity partner acquired the asset
+     * from the issuer. For bonds, this is the subscription price (often below face value for
+     * DISCOUNT/BTA bonds). All markup calculations use this as the base. In XAF.
+     */
     @Schema(description = "LP acquisition cost per unit.", nullable = true)
     BigDecimal issuerPrice,
-    /** Par/redemption value per unit. For DISCOUNT bonds, higher than issuerPrice. Null defaults to issuerPrice. */
+    /**
+     * The par or redemption value per unit. For DISCOUNT (BTA) bonds this is higher than
+     * {@code issuerPrice} — the difference is the investor's gain at maturity. For COUPON (OTA)
+     * bonds, coupon amounts are calculated on this value. Null defaults to {@code issuerPrice}.
+     * In XAF.
+     */
     @Schema(description = "Face/par value per unit for redemption and coupon calculations.", nullable = true)
     BigDecimal faceValue,
 
     // ── Liquidity Partner info ──
 
-    /** Fineract client ID of the liquidity partner holding this asset's inventory. */
+    /**
+     * Fineract client ID of the liquidity partner entity that holds this asset's inventory
+     * and acts as the counterparty for all trades.
+     */
     Long lpClientId,
-    /** Fineract savings account ID for the LP's asset units (inventory). */
+    /**
+     * Fineract savings account ID where the LP holds the asset units (token inventory).
+     * Units are debited from here on BUY orders and credited here on SELL orders.
+     */
     Long lpAssetAccountId,
-    /** Fineract savings account ID for the LP's cash. */
+    /**
+     * Fineract savings account ID for the LP's XAF cash. Credited on BUY orders
+     * (user pays cash) and debited on SELL orders (user receives cash).
+     */
     Long lpCashAccountId,
-    /** Fineract savings account ID for the LP's spread collection. */
+    /**
+     * Fineract savings account ID where the LP accumulates bid-ask spread earnings.
+     * Null if spread collection is not configured for this asset.
+     */
     @Schema(description = "LP spread collection account ID.", nullable = true)
     Long lpSpreadAccountId,
-    /** Fineract savings account ID for the LP's tax withholding. */
+    /**
+     * Fineract savings account ID used to hold withheld taxes (IRCM, registration duty)
+     * before remittance. Null if tax withholding is not configured for this asset.
+     */
     @Schema(description = "LP tax withholding account ID.", nullable = true)
     Long lpTaxAccountId,
-    /** Corresponding Fineract savings product ID. */
+    /** Fineract savings product ID that backs the user-facing token accounts for this asset. */
     Integer fineractProductId,
-    /** Display name of the liquidity partner in Fineract. */
+    /**
+     * Display name of the liquidity partner in Fineract (e.g. "LP Cameroun SA").
+     * Populated via a Fineract client lookup at query time; null if the lookup fails.
+     */
     @Schema(description = "Liquidity partner display name from Fineract.", nullable = true)
     String lpClientName,
-    /** Derived name of the Fineract savings product (asset name + " Token"). */
+    /**
+     * Name of the Fineract savings product associated with this asset, typically
+     * derived as {@code "<asset name> Token"}. Null if the product lookup fails.
+     */
     @Schema(description = "Fineract savings product name.", nullable = true)
     String fineractProductName,
-    /** LP margin per unit: askPrice - issuerPrice. */
+    /**
+     * LP margin per unit in XAF: the difference between the current ask price and
+     * {@code issuerPrice}. Represents gross revenue to the LP on each unit sold.
+     * Null if the ask price has not been set.
+     */
     @Schema(description = "LP margin per unit in settlement currency.", nullable = true)
     BigDecimal lpMarginPerUnit,
-    /** LP margin as percentage: (askPrice - issuerPrice) / issuerPrice * 100. */
+    /**
+     * LP margin expressed as a percentage of {@code issuerPrice}:
+     * {@code (askPrice - issuerPrice) / issuerPrice * 100}.
+     * Null if {@code issuerPrice} is zero or the ask price has not been set.
+     */
     @Schema(description = "LP margin as percentage of issuer price.", nullable = true)
     BigDecimal lpMarginPercent,
 
-    /** Timestamp when the asset was created. */
+    /** Timestamp when the asset record was created in the system, in UTC. */
     Instant createdAt,
-    /** Timestamp of the last update. Null if never updated. */
+    /** Timestamp of the last update to any field on this asset. Null if never modified after creation. */
     @Schema(nullable = true)
     Instant updatedAt,
 
     // ── Bond / fixed-income fields (null for non-bond assets) ──
 
-    /** Bond type: COUPON (OTA) or DISCOUNT (BTA). Null for non-bond assets. */
+    /**
+     * Distinguishes between coupon-paying bonds (OTA / T-Bonds) and zero-coupon discount
+     * bonds (BTA / T-Bills). Controls which yield formula is used. Null for non-bond assets.
+     */
     @Schema(description = "Bond type: COUPON (OTA/T-Bonds) or DISCOUNT (BTA/T-Bills).", nullable = true)
     BondType bondType,
-    /** Day count convention for interest calculations. Null for non-bond assets. */
+    /**
+     * Convention used to count days for accrued interest calculations.
+     * ACT_360 is standard for BTA instruments in CEMAC; ACT_365 for OTA instruments.
+     * Null for non-bond assets.
+     */
     @Schema(description = "Day count convention: ACT_360, ACT_365, or THIRTY_360.", nullable = true)
     DayCountConvention dayCountConvention,
-    /** Issuer country (CEMAC member state). Null for non-bond assets. */
+    /**
+     * CEMAC member state that issued this bond (e.g. "Cameroun", "Sénégal"). Used for
+     * display and filtering purposes. Null for non-bond assets.
+     */
     @Schema(description = "Issuer country name.", nullable = true)
     String issuerCountry,
-    /** ISIN code (ISO 6166). Null for non-bond assets. */
+    /**
+     * International Securities Identification Number (ISO 6166) for this bond, if assigned.
+     * Null for non-bond assets or bonds not yet assigned an ISIN.
+     */
     @Schema(description = "ISIN code (ISO 6166). Null for non-bond assets.", nullable = true)
     String isinCode,
-    /** Bond maturity date. Null for non-bond assets. */
+    /**
+     * Date on which the bond principal is due for repayment. After this date the asset
+     * transitions to MATURED status and trading is blocked. Null for non-bond assets.
+     */
     @Schema(description = "Bond maturity date. Null for non-bond assets.", nullable = true)
     LocalDate maturityDate,
-    /** Annual coupon rate as a percentage. Null for non-bond assets. */
+    /**
+     * Annual nominal coupon rate as a percentage (e.g. 5.80 means 5.80% per year).
+     * Used with {@code faceValue} and {@code couponFrequencyMonths} to compute each
+     * periodic payment. Null for DISCOUNT bonds and non-bond assets.
+     */
     @Schema(description = "Annual coupon interest rate as percentage (e.g. 5.80).", nullable = true)
     BigDecimal interestRate,
+    /**
+     * Effective annual yield based on the current ask price rather than face value.
+     * For COUPON bonds: {@code (couponAmountPerUnit × periodsPerYear) / askPrice × 100}.
+     * For DISCOUNT bonds: derived from the discount-to-face-value spread over residual days.
+     * Null for non-bond assets. Recomputed at query time.
+     */
     @Schema(description = "Current yield: effective annual return based on ask price. Bonds only.", nullable = true)
     BigDecimal currentYield,
-    /** Coupon payment frequency in months. Null for non-bond assets. */
+    /**
+     * How often coupon payments are made, in months. Common values: 1 (monthly), 3 (quarterly),
+     * 6 (semi-annual), 12 (annual). Null for DISCOUNT bonds and non-bond assets.
+     */
     @Schema(description = "Coupon frequency in months: 1, 3, 6, or 12.", nullable = true)
     Integer couponFrequencyMonths,
-    /** Next scheduled coupon payment date. Null for non-bond assets. */
+    /**
+     * The next date on which a coupon payment will be distributed to unit holders.
+     * Advances by {@code couponFrequencyMonths} after each successful payout.
+     * Null for DISCOUNT bonds and non-bond assets.
+     */
     @Schema(description = "Next scheduled coupon payment date.", nullable = true)
     LocalDate nextCouponDate,
-    /** Days remaining until maturity. Null for non-bond assets. Computed, not stored. */
+    /**
+     * Calendar days remaining between today and {@code maturityDate}, clamped to zero
+     * once the bond has matured. Computed at query time — not persisted. Null for non-bond assets.
+     */
     @Schema(description = "Days remaining until maturity date. Computed at query time.", nullable = true)
     Long residualDays,
-    /** Coupon amount per unit per period. Computed: issuerPrice * (rate/100) * (months/12). Null for non-bonds. */
+    /**
+     * Coupon income paid per unit per payment period, in XAF. Computed as:
+     * {@code faceValue × (interestRate / 100) × (couponFrequencyMonths / 12)}.
+     * Null for DISCOUNT bonds and non-bond assets.
+     */
     @Schema(description = "Coupon amount per unit per period, based on issuer price.", nullable = true)
     BigDecimal couponAmountPerUnit,
 
     // ── Bid/Ask prices ──
 
-    /** LP bid price: what sellers receive. */
+    /**
+     * The price at which the LP will buy units back from sellers (bid side), in XAF.
+     * Sellers receive this amount per unit less any applicable fees.
+     * Null if prices have not been set for this asset.
+     */
     @Schema(description = "LP bid price: what sellers receive.", nullable = true)
     BigDecimal bidPrice,
-    /** LP ask price: what buyers pay. */
+    /**
+     * The price at which the LP sells units to buyers (ask side), in XAF.
+     * Buyers pay this amount per unit plus any applicable fees.
+     * Null if prices have not been set for this asset.
+     */
     @Schema(description = "LP ask price: what buyers pay.", nullable = true)
     BigDecimal askPrice,
 
     // ── Exposure limits ──
 
-    /** Max % of totalSupply a single user can hold. Null = unlimited. */
+    /**
+     * Maximum position a single user can hold, expressed as a percentage of {@code totalSupply}.
+     * BUY orders that would cause a holder to exceed this threshold are rejected.
+     * Null means no per-user position cap is enforced.
+     */
     @Schema(description = "Max position as percentage of total supply.", nullable = true)
     BigDecimal maxPositionPercent,
-    /** Max units per single order. Null = unlimited. */
+    /**
+     * Maximum number of units allowed in a single order. Orders exceeding this are rejected
+     * at validation time. Null means no per-order unit cap is enforced.
+     */
     @Schema(description = "Max units per single order.", nullable = true)
     BigDecimal maxOrderSize,
-    /** Max XAF trading volume per user per day. Null = unlimited. */
+    /**
+     * Maximum gross XAF trading volume a single user may transact in a rolling 24-hour window.
+     * Orders that would push the user over this limit are rejected. Null means no daily cap.
+     */
     @Schema(description = "Max XAF volume per user per day.", nullable = true)
     BigDecimal dailyTradeLimitXaf,
 
     // ── Min order size ──
 
-    /** Min units per single order. Null = no minimum. */
+    /**
+     * Minimum number of units required for a single order. Orders below this threshold
+     * are rejected at validation. Null means no minimum unit quantity is enforced.
+     */
     @Schema(description = "Minimum units per single order.", nullable = true)
     BigDecimal minOrderSize,
-    /** Min XAF amount per single order. Null = no minimum. */
+    /**
+     * Minimum gross XAF amount required for a single order. Orders with a computed
+     * {@code units × price} below this threshold are rejected. Null means no minimum cash amount.
+     */
     @Schema(description = "Minimum XAF amount per single order.", nullable = true)
     BigDecimal minOrderCashAmount,
 
     // ── Lock-up ──
 
-    /** Lock-up period in days from first purchase. Null = no lock-up. */
+    /**
+     * Number of days from a user's first purchase during which SELL orders are blocked.
+     * Designed to discourage short-term speculation on illiquid assets. Null means
+     * holdings can be sold immediately after purchase.
+     */
     @Schema(description = "Lock-up period in days. Null means no lock-up.", nullable = true)
     Integer lockupDays,
 
     // ── Income distribution (non-bond) ──
 
-    /** Income type: DIVIDEND, RENT, HARVEST_YIELD, PROFIT_SHARE. Null for non-income assets. */
+    /**
+     * Type of periodic income distributed to unit holders for non-bond assets.
+     * Possible values: DIVIDEND (equities), RENT (real estate), HARVEST_YIELD (agriculture),
+     * PROFIT_SHARE (funds). Null for bond assets and assets with no income configuration.
+     */
     @Schema(description = "Income type: DIVIDEND, RENT, HARVEST_YIELD, PROFIT_SHARE.", nullable = true)
     String incomeType,
-    /** Annual income rate as a percentage. Null for non-income assets. */
+    /**
+     * Annual income rate as a percentage of the current market price per unit
+     * (e.g. 8.0 means 8% per year). Unlike bond coupon rates, this applies to
+     * the market price, not a fixed face value, so payouts vary over time.
+     * Null for bond assets and assets with no income configuration.
+     */
     @Schema(description = "Annual income rate as percentage.", nullable = true)
     BigDecimal incomeRate,
-    /** Distribution frequency in months: 1, 3, 6, or 12. Null for non-income assets. */
+    /**
+     * How often income is distributed, in months. Common values: 1 (monthly),
+     * 3 (quarterly), 6 (semi-annual), 12 (annual). Null for bond assets.
+     */
     @Schema(description = "Distribution frequency in months.", nullable = true)
     Integer distributionFrequencyMonths,
-    /** Next scheduled income distribution date. Null for non-income assets. */
+    /**
+     * The next date on which income will be distributed to holders. Advances by
+     * {@code distributionFrequencyMonths} after each successful run.
+     * Null for bond assets and assets with no income configuration.
+     */
     @Schema(description = "Next scheduled income distribution date.", nullable = true)
     LocalDate nextDistributionDate,
 
     // ── Delisting ──
 
+    /**
+     * The date on which the forced buyback will execute for a DELISTING asset.
+     * After this date all remaining holders are automatically paid {@code delistingRedemptionPrice}
+     * per unit and the asset transitions to DELISTED. Null for assets not in the delisting process.
+     */
     @Schema(description = "Date on which delisting / forced buyback occurs.", nullable = true)
     LocalDate delistingDate,
+    /**
+     * Per-unit price used for the forced buyback when the delisting date is reached, in XAF.
+     * Typically set to the last traded price or a negotiated redemption price.
+     * Null for assets not in the delisting process.
+     */
     @Schema(description = "Price at which forced buyback is executed.", nullable = true)
     BigDecimal delistingRedemptionPrice,
 
     // ── Tax configuration (Cameroon/CEMAC) ──
 
+    /**
+     * Whether registration duty (droit d'enregistrement) is charged on trades of this asset.
+     * When true, the {@code registrationDutyRate} is applied to the gross trade amount
+     * and collected from the buyer at settlement.
+     */
     @Schema(description = "Registration duty enabled for trades of this asset.")
     Boolean registrationDutyEnabled,
+    /**
+     * Registration duty rate as a decimal (e.g. 0.02 = 2%). Applied to the gross trade
+     * amount when {@code registrationDutyEnabled} is true. Null when duty is disabled.
+     */
     @Schema(description = "Registration duty rate (e.g. 0.02 = 2%).", nullable = true)
     BigDecimal registrationDutyRate,
+    /**
+     * Whether IRCM (Impôt sur le Revenu des Capitaux Mobiliers) withholding applies
+     * to income distributions (coupons, dividends, rent, etc.) for this asset.
+     */
     @Schema(description = "IRCM withholding enabled for income distributions.")
     Boolean ircmEnabled,
+    /**
+     * Asset-specific IRCM rate override as a decimal. When set, overrides the system default
+     * IRCM rate. Null means the system default applies. Ignored when {@code ircmExempt} is true.
+     */
     @Schema(description = "IRCM rate override.", nullable = true)
     BigDecimal ircmRateOverride,
+    /**
+     * Whether this asset is fully exempt from IRCM withholding. Government bonds (OTAs/BTAs)
+     * issued by CEMAC member states are typically IRCM-exempt under regional tax treaties.
+     * When true, no IRCM is withheld regardless of {@code ircmEnabled} or {@code ircmRateOverride}.
+     */
     @Schema(description = "Exempt from IRCM (e.g. government bonds).")
     Boolean ircmExempt,
+    /**
+     * Whether capital gains tax is charged on profitable SELL orders for this asset.
+     * When true, the platform withholds {@code capitalGainsRate} on the realized gain
+     * (sell price minus cost basis) at settlement.
+     */
     @Schema(description = "Capital gains tax enabled for profitable sales.")
     Boolean capitalGainsTaxEnabled,
+    /**
+     * Capital gains tax rate as a decimal (e.g. 0.05 = 5%). Applied to the realized gain
+     * when {@code capitalGainsTaxEnabled} is true. Null when capital gains tax is disabled.
+     */
     @Schema(description = "Capital gains tax rate.", nullable = true)
     BigDecimal capitalGainsRate,
+    /**
+     * Whether this asset is officially listed on the BVMAC (Bourse des Valeurs Mobilières
+     * de l'Afrique Centrale). Informational flag used for display and regulatory classification.
+     */
     @Schema(description = "Listed on BVMAC.")
     Boolean isBvmacListed,
+    /**
+     * Whether this is a sovereign government bond issued by a CEMAC member state.
+     * Government bonds are generally IRCM-exempt; this flag helps enforce that rule
+     * automatically without requiring manual configuration of {@code ircmExempt}.
+     */
     @Schema(description = "Government bond (IRCM exempt).")
     Boolean isGovernmentBond,
+    /**
+     * Whether TVA (Taxe sur la Valeur Ajoutée / VAT) applies to trades of this asset.
+     * When true, TVA at {@code tvaRate} is charged on the trading fee portion of each order.
+     */
     @Schema(description = "TVA (VAT) enabled for trades.")
     Boolean tvaEnabled,
+    /**
+     * TVA rate as a decimal (e.g. 0.1925 = 19.25%, the standard Cameroon VAT rate).
+     * Null when {@code tvaEnabled} is false. Overrides the system default rate when set.
+     */
     @Schema(description = "TVA rate override.", nullable = true)
     BigDecimal tvaRate
 ) {}
