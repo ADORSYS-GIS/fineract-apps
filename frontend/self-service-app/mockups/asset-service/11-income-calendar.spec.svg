@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 844" width="820" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./11-income-calendar.svg" x="0" y="0" width="390" height="844"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="844" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="844" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">11 · Income Calendar</text>
+
+  <!-- Endpoint -->
+  <rect x="406" y="31" width="384" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /portfolio/income-calendar?months=12</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">Response: IncomeCalendarResponse  (months param: 1–36)</text>
+
+  <!-- Section: Month Summary Card -->
+  <line x1="406" y1="72" x2="816" y2="72" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="84" fill="#1e3a5f" font-size="11" font-weight="700">Month Summary Card</text>
+  <text x="410" y="100" fill="#64748b" font-size="10">Expected amount this month</text>
+  <text x="814" y="100" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeCalendarResponse.monthlyTotals[n].totalAmount</text>
+  <text x="410" y="114" fill="#64748b" font-size="10">Number of payments</text>
+  <text x="814" y="114" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.monthlyTotals[n].eventCount</text>
+  <text x="410" y="128" fill="#64748b" font-size="10">Month label ("April 2026")</text>
+  <text x="814" y="128" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.monthlyTotals[n].month</text>
+
+  <!-- Section: Calendar Widget -->
+  <line x1="406" y1="145" x2="816" y2="145" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="157" fill="#1e3a5f" font-size="11" font-weight="700">Calendar Widget  (client-rendered)</text>
+  <text x="410" y="173" fill="#64748b" font-size="10">Payment day highlight</text>
+  <text x="814" y="173" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.paymentDate</text>
+  <text x="410" y="187" fill="#64748b" font-size="10">Income type colour (green=RENT, blue=COUPON…)</text>
+  <text x="814" y="187" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.incomeType</text>
+  <text x="410" y="200" fill="#b45309" font-size="9">  incomeType values: COUPON | DIVIDEND | RENT | HARVEST_YIELD | PRINCIPAL_REDEMPTION</text>
+
+  <!-- Section: Upcoming Payments List -->
+  <line x1="406" y1="215" x2="816" y2="215" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="227" fill="#1e3a5f" font-size="11" font-weight="700">Upcoming Payments List  (IncomeEvent per row)</text>
+  <text x="410" y="243" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="243" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.assetName</text>
+  <text x="410" y="257" fill="#64748b" font-size="10">Income type label (Rent / Coupon / Dividend…)</text>
+  <text x="814" y="257" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.incomeType</text>
+  <text x="410" y="271" fill="#64748b" font-size="10">Units held</text>
+  <text x="814" y="271" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.units</text>
+  <text x="410" y="285" fill="#64748b" font-size="10">Payment date</text>
+  <text x="814" y="285" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.paymentDate</text>
+  <text x="410" y="299" fill="#64748b" font-size="10">Expected amount (total)</text>
+  <text x="814" y="299" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.expectedAmount</text>
+  <text x="410" y="313" fill="#64748b" font-size="10">Per unit rate</text>
+  <text x="814" y="313" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.rateApplied</text>
+  <text x="410" y="327" fill="#64748b" font-size="10">Frequency badge (Quarterly / Semi-Annual…)</text>
+  <text x="814" y="327" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.distributionFrequencyMonths</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="344" x2="816" y2="344" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="356" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="370" fill="#b45309" font-size="9">ⓘ All events across all held assets are returned sorted by paymentDate.</text>
+  <text x="410" y="383" fill="#b45309" font-size="9">ⓘ Total expected (all months): IncomeCalendarResponse.totalExpectedIncome.</text>
+  <text x="410" y="396" fill="#b45309" font-size="9">ⓘ Breakdown by type: IncomeCalendarResponse.totalByIncomeType (Map&lt;String, BigDecimal&gt;).</text>
+  <text x="410" y="409" fill="#b45309" font-size="9">ⓘ PRINCIPAL_REDEMPTION event = bond matures; principal returned at maturity.</text>
+</svg>

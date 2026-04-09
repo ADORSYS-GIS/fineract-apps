@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 844" width="820" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./13-order-detail.svg" x="0" y="0" width="390" height="844"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="844" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="844" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">13 · Order Detail</text>
+
+  <!-- Endpoint -->
+  <rect x="406" y="31" width="316" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /trades/orders/{id}</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">Response: OrderDetailResponse  (superset of OrderResponse)</text>
+
+  <!-- Section: Reference + Status -->
+  <line x1="406" y1="72" x2="816" y2="72" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="84" fill="#1e3a5f" font-size="11" font-weight="700">Reference + Status</text>
+  <text x="410" y="100" fill="#64748b" font-size="10">Order reference (#ORD-…)</text>
+  <text x="814" y="100" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.orderId</text>
+  <text x="410" y="114" fill="#64748b" font-size="10">Status badge (Completed / Processing…)</text>
+  <text x="814" y="114" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.status</text>
+  <text x="410" y="128" fill="#64748b" font-size="10">Date and time</text>
+  <text x="814" y="128" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.createdAt</text>
+
+  <!-- Section: Status Timeline -->
+  <line x1="406" y1="145" x2="816" y2="145" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="157" fill="#1e3a5f" font-size="11" font-weight="700">Status Timeline  (client state machine)</text>
+  <text x="410" y="173" fill="#64748b" font-size="10">Submitted step</text>
+  <text x="814" y="173" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.createdAt  (always first)</text>
+  <text x="410" y="187" fill="#64748b" font-size="10">Processing / Executing step</text>
+  <text x="814" y="187" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.status == EXECUTING</text>
+  <text x="410" y="201" fill="#64748b" font-size="10">Completed / Failed step</text>
+  <text x="814" y="201" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.status == FILLED | FAILED</text>
+
+  <!-- Section: Asset + Type -->
+  <line x1="406" y1="218" x2="816" y2="218" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="230" fill="#1e3a5f" font-size="11" font-weight="700">Asset + Order Type</text>
+  <text x="410" y="246" fill="#64748b" font-size="10">Asset name / Category</text>
+  <text x="814" y="246" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.symbol / AssetPublicDetailResponse.category</text>
+  <text x="410" y="260" fill="#64748b" font-size="10">Order type badge (BUY / SELL)</text>
+  <text x="814" y="260" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.side</text>
+
+  <!-- Section: Order Breakdown -->
+  <line x1="406" y1="277" x2="816" y2="277" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="289" fill="#1e3a5f" font-size="11" font-weight="700">Order Breakdown</text>
+  <text x="410" y="305" fill="#64748b" font-size="10">Units purchased / sold</text>
+  <text x="814" y="305" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.units</text>
+  <text x="410" y="319" fill="#64748b" font-size="10">Price per unit  (execution price at fill)</text>
+  <text x="814" y="319" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.pricePerUnit</text>
+  <text x="410" y="333" fill="#64748b" font-size="10">Subtotal (gross)</text>
+  <text x="814" y="333" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">units × pricePerUnit  (computed)</text>
+  <text x="410" y="347" fill="#64748b" font-size="10">Trading fee</text>
+  <text x="814" y="347" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.fee</text>
+  <text x="410" y="361" fill="#64748b" font-size="10">Total paid / received</text>
+  <text x="814" y="361" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.totalAmount</text>
+
+  <!-- Section: Lock-up Info -->
+  <line x1="406" y1="378" x2="816" y2="378" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="390" fill="#1e3a5f" font-size="11" font-weight="700">Lock-up Info  (BUY orders only)</text>
+  <text x="410" y="406" fill="#64748b" font-size="10">Lock-up expiry date</text>
+  <text x="814" y="406" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">createdAt + lockupDays  (computed)</text>
+  <text x="410" y="420" fill="#64748b" font-size="10">Lock-up duration</text>
+  <text x="814" y="420" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.lockupDays</text>
+
+  <!-- Section: Next Income -->
+  <line x1="406" y1="437" x2="816" y2="437" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="449" fill="#1e3a5f" font-size="11" font-weight="700">Next Income Block  (separate call)</text>
+  <text x="410" y="465" fill="#64748b" font-size="10">Next coupon / dividend date &amp; amount</text>
+  <text x="814" y="465" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.paymentDate / .expectedAmount</text>
+  <text x="410" y="478" fill="#b45309" font-size="9">  from GET /portfolio/income-calendar → filter events by assetId</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="493" x2="816" y2="493" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="505" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="519" fill="#b45309" font-size="9">ⓘ OrderDetailResponse is a superset of OrderResponse; extra fields TBD in implementation.</text>
+  <text x="410" y="532" fill="#b45309" font-size="9">ⓘ Cancel button: POST /trades/orders/{id}/cancel → OrderResponse.</text>
+</svg>

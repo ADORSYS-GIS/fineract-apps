@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 856" width="820" height="856">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./08-sell-step2-review.svg" x="0" y="0" width="390" height="856"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="856" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="856" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">08 · Sell — Step 2 Review</text>
+
+  <!-- Endpoints -->
+  <rect x="406" y="31" width="265" height="15" rx="3" fill="#fff7ed"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#c2410c" font-weight="700">POST</tspan><tspan fill="#1e40af"> /trades/quote</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">result cached from Step 1 · QuoteResponse (side=SELL)</text>
+
+  <rect x="406" y="62" width="360" height="15" rx="3" fill="#fff7ed"/>
+  <text x="410" y="73" font-size="10" font-family="monospace"><tspan fill="#c2410c" font-weight="700">POST</tspan><tspan fill="#1e40af"> /trades/orders/{orderId}/confirm</tspan></text>
+  <text x="408" y="88" fill="#64748b" font-size="9">on "Confirm Sale" tap · Response: OrderResponse</text>
+
+  <!-- Section: Sale Summary Card -->
+  <line x1="406" y1="103" x2="816" y2="103" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="115" fill="#1e3a5f" font-size="11" font-weight="700">Sale Summary Card  (all from QuoteResponse)</text>
+  <text x="410" y="131" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="131" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.assetSymbol</text>
+  <text x="410" y="145" fill="#64748b" font-size="10">Order type badge (SELL)</text>
+  <text x="814" y="145" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.side</text>
+  <text x="410" y="159" fill="#64748b" font-size="10">Units to sell</text>
+  <text x="814" y="159" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.units</text>
+  <text x="410" y="173" fill="#64748b" font-size="10">Bid price per unit  (incl. LP spread)</text>
+  <text x="814" y="173" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.executionPrice</text>
+  <text x="410" y="187" fill="#64748b" font-size="10">Gross proceeds</text>
+  <text x="814" y="187" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.grossAmount</text>
+  <text x="410" y="201" fill="#64748b" font-size="10">Trading fee (0.3%)</text>
+  <text x="814" y="201" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.fee  (.feePercent)</text>
+  <text x="410" y="215" fill="#64748b" font-size="10">Capital gains tax  (shown only when &gt; 0)</text>
+  <text x="814" y="215" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">taxBreakdown.capitalGainsTaxAmount</text>
+  <text x="410" y="228" fill="#b45309" font-size="9">  500,000 XAF annual exemption · rate: taxBreakdown.capitalGainsRate</text>
+  <text x="410" y="242" fill="#64748b" font-size="10">Net Proceeds</text>
+  <text x="814" y="242" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.netAmount</text>
+
+  <!-- TVA note -->
+  <rect x="406" y="252" width="410" height="16" rx="3" fill="#fff7ed"/>
+  <text x="410" y="263" fill="#c2410c" font-size="9" font-weight="700">⚠ NO TVA on SELL — TVA is buyer-only (never add on sell side)</text>
+
+  <!-- Section: Remaining Holdings -->
+  <line x1="406" y1="279" x2="816" y2="279" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="291" fill="#1e3a5f" font-size="11" font-weight="700">Remaining Holdings After Sale</text>
+  <text x="410" y="307" fill="#64748b" font-size="10">Remaining units</text>
+  <text x="814" y="307" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PositionResponse.totalUnits − QuoteResponse.units</text>
+  <text x="410" y="321" fill="#64748b" font-size="10">Currently hold</text>
+  <text x="814" y="321" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PositionResponse.totalUnits</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="338" x2="816" y2="338" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="350" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="364" fill="#b45309" font-size="9">ⓘ TVA never applies to sell orders (SellStrategy confirmed in commit 9026459c).</text>
+  <text x="410" y="377" fill="#b45309" font-size="9">ⓘ Capital gains = realised profit × rate; 500K XAF/year exemption applied first.</text>
+  <text x="410" y="390" fill="#b45309" font-size="9">ⓘ LP spread baked into executionPrice (bid side) — never itemised.</text>
+  <text x="410" y="403" fill="#b45309" font-size="9">ⓘ "Confirm Sale" → POST /orders/{orderId}/confirm → screen 09.</text>
+</svg>

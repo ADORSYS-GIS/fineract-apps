@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 844" width="820" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./10-portfolio.svg" x="0" y="0" width="390" height="844"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="844" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="844" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">10 · My Portfolio</text>
+
+  <!-- Endpoint -->
+  <rect x="406" y="31" width="226" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /portfolio</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">Response: PortfolioSummaryResponse  (positions + allocations embedded)</text>
+
+  <!-- Section: Portfolio Summary Card -->
+  <line x1="406" y1="72" x2="816" y2="72" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="84" fill="#1e3a5f" font-size="11" font-weight="700">Portfolio Summary Card</text>
+  <text x="410" y="100" fill="#64748b" font-size="10">Total Portfolio Value</text>
+  <text x="814" y="100" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PortfolioSummaryResponse.totalValue</text>
+  <text x="410" y="114" fill="#64748b" font-size="10">Today gain / gain %</text>
+  <text x="814" y="114" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.unrealizedPnl / .unrealizedPnlPercent</text>
+  <text x="410" y="128" fill="#64748b" font-size="10">Invested (cost basis)</text>
+  <text x="814" y="128" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.totalCostBasis</text>
+  <text x="410" y="142" fill="#64748b" font-size="10">Total Gain (absolute)</text>
+  <text x="814" y="142" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.unrealizedPnl</text>
+
+  <!-- Section: Asset Allocation Donut -->
+  <line x1="406" y1="159" x2="816" y2="159" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="171" fill="#1e3a5f" font-size="11" font-weight="700">Asset Allocation Donut  (CategoryAllocationResponse)</text>
+  <text x="410" y="187" fill="#64748b" font-size="10">Category label</text>
+  <text x="814" y="187" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">CategoryAllocationResponse.category</text>
+  <text x="410" y="201" fill="#64748b" font-size="10">Percentage of portfolio</text>
+  <text x="814" y="201" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.percentage</text>
+  <text x="410" y="215" fill="#64748b" font-size="10">Category value</text>
+  <text x="814" y="215" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.totalValue</text>
+  <text x="410" y="229" fill="#64748b" font-size="10">Number of assets ("4 assets")</text>
+  <text x="814" y="229" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PortfolioSummaryResponse.categoryCount</text>
+
+  <!-- Section: Holdings -->
+  <line x1="406" y1="246" x2="816" y2="246" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="258" fill="#1e3a5f" font-size="11" font-weight="700">Holdings  (PositionResponse per card)</text>
+  <text x="410" y="274" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="274" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PositionResponse.name</text>
+  <text x="410" y="288" fill="#64748b" font-size="10">Symbol · Units held</text>
+  <text x="814" y="288" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.symbol / .totalUnits</text>
+  <text x="410" y="302" fill="#64748b" font-size="10">Change % · Change amount</text>
+  <text x="814" y="302" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.unrealizedPnlPercent / .unrealizedPnl</text>
+  <text x="410" y="316" fill="#64748b" font-size="10">Current market value</text>
+  <text x="814" y="316" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.marketValue</text>
+  <text x="410" y="330" fill="#64748b" font-size="10">Avg. purchase price</text>
+  <text x="814" y="330" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.avgPurchasePrice</text>
+  <text x="410" y="344" fill="#64748b" font-size="10">🔒 Locked badge</text>
+  <text x="814" y="344" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">lockupDays check from AssetPublicDetailResponse</text>
+  <text x="410" y="358" fill="#64748b" font-size="10">Sell button (navigates to screen 07)</text>
+  <text x="814" y="358" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">disabled when status=HALTED or locked</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="375" x2="816" y2="375" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="387" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="401" fill="#b45309" font-size="9">ⓘ Portfolio history chart: GET /portfolio/history?period=1M → PortfolioHistoryResponse.</text>
+  <text x="410" y="414" fill="#b45309" font-size="9">ⓘ Position detail: GET /portfolio/positions/{assetId} → PositionResponse.</text>
+  <text x="410" y="427" fill="#b45309" font-size="9">ⓘ IncomeBenefitProjection available on PositionResponse for non-bond assets.</text>
+  <text x="410" y="440" fill="#b45309" font-size="9">ⓘ BondBenefitProjection available on PositionResponse for bond assets.</text>
+</svg>

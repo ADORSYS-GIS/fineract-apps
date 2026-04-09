@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 844" width="820" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./12-order-history.svg" x="0" y="0" width="390" height="844"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="844" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="844" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">12 · Order History</text>
+
+  <!-- Endpoint -->
+  <rect x="406" y="31" width="400" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /trades/orders?page=0&amp;size=20</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">Response: Page&lt;OrderResponse&gt;  · optional filter: side, status, assetId</text>
+
+  <!-- Section: Filter Tabs -->
+  <line x1="406" y1="72" x2="816" y2="72" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="84" fill="#1e3a5f" font-size="11" font-weight="700">Filter Tabs</text>
+  <text x="410" y="100" fill="#64748b" font-size="10">All / Buy / Sell</text>
+  <text x="814" y="100" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">query param: side (ALL | BUY | SELL)</text>
+  <text x="410" y="114" fill="#64748b" font-size="10">Pending filter</text>
+  <text x="814" y="114" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">query param: status=PENDING,QUEUED,EXECUTING</text>
+  <text x="410" y="128" fill="#64748b" font-size="10">Income filter  (income payments)</text>
+  <text x="814" y="128" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">client-side filter or separate income endpoint</text>
+
+  <!-- Section: Date Group Header -->
+  <line x1="406" y1="145" x2="816" y2="145" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="157" fill="#1e3a5f" font-size="11" font-weight="700">Date Group Header  (client-side grouping)</text>
+  <text x="410" y="173" fill="#64748b" font-size="10">Date label ("Today · Mar 17, 2026")</text>
+  <text x="814" y="173" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.createdAt  (grouped by date)</text>
+
+  <!-- Section: Order Row -->
+  <line x1="406" y1="190" x2="816" y2="190" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="202" fill="#1e3a5f" font-size="11" font-weight="700">Order Row  (OrderResponse)</text>
+  <text x="410" y="218" fill="#64748b" font-size="10">Type icon (↑ buy / ↓ sell / 💰 income)</text>
+  <text x="814" y="218" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.side</text>
+  <text x="410" y="232" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="232" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.symbol</text>
+  <text x="410" y="246" fill="#64748b" font-size="10">Units · Direction label</text>
+  <text x="814" y="246" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.units / .side</text>
+  <text x="410" y="260" fill="#64748b" font-size="10">Time</text>
+  <text x="814" y="260" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.createdAt</text>
+  <text x="410" y="274" fill="#64748b" font-size="10">Order reference (#ORD-…)</text>
+  <text x="814" y="274" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.orderId</text>
+  <text x="410" y="288" fill="#64748b" font-size="10">Status badge (Processing / Completed / Failed)</text>
+  <text x="814" y="288" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.status</text>
+  <text x="410" y="302" fill="#64748b" font-size="10">Amount (−debit for BUY / +credit for SELL)</text>
+  <text x="814" y="302" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.totalAmount  (sign set client-side by side)</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="319" x2="816" y2="319" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="331" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="345" fill="#b45309" font-size="9">ⓘ Tapping a row navigates to GET /trades/orders/{id} (screen 13).</text>
+  <text x="410" y="358" fill="#b45309" font-size="9">ⓘ OrderStatus values: QUOTED | PENDING | EXECUTING | FILLED | FAILED | REJECTED</text>
+  <text x="410" y="371" fill="#b45309" font-size="9">  | NEEDS_RECONCILIATION | MANUALLY_CLOSED | QUEUED | CANCELLED</text>
+  <text x="410" y="384" fill="#b45309" font-size="9">ⓘ Infinite scroll: increment page param on reach-end.</text>
+  <text x="410" y="397" fill="#b45309" font-size="9">ⓘ Download icon → not in current asset-service API (future feature).</text>
+</svg>
