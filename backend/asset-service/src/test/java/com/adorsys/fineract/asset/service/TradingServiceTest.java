@@ -29,10 +29,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -477,6 +481,104 @@ class TradingServiceTest {
         assertEquals(OrderStatus.CANCELLED, orderCaptor.getValue().getStatus());
         verify(quoteReservationService).release(eq(ASSET_ID), eq("order-001"), eq(new BigDecimal("10")));
         verify(eventPublisher).publishEvent(any(OrderStatusChangedEvent.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // getUserOrders tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getUserOrders_noAssetFilter_excludesCancelledViaStatusNotIn() {
+        Order filled = Order.builder()
+                .id("order-filled").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.FILLED)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106")).fee(new BigDecimal("6"))
+                .asset(activeAsset)
+                .build();
+
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndStatusNotIn(eq(USER_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of(filled)));
+
+        var result = tradingService.getUserOrders(USER_ID, null, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(OrderStatus.FILLED, result.getContent().get(0).status());
+        // verify it called NotIn (not the old unfiltered method) with CANCELLED excluded
+        verify(orderRepository).findByUserIdAndStatusNotIn(
+                eq(USER_ID),
+                argThat((Collection<OrderStatus> s) -> s.contains(OrderStatus.CANCELLED)),
+                any());
+    }
+
+    @Test
+    void getUserOrders_withAssetFilter_excludesCancelledViaStatusNotIn() {
+        Order filled = Order.builder()
+                .id("order-filled").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.SELL).status(OrderStatus.FILLED)
+                .units(new BigDecimal("5")).executionPrice(new BigDecimal("90"))
+                .cashAmount(new BigDecimal("448")).fee(new BigDecimal("2"))
+                .asset(activeAsset)
+                .build();
+
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndAssetIdAndStatusNotIn(eq(USER_ID), eq(ASSET_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of(filled)));
+
+        var result = tradingService.getUserOrders(USER_ID, ASSET_ID, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(OrderStatus.FILLED, result.getContent().get(0).status());
+        verify(orderRepository).findByUserIdAndAssetIdAndStatusNotIn(
+                eq(USER_ID),
+                eq(ASSET_ID),
+                argThat((Collection<OrderStatus> s) -> s.contains(OrderStatus.CANCELLED)),
+                any());
+    }
+
+    @Test
+    void getUserOrders_emptyHistory_returnsEmptyPage() {
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndStatusNotIn(eq(USER_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        var result = tradingService.getUserOrders(USER_ID, null, pageable);
+
+        assertEquals(0, result.getTotalElements());
+        assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    void getUserOrders_mapsOrderFieldsCorrectly() {
+        Instant createdAt = Instant.parse("2026-04-09T10:00:00Z");
+        Order order = Order.builder()
+                .id("order-123").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.FILLED)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106")).fee(new BigDecimal("6"))
+                .spreadAmount(new BigDecimal("100"))
+                .createdAt(createdAt)
+                .asset(activeAsset)
+                .build();
+
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndStatusNotIn(eq(USER_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of(order)));
+
+        var result = tradingService.getUserOrders(USER_ID, null, pageable);
+        var response = result.getContent().get(0);
+
+        assertEquals("order-123", response.orderId());
+        assertEquals(ASSET_ID, response.assetId());
+        assertEquals("TST", response.symbol());
+        assertEquals(TradeSide.BUY, response.side());
+        assertEquals(new BigDecimal("10"), response.units());
+        assertEquals(new BigDecimal("110"), response.pricePerUnit());
+        assertEquals(new BigDecimal("1106"), response.totalAmount());
+        assertEquals(new BigDecimal("6"), response.fee());
+        assertEquals(OrderStatus.FILLED, response.status());
+        assertEquals(createdAt, response.createdAt());
     }
 
     // -------------------------------------------------------------------------
