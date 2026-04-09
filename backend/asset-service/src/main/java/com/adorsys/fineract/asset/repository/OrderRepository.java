@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,10 +21,10 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     Optional<Order> findByIdempotencyKey(String idempotencyKey);
 
     @EntityGraph(attributePaths = "asset")
-    Page<Order> findByUserId(Long userId, Pageable pageable);
+    Page<Order> findByUserIdAndStatusNotIn(Long userId, Collection<OrderStatus> statuses, Pageable pageable);
 
     @EntityGraph(attributePaths = "asset")
-    Page<Order> findByUserIdAndAssetId(Long userId, String assetId, Pageable pageable);
+    Page<Order> findByUserIdAndAssetIdAndStatusNotIn(Long userId, String assetId, Collection<OrderStatus> statuses, Pageable pageable);
 
     List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, Instant before);
 
