@@ -178,7 +178,7 @@ public class TradingService {
         }
 
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.FLOOR);
         BigDecimal lpMarginPerUnit = executionPrice.subtract(issuerPrice).abs();
         BigDecimal spreadAmount = isSpreadEnabled(asset)
                 ? lpMarginPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP)
@@ -558,10 +558,8 @@ public class TradingService {
         Long daysSinceLastCoupon;
 
         if (isCoupon) {
-            // Per-unit accrued = total / units (avoid division by zero)
-            accruedInterestPerUnit = (units.compareTo(BigDecimal.ZERO) > 0 && totalAccruedInterest.compareTo(BigDecimal.ZERO) > 0)
-                    ? totalAccruedInterest.divide(units, 4, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
+            // Per-unit accrued: calculate directly for 1 unit to avoid rounding divergence from back-division
+            accruedInterestPerUnit = accruedInterestCalculator.calculate(asset, BigDecimal.ONE);
 
             DayCountConvention convention = asset.getDayCountConvention() != null
                     ? asset.getDayCountConvention() : DayCountConvention.ACT_365;
@@ -746,7 +744,7 @@ public class TradingService {
         }
 
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = grossAmount.multiply(ctx.getFeePercent()).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = grossAmount.multiply(ctx.getFeePercent()).setScale(0, RoundingMode.FLOOR);
 
         // LP margin: directional spread (no .abs())
         BigDecimal issuerPrice = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : lockedBasePrice;

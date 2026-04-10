@@ -170,8 +170,10 @@ public class PortfolioService {
                 projectedAnnualCouponIncome = projectedAnnualCouponIncome.add(annualCoupon);
             }
         }
+        // Current yield = annual coupon income / cost basis. Unrealized P&L is excluded
+        // as it is a valuation change, not income (adding it would misstate the yield).
         BigDecimal estimatedAnnualYieldPercent = totalCostBasis.compareTo(BigDecimal.ZERO) > 0
-                ? projectedAnnualCouponIncome.add(totalUnrealizedPnl)
+                ? projectedAnnualCouponIncome
                         .divide(totalCostBasis, 4, RoundingMode.HALF_UP)
                         .multiply(new BigDecimal("100"))
                 : BigDecimal.ZERO;
@@ -540,7 +542,8 @@ public class PortfolioService {
                 // Reconstruct gross using current IRCM rate (best-effort for display)
                 boolean exempt = asset == null || Boolean.TRUE.equals(asset.getIrcmExempt())
                         || Boolean.TRUE.equals(asset.getIsGovernmentBond());
-                BigDecimal ircmRate = asset != null ? taxService.getEffectiveIrcmRate(asset) : BigDecimal.ZERO;
+                // Guard: deleted/orphaned asset → treat as exempt (ircmRate=0) to avoid NPE
+                BigDecimal ircmRate = (asset != null && !exempt) ? taxService.getEffectiveIrcmRate(asset) : BigDecimal.ZERO;
                 // gross = net / (1 - ircmRate), where ircmRate is a fraction (e.g. 0.055)
                 BigDecimal grossTotal = ircmRate.compareTo(BigDecimal.ZERO) > 0
                         ? netTotal.divide(BigDecimal.ONE.subtract(ircmRate), 0, RoundingMode.HALF_UP)
@@ -589,7 +592,8 @@ public class PortfolioService {
                 BigDecimal netTotal = dist.getCashAmount();
                 boolean exempt = asset == null || Boolean.TRUE.equals(asset.getIrcmExempt())
                         || Boolean.TRUE.equals(asset.getIsGovernmentBond());
-                BigDecimal ircmRate = asset != null ? taxService.getEffectiveIrcmRate(asset) : BigDecimal.ZERO;
+                // Guard: deleted/orphaned asset → treat as exempt (ircmRate=0) to avoid NPE
+                BigDecimal ircmRate = (asset != null && !exempt) ? taxService.getEffectiveIrcmRate(asset) : BigDecimal.ZERO;
                 BigDecimal grossTotal = ircmRate.compareTo(BigDecimal.ZERO) > 0
                         ? netTotal.divide(BigDecimal.ONE.subtract(ircmRate), 0, RoundingMode.HALF_UP)
                         : netTotal;

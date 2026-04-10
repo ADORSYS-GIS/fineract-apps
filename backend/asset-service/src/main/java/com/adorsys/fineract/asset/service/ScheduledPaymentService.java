@@ -77,12 +77,17 @@ public class ScheduledPaymentService {
             if (faceValue == null) {
                 faceValue = BigDecimal.ZERO;
             }
-            int periodMonths = asset.getCouponFrequencyMonths();
+            // OTA coupon: use ACT/365 (actual days in period), not months/12 approximation.
+            // lastCouponDate = scheduleDate - couponFrequencyMonths
+            DayCountConvention convention = asset.getDayCountConvention() != null
+                    ? asset.getDayCountConvention() : DayCountConvention.ACT_365;
+            LocalDate lastCouponDate = scheduleDate.minusMonths(asset.getCouponFrequencyMonths());
+            long actualDays = convention.daysBetween(lastCouponDate, scheduleDate);
             estimatedAmountPerUnit = faceValue
                     .multiply(estimatedRate)
                     .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(periodMonths))
-                    .divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP);
+                    .multiply(BigDecimal.valueOf(actualDays))
+                    .divide(BigDecimal.valueOf(convention.getBasis()), 4, RoundingMode.HALF_UP);
             for (UserPosition h : holders) {
                 estimatedTotal = estimatedTotal.add(
                         h.getTotalUnits().multiply(estimatedAmountPerUnit)
@@ -297,15 +302,23 @@ public class ScheduledPaymentService {
             int periodMonths = asset.getCouponFrequencyMonths() != null ? asset.getCouponFrequencyMonths() : 0;
 
             if (faceValue != null && rate != null && periodMonths > 0) {
+                // Use ACT/365 actual days to match createPendingSchedule calculation
+                DayCountConvention convention = asset.getDayCountConvention() != null
+                        ? asset.getDayCountConvention() : DayCountConvention.ACT_365;
+                LocalDate scheduleDate = schedule.getScheduleDate();
+                LocalDate lastCouponDate = scheduleDate.minusMonths(periodMonths);
+                long actualDays = convention.daysBetween(lastCouponDate, scheduleDate);
                 grossAmountPerUnit = faceValue
                         .multiply(rate)
                         .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(periodMonths))
-                        .divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP);
+                        .multiply(BigDecimal.valueOf(actualDays))
+                        .divide(BigDecimal.valueOf(convention.getBasis()), 4, RoundingMode.HALF_UP);
+                // Use consistent scale (0dp) for per-unit amounts to reconcile with total
                 ircmWithheldPerUnit = ircmExempt
                         ? BigDecimal.ZERO
-                        : grossAmountPerUnit.multiply(ircmRateValue).setScale(4, RoundingMode.HALF_UP);
-                netAmountPerUnit = grossAmountPerUnit.subtract(ircmWithheldPerUnit);
+                        : grossAmountPerUnit.multiply(ircmRateValue).setScale(0, RoundingMode.HALF_UP);
+                netAmountPerUnit = grossAmountPerUnit.setScale(0, RoundingMode.HALF_UP)
+                        .subtract(ircmWithheldPerUnit);
             }
 
             // Total IRCM withheld = sum of per-holder IRCM (only available post-execution)
