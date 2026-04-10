@@ -449,6 +449,109 @@ public class BondLifecycleSteps {
         userHoldsBondUnits(units, symbolRef);
     }
 
+    // ---------------------------------------------------------------
+    // IRCM taxable bond steps
+    // ---------------------------------------------------------------
+
+    @Given("an active taxable coupon bond {string} priced at {int} with supply {int} and interest rate {double} and IRCM rate {double}")
+    public void activeTaxableCouponBond(String symbolRef, int price, int supply, double interestRate, double ircmRate) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("name", "Bond " + symbolRef);
+        request.put("symbol", symbolRef);
+        request.put("currencyCode", symbolRef);
+        request.put("category", "BONDS");
+        request.put("bondType", "COUPON");
+        request.put("dayCountConvention", "ACT_365");
+        BigDecimal issuerPrice = new BigDecimal(price);
+        request.put("issuerPrice", issuerPrice);
+        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("1.10")));
+        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("0.95")));
+        request.put("totalSupply", supply);
+        request.put("decimalPlaces", 0);
+        request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("issuerName", "E2E Corporate Issuer");
+        request.put("issuerCountry", "CAMEROUN");
+        request.put("interestRate", interestRate);
+        request.put("couponFrequencyMonths", 12);
+        request.put("maturityDate", LocalDate.now().plusYears(5).toString());
+        request.put("nextCouponDate", LocalDate.now().toString());
+        // IRCM fields
+        request.put("ircmEnabled", true);
+        request.put("ircmRateOverride", ircmRate / 100.0); // store as decimal (e.g. 0.165)
+        request.put("isGovernmentBond", false);
+        request.put("tvaEnabled", false);
+        request.put("registrationDutyEnabled", false);
+
+        Response createResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/api/v1/admin/assets");
+
+        assertThat(createResp.statusCode())
+                .as("Create taxable bond %s: %s", symbolRef, createResp.body().asString())
+                .isEqualTo(201);
+        String assetId = createResp.jsonPath().getString("id");
+        context.storeId("lastAssetId", assetId);
+        context.storeValue("lastSymbol", symbolRef);
+
+        Response activateResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
+
+        assertThat(activateResp.statusCode()).isEqualTo(200);
+    }
+
+    @Given("an active government bond {string} priced at {int} with supply {int} and interest rate {double}")
+    public void activeGovernmentBond(String symbolRef, int price, int supply, double interestRate) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("name", "Bond " + symbolRef);
+        request.put("symbol", symbolRef);
+        request.put("currencyCode", symbolRef);
+        request.put("category", "BONDS");
+        request.put("bondType", "COUPON");
+        request.put("dayCountConvention", "ACT_365");
+        BigDecimal issuerPrice = new BigDecimal(price);
+        request.put("issuerPrice", issuerPrice);
+        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("1.10")));
+        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("0.95")));
+        request.put("totalSupply", supply);
+        request.put("decimalPlaces", 0);
+        request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("issuerName", "Republique du Cameroun");
+        request.put("issuerCountry", "CAMEROUN");
+        request.put("interestRate", interestRate);
+        request.put("couponFrequencyMonths", 12);
+        request.put("maturityDate", LocalDate.now().plusYears(5).toString());
+        request.put("nextCouponDate", LocalDate.now().toString());
+        // Government bond — IRCM exempt
+        request.put("isGovernmentBond", true);
+        request.put("ircmEnabled", false);
+        request.put("tvaEnabled", false);
+        request.put("registrationDutyEnabled", false);
+
+        Response createResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/api/v1/admin/assets");
+
+        assertThat(createResp.statusCode())
+                .as("Create government bond %s: %s", symbolRef, createResp.body().asString())
+                .isEqualTo(201);
+        String assetId = createResp.jsonPath().getString("id");
+        context.storeId("lastAssetId", assetId);
+        context.storeValue("lastSymbol", symbolRef);
+
+        Response activateResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
+
+        assertThat(activateResp.statusCode()).isEqualTo(200);
+    }
+
     @Then("the quote response should contain {string}")
     public void quoteResponseShouldContain(String fieldName) {
         String body = context.getBody();
