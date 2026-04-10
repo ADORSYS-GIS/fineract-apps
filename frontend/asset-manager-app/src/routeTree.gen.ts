@@ -17,6 +17,8 @@ import { Route as OrderResolutionRouteImport } from './routes/order-resolution'
 import { Route as MarketSettingsRouteImport } from './routes/market-settings'
 import { Route as LpPerformanceRouteImport } from './routes/lp-performance'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
+import { Route as IncomeHistoryRouteImport } from './routes/income-history'
 import { Route as IncomeCalendarRouteImport } from './routes/income-calendar'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CreateAssetRouteImport } from './routes/create-asset'
@@ -62,6 +64,11 @@ const LpPerformanceRoute = LpPerformanceRouteImport.update({
   path: '/lp-performance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InventoryRoute = InventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
@@ -70,6 +77,11 @@ const InventoryRoute = InventoryRouteImport.update({
 const IncomeCalendarRoute = IncomeCalendarRouteImport.update({
   id: '/income-calendar',
   path: '/income-calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IncomeHistoryRoute = IncomeHistoryRouteImport.update({
+  id: '/income-history',
+  path: '/income-history',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -120,7 +132,9 @@ export interface FileRoutesByFullPath {
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
+  '/income-history': typeof IncomeHistoryRoute
   '/inventory': typeof InventoryRoute
+  '/portfolio': typeof PortfolioRoute
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -139,7 +153,10 @@ export interface FileRoutesByTo {
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
+  '/income-history': typeof IncomeHistoryRoute
+  '/income-history': typeof IncomeHistoryRoute
   '/inventory': typeof InventoryRoute
+  '/portfolio': typeof PortfolioRoute
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -159,7 +176,10 @@ export interface FileRoutesById {
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
+  '/income-history': typeof IncomeHistoryRoute
+  '/income-history': typeof IncomeHistoryRoute
   '/inventory': typeof InventoryRoute
+  '/portfolio': typeof PortfolioRoute
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -180,10 +200,12 @@ export interface FileRouteTypes {
     | '/create-asset'
     | '/dashboard'
     | '/income-calendar'
+    | '/income-history'
     | '/inventory'
     | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
+    | '/portfolio'
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
@@ -199,10 +221,12 @@ export interface FileRouteTypes {
     | '/create-asset'
     | '/dashboard'
     | '/income-calendar'
+    | '/income-history'
     | '/inventory'
     | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
+    | '/portfolio'
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
@@ -218,10 +242,12 @@ export interface FileRouteTypes {
     | '/create-asset'
     | '/dashboard'
     | '/income-calendar'
+    | '/income-history'
     | '/inventory'
     | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
+    | '/portfolio'
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
@@ -238,7 +264,9 @@ export interface RootRouteChildren {
   CreateAssetRoute: typeof CreateAssetRoute
   DashboardRoute: typeof DashboardRoute
   IncomeCalendarRoute: typeof IncomeCalendarRoute
+  IncomeHistoryRoute: typeof IncomeHistoryRoute
   InventoryRoute: typeof InventoryRoute
+  PortfolioRoute: typeof PortfolioRoute
   LpPerformanceRoute: typeof LpPerformanceRoute
   MarketSettingsRoute: typeof MarketSettingsRoute
   OrderResolutionRoute: typeof OrderResolutionRoute
@@ -309,11 +337,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/income-calendar': {
       id: '/income-calendar'
       path: '/income-calendar'
       fullPath: '/income-calendar'
       preLoaderRoute: typeof IncomeCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/income-history': {
+      id: '/income-history'
+      path: '/income-history'
+      fullPath: '/income-history'
+      preLoaderRoute: typeof IncomeHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -382,7 +424,9 @@ const rootRouteChildren: RootRouteChildren = {
   CreateAssetRoute: CreateAssetRoute,
   DashboardRoute: DashboardRoute,
   IncomeCalendarRoute: IncomeCalendarRoute,
+  IncomeHistoryRoute: IncomeHistoryRoute,
   InventoryRoute: InventoryRoute,
+  PortfolioRoute: PortfolioRoute,
   LpPerformanceRoute: LpPerformanceRoute,
   MarketSettingsRoute: MarketSettingsRoute,
   OrderResolutionRoute: OrderResolutionRoute,

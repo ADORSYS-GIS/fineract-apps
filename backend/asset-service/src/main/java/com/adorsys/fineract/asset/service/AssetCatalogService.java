@@ -37,6 +37,7 @@ public class AssetCatalogService {
     private final AssetPriceRepository assetPriceRepository;
     private final TradeLogRepository tradeLogRepository;
     private final FileStorageService fileStorageService;
+    private final AccruedInterestCalculator accruedInterestCalculator;
 
     /**
      * List active assets with optional category filter and search.
@@ -129,6 +130,8 @@ public class AssetCatalogService {
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(asset);
         BigDecimal currentYield = computeCurrentYield(asset, askPrice);
 
+        CurrentMarketData currentMarketData = buildCurrentMarketData(asset, price, currentYield);
+
         return new AssetDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
                 asset.getDescription(), resolveImageUrl(asset.getImageUrl()), asset.getCategory(), asset.getStatus(),
@@ -167,7 +170,8 @@ public class AssetCatalogService {
                 asset.getIrcmEnabled(), asset.getIrcmRateOverride(), asset.getIrcmExempt(),
                 asset.getCapitalGainsTaxEnabled(), asset.getCapitalGainsRate(),
                 asset.getIsBvmacListed(), asset.getIsGovernmentBond(),
-                asset.getTvaEnabled(), asset.getTvaRate()
+                asset.getTvaEnabled(), asset.getTvaRate(),
+                currentMarketData
         );
     }
 
@@ -330,5 +334,30 @@ public class AssetCatalogService {
         if (imageUrl == null || imageUrl.isBlank()) return null;
         if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) return imageUrl;
         return fileStorageService.getPublicUrl(imageUrl);
+    }
+
+    /**
+     * Build {@link CurrentMarketData} for bond assets. Returns null for non-bond assets.
+     *
+     * <p>For DISCOUNT (BTA) bonds: accruedInterest = 0, cleanPrice = bidPrice, dirtyPrice = bidPrice.
+     * For COUPON (OTA) bonds: accruedInterest is calculated via {@link AccruedInterestCalculator}
+     * and dirtyPrice = cleanPrice + accruedInterest.</p>
+     */
+    private CurrentMarketData buildCurrentMarketData(Asset asset, AssetPrice price, BigDecimal currentYield) {
+        if (asset.getBondType() == null) return null;
+
+        BigDecimal bidPrice = price != null ? price.getBidPrice() : null;
+        BigDecimal cleanPrice = bidPrice != null ? bidPrice : BigDecimal.ZERO;
+
+        BigDecimal accruedInterest;
+        if (asset.getBondType() == BondType.DISCOUNT) {
+            accruedInterest = BigDecimal.ZERO;
+        } else {
+            accruedInterest = accruedInterestCalculator.calculate(asset, BigDecimal.ONE);
+        }
+
+        BigDecimal dirtyPrice = cleanPrice.add(accruedInterest);
+
+        return new CurrentMarketData(cleanPrice, accruedInterest, dirtyPrice, currentYield, LocalDate.now());
     }
 }

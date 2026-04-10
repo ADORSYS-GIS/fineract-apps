@@ -577,6 +577,50 @@ export interface PositionResponse {
 	 * Empty array if the user has no orders for this asset.
 	 */
 	orders: OrderResponse[];
+
+	// --- Bond pricing fields (added alongside PortfolioSummaryResponse; may be null until backend ships) ---
+
+	/** Bond type: "BTA" (treasury bill) or "OTA" (treasury bond). Null for non-bond assets. */
+	bondType?: string;
+	/**
+	 * Clean price per unit (excluding accrued interest) in XAF.
+	 * Only present for bond positions where the backend computes it.
+	 */
+	cleanPrice?: number;
+	/**
+	 * Dirty price per unit (clean price + accrued interest) in XAF.
+	 * Only present for bond positions where the backend computes it.
+	 */
+	dirtyPrice?: number;
+	/**
+	 * Accrued interest (pied du coupon) per unit since last coupon date in XAF.
+	 * Only present for coupon-bearing bonds (OTA); absent for BTA and non-bonds.
+	 */
+	accruedInterestPerUnit?: number;
+	/**
+	 * Dirty market value of the entire position (dirtyPrice × totalUnits) in XAF.
+	 * Falls back to marketValue when dirtyPrice is absent.
+	 */
+	dirtyMarketValue?: number;
+}
+
+/**
+ * Aggregated portfolio summary returned by GET /portfolio.
+ * Contains top-level metrics and the list of individual positions.
+ */
+export interface PortfolioSummaryResponse {
+	/** Total current market value across all positions in XAF (sum of position marketValues). */
+	totalValue: number;
+	/** Total cost basis across all positions in XAF (sum of position costBases). */
+	totalCostBasis: number;
+	/** Total unrealized P&L in XAF (totalValue - totalCostBasis). */
+	unrealizedPnl: number;
+	/** Total unrealized P&L as a percentage of totalCostBasis. */
+	unrealizedPnlPercent: number;
+	/** Weighted average estimated annual yield across all income-bearing positions (%). */
+	estimatedAnnualYieldPercent?: number;
+	/** Individual asset positions. */
+	positions: PositionResponse[];
 }
 
 /** Admin order view (matches backend AdminOrderResponse). */
@@ -741,6 +785,33 @@ export interface IncomeBenefitProjection {
 	variableIncome: boolean;
 }
 
+// Portfolio Income History
+export interface IncomeHistoryEntry {
+	id: number;
+	assetId: string;
+	symbol: string;
+	assetName: string;
+	/** COUPON | MATURITY | INCOME */
+	incomeType: string;
+	paymentDate: string;
+	units: number;
+	grossAmount: number;
+	ircmWithheld?: number;
+	netAmount: number;
+	/** PAID | SCHEDULED */
+	status: 'PAID' | 'SCHEDULED';
+	exempt?: boolean;
+}
+
+export interface IncomeHistoryResponse {
+	content: IncomeHistoryEntry[];
+	totalPages: number;
+	totalElements: number;
+	totalPaid: number;
+	totalScheduled: number;
+	totalIrcmWithheld: number;
+}
+
 // Income Calendar
 export interface IncomeEvent {
 	assetId: string;
@@ -791,6 +862,13 @@ export interface ScheduledPaymentResponse {
 	executedAt?: string;
 	createdAt: string;
 	lpCashBalance?: number;
+	// IRCM withholding (optional — populated once backend deploys new API version)
+	ircmExempt?: boolean | null;
+	ircmRate?: number | null;
+	grossAmountPerUnit?: number | null;
+	ircmWithheldPerUnit?: number | null;
+	netAmountPerUnit?: number | null;
+	totalIrcmWithheld?: number | null;
 }
 
 export interface ScheduledPaymentDetailResponse
@@ -1055,6 +1133,16 @@ export const assetApi = {
 			params: { months },
 		}),
 
+	// Portfolio - Income History
+	getPortfolioIncomeHistory: (
+		status = 'ALL',
+		page = 0,
+		size = 20,
+	) =>
+		assetClient.get<IncomeHistoryResponse>("/portfolio/income-history", {
+			params: { status, page, size },
+		}),
+
 	// Dashboard - Admin
 	getDashboardSummary: () =>
 		assetClient.get<AdminDashboardResponse>("/admin/dashboard/summary"),
@@ -1171,6 +1259,8 @@ export const assetApi = {
 		assetClient.get<OrderResponse>(`/trades/orders/${orderId}`),
 
 	// Portfolio positions
+	getPortfolio: () =>
+		assetClient.get<PortfolioSummaryResponse>("/portfolio"),
 	getPosition: (assetId: string) =>
 		assetClient.get<PositionResponse>(`/portfolio/positions/${assetId}`),
 

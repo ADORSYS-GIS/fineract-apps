@@ -279,6 +279,49 @@ public class ScheduledPaymentService {
             }
         }
 
+        // IRCM fields for COUPON payments
+        BigDecimal grossAmountPerUnit = null;
+        BigDecimal ircmWithheldPerUnit = null;
+        BigDecimal netAmountPerUnit = null;
+        BigDecimal ircmRateValue = null;
+        boolean ircmExempt = false;
+        BigDecimal totalIrcmWithheld = null;
+
+        if ("COUPON".equals(schedule.getPaymentType()) && asset != null) {
+            ircmExempt = Boolean.TRUE.equals(asset.getIrcmExempt())
+                    || Boolean.TRUE.equals(asset.getIsGovernmentBond());
+            ircmRateValue = taxService.getEffectiveIrcmRate(asset);
+
+            BigDecimal faceValue = asset.getEffectiveFaceValue();
+            BigDecimal rate = asset.getInterestRate();
+            int periodMonths = asset.getCouponFrequencyMonths() != null ? asset.getCouponFrequencyMonths() : 0;
+
+            if (faceValue != null && rate != null && periodMonths > 0) {
+                grossAmountPerUnit = faceValue
+                        .multiply(rate)
+                        .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(periodMonths))
+                        .divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP);
+                ircmWithheldPerUnit = ircmExempt
+                        ? BigDecimal.ZERO
+                        : grossAmountPerUnit.multiply(ircmRateValue).setScale(4, RoundingMode.HALF_UP);
+                netAmountPerUnit = grossAmountPerUnit.subtract(ircmWithheldPerUnit);
+            }
+
+            // Total IRCM withheld = sum of per-holder IRCM (only available post-execution)
+            if (schedule.getTotalAmountPaid() != null && grossAmountPerUnit != null
+                    && !ircmExempt && ircmRateValue.compareTo(BigDecimal.ZERO) > 0) {
+                // Estimate: totalIrcmWithheld = totalPaid / netAmountPerUnit * ircmWithheldPerUnit
+                // More precisely: reconstruct from actual per-unit amounts
+                BigDecimal totalGross = BigDecimal.ZERO;
+                for (UserPosition h : holders) {
+                    totalGross = totalGross.add(
+                            h.getTotalUnits().multiply(grossAmountPerUnit).setScale(0, RoundingMode.HALF_UP));
+                }
+                totalIrcmWithheld = totalGross.multiply(ircmRateValue).setScale(0, RoundingMode.HALF_UP);
+            }
+        }
+
         return new ScheduledPaymentDetailResponse(
                 schedule.getId(),
                 schedule.getAssetId(),
@@ -303,6 +346,12 @@ public class ScheduledPaymentService {
                 schedule.getExecutedAt(),
                 schedule.getCreatedAt(),
                 lpCashBalance,
+                grossAmountPerUnit,
+                ircmWithheldPerUnit,
+                netAmountPerUnit,
+                ircmRateValue,
+                ircmExempt,
+                totalIrcmWithheld,
                 breakdowns
         );
     }
@@ -329,13 +378,39 @@ public class ScheduledPaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("Scheduled payment not found: " + scheduleId));
 
         if ("COUPON".equals(schedule.getPaymentType())) {
+            // Load asset to compute IRCM breakdown per holder
+            Asset asset = assetRepository.findById(schedule.getAssetId()).orElse(null);
+            BigDecimal ircmRate = asset != null ? taxService.getEffectiveIrcmRate(asset) : BigDecimal.ZERO;
+            boolean exempt = asset != null && (Boolean.TRUE.equals(asset.getIrcmExempt())
+                    || Boolean.TRUE.equals(asset.getIsGovernmentBond()));
+
             return interestPaymentRepository
                     .findByAssetIdAndCouponDateOrderByPaidAtDesc(
                             schedule.getAssetId(), schedule.getScheduleDate(), pageable)
-                    .map(ip -> PaymentResultResponse.fromCoupon(
-                            ip.getId(), ip.getUserId(), ip.getUnits(), ip.getCashAmount(),
-                            ip.getStatus(), ip.getFailureReason(), ip.getPaidAt(),
-                            ip.getFaceValue(), ip.getAnnualRate(), ip.getPeriodMonths()));
+                    .map(ip -> {
+                        // Gross = faceValue × (annualRate/100) × (periodMonths/12) × units
+                        BigDecimal grossPerUnit = (ip.getFaceValue() != null && ip.getAnnualRate() != null
+                                && ip.getPeriodMonths() != null)
+                                ? ip.getFaceValue()
+                                        .multiply(ip.getAnnualRate())
+                                        .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+                                        .multiply(BigDecimal.valueOf(ip.getPeriodMonths()))
+                                        .divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP)
+                                : null;
+                        BigDecimal gross = grossPerUnit != null
+                                ? grossPerUnit.multiply(ip.getUnits()).setScale(0, RoundingMode.HALF_UP)
+                                : null;
+                        BigDecimal ircmWithheld = (gross != null && !exempt)
+                                ? gross.multiply(ircmRate).setScale(0, RoundingMode.HALF_UP)
+                                : (gross != null ? BigDecimal.ZERO : null);
+                        BigDecimal net = (gross != null && ircmWithheld != null)
+                                ? gross.subtract(ircmWithheld) : null;
+                        return PaymentResultResponse.fromCoupon(
+                                ip.getId(), ip.getUserId(), ip.getUnits(), ip.getCashAmount(),
+                                ip.getStatus(), ip.getFailureReason(), ip.getPaidAt(),
+                                ip.getFaceValue(), ip.getAnnualRate(), ip.getPeriodMonths(),
+                                gross, ircmWithheld, net);
+                    });
         } else {
             return incomeDistributionRepository
                     .findByAssetIdAndDistributionDateOrderByPaidAtDesc(

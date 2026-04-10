@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.lang.Nullable;
 
 /**
  * Full detail view of a single scheduled income or coupon payment, returned by
@@ -142,6 +143,43 @@ public record ScheduledPaymentDetailResponse(
      * Null if the balance could not be resolved.
      */
     BigDecimal lpCashBalance,
+
+    /**
+     * Gross coupon amount per unit before IRCM withholding.
+     * Equals {@code faceValue × (rate/100) × (couponFrequencyMonths/12)}.
+     * Null for non-COUPON payment types.
+     */
+    @Nullable BigDecimal grossAmountPerUnit,
+
+    /**
+     * IRCM withheld per unit ({@code grossAmountPerUnit × ircmRate}).
+     * Zero if {@code ircmExempt} is {@code true}. Null for non-COUPON payment types.
+     */
+    @Nullable BigDecimal ircmWithheldPerUnit,
+
+    /**
+     * Net amount per unit after IRCM withholding ({@code grossAmountPerUnit - ircmWithheldPerUnit}).
+     * Null for non-COUPON payment types.
+     */
+    @Nullable BigDecimal netAmountPerUnit,
+
+    /**
+     * IRCM rate applied to this payment, as a decimal (e.g. {@code 0.055} = 5.5%).
+     * Zero if {@code ircmExempt} is {@code true}. Null for non-COUPON payment types.
+     */
+    @Nullable BigDecimal ircmRate,
+
+    /**
+     * Whether this asset is exempt from IRCM withholding (e.g. government bonds).
+     * When {@code true}, {@code ircmWithheldPerUnit} is zero.
+     */
+    boolean ircmExempt,
+
+    /**
+     * Total IRCM withheld across all holders during execution.
+     * Null before execution or for non-COUPON payment types.
+     */
+    @Nullable BigDecimal totalIrcmWithheld,
 
     /**
      * Per-holder breakdown of units held and estimated payout.

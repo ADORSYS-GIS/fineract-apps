@@ -426,5 +426,13 @@ public record AssetDetailResponse(
      * Null when {@code tvaEnabled} is false. Overrides the system default rate when set.
      */
     @Schema(description = "TVA rate override.", nullable = true)
-    BigDecimal tvaRate
+    BigDecimal tvaRate,
+
+    /**
+     * Current market pricing snapshot for this asset, computed at query time.
+     * Contains clean price (LP bid), accrued interest per unit, dirty price, current yield,
+     * and the computation date. Null for non-bond assets.
+     */
+    @Schema(description = "Current market pricing snapshot. Null for non-bond assets.", nullable = true)
+    CurrentMarketData currentMarketData
 ) {}

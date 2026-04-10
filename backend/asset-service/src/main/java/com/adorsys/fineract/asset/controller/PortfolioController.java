@@ -4,6 +4,7 @@ import com.adorsys.fineract.asset.dto.IncomeCalendarResponse;
 import com.adorsys.fineract.asset.dto.PortfolioHistoryResponse;
 import com.adorsys.fineract.asset.dto.PortfolioSummaryResponse;
 import com.adorsys.fineract.asset.dto.PositionResponse;
+import com.adorsys.fineract.asset.dto.UserIncomeHistoryResponse;
 import com.adorsys.fineract.asset.service.IncomeCalendarService;
 import com.adorsys.fineract.asset.service.PortfolioService;
 import com.adorsys.fineract.asset.util.UserIdentityResolver;
@@ -63,5 +64,17 @@ public class PortfolioController {
             throw new IllegalArgumentException("Months must be between 1 and 36");
         }
         return ResponseEntity.ok(incomeCalendarService.getCalendar(userId, months));
+    }
+
+    @GetMapping("/income-history")
+    @Operation(summary = "User income history",
+            description = "Paginated list of past and scheduled coupon/income events for the authenticated user")
+    public ResponseEntity<UserIncomeHistoryResponse> getIncomeHistory(
+            @RequestParam(defaultValue = "ALL") String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long userId = userIdentityResolver.resolveUserId(jwt);
+        return ResponseEntity.ok(portfolioService.getIncomeHistory(userId, status, page, size));
     }
 }

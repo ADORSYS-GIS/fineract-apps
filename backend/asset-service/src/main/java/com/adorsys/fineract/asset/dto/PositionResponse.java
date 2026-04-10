@@ -1,5 +1,7 @@
 package com.adorsys.fineract.asset.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -89,6 +91,43 @@ public record PositionResponse(
      * Positive = net gain across all past sells; negative = net loss.
      */
     BigDecimal realizedPnl,
+
+    /**
+     * Accrued coupon interest per unit since last coupon date (XAF).
+     * Zero for BTA/DISCOUNT bonds (no periodic coupons). Null for non-bond assets.
+     */
+    @Schema(description = "Accrued coupon interest per unit since last coupon date (XAF). Zero for BTA/DISCOUNT.", nullable = true)
+    BigDecimal accruedInterestPerUnit,
+
+    /**
+     * Clean price per unit (bid price, excluding accrued coupon interest), in XAF.
+     * This is the LP's buy-back price used for position valuation. Null for non-bond assets.
+     */
+    @Schema(description = "Clean price per unit (bid price, excluding accrued coupon).", nullable = true)
+    BigDecimal cleanPrice,
+
+    /**
+     * Dirty price per unit = cleanPrice + accruedInterestPerUnit, in XAF.
+     * Equals cleanPrice for DISCOUNT (BTA) bonds where accrued interest is zero.
+     * Null for non-bond assets.
+     */
+    @Schema(description = "Dirty price = cleanPrice + accruedInterestPerUnit. Equals cleanPrice for BTA.", nullable = true)
+    BigDecimal dirtyPrice,
+
+    /**
+     * Total accrued interest across all held units: accruedInterestPerUnit × totalUnits, in XAF.
+     * Null for non-bond assets.
+     */
+    @Schema(description = "Total accrued interest across all held units.", nullable = true)
+    BigDecimal totalAccruedInterest,
+
+    /**
+     * Current market value using the dirty price: dirtyPrice × totalUnits, in XAF.
+     * Reflects the full settlement cost of the position including accrued interest.
+     * Null for non-bond assets.
+     */
+    @Schema(description = "Current market value using dirty price: dirtyPrice × totalUnits.", nullable = true)
+    BigDecimal dirtyMarketValue,
 
     /**
      * Bond-specific benefit projections (coupon income schedule, principal redemption at maturity).

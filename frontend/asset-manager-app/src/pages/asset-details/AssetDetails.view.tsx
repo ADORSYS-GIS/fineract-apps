@@ -27,6 +27,7 @@ import { MintSupplyDialog } from "@/components/MintSupplyDialog";
 import { RedemptionHistoryTable } from "@/components/RedemptionHistoryTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import { BOND_TYPE_LABELS } from "@/constants/bondTypes";
+import { DAY_COUNT_LABELS } from "@/constants/dayCountConventions";
 import { FREQUENCY_LABELS } from "@/constants/frequencies";
 import {
 	INCOME_TYPE_LABELS,
@@ -492,6 +493,21 @@ function BondInfoCard({
 					</p>
 				</div>
 				<div>
+					<p className="text-gray-500">Day Count Convention</p>
+					<p className="font-medium">
+						{asset.dayCountConvention
+							? (DAY_COUNT_LABELS[asset.dayCountConvention] ??
+								asset.dayCountConvention)
+							: "—"}
+					</p>
+				</div>
+				{asset.bondType === "COUPON" && asset.interestRate != null && (
+					<div>
+						<p className="text-gray-500">Taux de coupon (annuel)</p>
+						<p className="font-medium">{asset.interestRate}%</p>
+					</div>
+				)}
+				<div>
 					<p className="text-gray-500">Next Coupon</p>
 					<p className="font-medium">{asset.nextCouponDate ?? "—"}</p>
 				</div>
@@ -501,9 +517,88 @@ function BondInfoCard({
 						{asset.residualDays != null ? `${asset.residualDays} days` : "—"}
 					</p>
 				</div>
+				<div>
+					<p className="text-gray-500">IRCM Status</p>
+					{asset.ircmExempt === true ? (
+						<p className="font-medium text-green-700">
+							Exempté (obligation d'État)
+						</p>
+					) : (
+						<p className="font-medium flex items-center gap-1">
+							<AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+							Assujetti
+							{asset.ircmRateOverride != null
+								? ` — ${asset.ircmRateOverride}%`
+								: ""}
+						</p>
+					)}
+				</div>
 			</div>
 		</Card>
 	);
+}
+
+/* ---------- Current market data card ---------- */
+function CurrentMarketDataCard({
+	asset,
+}: {
+	asset: NonNullable<ReturnType<typeof useAssetDetails>["asset"]>;
+}) {
+	if (asset.category !== "BONDS") return null;
+
+	const md = (asset as AssetDetailResponseWithMarketData).currentMarketData;
+
+	return (
+		<Card className="p-4 mb-6">
+			<h2 className="text-lg font-semibold text-gray-800 mb-3">
+				Current Market Data
+			</h2>
+			{md ? (
+				<div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+					{md.cleanPrice != null && (
+						<div>
+							<p className="text-gray-500">Clean Price</p>
+							<p className="font-medium">
+								{md.cleanPrice.toLocaleString()} XAF
+							</p>
+						</div>
+					)}
+					{md.accruedInterest != null && (
+						<div>
+							<p className="text-gray-500">Accrued Coupon</p>
+							<p className="font-medium">
+								{md.accruedInterest.toLocaleString()} XAF
+							</p>
+						</div>
+					)}
+					{md.dirtyPrice != null && (
+						<div>
+							<p className="text-gray-500">Dirty Price</p>
+							<p className="font-medium">
+								{md.dirtyPrice.toLocaleString()} XAF
+							</p>
+						</div>
+					)}
+				</div>
+			) : (
+				<p className="text-sm text-gray-400">
+					Market pricing data not available.
+				</p>
+			)}
+		</Card>
+	);
+}
+
+/** Extended asset type to accommodate the optional currentMarketData field
+ *  until AssetDetailResponse in assetApi.ts is updated. */
+interface CurrentMarketData {
+	cleanPrice?: number | null;
+	accruedInterest?: number | null;
+	dirtyPrice?: number | null;
+}
+interface AssetDetailResponseWithMarketData
+	extends NonNullable<ReturnType<typeof useAssetDetails>["asset"]> {
+	currentMarketData?: CurrentMarketData | null;
 }
 
 /* ---------- Pricing & Limits card ---------- */
@@ -1032,6 +1127,7 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 				)}
 
 				<BondInfoCard asset={asset} />
+				<CurrentMarketDataCard asset={asset} />
 
 				<PricingLimitsCard asset={asset} />
 				<IncomeDistributionCard asset={asset} />

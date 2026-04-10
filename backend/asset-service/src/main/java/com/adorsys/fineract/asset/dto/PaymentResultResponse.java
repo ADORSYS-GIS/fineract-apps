@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.springframework.lang.Nullable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -109,18 +110,60 @@ public record PaymentResultResponse(
      * and the asset's face value or NAV at the snapshot date.
      * Null for bond coupon payments.
      */
-    BigDecimal rateApplied
+    BigDecimal rateApplied,
+
+    // ── IRCM withholding fields (coupon payments only) ──────────────────────
+
+    /**
+     * Gross coupon amount disbursed to this holder before IRCM withholding, in XAF.
+     * Equals {@code units × grossAmountPerUnit}. Null for income distribution payments.
+     */
+    @Nullable BigDecimal grossAmount,
+
+    /**
+     * IRCM withheld for this holder, in XAF.
+     * Equals {@code grossAmount × ircmRate}. Zero if the asset is IRCM-exempt.
+     * Null for income distribution payments.
+     */
+    @Nullable BigDecimal ircmWithheld,
+
+    /**
+     * Net cash amount received by this holder after IRCM withholding, in XAF.
+     * Equals {@code grossAmount - ircmWithheld}.
+     * Matches the {@code amount} field when the gross equals the net (i.e. exempt assets).
+     * Null for income distribution payments.
+     */
+    @Nullable BigDecimal netAmount
 
 ) {
 
-    /** Map from an InterestPayment entity. */
+    /** Map from an InterestPayment entity (without IRCM breakdown). */
     public static PaymentResultResponse fromCoupon(
             Long id, Long userId, BigDecimal units, BigDecimal cashAmount,
             String status, String failureReason, Instant paidAt,
             BigDecimal faceValue, BigDecimal annualRate, Integer periodMonths) {
         return new PaymentResultResponse(
                 id, userId, units, cashAmount, status, failureReason, paidAt,
-                faceValue, annualRate, periodMonths, null, null);
+                faceValue, annualRate, periodMonths, null, null,
+                null, null, null);
+    }
+
+    /**
+     * Map from an InterestPayment entity with IRCM breakdown.
+     *
+     * @param grossAmount   gross coupon before IRCM (units × grossAmountPerUnit)
+     * @param ircmWithheld  IRCM withheld for this holder (zero if exempt)
+     * @param netAmount     net cash after IRCM ({@code grossAmount - ircmWithheld})
+     */
+    public static PaymentResultResponse fromCoupon(
+            Long id, Long userId, BigDecimal units, BigDecimal cashAmount,
+            String status, String failureReason, Instant paidAt,
+            BigDecimal faceValue, BigDecimal annualRate, Integer periodMonths,
+            BigDecimal grossAmount, BigDecimal ircmWithheld, BigDecimal netAmount) {
+        return new PaymentResultResponse(
+                id, userId, units, cashAmount, status, failureReason, paidAt,
+                faceValue, annualRate, periodMonths, null, null,
+                grossAmount, ircmWithheld, netAmount);
     }
 
     /** Map from an IncomeDistribution entity. */
@@ -130,6 +173,7 @@ public record PaymentResultResponse(
             String incomeType, BigDecimal rateApplied) {
         return new PaymentResultResponse(
                 id, userId, units, cashAmount, status, failureReason, paidAt,
-                null, null, null, incomeType, rateApplied);
+                null, null, null, incomeType, rateApplied,
+                null, null, null);
     }
 }
