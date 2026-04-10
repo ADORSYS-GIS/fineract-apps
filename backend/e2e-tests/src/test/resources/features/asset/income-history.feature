@@ -53,7 +53,8 @@ Feature: Income History
   Scenario: Upcoming scheduled coupons appear in income history
     Given an active bond asset "IHD" priced at 10000 with supply 100 and interest rate 7.00
     And the user holds 2 units of bond "IHD"
-    When the user requests their income history with status "SCHEDULED"
+    When the scheduler creates a pending coupon schedule for "IHD"
+    And the user requests their income history with status "SCHEDULED"
     Then the response status should be 200
     And the income history should contain at least 1 scheduled event
 

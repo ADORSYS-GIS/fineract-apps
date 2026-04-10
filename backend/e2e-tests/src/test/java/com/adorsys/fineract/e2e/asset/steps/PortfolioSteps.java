@@ -133,15 +133,10 @@ public class PortfolioSteps {
                 .isGreaterThanOrEqualTo(minCount);
     }
 
-    @Then("the income history should contain at least {int} paid event")
-    public void incomeHistoryShouldContainAtLeastOnePaidEvent(int minCount) {
-        incomeHistoryShouldContainPaidEvents(minCount);
-    }
-
     @Then("the income history paid events should have positive net amounts")
     public void incomeHistoryPaidEventsShouldHavePositiveNetAmounts() {
         List<String> statuses = context.getLastResponse().jsonPath().getList("content.status");
-        List<Float> netAmounts = context.getLastResponse().jsonPath().getList("content.totalNet");
+        List<Number> netAmounts = context.getLastResponse().jsonPath().getList("content.totalNet");
         if (statuses == null) return;
         for (int i = 0; i < statuses.size(); i++) {
             if ("PAID".equals(statuses.get(i))) {
@@ -166,7 +161,7 @@ public class PortfolioSteps {
     @Then("the first paid event should have IRCM withheld greater than {int}")
     public void firstPaidEventIrcmWithheldGreaterThan(int min) {
         List<String> statuses = context.getLastResponse().jsonPath().getList("content.status");
-        List<Float> ircmWithheld = context.getLastResponse().jsonPath().getList("content.ircmWithheldPerUnit");
+        List<Number> ircmWithheld = context.getLastResponse().jsonPath().getList("content.ircmWithheldPerUnit");
         assertThat(statuses).as("income history content should not be empty").isNotEmpty();
         int firstPaidIdx = statuses.indexOf("PAID");
         assertThat(firstPaidIdx).as("At least one PAID event should exist").isGreaterThanOrEqualTo(0);
@@ -178,8 +173,8 @@ public class PortfolioSteps {
     @Then("the first paid event net amount should be less than gross amount")
     public void firstPaidEventNetShouldBeLessThanGross() {
         List<String> statuses = context.getLastResponse().jsonPath().getList("content.status");
-        List<Float> grossAmounts = context.getLastResponse().jsonPath().getList("content.grossAmountPerUnit");
-        List<Float> netAmounts = context.getLastResponse().jsonPath().getList("content.netAmountPerUnit");
+        List<Number> grossAmounts = context.getLastResponse().jsonPath().getList("content.grossAmountPerUnit");
+        List<Number> netAmounts = context.getLastResponse().jsonPath().getList("content.netAmountPerUnit");
         int firstPaidIdx = statuses.indexOf("PAID");
         assertThat(firstPaidIdx).as("At least one PAID event should exist").isGreaterThanOrEqualTo(0);
         assertThat(netAmounts.get(firstPaidIdx).doubleValue())
@@ -195,11 +190,6 @@ public class PortfolioSteps {
                 .as("Expected >= %d SCHEDULED events — response: %s",
                         minCount, context.getLastResponse().body().asString())
                 .isGreaterThanOrEqualTo(minCount);
-    }
-
-    @Then("the income history should contain at least {int} scheduled event")
-    public void incomeHistoryShouldContainAtLeastOneScheduledEvent(int minCount) {
-        incomeHistoryShouldContainScheduledEvents(minCount);
     }
 
     @Then("all income history events should have status {string}")
