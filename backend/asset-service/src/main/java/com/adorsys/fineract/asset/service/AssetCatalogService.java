@@ -94,7 +94,7 @@ public class AssetCatalogService {
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getIssuerName(), asset.getIssuerPrice(), asset.getFaceValue(), asset.getLpClientName(),
                 asset.getBondType(), asset.getDayCountConvention(), asset.getIssuerCountry(),
-                asset.getIsinCode(), asset.getMaturityDate(),
+                asset.getIsinCode(), asset.getMaturityDate(), asset.getIssueDate(),
                 asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
@@ -152,7 +152,7 @@ public class AssetCatalogService {
                 lpMarginPerUnit, lpMarginPercent,
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getBondType(), asset.getDayCountConvention(), asset.getIssuerCountry(),
-                asset.getIsinCode(), asset.getMaturityDate(),
+                asset.getIsinCode(), asset.getMaturityDate(), asset.getIssueDate(),
                 asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
@@ -233,7 +233,7 @@ public class AssetCatalogService {
                 available, a.getTotalSupply(),
                 a.getIssuerName(), a.getLpClientName(), couponAmountPerUnit,
                 a.getBondType(),
-                a.getIsinCode(), a.getMaturityDate(),
+                a.getIsinCode(), a.getMaturityDate(), a.getIssueDate(),
                 a.getInterestRate(), currentYield,
                 computeResidualDays(a.getMaturityDate())
         );
