@@ -445,6 +445,11 @@ function BondInfoCard({
 						<p className="font-medium">
 							{asset.faceValue.toLocaleString()} XAF
 						</p>
+						<p className="text-xs text-gray-400">
+							{asset.bondType === "DISCOUNT"
+								? "Par value redeemed at maturity — BTA purchase price is discounted below this"
+								: "Nominal value per unit used for coupon calculation"}
+						</p>
 					</div>
 				)}
 				<div>
@@ -461,6 +466,11 @@ function BondInfoCard({
 								{asset.couponFrequencyMonths}/12
 							</p>
 						)}
+					{asset.bondType === "DISCOUNT" && (
+						<p className="text-xs text-gray-400">
+							BTA — no periodic coupons; gain realised at redemption
+						</p>
+					)}
 				</div>
 				<div>
 					<p className="text-gray-500">Current Yield</p>
@@ -471,8 +481,7 @@ function BondInfoCard({
 					</p>
 					{asset.currentYield != null && asset.bondType === "DISCOUNT" && (
 						<p className="text-xs text-gray-400">
-							= ((faceValue / askPrice) &minus; 1) &times; (
-							{asset.dayCountConvention === "ACT_365" ? "365" : "360"} /
+							= ((faceValue / askPrice) &minus; 1) &times; (360 /
 							daysToMaturity) &times; 100
 						</p>
 					)}
@@ -491,6 +500,12 @@ function BondInfoCard({
 							? (FREQUENCY_LABELS[asset.couponFrequencyMonths] ?? "—")
 							: "—"}
 					</p>
+					{asset.couponFrequencyMonths && (
+						<p className="text-xs text-gray-400">
+							Coupon paid every {asset.couponFrequencyMonths} month
+							{asset.couponFrequencyMonths > 1 ? "s" : ""}
+						</p>
+					)}
 				</div>
 				<div>
 					<p className="text-gray-500">Day Count Convention</p>
@@ -500,38 +515,88 @@ function BondInfoCard({
 								asset.dayCountConvention)
 							: "—"}
 					</p>
+					<p className="text-xs text-gray-400">
+						{asset.dayCountConvention === "ACT_360"
+							? "Actual days / 360 — BTA standard (CEMAC T-Bills)"
+							: asset.dayCountConvention === "ACT_365"
+								? "Actual days / 365 — OTA standard (fixed-coupon bonds)"
+								: asset.dayCountConvention === "THIRTY_360"
+									? "30/360 — assumes 30-day months, 360-day year"
+									: ""}
+					</p>
 				</div>
 				{asset.bondType === "COUPON" && asset.interestRate != null && (
 					<div>
-						<p className="text-gray-500">Taux de coupon (annuel)</p>
+						<p className="text-gray-500">Annual Coupon Rate</p>
 						<p className="font-medium">{asset.interestRate}%</p>
+						<p className="text-xs text-gray-400">
+							Annualised rate used to compute periodic coupon payments
+						</p>
 					</div>
 				)}
 				<div>
 					<p className="text-gray-500">Next Coupon</p>
 					<p className="font-medium">{asset.nextCouponDate ?? "—"}</p>
+					{asset.nextCouponDate && (
+						<p className="text-xs text-gray-400">
+							Date of next scheduled coupon payment; auto-advances after each
+							confirmation
+						</p>
+					)}
 				</div>
 				<div>
 					<p className="text-gray-500">Residual Days</p>
 					<p className="font-medium">
 						{asset.residualDays != null ? `${asset.residualDays} days` : "—"}
 					</p>
+					<p className="text-xs text-gray-400">
+						= maturityDate &minus; today (calendar days to redemption)
+					</p>
 				</div>
 				<div>
 					<p className="text-gray-500">IRCM Status</p>
-					{asset.ircmExempt === true ? (
+					{asset.isGovernmentBond ? (
 						<p className="font-medium text-green-700">
 							Exempté (obligation d'État)
+						</p>
+					) : asset.ircmExempt === true ? (
+						<p className="font-medium text-green-700">Exempté (manuel)</p>
+					) : asset.isBvmacListed ? (
+						<p className="font-medium flex items-center gap-1">
+							<AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+							Assujetti — 11% (BVMAC listed)
 						</p>
 					) : (
 						<p className="font-medium flex items-center gap-1">
 							<AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
 							Assujetti
 							{asset.ircmRateOverride != null
-								? ` — ${asset.ircmRateOverride}%`
-								: ""}
+								? ` — ${(asset.ircmRateOverride * 100).toFixed(1)}%`
+								: " — auto rate (16.5% dividends / 5.5% bonds ≥5yr)"}
 						</p>
 					)}
+					<p className="text-xs text-gray-400">
+						Withholding tax deducted at source on income distributions
+					</p>
+				</div>
+				<div>
+					<p className="text-gray-500">Bond Classification</p>
+					<p className="font-medium text-xs">
+						{asset.isGovernmentBond && (
+							<span className="inline-block mr-2 px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
+								Government bond
+							</span>
+						)}
+						{asset.isBvmacListed && (
+							<span className="inline-block px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
+								BVMAC listed
+							</span>
+						)}
+						{!asset.isGovernmentBond && !asset.isBvmacListed && (
+							<span className="text-gray-500">Standard</span>
+						)}
+					</p>
+					<p className="text-xs text-gray-400">Determines automatic IRCM rate applied</p>
 				</div>
 			</div>
 		</Card>
@@ -561,6 +626,9 @@ function CurrentMarketDataCard({
 							<p className="font-medium">
 								{md.cleanPrice.toLocaleString()} XAF
 							</p>
+							<p className="text-xs text-gray-400">
+								= LP ask price — quoted market price excluding accrued coupon
+							</p>
 						</div>
 					)}
 					{md.accruedInterest != null && (
@@ -569,6 +637,16 @@ function CurrentMarketDataCard({
 							<p className="font-medium">
 								{md.accruedInterest.toLocaleString()} XAF
 							</p>
+							{asset.bondType === "COUPON" ? (
+								<p className="text-xs text-gray-400">
+									= faceValue &times; rate% &times; daysSinceLastCoupon /{" "}
+									{asset.dayCountConvention === "ACT_360" ? "360" : "365"}
+								</p>
+							) : (
+								<p className="text-xs text-gray-400">
+									= 0 — BTA gain accretes via price, not coupon
+								</p>
+							)}
 						</div>
 					)}
 					{md.dirtyPrice != null && (
@@ -576,6 +654,9 @@ function CurrentMarketDataCard({
 							<p className="text-gray-500">Dirty Price</p>
 							<p className="font-medium">
 								{md.dirtyPrice.toLocaleString()} XAF
+							</p>
+							<p className="text-xs text-gray-400">
+								= cleanPrice + accruedCoupon — total amount paid by buyer
 							</p>
 						</div>
 					)}
@@ -627,15 +708,21 @@ function PricingLimitsCard({
 						<p className="font-medium">
 							{(asset.tradingFeePercent * 100).toFixed(2)}%
 						</p>
+						<p className="text-xs text-gray-400">
+							Added to buyer's cost, deducted from seller's proceeds
+						</p>
 					</div>
 				)}
 				{asset.lpMarginPerUnit != null && (
 					<div>
-						<p className="text-gray-500">Spread</p>
+						<p className="text-gray-500">LP Spread</p>
 						<p className="font-medium">
 							{asset.lpMarginPerUnit.toLocaleString()} XAF
 							{asset.lpMarginPercent != null &&
 								` (${asset.lpMarginPercent.toFixed(2)}%)`}
+						</p>
+						<p className="text-xs text-gray-400">
+							= askPrice &minus; bidPrice — LP margin per unit
 						</p>
 					</div>
 				)}
@@ -758,12 +845,48 @@ function TaxConfigCard({
 }: {
 	asset: NonNullable<ReturnType<typeof useAssetDetails>["asset"]>;
 }) {
+	const a = asset as NonNullable<ReturnType<typeof useAssetDetails>["asset"]> & {
+		isBvmacListed?: boolean;
+		isGovernmentBond?: boolean;
+		tvaEnabled?: boolean;
+		tvaRate?: number;
+	};
 	return (
 		<Card className="p-4 mb-6">
 			<h2 className="text-lg font-semibold text-gray-800 mb-3">
 				Tax Configuration
 			</h2>
 			<div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+				{asset.category === "BONDS" && (
+					<>
+						<div>
+							<p className="text-gray-500">BVMAC Listed</p>
+							<p className="font-medium">
+								{a.isBvmacListed ? (
+									<span className="text-blue-700">Yes</span>
+								) : (
+									"No"
+								)}
+							</p>
+							<p className="text-xs text-gray-400">
+								BVMAC-listed bonds use 11% IRCM rate
+							</p>
+						</div>
+						<div>
+							<p className="text-gray-500">Government Bond</p>
+							<p className="font-medium">
+								{a.isGovernmentBond ? (
+									<span className="text-green-700">Yes</span>
+								) : (
+									"No"
+								)}
+							</p>
+							<p className="text-xs text-gray-400">
+								Government bonds are IRCM-exempt by default
+							</p>
+						</div>
+					</>
+				)}
 				<div>
 					<p className="text-gray-500">Registration Duty</p>
 					<p className="font-medium">
@@ -772,6 +895,9 @@ function TaxConfigCard({
 							asset.registrationDutyRate,
 							"Enabled (default 2%)",
 						)}
+					</p>
+					<p className="text-xs text-gray-400">
+						Applied to gross transaction value on every buy/sell
 					</p>
 				</div>
 				<div>
@@ -784,6 +910,9 @@ function TaxConfigCard({
 							asset.ircmExempt,
 						)}
 					</p>
+					<p className="text-xs text-gray-400">
+						Deducted at source from coupon/dividend payments
+					</p>
 				</div>
 				<div>
 					<p className="text-gray-500">Capital Gains Tax</p>
@@ -794,7 +923,21 @@ function TaxConfigCard({
 							"Enabled (default 16.5%)",
 						)}
 					</p>
+					<p className="text-xs text-gray-400">
+						= 16.5% on gains above 500,000 XAF annual exemption
+					</p>
 				</div>
+				{a.tvaEnabled && (
+					<div>
+						<p className="text-gray-500">TVA (VAT)</p>
+						<p className="font-medium">
+							{formatTaxField(a.tvaEnabled, a.tvaRate, "Enabled (default 19.25%)")}
+						</p>
+						<p className="text-xs text-gray-400">
+							Applied to the trading fee amount only
+						</p>
+					</div>
+				)}
 			</div>
 		</Card>
 	);

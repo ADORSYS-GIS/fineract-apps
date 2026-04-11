@@ -322,9 +322,10 @@ public class TradingService {
             log.debug("Could not resolve balances for quote response: {}", e.getMessage());
         }
 
-        // Benefit projections
+        // Benefit projections — pass accruedInterestPaid so the first coupon projection
+        // correctly reflects the net income after offsetting the pre-paid accrued interest.
         BondBenefitProjection bondBenefit = (request.side() == TradeSide.BUY)
-                ? bondBenefitService.calculateForPurchase(asset, units, orderCashAmount) : null;
+                ? bondBenefitService.calculateForPurchase(asset, units, orderCashAmount, accruedInterestAmount) : null;
         IncomeBenefitProjection incomeBenefit = (request.side() == TradeSide.BUY)
                 ? incomeBenefitService.calculateForPurchase(asset, units, issuerPrice, orderCashAmount) : null;
 

@@ -113,7 +113,7 @@ class AdminAssetControllerTest {
                 1L, // lpClientId
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount
                 null, null, null, // bondType, dayCountConvention, issuerCountry
-                null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
+                null, null, null, null, null, null, null, // issuerName, isinCode, maturityDate, issueDate, interestRate, couponFrequencyMonths, nextCouponDate
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
                 null, null, null, null, null, null, null, null, null, // tax config
                 false, null // tvaEnabled, tvaRate
@@ -139,7 +139,8 @@ class AdminAssetControllerTest {
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
                 null, null, // delistingDate, delistingRedemptionPrice
                 null, null, null, null, null, null, null, null, null, // tax config fields
-                false, null // tvaEnabled, tvaRate
+                false, null, // tvaEnabled, tvaRate
+                null // currentMarketData
         );
 
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);

@@ -172,6 +172,23 @@ public class AssetProvisioningSteps {
         request.put("maturityDate", resolveDateExpression(
                 data.getOrDefault("maturityDate", "+5y")));
 
+        // New fields from V13 + form reorganization
+        if (data.containsKey("issueDate")) {
+            request.put("issueDate", resolveDateExpression(data.get("issueDate")));
+        }
+        if (data.containsKey("isBvmacListed")) {
+            request.put("isBvmacListed", Boolean.parseBoolean(data.get("isBvmacListed")));
+        }
+        if (data.containsKey("isGovernmentBond")) {
+            request.put("isGovernmentBond", Boolean.parseBoolean(data.get("isGovernmentBond")));
+        }
+        if (data.containsKey("tvaEnabled")) {
+            request.put("tvaEnabled", Boolean.parseBoolean(data.get("tvaEnabled")));
+        }
+        if (data.containsKey("tvaRate")) {
+            request.put("tvaRate", new BigDecimal(data.get("tvaRate")));
+        }
+
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
                 .contentType(ContentType.JSON)

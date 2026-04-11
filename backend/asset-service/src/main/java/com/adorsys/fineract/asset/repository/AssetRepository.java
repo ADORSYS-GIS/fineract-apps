@@ -107,6 +107,16 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
     List<Asset> findActiveBondsWithInterestRate();
 
     /**
+     * Find ACTIVE discount bonds (BTA) with face value set and not yet matured
+     * (for BtaPriceAccretionScheduler).
+     */
+    @Query("SELECT a FROM Asset a WHERE a.status = com.adorsys.fineract.asset.dto.AssetStatus.ACTIVE " +
+           "AND a.bondType = com.adorsys.fineract.asset.dto.BondType.DISCOUNT " +
+           "AND a.faceValue IS NOT NULL AND a.issuerPrice IS NOT NULL " +
+           "AND a.maturityDate > :today")
+    List<Asset> findActiveDiscountBondsNotMatured(@Param("today") LocalDate today);
+
+    /**
      * Count assets by status (for admin dashboard).
      */
     long countByStatus(AssetStatus status);

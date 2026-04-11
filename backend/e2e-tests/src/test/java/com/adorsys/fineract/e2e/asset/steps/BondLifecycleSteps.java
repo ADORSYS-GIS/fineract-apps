@@ -15,7 +15,6 @@ import io.restassured.response.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -315,6 +314,7 @@ public class BondLifecycleSteps {
         request.put("lpClientId", FineractInitializer.getLpClientId());
         request.put("issuerName", "Republique du Cameroun");
         request.put("issuerCountry", "CAMEROUN");
+        request.put("issueDate", LocalDate.now().minusWeeks(4).toString());
         request.put("maturityDate", LocalDate.now().plusWeeks(52).toString());
 
         Response createResp = RestAssured.given()
@@ -550,6 +550,118 @@ public class BondLifecycleSteps {
                 .post("/api/v1/admin/assets/" + assetId + "/activate");
 
         assertThat(activateResp.statusCode()).isEqualTo(200);
+    }
+
+    @Given("an active BVMAC-listed bond {string} priced at {int} with supply {int} and interest rate {double}")
+    public void activeBvmacListedBond(String symbolRef, int price, int supply, double interestRate) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("name", "Bond " + symbolRef);
+        request.put("symbol", symbolRef);
+        request.put("currencyCode", symbolRef);
+        request.put("category", "BONDS");
+        request.put("bondType", "COUPON");
+        request.put("dayCountConvention", "ACT_365");
+        BigDecimal issuerPrice = new BigDecimal(price);
+        request.put("issuerPrice", issuerPrice);
+        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("1.10")));
+        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("0.95")));
+        request.put("totalSupply", supply);
+        request.put("decimalPlaces", 0);
+        request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("issuerName", "Société Cotée BVMAC");
+        request.put("issuerCountry", "CAMEROUN");
+        request.put("interestRate", interestRate);
+        request.put("couponFrequencyMonths", 12);
+        request.put("maturityDate", LocalDate.now().plusYears(5).toString());
+        request.put("nextCouponDate", LocalDate.now().toString());
+        request.put("isBvmacListed", true);
+        request.put("ircmEnabled", true);
+        request.put("isGovernmentBond", false);
+        request.put("tvaEnabled", false);
+        request.put("registrationDutyEnabled", false);
+
+        Response createResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/api/v1/admin/assets");
+
+        assertThat(createResp.statusCode())
+                .as("Create BVMAC bond %s: %s", symbolRef, createResp.body().asString())
+                .isEqualTo(201);
+        String assetId = createResp.jsonPath().getString("id");
+        context.storeId("lastAssetId", assetId);
+        context.storeValue("lastSymbol", symbolRef);
+
+        Response activateResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
+
+        assertThat(activateResp.statusCode()).isEqualTo(200);
+    }
+
+    @Given("an active taxable discount bond {string} priced at {int} with face value {int} and supply {int}")
+    public void activeTaxableDiscountBond(String symbolRef, int issuerPriceInt, int faceValueInt, int supply) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("name", "BTA " + symbolRef);
+        request.put("symbol", symbolRef);
+        request.put("currencyCode", symbolRef);
+        request.put("category", "BONDS");
+        request.put("bondType", "DISCOUNT");
+        request.put("dayCountConvention", "ACT_360");
+        BigDecimal issuerPrice = new BigDecimal(issuerPriceInt);
+        BigDecimal faceValue = new BigDecimal(faceValueInt);
+        request.put("issuerPrice", issuerPrice);
+        request.put("faceValue", faceValue);
+        request.put("lpAskPrice", issuerPrice.multiply(new BigDecimal("1.04")));
+        request.put("lpBidPrice", issuerPrice.multiply(new BigDecimal("1.02")));
+        request.put("totalSupply", supply);
+        request.put("decimalPlaces", 0);
+        request.put("lpClientId", FineractInitializer.getLpClientId());
+        request.put("issuerName", "Republique du Cameroun");
+        request.put("issuerCountry", "CAMEROUN");
+        request.put("issueDate", LocalDate.now().minusWeeks(4).toString());
+        request.put("maturityDate", LocalDate.now().plusWeeks(52).toString());
+        request.put("ircmEnabled", true);
+        request.put("isGovernmentBond", false);
+        request.put("tvaEnabled", false);
+        request.put("registrationDutyEnabled", false);
+
+        Response createResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("/api/v1/admin/assets");
+
+        assertThat(createResp.statusCode())
+                .as("Create taxable BTA %s: %s", symbolRef, createResp.body().asString())
+                .isEqualTo(201);
+        String assetId = createResp.jsonPath().getString("id");
+        context.storeId("lastAssetId", assetId);
+        context.storeValue("lastSymbol", symbolRef);
+
+        Response activateResp = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .post("/api/v1/admin/assets/" + assetId + "/activate");
+        assertThat(activateResp.statusCode()).isEqualTo(200);
+
+        Long lpCashAccountId = createResp.jsonPath().getLong("lpCashAccountId");
+        if (lpCashAccountId != null) {
+            fineractTestClient.depositToSavingsAccount(lpCashAccountId,
+                    faceValue.multiply(new BigDecimal(supply)));
+        }
+    }
+
+    @Then("the user's XAF balance should have increased by less than {int}")
+    public void xafBalanceShouldHaveIncreasedByLessThan(int maxIncrease) {
+        BigDecimal balanceBefore = context.getValue("xafBalanceBefore");
+        BigDecimal balanceAfter = fineractTestClient.getAccountBalance(
+                FineractInitializer.getTestUserXafAccountId());
+        BigDecimal actualIncrease = balanceAfter.subtract(balanceBefore);
+        assertThat(actualIncrease).isGreaterThan(BigDecimal.ZERO);
+        assertThat(actualIncrease).isLessThan(new BigDecimal(maxIncrease));
     }
 
     @Then("the quote response should contain {string}")

@@ -18,8 +18,6 @@ interface EditFormValues {
 	imageUrl: string;
 	category: string;
 	tradingFeePercent: string;
-	lpAskPrice: string;
-	lpBidPrice: string;
 	maxPositionPercent: string;
 	maxOrderSize: string;
 	minOrderSize: string;
@@ -68,8 +66,6 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 			asset.tradingFeePercent != null
 				? (asset.tradingFeePercent * 100).toString()
 				: "",
-		lpAskPrice: asset.askPrice?.toString() ?? "",
-		lpBidPrice: asset.bidPrice?.toString() ?? "",
 		maxPositionPercent: asset.maxPositionPercent?.toString() ?? "",
 		maxOrderSize: asset.maxOrderSize?.toString() ?? "",
 		minOrderSize: asset.minOrderSize?.toString() ?? "",
@@ -132,8 +128,6 @@ const STRING_FIELDS: (keyof EditFormValues)[] = [
 ];
 
 const NUM_FIELDS: (keyof EditFormValues)[] = [
-	"lpBidPrice",
-	"lpAskPrice",
 	"maxPositionPercent",
 	"maxOrderSize",
 	"minOrderSize",
@@ -522,33 +516,14 @@ const PricingSection: FC = () => (
 				step="0.0001"
 				placeholder="e.g. 0.005"
 			/>
+			<p className="text-xs text-gray-400 mt-1">
+				Fee charged on each buy/sell transaction
+			</p>
 		</div>
-		<div className="grid grid-cols-2 gap-4">
-			<div>
-				<label className={LABEL_CLASS}>LP Ask Price (XAF)</label>
-				<Field
-					name="lpAskPrice"
-					type="number"
-					className={INPUT_CLASS}
-					min={0}
-					placeholder="e.g. 5100"
-				/>
-				<p className="text-xs text-gray-400 mt-1">What investors pay to buy</p>
-			</div>
-			<div>
-				<label className={LABEL_CLASS}>LP Bid Price (XAF)</label>
-				<Field
-					name="lpBidPrice"
-					type="number"
-					className={INPUT_CLASS}
-					min={0}
-					placeholder="e.g. 4900"
-				/>
-				<p className="text-xs text-gray-400 mt-1">
-					What investors receive when selling
-				</p>
-			</div>
-		</div>
+		<p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+			LP ask/bid prices are managed exclusively via the{" "}
+			<strong>Pricing</strong> page to ensure spread consistency.
+		</p>
 	</>
 );
 

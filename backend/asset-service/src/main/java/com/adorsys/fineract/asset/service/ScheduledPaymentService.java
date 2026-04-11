@@ -164,6 +164,21 @@ public class ScheduledPaymentService {
                             .setScale(0, RoundingMode.HALF_UP));
         }
 
+        // Warn if actual total deviates more than 5% from the estimate (e.g. holder count changed)
+        if (schedule.getEstimatedTotal() != null
+                && schedule.getEstimatedTotal().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal deviation = totalRequired.subtract(schedule.getEstimatedTotal())
+                    .abs()
+                    .divide(schedule.getEstimatedTotal(), 4, RoundingMode.HALF_UP);
+            if (deviation.compareTo(new BigDecimal("0.05")) > 0) {
+                log.warn("Scheduled payment #{} actual total {} deviates {}% from estimate {}. "
+                        + "Holder count may have changed since scheduling.",
+                        scheduleId, totalRequired,
+                        deviation.multiply(new BigDecimal("100")).setScale(1, RoundingMode.HALF_UP),
+                        schedule.getEstimatedTotal());
+            }
+        }
+
         BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
         if (lpCashBalance.compareTo(totalRequired) < 0) {
             throw new IllegalStateException(String.format(
@@ -401,15 +416,21 @@ public class ScheduledPaymentService {
                     .findByAssetIdAndCouponDateOrderByPaidAtDesc(
                             schedule.getAssetId(), schedule.getScheduleDate(), pageable)
                     .map(ip -> {
-                        // Gross = faceValue × (annualRate/100) × (periodMonths/12) × units
-                        BigDecimal grossPerUnit = (ip.getFaceValue() != null && ip.getAnnualRate() != null
-                                && ip.getPeriodMonths() != null)
-                                ? ip.getFaceValue()
-                                        .multiply(ip.getAnnualRate())
-                                        .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
-                                        .multiply(BigDecimal.valueOf(ip.getPeriodMonths()))
-                                        .divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP)
-                                : null;
+                        // Use stored grossAmountPerUnit (ACT-day snapshot) when available.
+                        // Fall back to months/12 approximation for legacy records without the field.
+                        BigDecimal grossPerUnit;
+                        if (ip.getGrossAmountPerUnit() != null) {
+                            grossPerUnit = ip.getGrossAmountPerUnit();
+                        } else if (ip.getFaceValue() != null && ip.getAnnualRate() != null
+                                && ip.getPeriodMonths() != null) {
+                            grossPerUnit = ip.getFaceValue()
+                                    .multiply(ip.getAnnualRate())
+                                    .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+                                    .multiply(BigDecimal.valueOf(ip.getPeriodMonths()))
+                                    .divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP);
+                        } else {
+                            grossPerUnit = null;
+                        }
                         BigDecimal gross = grossPerUnit != null
                                 ? grossPerUnit.multiply(ip.getUnits()).setScale(0, RoundingMode.HALF_UP)
                                 : null;
@@ -484,6 +505,11 @@ public class ScheduledPaymentService {
         BigDecimal ircmAmount = taxService.calculateIrcm(bond, cashAmount);
         BigDecimal netPayment = cashAmount.subtract(ircmAmount);
 
+        // Gross amount per unit before IRCM — snapshot for accurate breakdown display
+        BigDecimal grossAmountPerUnit = holder.getTotalUnits().compareTo(BigDecimal.ZERO) > 0
+                ? cashAmount.divide(holder.getTotalUnits(), 4, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
         InterestPayment.InterestPaymentBuilder record = InterestPayment.builder()
                 .assetId(bond.getId())
                 .userId(holder.getUserId())
@@ -492,6 +518,7 @@ public class ScheduledPaymentService {
                 .annualRate(bond.getInterestRate())
                 .periodMonths(bond.getCouponFrequencyMonths())
                 .cashAmount(netPayment)
+                .grossAmountPerUnit(grossAmountPerUnit)
                 .couponDate(couponDate);
 
         try {

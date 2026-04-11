@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -24,13 +25,33 @@ public class BondBenefitService {
     /**
      * Calculate benefit projections for a prospective bond purchase.
      *
-     * @param asset          the bond asset (must have category BONDS)
-     * @param units          number of units being purchased
-     * @param investmentCost total cost to the buyer (grossAmount + fee), from trade preview
+     * @param asset              the bond asset (must have category BONDS)
+     * @param units              number of units being purchased
+     * @param investmentCost     total cost to the buyer (grossAmount + fee), from trade preview
      * @return projection record, or null if the asset is not a bond or has missing config
      */
     public BondBenefitProjection calculateForPurchase(Asset asset, BigDecimal units,
                                                        BigDecimal investmentCost) {
+        return calculateForPurchase(asset, units, investmentCost, BigDecimal.ZERO);
+    }
+
+    /**
+     * Calculate benefit projections for a prospective bond purchase, accounting for accrued interest.
+     *
+     * <p>For OTA coupon bonds, the buyer pays accrued interest to the seller at settlement.
+     * That amount should be deducted from the first coupon projection since the buyer is
+     * effectively pre-paying part of it. Without this deduction the projected income would
+     * overstate the net benefit for the first coupon period.
+     *
+     * @param asset              the bond asset (must have category BONDS)
+     * @param units              number of units being purchased
+     * @param investmentCost     total cost to the buyer (grossAmount + fee), from trade preview
+     * @param accruedInterestPaid accrued interest already paid at purchase (deducted from first coupon)
+     * @return projection record, or null if the asset is not a bond or has missing config
+     */
+    public BondBenefitProjection calculateForPurchase(Asset asset, BigDecimal units,
+                                                       BigDecimal investmentCost,
+                                                       BigDecimal accruedInterestPaid) {
         if (asset.getCategory() != AssetCategory.BONDS) {
             return null;
         }
@@ -58,7 +79,14 @@ public class BondBenefitService {
         BigDecimal couponPerPeriod = computeCouponPerPeriod(units, faceValue, rate, freqMonths);
         int remainingPayments = countRemainingCoupons(asset.getNextCouponDate(),
                 asset.getMaturityDate(), freqMonths);
-        BigDecimal totalCouponIncome = couponPerPeriod.multiply(BigDecimal.valueOf(remainingPayments));
+
+        // Deduct accrued interest already paid at purchase from total coupon projection.
+        // The buyer pre-pays this to the seller; they'll recoup it in the first coupon,
+        // but it offsets the net income for that period.
+        BigDecimal paid = accruedInterestPaid != null ? accruedInterestPaid : BigDecimal.ZERO;
+        BigDecimal totalCouponIncome = couponPerPeriod.multiply(BigDecimal.valueOf(remainingPayments))
+                .subtract(paid).max(BigDecimal.ZERO);
+
         BigDecimal principalAtMaturity = units.multiply(faceValue).setScale(0, RoundingMode.HALF_UP);
         long daysToMaturity = computeDaysToMaturity(asset.getMaturityDate());
 
@@ -194,7 +222,8 @@ public class BondBenefitService {
      * Only counts coupon dates that are today or in the future.
      */
     int countRemainingCoupons(LocalDate nextCouponDate, LocalDate maturityDate, int freqMonths) {
-        return countRemainingCoupons(nextCouponDate, maturityDate, freqMonths, LocalDate.now());
+        return countRemainingCoupons(nextCouponDate, maturityDate, freqMonths,
+                LocalDate.now(ZoneId.of("Africa/Douala")));
     }
 
     /**
@@ -221,7 +250,7 @@ public class BondBenefitService {
         if (maturityDate == null) {
             return 0;
         }
-        return Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), maturityDate));
+        return Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(ZoneId.of("Africa/Douala")), maturityDate));
     }
 
     private BigDecimal computeAnnualizedYield(BigDecimal netProfit, BigDecimal investmentCost,

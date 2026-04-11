@@ -198,6 +198,15 @@ public class Asset {
     @Column(name = "maturity_date")
     private LocalDate maturityDate;
 
+    /**
+     * Actual auction/settlement date when the bond was issued.
+     * For BTA discount bonds, this is more accurate than {@code createdAt} (which is the record
+     * creation timestamp) for computing {@code originalTotalDays} in price accretion calculations.
+     * Null for bonds created before this field was added — falls back to {@code createdAt}.
+     */
+    @Column(name = "issue_date")
+    private LocalDate issueDate;
+
     /** Annual coupon rate as a percentage (e.g. 5.80 = 5.80%). Null for non-bond assets. */
     @Column(name = "interest_rate", precision = 8, scale = 4)
     private BigDecimal interestRate;

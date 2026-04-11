@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * Daily scheduler that accrues interest on coupon bond positions.
- * For each ACTIVE coupon bond, for each holder: dailyAccrual = units * issuerPrice * rate / (100 * dayCountBasis)
+ * For each ACTIVE coupon bond, for each holder: dailyAccrual = units * faceValue * rate / (100 * dayCountBasis)
  * Uses the bond's dayCountConvention (ACT/365 default, ACT/360 for BTA).
  * DISCOUNT (BTA) bonds are excluded by the repository query.
  * Runs at 00:30 WAT daily, after interest payment processing.
@@ -109,10 +109,8 @@ public class AccruedInterestScheduler {
     @Transactional
     public void resetAccruedInterest(String assetId) {
         List<UserPosition> holders = userPositionRepository.findByAssetId(assetId);
-        for (UserPosition pos : holders) {
-            pos.setAccruedInterest(BigDecimal.ZERO);
-            userPositionRepository.save(pos);
-        }
+        holders.forEach(pos -> pos.setAccruedInterest(BigDecimal.ZERO));
+        userPositionRepository.saveAll(holders);
         log.info("Reset accrued interest for {} holder(s) of asset {}", holders.size(), assetId);
     }
 }

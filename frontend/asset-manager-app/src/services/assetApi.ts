@@ -234,6 +234,7 @@ export interface CreateAssetRequest {
 	issuerName?: string;
 	isinCode?: string;
 	maturityDate?: string;
+	issueDate?: string;
 	interestRate?: number;
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;

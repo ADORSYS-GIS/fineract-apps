@@ -7,6 +7,7 @@ import com.adorsys.fineract.asset.service.ScheduledPaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,6 +99,13 @@ public class InterestPaymentScheduler {
             log.info("Bond {} next coupon date advanced to {}", bond.getSymbol(), nextDate);
         }
 
-        assetRepository.save(bond);
+        try {
+            assetRepository.save(bond);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // Another scheduler instance already advanced this bond's coupon date.
+            // Log and skip — the date is already correct.
+            log.warn("Optimistic lock conflict advancing coupon date for bond {} ({}): {}",
+                    bond.getId(), bond.getSymbol(), e.getMessage());
+        }
     }
 }

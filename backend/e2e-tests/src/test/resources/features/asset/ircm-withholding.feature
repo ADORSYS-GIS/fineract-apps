@@ -64,3 +64,15 @@ Feature: IRCM Withholding on Coupon Payments (E2E)
     And the IRCM withheld per unit should be 0
     When the admin confirms the scheduled payment
     Then the user's XAF balance should have increased after coupon
+
+  # -----------------------------------------------------------------
+  # BVMAC-listed bond: 11% IRCM rate
+  # -----------------------------------------------------------------
+
+  Scenario: BVMAC-listed bond with long maturity uses 5.5% bond IRCM rate
+    Given an active BVMAC-listed bond "BVM" priced at 10000 with supply 100 and interest rate 8.00
+    And the user holds 1 units of bond "BVM"
+    When the scheduler creates a pending coupon schedule for "BVM"
+    Then a PENDING scheduled payment should exist for "BVM" with type "COUPON"
+    And the scheduled payment should have ircmExempt equal to false
+    And the IRCM withheld per unit should be approximately 5.5 percent of gross per unit

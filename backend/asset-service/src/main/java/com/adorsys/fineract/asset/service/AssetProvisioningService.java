@@ -228,6 +228,7 @@ public class AssetProvisioningService {
                 .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
+                .issueDate(request.issueDate())
                 .interestRate(request.interestRate())
                 .couponFrequencyMonths(request.couponFrequencyMonths())
                 .nextCouponDate(request.nextCouponDate())
