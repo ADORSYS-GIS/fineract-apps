@@ -8,6 +8,7 @@ import com.adorsys.fineract.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class MaturityScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 5 0 * * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "maturity-scheduler", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     @Transactional
     public void matureBonds() {
         try {

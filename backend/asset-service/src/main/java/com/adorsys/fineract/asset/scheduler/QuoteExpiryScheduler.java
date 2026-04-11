@@ -11,6 +11,7 @@ import com.adorsys.fineract.asset.service.QuoteReservationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +34,7 @@ public class QuoteExpiryScheduler {
     private final QuoteReservationService quoteReservationService;
 
     @Scheduled(fixedRateString = "${asset-service.quote.expiry-cleanup-interval-ms:30000}")
+    @SchedulerLock(name = "quote-expiry-scheduler", lockAtMostFor = "PT25S", lockAtLeastFor = "PT10S")
     public void expireQuotes() {
         List<Order> expired = orderRepository.findByStatusAndQuoteExpiresAtBefore(
                 OrderStatus.QUOTED, Instant.now());

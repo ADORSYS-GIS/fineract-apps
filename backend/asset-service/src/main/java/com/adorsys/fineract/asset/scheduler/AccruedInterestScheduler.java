@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ public class AccruedInterestScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 30 0 * * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "accrued-interest-scheduler", lockAtMostFor = "PT30M", lockAtLeastFor = "PT10M")
     public void accrueDaily() {
         try {
             List<Asset> activeBonds = assetRepository.findActiveBondsWithInterestRate();

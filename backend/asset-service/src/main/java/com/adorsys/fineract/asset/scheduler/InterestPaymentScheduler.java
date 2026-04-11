@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,7 @@ public class InterestPaymentScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 15 0 * * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "interest-payment-scheduler", lockAtMostFor = "PT20M", lockAtLeastFor = "PT5M")
     public void processCouponPayments() {
         try {
             LocalDate today = LocalDate.now();

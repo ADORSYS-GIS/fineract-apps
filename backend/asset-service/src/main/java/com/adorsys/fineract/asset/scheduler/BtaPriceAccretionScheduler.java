@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +56,7 @@ public class BtaPriceAccretionScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 20 0 * * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "bta-price-accretion-scheduler", lockAtMostFor = "PT15M", lockAtLeastFor = "PT5M")
     @Transactional
     public void accreteBtaPrices() {
         LocalDate today = LocalDate.now();
