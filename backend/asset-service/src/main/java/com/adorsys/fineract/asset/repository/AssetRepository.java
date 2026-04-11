@@ -40,7 +40,13 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
 
     Optional<Asset> findBySymbol(String symbol);
 
+    boolean existsBySymbol(String symbol);
+
     Optional<Asset> findByCurrencyCode(String currencyCode);
+
+    boolean existsByCurrencyCode(String currencyCode);
+
+    boolean existsByFineractProductId(Integer fineractProductId);
 
     List<Asset> findByStatusIn(List<AssetStatus> statuses);
 

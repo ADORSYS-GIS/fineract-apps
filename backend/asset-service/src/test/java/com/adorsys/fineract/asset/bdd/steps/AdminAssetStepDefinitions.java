@@ -114,7 +114,7 @@ public class AdminAssetStepDefinitions {
         Map<String, Object> request = new HashMap<>();
         request.put("name", data.get("name"));
         request.put("symbol", data.get("symbol"));
-        request.put("currencyCode", data.get("currencyCode"));
+        // currencyCode is deprecated — auto-generated from symbol; not sent in new requests
         request.put("category", data.get("category"));
         request.put("issuerPrice", new BigDecimal(data.get("initialPrice")));
         request.put("lpAskPrice", new BigDecimal(data.get("initialPrice")).multiply(new BigDecimal("1.10")));
@@ -135,7 +135,7 @@ public class AdminAssetStepDefinitions {
     @When("the admin creates an asset with symbol {string}")
     public void adminCreatesAssetWithSymbol(String symbol) throws Exception {
         Map<String, Object> request = new HashMap<>(Map.of(
-                "name", "Test", "symbol", symbol, "currencyCode", symbol,
+                "name", "Test", "symbol", symbol,
                 "category", "STOCKS", "issuerPrice", 100, "totalSupply", 1000,
                 "decimalPlaces", 0, "lpClientId", 1L));
         request.put("lpAskPrice", 110);
@@ -153,7 +153,7 @@ public class AdminAssetStepDefinitions {
     @When("the admin creates an asset with empty name")
     public void adminCreatesAssetWithEmptyName() throws Exception {
         Map<String, Object> request = new HashMap<>(Map.of(
-                "name", "", "symbol", "X", "currencyCode", "X",
+                "name", "", "symbol", "X",
                 "category", "STOCKS", "issuerPrice", 100, "totalSupply", 1000,
                 "decimalPlaces", 0, "lpClientId", 1L));
         request.put("lpAskPrice", 110);

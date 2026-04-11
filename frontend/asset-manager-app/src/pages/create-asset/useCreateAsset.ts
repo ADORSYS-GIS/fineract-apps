@@ -344,7 +344,7 @@ export const useCreateAsset = () => {
 		const request: CreateAssetRequest = {
 			name: formData.name,
 			symbol: formData.symbol,
-			currencyCode: formData.symbol,
+			// currencyCode omitted — auto-generated from symbol by the backend
 			description: formData.description || undefined,
 			imageUrl: formData.imageUrl || undefined,
 			category: formData.category,
