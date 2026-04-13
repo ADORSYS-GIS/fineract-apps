@@ -239,7 +239,7 @@ public class BondStepDefinitions {
 
     @When("the interest payment scheduler runs")
     public void interestPaymentSchedulerRuns() {
-        interestPaymentScheduler.processCouponPayments();
+        interestPaymentScheduler.runCouponCycle(LocalDate.now());
     }
 
     // -------------------------------------------------------------------------

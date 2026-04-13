@@ -5,17 +5,13 @@ import com.adorsys.fineract.asset.client.FineractTokenProvider;
 import com.adorsys.fineract.asset.client.GlAccountResolver;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import io.cucumber.spring.CucumberContextConfiguration;
-import net.javacrumbs.shedlock.core.LockProvider;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.util.Optional;
 
 /**
  * Single Spring context shared across all Cucumber scenarios.
@@ -44,14 +40,6 @@ public class CucumberSpringConfiguration {
      */
     @TestConfiguration
     static class TestResolvedGlAccountsConfig {
-
-        /** No-op lock provider — bypasses Shedlock's MySQL-specific SQL in H2 BDD tests. */
-        @Bean
-        @Primary
-        public LockProvider lockProvider() {
-            return lockConfiguration -> Optional.of(() -> {});
-        }
-
         @Bean
         public ResolvedGlAccounts resolvedGlAccounts() {
             ResolvedGlAccounts resolved = new ResolvedGlAccounts();

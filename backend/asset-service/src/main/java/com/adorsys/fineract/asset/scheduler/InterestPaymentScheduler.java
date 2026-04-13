@@ -40,16 +40,20 @@ public class InterestPaymentScheduler {
     @Scheduled(cron = "0 15 0 * * *", zone = "Africa/Douala")
     @SchedulerLock(name = "interest-payment-scheduler", lockAtMostFor = "PT20M", lockAtLeastFor = "PT5M")
     public void processCouponPayments() {
+        runCouponCycle(LocalDate.now());
+    }
+
+    /** Processes coupon payments for the given date. Exposed for testing without Shedlock. */
+    public void runCouponCycle(LocalDate date) {
         try {
-            LocalDate today = LocalDate.now();
-            List<Asset> dueBonds = assetRepository.findBondsWithDueCoupons(today);
+            List<Asset> dueBonds = assetRepository.findBondsWithDueCoupons(date);
 
             if (dueBonds.isEmpty()) {
-                log.debug("No coupon payments due today ({})", today);
+                log.debug("No coupon payments due today ({})", date);
                 return;
             }
 
-            log.info("Creating pending coupon schedules for {} bond(s) on {}", dueBonds.size(), today);
+            log.info("Creating pending coupon schedules for {} bond(s) on {}", dueBonds.size(), date);
             int failed = 0;
 
             for (Asset bond : dueBonds) {
