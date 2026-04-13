@@ -52,7 +52,7 @@ public record CreateAssetRequest(
      * release. Callers that send an explicit value will receive a deprecation warning in the
      * response logs.
      *
-     * @deprecated since 1.1.0 — auto-generated from symbol; explicit values are ignored
+     * Since 1.1.0 — auto-generated from symbol; explicit values are ignored.
      */
     @Size(max = 10) String currencyCode,
 
