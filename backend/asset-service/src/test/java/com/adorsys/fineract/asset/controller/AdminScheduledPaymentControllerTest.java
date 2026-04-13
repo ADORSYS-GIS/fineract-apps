@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.PaymentResultResponse;
+import com.adorsys.fineract.asset.scheduler.BtaPriceAccretionScheduler;
 import com.adorsys.fineract.asset.scheduler.IncomeDistributionScheduler;
 import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.service.ScheduledPaymentService;
@@ -31,6 +32,7 @@ class AdminScheduledPaymentControllerTest {
     @MockBean private ScheduledPaymentService scheduledPaymentService;
     @MockBean private InterestPaymentScheduler interestPaymentScheduler;
     @MockBean private IncomeDistributionScheduler incomeDistributionScheduler;
+    @MockBean private BtaPriceAccretionScheduler btaPriceAccretionScheduler;
 
     @Test
     void results_returns200WithPaginatedResults() throws Exception {
