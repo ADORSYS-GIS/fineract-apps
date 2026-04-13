@@ -191,6 +191,7 @@ export const useCreateAsset = () => {
 	const queryClient = useQueryClient();
 	const [currentStep, setCurrentStep] = useState(0);
 	const [formData, setFormData] = useState<AssetFormData>(initialFormData);
+	const [isLPDialogOpen, setIsLPDialogOpen] = useState(false);
 
 	const isBond = formData.category === "BONDS";
 	const steps = isBond
@@ -317,6 +318,32 @@ export const useCreateAsset = () => {
 		setValidationErrors([]);
 	};
 
+	const createLPMutation = useMutation({
+		mutationFn: (fullname: string) =>
+			fineractApi.clients.postV1Clients({
+				requestBody: {
+					fullname,
+					legalFormId: 2,
+					active: true,
+					officeId: 1,
+					activationDate: new Date().toISOString().split("T")[0],
+					dateFormat: "yyyy-MM-dd",
+					locale: "en",
+				},
+			}),
+		onSuccess: (response, fullname) => {
+			const newClientId = response.clientId ?? response.resourceId;
+			if (!newClientId) return;
+			updateFormData({ lpClientId: newClientId, lpClientName: fullname });
+			queryClient.invalidateQueries({ queryKey: ["entity-clients"] });
+			setIsLPDialogOpen(false);
+			toast.success(`LP "${fullname}" created and selected`);
+		},
+		onError: (error: unknown) => {
+			toast.error(`Failed to create LP: ${extractErrorMessage(error)}`);
+		},
+	});
+
 	const nextStep = () => {
 		const errors = validateStep(currentStep);
 		if (errors.length > 0) {
@@ -426,5 +453,10 @@ export const useCreateAsset = () => {
 		clients: clients ?? [],
 		isLoadingClients,
 		validationErrors,
+		isLPDialogOpen,
+		openLPDialog: () => setIsLPDialogOpen(true),
+		closeLPDialog: () => setIsLPDialogOpen(false),
+		onCreateLP: (fullname: string) => createLPMutation.mutate(fullname),
+		isCreatingLP: createLPMutation.isPending,
 	};
 };
