@@ -1,6 +1,7 @@
 import { Card } from "@fineract-apps/ui";
-import { Building2 } from "lucide-react";
+import { Building2, PlusCircle } from "lucide-react";
 import { FC } from "react";
+import { CreateLPDialog } from "@/components/CreateLPDialog";
 import type { AssetFormData } from "../useCreateAsset";
 
 interface Props {
@@ -14,6 +15,11 @@ interface Props {
 	}>;
 	isLoadingClients: boolean;
 	validationErrors: string[];
+	isLPDialogOpen: boolean;
+	onOpenCreateLP: () => void;
+	onCloseCreateLP: () => void;
+	onCreateLP: (fullname: string) => void;
+	isCreatingLP: boolean;
 }
 
 export const SelectCompanyStep: FC<Props> = ({
@@ -22,6 +28,11 @@ export const SelectCompanyStep: FC<Props> = ({
 	clients,
 	isLoadingClients,
 	validationErrors,
+	isLPDialogOpen,
+	onOpenCreateLP,
+	onCloseCreateLP,
+	onCreateLP,
+	isCreatingLP,
 }) => {
 	const hasError = validationErrors.some((e) =>
 		e.toLowerCase().includes("liquidity partner"),
@@ -71,6 +82,14 @@ export const SelectCompanyStep: FC<Props> = ({
 						))}
 					</select>
 				)}
+				<button
+					type="button"
+					onClick={onOpenCreateLP}
+					className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+				>
+					<PlusCircle className="h-4 w-4" />
+					Create new LP
+				</button>
 			</div>
 
 			{/* Selected Company Info */}
@@ -89,6 +108,13 @@ export const SelectCompanyStep: FC<Props> = ({
 					</div>
 				</Card>
 			)}
+
+			<CreateLPDialog
+				isOpen={isLPDialogOpen}
+				isCreating={isCreatingLP}
+				onSubmit={onCreateLP}
+				onCancel={onCloseCreateLP}
+			/>
 		</div>
 	);
 };
