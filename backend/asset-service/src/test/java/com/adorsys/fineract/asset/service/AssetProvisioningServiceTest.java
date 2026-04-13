@@ -712,7 +712,7 @@ class AssetProvisioningServiceTest {
             null, null, null, null,                      // lpClientName, fineractProductName, margins
             null, null,                                  // createdAt, updatedAt
             null, null, null,                            // bondType, dayCountConvention, issuerCountry
-            null, null, null, null, null, null, null, null, // bond fields
+            null, null, null, null, null, null, null, null, null, // bond fields (isinCode, maturityDate, issueDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, couponAmountPerUnit)
             null, null,                                  // bidPrice, askPrice
             null, null, null, null, null, null,          // exposure limits
             null, null, null, null,                      // income fields
