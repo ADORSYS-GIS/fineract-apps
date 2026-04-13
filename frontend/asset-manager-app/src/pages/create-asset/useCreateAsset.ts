@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { fineractApi } from "@/services/api";
 import {
@@ -333,9 +333,21 @@ export const useCreateAsset = () => {
 			}),
 		onSuccess: (response, fullname) => {
 			const newClientId = response.clientId ?? response.resourceId;
-			if (!newClientId) return;
-			updateFormData({ lpClientId: newClientId, lpClientName: fullname });
+			if (!newClientId) {
+				toast.error(
+					"LP was created but returned no ID — please refresh and select it manually.",
+				);
+				setIsLPDialogOpen(false);
+				return;
+			}
+			// Optimistically insert into the cache so the <select> shows the new
+			// entry immediately, before the background refetch completes.
+			queryClient.setQueryData(["entity-clients"], (old: typeof clients) => [
+				...(old ?? []),
+				{ id: newClientId, displayName: fullname },
+			]);
 			queryClient.invalidateQueries({ queryKey: ["entity-clients"] });
+			updateFormData({ lpClientId: newClientId, lpClientName: fullname });
 			setIsLPDialogOpen(false);
 			toast.success(`LP "${fullname}" created and selected`);
 		},
@@ -454,8 +466,8 @@ export const useCreateAsset = () => {
 		isLoadingClients,
 		validationErrors,
 		isLPDialogOpen,
-		openLPDialog: () => setIsLPDialogOpen(true),
-		closeLPDialog: () => setIsLPDialogOpen(false),
+		openLPDialog: useCallback(() => setIsLPDialogOpen(true), []),
+		closeLPDialog: useCallback(() => setIsLPDialogOpen(false), []),
 		onCreateLP: (fullname: string) => createLPMutation.mutate(fullname),
 		isCreatingLP: createLPMutation.isPending,
 	};

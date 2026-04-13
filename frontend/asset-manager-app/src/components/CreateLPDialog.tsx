@@ -16,6 +16,11 @@ export const CreateLPDialog: FC<CreateLPDialogProps> = ({
 }) => {
 	const [fullname, setFullname] = useState("");
 	const cancelRef = useRef<HTMLButtonElement>(null);
+	const isCreatingRef = useRef(isCreating);
+
+	useEffect(() => {
+		isCreatingRef.current = isCreating;
+	}, [isCreating]);
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -23,13 +28,13 @@ export const CreateLPDialog: FC<CreateLPDialogProps> = ({
 		cancelRef.current?.focus();
 
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape" && !isCreating) {
+			if (e.key === "Escape" && !isCreatingRef.current) {
 				onCancel();
 			}
 		};
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, isCreating, onCancel]);
+	}, [isOpen, onCancel]);
 
 	if (!isOpen) return null;
 
