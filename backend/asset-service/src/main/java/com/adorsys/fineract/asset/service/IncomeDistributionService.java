@@ -33,7 +33,6 @@ import java.util.List;
  */
 @Deprecated(forRemoval = true)
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class IncomeDistributionService {
 

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 /**
  * Calculates accrued interest ("pied du coupon") for OTA coupon bond trades.
@@ -38,7 +39,8 @@ public class AccruedInterestCalculator {
 
         DayCountConvention convention = asset.getDayCountConvention() != null
                 ? asset.getDayCountConvention() : DayCountConvention.ACT_365;
-        long daysSinceLastCoupon = convention.daysBetween(lastCouponDate, LocalDate.now());
+        long daysSinceLastCoupon = convention.daysBetween(lastCouponDate,
+                LocalDate.now(ZoneId.of("Africa/Douala")));
         if (daysSinceLastCoupon <= 0) return BigDecimal.ZERO;
 
         int dayCountBasis = convention.getBasis();

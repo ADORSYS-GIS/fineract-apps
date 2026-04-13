@@ -141,6 +141,12 @@ public record AssetPublicDetailResponse(
     @Schema(description = "Bond maturity date. Null for non-bond assets.")
     LocalDate maturityDate,
     /**
+     * Date on which the bond was originally issued. Used for BTA price accretion
+     * and accrued interest calculations. Null for non-bond assets.
+     */
+    @Schema(description = "Bond issue date. Null for non-bond assets.", nullable = true)
+    LocalDate issueDate,
+    /**
      * Annual nominal coupon rate as a percentage (e.g. 5.80 = 5.80% per year).
      * Null for DISCOUNT bonds and non-bond assets.
      */

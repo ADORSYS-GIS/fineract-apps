@@ -70,6 +70,42 @@ class BondBenefitServiceTest {
     }
 
     @Test
+    void calculateForPurchase_withAccruedInterest_deductsFromTotalCouponIncome() {
+        Asset bond = activeBondAsset();
+        // issuerPrice=100, rate=5.80, freq=6, 10 coupons, couponPerPeriod=29
+        BigDecimal units = new BigDecimal("10");
+        BigDecimal investmentCost = new BigDecimal("1055"); // includes dirty price premium
+        BigDecimal accruedInterestPaid = new BigDecimal("14"); // half-period accrued
+
+        BondBenefitProjection result = service.calculateForPurchase(bond, units, investmentCost, accruedInterestPaid);
+
+        assertNotNull(result);
+        // couponPerPeriod = 29 (unchanged — gross per period, not net)
+        assertEquals(new BigDecimal("29"), result.couponPerPeriod());
+        // totalCouponIncome = 29 * 10 - 14 = 290 - 14 = 276
+        assertEquals(new BigDecimal("276"), result.totalCouponIncome());
+        // principalAtMaturity unaffected = 10 * 100 = 1000
+        assertEquals(new BigDecimal("1000"), result.principalAtMaturity());
+        // totalProjectedReturn = 276 + 1000 = 1276
+        assertEquals(new BigDecimal("1276"), result.totalProjectedReturn());
+        // netProjectedProfit = 1276 - 1055 = 221
+        assertEquals(new BigDecimal("221"), result.netProjectedProfit());
+    }
+
+    @Test
+    void calculateForPurchase_accruedExceedsCoupon_totalCouponIncomeFloorAtZero() {
+        Asset bond = activeBondAsset();
+        BigDecimal units = BigDecimal.ONE;
+        BigDecimal investmentCost = new BigDecimal("110");
+        BigDecimal accruedInterestPaid = new BigDecimal("999"); // larger than totalCouponIncome
+
+        BondBenefitProjection result = service.calculateForPurchase(bond, units, investmentCost, accruedInterestPaid);
+
+        assertNotNull(result);
+        assertEquals(0, result.totalCouponIncome().compareTo(BigDecimal.ZERO));
+    }
+
+    @Test
     void calculateForPurchase_nonBondAsset_returnsNull() {
         Asset stock = activeAsset(); // category = STOCKS
         BigDecimal units = new BigDecimal("10");

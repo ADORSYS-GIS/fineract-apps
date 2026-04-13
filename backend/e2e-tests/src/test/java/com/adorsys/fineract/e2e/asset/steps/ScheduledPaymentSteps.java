@@ -331,6 +331,151 @@ public class ScheduledPaymentSteps {
     }
 
     // ---------------------------------------------------------------
+    // IRCM withholding assertions (use the detail endpoint)
+    // ---------------------------------------------------------------
+
+    @Then("the scheduled payment detail should include IRCM fields")
+    public void scheduledPaymentDetailShouldIncludeIrcmFields() {
+        Long scheduleId = context.getValue("lastScheduleId");
+        Response detail = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
+        assertThat(detail.statusCode()).isEqualTo(200);
+        String body = detail.body().asString();
+        assertThat(body)
+                .as("Detail should contain grossAmountPerUnit — response: %s", body)
+                .contains("grossAmountPerUnit");
+        assertThat(body)
+                .as("Detail should contain ircmWithheldPerUnit — response: %s", body)
+                .contains("ircmWithheldPerUnit");
+        assertThat(body)
+                .as("Detail should contain netAmountPerUnit — response: %s", body)
+                .contains("netAmountPerUnit");
+        context.storeValue("lastScheduleDetail", body);
+    }
+
+    @Then("the gross amount per unit should be greater than {int}")
+    public void grossAmountPerUnitShouldBeGreaterThan(int min) {
+        Long scheduleId = context.getValue("lastScheduleId");
+        Response detail = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
+        Number gross = detail.jsonPath().get("grossAmountPerUnit");
+        assertThat(gross)
+                .as("grossAmountPerUnit should be present — response: %s", detail.body().asString())
+                .isNotNull();
+        assertThat(gross.doubleValue()).isGreaterThan(min);
+    }
+
+    @Then("the IRCM withheld per unit should be greater than {int}")
+    public void ircmWithheldPerUnitShouldBeGreaterThan(int min) {
+        Long scheduleId = context.getValue("lastScheduleId");
+        Response detail = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
+        Number ircm = detail.jsonPath().get("ircmWithheldPerUnit");
+        assertThat(ircm)
+                .as("ircmWithheldPerUnit should be present — response: %s", detail.body().asString())
+                .isNotNull();
+        assertThat(ircm.doubleValue()).isGreaterThan(min);
+    }
+
+    @Then("the net amount per unit should be less than gross amount per unit")
+    public void netAmountPerUnitShouldBeLessThanGross() {
+        Long scheduleId = context.getValue("lastScheduleId");
+        Response detail = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
+        Number gross = detail.jsonPath().get("grossAmountPerUnit");
+        Number net = detail.jsonPath().get("netAmountPerUnit");
+        assertThat(net).isNotNull();
+        assertThat(gross).isNotNull();
+        assertThat(net.doubleValue())
+                .as("netAmountPerUnit (%s) should be < grossAmountPerUnit (%s)", net, gross)
+                .isLessThan(gross.doubleValue());
+    }
+
+    @Then("the IRCM withheld per unit should be approximately {double} percent of gross per unit")
+    public void ircmWithheldShouldBeApproximatelyPercentOfGross(double expectedPercent) {
+        Long scheduleId = context.getValue("lastScheduleId");
+        Response detail = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
+        Number gross = detail.jsonPath().get("grossAmountPerUnit");
+        Number ircm = detail.jsonPath().get("ircmWithheldPerUnit");
+        assertThat(gross).isNotNull();
+        assertThat(ircm).isNotNull();
+        double expectedIrcm = gross.doubleValue() * (expectedPercent / 100.0);
+        assertThat(ircm.doubleValue())
+                .as("ircmWithheldPerUnit should be ~%.1f%% of gross %.2f (expected ~%.2f)",
+                        expectedPercent, gross.doubleValue(), expectedIrcm)
+                .isCloseTo(expectedIrcm, org.assertj.core.data.Percentage.withPercentage(1.0));
+    }
+
+    @Then("the IRCM net plus withheld should equal gross amount per unit")
+    public void ircmNetPlusWithheldShouldEqualGross() {
+        Long scheduleId = context.getValue("lastScheduleId");
+        Response detail = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
+        Number gross = detail.jsonPath().get("grossAmountPerUnit");
+        Number net = detail.jsonPath().get("netAmountPerUnit");
+        Number ircm = detail.jsonPath().get("ircmWithheldPerUnit");
+        assertThat(gross).isNotNull();
+        assertThat(net).isNotNull();
+        assertThat(ircm).isNotNull();
+        double sum = net.doubleValue() + ircm.doubleValue();
+        assertThat(sum)
+                .as("net (%.2f) + ircm (%.2f) should equal gross (%.2f)", net.doubleValue(), ircm.doubleValue(), gross.doubleValue())
+                .isCloseTo(gross.doubleValue(), org.assertj.core.data.Offset.offset(0.01));
+    }
+
+    @Then("the scheduled payment should have ircmExempt equal to {word}")
+    public void scheduledPaymentShouldHaveIrcmExempt(String expectedValue) {
+        Long scheduleId = context.getValue("lastScheduleId");
+        Response detail = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
+        Boolean ircmExempt = detail.jsonPath().getBoolean("ircmExempt");
+        boolean expected = Boolean.parseBoolean(expectedValue);
+        assertThat(ircmExempt)
+                .as("ircmExempt should be %s — response: %s", expectedValue, detail.body().asString())
+                .isEqualTo(expected);
+    }
+
+    @Then("the IRCM withheld per unit should be {int}")
+    public void ircmWithheldPerUnitShouldBe(int expectedValue) {
+        Long scheduleId = context.getValue("lastScheduleId");
+        Response detail = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
+        Number ircm = detail.jsonPath().get("ircmWithheldPerUnit");
+        double actual = ircm == null ? 0.0 : ircm.doubleValue();
+        assertThat(actual)
+                .as("ircmWithheldPerUnit should be %d — response: %s", expectedValue, detail.body().asString())
+                .isCloseTo(expectedValue, org.assertj.core.data.Offset.offset(0.01));
+    }
+
+    @Then("the net increase should be less than the gross coupon amount")
+    public void netIncreaseShouldBeLessThanGrossCouponAmount() {
+        Long scheduleId = context.getValue("lastScheduleId");
+        Response detail = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .get("/api/v1/admin/scheduled-payments/" + scheduleId);
+        Number gross = detail.jsonPath().get("grossAmountPerUnit");
+        assertThat(gross).isNotNull();
+
+        BigDecimal balanceBefore = context.getValue("xafBalanceBefore");
+        BigDecimal balanceAfter = fineractTestClient.getAccountBalance(
+                FineractInitializer.getTestUserXafAccountId());
+        BigDecimal netIncrease = balanceAfter.subtract(balanceBefore);
+
+        assertThat(netIncrease.doubleValue())
+                .as("Net balance increase (%.2f) should be less than gross coupon (%.2f)", netIncrease.doubleValue(), gross.doubleValue())
+                .isLessThan(gross.doubleValue());
+    }
+
+    // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
 

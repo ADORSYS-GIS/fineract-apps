@@ -46,4 +46,12 @@ public interface IncomeDistributionRepository extends JpaRepository<IncomeDistri
      * Most recent successful income distribution for an asset.
      */
     Optional<IncomeDistribution> findFirstByAssetIdAndStatusOrderByPaidAtDesc(String assetId, String status);
+
+    /**
+     * Total net income cash received by a user across all successful distributions.
+     * The cashAmount stored in IncomeDistribution is already net of IRCM withholding.
+     */
+    @Query("SELECT COALESCE(SUM(id.cashAmount), 0) FROM IncomeDistribution id " +
+           "WHERE id.userId = :userId AND id.status = 'SUCCESS'")
+    BigDecimal sumPaidByUser(@Param("userId") Long userId);
 }

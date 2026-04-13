@@ -8,6 +8,7 @@ import com.adorsys.fineract.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,15 +33,20 @@ public class MaturityScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 5 0 * * *", zone = "Africa/Douala")
-    @Transactional
+    @SchedulerLock(name = "maturity-scheduler", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void matureBonds() {
+        runMaturityCycle(LocalDate.now());
+    }
+
+    /** Processes bond maturities for the given date. Exposed for testing without Shedlock. */
+    @Transactional
+    public void runMaturityCycle(LocalDate date) {
         try {
-            LocalDate today = LocalDate.now();
             List<Asset> maturedBonds = assetRepository.findByStatusAndMaturityDateLessThanEqual(
-                    AssetStatus.ACTIVE, today);
+                    AssetStatus.ACTIVE, date);
 
             if (maturedBonds.isEmpty()) {
-                log.debug("No bonds to mature today ({})", today);
+                log.debug("No bonds to mature today ({})", date);
                 return;
             }
 
@@ -52,7 +58,7 @@ public class MaturityScheduler {
             }
 
             assetRepository.saveAll(maturedBonds);
-            log.info("Matured {} bond(s) on {}", maturedBonds.size(), today);
+            log.info("Matured {} bond(s) on {}", maturedBonds.size(), date);
         } catch (Exception e) {
             log.error("Maturity scheduler failed: {}", e.getMessage(), e);
             eventPublisher.publishEvent(new AdminAlertEvent(

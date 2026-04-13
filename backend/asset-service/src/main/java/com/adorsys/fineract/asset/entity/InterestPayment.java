@@ -85,4 +85,12 @@ public class InterestPayment {
     /** Coupon date that triggered this payment. */
     @Column(name = "coupon_date", nullable = false)
     private LocalDate couponDate;
+
+    /**
+     * Gross coupon amount per unit before IRCM withholding.
+     * Snapshotted at payment time using the ACT-day formula, so that {@code getPaymentResults()}
+     * can display an accurate gross/ircm/net breakdown without recomputing from {@code months/12}.
+     */
+    @Column(name = "gross_amount_per_unit", precision = 20, scale = 4)
+    private BigDecimal grossAmountPerUnit;
 }

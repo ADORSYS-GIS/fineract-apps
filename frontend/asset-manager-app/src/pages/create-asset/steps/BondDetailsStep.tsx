@@ -234,6 +234,25 @@ export const BondDetailsStep: FC<Props> = ({
 					)}
 				</div>
 
+				{!isCoupon && (
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Issue / Auction Date
+						</label>
+						<input
+							type="date"
+							aria-label="Issue date"
+							className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							value={formData.issueDate}
+							onChange={(e) => updateFormData({ issueDate: e.target.value })}
+						/>
+						<p className="text-xs text-gray-400 mt-1">
+							BTA auction/issue date. Used for price accretion formula. Defaults
+							to creation date if left empty.
+						</p>
+					</div>
+				)}
+
 				{isCoupon && (
 					<>
 						<div>

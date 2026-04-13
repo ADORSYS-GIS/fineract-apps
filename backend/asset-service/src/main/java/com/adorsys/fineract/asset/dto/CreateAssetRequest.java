@@ -234,6 +234,16 @@ public record CreateAssetRequest(
     LocalDate maturityDate,
 
     /**
+     * Actual auction/settlement date when the bond was issued.
+     * For BTA discount bonds, this is used by the daily price accretion scheduler to compute
+     * {@code originalTotalDays = issueDate → maturityDate}, which derives the implied discount rate.
+     * If not provided, the scheduler falls back to the asset creation timestamp.
+     * Optional; only meaningful for DISCOUNT (BTA) bonds.
+     */
+    @Schema(description = "Actual bond issue/auction date (BTA only). Used for price accretion calculations.")
+    LocalDate issueDate,
+
+    /**
      * Annual coupon interest rate as a percentage (e.g. {@code 5.80} = 5.80% per year).
      * Required for COUPON bonds; null (and ignored) for DISCOUNT bonds.
      */

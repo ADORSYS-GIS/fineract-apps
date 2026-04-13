@@ -69,7 +69,7 @@ class AdminAssetControllerTest {
                 new BigDecimal("900"), new BigDecimal("1000"),
                 null, null, null, // issuerName, lpName, couponAmountPerUnit
                 null, // bondType
-                null, null, null, null, null // isinCode, maturityDate, interestRate, currentYield, residualDays
+                null, null, null, null, null, null // isinCode, maturityDate, issueDate, interestRate, currentYield, residualDays
         );
         when(catalogService.listAllAssets(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(asset)));
@@ -113,7 +113,7 @@ class AdminAssetControllerTest {
                 1L, // lpClientId
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays, minOrderSize, minOrderCashAmount
                 null, null, null, // bondType, dayCountConvention, issuerCountry
-                null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
+                null, null, null, null, null, null, null, // issuerName, isinCode, maturityDate, issueDate, interestRate, couponFrequencyMonths, nextCouponDate
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
                 null, null, null, null, null, null, null, null, null, // tax config
                 false, null // tvaEnabled, tvaRate
@@ -133,13 +133,14 @@ class AdminAssetControllerTest {
                 null, null, // lpMarginPerUnit, lpMarginPercent
                 Instant.now(), null, // createdAt, updatedAt
                 null, null, null, // bondType, dayCountConvention, issuerCountry
-                null, null, null, null, null, null, null, null, // isinCode, maturityDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, couponAmountPerUnit
+                null, null, null, null, null, null, null, null, null, // isinCode, maturityDate, issueDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, couponAmountPerUnit
                 null, null, // bidPrice, askPrice
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, minOrderSize, minOrderCashAmount, lockupDays
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate
                 null, null, // delistingDate, delistingRedemptionPrice
                 null, null, null, null, null, null, null, null, null, // tax config fields
-                false, null // tvaEnabled, tvaRate
+                false, null, // tvaEnabled, tvaRate
+                null // currentMarketData
         );
 
         when(provisioningService.createAsset(any(CreateAssetRequest.class))).thenReturn(response);

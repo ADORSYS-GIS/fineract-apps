@@ -178,7 +178,7 @@ public class TradingService {
         }
 
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.FLOOR);
         BigDecimal lpMarginPerUnit = executionPrice.subtract(issuerPrice).abs();
         BigDecimal spreadAmount = isSpreadEnabled(asset)
                 ? lpMarginPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP)
@@ -322,13 +322,18 @@ public class TradingService {
             log.debug("Could not resolve balances for quote response: {}", e.getMessage());
         }
 
-        // Benefit projections
+        // Benefit projections — pass accruedInterestPaid so the first coupon projection
+        // correctly reflects the net income after offsetting the pre-paid accrued interest.
         BondBenefitProjection bondBenefit = (request.side() == TradeSide.BUY)
-                ? bondBenefitService.calculateForPurchase(asset, units, orderCashAmount) : null;
+                ? bondBenefitService.calculateForPurchase(asset, units, orderCashAmount, accruedInterestAmount) : null;
         IncomeBenefitProjection incomeBenefit = (request.side() == TradeSide.BUY)
                 ? incomeBenefitService.calculateForPurchase(asset, units, issuerPrice, orderCashAmount) : null;
 
         assetMetrics.recordQuoteCreated();
+
+        // Price breakdown for bond assets
+        PriceBreakdown priceBreakdown = buildPriceBreakdown(asset, units, executionPrice,
+                accruedInterestAmount, fee, orderCashAmount, request.side());
 
         return new QuoteResponse(
                 orderId, OrderStatus.QUOTED, request.assetId(), asset.getSymbol(), request.side(),
@@ -336,7 +341,7 @@ public class TradingService {
                 accruedInterestAmount.compareTo(BigDecimal.ZERO) > 0 ? accruedInterestAmount : null,
                 orderCashAmount, availableBalance, availableUnits, availableSupply,
                 bondBenefit, incomeBenefit, computedFromAmount, remainder, now, expiresAt, warnings,
-                taxBreakdown, feasible, feasibilityReason);
+                taxBreakdown, feasible, feasibilityReason, priceBreakdown);
     }
 
     /**
@@ -518,7 +523,79 @@ public class TradingService {
                 order.getAccruedInterestAmount(),
                 order.getCashAmount(),
                 null, null, null, null, null, null, null,
-                order.getQuotedAt(), order.getQuoteExpiresAt(), warnings, null, true, null);
+                order.getQuotedAt(), order.getQuoteExpiresAt(), warnings, null, true, null, null);
+    }
+
+    /**
+     * Build a {@link PriceBreakdown} for bond assets.
+     *
+     * <p>For COUPON (OTA) bonds: all fields are populated using the accrued interest
+     * already computed for this quote. The accrued interest per unit is back-derived
+     * from the total accrued interest divided by the unit count.</p>
+     *
+     * <p>For DISCOUNT (BTA) bonds: {@code accruedInterestPerUnit} is zero, no accrual
+     * applies. Day count convention is reported as {@code "ACT_360"} per CEMAC standard.</p>
+     *
+     * <p>For non-bond assets: returns {@code null}.</p>
+     */
+    private PriceBreakdown buildPriceBreakdown(Asset asset, BigDecimal units,
+            BigDecimal cleanPricePerUnit, BigDecimal totalAccruedInterest,
+            BigDecimal platformFee, BigDecimal netAmount, TradeSide side) {
+        if (asset.getCategory() != AssetCategory.BONDS) {
+            return null;
+        }
+
+        boolean isCoupon = asset.getBondType() == BondType.COUPON;
+        boolean isDiscount = asset.getBondType() == BondType.DISCOUNT;
+
+        if (!isCoupon && !isDiscount) {
+            // Unknown bond type — treat as non-bond
+            return null;
+        }
+
+        String feeBasisNote = "Fee is 0.5% of clean execution price, floored to nearest XAF";
+        BigDecimal accruedInterestPerUnit;
+        String dayCountConvention;
+        Long daysSinceLastCoupon;
+
+        if (isCoupon) {
+            // Per-unit accrued: calculate directly for 1 unit to avoid rounding divergence from back-division
+            accruedInterestPerUnit = accruedInterestCalculator.calculate(asset, BigDecimal.ONE);
+
+            DayCountConvention convention = asset.getDayCountConvention() != null
+                    ? asset.getDayCountConvention() : DayCountConvention.ACT_365;
+            dayCountConvention = convention.name();
+
+            // Re-derive daysSinceLastCoupon using the same logic as AccruedInterestCalculator
+            LocalDate nextCouponDate = asset.getNextCouponDate();
+            if (nextCouponDate != null && asset.getCouponFrequencyMonths() != null) {
+                LocalDate lastCouponDate = nextCouponDate.minusMonths(asset.getCouponFrequencyMonths());
+                long days = convention.daysBetween(lastCouponDate, LocalDate.now());
+                daysSinceLastCoupon = days > 0 ? days : null;
+            } else {
+                daysSinceLastCoupon = null;
+            }
+        } else {
+            // DISCOUNT (BTA): no accrued interest
+            accruedInterestPerUnit = BigDecimal.ZERO;
+            dayCountConvention = DayCountConvention.ACT_360.name();
+            daysSinceLastCoupon = null;
+        }
+
+        BigDecimal dirtyPricePerUnit = cleanPricePerUnit.add(accruedInterestPerUnit);
+        BigDecimal grossAmount = dirtyPricePerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP);
+
+        return new PriceBreakdown(
+                cleanPricePerUnit,
+                accruedInterestPerUnit,
+                dirtyPricePerUnit,
+                units,
+                grossAmount,
+                platformFee,
+                feeBasisNote,
+                netAmount,
+                dayCountConvention,
+                daysSinceLastCoupon);
     }
 
     private OrderResponse toOrderResponse(Order order) {
@@ -668,7 +745,7 @@ public class TradingService {
         }
 
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal fee = grossAmount.multiply(ctx.getFeePercent()).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fee = grossAmount.multiply(ctx.getFeePercent()).setScale(0, RoundingMode.FLOOR);
 
         // LP margin: directional spread (no .abs())
         BigDecimal issuerPrice = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : lockedBasePrice;

@@ -134,7 +134,7 @@ public final class TestDataFactory {
                 null, null, null, null, // exposure limits (maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, lockupDays)
                 null, null, // min order size/cash
                 null, null, null, // bondType, dayCountConvention, issuerCountry
-                null, null, null, null, null, null, // issuerName, isinCode, maturityDate, interestRate, couponFrequencyMonths, nextCouponDate
+                null, null, null, null, null, null, null, // issuerName, isinCode, maturityDate, issueDate, interestRate, couponFrequencyMonths, nextCouponDate
                 null, null, null, null, // income fields
                 null, null, null, null, null, null, null, null, null, // tax fields
                 false, null // tvaEnabled, tvaRate
@@ -164,6 +164,7 @@ public final class TestDataFactory {
                 "Etat du Sénégal",
                 "SN0000038741",
                 LocalDate.now().plusYears(5),
+                null, // issueDate (not applicable for COUPON bonds)
                 new BigDecimal("5.80"),
                 6,
                 LocalDate.now().plusMonths(6),

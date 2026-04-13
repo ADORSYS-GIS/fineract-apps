@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { fineractApi } from "@/services/api";
 import {
@@ -26,22 +26,24 @@ export interface AssetFormData {
 	issuerName: string;
 	isinCode: string;
 	maturityDate: string;
+	issueDate: string;
 	interestRate: number;
 	couponFrequencyMonths: number;
 	nextCouponDate: string;
 	// Step 3: Pricing
+	faceValue: number;
+	pricingMode: "spread" | "manual";
+	spreadPercent: number;
 	issuerPrice: number;
 	lpBidPrice: number;
 	lpAskPrice: number;
 	tradingFeePercent: number;
-	// Step 3 continued: Exposure limits
+	// Step 4: Supply & Limits
 	maxPositionPercent: number;
 	maxOrderSize: number;
 	dailyTradeLimitXaf: number;
-	// Step 3 continued: Min order size
 	minOrderSize: number;
 	minOrderCashAmount: number;
-	// Step 4: Supply
 	totalSupply: number;
 	decimalPlaces: number;
 	lockupDays: number;
@@ -58,6 +60,11 @@ export interface AssetFormData {
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
 	capitalGainsRate: number;
+	tvaEnabled: boolean;
+	tvaRate: number;
+	// Bond classification (affects IRCM auto-rate)
+	isBvmacListed: boolean;
+	isGovernmentBond: boolean;
 }
 
 const toDateStr = (d: Date) => d.toISOString().split("T")[0];
@@ -89,9 +96,13 @@ const initialFormData: AssetFormData = {
 	issuerName: "",
 	isinCode: "",
 	maturityDate: "",
+	issueDate: "",
 	interestRate: 0,
 	couponFrequencyMonths: 12,
 	nextCouponDate: "",
+	faceValue: 0,
+	pricingMode: "spread",
+	spreadPercent: 0.3,
 	issuerPrice: 0,
 	lpBidPrice: 0,
 	lpAskPrice: 0,
@@ -110,11 +121,15 @@ const initialFormData: AssetFormData = {
 	nextDistributionDate: "",
 	registrationDutyEnabled: true,
 	registrationDutyRate: 2,
-	ircmEnabled: true,
+	ircmEnabled: false,
 	ircmRateOverride: 0,
 	ircmExempt: false,
-	capitalGainsTaxEnabled: true,
+	capitalGainsTaxEnabled: false,
 	capitalGainsRate: 0,
+	tvaEnabled: false,
+	tvaRate: 0,
+	isBvmacListed: false,
+	isGovernmentBond: false,
 };
 
 function validateLiquidityPartner(data: AssetFormData): string[] {
@@ -127,8 +142,10 @@ function validateAssetDetails(data: AssetFormData): string[] {
 	const errors: string[] = [];
 	if (!data.name.trim()) errors.push("Name is required");
 	if (!data.symbol.trim()) errors.push("Symbol is required");
-	else if (!/^[A-Z]{3}$/.test(data.symbol))
-		errors.push("Symbol must be exactly 3 uppercase letters");
+	else if (!/^[A-Z][A-Z0-9-]{0,9}$/.test(data.symbol))
+		errors.push(
+			"Symbol must be 1–10 chars: uppercase letters, digits, or hyphens, starting with a letter",
+		);
 	return errors;
 }
 
@@ -144,6 +161,8 @@ function validateBondDetails(data: AssetFormData): string[] {
 			errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
 		if (!data.nextCouponDate) errors.push("First coupon date is required");
 	}
+	if (data.bondType === "DISCOUNT" && data.faceValue <= 0)
+		errors.push("Face value is required for BTA (discount) bonds");
 	return errors;
 }
 
@@ -172,6 +191,7 @@ export const useCreateAsset = () => {
 	const queryClient = useQueryClient();
 	const [currentStep, setCurrentStep] = useState(0);
 	const [formData, setFormData] = useState<AssetFormData>(initialFormData);
+	const [isLPDialogOpen, setIsLPDialogOpen] = useState(false);
 
 	const isBond = formData.category === "BONDS";
 	const steps = isBond
@@ -264,6 +284,20 @@ export const useCreateAsset = () => {
 					next.nextCouponDate = "";
 				}
 			}
+			// Auto-derive ask/bid from spread when in spread mode
+			const affectsSpread =
+				updates.pricingMode !== undefined ||
+				updates.spreadPercent !== undefined ||
+				updates.issuerPrice !== undefined;
+			if (
+				affectsSpread &&
+				next.pricingMode === "spread" &&
+				next.issuerPrice > 0
+			) {
+				const s = next.spreadPercent / 100;
+				next.lpAskPrice = Math.round(next.issuerPrice * (1 + s));
+				next.lpBidPrice = Math.round(next.issuerPrice * (1 - s));
+			}
 			// Auto-set income defaults when income type changes
 			if (
 				updates.incomeType !== undefined &&
@@ -283,6 +317,44 @@ export const useCreateAsset = () => {
 		});
 		setValidationErrors([]);
 	};
+
+	const createLPMutation = useMutation({
+		mutationFn: (fullname: string) =>
+			fineractApi.clients.postV1Clients({
+				requestBody: {
+					fullname,
+					legalFormId: 2,
+					active: true,
+					officeId: 1,
+					activationDate: new Date().toISOString().split("T")[0],
+					dateFormat: "yyyy-MM-dd",
+					locale: "en",
+				},
+			}),
+		onSuccess: (response, fullname) => {
+			const newClientId = response.clientId ?? response.resourceId;
+			if (!newClientId) {
+				toast.error(
+					"LP was created but returned no ID — please refresh and select it manually.",
+				);
+				setIsLPDialogOpen(false);
+				return;
+			}
+			// Optimistically insert into the cache so the <select> shows the new
+			// entry immediately, before the background refetch completes.
+			queryClient.setQueryData(["entity-clients"], (old: typeof clients) => [
+				...(old ?? []),
+				{ id: newClientId, displayName: fullname },
+			]);
+			queryClient.invalidateQueries({ queryKey: ["entity-clients"] });
+			updateFormData({ lpClientId: newClientId, lpClientName: fullname });
+			setIsLPDialogOpen(false);
+			toast.success(`LP "${fullname}" created and selected`);
+		},
+		onError: (error: unknown) => {
+			toast.error(`Failed to create LP: ${extractErrorMessage(error)}`);
+		},
+	});
 
 	const nextStep = () => {
 		const errors = validateStep(currentStep);
@@ -316,6 +388,7 @@ export const useCreateAsset = () => {
 			imageUrl: formData.imageUrl || undefined,
 			category: formData.category,
 			issuerPrice: formData.issuerPrice,
+			faceValue: formData.faceValue || undefined,
 			lpBidPrice: formData.lpBidPrice,
 			lpAskPrice: formData.lpAskPrice,
 			tradingFeePercent: formData.tradingFeePercent / 100,
@@ -348,6 +421,7 @@ export const useCreateAsset = () => {
 				issuerName: formData.issuerName,
 				isinCode: formData.isinCode || undefined,
 				maturityDate: formData.maturityDate,
+				issueDate: formData.issueDate || undefined,
 				// Coupon fields only for COUPON (OTA) bonds
 				...(formData.bondType === "COUPON" && {
 					interestRate: formData.interestRate,
@@ -369,6 +443,10 @@ export const useCreateAsset = () => {
 			capitalGainsRate: formData.capitalGainsRate
 				? formData.capitalGainsRate / 100
 				: undefined,
+			tvaEnabled: formData.tvaEnabled,
+			tvaRate: formData.tvaRate ? formData.tvaRate / 100 : undefined,
+			isBvmacListed: formData.isBvmacListed || undefined,
+			isGovernmentBond: formData.isGovernmentBond || undefined,
 		};
 
 		createMutation.mutate(request);
@@ -387,5 +465,10 @@ export const useCreateAsset = () => {
 		clients: clients ?? [],
 		isLoadingClients,
 		validationErrors,
+		isLPDialogOpen,
+		openLPDialog: useCallback(() => setIsLPDialogOpen(true), []),
+		closeLPDialog: useCallback(() => setIsLPDialogOpen(false), []),
+		onCreateLP: (fullname: string) => createLPMutation.mutate(fullname),
+		isCreatingLP: createLPMutation.isPending,
 	};
 };

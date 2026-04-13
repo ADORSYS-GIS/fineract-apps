@@ -11,6 +11,7 @@ import com.adorsys.fineract.asset.service.PortfolioSnapshotWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -42,6 +43,7 @@ public class PortfolioSnapshotScheduler {
 
     @Scheduled(cron = "${asset-service.portfolio.snapshot-cron:0 30 20 * * *}",
                zone = "Africa/Douala")
+    @SchedulerLock(name = "portfolio-snapshot-scheduler", lockAtMostFor = "PT30M", lockAtLeastFor = "PT10M")
     public void takeSnapshots() {
         try {
             log.info("Portfolio snapshot scheduler started");

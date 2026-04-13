@@ -132,15 +132,13 @@ class AccruedInterestSchedulerTest {
                 .userId(2L).assetId("bond-001").accruedInterest(new BigDecimal("3000")).build();
 
         when(userPositionRepository.findByAssetId("bond-001")).thenReturn(List.of(pos1, pos2));
-        when(userPositionRepository.save(any(UserPosition.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
+        when(userPositionRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         accruedInterestScheduler.resetAccruedInterest("bond-001");
 
-        // resetAccruedInterest still uses individual save() (not saveAll)
-        ArgumentCaptor<UserPosition> posCaptor = ArgumentCaptor.forClass(UserPosition.class);
-        verify(userPositionRepository, times(2)).save(posCaptor.capture());
-        List<UserPosition> saved = posCaptor.getAllValues();
+        ArgumentCaptor<List<UserPosition>> posCaptor = ArgumentCaptor.forClass(List.class);
+        verify(userPositionRepository).saveAll(posCaptor.capture());
+        List<UserPosition> saved = posCaptor.getValue();
         for (UserPosition p : saved) {
             assertEquals(0, BigDecimal.ZERO.compareTo(p.getAccruedInterest()));
         }

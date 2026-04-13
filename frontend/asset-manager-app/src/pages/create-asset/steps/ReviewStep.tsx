@@ -92,6 +92,20 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 						)}
 						<div className="text-gray-600">Maturity Date:</div>
 						<div className="font-medium">{formData.maturityDate}</div>
+						{formData.bondType === "DISCOUNT" && formData.faceValue > 0 && (
+							<>
+								<div className="text-gray-600">Face Value:</div>
+								<div className="font-medium">
+									{formData.faceValue.toLocaleString()} XAF
+								</div>
+							</>
+						)}
+						{formData.bondType === "DISCOUNT" && formData.issueDate && (
+							<>
+								<div className="text-gray-600">Issue Date:</div>
+								<div className="font-medium">{formData.issueDate}</div>
+							</>
+						)}
 						{formData.bondType === "COUPON" && (
 							<>
 								<div className="text-gray-600">Interest Rate:</div>
@@ -118,6 +132,12 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					<div className="text-gray-600">Issuer Price:</div>
 					<div className="font-medium">
 						{formData.issuerPrice.toLocaleString()} XAF
+					</div>
+					<div className="text-gray-600">Pricing Mode:</div>
+					<div className="font-medium">
+						{formData.pricingMode === "spread"
+							? `Spread ${formData.spreadPercent}%`
+							: "Manual"}
 					</div>
 					<div className="text-gray-600">LP Ask Price:</div>
 					<div className="font-medium">
@@ -238,6 +258,18 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 					Tax Configuration
 				</h3>
 				<div className="grid grid-cols-2 gap-2 text-sm">
+					{formData.category === "BONDS" && (
+						<>
+							<div className="text-gray-600">BVMAC Listed:</div>
+							<div className="font-medium">
+								{formData.isBvmacListed ? "Yes (IRCM 11%)" : "No"}
+							</div>
+							<div className="text-gray-600">Government Bond:</div>
+							<div className="font-medium">
+								{formData.isGovernmentBond ? "Yes (IRCM exempt)" : "No"}
+							</div>
+						</>
+					)}
 					<div className="text-gray-600">Registration Duty:</div>
 					<div className="font-medium">
 						{formData.registrationDutyEnabled

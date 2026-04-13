@@ -365,6 +365,25 @@ export const ScheduledPaymentsView: FC<
 										label="Est. Amount/Unit"
 										value={detail.estimatedAmountPerUnit?.toLocaleString()}
 									/>
+									{detail.ircmExempt === true ? (
+										<DetailRow label="IRCM">
+											<span className="text-sm font-medium text-green-700">
+												Exempté ✓
+											</span>
+										</DetailRow>
+									) : detail.ircmExempt === false ? (
+										<DetailRow label="IRCM">
+											<span className="text-sm text-gray-900">
+												Assujetti
+												{detail.ircmRate != null
+													? ` — ${detail.ircmRate}%`
+													: ""}
+												{detail.ircmWithheldPerUnit != null
+													? ` (${fmtAmount(detail.ircmWithheldPerUnit)}/unité)`
+													: ""}
+											</span>
+										</DetailRow>
+									) : null}
 									<DetailRow
 										label="Holders"
 										value={String(detail.holderCount)}
@@ -390,10 +409,31 @@ export const ScheduledPaymentsView: FC<
 									{detail.actualAmountPerUnit != null && (
 										<>
 											<hr className="border-gray-200" />
-											<DetailRow
-												label="Actual Amount/Unit"
-												value={detail.actualAmountPerUnit.toLocaleString()}
-											/>
+											{detail.grossAmountPerUnit != null ? (
+												<>
+													<DetailRow
+														label="Montant brut/unité"
+														value={`${detail.grossAmountPerUnit.toLocaleString()} XAF`}
+													/>
+													{detail.ircmWithheldPerUnit != null && (
+														<DetailRow
+															label={`IRCM retenu${detail.ircmRate != null ? ` (${detail.ircmRate}%)` : ""}`}
+															value={`${detail.ircmWithheldPerUnit.toLocaleString()} XAF`}
+														/>
+													)}
+													{detail.netAmountPerUnit != null && (
+														<DetailRow
+															label="Net investisseur/unité"
+															value={`${detail.netAmountPerUnit.toLocaleString()} XAF`}
+														/>
+													)}
+												</>
+											) : (
+												<DetailRow
+													label="Actual Amount/Unit"
+													value={detail.actualAmountPerUnit.toLocaleString()}
+												/>
+											)}
 											<DetailRow
 												label="Holders Paid"
 												value={String(detail.holdersPaid ?? 0)}
@@ -406,6 +446,13 @@ export const ScheduledPaymentsView: FC<
 												label="Total Paid"
 												value={fmtAmount(detail.totalAmountPaid)}
 											/>
+											{detail.totalIrcmWithheld != null &&
+												detail.totalIrcmWithheld > 0 && (
+													<DetailRow
+														label="Total IRCM retenu"
+														value={fmtAmount(detail.totalIrcmWithheld)}
+													/>
+												)}
 											<DetailRow
 												label="Confirmed By"
 												value={detail.confirmedBy ?? "\u2014"}

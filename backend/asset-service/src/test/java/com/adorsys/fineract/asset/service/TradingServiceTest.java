@@ -862,11 +862,12 @@ class TradingServiceTest {
         assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, units); // token return
         // Leg 2: buyback premium from LP Spread → LP Cash
         assertTransferOp(ops.get(1), LP_SPREAD_ACCOUNT, LP_CASH_ACCOUNT, new BigDecimal("25"));
-        // Leg 3: net proceeds (grossAmount=525, net=525-3=522)
+        // Leg 3: net proceeds (grossAmount=525, fee=floor(525*0.005)=floor(2.625)=2, net=525-2=523)
         BigDecimal grossAmount = new BigDecimal("525");
-        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(fee));
-        // Leg 4: fee
-        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, fee);
+        BigDecimal actualFee = grossAmount.multiply(new BigDecimal("0.005")).setScale(0, java.math.RoundingMode.FLOOR);
+        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(actualFee));
+        // Leg 4: fee (same actualFee computed above)
+        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, actualFee);
     }
 
     @Test

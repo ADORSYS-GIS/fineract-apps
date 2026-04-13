@@ -7,7 +7,9 @@ import com.adorsys.fineract.asset.service.ScheduledPaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,17 +38,22 @@ public class InterestPaymentScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 15 0 * * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "interest-payment-scheduler", lockAtMostFor = "PT20M", lockAtLeastFor = "PT5M")
     public void processCouponPayments() {
+        runCouponCycle(LocalDate.now());
+    }
+
+    /** Processes coupon payments for the given date. Exposed for testing without Shedlock. */
+    public void runCouponCycle(LocalDate date) {
         try {
-            LocalDate today = LocalDate.now();
-            List<Asset> dueBonds = assetRepository.findBondsWithDueCoupons(today);
+            List<Asset> dueBonds = assetRepository.findBondsWithDueCoupons(date);
 
             if (dueBonds.isEmpty()) {
-                log.debug("No coupon payments due today ({})", today);
+                log.debug("No coupon payments due today ({})", date);
                 return;
             }
 
-            log.info("Creating pending coupon schedules for {} bond(s) on {}", dueBonds.size(), today);
+            log.info("Creating pending coupon schedules for {} bond(s) on {}", dueBonds.size(), date);
             int failed = 0;
 
             for (Asset bond : dueBonds) {
@@ -98,6 +105,13 @@ public class InterestPaymentScheduler {
             log.info("Bond {} next coupon date advanced to {}", bond.getSymbol(), nextDate);
         }
 
-        assetRepository.save(bond);
+        try {
+            assetRepository.save(bond);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // Another scheduler instance already advanced this bond's coupon date.
+            // Log and skip — the date is already correct.
+            log.warn("Optimistic lock conflict advancing coupon date for bond {} ({}): {}",
+                    bond.getId(), bond.getSymbol(), e.getMessage());
+        }
     }
 }

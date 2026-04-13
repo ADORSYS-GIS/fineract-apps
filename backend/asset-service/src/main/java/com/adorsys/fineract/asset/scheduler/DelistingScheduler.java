@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -28,6 +29,7 @@ public class DelistingScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 45 0 * * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "delisting-scheduler", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void processDelistings() {
         try {
             LocalDate today = LocalDate.now();

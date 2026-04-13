@@ -202,6 +202,12 @@ public record AssetDetailResponse(
     @Schema(description = "Bond maturity date. Null for non-bond assets.", nullable = true)
     LocalDate maturityDate,
     /**
+     * Date on which the bond was originally issued. Used for BTA price accretion
+     * and accrued interest calculations. Null for non-bond assets.
+     */
+    @Schema(description = "Bond issue date. Null for non-bond assets.", nullable = true)
+    LocalDate issueDate,
+    /**
      * Annual nominal coupon rate as a percentage (e.g. 5.80 means 5.80% per year).
      * Used with {@code faceValue} and {@code couponFrequencyMonths} to compute each
      * periodic payment. Null for DISCOUNT bonds and non-bond assets.
@@ -426,5 +432,13 @@ public record AssetDetailResponse(
      * Null when {@code tvaEnabled} is false. Overrides the system default rate when set.
      */
     @Schema(description = "TVA rate override.", nullable = true)
-    BigDecimal tvaRate
+    BigDecimal tvaRate,
+
+    /**
+     * Current market pricing snapshot for this asset, computed at query time.
+     * Contains clean price (LP bid), accrued interest per unit, dirty price, current yield,
+     * and the computation date. Null for non-bond assets.
+     */
+    @Schema(description = "Current market pricing snapshot. Null for non-bond assets.", nullable = true)
+    CurrentMarketData currentMarketData
 ) {}
