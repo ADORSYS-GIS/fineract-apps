@@ -234,7 +234,7 @@ public class BondStepDefinitions {
 
     @When("the maturity scheduler runs")
     public void maturitySchedulerRuns() {
-        maturityScheduler.matureBonds();
+        maturityScheduler.runMaturityCycle(LocalDate.now());
     }
 
     @When("the interest payment scheduler runs")

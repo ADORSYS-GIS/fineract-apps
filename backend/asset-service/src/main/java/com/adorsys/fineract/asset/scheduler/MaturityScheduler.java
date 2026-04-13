@@ -34,15 +34,19 @@ public class MaturityScheduler {
 
     @Scheduled(cron = "0 5 0 * * *", zone = "Africa/Douala")
     @SchedulerLock(name = "maturity-scheduler", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
-    @Transactional
     public void matureBonds() {
+        runMaturityCycle(LocalDate.now());
+    }
+
+    /** Processes bond maturities for the given date. Exposed for testing without Shedlock. */
+    @Transactional
+    public void runMaturityCycle(LocalDate date) {
         try {
-            LocalDate today = LocalDate.now();
             List<Asset> maturedBonds = assetRepository.findByStatusAndMaturityDateLessThanEqual(
-                    AssetStatus.ACTIVE, today);
+                    AssetStatus.ACTIVE, date);
 
             if (maturedBonds.isEmpty()) {
-                log.debug("No bonds to mature today ({})", today);
+                log.debug("No bonds to mature today ({})", date);
                 return;
             }
 
@@ -54,7 +58,7 @@ public class MaturityScheduler {
             }
 
             assetRepository.saveAll(maturedBonds);
-            log.info("Matured {} bond(s) on {}", maturedBonds.size(), today);
+            log.info("Matured {} bond(s) on {}", maturedBonds.size(), date);
         } catch (Exception e) {
             log.error("Maturity scheduler failed: {}", e.getMessage(), e);
             eventPublisher.publishEvent(new AdminAlertEvent(
