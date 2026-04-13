@@ -54,7 +54,6 @@ public record CreateAssetRequest(
      *
      * @deprecated since 1.1.0 — auto-generated from symbol; explicit values are ignored
      */
-    @Deprecated
     @Size(max = 10) String currencyCode,
 
     /**
