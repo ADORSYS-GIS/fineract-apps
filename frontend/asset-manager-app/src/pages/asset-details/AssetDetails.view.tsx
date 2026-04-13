@@ -596,7 +596,9 @@ function BondInfoCard({
 							<span className="text-gray-500">Standard</span>
 						)}
 					</p>
-					<p className="text-xs text-gray-400">Determines automatic IRCM rate applied</p>
+					<p className="text-xs text-gray-400">
+						Determines automatic IRCM rate applied
+					</p>
 				</div>
 			</div>
 		</Card>
@@ -845,7 +847,9 @@ function TaxConfigCard({
 }: {
 	asset: NonNullable<ReturnType<typeof useAssetDetails>["asset"]>;
 }) {
-	const a = asset as NonNullable<ReturnType<typeof useAssetDetails>["asset"]> & {
+	const a = asset as NonNullable<
+		ReturnType<typeof useAssetDetails>["asset"]
+	> & {
 		isBvmacListed?: boolean;
 		isGovernmentBond?: boolean;
 		tvaEnabled?: boolean;
@@ -931,7 +935,11 @@ function TaxConfigCard({
 					<div>
 						<p className="text-gray-500">TVA (VAT)</p>
 						<p className="font-medium">
-							{formatTaxField(a.tvaEnabled, a.tvaRate, "Enabled (default 19.25%)")}
+							{formatTaxField(
+								a.tvaEnabled,
+								a.tvaRate,
+								"Enabled (default 19.25%)",
+							)}
 						</p>
 						<p className="text-xs text-gray-400">
 							Applied to the trading fee amount only

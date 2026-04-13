@@ -143,7 +143,9 @@ function validateAssetDetails(data: AssetFormData): string[] {
 	if (!data.name.trim()) errors.push("Name is required");
 	if (!data.symbol.trim()) errors.push("Symbol is required");
 	else if (!/^[A-Z][A-Z0-9-]{0,9}$/.test(data.symbol))
-		errors.push("Symbol must be 1–10 chars: uppercase letters, digits, or hyphens, starting with a letter");
+		errors.push(
+			"Symbol must be 1–10 chars: uppercase letters, digits, or hyphens, starting with a letter",
+		);
 	return errors;
 }
 
@@ -286,7 +288,11 @@ export const useCreateAsset = () => {
 				updates.pricingMode !== undefined ||
 				updates.spreadPercent !== undefined ||
 				updates.issuerPrice !== undefined;
-			if (affectsSpread && next.pricingMode === "spread" && next.issuerPrice > 0) {
+			if (
+				affectsSpread &&
+				next.pricingMode === "spread" &&
+				next.issuerPrice > 0
+			) {
 				const s = next.spreadPercent / 100;
 				next.lpAskPrice = Math.round(next.issuerPrice * (1 + s));
 				next.lpBidPrice = Math.round(next.issuerPrice * (1 - s));

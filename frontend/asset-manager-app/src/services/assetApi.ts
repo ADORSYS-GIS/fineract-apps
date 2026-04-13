@@ -800,7 +800,7 @@ export interface IncomeHistoryEntry {
 	ircmWithheld?: number;
 	netAmount: number;
 	/** PAID | SCHEDULED */
-	status: 'PAID' | 'SCHEDULED';
+	status: "PAID" | "SCHEDULED";
 	exempt?: boolean;
 }
 
@@ -1135,11 +1135,7 @@ export const assetApi = {
 		}),
 
 	// Portfolio - Income History
-	getPortfolioIncomeHistory: (
-		status = 'ALL',
-		page = 0,
-		size = 20,
-	) =>
+	getPortfolioIncomeHistory: (status = "ALL", page = 0, size = 20) =>
 		assetClient.get<IncomeHistoryResponse>("/portfolio/income-history", {
 			params: { status, page, size },
 		}),
@@ -1260,8 +1256,7 @@ export const assetApi = {
 		assetClient.get<OrderResponse>(`/trades/orders/${orderId}`),
 
 	// Portfolio positions
-	getPortfolio: () =>
-		assetClient.get<PortfolioSummaryResponse>("/portfolio"),
+	getPortfolio: () => assetClient.get<PortfolioSummaryResponse>("/portfolio"),
 	getPosition: (assetId: string) =>
 		assetClient.get<PositionResponse>(`/portfolio/positions/${assetId}`),
 

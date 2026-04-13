@@ -74,9 +74,7 @@ const BondBadge: FC<BondBadgeProps> = ({ bondType }) => {
 		<span
 			className={[
 				"inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold ml-1.5",
-				isAmber
-					? "bg-amber-100 text-amber-800"
-					: "bg-blue-100 text-blue-800",
+				isAmber ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800",
 			].join(" ")}
 		>
 			{bondType}
@@ -131,10 +129,7 @@ export const PortfolioView: FC<ReturnType<typeof usePortfolio>> = ({
 }) => {
 	if (isError) {
 		return (
-			<ErrorFallback
-				message="Failed to load portfolio."
-				onRetry={refetch}
-			/>
+			<ErrorFallback message="Failed to load portfolio." onRetry={refetch} />
 		);
 	}
 
@@ -177,11 +172,7 @@ export const PortfolioView: FC<ReturnType<typeof usePortfolio>> = ({
 					</SummaryCard>
 
 					<SummaryCard label="Unrealized P&L">
-						<span
-							className={
-								pnlPositive ? "text-green-600" : "text-red-600"
-							}
-						>
+						<span className={pnlPositive ? "text-green-600" : "text-red-600"}>
 							{pnlPositive ? "+" : ""}
 							{fmtXaf(summary.unrealizedPnl)}
 							<span className="text-sm font-normal ml-2">
@@ -259,9 +250,7 @@ export const PortfolioView: FC<ReturnType<typeof usePortfolio>> = ({
 															<span className="text-sm font-mono font-semibold text-gray-900">
 																{pos.symbol ?? pos.assetId}
 															</span>
-															{bond && (
-																<BondBadge bondType={pos.bondType} />
-															)}
+															{bond && <BondBadge bondType={pos.bondType} />}
 														</div>
 														{pos.name && (
 															<p className="text-xs text-gray-500 mt-0.5 max-w-[180px] truncate">
@@ -289,9 +278,11 @@ export const PortfolioView: FC<ReturnType<typeof usePortfolio>> = ({
 
 											{/* Accrued Coupon */}
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-												{accrued
-													? fmtXaf(pos.accruedInterestPerUnit)
-													: <span className="text-gray-300">—</span>}
+												{accrued ? (
+													fmtXaf(pos.accruedInterestPerUnit)
+												) : (
+													<span className="text-gray-300">—</span>
+												)}
 											</td>
 
 											{/* Dirty Price */}
@@ -315,9 +306,11 @@ export const PortfolioView: FC<ReturnType<typeof usePortfolio>> = ({
 
 											{/* Next Coupon */}
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700">
-												{bond
-													? fmtDate(pos.bondBenefit?.nextCouponDate)
-													: <span className="text-gray-300">—</span>}
+												{bond ? (
+													fmtDate(pos.bondBenefit?.nextCouponDate)
+												) : (
+													<span className="text-gray-300">—</span>
+												)}
 											</td>
 										</tr>
 									);

@@ -3,8 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CalendarDays, Loader2 } from "lucide-react";
 import { FC, useState } from "react";
-import { assetApi, type IncomeHistoryEntry } from "@/services/assetApi";
-import { extractErrorMessage } from "@/services/assetApi";
+import {
+	assetApi,
+	extractErrorMessage,
+	type IncomeHistoryEntry,
+} from "@/services/assetApi";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -34,8 +37,7 @@ const TYPE_LABEL: Record<string, string> = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const fmt = (n: number) =>
-	new Intl.NumberFormat("fr-FR").format(Math.round(n));
+const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
 
 const fmtDate = (iso: string) =>
 	new Date(iso).toLocaleDateString("fr-FR", {
@@ -58,9 +60,7 @@ const SummaryBar: FC<{
 			<p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
 				Total Perçu
 			</p>
-			<p className="text-2xl font-bold text-green-700">
-				{fmt(totalPaid)} XAF
-			</p>
+			<p className="text-2xl font-bold text-green-700">{fmt(totalPaid)} XAF</p>
 		</Card>
 		<Card className="p-4">
 			<p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
@@ -144,9 +144,7 @@ const IncomeTable: FC<{ entries: IncomeHistoryEntry[] }> = ({ entries }) => (
 							{fmtDate(entry.paymentDate)}
 						</td>
 						<td className="px-3 py-2">
-							<span className="font-medium text-gray-900">
-								{entry.symbol}
-							</span>
+							<span className="font-medium text-gray-900">{entry.symbol}</span>
 							<span className="ml-1 text-xs text-gray-400">
 								{entry.assetName}
 							</span>
@@ -190,8 +188,8 @@ const ComingSoonBanner: FC = () => (
 		</h2>
 		<p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
 			Cette fonctionnalite est en cours de developpement. Elle affichera
-			l&apos;historique complet de vos revenus (coupons, maturites, distributions)
-			avec details fiscaux IRCM.
+			l&apos;historique complet de vos revenus (coupons, maturites,
+			distributions) avec details fiscaux IRCM.
 		</p>
 		<p className="text-sm text-gray-500 mb-6">
 			En attendant, consultez votre{" "}
@@ -216,8 +214,7 @@ export const IncomeHistoryView: FC = () => {
 
 	const { data, isLoading, isError, error } = useQuery({
 		queryKey: ["portfolio-income-history", activeTab, page],
-		queryFn: () =>
-			assetApi.getPortfolioIncomeHistory(activeTab, page, 20),
+		queryFn: () => assetApi.getPortfolioIncomeHistory(activeTab, page, 20),
 		select: (res) => res.data,
 		// Treat 404 as "endpoint not yet available" rather than an error to
 		// surface; we show the coming-soon banner instead.

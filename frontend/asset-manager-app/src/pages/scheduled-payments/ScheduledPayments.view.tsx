@@ -374,7 +374,10 @@ export const ScheduledPaymentsView: FC<
 									) : detail.ircmExempt === false ? (
 										<DetailRow label="IRCM">
 											<span className="text-sm text-gray-900">
-												Assujetti{detail.ircmRate != null ? ` — ${detail.ircmRate}%` : ""}
+												Assujetti
+												{detail.ircmRate != null
+													? ` — ${detail.ircmRate}%`
+													: ""}
 												{detail.ircmWithheldPerUnit != null
 													? ` (${fmtAmount(detail.ircmWithheldPerUnit)}/unité)`
 													: ""}

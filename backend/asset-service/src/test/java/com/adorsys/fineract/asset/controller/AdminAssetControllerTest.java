@@ -69,7 +69,7 @@ class AdminAssetControllerTest {
                 new BigDecimal("900"), new BigDecimal("1000"),
                 null, null, null, // issuerName, lpName, couponAmountPerUnit
                 null, // bondType
-                null, null, null, null, null // isinCode, maturityDate, interestRate, currentYield, residualDays
+                null, null, null, null, null, null // isinCode, maturityDate, issueDate, interestRate, currentYield, residualDays
         );
         when(catalogService.listAllAssets(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(asset)));
@@ -133,7 +133,7 @@ class AdminAssetControllerTest {
                 null, null, // lpMarginPerUnit, lpMarginPercent
                 Instant.now(), null, // createdAt, updatedAt
                 null, null, null, // bondType, dayCountConvention, issuerCountry
-                null, null, null, null, null, null, null, null, // isinCode, maturityDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, couponAmountPerUnit
+                null, null, null, null, null, null, null, null, null, // isinCode, maturityDate, issueDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, couponAmountPerUnit
                 null, null, // bidPrice, askPrice
                 null, null, null, null, null, null, // maxPositionPercent, maxOrderSize, dailyTradeLimitXaf, minOrderSize, minOrderCashAmount, lockupDays
                 null, null, null, null, // incomeType, incomeRate, distributionFrequencyMonths, nextDistributionDate

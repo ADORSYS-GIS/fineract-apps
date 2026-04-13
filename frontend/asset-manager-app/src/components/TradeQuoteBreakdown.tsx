@@ -34,8 +34,7 @@ export interface TradeQuoteBreakdownProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const fmt = (n: number) =>
-	new Intl.NumberFormat("fr-FR").format(Math.round(n));
+const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
 
 const pct = (n: number) => `${n.toFixed(2)}%`;
 
@@ -115,8 +114,7 @@ const CouponBuyBreakdown: FC<{
 
 	const daysSub =
 		pb.daysSinceLastCoupon != null ? `(${pb.daysSinceLastCoupon}j)` : "";
-	const feeRatePct =
-		cleanTotal > 0 ? pct((quote.fee / cleanTotal) * 100) : "";
+	const feeRatePct = cleanTotal > 0 ? pct((quote.fee / cleanTotal) * 100) : "";
 
 	return (
 		<>
@@ -140,7 +138,12 @@ const CouponBuyBreakdown: FC<{
 				sub={daysSub}
 				sign="+"
 			/>
-			<Row label="Frais plateforme" value={fmt(quote.fee)} sub={`(${feeRatePct})`} sign="+" />
+			<Row
+				label="Frais plateforme"
+				value={fmt(quote.fee)}
+				sub={`(${feeRatePct})`}
+				sign="+"
+			/>
 			<Divider />
 			<Row label="TOTAL À PAYER" value={fmt(quote.netAmount)} bold />
 			{bb?.annualizedYieldPercent != null && (
@@ -177,10 +180,7 @@ const DiscountSellBreakdown: FC<{
 				label={`× ${quote.units} unité${quote.units > 1 ? "s" : ""}`}
 				value={fmt(marketTotal)}
 			/>
-			<Row
-				label="Coupon couru"
-				value={fmt(accrued)}
-			/>
+			<Row label="Coupon couru" value={fmt(accrued)} />
 			<Row
 				label="Frais plateforme"
 				value={fmt(quote.fee)}
@@ -287,9 +287,7 @@ export const TradeQuoteBreakdown: FC<TradeQuoteBreakdownProps> = ({
 			<div className="flex items-center gap-2 mb-3">
 				<span
 					className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-bold tracking-wide ${
-						isBuy
-							? "bg-green-100 text-green-800"
-							: "bg-red-100 text-red-800"
+						isBuy ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
 					}`}
 				>
 					{quote.side}
