@@ -434,7 +434,20 @@ describe("assetExcelTemplate", () => {
 		});
 
 		it("government bonds have IRCM and capital-gains tax disabled", () => {
-			const bondSymbols = ["CB1", "GB6", "GB1", "TB6", "CO2", "CO3", "CO4", "CO5", "CO7", "GO1", "TO2", "TO3"];
+			const bondSymbols = [
+				"CB1",
+				"GB6",
+				"GB1",
+				"TB6",
+				"CO2",
+				"CO3",
+				"CO4",
+				"CO5",
+				"CO7",
+				"GO1",
+				"TO2",
+				"TO3",
+			];
 			for (const sym of bondSymbols) {
 				const row = rows.find((r) => r.symbol === sym);
 				expect(row?.ircmEnabled).toBe(false);
