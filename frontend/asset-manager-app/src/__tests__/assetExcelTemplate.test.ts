@@ -417,12 +417,28 @@ describe("assetExcelTemplate", () => {
 			expect(rows.find((r) => r.symbol === "GO1")?.interestRate).toBe(5.9);
 		});
 
-		it("only registration duty is enabled in tax config", () => {
+		it("registration duty is enabled on all rows", () => {
 			for (const row of rows) {
 				expect(row.registrationDutyEnabled).toBe(true);
 				expect(row.registrationDutyRate).toBe(0.02);
-				expect(row.ircmEnabled).toBe(false);
-				expect(row.capitalGainsTaxEnabled).toBe(false);
+			}
+		});
+
+		it("BVMAC stocks have IRCM and capital-gains tax enabled", () => {
+			const stockSymbols = ["SMC", "SFC", "SCP", "LRG", "BNG", "SGR"];
+			for (const sym of stockSymbols) {
+				const row = rows.find((r) => r.symbol === sym);
+				expect(row?.ircmEnabled).toBe(true);
+				expect(row?.capitalGainsTaxEnabled).toBe(true);
+			}
+		});
+
+		it("government bonds have IRCM and capital-gains tax disabled", () => {
+			const bondSymbols = ["CB1", "GB6", "GB1", "TB6", "CO2", "CO3", "CO4", "CO5", "CO7", "GO1", "TO2", "TO3"];
+			for (const sym of bondSymbols) {
+				const row = rows.find((r) => r.symbol === sym);
+				expect(row?.ircmEnabled).toBe(false);
+				expect(row?.capitalGainsTaxEnabled).toBe(false);
 			}
 		});
 
