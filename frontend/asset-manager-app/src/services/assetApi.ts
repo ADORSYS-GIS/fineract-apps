@@ -210,6 +210,7 @@ export interface CreateAssetRequest {
 	lpBidPrice: number;
 	lpAskPrice: number;
 	tradingFeePercent?: number;
+	spreadPercent?: number;
 	totalSupply: number;
 	decimalPlaces: number;
 
@@ -279,6 +280,7 @@ export interface UpdateAssetRequest {
 	// Bond-specific updatable fields
 	interestRate?: number;
 	maturityDate?: string;
+	nextCouponDate?: string;
 	// Tax configuration (Cameroon/CEMAC)
 	registrationDutyEnabled?: boolean;
 	registrationDutyRate?: number;
@@ -318,6 +320,7 @@ export interface CouponPaymentResponse {
 export interface SetPriceRequest {
 	askPrice: number;
 	bidPrice?: number;
+	priceMode?: string;
 }
 
 /** Inventory stats (matches backend InventoryResponse). */

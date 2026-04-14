@@ -82,13 +82,21 @@ export const ImportAssetsDialog: FC<ImportAssetsDialogProps> = ({
 	const handleImport = useCallback(async () => {
 		if (!parseResult) return;
 
+		// Guard: do not submit if any rows failed local validation.
+		// Errored rows carry fallback 0/empty values that would create malformed assets.
+		const errorRowNumbers = new Set(parseResult.errors.map((e) => e.row));
+		const importableRows = parseResult.rows.filter(
+			(_, i) => !errorRowNumbers.has(i + 2),
+		);
+		if (importableRows.length === 0) return;
+
 		abortedRef.current = false;
 		setState("importing");
 		const results: ImportResult[] = [];
 
-		for (let i = 0; i < parseResult.rows.length; i++) {
+		for (let i = 0; i < importableRows.length; i++) {
 			if (abortedRef.current) break;
-			const row = parseResult.rows[i];
+			const row = importableRows[i];
 
 			try {
 				const response = await assetApi.createAsset(row);
@@ -118,10 +126,12 @@ export const ImportAssetsDialog: FC<ImportAssetsDialogProps> = ({
 
 	if (!isOpen) return null;
 
-	const validRows = parseResult ? parseResult.rows.length : 0;
 	const errorRows = parseResult
 		? new Set(parseResult.errors.map((e) => e.row)).size
 		: 0;
+	// Only rows with no validation errors are safe to import.
+	const validRows = parseResult ? parseResult.rows.length - errorRows : 0;
+	const hasErrors = errorRows > 0;
 
 	return (
 		<div
@@ -190,11 +200,12 @@ export const ImportAssetsDialog: FC<ImportAssetsDialogProps> = ({
 						{/* Summary */}
 						<div className="flex gap-4 text-sm">
 							<span className="text-green-600 font-medium">
-								{validRows} rows parsed
+								{validRows} importable
 							</span>
 							{errorRows > 0 && (
 								<span className="text-red-600 font-medium">
-									{errorRows} rows with errors
+									{errorRows} row{errorRows !== 1 ? "s" : ""} with errors (fix
+									before importing)
 								</span>
 							)}
 						</div>
@@ -277,7 +288,15 @@ export const ImportAssetsDialog: FC<ImportAssetsDialogProps> = ({
 							<Button variant="outline" onClick={reset}>
 								Cancel
 							</Button>
-							<Button onClick={handleImport} disabled={validRows === 0}>
+							<Button
+								onClick={handleImport}
+								disabled={validRows === 0 || hasErrors}
+								title={
+									hasErrors
+										? `Fix ${errorRows} error${errorRows !== 1 ? "s" : ""} before importing`
+										: undefined
+								}
+							>
 								Import {validRows} Asset{validRows !== 1 ? "s" : ""}
 							</Button>
 						</div>
@@ -289,13 +308,13 @@ export const ImportAssetsDialog: FC<ImportAssetsDialogProps> = ({
 					<div className="space-y-4 text-center py-8">
 						<div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto" />
 						<p className="text-sm text-gray-600">
-							Creating assets... {importProgress} / {parseResult.rows.length}
+							Creating assets... {importProgress} / {validRows}
 						</p>
 						<div className="w-full bg-gray-200 rounded-full h-2">
 							<div
 								className="bg-blue-600 h-2 rounded-full transition-all"
 								style={{
-									width: `${(importProgress / parseResult.rows.length) * 100}%`,
+									width: `${validRows > 0 ? (importProgress / validRows) * 100 : 0}%`,
 								}}
 							/>
 						</div>

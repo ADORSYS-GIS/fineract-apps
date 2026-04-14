@@ -83,6 +83,11 @@ public class AssetProvisioningService {
         String effectiveCurrencyCode = currencyCodeGenerator.generate(request.symbol(), registeredCurrencyCodes);
         log.info("Auto-generated currency code '{}' for symbol '{}'", effectiveCurrencyCode, request.symbol());
 
+        // Validate generated currency code is not already used locally
+        if (assetRepository.findByCurrencyCode(effectiveCurrencyCode).isPresent()) {
+            throw new AssetException("Currency code already exists: " + effectiveCurrencyCode);
+        }
+
         // Check Fineract for orphaned savings product from a previously failed creation.
         // Strategy: adopt the orphan rather than blocking. If the product already exists in Fineract
         // but has no local Asset record, resume provisioning from that product ID.
@@ -110,6 +115,11 @@ public class AssetProvisioningService {
                 : request.issuerPrice().multiply(BigDecimal.ONE.subtract(effectiveSpread)).setScale(0, RoundingMode.HALF_UP);
 
         // Validate pricing before provisioning any Fineract resources
+        // ask >= issuerPrice must hold for all asset types: issuerPrice is the LP cost basis
+        // and the spread leg clamps to max(0, executionPrice - issuerPrice), so a sub-cost
+        // ask produces unrecoverable losses. For DISCOUNT bonds the discount is relative to
+        // faceValue, not to issuerPrice; that invariant (faceValue > issuerPrice) is enforced
+        // separately in validateBondFields below.
         if (effectiveAskPrice.compareTo(request.issuerPrice()) < 0) {
             throw new AssetException("Invalid pricing: ask price (" + effectiveAskPrice
                     + ") must be >= issuer price (" + request.issuerPrice() + ")");
@@ -119,7 +129,11 @@ public class AssetProvisioningService {
                     + ") must not exceed ask price (" + effectiveAskPrice + ")");
         }
 
-        // Validate bond-specific fields when category is BONDS
+        // Validate bond-specific fields when category is BONDS; reject bondType on all others
+        if (request.bondType() != null && request.category() != AssetCategory.BONDS) {
+            throw new AssetException(
+                    "bondType is only valid for BONDS assets; received category=" + request.category());
+        }
         if (request.category() == AssetCategory.BONDS) {
             validateBondFields(request);
         }

@@ -254,6 +254,96 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
+    void createAsset_discountBondWithAskBelowIssuerPrice_throws() {
+        // DISCOUNT bond with lpAskPrice < issuerPrice must still be rejected —
+        // issuerPrice is the LP cost basis regardless of bond type.
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Bond", "BTA", "BTA", null, null, AssetCategory.BONDS,
+                new BigDecimal("950000"), null, new BigDecimal("100"), 0,
+                null, null,
+                new BigDecimal("940000"), new BigDecimal("930000"),  // ask < issuerPrice
+                LP_CLIENT_ID,
+                null, null, null, null,
+                null, null,
+                BondType.DISCOUNT, DayCountConvention.ACT_360, "CAMEROUN",
+                "Republique du Cameroun", "CM1300001193", LocalDate.now().plusWeeks(52),
+                null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("BTA")).thenReturn(Optional.empty());
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("ask price"));
+        assertTrue(ex.getMessage().contains("issuer price"));
+        verify(fineractClient, never()).provisionSavingsAccount(any(), any(), any(), any());
+    }
+
+    @Test
+    void createAsset_discountBondWithAskEqualToIssuerPrice_passesAskCheck() {
+        // Zero-spread (ask == issuerPrice) is a valid admin choice and must not be blocked.
+        // The test verifies that NO ask-price validation exception is thrown — any other
+        // exception (e.g. from downstream provisioning) is acceptable.
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Bond", "BTA", "BTA", null, null, AssetCategory.BONDS,
+                new BigDecimal("950000"), new BigDecimal("1000000"), new BigDecimal("100"), 0,
+                null, null,
+                new BigDecimal("950000"), new BigDecimal("940000"),  // ask == issuerPrice (zero spread)
+                LP_CLIENT_ID,
+                null, null, null, null,
+                null, null,
+                BondType.DISCOUNT, DayCountConvention.ACT_360, "CAMEROUN",
+                "Republique du Cameroun", "CM1300001193", LocalDate.now().plusWeeks(52),
+                null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("BTA")).thenReturn(Optional.empty());
+
+        try {
+            service.createAsset(request);
+        } catch (AssetException e) {
+            assertFalse(e.getMessage().contains("ask price"),
+                    "Ask-price check must not fire when ask == issuerPrice, but got: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void createAsset_nonBondWithBondType_throws() {
+        // A STOCKS request with bondType=DISCOUNT must be rejected; bondType is only valid for BONDS.
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Test Asset", "TST", "TST", "desc", null, AssetCategory.STOCKS,
+                new BigDecimal("100"), null, new BigDecimal("1000"), 0,
+                null, null,
+                new BigDecimal("110"), new BigDecimal("90"),
+                LP_CLIENT_ID,
+                null, null, null, null, null, null,
+                BondType.DISCOUNT, null, null,
+                null, null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("bondType is only valid for BONDS assets"));
+        verify(fineractClient, never()).provisionSavingsAccount(any(), any(), any(), any());
+    }
+
+    @Test
+    void createAsset_duplicateCurrencyCode_throws() {
+        CreateAssetRequest request = createAssetRequest();
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.of(activeAsset()));
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("Currency code already exists"));
+    }
+
+    @Test
     void createAsset_generatorReturnsAlternativeCode_usedForProductAndCurrency() {
         // Simulate collision avoidance: generator returns "TSTA" instead of "TST"
         when(currencyCodeGenerator.generate(anyString(), any())).thenReturn("TSTA");

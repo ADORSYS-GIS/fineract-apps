@@ -392,6 +392,9 @@ export const useCreateAsset = () => {
 			lpBidPrice: formData.lpBidPrice,
 			lpAskPrice: formData.lpAskPrice,
 			tradingFeePercent: formData.tradingFeePercent / 100,
+			...(formData.pricingMode === "spread" && {
+				spreadPercent: formData.spreadPercent / 100,
+			}),
 			totalSupply: formData.totalSupply,
 			decimalPlaces: formData.decimalPlaces,
 			lpClientId: formData.lpClientId,
