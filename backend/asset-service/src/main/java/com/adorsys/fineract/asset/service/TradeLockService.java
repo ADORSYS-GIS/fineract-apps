@@ -14,7 +14,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,14 +43,7 @@ public class TradeLockService {
     private final ConcurrentHashMap<String, ReentrantLock> localLocks = new ConcurrentHashMap<>();
 
     /**
-     * TTL-based local fallback for quote locks.
-     * ReentrantLock is thread-bound; quote lock acquire and release happen on different HTTP threads,
-     * so we use CAS on an expiry timestamp instead.
-     */
-    private final ConcurrentHashMap<String, Instant> localQuoteLocks = new ConcurrentHashMap<>();
-
-    /**
-     * Evict unlocked entries from the local fallback lock map to prevent unbounded growth.
+     * Evict unlocked entries from the local trade-lock fallback map to prevent unbounded growth.
      */
     @Scheduled(fixedRate = 600000)
     public void evictStaleLocalLocks() {
@@ -60,14 +52,6 @@ public class TradeLockService {
         int removed = before - localLocks.size();
         if (removed > 0) {
             log.debug("Evicted {} stale local trade locks, {} remaining", removed, localLocks.size());
-        }
-
-        Instant now = Instant.now();
-        int quoteBefore = localQuoteLocks.size();
-        localQuoteLocks.entrySet().removeIf(entry -> !now.isBefore(entry.getValue()));
-        int quoteRemoved = quoteBefore - localQuoteLocks.size();
-        if (quoteRemoved > 0) {
-            log.debug("Evicted {} expired local quote locks, {} remaining", quoteRemoved, localQuoteLocks.size());
         }
     }
 
@@ -154,7 +138,9 @@ public class TradeLockService {
 
     /**
      * Acquire a per-asset-side quote lock to prevent duplicate QUOTED orders.
-     * Uses SET NX EX — atomic, self-expiring at quote TTL.
+     * Uses Redis SET NX EX — atomic, self-expiring at quote TTL.
+     * If Redis is unavailable the lock is skipped (best-effort); the max-active-quotes
+     * DB check in TradingService still prevents runaway duplicates.
      *
      * @throws TradingException if a quote lock is already held for this userId+assetId+side
      */
@@ -172,8 +158,8 @@ public class TradeLockService {
             }
             log.debug("Acquired quote lock: userId={}, assetId={}, side={}", userId, assetId, side);
         } catch (RedisConnectionFailureException e) {
-            log.warn("Redis unavailable for quote lock, falling back to local: userId={}, assetId={}, side={}", userId, assetId, side);
-            acquireLocalQuoteLock(key, ttlSeconds, side);
+            // Redis unavailable — skip lock. The DB-level max-active-quotes guard still applies.
+            log.warn("Redis unavailable for quote lock, skipping: userId={}, assetId={}, side={}", userId, assetId, side);
         }
     }
 
@@ -187,32 +173,6 @@ public class TradeLockService {
             log.debug("Released quote lock: userId={}, assetId={}, side={}", userId, assetId, side);
         } catch (RedisConnectionFailureException e) {
             log.warn("Redis unavailable during quote lock release: userId={}, assetId={}, side={}", userId, assetId, side);
-            localQuoteLocks.remove(key);
-        }
-    }
-
-    /**
-     * TTL-aware local quote lock using CAS on an expiry timestamp.
-     * ReentrantLock cannot be used here because acquire and release happen on different HTTP threads.
-     */
-    private void acquireLocalQuoteLock(String key, int ttlSeconds, TradeSide side) {
-        Instant newExpiry = Instant.now().plusSeconds(ttlSeconds);
-        Instant existing = localQuoteLocks.putIfAbsent(key, newExpiry);
-        if (existing == null) {
-            // No prior entry — we own it
-            return;
-        }
-        if (Instant.now().isBefore(existing)) {
-            // Prior lock still valid
-            throw new TradingException(
-                    "An active " + side + " quote already exists for this asset (local lock).",
-                    "DUPLICATE_ACTIVE_QUOTE");
-        }
-        // Prior lock expired — replace atomically; if another thread wins the CAS we lose
-        if (!localQuoteLocks.replace(key, existing, newExpiry)) {
-            throw new TradingException(
-                    "An active " + side + " quote already exists for this asset (local lock).",
-                    "DUPLICATE_ACTIVE_QUOTE");
         }
     }
 }

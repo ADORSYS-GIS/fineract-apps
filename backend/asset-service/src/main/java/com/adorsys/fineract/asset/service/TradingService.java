@@ -623,12 +623,17 @@ public class TradingService {
      * the DB row reflecting the status change is visible.
      */
     private void releaseQuoteLockAfterCommit(Order order) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
-            }
-        });
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
+                }
+            });
+        } else {
+            // No active transaction (e.g. in unit tests) — release immediately
+            tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
+        }
     }
 
     private OrderResponse toOrderResponse(Order order) {
