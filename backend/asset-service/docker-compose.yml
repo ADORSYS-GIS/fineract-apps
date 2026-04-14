@@ -1,29 +1,60 @@
 version: "3.8"
 services:
-  # asset-service:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8083:8083"
-  #   environment:
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/asset_service
-  #     SPRING_DATASOURCE_USERNAME: asset_service
-  #     SPRING_DATASOURCE_PASSWORD: password
-  #     REDIS_HOST: redis
-  #     REDIS_PORT: 6379
-  #     FINERACT_URL: https://localhost
-  #     FINERACT_TENANT: default
-  #     FINERACT_AUTH_TYPE: basic
-  #     FINERACT_USERNAME: mifos
-  #     FINERACT_PASSWORD: password
-  #     KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/fineract
-  #     KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/fineract/protocol/openid-connect/certs
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
+  asset-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    networks:
+      default: {}
+      fineract-gitops:
+        aliases:
+          - asset-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/asset_service
+      SPRING_DATASOURCE_USERNAME: asset_service
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      FINERACT_URL: https://host.docker.internal:8443
+      FINERACT_TENANT: default
+      FINERACT_AUTH_TYPE: oauth
+      FINERACT_CLIENT_ID: asset-service
+      FINERACT_CLIENT_SECRET: asset-service-secret
+      FINERACT_USERNAME: mifos
+      FINERACT_PASSWORD: password
+      FINERACT_TOKEN_URL: http://host.docker.internal:8180/realms/fineract/protocol/openid-connect/token
+      KEYCLOAK_ISSUER_URI: http://host.docker.internal:8180/realms/fineract
+      KEYCLOAK_JWK_SET_URI: http://host.docker.internal:8180/realms/fineract/protocol/openid-connect/certs
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_PUBLIC_BASE_URL: http://localhost:9000/fineract-assets
+      APP_SECURITY_PERMIT_ALL_ADMIN: "true"
+      RATE_LIMIT_ENABLED: "false"
+      APP_CORS_ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:4209,http://localhost:3000,http://localhost:5173"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  asset-manager:
+    build:
+      context: ../..
+      dockerfile: frontend/asset-manager-app/Dockerfile
+    ports:
+      - "3083:80"
+    networks:
+      default: {}
+      fineract-gitops:
+        aliases:
+          - asset-manager-app
+    depends_on:
+      - asset-service
 
   postgres:
     image: postgres:15-alpine
@@ -86,3 +117,9 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
+
+networks:
+  default: {}
+  fineract-gitops:
+    external: true
+    name: fineract-gitops_fineract-net
