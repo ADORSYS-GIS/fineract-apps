@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 844" width="820" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./15-wallet-balance.svg" x="0" y="0" width="390" height="844"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="844" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="844" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">15 · Wallet / Cash Balance</text>
+
+  <!-- Endpoint note: Fineract, not asset-service -->
+  <rect x="406" y="31" width="410" height="16" rx="3" fill="#fef9c3"/>
+  <text x="410" y="42" fill="#92400e" font-size="9" font-weight="700">⚠ This screen calls Fineract core — NOT the asset-service API</text>
+
+  <rect x="406" y="51" width="368" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="62" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /v1/savingsaccounts/{id}</tspan></text>
+  <text x="408" y="77" fill="#64748b" font-size="9">Fineract savings account · Response: SavingsAccountData</text>
+
+  <rect x="406" y="82" width="400" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="93" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /v1/savingsaccounts/{id}/transactions</tspan></text>
+  <text x="408" y="108" fill="#64748b" font-size="9">Fineract savings transactions · Response: Page&lt;SavingsAccountTransactionData&gt;</text>
+
+  <!-- Section: Balance Card -->
+  <line x1="406" y1="123" x2="816" y2="123" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="135" fill="#1e3a5f" font-size="11" font-weight="700">Balance Card  (Fineract SavingsAccountData)</text>
+  <text x="410" y="151" fill="#64748b" font-size="10">Total Cash Balance</text>
+  <text x="814" y="151" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">SavingsAccountData.summary.accountBalance</text>
+  <text x="410" y="165" fill="#64748b" font-size="10">Available for investment</text>
+  <text x="814" y="165" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">SavingsAccountData.summary.availableBalance</text>
+  <text x="410" y="179" fill="#64748b" font-size="10">Eye icon — hide balance toggle</text>
+  <text x="814" y="179" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">client UI state only</text>
+
+  <!-- Section: Balance Breakdown -->
+  <line x1="406" y1="196" x2="816" y2="196" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="208" fill="#1e3a5f" font-size="11" font-weight="700">Balance Breakdown</text>
+  <text x="410" y="224" fill="#64748b" font-size="10">Available to invest</text>
+  <text x="814" y="224" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">SavingsAccountData.summary.availableBalance</text>
+  <text x="410" y="238" fill="#64748b" font-size="10">Pending (in orders)</text>
+  <text x="814" y="238" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">accountBalance − availableBalance  (computed)</text>
+  <text x="410" y="252" fill="#64748b" font-size="10">Income received this month</text>
+  <text x="814" y="252" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeCalendarResponse.monthlyTotals[current].totalAmount</text>
+  <text x="410" y="265" fill="#b45309" font-size="9">  from GET /portfolio/income-calendar (asset-service)</text>
+
+  <!-- Section: Recent Activity -->
+  <line x1="406" y1="280" x2="816" y2="280" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="292" fill="#1e3a5f" font-size="11" font-weight="700">Recent Wallet Activity  (Fineract transactions)</text>
+  <text x="410" y="308" fill="#64748b" font-size="10">Deposit entry (MTN / Orange)</text>
+  <text x="814" y="308" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">SavingsAccountTransactionData  type=DEPOSIT</text>
+  <text x="410" y="322" fill="#64748b" font-size="10">Deposit amount</text>
+  <text x="814" y="322" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.amount</text>
+  <text x="410" y="336" fill="#64748b" font-size="10">Deposit reference (Ref: DEP-…)</text>
+  <text x="814" y="336" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.externalId  (Fineract transaction ref)</text>
+  <text x="410" y="350" fill="#64748b" font-size="10">Buy deduction (−52,260 XAF)</text>
+  <text x="814" y="350" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.totalAmount  (from asset-service)</text>
+  <text x="410" y="364" fill="#64748b" font-size="10">Buy order ref (#ORD-…)</text>
+  <text x="814" y="364" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.orderId</text>
+  <text x="410" y="378" fill="#64748b" font-size="10">Income / dividend credit</text>
+  <text x="814" y="378" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">SavingsAccountTransactionData  type=INCOME</text>
+  <text x="410" y="392" fill="#64748b" font-size="10">Sell proceeds credit (+124,375 XAF)</text>
+  <text x="814" y="392" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.totalAmount  (SELL, from asset-service)</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="409" x2="816" y2="409" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="421" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="435" fill="#b45309" font-size="9">ⓘ All balance/transaction data is from Fineract core, not from asset-service.</text>
+  <text x="410" y="448" fill="#b45309" font-size="9">ⓘ "See full wallet history" → paged Fineract transactions list.</text>
+  <text x="410" y="461" fill="#b45309" font-size="9">ⓘ Deposit CTA → triggers mobile money payment flow (external provider).</text>
+  <text x="410" y="474" fill="#b45309" font-size="9">ⓘ Withdraw CTA → Fineract withdrawal request to linked bank account.</text>
+</svg>

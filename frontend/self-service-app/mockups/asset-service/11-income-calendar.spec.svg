@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 900" width="820" height="900">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./11-income-calendar.svg" x="0" y="0" width="390" height="900"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="900" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="900" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">11 · Income Calendar  (updated: gross/net/IRCM per unit)</text>
+
+  <!-- Endpoint -->
+  <rect x="406" y="31" width="384" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /portfolio/income-calendar?months=12</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">Response: IncomeCalendarResponse  (months param: 1–36)</text>
+
+  <!-- Section: Month Summary Card -->
+  <line x1="406" y1="72" x2="816" y2="72" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="84" fill="#1e3a5f" font-size="11" font-weight="700">Month Summary Card  (now shows net-after-tax total)</text>
+  <text x="410" y="100" fill="#64748b" font-size="10">Expected net amount this month  (after IRCM)</text>
+  <text x="814" y="100" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeCalendarResponse.monthlyTotals[n].netAmount</text>
+  <text x="410" y="114" fill="#64748b" font-size="10">Number of payments</text>
+  <text x="814" y="114" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.monthlyTotals[n].eventCount</text>
+  <text x="410" y="128" fill="#64748b" font-size="10">Month label ("April 2026")</text>
+  <text x="814" y="128" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.monthlyTotals[n].month</text>
+  <text x="410" y="142" fill="#b45309" font-size="9">  ⓘ Previously showed grossAmount; now shows netAmount (after IRCM withheld).</text>
+
+  <!-- Section: Calendar Widget -->
+  <line x1="406" y1="159" x2="816" y2="159" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="171" fill="#1e3a5f" font-size="11" font-weight="700">Calendar Widget  (client-rendered — unchanged)</text>
+  <text x="410" y="187" fill="#64748b" font-size="10">Payment day highlight</text>
+  <text x="814" y="187" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.paymentDate</text>
+  <text x="410" y="201" fill="#64748b" font-size="10">Income type colour (green=RENT, blue=COUPON, purple=DIVIDEND)</text>
+  <text x="814" y="201" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.incomeType</text>
+  <text x="410" y="214" fill="#b45309" font-size="9">  incomeType values: COUPON | DIVIDEND | RENT | HARVEST_YIELD | PRINCIPAL_REDEMPTION</text>
+
+  <!-- Section: Upcoming Payments List (updated) -->
+  <line x1="406" y1="229" x2="816" y2="229" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="241" fill="#1e3a5f" font-size="11" font-weight="700">Upcoming Payments List  (IncomeEvent per row — new fields)</text>
+  <text x="410" y="257" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="257" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.assetName</text>
+  <text x="410" y="271" fill="#64748b" font-size="10">Income type label</text>
+  <text x="814" y="271" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.incomeType</text>
+  <text x="410" y="285" fill="#64748b" font-size="10">Units held</text>
+  <text x="814" y="285" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.units</text>
+  <text x="410" y="299" fill="#64748b" font-size="10">Payment date</text>
+  <text x="814" y="299" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.paymentDate</text>
+  <text x="410" y="313" fill="#64748b" font-size="10">Net total amount  (primary display, right-top)</text>
+  <text x="814" y="313" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">IncomeEvent.netAmount  (NEW — was expectedAmount)</text>
+
+  <!-- New fields from PR #315 -->
+  <rect x="406" y="323" width="408" height="14" rx="3" fill="#fef9c3"/>
+  <text x="410" y="333" fill="#854d0e" font-size="9" font-weight="700">NEW fields from PR #315 — ScheduledPaymentService:</text>
+  <text x="410" y="347" fill="#64748b" font-size="10">Brut / unité  (gross per unit before tax)</text>
+  <text x="814" y="347" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">CouponEventDto.grossPerUnit  (NEW)</text>
+  <text x="410" y="361" fill="#64748b" font-size="10">IRCM / unité  (tax withheld per unit)</text>
+  <text x="814" y="361" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">CouponEventDto.ircmPerUnit  (NEW)</text>
+  <text x="410" y="375" fill="#b45309" font-size="9">  ⓘ ircmPerUnit = 0 for RENT (rental income not subject to IRCM in CEMAC).</text>
+  <text x="410" y="389" fill="#64748b" font-size="10">Net / unité  (displayed in green)</text>
+  <text x="814" y="389" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">CouponEventDto.netPerUnit  (NEW)</text>
+  <text x="410" y="403" fill="#64748b" font-size="10">Frequency badge</text>
+  <text x="814" y="403" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.distributionFrequencyMonths</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="420" x2="816" y2="420" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="432" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="446" fill="#b45309" font-size="9">ⓘ All events sorted by paymentDate across all held assets.</text>
+  <text x="410" y="459" fill="#b45309" font-size="9">ⓘ Total net (all months): IncomeCalendarResponse.totalNetIncome.</text>
+  <text x="410" y="472" fill="#b45309" font-size="9">ⓘ IRCM rate from AssetPublicDetailResponse.taxConfig.ircmRate (typically 16.5%).</text>
+  <text x="410" y="485" fill="#b45309" font-size="9">ⓘ COUPON and DIVIDEND events show IRCM deduction; RENT shows "—" (no IRCM).</text>
+  <text x="410" y="498" fill="#b45309" font-size="9">ⓘ PRINCIPAL_REDEMPTION event = BTA bond matures; navigate to screen 09b.</text>
+  <text x="410" y="511" fill="#b45309" font-size="9">ⓘ AgriCam example: brut=65, IRCM=10.73 (16.5%), net=54.27 XAF/unit.</text>
+  <text x="410" y="524" fill="#b45309" font-size="9">ⓘ Monthly summary total changed from grossAmount to netAmount (after-tax).</text>
+</svg>

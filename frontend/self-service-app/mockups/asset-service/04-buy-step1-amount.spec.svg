@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 844" width="820" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./04-buy-step1-amount.svg" x="0" y="0" width="390" height="844"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="844" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="844" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">04 · Buy — Step 1  (Enter XAF Amount)</text>
+
+  <!-- Endpoints -->
+  <rect x="406" y="31" width="254" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /assets/{id}</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">cached from screen 03 · AssetPublicDetailResponse</text>
+
+  <rect x="406" y="62" width="265" height="15" rx="3" fill="#fff7ed"/>
+  <text x="410" y="73" font-size="10" font-family="monospace"><tspan fill="#c2410c" font-weight="700">POST</tspan><tspan fill="#1e40af"> /trades/quote</tspan></text>
+  <text x="408" y="88" fill="#64748b" font-size="9">Request: QuoteRequest · Response: QuoteResponse  (live, on input change)</text>
+
+  <!-- Section: Asset Info Bar -->
+  <line x1="406" y1="103" x2="816" y2="103" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="115" fill="#1e3a5f" font-size="11" font-weight="700">Asset Info Bar</text>
+  <text x="410" y="131" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="131" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.name</text>
+  <text x="410" y="145" fill="#64748b" font-size="10">Symbol · Category</text>
+  <text x="814" y="145" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.symbol / .category</text>
+  <text x="410" y="159" fill="#64748b" font-size="10">Ask price (per unit)</text>
+  <text x="814" y="159" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.askPrice</text>
+  <text x="410" y="173" fill="#64748b" font-size="10">24h change %</text>
+  <text x="814" y="173" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.change24hPercent</text>
+
+  <!-- Section: Available Balance -->
+  <line x1="406" y1="190" x2="816" y2="190" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="202" fill="#1e3a5f" font-size="11" font-weight="700">Available Balance  (Fineract — not asset-service)</text>
+  <text x="410" y="218" fill="#64748b" font-size="10">Cash balance</text>
+  <text x="814" y="218" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">SavingsAccount.summary.availableBalance</text>
+  <text x="410" y="231" fill="#b45309" font-size="9">  Fineract: GET /v1/savingsaccounts/{id}  (separate service)</text>
+
+  <!-- Section: Input Mode Toggle -->
+  <line x1="406" y1="246" x2="816" y2="246" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="258" fill="#1e3a5f" font-size="11" font-weight="700">Input Mode Toggle  (client UI state)</text>
+  <text x="410" y="274" fill="#64748b" font-size="10">Amount (XAF) mode → sends</text>
+  <text x="814" y="274" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteRequest.amount</text>
+  <text x="410" y="288" fill="#64748b" font-size="10">Units mode → sends</text>
+  <text x="814" y="288" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteRequest.units</text>
+  <text x="410" y="302" fill="#64748b" font-size="10">Asset ID (always sent)</text>
+  <text x="814" y="302" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteRequest.assetId</text>
+  <text x="410" y="316" fill="#64748b" font-size="10">Direction (always BUY here)</text>
+  <text x="814" y="316" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteRequest.side = BUY</text>
+
+  <!-- Section: Order Estimate -->
+  <line x1="406" y1="333" x2="816" y2="333" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="345" fill="#1e3a5f" font-size="11" font-weight="700">Order Estimate  (QuoteResponse — live quote)</text>
+  <text x="410" y="361" fill="#64748b" font-size="10">Units to receive</text>
+  <text x="814" y="361" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.units</text>
+  <text x="410" y="375" fill="#64748b" font-size="10">Unit price (Ask, incl. LP spread)</text>
+  <text x="814" y="375" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.executionPrice</text>
+  <text x="410" y="389" fill="#64748b" font-size="10">Trading fee</text>
+  <text x="814" y="389" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.fee  (.feePercent %)</text>
+  <text x="410" y="403" fill="#64748b" font-size="10">Total to pay</text>
+  <text x="814" y="403" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.netAmount</text>
+  <text x="410" y="417" fill="#64748b" font-size="10">Min. order</text>
+  <text x="814" y="417" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.minOrderCashAmount</text>
+  <text x="410" y="431" fill="#64748b" font-size="10">Quote ID (for confirm step)</text>
+  <text x="814" y="431" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.orderId</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="448" x2="816" y2="448" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="460" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="474" fill="#b45309" font-size="9">ⓘ LP spread is baked into executionPrice — NEVER shown as a line item.</text>
+  <text x="410" y="487" fill="#b45309" font-size="9">ⓘ Estimate updates on every input change (debounced POST /trades/quote).</text>
+  <text x="410" y="500" fill="#b45309" font-size="9">ⓘ Quick-select buttons (10K / 25K / 50K / 100K) set QuoteRequest.amount.</text>
+  <text x="410" y="513" fill="#b45309" font-size="9">ⓘ "Continue" caches QuoteResponse and navigates to screen 05.</text>
+</svg>

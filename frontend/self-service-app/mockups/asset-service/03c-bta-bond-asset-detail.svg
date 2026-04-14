@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#00000018"/></filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="844" fill="#f3f4f6"/>
+
+  <!-- Status Bar -->
+  <rect width="390" height="44" fill="#1a56db"/>
+  <text x="20" y="28" fill="white" font-size="13" font-weight="600">9:41</text>
+  <text x="340" y="28" fill="white" font-size="11">▐▐▐ 🔋</text>
+
+  <!-- Header -->
+  <rect width="390" height="76" y="44" fill="#1a56db"/>
+  <text x="36" y="90" fill="white" font-size="20">←</text>
+  <text x="195" y="90" fill="white" font-size="18" font-weight="700" text-anchor="middle">Bond Detail</text>
+  <text x="362" y="90" fill="white" font-size="18">♡</text>
+
+  <!-- Asset Header Card -->
+  <rect x="16" y="132" width="358" height="126" rx="14" fill="white" filter="url(#shadow)"/>
+  <!-- icon -->
+  <circle cx="56" cy="188" r="28" fill="#ede9fe"/>
+  <text x="56" y="197" fill="#7c3aed" font-size="22" text-anchor="middle">📉</text>
+  <!-- name + symbol -->
+  <text x="96" y="166" fill="#111827" font-size="17" font-weight="700">BTA 2Y 2027</text>
+  <text x="96" y="182" fill="#9ca3af" font-size="12">BTA_2Y_2027 · Bonds</text>
+  <!-- Badges row -->
+  <rect x="96" y="190" width="62" height="20" rx="10" fill="#dcfce7"/>
+  <text x="127" y="204" fill="#16a34a" font-size="11" font-weight="600" text-anchor="middle">● Active</text>
+  <rect x="166" y="190" width="128" height="20" rx="10" fill="#ede9fe"/>
+  <text x="230" y="204" fill="#7c3aed" font-size="11" font-weight="600" text-anchor="middle">BTA · Discount Bond</text>
+  <!-- ISIN + Issuer -->
+  <text x="96" y="226" fill="#9ca3af" font-size="11">ISIN: CM0000654321</text>
+  <text x="96" y="242" fill="#9ca3af" font-size="11">Issuer: Ministère des Finances du Cameroun</text>
+
+  <!-- Price Block -->
+  <rect x="16" y="268" width="358" height="100" rx="14" fill="white" filter="url(#shadow)"/>
+  <text x="32" y="292" fill="#6b7280" font-size="12">Prix Actualisé (Ask — accrété quotidiennement)</text>
+  <text x="32" y="320" fill="#111827" font-size="28" font-weight="700">9,640 XAF</text>
+  <text x="32" y="340" fill="#6b7280" font-size="12">Valeur nominale: <tspan fill="#111827" font-weight="600">10,000 XAF</tspan>  ·  Gain restant: <tspan fill="#16a34a" font-weight="600">+360 XAF</tspan></text>
+  <!-- Bid/Ask -->
+  <line x1="258" y1="278" x2="258" y2="358" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="278" y="292" fill="#6b7280" font-size="12">Bid</text>
+  <text x="350" y="292" fill="#6b7280" font-size="12">Ask</text>
+  <text x="278" y="312" fill="#10b981" font-size="15" font-weight="700">9,590</text>
+  <text x="350" y="312" fill="#ef4444" font-size="15" font-weight="700">9,640</text>
+  <text x="278" y="332" fill="#9ca3af" font-size="11">spread: 50</text>
+  <text x="350" y="332" fill="#9ca3af" font-size="11">face: 10,000</text>
+
+  <!-- Bond Details Card (4-row grid) -->
+  <rect x="16" y="378" width="358" height="212" rx="14" fill="white" filter="url(#shadow)"/>
+  <text x="32" y="402" fill="#111827" font-size="14" font-weight="600">Bond Details</text>
+  <line x1="32" y1="412" x2="358" y2="412" stroke="#f3f4f6" stroke-width="1"/>
+
+  <!-- Row 1: implied rate | face value -->
+  <text x="32" y="432" fill="#9ca3af" font-size="12">Taux implicite (p.a.)</text>
+  <text x="32" y="448" fill="#111827" font-size="13" font-weight="600">3.85%</text>
+  <text x="200" y="432" fill="#9ca3af" font-size="12">Prix nominal</text>
+  <text x="200" y="448" fill="#111827" font-size="13" font-weight="600">10,000 XAF</text>
+
+  <line x1="32" y1="458" x2="358" y2="458" stroke="#f3f4f6" stroke-width="1"/>
+  <!-- Row 2: maturity | day count -->
+  <text x="32" y="476" fill="#9ca3af" font-size="12">Date de maturité</text>
+  <text x="32" y="492" fill="#111827" font-size="13" font-weight="600">15 avr. 2027</text>
+  <text x="200" y="476" fill="#9ca3af" font-size="12">Convention</text>
+  <text x="200" y="492" fill="#111827" font-size="13" font-weight="600">ACT/360</text>
+
+  <line x1="32" y1="502" x2="358" y2="502" stroke="#f3f4f6" stroke-width="1"/>
+  <!-- Row 3: days remaining | issuer price -->
+  <text x="32" y="520" fill="#9ca3af" font-size="12">Jours restants</text>
+  <text x="32" y="536" fill="#111827" font-size="13" font-weight="600">366 jours</text>
+  <text x="200" y="520" fill="#9ca3af" font-size="12">Prix d'émission initial</text>
+  <text x="200" y="536" fill="#111827" font-size="13" font-weight="600">9,268 XAF</text>
+
+  <line x1="32" y1="546" x2="358" y2="546" stroke="#f3f4f6" stroke-width="1"/>
+  <!-- Row 4: ISIN | issuer short -->
+  <text x="32" y="564" fill="#9ca3af" font-size="12">Code ISIN</text>
+  <text x="32" y="580" fill="#111827" font-size="13" font-weight="600">CM0000654321</text>
+  <text x="200" y="564" fill="#9ca3af" font-size="12">Émetteur</text>
+  <text x="200" y="580" fill="#111827" font-size="13" font-weight="600">Min. Finances</text>
+
+  <!-- Capital Gain Projection Card (replaces coupon forecast) -->
+  <rect x="16" y="602" width="358" height="146" rx="14" fill="#eff6ff" filter="url(#shadow)"/>
+  <text x="32" y="626" fill="#1e40af" font-size="14" font-weight="600">📈 Gain en capital à maturité</text>
+  <text x="32" y="640" fill="#6b7280" font-size="11">Basé sur le prix d'achat actuel · maturité le 15 avr. 2027</text>
+  <line x1="32" y1="649" x2="358" y2="649" stroke="#dbeafe" stroke-width="1"/>
+
+  <text x="32" y="667" fill="#6b7280" font-size="12">Gain brut / unité</text>
+  <text x="358" y="667" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">360 XAF</text>
+
+  <line x1="32" y1="675" x2="358" y2="675" stroke="#dbeafe" stroke-width="1"/>
+  <text x="32" y="693" fill="#6b7280" font-size="12">IRCM retenu (16.5%)</text>
+  <text x="358" y="693" fill="#ef4444" font-size="13" font-weight="600" text-anchor="end">−59 XAF</text>
+
+  <line x1="32" y1="701" x2="358" y2="701" stroke="#dbeafe" stroke-width="1"/>
+  <text x="32" y="719" fill="#6b7280" font-size="12">Gain net / unité</text>
+  <text x="358" y="719" fill="#16a34a" font-size="14" font-weight="700" text-anchor="end">301 XAF</text>
+
+  <text x="32" y="736" fill="#b45309" font-size="10">ⓘ IRCM prélevé automatiquement à la date de maturité (15 avr. 2027)</text>
+
+  <!-- Action Button -->
+  <rect x="16" y="758" width="358" height="52" rx="12" fill="#1a56db" filter="url(#shadow)"/>
+  <text x="195" y="789" fill="white" font-size="16" font-weight="700" text-anchor="middle">📈  Acheter ce BTA</text>
+
+  <!-- Bottom Nav -->
+  <rect x="0" y="796" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="48" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
+  <text x="146" y="826" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">📊 Market</text>
+  <text x="244" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">💼 Portfolio</text>
+  <text x="342" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
+</svg>
