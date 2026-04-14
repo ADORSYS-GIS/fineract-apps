@@ -83,6 +83,11 @@ public class AssetProvisioningService {
         String effectiveCurrencyCode = currencyCodeGenerator.generate(request.symbol(), registeredCurrencyCodes);
         log.info("Auto-generated currency code '{}' for symbol '{}'", effectiveCurrencyCode, request.symbol());
 
+        // Validate generated currency code is not already used locally
+        if (assetRepository.findByCurrencyCode(effectiveCurrencyCode).isPresent()) {
+            throw new AssetException("Currency code already exists: " + effectiveCurrencyCode);
+        }
+
         // Check Fineract for orphaned savings product from a previously failed creation.
         // Strategy: adopt the orphan rather than blocking. If the product already exists in Fineract
         // but has no local Asset record, resume provisioning from that product ID.
