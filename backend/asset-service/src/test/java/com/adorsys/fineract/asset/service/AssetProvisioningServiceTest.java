@@ -276,7 +276,7 @@ class AssetProvisioningServiceTest {
         service.createAsset(request);
 
         // The alternative code "TSTA" must be used when registering the currency
-        verify(fineractClient).registerCurrency(eq("TSTA"), anyInt(), anyString());
+        verify(fineractClient).registerCurrencies(argThat(list -> list.contains("TSTA")));
         verify(assetRepository).save(assetCaptor.capture());
         assertEquals("TSTA", assetCaptor.getValue().getCurrencyCode());
     }
