@@ -1,9 +1,11 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.client.FineractClient.BatchJournalEntryOp;
 import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
 import com.adorsys.fineract.asset.client.FineractClient.BatchTransferOp;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.*;
 import com.adorsys.fineract.asset.event.CouponPaidEvent;
@@ -47,6 +49,7 @@ public class ScheduledPaymentService {
     private final AssetMetrics assetMetrics;
     private final ApplicationEventPublisher eventPublisher;
     private final TaxService taxService;
+    private final ResolvedGlAccounts resolvedGlAccounts;
 
     // ── Create pending schedule ─────────────────────────────────────────────
 
@@ -553,6 +556,12 @@ public class ScheduledPaymentService {
                 String ircmDesc = String.format("IRCM withholding: %s coupon (%s%%)",
                         bond.getSymbol(), ircmRate.multiply(new BigDecimal("100")));
                 ops.add(new BatchTransferOp(bond.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+                // GL entry: debit tax expense (608), credit IRCM withholding payable (4013)
+                ops.add(new BatchJournalEntryOp(
+                        resolvedGlAccounts.getTaxExpenseIrcmId(),
+                        resolvedGlAccounts.getLpTaxWithholdingId(),
+                        ircmAmount, "XAF",
+                        String.format("IRCM tax expense: %s coupon", bond.getSymbol())));
             }
 
             List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
@@ -633,6 +642,12 @@ public class ScheduledPaymentService {
                 String ircmDesc = String.format("IRCM withholding: %s %s (%s%%)",
                         asset.getSymbol(), incomeType, ircmRate.multiply(new BigDecimal("100")));
                 ops.add(new BatchTransferOp(asset.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+                // GL entry: debit tax expense (608), credit IRCM withholding payable (4013)
+                ops.add(new BatchJournalEntryOp(
+                        resolvedGlAccounts.getTaxExpenseIrcmId(),
+                        resolvedGlAccounts.getLpTaxWithholdingId(),
+                        ircmAmount, "XAF",
+                        String.format("IRCM tax expense: %s %s", asset.getSymbol(), incomeType)));
             }
 
             List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
