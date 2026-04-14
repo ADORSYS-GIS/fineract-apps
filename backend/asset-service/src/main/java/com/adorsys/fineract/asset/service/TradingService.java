@@ -669,12 +669,26 @@ public class TradingService {
         recalculatePriceInsideLock(ctx);
         checkBalanceInsideLock(ctx);
 
-        // Execute trade
-        updatePortfolio(ctx);
-        recordTradeLog(ctx);
+        // Inventory reservation: atomically decrement/increment circulating supply.
+        // If this fails (constraint violated), the order is rejected before any money moves.
         adjustSupply(ctx);
+
+        // Execute Fineract settlement — if this fails, undo the supply adjustment so the
+        // reservation is cleanly reversed and no DB state is permanently corrupted.
+        try {
+            executeAtomicSettlement(ctx, lockedAsset);
+        } catch (TradingException settlementFailure) {
+            // Compensate the supply adjustment — negate the delta to undo the reservation
+            BigDecimal reverseDelta = ctx.getStrategy().supplyAdjustment(ctx.getUnits()).negate();
+            assetRepository.adjustCirculatingSupply(ctx.getAssetId(), reverseDelta);
+            throw settlementFailure;
+        }
+
+        // DB mutations only after confirmed money movement
+        updatePortfolio(ctx);       // sets ctx.realizedPnl for SELL
+        recordTradeLog(ctx);
+        recordTaxAudit(ctx, lockedAsset);   // uses ctx.realizedPnl set above
         pricingService.updateOhlcAfterTrade(ctx.getAssetId(), ctx.getExecutionPrice());
-        executeFineractBatch(ctx, lockedAsset);
 
         markOrderFilled(ctx, lockedAsset);
     }
@@ -687,6 +701,10 @@ public class TradingService {
             rejectOrder(ctx.getOrder(), "Asset LP accounts not configured");
             throw new TradingException(
                     "Asset is not fully configured for trading. Contact admin.", "CONFIG_ERROR");
+        }
+        if (resolvedGlAccounts.getClearingAccountId() == null) {
+            rejectOrder(ctx.getOrder(), "GL clearing account not configured");
+            throw new TradingException("Clearing account not configured. Contact admin.", "CONFIG_ERROR");
         }
         return lockedAsset;
     }
@@ -914,15 +932,19 @@ public class TradingService {
         }
     }
 
-    /** Execute all Fineract transfers as an atomic batch. */
-    private void executeFineractBatch(TradeContext ctx, Asset lockedAsset) {
+    /**
+     * Execute all Fineract transfers as an atomic batch.
+     * This is intentionally the FIRST mutating step in executeInsideLock — if the batch
+     * fails, no DB state has been modified, giving a clean failure path.
+     */
+    private void executeAtomicSettlement(TradeContext ctx, Asset lockedAsset) {
         TradeSide side = ctx.getStrategy().side();
         Long feeCollectionAccountId = resolvedGlAccounts.getFeeCollectionAccountId();
         BigDecimal registrationDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
         BigDecimal capitalGainsTax = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
         BigDecimal tvaAmount = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
-
         BigDecimal accruedInterestAmount = ctx.getAccruedInterestAmount() != null ? ctx.getAccruedInterestAmount() : BigDecimal.ZERO;
+
         List<BatchOperation> batchOps = buildBatchOperations(
                 side, lockedAsset, ctx.getUserCashAccountId(), ctx.getUserAssetAccountId(),
                 ctx.getGrossAmount(), ctx.getUnits(), ctx.getFee(), ctx.getSpreadAmount(),
@@ -932,34 +954,44 @@ public class TradingService {
         try {
             List<Map<String, Object>> batchResponses = fineractClient.executeAtomicBatch(batchOps);
             ctx.getOrder().setFineractBatchId(extractBatchId(batchResponses));
-
-            // Record tax transactions in the audit trail
-            if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
-                taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
-                        "REGISTRATION_DUTY", ctx.getGrossAmount(),
-                        taxService.getRegistrationDutyRate(lockedAsset), registrationDuty, null);
-            }
-            // Always record CAPITAL_GAINS tax_transaction when there's a realized gain,
-            // even if tax amount is 0 (exemption applied). This ensures sumCapitalGainsByUserAndYear
-            // correctly tracks cumulative gains for the annual exemption threshold.
-            BigDecimal realizedPnl = ctx.getRealizedPnl() != null ? ctx.getRealizedPnl() : BigDecimal.ZERO;
-            if (side == TradeSide.SELL && realizedPnl.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal cgtRate = lockedAsset.getCapitalGainsRate() != null
-                        ? lockedAsset.getCapitalGainsRate() : new BigDecimal("0.165");
-                taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
-                        "CAPITAL_GAINS", realizedPnl, cgtRate, capitalGainsTax, null);
-            }
-            if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
-                taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
-                        "TVA", ctx.getGrossAmount(),
-                        taxService.getTvaRate(lockedAsset), tvaAmount, null);
-            }
         } catch (Exception batchError) {
             log.error("Batch transfer failed for {} order {}: {}", side, ctx.getOrderId(), batchError.getMessage());
             ctx.getOrder().setStatus(OrderStatus.FAILED);
             ctx.getOrder().setFailureReason("Batch transfer failed: " + batchError.getMessage());
             orderRepository.save(ctx.getOrder());
             throw new TradingException("Trade failed: " + batchError.getMessage(), "TRADE_FAILED");
+        }
+    }
+
+    /**
+     * Record tax audit trail after settlement and portfolio update.
+     * Called AFTER updatePortfolio so ctx.realizedPnl is available for CAPITAL_GAINS recording.
+     */
+    private void recordTaxAudit(TradeContext ctx, Asset lockedAsset) {
+        TradeSide side = ctx.getStrategy().side();
+        BigDecimal registrationDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
+        BigDecimal capitalGainsTax = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
+        BigDecimal tvaAmount = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
+
+        if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
+            taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
+                    "REGISTRATION_DUTY", ctx.getGrossAmount(),
+                    taxService.getRegistrationDutyRate(lockedAsset), registrationDuty, null);
+        }
+        // Always record CAPITAL_GAINS tax_transaction when there's a realized gain,
+        // even if tax amount is 0 (exemption applied). This ensures sumCapitalGainsByUserAndYear
+        // correctly tracks cumulative gains for the annual exemption threshold.
+        BigDecimal realizedPnl = ctx.getRealizedPnl() != null ? ctx.getRealizedPnl() : BigDecimal.ZERO;
+        if (side == TradeSide.SELL && realizedPnl.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal cgtRate = lockedAsset.getCapitalGainsRate() != null
+                    ? lockedAsset.getCapitalGainsRate() : new BigDecimal("0.165");
+            taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
+                    "CAPITAL_GAINS", realizedPnl, cgtRate, capitalGainsTax, null);
+        }
+        if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
+            taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
+                    "TVA", ctx.getGrossAmount(),
+                    taxService.getTvaRate(lockedAsset), tvaAmount, null);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.AssetCategory;
@@ -30,6 +31,9 @@ class TaxServiceTest {
 
     @Spy
     private TaxConfig taxConfig = new TaxConfig();
+
+    @Spy
+    private AssetServiceConfig assetServiceConfig = new AssetServiceConfig();
 
     @Mock
     private ResolvedTaxAccounts resolvedTaxAccounts;

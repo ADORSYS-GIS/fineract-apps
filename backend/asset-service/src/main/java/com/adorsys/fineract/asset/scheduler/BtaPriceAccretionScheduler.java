@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.scheduler;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.event.AdminAlertEvent;
@@ -54,6 +55,7 @@ public class BtaPriceAccretionScheduler {
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final AssetServiceConfig assetServiceConfig;
 
     @Scheduled(cron = "0 20 0 * * *", zone = "Africa/Douala")
     @SchedulerLock(name = "bta-price-accretion-scheduler", lockAtMostFor = "PT15M", lockAtLeastFor = "PT5M")
@@ -126,7 +128,7 @@ public class BtaPriceAccretionScheduler {
         // fall back to createdAt as a proxy for bonds created before the field existed.
         LocalDate issueDate = bond.getIssueDate() != null
                 ? bond.getIssueDate()
-                : bond.getCreatedAt().atZone(ZoneId.of("Africa/Douala")).toLocalDate();
+                : bond.getCreatedAt().atZone(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())).toLocalDate();
         long originalTotalDays = ChronoUnit.DAYS.between(issueDate, bond.getMaturityDate());
         if (originalTotalDays <= 0) {
             log.warn("BTA bond {} has zero or negative originalTotalDays ({}), skipping",

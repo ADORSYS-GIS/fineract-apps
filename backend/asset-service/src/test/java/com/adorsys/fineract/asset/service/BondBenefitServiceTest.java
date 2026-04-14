@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.dto.BondBenefitProjection;
 import com.adorsys.fineract.asset.entity.Asset;
@@ -19,7 +20,7 @@ class BondBenefitServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new BondBenefitService();
+        service = new BondBenefitService(new AssetServiceConfig());
     }
 
     // ── Purchase preview tests ──────────────────────────────────────────

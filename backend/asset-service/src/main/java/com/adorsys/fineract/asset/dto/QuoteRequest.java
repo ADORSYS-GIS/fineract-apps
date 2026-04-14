@@ -60,8 +60,11 @@ public record QuoteRequest(
      * and that the supplied value is strictly positive.
      * Jakarta Validation invokes this automatically on request deserialization.
      */
-    @AssertTrue(message = "Exactly one of 'units' or 'amount' must be provided and must be positive")
+    @AssertTrue(message = "Exactly one of 'units' or 'amount' must be provided and must be positive. "
+            + "Amount-based quoting applies only to BUY orders; SELL orders must specify 'units'.")
     boolean isValid() {
+        // Amount-based quoting is only valid for BUY orders
+        if (amount != null && side == TradeSide.SELL) return false;
         boolean exactlyOne = (units != null) ^ (amount != null);
         if (!exactlyOne) return false;
         BigDecimal value = units != null ? units : amount;
