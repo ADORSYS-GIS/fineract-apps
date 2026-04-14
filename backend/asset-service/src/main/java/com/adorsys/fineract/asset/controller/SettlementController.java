@@ -158,8 +158,10 @@ public class SettlementController {
     @Operation(summary = "Execute rebalance proposal", description = "Batch-create all proposed settlements as PENDING.")
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public ResponseEntity<?> executeRebalanceProposal(
-            @RequestBody com.adorsys.fineract.asset.dto.ExecuteRebalanceRequest request) {
-        return ResponseEntity.ok(settlementService.executeRebalanceProposal(request, "admin"));
+            @RequestBody com.adorsys.fineract.asset.dto.ExecuteRebalanceRequest request,
+            Authentication auth) {
+        String createdBy = auth != null ? auth.getName() : "system";
+        return ResponseEntity.ok(settlementService.executeRebalanceProposal(request, createdBy));
     }
 
     /** Sanitize a string for CSV output — prevent formula injection (OWASP). */

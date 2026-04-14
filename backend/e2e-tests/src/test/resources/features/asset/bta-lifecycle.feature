@@ -25,6 +25,7 @@ Feature: BTA (Discount Bond) Lifecycle (E2E)
       | totalSupply           | 100                |
       | issuerName            | Republique du Cameroun |
       | maturityDate          | +52w               |
+      | issueDate             | -4w                |
     Then the response status should be 201
     And the response body should contain "DISCOUNT"
     And the response body should contain "currentYield"
@@ -67,3 +68,16 @@ Feature: BTA (Discount Bond) Lifecycle (E2E)
     Then the redemption should succeed
     And the user's XAF balance should have increased by approximately 1000000
     And redemption records should exist for the bond
+
+  # -----------------------------------------------------------------
+  # BTA Redemption with IRCM on capital gain
+  # -----------------------------------------------------------------
+
+  Scenario: BTA redemption applies IRCM on capital gain for taxable bond
+    Given an active taxable discount bond "BTX" priced at 900000 with face value 1000000 and supply 10
+    And the user holds 1 units of discount bond "BTX"
+    When the maturity scheduler runs
+    Then the bond should be in MATURED status
+    When the admin triggers bond redemption for "BTX"
+    Then the redemption should succeed
+    And the user's XAF balance should have increased by less than 1000000

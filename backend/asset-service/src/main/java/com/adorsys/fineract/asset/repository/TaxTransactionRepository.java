@@ -29,4 +29,12 @@ public interface TaxTransactionRepository extends JpaRepository<TaxTransaction, 
     @Query("SELECT COALESCE(SUM(t.taxAmount), 0) FROM TaxTransaction t " +
            "WHERE t.taxType = :taxType AND t.status = 'SUCCESS'")
     BigDecimal sumCollectedByTaxType(@Param("taxType") String taxType);
+
+    /**
+     * Sum of IRCM withheld for a specific user across all successful tax transactions.
+     * Used to compute the totalIrcmWithheld summary field in UserIncomeHistoryResponse.
+     */
+    @Query("SELECT COALESCE(SUM(t.taxAmount), 0) FROM TaxTransaction t " +
+           "WHERE t.userId = :userId AND t.taxType = 'IRCM' AND t.status = 'SUCCESS'")
+    BigDecimal sumIrcmByUser(@Param("userId") Long userId);
 }

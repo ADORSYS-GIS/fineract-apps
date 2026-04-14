@@ -185,5 +185,12 @@ public record QuoteResponse(
      * Format: {@code "INSUFFICIENT_FUNDS: Required X XAF, Available Y XAF (shortfall: Z XAF)"}.
      * Null when {@code feasible} is {@code true}.
      */
-    String feasibilityReason
+    String feasibilityReason,
+
+    /**
+     * Itemized price breakdown showing clean price, accrued interest, dirty price,
+     * gross amount, platform fee, and net amount.
+     * Present for bond assets (COUPON and DISCOUNT). Null for non-bond assets.
+     */
+    @org.springframework.lang.Nullable PriceBreakdown priceBreakdown
 ) {}

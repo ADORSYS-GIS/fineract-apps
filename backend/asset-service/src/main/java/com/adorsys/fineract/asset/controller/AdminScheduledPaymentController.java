@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
+import com.adorsys.fineract.asset.scheduler.BtaPriceAccretionScheduler;
 import com.adorsys.fineract.asset.scheduler.IncomeDistributionScheduler;
 import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
 import com.adorsys.fineract.asset.service.ScheduledPaymentService;
@@ -28,14 +29,16 @@ public class AdminScheduledPaymentController {
     private final ScheduledPaymentService scheduledPaymentService;
     private final InterestPaymentScheduler interestPaymentScheduler;
     private final IncomeDistributionScheduler incomeDistributionScheduler;
+    private final BtaPriceAccretionScheduler btaPriceAccretionScheduler;
 
     @PostMapping("/run-schedulers")
     @Operation(summary = "Run payment schedulers on demand",
-            description = "Manually triggers the coupon and income distribution schedulers to create PENDING schedules for any assets with due dates.")
+            description = "Manually triggers coupon, income distribution, and BTA price accretion schedulers.")
     public ResponseEntity<java.util.Map<String, Object>> runSchedulers() {
         long pendingBefore = scheduledPaymentService.getSummary().pendingCount();
         interestPaymentScheduler.processCouponPayments();
         incomeDistributionScheduler.processDistributions();
+        btaPriceAccretionScheduler.accreteBtaPrices();
         long pendingAfter = scheduledPaymentService.getSummary().pendingCount();
         long created = pendingAfter - pendingBefore;
         return ResponseEntity.ok(java.util.Map.of(

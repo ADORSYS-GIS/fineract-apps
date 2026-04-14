@@ -78,12 +78,20 @@ public class SettlementService {
 
     @Transactional
     public Settlement executeSettlement(String id) {
-        Settlement s = settlementRepository.findById(id)
-                .orElseThrow(() -> new AssetException("Settlement not found: " + id));
-
-        if (!"APPROVED".equals(s.getStatus())) {
-            throw new AssetException("Settlement " + id + " is not APPROVED (current: " + s.getStatus() + ")");
+        // Atomic guard: transition APPROVED → EXECUTING before touching Fineract so that
+        // two concurrent callers cannot both post a journal entry for the same settlement.
+        // The UPDATE is conditional on status='APPROVED', so only the first caller wins;
+        // the second gets 0 rows and throws before any external side effect is sent.
+        int updated = settlementRepository.transitionToExecuting(id);
+        if (updated == 0) {
+            Settlement current = settlementRepository.findById(id)
+                    .orElseThrow(() -> new AssetException("Settlement not found: " + id));
+            throw new AssetException("Settlement " + id + " is not APPROVED (current: "
+                    + current.getStatus() + "); concurrent execution may already be in progress");
         }
+
+        Settlement s = settlementRepository.findById(id)
+                .orElseThrow(() -> new AssetException("Settlement not found after lock: " + id));
 
         try {
             Map<String, Long> glCodeToId = fineractClient.lookupGlAccounts();
@@ -110,10 +118,16 @@ public class SettlementService {
 
     /**
      * Build batch operations based on settlement type.
-     * LP_PAYOUT: clears the GL specified by sourceGlCode (4011 for LSAV, 4012 for LSPD) → 5011.
-     *            Admin creates separate settlements for LSAV and LSPD.
-     * TAX_REMITTANCE: clears sourceGlCode (default 4301) → 5031.
-     * Others: single journal entry from source→destination GL.
+     *
+     * <p>Accounting direction conventions (BatchJournalEntryOp: first arg = debit, second = credit):
+     * <ul>
+     *   <li>LP_PAYOUT: debit 4011/4012 (liability, reduces balance owed to LP) → credit 5011 (UBA trust, cash out)</li>
+     *   <li>TAX_REMITTANCE: debit 4013/4301 (tax payable liability) → credit 5031 (Afriland, cash out)</li>
+     *   <li>TRUST_REBALANCE: source is a 5xxx asset account (cash leaving); destination is a 5xxx asset account
+     *       (cash arriving). Asset accounts: debit = increase, credit = decrease — so the legs are swapped
+     *       relative to the source→destination label: debit destination (increases it), credit source (decreases it).</li>
+     *   <li>FEE_COLLECTION and others: debit source, credit destination (source is a liability/payable).</li>
+     * </ul>
      */
     private List<BatchOperation> buildSettlementOps(Settlement s, Map<String, Long> glCodeToId) {
         String desc = s.getDescription() != null ? s.getDescription() : "Settlement: " + s.getSettlementType();
@@ -121,22 +135,31 @@ public class SettlementService {
 
         switch (s.getSettlementType()) {
             case "LP_PAYOUT" -> {
-                // LP payout: sourceGlCode determines which account to clear.
-                // Admin creates separate settlements for LSAV (4011) and LSPD (4012).
-                // The LP balances UI shows each balance separately to guide the admin.
+                // LP payout: debit sourceGlCode (4011 LSAV / 4012 LSPD — liability reduced)
+                //            credit 5011 UBA trust (cash leaves UBA to LP's external account)
                 Long ubaTrustGl = resolveGl(glCodeToId, "5011");
                 String sourceCode = s.getSourceGlCode() != null ? s.getSourceGlCode() : "4011";
                 Long sourceGl = resolveGl(glCodeToId, sourceCode);
                 ops.add(new BatchJournalEntryOp(sourceGl, ubaTrustGl, s.getAmount(), "XAF", desc));
             }
             case "TAX_REMITTANCE" -> {
-                // Clear tax payable → Afriland tax account
+                // Tax remittance: debit tax payable (liability reduced), credit Afriland (cash out)
                 Long taxPayable = resolveGl(glCodeToId, s.getSourceGlCode() != null ? s.getSourceGlCode() : "4301");
                 Long afrilandTax = resolveGl(glCodeToId, "5031");
                 ops.add(new BatchJournalEntryOp(taxPayable, afrilandTax, s.getAmount(), "XAF", desc));
             }
+            case "TRUST_REBALANCE" -> {
+                // Trust rebalance moves cash between two asset (5xxx) accounts.
+                // Asset accounts: debit = increase, credit = decrease.
+                // Money flows FROM source TO destination, so:
+                //   debit destination (increases destination balance)
+                //   credit source     (decreases source balance)
+                Long debitGlId  = resolveGl(glCodeToId, s.getDestinationGlCode());
+                Long creditGlId = resolveGl(glCodeToId, s.getSourceGlCode());
+                ops.add(new BatchJournalEntryOp(debitGlId, creditGlId, s.getAmount(), "XAF", desc));
+            }
             default -> {
-                // Generic: single journal entry
+                // FEE_COLLECTION and any future types: source is a liability/payable, destination receives.
                 Long debitGlId = resolveGl(glCodeToId, s.getSourceGlCode());
                 Long creditGlId = resolveGl(glCodeToId, s.getDestinationGlCode());
                 ops.add(new BatchJournalEntryOp(debitGlId, creditGlId, s.getAmount(), "XAF", desc));
@@ -334,13 +357,15 @@ public class SettlementService {
         reservePercent = reservePercent.max(BigDecimal.ZERO).min(new BigDecimal("0.99"));
         String currency = assetServiceConfig.getSettlementCurrency();
 
-        // 1. LP demand (split by account type for separate settlement proposals)
-        BigDecimal totalLsav = BigDecimal.ZERO;
-        BigDecimal totalLspd = BigDecimal.ZERO;
-        for (var lp : getLpBalances()) {
-            totalLsav = totalLsav.add((BigDecimal) lp.get("lsavBalance"));
-            totalLspd = totalLspd.add((BigDecimal) lp.get("lspdBalance"));
-        }
+        // 1. LP demand — kept per-LP so that the resulting settlements can be attributed
+        //    to a specific liquidity partner for reconciliation and wire instructions.
+        List<Map<String, Object>> lpBalances = getLpBalances();
+        BigDecimal totalLsav = lpBalances.stream()
+                .map(lp -> (BigDecimal) lp.get("lsavBalance"))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalLspd = lpBalances.stream()
+                .map(lp -> (BigDecimal) lp.get("lspdBalance"))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalLpOwed = totalLsav.add(totalLspd);
 
         // 2. Tax & fee demand
@@ -377,7 +402,7 @@ public class SettlementService {
         // 6. Build transfers (rebalances + payouts)
         List<RebalanceProposalResponse.ProposedTransfer> transfers = buildProposedTransfers(
                 needInUba, needInAfriland, momoAvail, orangeAvail, totalAvail,
-                totalLsav, totalLspd, lpTaxOwed, dgiTaxOwed, feesOwed);
+                lpBalances, lpTaxOwed, dgiTaxOwed, feesOwed);
 
         return new RebalanceProposalResponse(
                 totalLpOwed, taxOwed, feesOwed, totalOutflow,
@@ -390,7 +415,7 @@ public class SettlementService {
     private List<RebalanceProposalResponse.ProposedTransfer> buildProposedTransfers(
             BigDecimal needInUba, BigDecimal needInAfriland,
             BigDecimal momoAvail, BigDecimal orangeAvail, BigDecimal totalAvail,
-            BigDecimal totalLsav, BigDecimal totalLspd,
+            List<Map<String, Object>> lpBalances,
             BigDecimal lpTaxOwed, BigDecimal dgiTaxOwed, BigDecimal feesOwed) {
 
         List<RebalanceProposalResponse.ProposedTransfer> result = new ArrayList<>();
@@ -430,20 +455,28 @@ public class SettlementService {
             }
         }
 
-        // Step 2: LP Payout — separate entries for LSAV (4011) and LSPD (4012)
-        if (totalLsav.compareTo(minTransfer) >= 0) {
-            result.add(new RebalanceProposalResponse.ProposedTransfer(
-                    2, "LP_PAYOUT", "4011", "LP Settlement Control",
-                    ubaGl, "UBA Bank", totalLsav,
-                    "LP Payout: clear LP settlement balance",
-                    "Wire " + totalLsav.toPlainString() + " XAF from UBA to LP's external bank account"));
-        }
-        if (totalLspd.compareTo(minTransfer) >= 0) {
-            result.add(new RebalanceProposalResponse.ProposedTransfer(
-                    2, "LP_PAYOUT", "4012", "LP Spread Payable",
-                    ubaGl, "UBA Bank", totalLspd,
-                    "LP Payout: clear LP spread balance",
-                    "Wire " + totalLspd.toPlainString() + " XAF from UBA to LP's external bank account"));
+        // Step 2: LP Payout — one entry per LP per account type so that each settlement can be
+        // attributed to a specific liquidity partner for reconciliation and wire instructions.
+        for (var lp : lpBalances) {
+            Long lpClientId = (Long) lp.get("lpClientId");
+            String lpName = (String) lp.get("lpClientName");
+            BigDecimal lsav = (BigDecimal) lp.get("lsavBalance");
+            BigDecimal lspd = (BigDecimal) lp.get("lspdBalance");
+
+            if (lsav.compareTo(minTransfer) >= 0) {
+                result.add(new RebalanceProposalResponse.ProposedTransfer(
+                        2, "LP_PAYOUT", "4011", "LP Settlement Control (" + lpName + ")",
+                        ubaGl, "UBA Bank", lsav,
+                        "LP Payout: clear LP settlement balance for " + lpName,
+                        "Wire " + lsav.toPlainString() + " XAF from UBA to LP " + lpClientId + " (" + lpName + ")"));
+            }
+            if (lspd.compareTo(minTransfer) >= 0) {
+                result.add(new RebalanceProposalResponse.ProposedTransfer(
+                        2, "LP_PAYOUT", "4012", "LP Spread Payable (" + lpName + ")",
+                        ubaGl, "UBA Bank", lspd,
+                        "LP Payout: clear LP spread balance for " + lpName,
+                        "Wire " + lspd.toPlainString() + " XAF from UBA to LP " + lpClientId + " (" + lpName + ")"));
+            }
         }
 
         // Step 3: Tax Remittance — separate entries for LP tax (4013) and DGI tax (4301)

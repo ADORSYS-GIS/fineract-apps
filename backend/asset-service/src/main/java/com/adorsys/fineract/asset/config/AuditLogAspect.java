@@ -134,12 +134,9 @@ public class AuditLogAspect {
         try {
             ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs == null) return null;
-            HttpServletRequest request = attrs.getRequest();
-            String xff = request.getHeader("X-Forwarded-For");
-            if (xff != null && !xff.isBlank()) {
-                return xff.split(",")[0].trim();
-            }
-            return request.getRemoteAddr();
+            // server.forward-headers-strategy=FRAMEWORK ensures ForwardedHeaderFilter
+            // has already resolved the real client IP — getRemoteAddr() is authoritative.
+            return attrs.getRequest().getRemoteAddr();
         } catch (Exception e) {
             return null;
         }

@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.exception.TradingException;
@@ -29,6 +30,7 @@ public class LockupService {
     private final UserPositionRepository userPositionRepository;
     private final PurchaseLotRepository purchaseLotRepository;
     private final AssetMetrics assetMetrics;
+    private final AssetServiceConfig assetServiceConfig;
 
     /**
      * Validate that enough unlocked units are available for a SELL of the given size.
@@ -59,7 +61,7 @@ public class LockupService {
         Instant firstPurchase = position.get().getFirstPurchaseDate();
         if (firstPurchase == null) return;
 
-        LocalDate purchaseDate = firstPurchase.atZone(ZoneId.of("Africa/Douala")).toLocalDate();
+        LocalDate purchaseDate = firstPurchase.atZone(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())).toLocalDate();
         LocalDate unlockDate = purchaseDate.plusDays(asset.getLockupDays());
 
         if (LocalDate.now().isBefore(unlockDate)) {
@@ -97,6 +99,6 @@ public class LockupService {
         Instant firstPurchase = position.get().getFirstPurchaseDate();
         if (firstPurchase == null) return null;
 
-        return firstPurchase.atZone(ZoneId.of("Africa/Douala")).toLocalDate().plusDays(asset.getLockupDays());
+        return firstPurchase.atZone(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())).toLocalDate().plusDays(asset.getLockupDays());
     }
 }

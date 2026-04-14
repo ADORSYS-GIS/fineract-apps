@@ -20,11 +20,11 @@ export const SupplyStep: FC<Props> = ({
 		<div className="space-y-6">
 			<div>
 				<h2 className="text-lg font-semibold text-gray-800 mb-1">
-					Supply & Precision
+					Supply & Limits
 				</h2>
 				<p className="text-sm text-gray-500">
-					Define the total supply, fractional precision, and holding
-					restrictions for this asset.
+					Define the total supply, fractional precision, holding restrictions,
+					and trading limits for this asset.
 				</p>
 			</div>
 
@@ -99,6 +99,131 @@ export const SupplyStep: FC<Props> = ({
 							Minimum holding period before an investor can sell. 0 = no lock-up
 						</p>
 					)}
+				</div>
+			</div>
+
+			{/* Trading Limits */}
+			<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 mt-6">
+				Trading Limits
+			</h3>
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Max Position (% of supply)
+					</label>
+					<input
+						type="number"
+						aria-label="Max position percent"
+						className={inputClass("max position")}
+						placeholder="e.g. 10"
+						value={formData.maxPositionPercent || ""}
+						onChange={(e) =>
+							updateFormData({
+								maxPositionPercent: Number(e.target.value),
+							})
+						}
+						min={0}
+						max={100}
+						step={0.01}
+					/>
+					<p className="text-xs text-gray-400 mt-1">
+						Max % of total supply one user can hold. Leave at 0 for no limit
+					</p>
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Max Order Size (units)
+					</label>
+					<input
+						type="number"
+						aria-label="Max order size"
+						className={inputClass("max order")}
+						placeholder="e.g. 1000"
+						value={formData.maxOrderSize || ""}
+						onChange={(e) =>
+							updateFormData({
+								maxOrderSize: Number(e.target.value),
+							})
+						}
+						min={0}
+					/>
+					<p className="text-xs text-gray-400 mt-1">
+						Max units per single order. Leave at 0 for no limit
+					</p>
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Daily Trade Limit (XAF)
+					</label>
+					<input
+						type="number"
+						aria-label="Daily trade limit"
+						className={inputClass("daily")}
+						placeholder="e.g. 5000000"
+						value={formData.dailyTradeLimitXaf || ""}
+						onChange={(e) =>
+							updateFormData({
+								dailyTradeLimitXaf: Number(e.target.value),
+							})
+						}
+						min={0}
+					/>
+					<p className="text-xs text-gray-400 mt-1">
+						Max total XAF a user can trade per day. Resets at midnight. Leave at
+						0 for no limit
+					</p>
+				</div>
+			</div>
+
+			{/* Minimum Order Size */}
+			<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 mt-6">
+				Minimum Order Size
+			</h3>
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Min Order Size (units)
+					</label>
+					<input
+						type="number"
+						aria-label="Min order size"
+						className={inputClass("min order")}
+						placeholder="e.g. 1"
+						value={formData.minOrderSize || ""}
+						onChange={(e) =>
+							updateFormData({
+								minOrderSize: Number(e.target.value),
+							})
+						}
+						min={0}
+					/>
+					<p className="text-xs text-gray-400 mt-1">
+						Minimum units per single order. Leave at 0 for no minimum
+					</p>
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Min Order Amount (XAF)
+					</label>
+					<input
+						type="number"
+						aria-label="Min order cash amount"
+						className={inputClass("min cash")}
+						placeholder="e.g. 10000"
+						value={formData.minOrderCashAmount || ""}
+						onChange={(e) =>
+							updateFormData({
+								minOrderCashAmount: Number(e.target.value),
+							})
+						}
+						min={0}
+					/>
+					<p className="text-xs text-gray-400 mt-1">
+						Minimum XAF amount per single order. Leave at 0 for no minimum
+					</p>
 				</div>
 			</div>
 

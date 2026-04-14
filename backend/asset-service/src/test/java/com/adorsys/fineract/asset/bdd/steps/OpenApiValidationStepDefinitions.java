@@ -6,7 +6,8 @@ import com.atlassian.oai.validator.model.Request;
 import com.atlassian.oai.validator.model.SimpleResponse;
 import com.atlassian.oai.validator.report.ValidationReport;
 import io.cucumber.java.en.Then;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -24,8 +25,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * Only validates response body/status (not request), since MockMvc stored results
  * don't fully preserve request body/headers.
  */
-@Slf4j
 public class OpenApiValidationStepDefinitions {
+
+    private static final Logger log = LoggerFactory.getLogger(OpenApiValidationStepDefinitions.class);
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ScenarioContext context;

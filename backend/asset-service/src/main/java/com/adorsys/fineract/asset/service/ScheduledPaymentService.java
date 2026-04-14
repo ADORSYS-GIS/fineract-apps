@@ -73,16 +73,26 @@ public class ScheduledPaymentService {
 
         if ("COUPON".equals(paymentType)) {
             estimatedRate = asset.getInterestRate();
+            if (estimatedRate == null || estimatedRate.compareTo(BigDecimal.ZERO) <= 0) {
+                log.error("Bond {} has no positive interest rate — cannot create coupon schedule for {}",
+                        asset.getId(), scheduleDate);
+                return false;
+            }
             BigDecimal faceValue = asset.getEffectiveFaceValue();
             if (faceValue == null) {
                 faceValue = BigDecimal.ZERO;
             }
-            int periodMonths = asset.getCouponFrequencyMonths();
+            // OTA coupon: use ACT/365 (actual days in period), not months/12 approximation.
+            // lastCouponDate = scheduleDate - couponFrequencyMonths
+            DayCountConvention convention = asset.getDayCountConvention() != null
+                    ? asset.getDayCountConvention() : DayCountConvention.ACT_365;
+            LocalDate lastCouponDate = scheduleDate.minusMonths(asset.getCouponFrequencyMonths());
+            long actualDays = convention.daysBetween(lastCouponDate, scheduleDate);
             estimatedAmountPerUnit = faceValue
                     .multiply(estimatedRate)
                     .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(periodMonths))
-                    .divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP);
+                    .multiply(BigDecimal.valueOf(actualDays))
+                    .divide(BigDecimal.valueOf(convention.getBasis()), 4, RoundingMode.HALF_UP);
             for (UserPosition h : holders) {
                 estimatedTotal = estimatedTotal.add(
                         h.getTotalUnits().multiply(estimatedAmountPerUnit)
@@ -157,6 +167,21 @@ public class ScheduledPaymentService {
             totalRequired = totalRequired.add(
                     h.getTotalUnits().multiply(actualAmountPerUnit)
                             .setScale(0, RoundingMode.HALF_UP));
+        }
+
+        // Warn if actual total deviates more than 5% from the estimate (e.g. holder count changed)
+        if (schedule.getEstimatedTotal() != null
+                && schedule.getEstimatedTotal().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal deviation = totalRequired.subtract(schedule.getEstimatedTotal())
+                    .abs()
+                    .divide(schedule.getEstimatedTotal(), 4, RoundingMode.HALF_UP);
+            if (deviation.compareTo(new BigDecimal("0.05")) > 0) {
+                log.warn("Scheduled payment #{} actual total {} deviates {}% from estimate {}. "
+                        + "Holder count may have changed since scheduling.",
+                        scheduleId, totalRequired,
+                        deviation.multiply(new BigDecimal("100")).setScale(1, RoundingMode.HALF_UP),
+                        schedule.getEstimatedTotal());
+            }
         }
 
         BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
@@ -279,6 +304,57 @@ public class ScheduledPaymentService {
             }
         }
 
+        // IRCM fields for COUPON payments
+        BigDecimal grossAmountPerUnit = null;
+        BigDecimal ircmWithheldPerUnit = null;
+        BigDecimal netAmountPerUnit = null;
+        BigDecimal ircmRateValue = null;
+        boolean ircmExempt = false;
+        BigDecimal totalIrcmWithheld = null;
+
+        if ("COUPON".equals(schedule.getPaymentType()) && asset != null) {
+            ircmExempt = Boolean.TRUE.equals(asset.getIrcmExempt())
+                    || Boolean.TRUE.equals(asset.getIsGovernmentBond());
+            ircmRateValue = taxService.getEffectiveIrcmRate(asset);
+
+            BigDecimal faceValue = asset.getEffectiveFaceValue();
+            BigDecimal rate = asset.getInterestRate();
+            int periodMonths = asset.getCouponFrequencyMonths() != null ? asset.getCouponFrequencyMonths() : 0;
+
+            if (faceValue != null && rate != null && periodMonths > 0) {
+                // Use ACT/365 actual days to match createPendingSchedule calculation
+                DayCountConvention convention = asset.getDayCountConvention() != null
+                        ? asset.getDayCountConvention() : DayCountConvention.ACT_365;
+                LocalDate scheduleDate = schedule.getScheduleDate();
+                LocalDate lastCouponDate = scheduleDate.minusMonths(periodMonths);
+                long actualDays = convention.daysBetween(lastCouponDate, scheduleDate);
+                grossAmountPerUnit = faceValue
+                        .multiply(rate)
+                        .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(actualDays))
+                        .divide(BigDecimal.valueOf(convention.getBasis()), 4, RoundingMode.HALF_UP);
+                // Use consistent scale (0dp) for per-unit amounts to reconcile with total
+                ircmWithheldPerUnit = ircmExempt
+                        ? BigDecimal.ZERO
+                        : grossAmountPerUnit.multiply(ircmRateValue).setScale(0, RoundingMode.HALF_UP);
+                netAmountPerUnit = grossAmountPerUnit.setScale(0, RoundingMode.HALF_UP)
+                        .subtract(ircmWithheldPerUnit);
+            }
+
+            // Total IRCM withheld = sum of per-holder IRCM (only available post-execution)
+            if (schedule.getTotalAmountPaid() != null && grossAmountPerUnit != null
+                    && !ircmExempt && ircmRateValue.compareTo(BigDecimal.ZERO) > 0) {
+                // Estimate: totalIrcmWithheld = totalPaid / netAmountPerUnit * ircmWithheldPerUnit
+                // More precisely: reconstruct from actual per-unit amounts
+                BigDecimal totalGross = BigDecimal.ZERO;
+                for (UserPosition h : holders) {
+                    totalGross = totalGross.add(
+                            h.getTotalUnits().multiply(grossAmountPerUnit).setScale(0, RoundingMode.HALF_UP));
+                }
+                totalIrcmWithheld = totalGross.multiply(ircmRateValue).setScale(0, RoundingMode.HALF_UP);
+            }
+        }
+
         return new ScheduledPaymentDetailResponse(
                 schedule.getId(),
                 schedule.getAssetId(),
@@ -303,6 +379,12 @@ public class ScheduledPaymentService {
                 schedule.getExecutedAt(),
                 schedule.getCreatedAt(),
                 lpCashBalance,
+                grossAmountPerUnit,
+                ircmWithheldPerUnit,
+                netAmountPerUnit,
+                ircmRateValue,
+                ircmExempt,
+                totalIrcmWithheld,
                 breakdowns
         );
     }
@@ -310,7 +392,7 @@ public class ScheduledPaymentService {
     public ScheduledPaymentSummaryResponse getSummary() {
         long pending = scheduledPaymentRepository.countByStatus("PENDING");
         Instant startOfMonth = YearMonth.now().atDay(1)
-                .atStartOfDay(ZoneId.of("Africa/Douala")).toInstant();
+                .atStartOfDay(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())).toInstant();
         long confirmedThisMonth = scheduledPaymentRepository
                 .countByStatusAndConfirmedAtGreaterThanEqual("CONFIRMED", startOfMonth);
         BigDecimal totalPaidThisMonth = scheduledPaymentRepository.sumPaidSince(startOfMonth);
@@ -329,13 +411,45 @@ public class ScheduledPaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("Scheduled payment not found: " + scheduleId));
 
         if ("COUPON".equals(schedule.getPaymentType())) {
+            // Load asset to compute IRCM breakdown per holder
+            Asset asset = assetRepository.findById(schedule.getAssetId()).orElse(null);
+            BigDecimal ircmRate = asset != null ? taxService.getEffectiveIrcmRate(asset) : BigDecimal.ZERO;
+            boolean exempt = asset != null && (Boolean.TRUE.equals(asset.getIrcmExempt())
+                    || Boolean.TRUE.equals(asset.getIsGovernmentBond()));
+
             return interestPaymentRepository
                     .findByAssetIdAndCouponDateOrderByPaidAtDesc(
                             schedule.getAssetId(), schedule.getScheduleDate(), pageable)
-                    .map(ip -> PaymentResultResponse.fromCoupon(
-                            ip.getId(), ip.getUserId(), ip.getUnits(), ip.getCashAmount(),
-                            ip.getStatus(), ip.getFailureReason(), ip.getPaidAt(),
-                            ip.getFaceValue(), ip.getAnnualRate(), ip.getPeriodMonths()));
+                    .map(ip -> {
+                        // Use stored grossAmountPerUnit (ACT-day snapshot) when available.
+                        // Fall back to months/12 approximation for legacy records without the field.
+                        BigDecimal grossPerUnit;
+                        if (ip.getGrossAmountPerUnit() != null) {
+                            grossPerUnit = ip.getGrossAmountPerUnit();
+                        } else if (ip.getFaceValue() != null && ip.getAnnualRate() != null
+                                && ip.getPeriodMonths() != null) {
+                            grossPerUnit = ip.getFaceValue()
+                                    .multiply(ip.getAnnualRate())
+                                    .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+                                    .multiply(BigDecimal.valueOf(ip.getPeriodMonths()))
+                                    .divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP);
+                        } else {
+                            grossPerUnit = null;
+                        }
+                        BigDecimal gross = grossPerUnit != null
+                                ? grossPerUnit.multiply(ip.getUnits()).setScale(0, RoundingMode.HALF_UP)
+                                : null;
+                        BigDecimal ircmWithheld = (gross != null && !exempt)
+                                ? gross.multiply(ircmRate).setScale(0, RoundingMode.HALF_UP)
+                                : (gross != null ? BigDecimal.ZERO : null);
+                        BigDecimal net = (gross != null && ircmWithheld != null)
+                                ? gross.subtract(ircmWithheld) : null;
+                        return PaymentResultResponse.fromCoupon(
+                                ip.getId(), ip.getUserId(), ip.getUnits(), ip.getCashAmount(),
+                                ip.getStatus(), ip.getFailureReason(), ip.getPaidAt(),
+                                ip.getFaceValue(), ip.getAnnualRate(), ip.getPeriodMonths(),
+                                gross, ircmWithheld, net);
+                    });
         } else {
             return incomeDistributionRepository
                     .findByAssetIdAndDistributionDateOrderByPaidAtDesc(
@@ -389,12 +503,26 @@ public class ScheduledPaymentService {
 
     private boolean payCouponHolder(Asset bond, UserPosition holder,
                                      BigDecimal cashAmount, LocalDate couponDate) {
+        // Idempotency: skip if this holder was already paid successfully for this coupon date.
+        // Protects against double-payment on admin retry or partial re-execution.
+        if (interestPaymentRepository.existsByAssetIdAndCouponDateAndUserIdAndStatus(
+                bond.getId(), couponDate, holder.getUserId(), "SUCCESS")) {
+            log.debug("Skipping already-paid coupon: bond={}, user={}, date={}",
+                    bond.getSymbol(), holder.getUserId(), couponDate);
+            return true;
+        }
+
         String currency = assetServiceConfig.getSettlementCurrency();
 
         // IRCM withholding tax calculation
         BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
         BigDecimal ircmAmount = taxService.calculateIrcm(bond, cashAmount);
         BigDecimal netPayment = cashAmount.subtract(ircmAmount);
+
+        // Gross amount per unit before IRCM — snapshot for accurate breakdown display
+        BigDecimal grossAmountPerUnit = holder.getTotalUnits().compareTo(BigDecimal.ZERO) > 0
+                ? cashAmount.divide(holder.getTotalUnits(), 4, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         InterestPayment.InterestPaymentBuilder record = InterestPayment.builder()
                 .assetId(bond.getId())
@@ -404,6 +532,7 @@ public class ScheduledPaymentService {
                 .annualRate(bond.getInterestRate())
                 .periodMonths(bond.getCouponFrequencyMonths())
                 .cashAmount(netPayment)
+                .grossAmountPerUnit(grossAmountPerUnit)
                 .couponDate(couponDate);
 
         try {
@@ -462,6 +591,14 @@ public class ScheduledPaymentService {
     private boolean payIncomeHolder(Asset asset, UserPosition holder,
                                      BigDecimal cashAmount, BigDecimal rateApplied,
                                      LocalDate distributionDate) {
+        // Idempotency: skip if this holder was already paid successfully for this distribution date.
+        if (incomeDistributionRepository.existsByAssetIdAndDistributionDateAndUserIdAndStatus(
+                asset.getId(), distributionDate, holder.getUserId(), "SUCCESS")) {
+            log.debug("Skipping already-paid income: asset={}, user={}, date={}",
+                    asset.getSymbol(), holder.getUserId(), distributionDate);
+            return true;
+        }
+
         String currency = assetServiceConfig.getSettlementCurrency();
         String incomeType = asset.getIncomeType();
 

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,7 @@ public class IncomeDistributionScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 20 0 * * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "income-distribution-scheduler", lockAtMostFor = "PT15M", lockAtLeastFor = "PT5M")
     public void processDistributions() {
         try {
             LocalDate today = LocalDate.now();

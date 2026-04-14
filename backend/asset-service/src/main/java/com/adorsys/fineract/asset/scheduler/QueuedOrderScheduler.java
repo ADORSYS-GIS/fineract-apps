@@ -12,6 +12,7 @@ import com.adorsys.fineract.asset.service.TradingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +38,7 @@ public class QueuedOrderScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 1 8 * * MON-FRI", zone = "Africa/Douala")
+    @SchedulerLock(name = "queued-order-scheduler", lockAtMostFor = "PT15M", lockAtLeastFor = "PT5M")
     public void processQueuedOrders() {
         try {
             List<Order> queuedOrders = orderRepository.findByStatusOrderByCreatedAtAsc(

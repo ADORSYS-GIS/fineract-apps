@@ -99,6 +99,11 @@ public class AssetProvisioningService {
                 : request.issuerPrice().multiply(BigDecimal.ONE.subtract(effectiveSpread)).setScale(0, RoundingMode.HALF_UP);
 
         // Validate pricing before provisioning any Fineract resources
+        // ask >= issuerPrice must hold for all asset types: issuerPrice is the LP cost basis
+        // and the spread leg clamps to max(0, executionPrice - issuerPrice), so a sub-cost
+        // ask produces unrecoverable losses. For DISCOUNT bonds the discount is relative to
+        // faceValue, not to issuerPrice; that invariant (faceValue > issuerPrice) is enforced
+        // separately in validateBondFields below.
         if (effectiveAskPrice.compareTo(request.issuerPrice()) < 0) {
             throw new AssetException("Invalid pricing: ask price (" + effectiveAskPrice
                     + ") must be >= issuer price (" + request.issuerPrice() + ")");
@@ -108,7 +113,11 @@ public class AssetProvisioningService {
                     + ") must not exceed ask price (" + effectiveAskPrice + ")");
         }
 
-        // Validate bond-specific fields when category is BONDS
+        // Validate bond-specific fields when category is BONDS; reject bondType on all others
+        if (request.bondType() != null && request.category() != AssetCategory.BONDS) {
+            throw new AssetException(
+                    "bondType is only valid for BONDS assets; received category=" + request.category());
+        }
         if (request.category() == AssetCategory.BONDS) {
             validateBondFields(request);
         }
@@ -167,9 +176,12 @@ public class AssetProvisioningService {
             log.info("Registered currency: {}", effectiveCurrencyCode);
 
             // Step 3: Create savings product (using resolved DB IDs, not GL codes)
+            // Fineract shortName: max 4 chars, alphanumeric only. Strip hyphens and truncate.
+            String shortName = request.symbol().replaceAll("[^A-Za-z0-9]", "");
+            if (shortName.length() > 4) shortName = shortName.substring(0, 4);
             productId = fineractClient.createSavingsProduct(
                     request.name() + " Token",
-                    request.symbol(),
+                    shortName,
                     effectiveCurrencyCode,
                     request.decimalPlaces(),
                     resolvedGlAccounts.getDigitalAssetInventoryId(),
@@ -225,6 +237,7 @@ public class AssetProvisioningService {
                 .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
+                .issueDate(request.issueDate())
                 .interestRate(request.interestRate())
                 .couponFrequencyMonths(request.couponFrequencyMonths())
                 .nextCouponDate(request.nextCouponDate())

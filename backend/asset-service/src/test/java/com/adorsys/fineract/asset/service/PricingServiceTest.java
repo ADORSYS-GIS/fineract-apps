@@ -49,9 +49,9 @@ class PricingServiceTest {
 
     @Test
     void getPrice_cacheHit_returnsFromRedis() {
-        // Arrange: Redis has cached value "100:95:5.5" (askPrice:bidPrice:change)
+        // Arrange: Redis has cached value "100|95|5.5" (askPrice|bidPrice|change)
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.get(CACHE_KEY)).thenReturn("100:95:5.5");
+        when(valueOperations.get(CACHE_KEY)).thenReturn("100|95|5.5");
 
         // Act
         PriceResponse response = pricingService.getPrice(ASSET_ID);

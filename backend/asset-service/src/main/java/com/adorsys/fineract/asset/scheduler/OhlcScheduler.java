@@ -7,6 +7,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +37,7 @@ public class OhlcScheduler {
     }
 
     @Scheduled(fixedRate = 60000)
+    @SchedulerLock(name = "ohlc-scheduler", lockAtMostFor = "PT50S", lockAtLeastFor = "PT30S")
     public void checkMarketTransition() {
         try {
             boolean isNowOpen = marketHoursService.isMarketOpen();

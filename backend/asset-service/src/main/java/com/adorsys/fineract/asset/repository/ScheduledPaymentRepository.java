@@ -54,4 +54,10 @@ public interface ScheduledPaymentRepository extends JpaRepository<ScheduledPayme
      */
     Optional<ScheduledPayment> findFirstByAssetIdAndPaymentTypeAndStatusOrderByScheduleDateAsc(
             String assetId, String paymentType, String status);
+
+    /**
+     * Check whether any scheduled payment exists for an asset+paymentType in a given status.
+     * Used by PrincipalRedemptionService to block redemption when there are PENDING coupons.
+     */
+    boolean existsByAssetIdAndPaymentTypeAndStatus(String assetId, String paymentType, String status);
 }

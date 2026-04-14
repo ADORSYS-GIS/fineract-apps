@@ -11,6 +11,7 @@ import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +39,7 @@ public class TreasuryShortfallScheduler {
     private static final int LOOKAHEAD_DAYS = 7;
 
     @Scheduled(cron = "0 0 22 * * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "treasury-shortfall-scheduler", lockAtMostFor = "PT15M", lockAtLeastFor = "PT5M")
     public void checkTreasuryShortfalls() {
         LocalDate horizon = LocalDate.now().plusDays(LOOKAHEAD_DAYS);
 

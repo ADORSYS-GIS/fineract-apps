@@ -9,6 +9,7 @@ import com.adorsys.fineract.asset.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -34,6 +35,7 @@ public class StaleOrderCleanupScheduler {
 
     @Transactional
     @Scheduled(fixedRate = 300000) // Every 5 minutes
+    @SchedulerLock(name = "stale-order-cleanup-scheduler", lockAtMostFor = "PT4M", lockAtLeastFor = "PT2M")
     public void cleanupStaleOrders() {
         try {
             int minutes = config.getOrders().getStaleCleanupMinutes();

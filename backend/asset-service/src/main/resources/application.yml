@@ -2,6 +2,7 @@ server:
   port: 8083
   servlet:
     context-path: /api/v1
+  forward-headers-strategy: FRAMEWORK
 
 spring:
   application:
@@ -204,7 +205,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,threaddump,heapdump
+        include: health,info,metrics,prometheus
   info:
     git:
       mode: simple
