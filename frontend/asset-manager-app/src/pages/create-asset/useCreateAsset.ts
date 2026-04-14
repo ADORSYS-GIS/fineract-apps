@@ -160,6 +160,8 @@ function validateBondDetails(data: AssetFormData): string[] {
 		if (![1, 3, 6, 12].includes(data.couponFrequencyMonths))
 			errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
 		if (!data.nextCouponDate) errors.push("First coupon date is required");
+		else if (data.maturityDate && data.nextCouponDate >= data.maturityDate)
+			errors.push("First coupon date must be before the maturity date");
 	}
 	if (data.bondType === "DISCOUNT" && data.faceValue <= 0)
 		errors.push("Face value is required for BTA (discount) bonds");
@@ -342,10 +344,18 @@ export const useCreateAsset = () => {
 			}
 			// Optimistically insert into the cache so the <select> shows the new
 			// entry immediately, before the background refetch completes.
-			queryClient.setQueryData(["entity-clients"], (old: typeof clients) => [
-				...(old ?? []),
-				{ id: newClientId, displayName: fullname },
-			]);
+			// setQueryData operates on the *raw* API response (pre-select transform),
+			// so we append to pageItems rather than to the transformed array.
+			queryClient.setQueryData(
+				["entity-clients"],
+				(old: Record<string, unknown>) => ({
+					...old,
+					pageItems: [
+						...((old?.pageItems as unknown[]) ?? []),
+						{ id: newClientId, displayName: fullname, legalForm: { id: 2 } },
+					],
+				}),
+			);
 			queryClient.invalidateQueries({ queryKey: ["entity-clients"] });
 			updateFormData({ lpClientId: newClientId, lpClientName: fullname });
 			setIsLPDialogOpen(false);

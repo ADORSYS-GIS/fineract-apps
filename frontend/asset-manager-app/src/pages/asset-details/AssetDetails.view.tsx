@@ -561,6 +561,8 @@ function BondInfoCard({
 						</p>
 					) : asset.ircmExempt === true ? (
 						<p className="font-medium text-green-700">Exempté (manuel)</p>
+					) : !asset.ircmEnabled ? (
+						<p className="font-medium text-gray-500">Disabled</p>
 					) : asset.isBvmacListed ? (
 						<p className="font-medium flex items-center gap-1">
 							<AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
