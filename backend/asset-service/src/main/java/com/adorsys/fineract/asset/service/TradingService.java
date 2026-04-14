@@ -36,6 +36,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -119,6 +121,13 @@ public class TradingService {
                     "Idempotency key already used for a non-quote order (status=" + o.getStatus() + ")",
                     "IDEMPOTENCY_KEY_CONFLICT");
         }
+
+        // Distributed lock: prevent duplicate active quote for same asset+side.
+        // Released on confirm, cancel, or if this method throws (validation/save failure).
+        tradeLockService.acquireQuoteLock(
+                userId, request.assetId(), request.side(),
+                assetServiceConfig.getQuote().getTtlSeconds());
+        try {
 
         // Max active quotes per user
         long activeQuotes = orderRepository.countByUserIdAndStatus(userId, OrderStatus.QUOTED);
@@ -342,6 +351,11 @@ public class TradingService {
                 orderCashAmount, availableBalance, availableUnits, availableSupply,
                 bondBenefit, incomeBenefit, computedFromAmount, remainder, now, expiresAt, warnings,
                 taxBreakdown, feasible, feasibilityReason, priceBreakdown);
+        } catch (Exception e) {
+            // Release the quote lock so the user can retry if quote creation failed
+            tradeLockService.releaseQuoteLock(userId, request.assetId(), request.side());
+            throw e;
+        }
     }
 
     /**
@@ -388,6 +402,7 @@ public class TradingService {
                 order.setStatus(OrderStatus.QUEUED);
                 order.setQueuedPrice(order.getExecutionPrice());
                 orderRepository.save(order);
+                releaseQuoteLockAfterCommit(order);
                 // Release soft reservation (queued orders don't hold reservations)
                 if (order.getSide() == TradeSide.BUY) {
                     quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
@@ -405,6 +420,7 @@ public class TradingService {
             // Promote to PENDING — worker will pick it up
             order.setStatus(OrderStatus.PENDING);
             orderRepository.save(order);
+            releaseQuoteLockAfterCommit(order);
 
             eventPublisher.publishEvent(new OrderStatusChangedEvent(
                     orderId, userId, order.getAssetId(), null, order.getSide(),
@@ -416,6 +432,8 @@ public class TradingService {
             log.info("Quote confirmed, pending execution: orderId={}", orderId);
             return toOrderResponse(order);
         } catch (ObjectOptimisticLockingFailureException e) {
+            // Transaction is aborting — release the quote lock eagerly so the user is not blocked
+            tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
             throw new TradingException(
                     "Quote was already confirmed by a concurrent request. Please check order status.",
                     "QUOTE_ALREADY_CONFIRMED");
@@ -596,6 +614,21 @@ public class TradingService {
                 netAmount,
                 dayCountConvention,
                 daysSinceLastCoupon);
+    }
+
+    /**
+     * Schedules the quote lock release to run after the current transaction commits.
+     * Must not be called after save() but before commit — releasing the Redis key inside
+     * the transaction creates a window where another node can re-acquire the lock before
+     * the DB row reflecting the status change is visible.
+     */
+    private void releaseQuoteLockAfterCommit(Order order) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
+            }
+        });
     }
 
     private OrderResponse toOrderResponse(Order order) {
@@ -1329,6 +1362,7 @@ public class TradingService {
             quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
         }
         if (previousStatus == OrderStatus.QUOTED) {
+            releaseQuoteLockAfterCommit(order);
             assetMetrics.recordQuoteUserCancelled();
         }
 
