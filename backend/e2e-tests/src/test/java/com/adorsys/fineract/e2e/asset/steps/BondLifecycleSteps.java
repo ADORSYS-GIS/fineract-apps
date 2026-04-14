@@ -187,7 +187,7 @@ public class BondLifecycleSteps {
                 "UPDATE assets SET maturity_date = ? WHERE id = ?",
                 java.sql.Date.valueOf(LocalDate.now().minusDays(1)), assetId);
 
-        maturityScheduler.matureBonds();
+        maturityScheduler.runMaturityCycle(LocalDate.now());
     }
 
     @When("the admin triggers bond redemption for {string}")
@@ -361,7 +361,7 @@ public class BondLifecycleSteps {
                 java.sql.Date.valueOf(LocalDate.now()), assetId);
 
         // Run the scheduler — for DISCOUNT bonds, nextCouponDate is NULL so the update above is a no-op
-        interestPaymentScheduler.processCouponPayments();
+        interestPaymentScheduler.runCouponCycle(LocalDate.now());
     }
 
     @Then("no pending scheduled payments should exist for {string}")
