@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.dto.BondType;
 import com.adorsys.fineract.asset.dto.DayCountConvention;
@@ -18,7 +19,7 @@ class AccruedInterestCalculatorTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new AccruedInterestCalculator();
+        calculator = new AccruedInterestCalculator(new AssetServiceConfig());
     }
 
     private Asset couponBond(BigDecimal faceValue, BigDecimal rate, int freqMonths,

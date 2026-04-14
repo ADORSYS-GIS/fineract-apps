@@ -669,13 +669,24 @@ public class TradingService {
         recalculatePriceInsideLock(ctx);
         checkBalanceInsideLock(ctx);
 
-        // Execute Fineract settlement FIRST — if this fails, no DB mutations have occurred yet
-        executeAtomicSettlement(ctx, lockedAsset);
+        // Inventory reservation: atomically decrement/increment circulating supply.
+        // If this fails (constraint violated), the order is rejected before any money moves.
+        adjustSupply(ctx);
+
+        // Execute Fineract settlement — if this fails, undo the supply adjustment so the
+        // reservation is cleanly reversed and no DB state is permanently corrupted.
+        try {
+            executeAtomicSettlement(ctx, lockedAsset);
+        } catch (TradingException settlementFailure) {
+            // Compensate the supply adjustment — negate the delta to undo the reservation
+            BigDecimal reverseDelta = ctx.getStrategy().supplyAdjustment(ctx.getUnits()).negate();
+            assetRepository.adjustCirculatingSupply(ctx.getAssetId(), reverseDelta);
+            throw settlementFailure;
+        }
 
         // DB mutations only after confirmed money movement
         updatePortfolio(ctx);       // sets ctx.realizedPnl for SELL
         recordTradeLog(ctx);
-        adjustSupply(ctx);
         recordTaxAudit(ctx, lockedAsset);   // uses ctx.realizedPnl set above
         pricingService.updateOhlcAfterTrade(ctx.getAssetId(), ctx.getExecutionPrice());
 

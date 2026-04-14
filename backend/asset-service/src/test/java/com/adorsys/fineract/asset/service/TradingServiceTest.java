@@ -87,6 +87,7 @@ class TradingServiceTest {
     private static final Long LP_ASSET_ACCOUNT = 400L;
     private static final Long LP_SPREAD_ACCOUNT = 500L;
     private static final Long FEE_COLLECTION_ACCOUNT = 999L;
+    private static final Long CLEARING_ACCOUNT_ID = 550L;
     private static final Long FEE_INCOME_GL_ID = 87L;
     private static final Long FUND_SOURCE_GL_ID = 42L;
     private static final String IDEMPOTENCY_KEY = "idem-key-1";
@@ -119,6 +120,7 @@ class TradingServiceTest {
         lenient().when(resolvedGlAccounts.getFeeIncomeId()).thenReturn(FEE_INCOME_GL_ID);
         lenient().when(resolvedGlAccounts.getFundSourceId()).thenReturn(FUND_SOURCE_GL_ID);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECTION_ACCOUNT);
+        lenient().when(resolvedGlAccounts.getClearingAccountId()).thenReturn(CLEARING_ACCOUNT_ID);
 
         // Market hours config
         AssetServiceConfig.MarketHours marketHours = new AssetServiceConfig.MarketHours();
