@@ -245,6 +245,15 @@ const COLUMNS: ColumnDef[] = [
 		type: "date",
 	},
 	{
+		key: "issueDate",
+		header: "issueDate",
+		required: false,
+		comment:
+			"Bond issue date (YYYY-MM-DD). The date the bond was originally issued. Used for accrued-interest calculations.",
+		example: "2024-01-15",
+		type: "date",
+	},
+	{
 		key: "interestRate",
 		header: "interestRate",
 		required: false,
@@ -395,6 +404,24 @@ const COLUMNS: ColumnDef[] = [
 		example: false,
 		type: "boolean",
 	},
+	{
+		key: "tvaEnabled",
+		header: "tvaEnabled",
+		required: false,
+		comment:
+			"TVA (Taxe sur la Valeur Ajoutée) — Value Added Tax on platform fees. Applied only on the service fee portion, not on the transaction amount itself. Default: false. Use TRUE or FALSE.",
+		example: false,
+		type: "boolean",
+	},
+	{
+		key: "tvaRate",
+		header: "tvaRate",
+		required: false,
+		comment:
+			"TVA rate override (e.g. 0.1925 = 19.25%, the standard Cameroon rate). Leave empty to use the system default.",
+		example: 0.1925,
+		type: "number",
+	},
 ];
 
 export const REQUIRED_KEYS = COLUMNS.filter((c) => c.required).map(
@@ -429,6 +456,7 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		issuerCountry: "",
 		dayCountConvention: "",
 		maturityDate: "",
+		issueDate: "",
 		interestRate: "",
 		couponFrequencyMonths: "",
 		nextCouponDate: "",
@@ -445,6 +473,8 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		capitalGainsRate: "",
 		isBvmacListed: false,
 		isGovernmentBond: false,
+		tvaEnabled: false,
+		tvaRate: "",
 	},
 	{
 		// BONDS sample
@@ -473,6 +503,7 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		issuerCountry: "Cameroun",
 		dayCountConvention: "ACT_365",
 		maturityDate: "2030-12-31",
+		issueDate: "2024-01-15",
 		interestRate: 5.8,
 		couponFrequencyMonths: 6,
 		nextCouponDate: "2026-12-30",
@@ -489,6 +520,8 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		capitalGainsRate: "",
 		isBvmacListed: false,
 		isGovernmentBond: true,
+		tvaEnabled: false,
+		tvaRate: "",
 	},
 	{
 		// REAL_ESTATE sample
@@ -516,6 +549,7 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		issuerCountry: "",
 		dayCountConvention: "",
 		maturityDate: "",
+		issueDate: "",
 		interestRate: "",
 		couponFrequencyMonths: "",
 		nextCouponDate: "",
@@ -532,6 +566,8 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		capitalGainsRate: "",
 		isBvmacListed: false,
 		isGovernmentBond: false,
+		tvaEnabled: false,
+		tvaRate: "",
 	},
 ];
 
@@ -640,14 +676,28 @@ export async function exportAssetTemplate(): Promise<void> {
 
 // ─── CEMAC bulletin pre-filled template ──────────────────────────────────────
 
-const TAX_BASE = {
+// BVMAC-listed equities: IRCM applies at the reduced 11% rate (auto-applied when
+// isBvmacListed=true), and capital-gains tax is also active.
+const STOCK_TAX_BASE = {
+	registrationDutyEnabled: true,
+	registrationDutyRate: 0.02,
+	ircmEnabled: true,
+	ircmExempt: false,
+	capitalGainsTaxEnabled: true,
+	isBvmacListed: false, // overridden to true per-asset in cemacStock
+	isGovernmentBond: false,
+};
+
+// Central-government bonds (BTA/OTA): exempt from IRCM by CEMAC fiscal law.
+// The backend auto-applies the exemption when isGovernmentBond=true.
+const GOVT_BOND_TAX_BASE = {
 	registrationDutyEnabled: true,
 	registrationDutyRate: 0.02,
 	ircmEnabled: false,
-	ircmExempt: false,
+	ircmExempt: true,
 	capitalGainsTaxEnabled: false,
 	isBvmacListed: false,
-	isGovernmentBond: false,
+	isGovernmentBond: true,
 };
 
 function spread(issuerPrice: number) {
@@ -688,7 +738,7 @@ function cemacStock(
 		incomeRate: "",
 		distributionFrequencyMonths: "",
 		nextDistributionDate: "",
-		...TAX_BASE,
+		...STOCK_TAX_BASE,
 		isBvmacListed: true,
 	};
 }
@@ -731,7 +781,7 @@ function cemacBta(
 		incomeRate: "",
 		distributionFrequencyMonths: "",
 		nextDistributionDate: "",
-		...TAX_BASE,
+		...GOVT_BOND_TAX_BASE,
 	};
 }
 
@@ -771,7 +821,7 @@ function cemacOta(
 		incomeRate: "",
 		distributionFrequencyMonths: "",
 		nextDistributionDate: "",
-		...TAX_BASE,
+		...GOVT_BOND_TAX_BASE,
 	};
 }
 
