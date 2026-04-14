@@ -1,9 +1,11 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.dto.BondType;
 import com.adorsys.fineract.asset.dto.DayCountConvention;
 import com.adorsys.fineract.asset.entity.Asset;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -19,7 +21,10 @@ import java.time.ZoneId;
  * Formula: units × faceValue × (rate/100) × daysSinceLastCoupon / dayCountBasis
  */
 @Component
+@RequiredArgsConstructor
 public class AccruedInterestCalculator {
+
+    private final AssetServiceConfig assetServiceConfig;
 
     /**
      * Calculate accrued interest for a bond trade.
@@ -40,7 +45,7 @@ public class AccruedInterestCalculator {
         DayCountConvention convention = asset.getDayCountConvention() != null
                 ? asset.getDayCountConvention() : DayCountConvention.ACT_365;
         long daysSinceLastCoupon = convention.daysBetween(lastCouponDate,
-                LocalDate.now(ZoneId.of("Africa/Douala")));
+                LocalDate.now(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())));
         if (daysSinceLastCoupon <= 0) return BigDecimal.ZERO;
 
         int dayCountBasis = convention.getBasis();

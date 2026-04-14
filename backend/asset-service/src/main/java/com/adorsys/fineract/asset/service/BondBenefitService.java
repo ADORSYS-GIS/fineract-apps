@@ -1,9 +1,11 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.dto.BondBenefitProjection;
 import com.adorsys.fineract.asset.dto.BondType;
 import com.adorsys.fineract.asset.entity.Asset;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +22,10 @@ import java.time.temporal.ChronoUnit;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class BondBenefitService {
+
+    private final AssetServiceConfig assetServiceConfig;
 
     /**
      * Calculate benefit projections for a prospective bond purchase.
@@ -223,7 +228,7 @@ public class BondBenefitService {
      */
     int countRemainingCoupons(LocalDate nextCouponDate, LocalDate maturityDate, int freqMonths) {
         return countRemainingCoupons(nextCouponDate, maturityDate, freqMonths,
-                LocalDate.now(ZoneId.of("Africa/Douala")));
+                LocalDate.now(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())));
     }
 
     /**
@@ -250,7 +255,7 @@ public class BondBenefitService {
         if (maturityDate == null) {
             return 0;
         }
-        return Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(ZoneId.of("Africa/Douala")), maturityDate));
+        return Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())), maturityDate));
     }
 
     private BigDecimal computeAnnualizedYield(BigDecimal netProfit, BigDecimal investmentCost,

@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.AssetCategory;
@@ -29,6 +30,7 @@ public class TaxService {
     private final TaxConfig taxConfig;
     private final ResolvedTaxAccounts resolvedTaxAccounts;
     private final TaxTransactionRepository taxTransactionRepository;
+    private final AssetServiceConfig assetServiceConfig;
 
     public TaxConfig getTaxConfig() {
         return taxConfig;
@@ -120,7 +122,7 @@ public class TaxService {
                 : taxConfig.getDefaultCapitalGainsRate();
 
         // Check annual exemption
-        int fiscalYear = LocalDate.now(ZoneId.of("Africa/Douala")).getYear();
+        int fiscalYear = LocalDate.now(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())).getYear();
         BigDecimal cumulativeGains = taxTransactionRepository.sumCapitalGainsByUserAndYear(userId, fiscalYear);
         BigDecimal exemptionThreshold = taxConfig.getCapitalGainsAnnualExemption();
 
@@ -182,7 +184,7 @@ public class TaxService {
                                                 Long userId, String assetId, String taxType,
                                                 BigDecimal taxableAmount, BigDecimal taxRate,
                                                 BigDecimal taxAmount, Long fineractTransferId) {
-        LocalDate now = LocalDate.now(ZoneId.of("Africa/Douala"));
+        LocalDate now = LocalDate.now(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone()));
         TaxTransaction tx = TaxTransaction.builder()
                 .orderId(orderId)
                 .scheduledPaymentId(scheduledPaymentId)

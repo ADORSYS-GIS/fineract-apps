@@ -52,18 +52,17 @@ public class RateLimitConfig {
     }
 
     /**
-     * Evict all buckets every 10 minutes to prevent unbounded memory growth.
-     * Buckets are recreated on next access with fresh token counts.
+     * Evict only idle buckets every 10 minutes to prevent unbounded memory growth.
+     * A bucket is idle when it is back to its full token count, meaning the client
+     * has not made requests recently and resetting it has no effective impact.
+     * Active clients with partially-consumed buckets are left untouched.
      */
     @Scheduled(fixedRate = 600000)
     public void evictStaleBuckets() {
-        int tradeSize = tradeBuckets.size();
-        int generalSize = generalBuckets.size();
-        if (tradeSize > 0 || generalSize > 0) {
-            tradeBuckets.clear();
-            generalBuckets.clear();
-            log.debug("Evicted rate limit buckets: {} trade, {} general", tradeSize, generalSize);
-        }
+        tradeBuckets.entrySet().removeIf(e -> e.getValue().getAvailableTokens() == tradeLimit);
+        generalBuckets.entrySet().removeIf(e -> e.getValue().getAvailableTokens() == generalLimit);
+        log.debug("Evicted idle rate limit buckets (trade={}, general={})",
+                tradeBuckets.size(), generalBuckets.size());
     }
 
     public class RateLimitFilter extends OncePerRequestFilter {
@@ -128,14 +127,9 @@ public class RateLimitConfig {
                 int tokenHash = token.hashCode();
                 return "token:" + tokenHash;
             }
-            String xForwardedFor = request.getHeader("X-Forwarded-For");
-            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                return "ip:" + xForwardedFor.split(",")[0].trim();
-            }
-            String xRealIp = request.getHeader("X-Real-IP");
-            if (xRealIp != null && !xRealIp.isEmpty()) {
-                return "ip:" + xRealIp;
-            }
+            // server.forward-headers-strategy=FRAMEWORK ensures ForwardedHeaderFilter
+            // has already resolved the real client IP from the trusted proxy chain.
+            // Using getRemoteAddr() here is safe and cannot be spoofed by clients.
             return "ip:" + request.getRemoteAddr();
         }
     }

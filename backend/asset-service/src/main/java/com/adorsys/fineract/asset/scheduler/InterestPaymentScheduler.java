@@ -7,7 +7,6 @@ import com.adorsys.fineract.asset.service.ScheduledPaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
@@ -36,8 +35,9 @@ public class InterestPaymentScheduler {
     private final AssetRepository assetRepository;
     private final ScheduledPaymentService scheduledPaymentService;
     private final ApplicationEventPublisher eventPublisher;
+    private final CouponDateAdvancer couponDateAdvancer;
 
-    @Scheduled(cron = "0 15 0 * * *", zone = "Africa/Douala")
+    @Scheduled(cron = "0 15 0 * * *", zone = "${app.market-hours.timezone:Africa/Douala}")
     @SchedulerLock(name = "interest-payment-scheduler", lockAtMostFor = "PT20M", lockAtLeastFor = "PT5M")
     public void processCouponPayments() {
         runCouponCycle(LocalDate.now());
@@ -88,30 +88,10 @@ public class InterestPaymentScheduler {
         // Always advance the coupon date — whether a new schedule was created or
         // one already exists (idempotent skip). This prevents the coupon date from
         // getting permanently stuck if the first createPendingSchedule call succeeds
-        // but advanceCouponDate fails, since subsequent runs would see "already exists"
-        // and never advance.
-        advanceCouponDate(bond);
-    }
-
-    private void advanceCouponDate(Asset bond) {
-        LocalDate nextDate = bond.getNextCouponDate()
-                .plusMonths(bond.getCouponFrequencyMonths());
-
-        if (bond.getMaturityDate() != null && nextDate.isAfter(bond.getMaturityDate())) {
-            bond.setNextCouponDate(null);
-            log.info("Bond {} has no more coupon dates after maturity {}", bond.getSymbol(), bond.getMaturityDate());
-        } else {
-            bond.setNextCouponDate(nextDate);
-            log.info("Bond {} next coupon date advanced to {}", bond.getSymbol(), nextDate);
-        }
-
-        try {
-            assetRepository.save(bond);
-        } catch (ObjectOptimisticLockingFailureException e) {
-            // Another scheduler instance already advanced this bond's coupon date.
-            // Log and skip — the date is already correct.
-            log.warn("Optimistic lock conflict advancing coupon date for bond {} ({}): {}",
-                    bond.getId(), bond.getSymbol(), e.getMessage());
-        }
+        // but the date advance fails.
+        //
+        // CouponDateAdvancer runs in REQUIRES_NEW so an optimistic lock failure
+        // only rolls back the date-advance transaction, not the createPendingSchedule above.
+        couponDateAdvancer.advance(bond);
     }
 }

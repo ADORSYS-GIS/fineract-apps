@@ -65,4 +65,12 @@ public interface InterestPaymentRepository extends JpaRepository<InterestPayment
            "WHERE ip.userId = :userId AND ip.status = 'SUCCESS'")
     BigDecimal sumPaidByUser(@Param("userId") Long userId);
 
+    /**
+     * Idempotency check: returns true if a successful coupon payment already exists
+     * for the given (assetId, couponDate, userId) tuple.
+     * Used in {@code payCouponHolder} to skip already-paid holders on retry.
+     */
+    boolean existsByAssetIdAndCouponDateAndUserIdAndStatus(
+            String assetId, LocalDate couponDate, Long userId, String status);
+
 }

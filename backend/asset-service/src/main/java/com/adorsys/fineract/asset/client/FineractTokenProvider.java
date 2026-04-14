@@ -62,7 +62,7 @@ public class FineractTokenProvider {
             return cached.token;
         }
 
-        log.info("Fetching new Fineract OAuth token from: {}", config.getTokenUrl());
+        log.debug("Fetching new Fineract OAuth token from: {}", config.getTokenUrl());
 
         try {
             String credentials = config.getClientId() + ":" + config.getClientSecret();

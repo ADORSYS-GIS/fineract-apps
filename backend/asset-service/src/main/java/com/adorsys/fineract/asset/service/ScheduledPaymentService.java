@@ -73,6 +73,11 @@ public class ScheduledPaymentService {
 
         if ("COUPON".equals(paymentType)) {
             estimatedRate = asset.getInterestRate();
+            if (estimatedRate == null || estimatedRate.compareTo(BigDecimal.ZERO) <= 0) {
+                log.error("Bond {} has no positive interest rate — cannot create coupon schedule for {}",
+                        asset.getId(), scheduleDate);
+                return false;
+            }
             BigDecimal faceValue = asset.getEffectiveFaceValue();
             if (faceValue == null) {
                 faceValue = BigDecimal.ZERO;
@@ -387,7 +392,7 @@ public class ScheduledPaymentService {
     public ScheduledPaymentSummaryResponse getSummary() {
         long pending = scheduledPaymentRepository.countByStatus("PENDING");
         Instant startOfMonth = YearMonth.now().atDay(1)
-                .atStartOfDay(ZoneId.of("Africa/Douala")).toInstant();
+                .atStartOfDay(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())).toInstant();
         long confirmedThisMonth = scheduledPaymentRepository
                 .countByStatusAndConfirmedAtGreaterThanEqual("CONFIRMED", startOfMonth);
         BigDecimal totalPaidThisMonth = scheduledPaymentRepository.sumPaidSince(startOfMonth);
@@ -498,6 +503,15 @@ public class ScheduledPaymentService {
 
     private boolean payCouponHolder(Asset bond, UserPosition holder,
                                      BigDecimal cashAmount, LocalDate couponDate) {
+        // Idempotency: skip if this holder was already paid successfully for this coupon date.
+        // Protects against double-payment on admin retry or partial re-execution.
+        if (interestPaymentRepository.existsByAssetIdAndCouponDateAndUserIdAndStatus(
+                bond.getId(), couponDate, holder.getUserId(), "SUCCESS")) {
+            log.debug("Skipping already-paid coupon: bond={}, user={}, date={}",
+                    bond.getSymbol(), holder.getUserId(), couponDate);
+            return true;
+        }
+
         String currency = assetServiceConfig.getSettlementCurrency();
 
         // IRCM withholding tax calculation
@@ -577,6 +591,14 @@ public class ScheduledPaymentService {
     private boolean payIncomeHolder(Asset asset, UserPosition holder,
                                      BigDecimal cashAmount, BigDecimal rateApplied,
                                      LocalDate distributionDate) {
+        // Idempotency: skip if this holder was already paid successfully for this distribution date.
+        if (incomeDistributionRepository.existsByAssetIdAndDistributionDateAndUserIdAndStatus(
+                asset.getId(), distributionDate, holder.getUserId(), "SUCCESS")) {
+            log.debug("Skipping already-paid income: asset={}, user={}, date={}",
+                    asset.getSymbol(), holder.getUserId(), distributionDate);
+            return true;
+        }
+
         String currency = assetServiceConfig.getSettlementCurrency();
         String incomeType = asset.getIncomeType();
 
