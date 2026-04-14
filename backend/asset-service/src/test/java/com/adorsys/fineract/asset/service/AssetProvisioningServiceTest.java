@@ -273,7 +273,6 @@ class AssetProvisioningServiceTest {
                 null, null);
 
         when(assetRepository.findBySymbol("BTA")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("BTA")).thenReturn(Optional.empty());
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("ask price"));
@@ -302,7 +301,6 @@ class AssetProvisioningServiceTest {
                 null, null);
 
         when(assetRepository.findBySymbol("BTA")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("BTA")).thenReturn(Optional.empty());
 
         try {
             service.createAsset(request);
@@ -329,7 +327,6 @@ class AssetProvisioningServiceTest {
                 null, null);
 
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("bondType is only valid for BONDS assets"));
