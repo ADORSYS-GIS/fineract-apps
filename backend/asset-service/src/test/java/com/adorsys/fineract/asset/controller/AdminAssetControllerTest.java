@@ -103,7 +103,7 @@ class AdminAssetControllerTest {
     void createAsset_validRequest_returns201() throws Exception {
         // Arrange
         CreateAssetRequest request = new CreateAssetRequest(
-                "Test Asset", "TST", "TST", // name, symbol, currencyCode
+                "Test Asset", "TST", null, // name, symbol, currencyCode (deprecated — auto-generated)
                 "A test asset", null, // description, imageUrl
                 AssetCategory.STOCKS, // category
                 new BigDecimal("500"), null, new BigDecimal("1000"), // issuerPrice, faceValue, totalSupply
@@ -120,7 +120,7 @@ class AdminAssetControllerTest {
         );
 
         AssetDetailResponse response = new AssetDetailResponse(
-                "a1", "Test Asset", "TST", "TST", // id, name, symbol, currencyCode
+                "a1", "Test Asset", "TST", "TSTA", // id, name, symbol, currencyCode (auto-generated from symbol)
                 "A test asset", null, // description, imageUrl
                 AssetCategory.STOCKS, AssetStatus.PENDING, PriceMode.MANUAL, // category, status, priceMode
                 null, null, null, null, null, // change24hPercent, dayOpen, dayHigh, dayLow, dayClose

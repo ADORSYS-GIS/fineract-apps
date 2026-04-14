@@ -200,7 +200,8 @@ export interface AssetDetailResponse {
 export interface CreateAssetRequest {
 	name: string;
 	symbol: string;
-	currencyCode: string;
+	/** @deprecated Since 1.1.0 — auto-generated from symbol by the backend. Do not send. */
+	currencyCode?: string;
 	description?: string;
 	imageUrl?: string;
 	category: string;

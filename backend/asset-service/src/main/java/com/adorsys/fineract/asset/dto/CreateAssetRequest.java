@@ -16,7 +16,7 @@ import java.time.LocalDate;
  *
  * <p>Fields are grouped by concern:</p>
  * <ul>
- *   <li>Core identity: {@code name}, {@code symbol}, {@code currencyCode}, {@code description},
+ *   <li>Core identity: {@code name}, {@code symbol}, {@code description},
  *       {@code imageUrl}, {@code category}</li>
  *   <li>Pricing: {@code issuerPrice}, {@code faceValue}, {@code totalSupply}, {@code decimalPlaces},
  *       {@code tradingFeePercent}, {@code spreadPercent}, {@code lpAskPrice}, {@code lpBidPrice}</li>
@@ -44,11 +44,17 @@ public record CreateAssetRequest(
     @NotBlank @Size(max = 10) String symbol,
 
     /**
-     * ISO-style currency code used for the Fineract savings product backing this asset
-     * (e.g. {@code "BRV"}). Max 10 characters. Must be unique. Determines the savings
-     * product currency configured in Fineract.
+     * Internal Fineract currency code for the savings product backing this asset.
+     *
+     * <p><strong>Deprecated — leave null.</strong> The service now auto-generates a
+     * collision-safe 4-character code from {@code symbol} using {@code CurrencyCodeGenerator}.
+     * This field is accepted for backwards compatibility only and will be removed in a future
+     * release. Callers that send an explicit value will receive a deprecation warning in the
+     * response logs.
+     *
+     * Since 1.1.0 — auto-generated from symbol; explicit values are ignored.
      */
-    @NotBlank @Size(max = 10) String currencyCode,
+    @Size(max = 10) String currencyCode,
 
     /**
      * Optional long-form description of the asset, its investment thesis, or issuer details.
