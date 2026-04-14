@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.PaymentResultResponse;
 import com.adorsys.fineract.asset.dto.PaymentSummaryResponse;
 import com.adorsys.fineract.asset.entity.IncomeDistribution;
@@ -45,6 +46,8 @@ class ScheduledPaymentServiceTest {
     @Mock private AssetServiceConfig assetServiceConfig;
     @Mock private AssetMetrics assetMetrics;
     @Mock private ApplicationEventPublisher eventPublisher;
+    @Mock private TaxService taxService;
+    @Mock private ResolvedGlAccounts resolvedGlAccounts;
 
     @InjectMocks private ScheduledPaymentService service;
 
