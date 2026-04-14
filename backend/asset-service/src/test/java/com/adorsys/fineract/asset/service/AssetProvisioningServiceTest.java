@@ -47,6 +47,7 @@ class AssetProvisioningServiceTest {
     @Mock private AssetServiceConfig assetServiceConfig;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
     @Mock private com.adorsys.fineract.asset.storage.FileStorageService fileStorageService;
+    @Mock private CurrencyCodeGenerator currencyCodeGenerator;
 
     @InjectMocks
     private AssetProvisioningService service;
@@ -67,6 +68,9 @@ class AssetProvisioningServiceTest {
         // Default: no orphaned Fineract resources
         lenient().when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
         lenient().when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
+
+        // Default: generator returns a code derived from the symbol (e.g. "TST" for symbol "TST")
+        lenient().when(currencyCodeGenerator.generate(anyString(), any())).thenReturn("TST");
     }
 
     // -------------------------------------------------------------------------
@@ -79,7 +83,6 @@ class AssetProvisioningServiceTest {
 
         // No duplicate
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         // Look up client display name
         when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test Company");
@@ -146,7 +149,6 @@ class AssetProvisioningServiceTest {
                 null, null);                                // tvaEnabled, tvaRate
 
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
         when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
         when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
         when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
@@ -194,7 +196,6 @@ class AssetProvisioningServiceTest {
                 null, null);                                // tvaEnabled, tvaRate
 
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
         when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
         when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
         when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
@@ -244,7 +245,6 @@ class AssetProvisioningServiceTest {
                 null, null);
 
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("ask price"));
@@ -347,10 +347,37 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
+    void createAsset_generatorReturnsAlternativeCode_usedForProductAndCurrency() {
+        // Simulate collision avoidance: generator returns "TSTA" instead of "TST"
+        when(currencyCodeGenerator.generate(anyString(), any())).thenReturn("TSTA");
+        CreateAssetRequest request = createAssetRequest();
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.createSavingsProduct(anyString(), eq("TSTA"), eq("TSTA"), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(10);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), any(), anyLong())).thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
+
+        service.createAsset(request);
+
+        // The alternative code "TSTA" must be used when registering the currency
+        verify(fineractClient).registerCurrencies(argThat(list -> list.contains("TSTA")));
+        verify(assetRepository).save(assetCaptor.capture());
+        assertEquals("TSTA", assetCaptor.getValue().getCurrencyCode());
+    }
+
+    @Test
     void createAsset_noSettlementProduct_throws() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         // LP settlement product not found
         when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
@@ -364,7 +391,6 @@ class AssetProvisioningServiceTest {
     void createAsset_productCreationFails_noRollbackNeeded() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
         when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
@@ -393,7 +419,6 @@ class AssetProvisioningServiceTest {
     void createAsset_accountProvisioningFails_rollsBackProductAndCurrency() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
         when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");

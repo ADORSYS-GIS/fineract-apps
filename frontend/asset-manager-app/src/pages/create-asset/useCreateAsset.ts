@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { fineractApi } from "@/services/api";
 import {
@@ -191,6 +191,7 @@ export const useCreateAsset = () => {
 	const queryClient = useQueryClient();
 	const [currentStep, setCurrentStep] = useState(0);
 	const [formData, setFormData] = useState<AssetFormData>(initialFormData);
+	const [isLPDialogOpen, setIsLPDialogOpen] = useState(false);
 
 	const isBond = formData.category === "BONDS";
 	const steps = isBond
@@ -317,6 +318,44 @@ export const useCreateAsset = () => {
 		setValidationErrors([]);
 	};
 
+	const createLPMutation = useMutation({
+		mutationFn: (fullname: string) =>
+			fineractApi.clients.postV1Clients({
+				requestBody: {
+					fullname,
+					legalFormId: 2,
+					active: true,
+					officeId: 1,
+					activationDate: new Date().toISOString().split("T")[0],
+					dateFormat: "yyyy-MM-dd",
+					locale: "en",
+				},
+			}),
+		onSuccess: (response, fullname) => {
+			const newClientId = response.clientId ?? response.resourceId;
+			if (!newClientId) {
+				toast.error(
+					"LP was created but returned no ID — please refresh and select it manually.",
+				);
+				setIsLPDialogOpen(false);
+				return;
+			}
+			// Optimistically insert into the cache so the <select> shows the new
+			// entry immediately, before the background refetch completes.
+			queryClient.setQueryData(["entity-clients"], (old: typeof clients) => [
+				...(old ?? []),
+				{ id: newClientId, displayName: fullname },
+			]);
+			queryClient.invalidateQueries({ queryKey: ["entity-clients"] });
+			updateFormData({ lpClientId: newClientId, lpClientName: fullname });
+			setIsLPDialogOpen(false);
+			toast.success(`LP "${fullname}" created and selected`);
+		},
+		onError: (error: unknown) => {
+			toast.error(`Failed to create LP: ${extractErrorMessage(error)}`);
+		},
+	});
+
 	const nextStep = () => {
 		const errors = validateStep(currentStep);
 		if (errors.length > 0) {
@@ -344,7 +383,7 @@ export const useCreateAsset = () => {
 		const request: CreateAssetRequest = {
 			name: formData.name,
 			symbol: formData.symbol,
-			currencyCode: formData.symbol,
+			// currencyCode omitted — auto-generated from symbol by the backend
 			description: formData.description || undefined,
 			imageUrl: formData.imageUrl || undefined,
 			category: formData.category,
@@ -429,5 +468,10 @@ export const useCreateAsset = () => {
 		clients: clients ?? [],
 		isLoadingClients,
 		validationErrors,
+		isLPDialogOpen,
+		openLPDialog: useCallback(() => setIsLPDialogOpen(true), []),
+		closeLPDialog: useCallback(() => setIsLPDialogOpen(false), []),
+		onCreateLP: (fullname: string) => createLPMutation.mutate(fullname),
+		isCreatingLP: createLPMutation.isPending,
 	};
 };
