@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 900" width="390" height="900">
   <defs>
     <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
     <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#00000018"/></filter>
   </defs>
 
   <!-- Background -->
-  <rect width="390" height="844" fill="#f3f4f6"/>
+  <rect width="390" height="900" fill="#f3f4f6"/>
 
   <!-- Status Bar -->
   <rect width="390" height="44" fill="#1a56db"/>
@@ -18,8 +18,8 @@
 
   <!-- Month summary card -->
   <rect x="16" y="132" width="358" height="80" rx="14" fill="white" filter="url(#shadow)"/>
-  <text x="32" y="158" fill="#6b7280" font-size="13">Expected this month (April 2026)</text>
-  <text x="32" y="190" fill="#10b981" font-size="28" font-weight="700">+52,370 XAF</text>
+  <text x="32" y="158" fill="#6b7280" font-size="13">Expected this month (April 2026) · Net after tax</text>
+  <text x="32" y="190" fill="#10b981" font-size="28" font-weight="700">+44,035 XAF</text>
   <text x="358" y="158" fill="#6b7280" font-size="12" text-anchor="end">3 payments</text>
   <rect x="280" y="174" width="78" height="22" rx="11" fill="#dcfce7"/>
   <text x="319" y="189" fill="#16a34a" font-size="11" font-weight="600" text-anchor="middle">💰 Upcoming</text>
@@ -41,7 +41,6 @@
   <text x="354" y="272" fill="#9ca3af" font-size="11" text-anchor="middle">Sat</text>
 
   <!-- Week 1 -->
-  <!-- Blank, blank, blank, 1, 2, 3, 4 -->
   <text x="202" y="298" fill="#9ca3af" font-size="13" text-anchor="middle">1</text>
   <text x="254" y="298" fill="#9ca3af" font-size="13" text-anchor="middle">2</text>
   <text x="306" y="298" fill="#9ca3af" font-size="13" text-anchor="middle">3</text>
@@ -60,7 +59,7 @@
   <text x="46" y="362" fill="#111827" font-size="13" text-anchor="middle">12</text>
   <text x="98" y="362" fill="#111827" font-size="13" text-anchor="middle">13</text>
   <text x="150" y="362" fill="#111827" font-size="13" text-anchor="middle">14</text>
-  <!-- Day 15 - payment day (Immo Plus) -->
+  <!-- Day 15 - payment day (Immo Plus + TechGrowth) -->
   <circle cx="202" cy="356" r="16" fill="#dcfce7"/>
   <text x="202" y="362" fill="#16a34a" font-size="13" font-weight="700" text-anchor="middle">15</text>
   <circle cx="202" cy="370" r="3" fill="#16a34a"/>
@@ -82,7 +81,7 @@
   <text x="98" y="426" fill="#111827" font-size="13" text-anchor="middle">27</text>
   <text x="150" y="426" fill="#111827" font-size="13" text-anchor="middle">28</text>
   <text x="202" y="426" fill="#111827" font-size="13" text-anchor="middle">29</text>
-  <!-- Day 30 - payment day (AgriCam Bond) -->
+  <!-- Day 30 - payment day (AgriCam Bond Coupon) -->
   <circle cx="254" cy="420" r="16" fill="#dbeafe"/>
   <text x="254" y="426" fill="#1e40af" font-size="13" font-weight="700" text-anchor="middle">30</text>
   <circle cx="254" cy="434" r="3" fill="#1e40af"/>
@@ -90,46 +89,49 @@
   <!-- Upcoming payments list -->
   <text x="20" y="476" fill="#111827" font-size="16" font-weight="700">Upcoming Payments</text>
 
-  <!-- Payment 1 - Immo Plus Rent -->
-  <rect x="16" y="486" width="358" height="80" rx="14" fill="white" filter="url(#shadow)"/>
-  <circle cx="46" cy="526" r="20" fill="#fef3c7"/>
-  <text x="46" y="533" fill="#d97706" font-size="18" text-anchor="middle">🏠</text>
-  <text x="76" y="512" fill="#111827" font-size="14" font-weight="700">Immo Plus</text>
-  <text x="76" y="530" fill="#9ca3af" font-size="12">Rent Income · 10 units held</text>
-  <text x="76" y="548" fill="#9ca3af" font-size="12">📅 Apr 15, 2026</text>
-  <text x="358" y="512" fill="#10b981" font-size="15" font-weight="700" text-anchor="end">+2,700 XAF</text>
-  <text x="358" y="530" fill="#9ca3af" font-size="12" text-anchor="end">270 XAF/unit</text>
-  <rect x="268" y="536" width="88" height="20" rx="10" fill="#dcfce7"/>
-  <text x="312" y="550" fill="#16a34a" font-size="11" font-weight="600" text-anchor="middle">Quarterly</text>
+  <!-- Payment 1 - Immo Plus Rent (no IRCM on rent) -->
+  <rect x="16" y="486" width="358" height="92" rx="14" fill="white" filter="url(#shadow)"/>
+  <circle cx="46" cy="532" r="20" fill="#fef3c7"/>
+  <text x="46" y="539" fill="#d97706" font-size="18" text-anchor="middle">🏠</text>
+  <text x="76" y="508" fill="#111827" font-size="14" font-weight="700">Immo Plus</text>
+  <text x="76" y="526" fill="#9ca3af" font-size="12">Rent Income · 10 units held</text>
+  <text x="76" y="544" fill="#9ca3af" font-size="12">📅 Apr 15, 2026</text>
+  <!-- Right: net amount (= gross, no IRCM on rent) -->
+  <text x="358" y="508" fill="#10b981" font-size="15" font-weight="700" text-anchor="end">+2,700 XAF</text>
+  <text x="358" y="526" fill="#9ca3af" font-size="11" text-anchor="end">brut: 270 XAF/unité</text>
+  <text x="358" y="542" fill="#9ca3af" font-size="11" text-anchor="end">IRCM: —</text>
+  <text x="358" y="558" fill="#16a34a" font-size="11" font-weight="600" text-anchor="end">net: 270 XAF/unité</text>
 
-  <!-- Payment 2 - AgriCam Bond Coupon -->
-  <rect x="16" y="574" width="358" height="80" rx="14" fill="white" filter="url(#shadow)"/>
-  <circle cx="46" cy="614" r="20" fill="#fce7f3"/>
-  <text x="46" y="621" fill="#db2777" font-size="18" text-anchor="middle">📄</text>
-  <text x="76" y="600" fill="#111827" font-size="14" font-weight="700">AgriCam Bond 2026</text>
-  <text x="76" y="618" fill="#9ca3af" font-size="12">Coupon Payment · 500 units held</text>
-  <text x="76" y="636" fill="#9ca3af" font-size="12">📅 Apr 30, 2026</text>
-  <text x="358" y="600" fill="#10b981" font-size="15" font-weight="700" text-anchor="end">+32,500 XAF</text>
-  <text x="358" y="618" fill="#9ca3af" font-size="12" text-anchor="end">65 XAF/unit</text>
-  <rect x="268" y="624" width="88" height="20" rx="10" fill="#dbeafe"/>
-  <text x="312" y="638" fill="#1e40af" font-size="11" font-weight="600" text-anchor="middle">Semi-Annual</text>
+  <!-- Payment 2 - AgriCam Bond Coupon (with IRCM) -->
+  <rect x="16" y="590" width="358" height="92" rx="14" fill="white" filter="url(#shadow)"/>
+  <circle cx="46" cy="636" r="20" fill="#fce7f3"/>
+  <text x="46" y="643" fill="#db2777" font-size="18" text-anchor="middle">📄</text>
+  <text x="76" y="612" fill="#111827" font-size="14" font-weight="700">AgriCam Bond 2026</text>
+  <text x="76" y="630" fill="#9ca3af" font-size="12">Coupon Payment · 500 units held</text>
+  <text x="76" y="648" fill="#9ca3af" font-size="12">📅 Apr 30, 2026</text>
+  <!-- Right: net amount after IRCM -->
+  <text x="358" y="612" fill="#10b981" font-size="15" font-weight="700" text-anchor="end">+27,135 XAF</text>
+  <text x="358" y="630" fill="#9ca3af" font-size="11" text-anchor="end">brut: 65 XAF/unité</text>
+  <text x="358" y="646" fill="#ef4444" font-size="11" font-weight="600" text-anchor="end">IRCM: −10.73 XAF/unité</text>
+  <text x="358" y="662" fill="#16a34a" font-size="11" font-weight="600" text-anchor="end">net: 54.27 XAF/unité</text>
 
-  <!-- Payment 3 - TechGrowth Dividend -->
-  <rect x="16" y="662" width="358" height="80" rx="14" fill="white" filter="url(#shadow)"/>
-  <circle cx="46" cy="702" r="20" fill="#ede9fe"/>
-  <text x="46" y="709" fill="#7c3aed" font-size="18" text-anchor="middle">📊</text>
-  <text x="76" y="688" fill="#111827" font-size="14" font-weight="700">TechGrowth</text>
-  <text x="76" y="706" fill="#9ca3af" font-size="12">Dividend · 8 units held</text>
-  <text x="76" y="724" fill="#9ca3af" font-size="12">📅 Apr 15, 2026</text>
-  <text x="358" y="688" fill="#10b981" font-size="15" font-weight="700" text-anchor="end">+17,170 XAF</text>
-  <text x="358" y="706" fill="#9ca3af" font-size="12" text-anchor="end">2,146 XAF/unit</text>
-  <rect x="268" y="712" width="88" height="20" rx="10" fill="#dcfce7"/>
-  <text x="312" y="726" fill="#16a34a" font-size="11" font-weight="600" text-anchor="middle">Annual</text>
+  <!-- Payment 3 - TechGrowth Dividend (with IRCM) -->
+  <rect x="16" y="694" width="358" height="92" rx="14" fill="white" filter="url(#shadow)"/>
+  <circle cx="46" cy="740" r="20" fill="#ede9fe"/>
+  <text x="46" y="747" fill="#7c3aed" font-size="18" text-anchor="middle">📊</text>
+  <text x="76" y="716" fill="#111827" font-size="14" font-weight="700">TechGrowth</text>
+  <text x="76" y="734" fill="#9ca3af" font-size="12">Dividend · 8 units held</text>
+  <text x="76" y="752" fill="#9ca3af" font-size="12">📅 Apr 15, 2026</text>
+  <!-- Right: net amount after IRCM on dividend -->
+  <text x="358" y="716" fill="#10b981" font-size="15" font-weight="700" text-anchor="end">+14,336 XAF</text>
+  <text x="358" y="734" fill="#9ca3af" font-size="11" text-anchor="end">brut: 2,146 XAF/unité</text>
+  <text x="358" y="750" fill="#ef4444" font-size="11" font-weight="600" text-anchor="end">IRCM: −354 XAF/unité</text>
+  <text x="358" y="766" fill="#16a34a" font-size="11" font-weight="600" text-anchor="end">net: 1,792 XAF/unité</text>
 
   <!-- Bottom Nav -->
-  <rect x="0" y="796" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="48" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
-  <text x="146" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">📊 Market</text>
-  <text x="244" y="826" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">💼 Portfolio</text>
-  <text x="342" y="826" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
+  <rect x="0" y="852" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="48" y="882" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
+  <text x="146" y="882" fill="#9ca3af" font-size="10" text-anchor="middle">📊 Market</text>
+  <text x="244" y="882" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">💼 Portfolio</text>
+  <text x="342" y="882" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
 </svg>
