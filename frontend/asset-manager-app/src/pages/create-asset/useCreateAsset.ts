@@ -163,14 +163,18 @@ function validateBondDetails(data: AssetFormData): string[] {
 		else if (data.maturityDate && data.nextCouponDate >= data.maturityDate)
 			errors.push("First coupon date must be before the maturity date");
 	}
-	if (data.bondType === "DISCOUNT" && data.faceValue <= 0)
-		errors.push("Face value is required for BTA (discount) bonds");
 	return errors;
 }
 
 function validatePricingFees(data: AssetFormData): string[] {
 	const errors: string[] = [];
 	if (data.issuerPrice <= 0) errors.push("Issuer price must be greater than 0");
+	if (data.category === "BONDS" && data.bondType === "DISCOUNT") {
+		if (data.faceValue <= 0)
+			errors.push("Face value is required for BTA (discount) bonds");
+		else if (data.issuerPrice > 0 && data.faceValue <= data.issuerPrice)
+			errors.push("Face value must be greater than issuer price for BTA bonds");
+	}
 	if (data.tradingFeePercent < 0 || data.tradingFeePercent > 50)
 		errors.push("Trading fee must be 0-50%");
 	if (data.lpAskPrice <= 0) errors.push("LP ask price must be greater than 0");

@@ -7,10 +7,8 @@ import com.adorsys.fineract.gateway.dto.PaymentProvider;
 import com.adorsys.fineract.gateway.dto.PaymentResponse;
 import com.adorsys.fineract.gateway.dto.PaymentStatus;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
-import com.adorsys.fineract.gateway.entity.ReversalDeadLetter;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
-import com.adorsys.fineract.gateway.repository.ReversalDeadLetterRepository;
 import com.adorsys.fineract.gateway.service.ReversalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +34,6 @@ import java.util.List;
 public class StaleTransactionCleanupScheduler {
 
     private final PaymentTransactionRepository transactionRepository;
-    private final ReversalDeadLetterRepository deadLetterRepository;
     private final PaymentMetrics paymentMetrics;
     private final MtnMomoClient mtnClient;
     private final OrangeMoneyClient orangeClient;
@@ -116,24 +113,16 @@ public class StaleTransactionCleanupScheduler {
             return;
         }
         locked.setStaleResolutionRetryCount(locked.getStaleResolutionRetryCount() + 1);
-        transactionRepository.save(locked);
 
         if (locked.getStaleResolutionRetryCount() >= staleProcessingMaxRetries) {
             String reason = "Max stale resolution retries (%d) exceeded. Last error: %s"
                 .formatted(staleProcessingMaxRetries, errorMessage);
-            ReversalDeadLetter dlq = new ReversalDeadLetter(
-                locked.getTransactionId(),
-                locked.getFineractTransactionId(),
-                locked.getAccountId(),
-                locked.getAmount(),
-                locked.getCurrency(),
-                locked.getProvider(),
-                reason
-            );
-            deadLetterRepository.save(dlq);
+            reversalService.sendToDeadLetter(locked, reason);
+            locked.setStatus(PaymentStatus.FAILED);
             log.error("Stale PROCESSING transaction moved to DLQ after {} retries: txnId={}",
                 staleProcessingMaxRetries, locked.getTransactionId());
         }
+        transactionRepository.save(locked);
     }
 
     @Transactional
