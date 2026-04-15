@@ -980,7 +980,7 @@ public class FineractClient {
     @SuppressWarnings("unchecked")
     private String parseFineractError(String context, String rawBody) {
         try {
-            Map<String, Object> errorResponse = new ObjectMapper().readValue(rawBody, Map.class);
+            Map<String, Object> errorResponse = objectMapper.readValue(rawBody, Map.class);
             String userMessage = (String) errorResponse.get("defaultUserMessage");
             if (userMessage != null && !userMessage.isBlank()) {
                 String result = context + ": " + userMessage;

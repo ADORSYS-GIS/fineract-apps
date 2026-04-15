@@ -46,6 +46,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.util.ArrayList;
@@ -71,6 +72,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TradingService {
 
+    private static final String DESC_REGISTRATION_DUTY = "Registration duty:";
+    private static final String DESC_CAPITAL_GAINS = "Capital gains tax:";
+    private static final String DESC_TVA = "TVA:";
+
     private final OrderRepository orderRepository;
     private final TradeLogRepository tradeLogRepository;
     private final AssetRepository assetRepository;
@@ -91,6 +96,7 @@ public class TradingService {
     private final QuoteReservationService quoteReservationService;
     private final TaxService taxService;
     private final AccruedInterestCalculator accruedInterestCalculator;
+    private final ObjectMapper objectMapper;
     private final AssetProjectionRepository assetProjectionRepository;
 
     private static final List<OrderStatus> HIDDEN_FROM_USER_HISTORY = List.of(OrderStatus.CANCELLED);
@@ -1171,13 +1177,13 @@ public class TradingService {
             if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
                         clearingAccountId, taxService.getRegistrationDutyAccountId(),
-                        registrationDuty, "Registration duty: BUY " + asset.getSymbol()));
+                        registrationDuty, DESC_REGISTRATION_DUTY + " BUY " + asset.getSymbol()));
             }
             // Leg 7 (tax): Clearing → Tax Authority (TVA)
             if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
                         clearingAccountId, taxService.getTvaAccountId(),
-                        tvaAmount, "TVA: BUY " + asset.getSymbol()));
+                        tvaAmount, DESC_TVA + " BUY " + asset.getSymbol()));
             }
 
             // Revenue recognition journal entries (reclassify liability → income in GL)
@@ -1222,7 +1228,7 @@ public class TradingService {
                         : taxService.getRegistrationDutyAccountId();
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), taxDestination,
-                        registrationDuty, "Registration duty: SELL " + asset.getSymbol()));
+                        registrationDuty, DESC_REGISTRATION_DUTY + " SELL " + asset.getSymbol()));
             }
             // Leg 7 (tax): LP pays capital gains tax — route to LP Tax account if available, else global
             if (capitalGainsTax.compareTo(BigDecimal.ZERO) > 0) {
@@ -1231,7 +1237,7 @@ public class TradingService {
                         : taxService.getCapitalGainsAccountId();
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), taxDestination,
-                        capitalGainsTax, "Capital gains tax: SELL " + asset.getSymbol()));
+                        capitalGainsTax, DESC_CAPITAL_GAINS + " SELL " + asset.getSymbol()));
             }
             // Leg 8 (tax): LP pays TVA — route to LP Tax account if available, else global
             if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
@@ -1240,7 +1246,7 @@ public class TradingService {
                         : taxService.getTvaAccountId();
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), taxDestination,
-                        tvaAmount, "TVA: SELL " + asset.getSymbol()));
+                        tvaAmount, DESC_TVA + " SELL " + asset.getSymbol()));
             }
 
             // Revenue recognition journal entries (reclassify liability → income in GL)
@@ -1266,6 +1272,10 @@ public class TradingService {
      * Fineract transfer resourceId from the batch response. Stored on ctx for use in recordTaxAudit.
      * requestId in the response is 1-based and matches the op index + 1.
      */
+    /**
+     * Scan batch ops for tax legs by description prefix and store the Fineract transfer resourceId
+     * in ctx for use in recordTaxAudit. requestId in the response is 1-based (= op index + 1).
+     */
     private void extractTaxTransferIds(List<FineractClient.BatchOperation> batchOps,
                                        List<Map<String, Object>> batchResponses,
                                        TradeContext ctx) {
@@ -1275,16 +1285,20 @@ public class TradingService {
             Long resourceId = extractResourceId(batchResponses, i + 1);
             if (resourceId == null) continue;
             String desc = op.description();
-            if (desc.startsWith("Registration duty:")) {
+            if (desc.startsWith(DESC_REGISTRATION_DUTY)) {
                 ctx.setRegistrationDutyTransferId(resourceId);
-            } else if (desc.startsWith("Capital gains tax:")) {
+            } else if (desc.startsWith(DESC_CAPITAL_GAINS)) {
                 ctx.setCapitalGainsTaxTransferId(resourceId);
-            } else if (desc.startsWith("TVA:")) {
+            } else if (desc.startsWith(DESC_TVA)) {
                 ctx.setTvaTransferId(resourceId);
             }
+            if (ctx.getRegistrationDutyTransferId() != null
+                    && ctx.getCapitalGainsTaxTransferId() != null
+                    && ctx.getTvaTransferId() != null) break;
         }
     }
 
+    @SuppressWarnings("unchecked")
     private Long extractResourceId(List<Map<String, Object>> responses, int requestId) {
         for (Map<String, Object> resp : responses) {
             Object rid = resp.get("requestId");
@@ -1295,18 +1309,11 @@ public class TradingService {
                 return id != null ? ((Number) id).longValue() : null;
             }
             if (body instanceof String bodyStr) {
-                // Parse "resourceId" from the JSON string without pulling in ObjectMapper
-                int idx = bodyStr.indexOf("\"resourceId\"");
-                if (idx < 0) return null;
-                int colon = bodyStr.indexOf(':', idx);
-                if (colon < 0) return null;
-                int start = colon + 1;
-                while (start < bodyStr.length() && bodyStr.charAt(start) == ' ') start++;
-                int end = start;
-                while (end < bodyStr.length() && Character.isDigit(bodyStr.charAt(end))) end++;
-                if (end > start) {
-                    try { return Long.parseLong(bodyStr.substring(start, end)); } catch (NumberFormatException ignored) {}
-                }
+                try {
+                    Map<String, Object> parsed = objectMapper.readValue(bodyStr, Map.class);
+                    Object id = parsed.get("resourceId");
+                    return id != null ? ((Number) id).longValue() : null;
+                } catch (Exception ignored) {}
             }
         }
         return null;
