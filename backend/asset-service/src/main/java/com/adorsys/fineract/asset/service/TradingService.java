@@ -128,13 +128,6 @@ public class TradingService {
                     "IDEMPOTENCY_KEY_CONFLICT");
         }
 
-        // Distributed lock: prevent duplicate active quote for same asset+side.
-        // Released on confirm, cancel, or if this method throws (validation/save failure).
-        tradeLockService.acquireQuoteLock(
-                userId, request.assetId(), request.side(),
-                assetServiceConfig.getQuote().getTtlSeconds());
-        try {
-
         // Max active quotes per user
         long activeQuotes = orderRepository.countByUserIdAndStatus(userId, OrderStatus.QUOTED);
         if (activeQuotes >= assetServiceConfig.getQuote().getMaxActivePerUser()) {
@@ -357,11 +350,6 @@ public class TradingService {
                 orderCashAmount, availableBalance, availableUnits, availableSupply,
                 bondBenefit, incomeBenefit, computedFromAmount, remainder, now, expiresAt, warnings,
                 taxBreakdown, feasible, feasibilityReason, priceBreakdown);
-        } catch (Exception e) {
-            // Release the quote lock so the user can retry if quote creation failed
-            tradeLockService.releaseQuoteLock(userId, request.assetId(), request.side());
-            throw e;
-        }
     }
 
     /**
@@ -400,6 +388,12 @@ public class TradingService {
             throw new TradingException("Quote has expired. Please request a new quote.", "QUOTE_EXPIRED");
         }
 
+        // Distributed lock: prevent concurrent confirms for the same user+asset+side.
+        // Acquired after expiry check so the lock is not held during the cancel-on-expiry path.
+        // Released post-commit on success, or eagerly on optimistic locking failure.
+        tradeLockService.acquireQuoteLock(
+                userId, order.getAssetId(), order.getSide(),
+                assetServiceConfig.getTradeLock().getTtlSeconds());
         try {
             OrderStatus previousStatus = order.getStatus();
 
@@ -443,6 +437,10 @@ public class TradingService {
             throw new TradingException(
                     "Quote was already confirmed by a concurrent request. Please check order status.",
                     "QUOTE_ALREADY_CONFIRMED");
+        } catch (Exception e) {
+            // Transaction is aborting — afterCommit will not fire, so release the lock eagerly
+            tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
+            throw e;
         }
     }
 
@@ -1429,7 +1427,8 @@ public class TradingService {
             quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
         }
         if (previousStatus == OrderStatus.QUOTED) {
-            releaseQuoteLockAfterCommit(order);
+            // Quote lock is now acquired at confirmOrder time, not at createQuote time.
+            // Cancelling a QUOTED order that was never confirmed means no lock was held — nothing to release.
             assetMetrics.recordQuoteUserCancelled();
         }
 
