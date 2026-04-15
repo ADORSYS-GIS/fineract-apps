@@ -437,6 +437,10 @@ public class TradingService {
             throw new TradingException(
                     "Quote was already confirmed by a concurrent request. Please check order status.",
                     "QUOTE_ALREADY_CONFIRMED");
+        } catch (Exception e) {
+            // Transaction is aborting — afterCommit will not fire, so release the lock eagerly
+            tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
+            throw e;
         }
     }
 
@@ -1423,7 +1427,8 @@ public class TradingService {
             quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
         }
         if (previousStatus == OrderStatus.QUOTED) {
-            releaseQuoteLockAfterCommit(order);
+            // Quote lock is now acquired at confirmOrder time, not at createQuote time.
+            // Cancelling a QUOTED order that was never confirmed means no lock was held — nothing to release.
             assetMetrics.recordQuoteUserCancelled();
         }
 
