@@ -2,8 +2,7 @@ package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.service.NotificationService;
-import com.adorsys.fineract.asset.util.JwtUtils;
-import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.util.UserIdentityResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -13,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * REST endpoints for user notifications and preferences.
@@ -26,7 +23,7 @@ import java.util.Map;
 public class NotificationController {
 
     private final NotificationService notificationService;
-    private final FineractClient fineractClient;
+    private final UserIdentityResolver userIdentityResolver;
 
     @GetMapping
     @Operation(summary = "List notifications", description = "Paginated list of user notifications, most recent first")
@@ -79,8 +76,6 @@ public class NotificationController {
     }
 
     private Long resolveUserId(Jwt jwt) {
-        String externalId = JwtUtils.extractExternalId(jwt);
-        Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
-        return ((Number) clientData.get("id")).longValue();
+        return userIdentityResolver.resolveUserId(jwt);
     }
 }

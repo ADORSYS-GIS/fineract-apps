@@ -50,6 +50,11 @@ public class TradeContext {
     private BigDecimal capitalGainsTaxAmount;
     private BigDecimal tvaAmount;
 
+    // -- Tax transfer IDs (extracted from Fineract batch response for audit trail) --
+    private Long registrationDutyTransferId;
+    private Long capitalGainsTaxTransferId;
+    private Long tvaTransferId;
+
     // -- Accrued interest (OTA coupon bonds) --
     private BigDecimal accruedInterestAmount;
 

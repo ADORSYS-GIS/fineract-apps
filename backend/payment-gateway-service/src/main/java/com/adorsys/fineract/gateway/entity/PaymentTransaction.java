@@ -70,6 +70,9 @@ public class PaymentTransaction {
     @Version
     private Long version;  // Optimistic locking for concurrent callback handling
 
+    @Column(nullable = false)
+    private int staleResolutionRetryCount = 0;
+
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();

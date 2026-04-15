@@ -21,6 +21,13 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(ClientNotProvisionedException.class)
+    public ResponseEntity<ErrorResponse> handleClientNotProvisioned(ClientNotProvisionedException ex) {
+        log.warn("Client not provisioned: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("CLIENT_NOT_PROVISIONED", ex.getMessage(), ex.getErrorCode(), Instant.now()));
+    }
+
     @ExceptionHandler(AssetNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleAssetNotFound(AssetNotFoundException ex) {
         log.warn("Asset not found: {}", ex.getMessage());

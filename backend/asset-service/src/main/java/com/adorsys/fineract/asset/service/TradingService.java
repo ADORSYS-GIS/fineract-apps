@@ -992,6 +992,7 @@ public class TradingService {
         try {
             List<Map<String, Object>> batchResponses = fineractClient.executeAtomicBatch(batchOps);
             ctx.getOrder().setFineractBatchId(extractBatchId(batchResponses));
+            extractTaxTransferIds(batchOps, batchResponses, ctx);
         } catch (Exception batchError) {
             log.error("Batch transfer failed for {} order {}: {}", side, ctx.getOrderId(), batchError.getMessage());
             ctx.getOrder().setStatus(OrderStatus.FAILED);
@@ -1014,7 +1015,8 @@ public class TradingService {
         if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
             taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
                     "REGISTRATION_DUTY", ctx.getGrossAmount(),
-                    taxService.getRegistrationDutyRate(lockedAsset), registrationDuty, null);
+                    taxService.getRegistrationDutyRate(lockedAsset), registrationDuty,
+                    ctx.getRegistrationDutyTransferId());
         }
         // Always record CAPITAL_GAINS tax_transaction when there's a realized gain,
         // even if tax amount is 0 (exemption applied). This ensures sumCapitalGainsByUserAndYear
@@ -1024,12 +1026,14 @@ public class TradingService {
             BigDecimal cgtRate = lockedAsset.getCapitalGainsRate() != null
                     ? lockedAsset.getCapitalGainsRate() : new BigDecimal("0.165");
             taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
-                    "CAPITAL_GAINS", realizedPnl, cgtRate, capitalGainsTax, null);
+                    "CAPITAL_GAINS", realizedPnl, cgtRate, capitalGainsTax,
+                    ctx.getCapitalGainsTaxTransferId());
         }
         if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
             taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
                     "TVA", ctx.getGrossAmount(),
-                    taxService.getTvaRate(lockedAsset), tvaAmount, null);
+                    taxService.getTvaRate(lockedAsset), tvaAmount,
+                    ctx.getTvaTransferId());
         }
     }
 
@@ -1255,6 +1259,57 @@ public class TradingService {
         order.setStatus(OrderStatus.REJECTED);
         order.setFailureReason(reason);
         orderRepository.save(order);
+    }
+
+    /**
+     * Scan the batch ops list for tax legs by description prefix and extract the corresponding
+     * Fineract transfer resourceId from the batch response. Stored on ctx for use in recordTaxAudit.
+     * requestId in the response is 1-based and matches the op index + 1.
+     */
+    private void extractTaxTransferIds(List<FineractClient.BatchOperation> batchOps,
+                                       List<Map<String, Object>> batchResponses,
+                                       TradeContext ctx) {
+        if (batchResponses == null) return;
+        for (int i = 0; i < batchOps.size(); i++) {
+            if (!(batchOps.get(i) instanceof FineractClient.BatchTransferOp op)) continue;
+            Long resourceId = extractResourceId(batchResponses, i + 1);
+            if (resourceId == null) continue;
+            String desc = op.description();
+            if (desc.startsWith("Registration duty:")) {
+                ctx.setRegistrationDutyTransferId(resourceId);
+            } else if (desc.startsWith("Capital gains tax:")) {
+                ctx.setCapitalGainsTaxTransferId(resourceId);
+            } else if (desc.startsWith("TVA:")) {
+                ctx.setTvaTransferId(resourceId);
+            }
+        }
+    }
+
+    private Long extractResourceId(List<Map<String, Object>> responses, int requestId) {
+        for (Map<String, Object> resp : responses) {
+            Object rid = resp.get("requestId");
+            if (rid == null || ((Number) rid).intValue() != requestId) continue;
+            Object body = resp.get("body");
+            if (body instanceof Map<?, ?> bodyMap) {
+                Object id = bodyMap.get("resourceId");
+                return id != null ? ((Number) id).longValue() : null;
+            }
+            if (body instanceof String bodyStr) {
+                // Parse "resourceId" from the JSON string without pulling in ObjectMapper
+                int idx = bodyStr.indexOf("\"resourceId\"");
+                if (idx < 0) return null;
+                int colon = bodyStr.indexOf(':', idx);
+                if (colon < 0) return null;
+                int start = colon + 1;
+                while (start < bodyStr.length() && bodyStr.charAt(start) == ' ') start++;
+                int end = start;
+                while (end < bodyStr.length() && Character.isDigit(bodyStr.charAt(end))) end++;
+                if (end > start) {
+                    try { return Long.parseLong(bodyStr.substring(start, end)); } catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        return null;
     }
 
     private String extractBatchId(List<Map<String, Object>> batchResponses) {

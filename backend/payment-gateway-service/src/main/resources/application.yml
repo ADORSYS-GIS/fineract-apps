@@ -132,6 +132,7 @@ app:
     interval-ms: ${APP_CLEANUP_INTERVAL_MS:300000}
     processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:60}
     processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:600000}
+    stale-processing-max-retries: ${APP_CLEANUP_STALE_PROCESSING_MAX_RETRIES:5}
   dlq-retry:
     enabled: ${APP_DLQ_RETRY_ENABLED:true}
     interval-ms: ${APP_DLQ_RETRY_INTERVAL_MS:900000}

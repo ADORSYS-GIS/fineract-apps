@@ -7,8 +7,10 @@ import com.adorsys.fineract.gateway.dto.PaymentProvider;
 import com.adorsys.fineract.gateway.dto.PaymentResponse;
 import com.adorsys.fineract.gateway.dto.PaymentStatus;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
+import com.adorsys.fineract.gateway.entity.ReversalDeadLetter;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
+import com.adorsys.fineract.gateway.repository.ReversalDeadLetterRepository;
 import com.adorsys.fineract.gateway.service.ReversalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ import java.util.List;
 public class StaleTransactionCleanupScheduler {
 
     private final PaymentTransactionRepository transactionRepository;
+    private final ReversalDeadLetterRepository deadLetterRepository;
     private final PaymentMetrics paymentMetrics;
     private final MtnMomoClient mtnClient;
     private final OrangeMoneyClient orangeClient;
@@ -45,6 +48,9 @@ public class StaleTransactionCleanupScheduler {
 
     @Value("${app.cleanup.processing-stale-minutes:60}")
     private int processingStaleMinutes;
+
+    @Value("${app.cleanup.stale-processing-max-retries:5}")
+    private int staleProcessingMaxRetries;
 
     /**
      * Expire stale PENDING transactions (original behavior).
@@ -82,7 +88,7 @@ public class StaleTransactionCleanupScheduler {
     @Scheduled(fixedDelayString = "${app.cleanup.processing-interval-ms:600000}")
     public void resolveStaleProcessingTransactions() {
         Instant cutoff = Instant.now().minus(processingStaleMinutes, ChronoUnit.MINUTES);
-        List<PaymentTransaction> staleProcessing = transactionRepository.findStaleProcessingTransactions(cutoff);
+        List<PaymentTransaction> staleProcessing = transactionRepository.findStaleProcessingTransactions(cutoff, staleProcessingMaxRetries);
 
         if (staleProcessing.isEmpty()) {
             return;
@@ -97,7 +103,36 @@ public class StaleTransactionCleanupScheduler {
             } catch (Exception e) {
                 log.error("Failed to resolve stale PROCESSING transaction: txnId={}, error={}",
                     txn.getTransactionId(), e.getMessage());
+                incrementRetryOrDeadLetter(txn, e.getMessage());
             }
+        }
+    }
+
+    @Transactional
+    void incrementRetryOrDeadLetter(PaymentTransaction txn, String errorMessage) {
+        PaymentTransaction locked = transactionRepository.findByIdForUpdate(txn.getTransactionId())
+            .orElse(null);
+        if (locked == null || locked.getStatus() != PaymentStatus.PROCESSING) {
+            return;
+        }
+        locked.setStaleResolutionRetryCount(locked.getStaleResolutionRetryCount() + 1);
+        transactionRepository.save(locked);
+
+        if (locked.getStaleResolutionRetryCount() >= staleProcessingMaxRetries) {
+            String reason = "Max stale resolution retries (%d) exceeded. Last error: %s"
+                .formatted(staleProcessingMaxRetries, errorMessage);
+            ReversalDeadLetter dlq = new ReversalDeadLetter(
+                locked.getTransactionId(),
+                locked.getFineractTransactionId(),
+                locked.getAccountId(),
+                locked.getAmount(),
+                locked.getCurrency(),
+                locked.getProvider(),
+                reason
+            );
+            deadLetterRepository.save(dlq);
+            log.error("Stale PROCESSING transaction moved to DLQ after {} retries: txnId={}",
+                staleProcessingMaxRetries, locked.getTransactionId());
         }
     }
 
