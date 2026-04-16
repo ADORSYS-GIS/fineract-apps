@@ -70,7 +70,7 @@ public class PaymentTransaction {
     @Version
     private Long version;  // Optimistic locking for concurrent callback handling
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0 NOT NULL")
     private int staleResolutionRetryCount = 0;
 
     @PrePersist
