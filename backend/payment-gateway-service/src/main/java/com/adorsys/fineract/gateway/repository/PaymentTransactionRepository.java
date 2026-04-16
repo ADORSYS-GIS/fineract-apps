@@ -69,6 +69,14 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     List<PaymentTransaction> findStaleProcessingTransactions(Instant cutoff, int maxRetries);
 
     /**
+     * Find PENDING transactions eligible for active provider polling (haven't exhausted retries).
+     * Used by StaleTransactionReconciler; excludes transactions already at max retries so they
+     * fall through to the legacy EXPIRED cleanup.
+     */
+    @Query("SELECT t FROM PaymentTransaction t WHERE t.status = 'PENDING' AND t.createdAt < :cutoff AND t.staleResolutionRetryCount < :maxRetries")
+    List<PaymentTransaction> findStalePendingTransactionsForReconciliation(Instant cutoff, int maxRetries);
+
+    /**
      * Count successful transactions for a customer within a date range (for daily limits).
      */
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM PaymentTransaction t " +
