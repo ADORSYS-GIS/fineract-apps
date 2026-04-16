@@ -49,6 +49,89 @@ public class CallbackHandlerDelegate {
         public static CallbackResult needsReversal(PaymentTransaction txn) { return new CallbackResult(true, txn); }
     }
 
+    // ==================== MTN Collection (Deposit) — path-based ====================
+
+    /**
+     * Process MTN collection callback when identified by referenceId (our transactionId).
+     * Called when MTN sends an empty body; status comes from polling MTN directly.
+     */
+    @Transactional
+    public void processMtnCollectionCallbackByRef(String referenceId, PaymentStatus polledStatus) {
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(referenceId).orElse(null);
+        if (txn == null) {
+            log.warn("MTN collection callback: transaction not found for referenceId={}", referenceId);
+            return;
+        }
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            log.info("MTN collection callback: transaction already in terminal state txnId={}, status={}",
+                referenceId, txn.getStatus());
+            return;
+        }
+        if (polledStatus == PaymentStatus.SUCCESSFUL) {
+            try {
+                Long fineractTxnId = fineractClient.createDeposit(
+                    txn.getAccountId(),
+                    txn.getAmount(),
+                    mtnConfig.getFineractPaymentTypeId(),
+                    null
+                );
+                txn.setStatus(PaymentStatus.SUCCESSFUL);
+                txn.setFineractTransactionId(fineractTxnId);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.SUCCESSFUL);
+                paymentMetrics.recordPaymentAmountTotal(PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT, txn.getAmount());
+                log.info("Deposit completed via polling: txnId={}, fineractTxnId={}", referenceId, fineractTxnId);
+            } catch (Exception e) {
+                log.error("CRITICAL: Fineract createDeposit failed after MTN collected funds. " +
+                    "Marking PROCESSING so stale scheduler retries. " +
+                    "txnId={}, accountId={}, amount={}, error={}",
+                    referenceId, txn.getAccountId(), txn.getAmount(), e.getMessage());
+                txn.setStatus(PaymentStatus.PROCESSING);
+                transactionRepository.save(txn);
+            }
+        } else if (polledStatus == PaymentStatus.FAILED) {
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.FAILED);
+            log.warn("Deposit failed via polling: txnId={}", referenceId);
+        } else {
+            log.info("MTN collection still PENDING for txnId={}, ignoring callback", referenceId);
+        }
+    }
+
+    // ==================== MTN Disbursement (Withdrawal) — path-based ====================
+
+    /**
+     * Process MTN disbursement callback when identified by referenceId (our transactionId).
+     * Called when MTN sends an empty body; status comes from polling MTN directly.
+     */
+    @Transactional
+    public CallbackResult processMtnDisbursementCallbackByRef(String referenceId, PaymentStatus polledStatus) {
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(referenceId).orElse(null);
+        if (txn == null) {
+            log.warn("MTN disbursement callback: transaction not found for referenceId={}", referenceId);
+            return CallbackResult.noReversal();
+        }
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            return CallbackResult.noReversal();
+        }
+        if (polledStatus == PaymentStatus.SUCCESSFUL) {
+            txn.setStatus(PaymentStatus.SUCCESSFUL);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.SUCCESSFUL);
+            paymentMetrics.recordPaymentAmountTotal(PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.WITHDRAWAL, txn.getAmount());
+            log.info("Withdrawal completed via polling: txnId={}", referenceId);
+            return CallbackResult.noReversal();
+        } else if (polledStatus == PaymentStatus.FAILED) {
+            log.warn("MTN withdrawal failed via polling: txnId={}. Reversal needed.", referenceId);
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.FAILED);
+            return CallbackResult.needsReversal(txn);
+        }
+        return CallbackResult.noReversal();
+    }
+
     // ==================== MTN Collection (Deposit) ====================
 
     @Transactional
@@ -78,20 +161,27 @@ public class CallbackHandlerDelegate {
         if (callback.isSuccessful()) {
             verifyCallbackAmount(callback.getAmount(), txn, PaymentProvider.MTN_MOMO);
 
-            Long fineractTxnId = fineractClient.createDeposit(
-                txn.getAccountId(),
-                txn.getAmount(),
-                mtnConfig.getFineractPaymentTypeId(),
-                callback.getFinancialTransactionId()
-            );
-
-            txn.setStatus(PaymentStatus.SUCCESSFUL);
-            txn.setFineractTransactionId(fineractTxnId);
-            transactionRepository.save(txn);
-
-            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.SUCCESSFUL);
-            paymentMetrics.recordPaymentAmountTotal(PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT, txn.getAmount());
-            log.info("Deposit completed: txnId={}, fineractTxnId={}", txn.getTransactionId(), fineractTxnId);
+            try {
+                Long fineractTxnId = fineractClient.createDeposit(
+                    txn.getAccountId(),
+                    txn.getAmount(),
+                    mtnConfig.getFineractPaymentTypeId(),
+                    callback.getFinancialTransactionId()
+                );
+                txn.setStatus(PaymentStatus.SUCCESSFUL);
+                txn.setFineractTransactionId(fineractTxnId);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.SUCCESSFUL);
+                paymentMetrics.recordPaymentAmountTotal(PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT, txn.getAmount());
+                log.info("Deposit completed: txnId={}, fineractTxnId={}", txn.getTransactionId(), fineractTxnId);
+            } catch (Exception e) {
+                log.error("CRITICAL: Fineract createDeposit failed after MTN collected funds. " +
+                    "Marking PROCESSING so stale scheduler retries. " +
+                    "txnId={}, accountId={}, amount={}, error={}",
+                    txn.getTransactionId(), txn.getAccountId(), txn.getAmount(), e.getMessage());
+                txn.setStatus(PaymentStatus.PROCESSING);
+                transactionRepository.save(txn);
+            }
 
         } else if (callback.isFailed()) {
             txn.setStatus(PaymentStatus.FAILED);
@@ -188,18 +278,26 @@ public class CallbackHandlerDelegate {
             if (callback.isSuccessful()) {
                 verifyCallbackAmount(callback.getAmount(), txn, PaymentProvider.ORANGE_MONEY);
 
-                Long fineractTxnId = fineractClient.createDeposit(
-                    txn.getAccountId(),
-                    txn.getAmount(),
-                    orangeConfig.getFineractPaymentTypeId(),
-                    callback.getTransactionId()
-                );
-                txn.setStatus(PaymentStatus.SUCCESSFUL);
-                txn.setFineractTransactionId(fineractTxnId);
-                transactionRepository.save(txn);
-
-                paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.SUCCESSFUL);
-                paymentMetrics.recordPaymentAmountTotal(PaymentProvider.ORANGE_MONEY, PaymentResponse.TransactionType.DEPOSIT, txn.getAmount());
+                try {
+                    Long fineractTxnId = fineractClient.createDeposit(
+                        txn.getAccountId(),
+                        txn.getAmount(),
+                        orangeConfig.getFineractPaymentTypeId(),
+                        callback.getTransactionId()
+                    );
+                    txn.setStatus(PaymentStatus.SUCCESSFUL);
+                    txn.setFineractTransactionId(fineractTxnId);
+                    transactionRepository.save(txn);
+                    paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.SUCCESSFUL);
+                    paymentMetrics.recordPaymentAmountTotal(PaymentProvider.ORANGE_MONEY, PaymentResponse.TransactionType.DEPOSIT, txn.getAmount());
+                } catch (Exception e) {
+                    log.error("CRITICAL: Fineract createDeposit failed after Orange collected funds. " +
+                        "Marking PROCESSING so stale scheduler retries. " +
+                        "txnId={}, accountId={}, amount={}, error={}",
+                        txn.getTransactionId(), txn.getAccountId(), txn.getAmount(), e.getMessage());
+                    txn.setStatus(PaymentStatus.PROCESSING);
+                    transactionRepository.save(txn);
+                }
             } else {
                 txn.setStatus(PaymentStatus.FAILED);
                 transactionRepository.save(txn);
@@ -284,20 +382,27 @@ public class CallbackHandlerDelegate {
                 return;
             }
 
-            Long fineractTxnId = fineractClient.createDeposit(
-                txn.getAccountId(),
-                txn.getAmount(),
-                paymentTypeId,
-                callback.getPaymentId()
-            );
-
-            txn.setStatus(PaymentStatus.SUCCESSFUL);
-            txn.setFineractTransactionId(fineractTxnId);
-            transactionRepository.save(txn);
-
-            paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.SUCCESSFUL);
-            paymentMetrics.recordPaymentAmountTotal(PaymentProvider.CINETPAY, PaymentResponse.TransactionType.DEPOSIT, txn.getAmount());
-            log.info("CinetPay deposit completed: txnId={}, fineractTxnId={}", txn.getTransactionId(), fineractTxnId);
+            try {
+                Long fineractTxnId = fineractClient.createDeposit(
+                    txn.getAccountId(),
+                    txn.getAmount(),
+                    paymentTypeId,
+                    callback.getPaymentId()
+                );
+                txn.setStatus(PaymentStatus.SUCCESSFUL);
+                txn.setFineractTransactionId(fineractTxnId);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.SUCCESSFUL);
+                paymentMetrics.recordPaymentAmountTotal(PaymentProvider.CINETPAY, PaymentResponse.TransactionType.DEPOSIT, txn.getAmount());
+                log.info("CinetPay deposit completed: txnId={}, fineractTxnId={}", txn.getTransactionId(), fineractTxnId);
+            } catch (Exception e) {
+                log.error("CRITICAL: Fineract createDeposit failed after CinetPay collected funds. " +
+                    "Marking PROCESSING so stale scheduler retries. " +
+                    "txnId={}, accountId={}, amount={}, error={}",
+                    txn.getTransactionId(), txn.getAccountId(), txn.getAmount(), e.getMessage());
+                txn.setStatus(PaymentStatus.PROCESSING);
+                transactionRepository.save(txn);
+            }
 
         } else if (callback.isFailed() || callback.isCancelled()) {
             txn.setStatus(PaymentStatus.FAILED);

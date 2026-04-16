@@ -120,24 +120,15 @@ class PaymentIntegrationTest {
         assertThat(pendingTxn.get().getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(pendingTxn.get().getProviderReference()).isEqualTo("mtn-ext-ref-001");
 
-        // Step 2: Simulate MTN callback
-        when(fineractClient.createDeposit(eq(ACCOUNT_ID), any(BigDecimal.class),
-                anyLong(), eq("fin-txn-abc"))).thenReturn(999L);
+        // Step 2: Simulate MTN callback — use the transactionId from the initiation response
+        String transactionId = objectMapper.readTree(depositResult.getResponse().getContentAsString())
+                .get("transactionId").asText();
 
-        when(mtnClient.getCollectionStatus(anyString())).thenReturn(PaymentStatus.SUCCESSFUL);
+        when(fineractClient.createDeposit(eq(ACCOUNT_ID), any(BigDecimal.class), anyLong(), isNull()))
+                .thenReturn(999L);
+        when(mtnClient.getCollectionStatus(transactionId)).thenReturn(PaymentStatus.SUCCESSFUL);
 
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .referenceId("mtn-ref-id")
-                .externalId("mtn-ext-ref-001")
-                .status("SUCCESSFUL")
-                .amount("10000")
-                .financialTransactionId("fin-txn-abc")
-                .build();
-
-        mockMvc.perform(post("/api/callbacks/mtn/collection")
-                        .header("Ocp-Apim-Subscription-Key", "test-collection-key")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/collection/" + transactionId))
                 .andExpect(status().isOk());
 
         // Step 3: Verify SUCCESSFUL in DB
@@ -235,18 +226,12 @@ class PaymentIntegrationTest {
         assertThat(processingTxn).isPresent();
         assertThat(processingTxn.get().getStatus()).isEqualTo(PaymentStatus.PROCESSING);
 
-        // Simulate successful MTN disbursement callback
-        when(mtnClient.getDisbursementStatus(anyString())).thenReturn(PaymentStatus.SUCCESSFUL);
+        // Simulate successful MTN disbursement callback — use transactionId from initiation
+        Optional<PaymentTransaction> processingTxnForCallback = transactionRepository.findByIdempotencyKey(idempotencyKey);
+        String withdrawalTxnId = processingTxnForCallback.get().getTransactionId();
+        when(mtnClient.getDisbursementStatus(withdrawalTxnId)).thenReturn(PaymentStatus.SUCCESSFUL);
 
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .externalId("mtn-ext-ref-w1")
-                .status("SUCCESSFUL")
-                .build();
-
-        mockMvc.perform(post("/api/callbacks/mtn/disbursement")
-                        .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/" + withdrawalTxnId))
                 .andExpect(status().isOk());
 
         // Verify SUCCESSFUL in DB
@@ -288,19 +273,12 @@ class PaymentIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        // Simulate FAILED MTN disbursement callback
-        when(mtnClient.getDisbursementStatus(anyString())).thenReturn(PaymentStatus.FAILED);
+        // Simulate FAILED MTN disbursement callback — use transactionId from initiation
+        Optional<PaymentTransaction> processingTxnForCallback = transactionRepository.findByIdempotencyKey(idempotencyKey);
+        String withdrawalTxnId = processingTxnForCallback.get().getTransactionId();
+        when(mtnClient.getDisbursementStatus(withdrawalTxnId)).thenReturn(PaymentStatus.FAILED);
 
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .externalId("mtn-ext-ref-w2")
-                .status("FAILED")
-                .reason("Provider error")
-                .build();
-
-        mockMvc.perform(post("/api/callbacks/mtn/disbursement")
-                        .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/" + withdrawalTxnId))
                 .andExpect(status().isOk());
 
         // Verify FAILED in DB and reversal was called
@@ -359,14 +337,11 @@ class PaymentIntegrationTest {
     @Order(7)
     @DisplayName("should allow callback without authentication")
     void callback_mtn_noAuth_returns200() throws Exception {
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .referenceId("ref-no-auth")
-                .status("SUCCESSFUL")
-                .build();
+        // Path-based endpoint: no body needed, referenceId is in the URL
+        // mtnClient.getCollectionStatus will be called — stub it to avoid NPE
+        when(mtnClient.getCollectionStatus("ref-no-auth")).thenReturn(PaymentStatus.PENDING);
 
-        mockMvc.perform(post("/api/callbacks/mtn/collection")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-no-auth"))
                 .andExpect(status().isOk());
     }
 

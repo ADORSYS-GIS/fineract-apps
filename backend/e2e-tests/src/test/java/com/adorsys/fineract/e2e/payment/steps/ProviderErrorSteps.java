@@ -115,23 +115,12 @@ public class ProviderErrorSteps {
 
     @When("the same MTN collection callback reports SUCCESSFUL again")
     public void sameMtnCallbackAgain() {
-        String providerRef = context.getId("providerReference");
-
-        Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "SUCCESSFUL",
-                "externalId", providerRef,
-                "amount", "5000",
-                "currency", "XAF",
-                "financialTransactionId", "mtn-fin-txn-duplicate-" + UUID.randomUUID()
-        );
+        String transactionId = context.getId("transactionId");
+        WireMockProviderStubs.stubMtnGetCollectionStatusSuccess(transactionId);
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .header("Ocp-Apim-Subscription-Key", "test-collection-key")
-                .body(callback)
-                .post("/api/callbacks/mtn/collection");
+                .post("/api/callbacks/mtn/collection/" + transactionId);
 
         // Callbacks always return 200 (safe-to-fail pattern)
         assertThat(response.statusCode()).isEqualTo(200);
@@ -139,23 +128,12 @@ public class ProviderErrorSteps {
 
     @When("a late MTN collection callback reports SUCCESSFUL for the same deposit")
     public void lateMtnCallbackSuccessful() {
-        String providerRef = context.getId("providerReference");
-
-        Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "SUCCESSFUL",
-                "externalId", providerRef,
-                "amount", "5000",
-                "currency", "XAF",
-                "financialTransactionId", "mtn-fin-txn-late-" + UUID.randomUUID()
-        );
+        String transactionId = context.getId("transactionId");
+        WireMockProviderStubs.stubMtnGetCollectionStatusSuccess(transactionId);
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .header("Ocp-Apim-Subscription-Key", "test-collection-key")
-                .body(callback)
-                .post("/api/callbacks/mtn/collection");
+                .post("/api/callbacks/mtn/collection/" + transactionId);
 
         assertThat(response.statusCode()).isEqualTo(200);
     }

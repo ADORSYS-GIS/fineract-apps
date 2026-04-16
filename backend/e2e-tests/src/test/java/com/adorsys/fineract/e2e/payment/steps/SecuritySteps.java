@@ -1,6 +1,7 @@
 package com.adorsys.fineract.e2e.payment.steps;
 
 import com.adorsys.fineract.e2e.config.FineractInitializer;
+import com.adorsys.fineract.e2e.payment.support.WireMockProviderStubs;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -58,17 +59,14 @@ public class SecuritySteps {
 
     @When("a callback is sent without authentication to the MTN collection endpoint")
     public void callbackWithoutAuth() {
-        Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "SUCCESSFUL",
-                "externalId", UUID.randomUUID().toString()
-        );
+        // Path-based endpoint: referenceId in URL, no body required.
+        // Stub the MTN status poll so the poll resolves as PENDING (no-op for non-existent txn).
+        String randomRef = UUID.randomUUID().toString();
+        WireMockProviderStubs.stubMtnGetCollectionStatusPending(randomRef);
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .body(callback)
-                .post("/api/callbacks/mtn/collection");
+                .post("/api/callbacks/mtn/collection/" + randomRef);
 
         context.storeValue("callbackResponse", response);
     }

@@ -99,44 +99,21 @@ public class MtnDepositSteps {
         String transactionId = context.getId("transactionId");
         WireMockProviderStubs.stubMtnGetCollectionStatusSuccess(transactionId);
 
-        String providerRef = context.getId("providerReference");
-
-        Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "SUCCESSFUL",
-                "externalId", providerRef,
-                "amount", "5000",
-                "currency", "XAF",
-                "financialTransactionId", "mtn-fin-txn-" + UUID.randomUUID()
-        );
-
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .header("Ocp-Apim-Subscription-Key", "test-collection-key")
-                .body(callback)
-                .post("/api/callbacks/mtn/collection");
+                .post("/api/callbacks/mtn/collection/" + transactionId);
 
         assertThat(response.statusCode()).isEqualTo(200);
     }
 
     @When("the MTN collection callback reports FAILED for the deposit")
     public void mtnCollectionCallbackFailed() {
-        String providerRef = context.getId("providerReference");
-
-        Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "FAILED",
-                "externalId", providerRef,
-                "reason", "PAYER_NOT_FOUND"
-        );
+        String transactionId = context.getId("transactionId");
+        WireMockProviderStubs.stubMtnGetCollectionStatusFailed(transactionId);
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .header("Ocp-Apim-Subscription-Key", "test-collection-key")
-                .body(callback)
-                .post("/api/callbacks/mtn/collection");
+                .post("/api/callbacks/mtn/collection/" + transactionId);
 
         assertThat(response.statusCode()).isEqualTo(200);
     }

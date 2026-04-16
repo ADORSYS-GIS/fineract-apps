@@ -94,6 +94,27 @@ public final class WireMockProviderStubs {
                 .willReturn(okJson("{\"status\":\"SUCCESSFUL\",\"amount\":\"5000\",\"currency\":\"XAF\"}")));
     }
 
+    /** Stub MTN collection status poll returning PENDING. */
+    public static void stubMtnGetCollectionStatusPending(String referenceId) {
+        stubMtnCollectionToken();
+        WIRE_MOCK.stubFor(get(urlPathEqualTo("/collection/v1_0/requesttopay/" + referenceId))
+                .willReturn(okJson("{\"status\":\"PENDING\"}")));
+    }
+
+    /** Stub MTN collection status poll returning FAILED. */
+    public static void stubMtnGetCollectionStatusFailed(String referenceId) {
+        stubMtnCollectionToken();
+        WIRE_MOCK.stubFor(get(urlPathEqualTo("/collection/v1_0/requesttopay/" + referenceId))
+                .willReturn(okJson("{\"status\":\"FAILED\",\"reason\":\"PAYER_NOT_FOUND\"}")));
+    }
+
+    /** Stub MTN disbursement status poll returning FAILED. */
+    public static void stubMtnGetDisbursementStatusFailed(String referenceId) {
+        stubMtnDisbursementToken();
+        WIRE_MOCK.stubFor(get(urlPathEqualTo("/disbursement/v1_0/transfer/" + referenceId))
+                .willReturn(okJson("{\"status\":\"FAILED\",\"reason\":\"PAYER_NOT_FOUND\"}")));
+    }
+
     // ---------------------------------------------------------------
     // Orange Money Stubs
     // ---------------------------------------------------------------
