@@ -103,11 +103,10 @@ public class StaleTransactionReconciler {
                 paymentMetrics.incrementTransactionExpired(locked.getProvider());
                 log.error("Stale PENDING expired after {} retries: txnId={}, provider={}",
                     maxRetries, locked.getTransactionId(), locked.getProvider());
-                transactionRepository.save(locked);
-                return ReconcileResult.stillPending();
+            } else {
+                log.info("Stale PENDING still pending at provider, retry {}/{}: txnId={}",
+                    retries, maxRetries, locked.getTransactionId());
             }
-            log.info("Stale PENDING still pending at provider, retry {}/{}: txnId={}",
-                retries, maxRetries, locked.getTransactionId());
             transactionRepository.save(locked);
             return ReconcileResult.stillPending();
         }
