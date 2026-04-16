@@ -73,6 +73,30 @@ public class ReversalService {
         }
     }
 
+    /**
+     * Manual retry of a dead-letter reversal triggered by an admin.
+     * Does NOT use @Retryable to avoid creating a second DLQ entry on failure.
+     * Returns true on success, false on any error.
+     */
+    public boolean retryFromDeadLetter(ReversalDeadLetter dlq) {
+        try {
+            Long paymentTypeId = getPaymentTypeId(dlq.getProvider(), dlq.getProviderHint());
+            fineractClient.createDeposit(
+                dlq.getAccountId(),
+                dlq.getAmount(),
+                paymentTypeId,
+                "REVERSAL-" + dlq.getTransactionId()
+            );
+            paymentMetrics.incrementReversalSuccess();
+            log.info("Manual DLQ retry succeeded: dlqId={}, txnId={}", dlq.getId(), dlq.getTransactionId());
+            return true;
+        } catch (Exception e) {
+            log.error("Manual DLQ retry failed: dlqId={}, txnId={}, error={}",
+                dlq.getId(), dlq.getTransactionId(), e.getMessage());
+            return false;
+        }
+    }
+
     public void sendToDeadLetter(PaymentTransaction txn, String reason) {
         ReversalDeadLetter dlq = new ReversalDeadLetter(
             txn.getTransactionId(),

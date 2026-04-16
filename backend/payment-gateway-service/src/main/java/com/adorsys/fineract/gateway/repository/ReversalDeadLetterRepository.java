@@ -22,4 +22,6 @@ public interface ReversalDeadLetterRepository extends JpaRepository<ReversalDead
      */
     List<ReversalDeadLetter> findByResolvedFalseAndRetryCountLessThanAndCreatedAtBeforeOrderByCreatedAtAsc(
         int maxRetries, Instant cutoff);
+
+    List<ReversalDeadLetter> findAllByOrderByCreatedAtDesc();
 }
