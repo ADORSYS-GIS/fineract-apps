@@ -1,16 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 844" width="820" height="844">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 900" width="820" height="900">
   <defs>
     <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
   </defs>
 
   <!-- Left: mockup -->
-  <image href="./10-portfolio.svg" x="0" y="0" width="390" height="844"/>
+  <image href="./10-portfolio.svg" x="0" y="0" width="390" height="900"/>
 
   <!-- Divider -->
-  <line x1="397" y1="0" x2="397" y2="844" stroke="#cbd5e1" stroke-width="1"/>
+  <line x1="397" y1="0" x2="397" y2="900" stroke="#cbd5e1" stroke-width="1"/>
 
   <!-- Annotation panel -->
-  <rect x="397" y="0" width="423" height="844" fill="#f8fafc"/>
+  <rect x="397" y="0" width="423" height="900" fill="#f8fafc"/>
 
   <!-- Title -->
   <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">10 · My Portfolio</text>
@@ -29,44 +29,71 @@
   <text x="814" y="114" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.unrealizedPnl / .unrealizedPnlPercent</text>
   <text x="410" y="128" fill="#64748b" font-size="10">Invested (cost basis)</text>
   <text x="814" y="128" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.totalCostBasis</text>
-  <text x="410" y="142" fill="#64748b" font-size="10">Total Gain (absolute)</text>
+  <text x="410" y="142" fill="#64748b" font-size="10">Unrealized Gain (absolute)</text>
   <text x="814" y="142" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.unrealizedPnl</text>
+  <text x="410" y="156" fill="#64748b" font-size="10">Realized P&amp;L  ← NEW</text>
+  <text x="814" y="156" fill="#10b981" font-size="9" font-family="monospace" text-anchor="end">.totalRealizedPnl</text>
+  <text x="410" y="170" fill="#64748b" font-size="10">Total Fees Paid  ← NEW</text>
+  <text x="814" y="170" fill="#10b981" font-size="9" font-family="monospace" text-anchor="end">.totalFeesPaid  (fee + TVA across all trades)</text>
+  <text x="410" y="184" fill="#64748b" font-size="10">Total Taxes Paid  ← NEW</text>
+  <text x="814" y="184" fill="#10b981" font-size="9" font-family="monospace" text-anchor="end">.totalTaxesPaid  (registration duty + CGT)</text>
 
   <!-- Section: Asset Allocation Donut -->
-  <line x1="406" y1="159" x2="816" y2="159" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="408" y="171" fill="#1e3a5f" font-size="11" font-weight="700">Asset Allocation Donut  (CategoryAllocationResponse)</text>
-  <text x="410" y="187" fill="#64748b" font-size="10">Category label</text>
-  <text x="814" y="187" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">CategoryAllocationResponse.category</text>
-  <text x="410" y="201" fill="#64748b" font-size="10">Percentage of portfolio</text>
-  <text x="814" y="201" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.percentage</text>
-  <text x="410" y="215" fill="#64748b" font-size="10">Category value</text>
-  <text x="814" y="215" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.totalValue</text>
-  <text x="410" y="229" fill="#64748b" font-size="10">Number of assets ("4 assets")</text>
-  <text x="814" y="229" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PortfolioSummaryResponse.categoryCount</text>
+  <line x1="406" y1="199" x2="816" y2="199" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="211" fill="#1e3a5f" font-size="11" font-weight="700">Asset Allocation Donut  (CategoryAllocationResponse)</text>
+  <text x="410" y="227" fill="#64748b" font-size="10">Category label</text>
+  <text x="814" y="227" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">CategoryAllocationResponse.category</text>
+  <text x="410" y="241" fill="#64748b" font-size="10">Percentage of portfolio</text>
+  <text x="814" y="241" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.percentage</text>
+  <text x="410" y="255" fill="#64748b" font-size="10">Category value</text>
+  <text x="814" y="255" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.totalValue</text>
+  <text x="410" y="269" fill="#64748b" font-size="10">Number of assets ("4 assets")</text>
+  <text x="814" y="269" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PortfolioSummaryResponse.categoryCount</text>
 
   <!-- Section: Holdings -->
-  <line x1="406" y1="246" x2="816" y2="246" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="408" y="258" fill="#1e3a5f" font-size="11" font-weight="700">Holdings  (PositionResponse per card)</text>
-  <text x="410" y="274" fill="#64748b" font-size="10">Asset name</text>
-  <text x="814" y="274" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PositionResponse.name</text>
-  <text x="410" y="288" fill="#64748b" font-size="10">Symbol · Units held</text>
-  <text x="814" y="288" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.symbol / .totalUnits</text>
-  <text x="410" y="302" fill="#64748b" font-size="10">Change % · Change amount</text>
-  <text x="814" y="302" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.unrealizedPnlPercent / .unrealizedPnl</text>
-  <text x="410" y="316" fill="#64748b" font-size="10">Current market value</text>
-  <text x="814" y="316" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.marketValue</text>
-  <text x="410" y="330" fill="#64748b" font-size="10">Avg. purchase price</text>
-  <text x="814" y="330" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.avgPurchasePrice</text>
-  <text x="410" y="344" fill="#64748b" font-size="10">🔒 Locked badge</text>
-  <text x="814" y="344" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">lockupDays check from AssetPublicDetailResponse</text>
-  <text x="410" y="358" fill="#64748b" font-size="10">Sell button (navigates to screen 07)</text>
-  <text x="814" y="358" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">disabled when status=HALTED or locked</text>
+  <line x1="406" y1="286" x2="816" y2="286" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="298" fill="#1e3a5f" font-size="11" font-weight="700">Holdings  (PositionResponse per card)</text>
+  <text x="410" y="314" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="314" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PositionResponse.name</text>
+  <text x="410" y="328" fill="#64748b" font-size="10">Symbol · Units held</text>
+  <text x="814" y="328" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.symbol / .totalUnits</text>
+  <text x="410" y="342" fill="#64748b" font-size="10">Unrealized change % · amount</text>
+  <text x="814" y="342" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.unrealizedPnlPercent / .unrealizedPnl</text>
+  <text x="410" y="356" fill="#64748b" font-size="10">Fees Paid · Taxes Paid (per position)  ← NEW</text>
+  <text x="814" y="356" fill="#10b981" font-size="9" font-family="monospace" text-anchor="end">.totalFeesPaid / .totalTaxesPaid</text>
+  <text x="410" y="370" fill="#64748b" font-size="10">Current market value</text>
+  <text x="814" y="370" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.marketValue</text>
+  <text x="410" y="384" fill="#64748b" font-size="10">Ask price per unit  (cost to buy more)</text>
+  <text x="814" y="384" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.marketPrice</text>
+  <text x="410" y="398" fill="#64748b" font-size="10">Bid price per unit  (proceeds if sold)  ← NEW</text>
+  <text x="814" y="398" fill="#10b981" font-size="9" font-family="monospace" text-anchor="end">.marketBidPrice</text>
+  <text x="410" y="412" fill="#64748b" font-size="10">🔒 Locked badge</text>
+  <text x="814" y="412" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">lockupDays check from AssetPublicDetailResponse</text>
+  <text x="410" y="426" fill="#64748b" font-size="10">Sell button (navigates to screen 07)</text>
+  <text x="814" y="426" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">disabled when status=HALTED or locked</text>
+
+  <!-- Section: Order History (per position) -->
+  <line x1="406" y1="443" x2="816" y2="443" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="455" fill="#1e3a5f" font-size="11" font-weight="700">Order History  (OrderResponse per trade)</text>
+  <text x="408" y="467" fill="#64748b" font-size="9">Endpoint: GET /portfolio/positions/{assetId} → PositionResponse.orders[]</text>
+  <text x="410" y="481" fill="#64748b" font-size="10">Gross amount (units × price)  ← NEW</text>
+  <text x="814" y="481" fill="#10b981" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.grossAmount</text>
+  <text x="410" y="495" fill="#64748b" font-size="10">Net amount debited / credited</text>
+  <text x="814" y="495" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.totalAmount</text>
+  <text x="410" y="509" fill="#64748b" font-size="10">Platform fee</text>
+  <text x="814" y="509" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.fee</text>
+  <text x="410" y="523" fill="#64748b" font-size="10">Registration duty / Capital gains tax / TVA</text>
+  <text x="814" y="523" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.registrationDutyAmount / .capitalGainsTaxAmount / .tvaAmount</text>
 
   <!-- Notes -->
-  <line x1="406" y1="375" x2="816" y2="375" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="408" y="387" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
-  <text x="410" y="401" fill="#b45309" font-size="9">ⓘ Portfolio history chart: GET /portfolio/history?period=1M → PortfolioHistoryResponse.</text>
-  <text x="410" y="414" fill="#b45309" font-size="9">ⓘ Position detail: GET /portfolio/positions/{assetId} → PositionResponse.</text>
-  <text x="410" y="427" fill="#b45309" font-size="9">ⓘ IncomeBenefitProjection available on PositionResponse for non-bond assets.</text>
-  <text x="410" y="440" fill="#b45309" font-size="9">ⓘ BondBenefitProjection available on PositionResponse for bond assets.</text>
+  <line x1="406" y1="540" x2="816" y2="540" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="552" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="566" fill="#b45309" font-size="9">ⓘ Portfolio history chart: GET /portfolio/history?period=1M → PortfolioHistoryResponse.</text>
+  <text x="410" y="579" fill="#b45309" font-size="9">ⓘ Position detail: GET /portfolio/positions/{assetId} → PositionResponse.</text>
+  <text x="410" y="592" fill="#b45309" font-size="9">ⓘ costBasis and avgPurchasePrice are execution-price only (industry standard).</text>
+  <text x="410" y="605" fill="#b45309" font-size="9">ⓘ Use totalFeesPaid + totalTaxesPaid to compute all-in cost if needed.</text>
+  <text x="410" y="618" fill="#b45309" font-size="9">ⓘ marketBidPrice = what seller receives today; marketPrice = cost to buy more.</text>
+  <text x="410" y="631" fill="#b45309" font-size="9">ⓘ V16 migration backfills fee/tax totals from existing FILLED order history.</text>
+  <text x="410" y="644" fill="#b45309" font-size="9">ⓘ IncomeBenefitProjection available on PositionResponse for non-bond assets.</text>
+  <text x="410" y="657" fill="#b45309" font-size="9">ⓘ BondBenefitProjection available on PositionResponse for bond assets.</text>
 </svg>

@@ -641,10 +641,13 @@ public class TradingService {
     }
 
     private OrderResponse toOrderResponse(Order order) {
+        BigDecimal grossAmount = order.getUnits() != null && order.getExecutionPrice() != null
+                ? order.getUnits().multiply(order.getExecutionPrice()).setScale(0, java.math.RoundingMode.HALF_UP)
+                : null;
         return new OrderResponse(
                 order.getId(), order.getAssetId(), null,
                 order.getSide(), order.getUnits(), order.getExecutionPrice(),
-                order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
+                grossAmount, order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
                 order.getStatus(), order.getCreatedAt(),
                 order.getRegistrationDutyAmount(), order.getCapitalGainsTaxAmount(),
                 order.getTvaAmount(), order.getAccruedInterestAmount());
@@ -924,18 +927,27 @@ public class TradingService {
      *  Uses executionPrice (gross, excluding fees/tax) for consistent P&L:
      *  BUY cost basis = execution price per unit (fees are a separate expense)
      *  SELL realized P&L = (sell execution price - buy execution price) × units
+     *  Fees (fee + TVA) and taxes (registration duty + CGT) are tracked separately on the position.
      */
     private void updatePortfolio(TradeContext ctx) {
         TradeSide side = ctx.getStrategy().side();
         BigDecimal units = ctx.getUnits();
+        // fee + TVA = total platform/broker charge; registration duty + CGT = government taxes
+        BigDecimal feePaid = nullSafeAdd(ctx.getFee(), ctx.getTvaAmount());
+        BigDecimal taxPaid = nullSafeAdd(ctx.getRegistrationDutyAmount(), ctx.getCapitalGainsTaxAmount());
         if (side == TradeSide.BUY) {
             portfolioService.updatePositionAfterBuy(ctx.getUserId(), ctx.getAssetId(),
-                    ctx.getUserAssetAccountId(), units, ctx.getExecutionPrice());
+                    ctx.getUserAssetAccountId(), units, ctx.getExecutionPrice(), feePaid, taxPaid);
         } else {
             BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    ctx.getUserId(), ctx.getAssetId(), units, ctx.getExecutionPrice());
+                    ctx.getUserId(), ctx.getAssetId(), units, ctx.getExecutionPrice(), feePaid, taxPaid);
             ctx.setRealizedPnl(realizedPnl);
         }
+    }
+
+    private static BigDecimal nullSafeAdd(BigDecimal a, BigDecimal b) {
+        BigDecimal result = a != null ? a : BigDecimal.ZERO;
+        return b != null ? result.add(b) : result;
     }
 
     /** Record immutable trade log entry. */
@@ -1370,11 +1382,14 @@ public class TradingService {
 
         return orders.map(o -> {
             Asset orderAsset = o.getAsset();
+            BigDecimal gross = o.getUnits() != null && o.getExecutionPrice() != null
+                    ? o.getUnits().multiply(o.getExecutionPrice()).setScale(0, java.math.RoundingMode.HALF_UP)
+                    : null;
             return new OrderResponse(
                     o.getId(), o.getAssetId(),
                     orderAsset != null ? orderAsset.getSymbol() : null,
                     o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                    o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
+                    gross, o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
                     o.getRegistrationDutyAmount(), o.getCapitalGainsTaxAmount(),
                     o.getTvaAmount(), o.getAccruedInterestAmount()
             );
@@ -1392,11 +1407,14 @@ public class TradingService {
             throw new AssetException("Order not found: " + orderId);
         }
         Asset orderAsset = o.getAsset();
+        BigDecimal gross = o.getUnits() != null && o.getExecutionPrice() != null
+                ? o.getUnits().multiply(o.getExecutionPrice()).setScale(0, java.math.RoundingMode.HALF_UP)
+                : null;
         return new OrderResponse(
                 o.getId(), o.getAssetId(),
                 orderAsset != null ? orderAsset.getSymbol() : null,
                 o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
+                gross, o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
                 o.getRegistrationDutyAmount(), o.getCapitalGainsTaxAmount(),
                 o.getTvaAmount(), o.getAccruedInterestAmount()
         );
@@ -1441,11 +1459,14 @@ public class TradingService {
         log.info("Order cancelled: orderId={}, userId={}, previousStatus={}", orderId, userId, previousStatus);
 
         Asset orderAsset = order.getAsset();
+        BigDecimal cancelGross = order.getUnits() != null && order.getExecutionPrice() != null
+                ? order.getUnits().multiply(order.getExecutionPrice()).setScale(0, java.math.RoundingMode.HALF_UP)
+                : null;
         return new OrderResponse(
                 order.getId(), order.getAssetId(),
                 orderAsset != null ? orderAsset.getSymbol() : null,
                 order.getSide(), order.getUnits(), order.getExecutionPrice(),
-                order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
+                cancelGross, order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
                 order.getStatus(), order.getCreatedAt(),
                 order.getRegistrationDutyAmount(), order.getCapitalGainsTaxAmount(),
                 order.getTvaAmount(), order.getAccruedInterestAmount()

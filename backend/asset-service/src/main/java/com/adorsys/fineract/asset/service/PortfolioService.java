@@ -71,8 +71,9 @@ public class PortfolioService {
 
         if (positions.isEmpty()) {
             return new PortfolioSummaryResponse(BigDecimal.ZERO, BigDecimal.ZERO,
-                    BigDecimal.ZERO, BigDecimal.ZERO, List.of(),
-                    List.of(), BigDecimal.ZERO, 0);
+                    BigDecimal.ZERO, BigDecimal.ZERO,
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    List.of(), List.of(), BigDecimal.ZERO, 0);
         }
 
         List<String> assetIds = positions.stream().map(UserPosition::getAssetId).toList();
@@ -83,12 +84,16 @@ public class PortfolioService {
 
         BigDecimal totalValue = BigDecimal.ZERO;
         BigDecimal totalCostBasis = BigDecimal.ZERO;
+        BigDecimal totalRealizedPnl = BigDecimal.ZERO;
+        BigDecimal totalFeesPaid = BigDecimal.ZERO;
+        BigDecimal totalTaxesPaid = BigDecimal.ZERO;
         List<PositionResponse> positionResponses = new ArrayList<>();
 
         for (UserPosition pos : positions) {
             Asset asset = assetMap.get(pos.getAssetId());
             AssetPrice price = priceMap.get(pos.getAssetId());
             BigDecimal marketPrice = price != null ? price.getAskPrice() : BigDecimal.ZERO;
+            BigDecimal marketBidPrice = price != null ? price.getBidPrice() : null;
             BigDecimal marketValue = pos.getTotalUnits().multiply(marketPrice);
             BigDecimal unrealizedPnl = marketValue.subtract(pos.getTotalCostBasis());
             BigDecimal unrealizedPnlPercent = pos.getTotalCostBasis().compareTo(BigDecimal.ZERO) > 0
@@ -98,6 +103,9 @@ public class PortfolioService {
 
             totalValue = totalValue.add(marketValue);
             totalCostBasis = totalCostBasis.add(pos.getTotalCostBasis());
+            totalRealizedPnl = totalRealizedPnl.add(pos.getRealizedPnl() != null ? pos.getRealizedPnl() : BigDecimal.ZERO);
+            totalFeesPaid = totalFeesPaid.add(pos.getTotalFeesPaid() != null ? pos.getTotalFeesPaid() : BigDecimal.ZERO);
+            totalTaxesPaid = totalTaxesPaid.add(pos.getTotalTaxesPaid() != null ? pos.getTotalTaxesPaid() : BigDecimal.ZERO);
 
             BigDecimal faceValue = asset != null && asset.getEffectiveFaceValue() != null
                     ? asset.getEffectiveFaceValue() : marketPrice;
@@ -116,6 +124,9 @@ public class PortfolioService {
                     pos.getTotalUnits(), pos.getAvgPurchasePrice(), marketPrice,
                     marketValue, pos.getTotalCostBasis(),
                     unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
+                    marketBidPrice,
+                    pos.getTotalFeesPaid() != null ? pos.getTotalFeesPaid() : BigDecimal.ZERO,
+                    pos.getTotalTaxesPaid() != null ? pos.getTotalTaxesPaid() : BigDecimal.ZERO,
                     bondPricing[0], bondPricing[1], bondPricing[2], bondPricing[3], bondPricing[4],
                     bondBenefit, incomeBenefit,
                     List.of()
@@ -180,6 +191,7 @@ public class PortfolioService {
 
         return new PortfolioSummaryResponse(
                 totalValue, totalCostBasis, totalUnrealizedPnl, totalUnrealizedPnlPercent,
+                totalRealizedPnl, totalFeesPaid, totalTaxesPaid,
                 positionResponses, allocations, estimatedAnnualYieldPercent, categoryValues.size()
         );
     }
@@ -197,14 +209,19 @@ public class PortfolioService {
                         PageRequest.of(0, 200, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .getContent()
                 .stream()
-                .map(o -> new OrderResponse(
-                        o.getId(), o.getAssetId(),
-                        o.getAsset() != null ? o.getAsset().getSymbol() : null,
-                        o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                        o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
-                        o.getRegistrationDutyAmount(), o.getCapitalGainsTaxAmount(),
-                        o.getTvaAmount(), o.getAccruedInterestAmount()
-                ))
+                .map(o -> {
+                    BigDecimal gross = o.getUnits() != null && o.getExecutionPrice() != null
+                            ? o.getUnits().multiply(o.getExecutionPrice()).setScale(0, RoundingMode.HALF_UP)
+                            : null;
+                    return new OrderResponse(
+                            o.getId(), o.getAssetId(),
+                            o.getAsset() != null ? o.getAsset().getSymbol() : null,
+                            o.getSide(), o.getUnits(), o.getExecutionPrice(),
+                            gross, o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
+                            o.getRegistrationDutyAmount(), o.getCapitalGainsTaxAmount(),
+                            o.getTvaAmount(), o.getAccruedInterestAmount()
+                    );
+                })
                 .toList();
 
         if (pos == null) {
@@ -212,6 +229,7 @@ public class PortfolioService {
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                     BigDecimal.ZERO, BigDecimal.ZERO,
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    null, BigDecimal.ZERO, BigDecimal.ZERO,
                     null, null, null, null, null,
                     null, null,
                     orderHistory);
@@ -220,6 +238,7 @@ public class PortfolioService {
         Asset asset = assetRepository.findById(assetId).orElse(null);
         AssetPrice price = assetPriceRepository.findById(assetId).orElse(null);
         BigDecimal marketPrice = price != null ? price.getAskPrice() : BigDecimal.ZERO;
+        BigDecimal marketBidPrice = price != null ? price.getBidPrice() : null;
         BigDecimal marketValue = pos.getTotalUnits().multiply(marketPrice);
         BigDecimal unrealizedPnl = marketValue.subtract(pos.getTotalCostBasis());
         BigDecimal unrealizedPnlPercent = pos.getTotalCostBasis().compareTo(BigDecimal.ZERO) > 0
@@ -244,6 +263,9 @@ public class PortfolioService {
                 pos.getTotalUnits(), pos.getAvgPurchasePrice(), marketPrice,
                 marketValue, pos.getTotalCostBasis(),
                 unrealizedPnl, unrealizedPnlPercent, pos.getRealizedPnl(),
+                marketBidPrice,
+                pos.getTotalFeesPaid() != null ? pos.getTotalFeesPaid() : BigDecimal.ZERO,
+                pos.getTotalTaxesPaid() != null ? pos.getTotalTaxesPaid() : BigDecimal.ZERO,
                 bondPricing[0], bondPricing[1], bondPricing[2], bondPricing[3], bondPricing[4],
                 bondBenefit, incomeBenefit,
                 orderHistory
@@ -251,11 +273,16 @@ public class PortfolioService {
     }
 
     /**
-     * Update position after a BUY trade. Recalculates WAP and creates a FIFO purchase lot.
+     * Update position after a BUY trade. Recalculates WAP, creates a FIFO purchase lot,
+     * and accumulates fees/taxes paid.
+     *
+     * @param feePaid  platform fee + TVA charged on this trade (null treated as zero)
+     * @param taxPaid  registration duty + capital gains tax charged on this trade (null treated as zero)
      */
     @Transactional
     public void updatePositionAfterBuy(Long userId, String assetId, Long fineractAccountId,
-                                        BigDecimal units, BigDecimal pricePerUnit) {
+                                        BigDecimal units, BigDecimal pricePerUnit,
+                                        BigDecimal feePaid, BigDecimal taxPaid) {
         UserPosition pos = userPositionRepository.findByUserIdAndAssetId(userId, assetId)
                 .orElse(UserPosition.builder()
                         .userId(userId)
@@ -265,6 +292,8 @@ public class PortfolioService {
                         .avgPurchasePrice(BigDecimal.ZERO)
                         .totalCostBasis(BigDecimal.ZERO)
                         .realizedPnl(BigDecimal.ZERO)
+                        .totalFeesPaid(BigDecimal.ZERO)
+                        .totalTaxesPaid(BigDecimal.ZERO)
                         .build());
 
         BigDecimal newCost = units.multiply(pricePerUnit);
@@ -279,6 +308,8 @@ public class PortfolioService {
         pos.setTotalCostBasis(newTotalCost);
         pos.setAvgPurchasePrice(newAvgPrice);
         pos.setFineractSavingsAccountId(fineractAccountId);
+        pos.setTotalFeesPaid(pos.getTotalFeesPaid().add(feePaid != null ? feePaid : BigDecimal.ZERO));
+        pos.setTotalTaxesPaid(pos.getTotalTaxesPaid().add(taxPaid != null ? taxPaid : BigDecimal.ZERO));
         pos.setLastTradeAt(Instant.now());
 
         // Set first purchase date only on initial buy (lock-up enforcement)
@@ -311,12 +342,17 @@ public class PortfolioService {
     }
 
     /**
-     * Update position after a SELL trade. Consumes lots FIFO for cost basis, calculates per-lot realized P&L.
-     * Falls back to WAP-based P&L if no lots exist (legacy positions).
+     * Update position after a SELL trade. Consumes lots FIFO for cost basis, calculates per-lot
+     * realized P&L, and accumulates fees/taxes paid.
+     *
+     * @param feePaid  platform fee + TVA charged on this trade (null treated as zero)
+     * @param taxPaid  registration duty + capital gains tax charged on this trade (null treated as zero)
+     * @return realized P&L for this sell
      */
     @Transactional
     public BigDecimal updatePositionAfterSell(Long userId, String assetId, BigDecimal units,
-                                               BigDecimal sellPricePerUnit) {
+                                               BigDecimal sellPricePerUnit,
+                                               BigDecimal feePaid, BigDecimal taxPaid) {
         UserPosition pos = userPositionRepository.findByUserIdAndAssetId(userId, assetId)
                 .orElseThrow(() -> new RuntimeException("No position found for sell: userId=" + userId + ", assetId=" + assetId));
 
@@ -354,6 +390,8 @@ public class PortfolioService {
 
         pos.setTotalUnits(newTotalUnits);
         pos.setRealizedPnl(pos.getRealizedPnl().add(realizedPnl));
+        pos.setTotalFeesPaid(pos.getTotalFeesPaid().add(feePaid != null ? feePaid : BigDecimal.ZERO));
+        pos.setTotalTaxesPaid(pos.getTotalTaxesPaid().add(taxPaid != null ? taxPaid : BigDecimal.ZERO));
         pos.setLastTradeAt(Instant.now());
 
         userPositionRepository.save(pos);

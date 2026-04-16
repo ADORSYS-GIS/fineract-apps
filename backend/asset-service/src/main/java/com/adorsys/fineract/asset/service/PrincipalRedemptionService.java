@@ -273,8 +273,9 @@ public class PrincipalRedemptionService {
             }
 
             // e. Update position: zero out units, record realized P&L
+            // Bond maturity is a system-initiated redemption — no trading fees or taxes apply here
             BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    holder.getUserId(), bond.getId(), units, faceValue);
+                    holder.getUserId(), bond.getId(), units, faceValue, null, null);
 
             // f. Decrement circulating supply
             assetRepository.adjustCirculatingSupply(bond.getId(), units.negate());

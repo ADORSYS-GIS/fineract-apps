@@ -76,6 +76,14 @@ public class UserPosition {
     @Column(name = "realized_pnl", nullable = false, precision = 20, scale = 0)
     private BigDecimal realizedPnl;
 
+    /** Cumulative platform fees (fee + TVA) paid across all FILLED trades for this position, in settlement currency. Starts at 0 and accumulates on every BUY and SELL. */
+    @Column(name = "total_fees_paid", nullable = false, precision = 20, scale = 0)
+    private BigDecimal totalFeesPaid;
+
+    /** Cumulative taxes (registration duty + capital gains tax) paid across all FILLED trades for this position, in settlement currency. Starts at 0 and accumulates on every applicable trade. */
+    @Column(name = "total_taxes_paid", nullable = false, precision = 20, scale = 0)
+    private BigDecimal totalTaxesPaid;
+
     /** Timestamp of the most recent BUY or SELL trade on this position. */
     @Column(name = "last_trade_at", nullable = false)
     private Instant lastTradeAt;
@@ -99,6 +107,8 @@ public class UserPosition {
         if (totalCostBasis == null) totalCostBasis = BigDecimal.ZERO;
         if (realizedPnl == null) realizedPnl = BigDecimal.ZERO;
         if (accruedInterest == null) accruedInterest = BigDecimal.ZERO;
+        if (totalFeesPaid == null) totalFeesPaid = BigDecimal.ZERO;
+        if (totalTaxesPaid == null) totalTaxesPaid = BigDecimal.ZERO;
         if (lastTradeAt == null) lastTradeAt = Instant.now();
     }
 }
