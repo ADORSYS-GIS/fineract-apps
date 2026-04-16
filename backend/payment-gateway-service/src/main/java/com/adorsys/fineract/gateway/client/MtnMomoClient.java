@@ -176,7 +176,6 @@ public class MtnMomoClient {
     }
 
     private PaymentStatus getTransactionStatus(String product, String referenceId) {
-        String accessToken = getAccessToken(product);
         String subscriptionKey = "collection".equals(product)
             ? config.getCollectionSubscriptionKey()
             : config.getDisbursementSubscriptionKey();
@@ -185,6 +184,9 @@ public class MtnMomoClient {
         String resource = "collection".equals(product) ? "requesttopay" : "transfer";
 
         try {
+            // getAccessToken is inside try-catch so a token fetch failure returns PENDING
+            String accessToken = getAccessToken(product);
+
             Map<String, Object> response = webClient.get()
                 .uri("/{product}/v1_0/{resource}/{referenceId}", product, resource, referenceId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
