@@ -60,8 +60,9 @@ public class DashboardStepDefinitions {
             long userId = 200L + i;
             jdbcTemplate.update("""
                 INSERT INTO user_positions (user_id, asset_id, total_units, avg_purchase_price,
-                    total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version)
-                VALUES (?, 'asset-001', 10, 100, 1000, 0, ?, ?, 0)
+                    total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version,
+                    total_fees_paid, total_taxes_paid)
+                VALUES (?, 'asset-001', 10, 100, 1000, 0, ?, ?, 0, 0, 0)
                 """, userId, 500L + i, Instant.now());
         }
     }

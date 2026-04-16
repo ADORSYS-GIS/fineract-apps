@@ -103,8 +103,9 @@ public class BondStepDefinitions {
     public void userHoldsBondUnits(Long userId, int units, String bondId) {
         jdbcTemplate.update("""
             INSERT INTO user_positions (user_id, asset_id, total_units, avg_purchase_price,
-                total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version)
-            VALUES (?, ?, ?, 10000, ?, 0, 200, ?, 0)
+                total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version,
+                total_fees_paid, total_taxes_paid)
+            VALUES (?, ?, ?, 10000, ?, 0, 200, ?, 0, 0, 0)
             """, userId, bondId, units, units * 10000, Instant.now());
 
         // Keep circulating supply consistent with positions
