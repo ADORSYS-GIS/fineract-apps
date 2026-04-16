@@ -133,6 +133,10 @@ class TradingServiceTest {
         quoteConfig.setMaxActivePerUser(5);
         lenient().when(assetServiceConfig.getQuote()).thenReturn(quoteConfig);
 
+        // Trade lock config (used in confirmOrder to set Redis TTL)
+        AssetServiceConfig.TradeLock tradeLock = new AssetServiceConfig.TradeLock();
+        lenient().when(assetServiceConfig.getTradeLock()).thenReturn(tradeLock);
+
         // Tax service defaults (returns zero tax for all calculations)
         lenient().when(taxService.calculateRegistrationDuty(any(), any())).thenReturn(BigDecimal.ZERO);
         lenient().when(taxService.calculateCapitalGainsTax(any(), anyLong(), any())).thenReturn(BigDecimal.ZERO);
@@ -630,7 +634,7 @@ class TradingServiceTest {
         lenient().when(assetRepository.adjustCirculatingSupply(eq(ASSET_ID), any())).thenReturn(1);
 
         // Fineract batch succeeds
-        lenient().when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of(Map.of("requestId", "batch-1")));
+        lenient().when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of(Map.of("requestId", 1)));
     }
 
     @Test
@@ -709,7 +713,7 @@ class TradingServiceTest {
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, units.negate());
         verify(pricingService).updateOhlcAfterTrade(ASSET_ID, bidPrice);
         verify(assetMetrics).recordSell();
-        verify(portfolioService).updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID), eq(units), any());
+        verify(portfolioService).updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID), eq(units), any(), any(), any());
     }
 
     @Test

@@ -1,7 +1,9 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
+import com.adorsys.fineract.asset.dto.TradeSide;
 import com.adorsys.fineract.asset.exception.TradeLockException;
+import com.adorsys.fineract.asset.exception.TradingException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,12 +37,13 @@ public class TradeLockService {
 
     private static final String USER_LOCK_PREFIX = "lock:trade:user:";
     private static final String TREASURY_LOCK_PREFIX = "lock:trade:treasury:";
+    private static final String QUOTE_LOCK_PREFIX = "lock:quote:";
     private static final String LOCAL_LOCK_PREFIX = "LOCAL:";
 
     private final ConcurrentHashMap<String, ReentrantLock> localLocks = new ConcurrentHashMap<>();
 
     /**
-     * Evict unlocked entries from the local fallback lock map to prevent unbounded growth.
+     * Evict unlocked entries from the local trade-lock fallback map to prevent unbounded growth.
      */
     @Scheduled(fixedRate = 600000)
     public void evictStaleLocalLocks() {
@@ -47,7 +51,7 @@ public class TradeLockService {
         localLocks.entrySet().removeIf(entry -> !entry.getValue().isLocked());
         int removed = before - localLocks.size();
         if (removed > 0) {
-            log.debug("Evicted {} stale local locks, {} remaining", removed, localLocks.size());
+            log.debug("Evicted {} stale local trade locks, {} remaining", removed, localLocks.size());
         }
     }
 
@@ -129,6 +133,46 @@ public class TradeLockService {
             }
         } catch (RedisConnectionFailureException e) {
             log.warn("Redis unavailable during lock release: userId={}, assetId={}", userId, assetId);
+        }
+    }
+
+    /**
+     * Acquire a per-asset-side quote lock to prevent duplicate QUOTED orders.
+     * Uses Redis SET NX EX — atomic, self-expiring at quote TTL.
+     * If Redis is unavailable the lock is skipped (best-effort); the max-active-quotes
+     * DB check in TradingService still prevents runaway duplicates.
+     *
+     * @throws TradingException if a quote lock is already held for this userId+assetId+side
+     */
+    public void acquireQuoteLock(Long userId, String assetId, TradeSide side, int ttlSeconds) {
+        String key = QUOTE_LOCK_PREFIX + userId + ":" + assetId + ":" + side;
+        try {
+            Boolean acquired = redisTemplate.opsForValue()
+                    .setIfAbsent(key, "locked", Duration.ofSeconds(ttlSeconds));
+            // Treat null (unexpected response) the same as false — do not assume ownership
+            if (!Boolean.TRUE.equals(acquired)) {
+                throw new TradingException(
+                        "An active " + side + " quote already exists for this asset. " +
+                        "Cancel it or wait for it to expire before creating a new one.",
+                        "DUPLICATE_ACTIVE_QUOTE");
+            }
+            log.debug("Acquired quote lock: userId={}, assetId={}, side={}", userId, assetId, side);
+        } catch (RedisConnectionFailureException e) {
+            // Redis unavailable — skip lock. The DB-level max-active-quotes guard still applies.
+            log.warn("Redis unavailable for quote lock, skipping: userId={}, assetId={}, side={}", userId, assetId, side);
+        }
+    }
+
+    /**
+     * Release the per-asset-side quote lock. Called post-commit on quote confirm or cancel.
+     */
+    public void releaseQuoteLock(Long userId, String assetId, TradeSide side) {
+        String key = QUOTE_LOCK_PREFIX + userId + ":" + assetId + ":" + side;
+        try {
+            redisTemplate.delete(key);
+            log.debug("Released quote lock: userId={}, assetId={}, side={}", userId, assetId, side);
+        } catch (RedisConnectionFailureException e) {
+            log.warn("Redis unavailable during quote lock release: userId={}, assetId={}, side={}", userId, assetId, side);
         }
     }
 }

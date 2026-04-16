@@ -26,7 +26,7 @@ const COLUMNS: ColumnDef[] = [
 		header: "symbol *",
 		required: true,
 		comment:
-			"Short ticker symbol (3-4 chars, e.g. 'GRT'). REQUIRED. Must be unique. Also used as the internal currency code in Adorsys Core Banking.",
+			"Short ticker symbol (up to 10 chars, e.g. 'BRVM'). REQUIRED. Must be unique. The internal currency code is auto-generated from this symbol.",
 		example: "BRVM",
 		type: "string",
 	},
@@ -717,7 +717,7 @@ function cemacStock(
 	return {
 		name,
 		symbol,
-		currencyCode: symbol,
+		// currencyCode omitted — auto-generated from symbol by the backend
 		category: "STOCKS",
 		issuerPrice,
 		totalSupply,
@@ -757,7 +757,7 @@ function cemacBta(
 	return {
 		name,
 		symbol,
-		currencyCode: symbol,
+		// currencyCode omitted — auto-generated from symbol by the backend
 		category: "BONDS",
 		issuerPrice,
 		faceValue,
@@ -800,7 +800,7 @@ function cemacOta(
 	return {
 		name,
 		symbol,
-		currencyCode: symbol,
+		// currencyCode omitted — auto-generated from symbol by the backend
 		category: "BONDS",
 		issuerPrice,
 		totalSupply,
@@ -1122,7 +1122,7 @@ export async function parseAssetExcel(
 		const asset: CreateAssetRequest = {
 			name: String(raw.name ?? ""),
 			symbol: String(raw.symbol ?? ""),
-			currencyCode: String(raw.currencyCode ?? raw.symbol ?? ""),
+			// currencyCode omitted — auto-generated from symbol by the backend
 			category: String(raw.category ?? ""),
 			issuerPrice: parseNumber(raw.issuerPrice) ?? 0,
 			totalSupply: parseNumber(raw.totalSupply) ?? 0,

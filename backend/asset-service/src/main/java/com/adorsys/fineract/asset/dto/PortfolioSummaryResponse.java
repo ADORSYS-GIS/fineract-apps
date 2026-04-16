@@ -55,6 +55,28 @@ public record PortfolioSummaryResponse(
     BigDecimal unrealizedPnlPercent,
 
     /**
+     * Cumulative realized profit or loss from all completed SELL trades across the entire
+     * portfolio, in XAF. Sum of {@code realizedPnl} across all positions.
+     * Positive = net gain from all past sells; negative = net loss.
+     * Zero when no SELL trades have been executed.
+     */
+    BigDecimal totalRealizedPnl,
+
+    /**
+     * Cumulative platform fees (trading fee + TVA) paid across all FILLED trades in the
+     * entire portfolio, in XAF. Sum of {@code totalFeesPaid} across all positions.
+     * Zero when no trades have been executed.
+     */
+    BigDecimal totalFeesPaid,
+
+    /**
+     * Cumulative taxes (registration duty + capital gains tax) paid across all FILLED trades
+     * in the entire portfolio, in XAF. Sum of {@code totalTaxesPaid} across all positions.
+     * Zero when no applicable taxes have been paid.
+     */
+    BigDecimal totalTaxesPaid,
+
+    /**
      * Per-asset position detail, one entry per asset the user currently holds.
      * Each {@link PositionResponse} contains its own market value, cost basis, P&L,
      * bond benefit projections, and full order history for that instrument.

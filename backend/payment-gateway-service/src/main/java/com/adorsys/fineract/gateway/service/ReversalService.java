@@ -66,22 +66,26 @@ public class ReversalService {
             txn.getAmount(), txn.getAccountId(), ex);
 
         try {
-            ReversalDeadLetter dlq = new ReversalDeadLetter(
-                txn.getTransactionId(),
-                txn.getFineractTransactionId(),
-                txn.getAccountId(),
-                txn.getAmount(),
-                txn.getCurrency(),
-                txn.getProvider(),
-                truncate(ex.getMessage(), 500)
-            );
-            // For CinetPay, persist underlying provider hint for correct GL mapping on DLQ retry
-            dlq.setProviderHint(txn.getNotifToken());
-            deadLetterRepository.save(dlq);
+            sendToDeadLetter(txn, truncate(ex.getMessage(), 500));
         } catch (Exception dlqEx) {
             log.error("CRITICAL: Failed to persist reversal to dead-letter queue! transactionId={}",
                 txn.getTransactionId(), dlqEx);
         }
+    }
+
+    public void sendToDeadLetter(PaymentTransaction txn, String reason) {
+        ReversalDeadLetter dlq = new ReversalDeadLetter(
+            txn.getTransactionId(),
+            txn.getFineractTransactionId(),
+            txn.getAccountId(),
+            txn.getAmount(),
+            txn.getCurrency(),
+            txn.getProvider(),
+            reason
+        );
+        // For CinetPay, persist underlying provider hint for correct GL mapping on DLQ retry
+        dlq.setProviderHint(txn.getNotifToken());
+        deadLetterRepository.save(dlq);
     }
 
     private static String truncate(String s, int maxLen) {

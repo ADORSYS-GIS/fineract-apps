@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 960" width="390" height="960">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#00000018"/></filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="960" fill="#f3f4f6"/>
+
+  <!-- Status Bar -->
+  <rect width="390" height="44" fill="#1a56db"/>
+  <text x="20" y="28" fill="white" font-size="13" font-weight="600">9:41</text>
+  <text x="340" y="28" fill="white" font-size="11">▐▐▐ 🔋</text>
+
+  <!-- Header -->
+  <rect width="390" height="76" y="44" fill="#1a56db"/>
+  <text x="36" y="90" fill="white" font-size="20">←</text>
+  <text x="195" y="90" fill="white" font-size="18" font-weight="700" text-anchor="middle">Review Bond Order</text>
+
+  <!-- Step Progress Bar -->
+  <rect x="16" y="132" width="358" height="6" rx="3" fill="#e5e7eb"/>
+  <rect x="16" y="132" width="239" height="6" rx="3" fill="#1a56db"/>
+  <text x="16" y="154" fill="#1a56db" font-size="12" font-weight="600">Step 2 of 3 · Review &amp; Confirm</text>
+
+  <!-- Review banner -->
+  <rect x="16" y="166" width="358" height="36" rx="12" fill="#eff6ff"/>
+  <text x="195" y="189" fill="#1e40af" font-size="12" text-anchor="middle">📋 Vérifiez votre ordre BTA avant de confirmer</text>
+
+  <!-- Order Summary Card -->
+  <rect x="16" y="210" width="358" height="370" rx="14" fill="white" filter="url(#shadow)"/>
+  <text x="32" y="238" fill="#111827" font-size="15" font-weight="700">Order Summary</text>
+
+  <!-- Asset row -->
+  <line x1="32" y1="248" x2="358" y2="248" stroke="#f3f4f6" stroke-width="1"/>
+  <circle cx="48" cy="272" r="16" fill="#ede9fe"/>
+  <text x="48" y="278" fill="#7c3aed" font-size="14" text-anchor="middle">📉</text>
+  <text x="72" y="267" fill="#6b7280" font-size="12">Asset</text>
+  <text x="72" y="283" fill="#111827" font-size="14" font-weight="600">BTA 2Y 2027</text>
+  <text x="358" y="275" fill="#7c3aed" font-size="12" text-anchor="end">BTA · Discount Bond</text>
+
+  <line x1="32" y1="298" x2="358" y2="298" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="32" y="318" fill="#6b7280" font-size="13">Order Type</text>
+  <rect x="282" y="306" width="70" height="22" rx="11" fill="#dcfce7"/>
+  <text x="317" y="321" fill="#16a34a" font-size="12" font-weight="600" text-anchor="middle">📈 BUY</text>
+
+  <line x1="32" y1="336" x2="358" y2="336" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="32" y="356" fill="#6b7280" font-size="13">Units to buy</text>
+  <text x="358" y="356" fill="#111827" font-size="14" font-weight="700" text-anchor="end">50 units</text>
+
+  <line x1="32" y1="372" x2="358" y2="372" stroke="#f3f4f6" stroke-width="1"/>
+  <!-- No dirty price for BTA — just accreted ask price -->
+  <text x="32" y="392" fill="#6b7280" font-size="13">Prix actualisé / unité</text>
+  <text x="32" y="406" fill="#9ca3af" font-size="10">ⓘ Prix accrété — aucun intérêt couru (pas de coupons)</text>
+  <text x="358" y="392" fill="#111827" font-size="14" text-anchor="end">9,640 XAF</text>
+
+  <line x1="32" y1="418" x2="358" y2="418" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="32" y="438" fill="#6b7280" font-size="13">Sous-total</text>
+  <text x="358" y="438" fill="#111827" font-size="14" text-anchor="end">482,000 XAF</text>
+
+  <line x1="32" y1="454" x2="358" y2="454" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="32" y="474" fill="#6b7280" font-size="13">Frais de plateforme (0.3%)</text>
+  <text x="358" y="474" fill="#ef4444" font-size="13" text-anchor="end">+1,446 XAF</text>
+
+  <line x1="32" y1="490" x2="358" y2="490" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="32" y="510" fill="#6b7280" font-size="13">TVA (19.25% sur frais)</text>
+  <text x="358" y="510" fill="#ef4444" font-size="13" text-anchor="end">+278 XAF</text>
+
+  <!-- Total divider -->
+  <line x1="16" y1="526" x2="374" y2="526" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="32" y="550" fill="#111827" font-size="15" font-weight="700">Total à débiter</text>
+  <text x="358" y="550" fill="#1a56db" font-size="20" font-weight="700" text-anchor="end">483,724 XAF</text>
+
+  <!-- Balance -->
+  <text x="32" y="570" fill="#6b7280" font-size="12">Solde disponible</text>
+  <text x="358" y="570" fill="#15803d" font-size="13" font-weight="600" text-anchor="end">✓ 850,000 XAF</text>
+
+  <!-- IRCM deferred note inside card -->
+  <rect x="32" y="580" width="326" height="20" rx="6" fill="#fef9c3"/>
+  <text x="195" y="594" fill="#854d0e" font-size="10" text-anchor="middle">⚠ IRCM non prélevé à l'achat — appliqué uniquement à la maturité</text>
+
+  <!-- Capital Gain Projection Card (replaces coupon projection) -->
+  <rect x="16" y="592" width="358" height="150" rx="14" fill="#eff6ff" filter="url(#shadow)"/>
+  <text x="32" y="616" fill="#1e40af" font-size="14" font-weight="600">📈 Gain projeté à maturité</text>
+  <text x="32" y="630" fill="#6b7280" font-size="11">À la maturité du 15 avr. 2027 · 50 unités</text>
+  <line x1="32" y1="638" x2="358" y2="638" stroke="#dbeafe" stroke-width="1"/>
+
+  <text x="32" y="656" fill="#6b7280" font-size="12">Gain brut total (50 × 360 XAF)</text>
+  <text x="358" y="656" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">18,000 XAF</text>
+
+  <line x1="32" y1="664" x2="358" y2="664" stroke="#dbeafe" stroke-width="1"/>
+  <text x="32" y="682" fill="#6b7280" font-size="12">IRCM retenu (16.5%)</text>
+  <text x="358" y="682" fill="#ef4444" font-size="13" font-weight="600" text-anchor="end">−2,970 XAF</text>
+
+  <line x1="32" y1="690" x2="358" y2="690" stroke="#dbeafe" stroke-width="1"/>
+  <text x="32" y="708" fill="#6b7280" font-size="12">Gain net estimé</text>
+  <text x="358" y="708" fill="#16a34a" font-size="14" font-weight="700" text-anchor="end">15,030 XAF</text>
+
+  <line x1="32" y1="716" x2="358" y2="716" stroke="#dbeafe" stroke-width="1"/>
+  <text x="32" y="732" fill="#1d4ed8" font-size="12">Principal remboursé (50 × 10,000 XAF)</text>
+  <text x="358" y="732" fill="#1d4ed8" font-size="13" font-weight="600" text-anchor="end">500,000 XAF</text>
+
+  <!-- Warning note -->
+  <rect x="16" y="754" width="358" height="44" rx="12" fill="#fffbeb"/>
+  <text x="32" y="772" fill="#92400e" font-size="13" font-weight="600">⚠️ Important</text>
+  <text x="32" y="788" fill="#92400e" font-size="12">Prix verrouillé 30 s · Engagement jusqu'au 15 avr. 2027</text>
+
+  <!-- Confirm Button -->
+  <rect x="16" y="808" width="358" height="52" rx="14" fill="#1a56db" filter="url(#shadow)"/>
+  <text x="195" y="839" fill="white" font-size="16" font-weight="700" text-anchor="middle">✓  Confirmer l'achat BTA</text>
+
+  <!-- Go Back -->
+  <text x="195" y="878" fill="#1a56db" font-size="14" text-anchor="middle">← Retour</text>
+
+  <!-- Bottom Nav -->
+  <rect x="0" y="912" width="390" height="48" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="48" y="942" fill="#9ca3af" font-size="10" text-anchor="middle">🏠 Home</text>
+  <text x="146" y="942" fill="#1a56db" font-size="10" text-anchor="middle" font-weight="600">📊 Market</text>
+  <text x="244" y="942" fill="#9ca3af" font-size="10" text-anchor="middle">💼 Portfolio</text>
+  <text x="342" y="942" fill="#9ca3af" font-size="10" text-anchor="middle">📋 History</text>
+</svg>

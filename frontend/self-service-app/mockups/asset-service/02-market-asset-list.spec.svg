@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 844" width="820" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./02-market-asset-list.svg" x="0" y="0" width="390" height="844"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="844" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="844" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">02 · Market Asset List</text>
+
+  <!-- Endpoint -->
+  <rect x="406" y="31" width="400" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /assets?category=&amp;search=&amp;page=0&amp;size=20</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">Response: Page&lt;AssetResponse&gt;</text>
+
+  <!-- Section: Search & Filters -->
+  <line x1="406" y1="72" x2="816" y2="72" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="84" fill="#1e3a5f" font-size="11" font-weight="700">Search &amp; Category Filters</text>
+  <text x="410" y="100" fill="#64748b" font-size="10">Search text input</text>
+  <text x="814" y="100" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">query param: search (String)</text>
+  <text x="410" y="114" fill="#64748b" font-size="10">Category tab selection</text>
+  <text x="814" y="114" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">query param: category (AssetCategory)</text>
+  <text x="410" y="127" fill="#b45309" font-size="9">  Values: ALL | REAL_ESTATE | STOCKS | BONDS | CRYPTO | COMMODITIES | AGRICULTURE</text>
+  <text x="410" y="140" fill="#64748b" font-size="10">Total count ("42 Assets Available")</text>
+  <text x="814" y="140" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">Page&lt;AssetResponse&gt;.totalElements</text>
+
+  <!-- Section: Asset Card -->
+  <line x1="406" y1="157" x2="816" y2="157" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="169" fill="#1e3a5f" font-size="11" font-weight="700">Asset Card  (AssetResponse per card)</text>
+  <text x="410" y="185" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="185" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.name</text>
+  <text x="410" y="199" fill="#64748b" font-size="10">Symbol · Category</text>
+  <text x="814" y="199" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.symbol / .category</text>
+  <text x="410" y="213" fill="#64748b" font-size="10">Status badge (Active / Halted…)</text>
+  <text x="814" y="213" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.status</text>
+  <text x="410" y="227" fill="#64748b" font-size="10">Ask price</text>
+  <text x="814" y="227" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.askPrice</text>
+  <text x="410" y="241" fill="#64748b" font-size="10">24h change %</text>
+  <text x="814" y="241" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.change24hPercent</text>
+  <text x="410" y="255" fill="#64748b" font-size="10">Coupon rate label (bonds only: "6.5% p.a.")</text>
+  <text x="814" y="255" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.interestRate</text>
+  <text x="410" y="269" fill="#64748b" font-size="10">Buy button disabled when HALTED</text>
+  <text x="814" y="269" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.status == HALTED</text>
+  <text x="410" y="283" fill="#64748b" font-size="10">Subscription closed badge</text>
+  <text x="814" y="283" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.subscriptionClosed</text>
+
+  <!-- Section: Pagination -->
+  <line x1="406" y1="300" x2="816" y2="300" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="312" fill="#1e3a5f" font-size="11" font-weight="700">Pagination</text>
+  <text x="410" y="328" fill="#64748b" font-size="10">Page number (scroll / next)</text>
+  <text x="814" y="328" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">Pageable.page, .size</text>
+  <text x="410" y="342" fill="#64748b" font-size="10">Sort order</text>
+  <text x="814" y="342" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">Pageable.sort (e.g. askPrice,asc)</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="359" x2="816" y2="359" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="371" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="385" fill="#b45309" font-size="9">ⓘ Tapping a card navigates to GET /assets/{id} (screen 03 or 03b).</text>
+  <text x="410" y="398" fill="#b45309" font-size="9">ⓘ "Buy" shortcut on card navigates directly to screen 04.</text>
+  <text x="410" y="411" fill="#b45309" font-size="9">ⓘ HALTED assets show a disabled Buy button; status=HALTED from AssetResponse.status.</text>
+  <text x="410" y="424" fill="#b45309" font-size="9">ⓘ Discover / upcoming assets: GET /assets/discover → Page&lt;DiscoverAssetResponse&gt;.</text>
+</svg>

@@ -63,10 +63,10 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     List<PaymentTransaction> findStalePendingTransactions(Instant cutoff);
 
     /**
-     * Find PROCESSING transactions older than specified time (stuck withdrawals).
+     * Find PROCESSING transactions older than specified time that haven't yet exhausted retries.
      */
-    @Query("SELECT t FROM PaymentTransaction t WHERE t.status = 'PROCESSING' AND t.createdAt < :cutoff")
-    List<PaymentTransaction> findStaleProcessingTransactions(Instant cutoff);
+    @Query("SELECT t FROM PaymentTransaction t WHERE t.status = 'PROCESSING' AND t.createdAt < :cutoff AND t.staleResolutionRetryCount < :maxRetries")
+    List<PaymentTransaction> findStaleProcessingTransactions(Instant cutoff, int maxRetries);
 
     /**
      * Count successful transactions for a customer within a date range (for daily limits).

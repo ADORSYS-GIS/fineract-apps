@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { fineractApi } from "@/services/api";
 import {
@@ -160,15 +160,21 @@ function validateBondDetails(data: AssetFormData): string[] {
 		if (![1, 3, 6, 12].includes(data.couponFrequencyMonths))
 			errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
 		if (!data.nextCouponDate) errors.push("First coupon date is required");
+		else if (data.maturityDate && data.nextCouponDate >= data.maturityDate)
+			errors.push("First coupon date must be before the maturity date");
 	}
-	if (data.bondType === "DISCOUNT" && data.faceValue <= 0)
-		errors.push("Face value is required for BTA (discount) bonds");
 	return errors;
 }
 
 function validatePricingFees(data: AssetFormData): string[] {
 	const errors: string[] = [];
 	if (data.issuerPrice <= 0) errors.push("Issuer price must be greater than 0");
+	if (data.category === "BONDS" && data.bondType === "DISCOUNT") {
+		if (data.faceValue <= 0)
+			errors.push("Face value is required for BTA (discount) bonds");
+		else if (data.issuerPrice > 0 && data.faceValue <= data.issuerPrice)
+			errors.push("Face value must be greater than issuer price for BTA bonds");
+	}
 	if (data.tradingFeePercent < 0 || data.tradingFeePercent > 50)
 		errors.push("Trading fee must be 0-50%");
 	if (data.lpAskPrice <= 0) errors.push("LP ask price must be greater than 0");
@@ -191,6 +197,7 @@ export const useCreateAsset = () => {
 	const queryClient = useQueryClient();
 	const [currentStep, setCurrentStep] = useState(0);
 	const [formData, setFormData] = useState<AssetFormData>(initialFormData);
+	const [isLPDialogOpen, setIsLPDialogOpen] = useState(false);
 
 	const isBond = formData.category === "BONDS";
 	const steps = isBond
@@ -317,6 +324,52 @@ export const useCreateAsset = () => {
 		setValidationErrors([]);
 	};
 
+	const createLPMutation = useMutation({
+		mutationFn: (fullname: string) =>
+			fineractApi.clients.postV1Clients({
+				requestBody: {
+					fullname,
+					legalFormId: 2,
+					active: true,
+					officeId: 1,
+					activationDate: new Date().toISOString().split("T")[0],
+					dateFormat: "yyyy-MM-dd",
+					locale: "en",
+				},
+			}),
+		onSuccess: (response, fullname) => {
+			const newClientId = response.clientId ?? response.resourceId;
+			if (!newClientId) {
+				toast.error(
+					"LP was created but returned no ID — please refresh and select it manually.",
+				);
+				setIsLPDialogOpen(false);
+				return;
+			}
+			// Optimistically insert into the cache so the <select> shows the new
+			// entry immediately, before the background refetch completes.
+			// setQueryData operates on the *raw* API response (pre-select transform),
+			// so we append to pageItems rather than to the transformed array.
+			queryClient.setQueryData(
+				["entity-clients"],
+				(old: Record<string, unknown>) => ({
+					...old,
+					pageItems: [
+						...((old?.pageItems as unknown[]) ?? []),
+						{ id: newClientId, displayName: fullname, legalForm: { id: 2 } },
+					],
+				}),
+			);
+			queryClient.invalidateQueries({ queryKey: ["entity-clients"] });
+			updateFormData({ lpClientId: newClientId, lpClientName: fullname });
+			setIsLPDialogOpen(false);
+			toast.success(`LP "${fullname}" created and selected`);
+		},
+		onError: (error: unknown) => {
+			toast.error(`Failed to create LP: ${extractErrorMessage(error)}`);
+		},
+	});
+
 	const nextStep = () => {
 		const errors = validateStep(currentStep);
 		if (errors.length > 0) {
@@ -344,7 +397,7 @@ export const useCreateAsset = () => {
 		const request: CreateAssetRequest = {
 			name: formData.name,
 			symbol: formData.symbol,
-			currencyCode: formData.symbol,
+			// currencyCode omitted — auto-generated from symbol by the backend
 			description: formData.description || undefined,
 			imageUrl: formData.imageUrl || undefined,
 			category: formData.category,
@@ -429,5 +482,10 @@ export const useCreateAsset = () => {
 		clients: clients ?? [],
 		isLoadingClients,
 		validationErrors,
+		isLPDialogOpen,
+		openLPDialog: useCallback(() => setIsLPDialogOpen(true), []),
+		closeLPDialog: useCallback(() => setIsLPDialogOpen(false), []),
+		onCreateLP: (fullname: string) => createLPMutation.mutate(fullname),
+		isCreatingLP: createLPMutation.isPending,
 	};
 };

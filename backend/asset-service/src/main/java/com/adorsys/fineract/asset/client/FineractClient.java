@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.client;
 
 import com.adorsys.fineract.asset.config.FineractConfig;
 import com.adorsys.fineract.asset.exception.AssetException;
+import com.adorsys.fineract.asset.exception.ClientNotProvisionedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -583,7 +584,7 @@ public class FineractClient {
 
             var pageItems = (List<Map<String, Object>>) response.get("pageItems");
             if (pageItems == null || pageItems.isEmpty()) {
-                throw new AssetException("Client not found: " + externalId);
+                throw new ClientNotProvisionedException(externalId);
             }
 
             return pageItems.get(0);
@@ -979,7 +980,7 @@ public class FineractClient {
     @SuppressWarnings("unchecked")
     private String parseFineractError(String context, String rawBody) {
         try {
-            Map<String, Object> errorResponse = new ObjectMapper().readValue(rawBody, Map.class);
+            Map<String, Object> errorResponse = objectMapper.readValue(rawBody, Map.class);
             String userMessage = (String) errorResponse.get("defaultUserMessage");
             if (userMessage != null && !userMessage.isBlank()) {
                 String result = context + ": " + userMessage;

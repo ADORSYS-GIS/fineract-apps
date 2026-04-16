@@ -11,7 +11,6 @@ Feature: Create Asset
     When the admin creates an asset with:
       | name          | Test Stock |
       | symbol        | TSTK       |
-      | currencyCode  | TSTK       |
       | category      | STOCKS     |
       | initialPrice  | 500        |
       | totalSupply   | 10000      |

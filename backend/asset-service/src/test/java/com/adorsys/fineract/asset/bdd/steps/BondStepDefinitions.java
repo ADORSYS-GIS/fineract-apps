@@ -103,8 +103,9 @@ public class BondStepDefinitions {
     public void userHoldsBondUnits(Long userId, int units, String bondId) {
         jdbcTemplate.update("""
             INSERT INTO user_positions (user_id, asset_id, total_units, avg_purchase_price,
-                total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version)
-            VALUES (?, ?, ?, 10000, ?, 0, 200, ?, 0)
+                total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version,
+                total_fees_paid, total_taxes_paid)
+            VALUES (?, ?, ?, 10000, ?, 0, 200, ?, 0, 0, 0)
             """, userId, bondId, units, units * 10000, Instant.now());
 
         // Keep circulating supply consistent with positions
@@ -137,7 +138,7 @@ public class BondStepDefinitions {
         Map<String, Object> request = new HashMap<>();
         request.put("name", data.get("name"));
         request.put("symbol", data.get("symbol"));
-        request.put("currencyCode", data.get("currencyCode"));
+        // currencyCode is deprecated — auto-generated from symbol; not sent in new requests
         request.put("category", data.get("category"));
         request.put("issuerPrice", new BigDecimal(data.get("initialPrice")));
         request.put("lpAskPrice", new BigDecimal(data.get("initialPrice")).multiply(new BigDecimal("1.10")));
@@ -170,7 +171,7 @@ public class BondStepDefinitions {
     @When("the admin creates a bond asset without an issuer")
     public void adminCreatesBondWithoutIssuer() throws Exception {
         Map<String, Object> request = new HashMap<>();
-        request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
+        request.put("name", "Bond"); request.put("symbol", "BND"); // currencyCode auto-generated
         request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
         request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
         request.put("tradingFeePercent", 0.005);
@@ -191,7 +192,7 @@ public class BondStepDefinitions {
     @When("the admin creates a bond asset with maturity date in the past")
     public void adminCreatesBondWithPastMaturity() throws Exception {
         Map<String, Object> request = new HashMap<>();
-        request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
+        request.put("name", "Bond"); request.put("symbol", "BND"); // currencyCode auto-generated
         request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
         request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
         request.put("tradingFeePercent", 0.005);
@@ -213,7 +214,7 @@ public class BondStepDefinitions {
     @When("the admin creates a bond asset with coupon frequency {int}")
     public void adminCreatesBondWithInvalidFrequency(int frequency) throws Exception {
         Map<String, Object> request = new HashMap<>();
-        request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
+        request.put("name", "Bond"); request.put("symbol", "BND"); // currencyCode auto-generated
         request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
         request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
         request.put("tradingFeePercent", 0.005);

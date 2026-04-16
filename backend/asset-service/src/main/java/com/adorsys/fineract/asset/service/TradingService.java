@@ -36,6 +36,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -44,6 +46,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.util.ArrayList;
@@ -69,6 +72,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TradingService {
 
+    private static final String DESC_REGISTRATION_DUTY = "Registration duty:";
+    private static final String DESC_CAPITAL_GAINS = "Capital gains tax:";
+    private static final String DESC_TVA = "TVA:";
+
     private final OrderRepository orderRepository;
     private final TradeLogRepository tradeLogRepository;
     private final AssetRepository assetRepository;
@@ -89,6 +96,7 @@ public class TradingService {
     private final QuoteReservationService quoteReservationService;
     private final TaxService taxService;
     private final AccruedInterestCalculator accruedInterestCalculator;
+    private final ObjectMapper objectMapper;
     private final AssetProjectionRepository assetProjectionRepository;
 
     private static final List<OrderStatus> HIDDEN_FROM_USER_HISTORY = List.of(OrderStatus.CANCELLED);
@@ -380,6 +388,12 @@ public class TradingService {
             throw new TradingException("Quote has expired. Please request a new quote.", "QUOTE_EXPIRED");
         }
 
+        // Distributed lock: prevent concurrent confirms for the same user+asset+side.
+        // Acquired after expiry check so the lock is not held during the cancel-on-expiry path.
+        // Released post-commit on success, or eagerly on optimistic locking failure.
+        tradeLockService.acquireQuoteLock(
+                userId, order.getAssetId(), order.getSide(),
+                assetServiceConfig.getTradeLock().getTtlSeconds());
         try {
             OrderStatus previousStatus = order.getStatus();
 
@@ -388,6 +402,7 @@ public class TradingService {
                 order.setStatus(OrderStatus.QUEUED);
                 order.setQueuedPrice(order.getExecutionPrice());
                 orderRepository.save(order);
+                releaseQuoteLockAfterCommit(order);
                 // Release soft reservation (queued orders don't hold reservations)
                 if (order.getSide() == TradeSide.BUY) {
                     quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
@@ -405,6 +420,7 @@ public class TradingService {
             // Promote to PENDING — worker will pick it up
             order.setStatus(OrderStatus.PENDING);
             orderRepository.save(order);
+            releaseQuoteLockAfterCommit(order);
 
             eventPublisher.publishEvent(new OrderStatusChangedEvent(
                     orderId, userId, order.getAssetId(), null, order.getSide(),
@@ -416,9 +432,15 @@ public class TradingService {
             log.info("Quote confirmed, pending execution: orderId={}", orderId);
             return toOrderResponse(order);
         } catch (ObjectOptimisticLockingFailureException e) {
+            // Transaction is aborting — release the quote lock eagerly so the user is not blocked
+            tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
             throw new TradingException(
                     "Quote was already confirmed by a concurrent request. Please check order status.",
                     "QUOTE_ALREADY_CONFIRMED");
+        } catch (Exception e) {
+            // Transaction is aborting — afterCommit will not fire, so release the lock eagerly
+            tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
+            throw e;
         }
     }
 
@@ -598,11 +620,34 @@ public class TradingService {
                 daysSinceLastCoupon);
     }
 
+    /**
+     * Schedules the quote lock release to run after the current transaction commits.
+     * Must not be called after save() but before commit — releasing the Redis key inside
+     * the transaction creates a window where another node can re-acquire the lock before
+     * the DB row reflecting the status change is visible.
+     */
+    private void releaseQuoteLockAfterCommit(Order order) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
+                }
+            });
+        } else {
+            // No active transaction (e.g. in unit tests) — release immediately
+            tradeLockService.releaseQuoteLock(order.getUserId(), order.getAssetId(), order.getSide());
+        }
+    }
+
     private OrderResponse toOrderResponse(Order order) {
+        BigDecimal grossAmount = order.getUnits() != null && order.getExecutionPrice() != null
+                ? order.getUnits().multiply(order.getExecutionPrice())
+                : null;
         return new OrderResponse(
                 order.getId(), order.getAssetId(), null,
                 order.getSide(), order.getUnits(), order.getExecutionPrice(),
-                order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
+                grossAmount, order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
                 order.getStatus(), order.getCreatedAt(),
                 order.getRegistrationDutyAmount(), order.getCapitalGainsTaxAmount(),
                 order.getTvaAmount(), order.getAccruedInterestAmount());
@@ -882,18 +927,27 @@ public class TradingService {
      *  Uses executionPrice (gross, excluding fees/tax) for consistent P&L:
      *  BUY cost basis = execution price per unit (fees are a separate expense)
      *  SELL realized P&L = (sell execution price - buy execution price) × units
+     *  Fees (fee + TVA) and taxes (registration duty + CGT) are tracked separately on the position.
      */
     private void updatePortfolio(TradeContext ctx) {
         TradeSide side = ctx.getStrategy().side();
         BigDecimal units = ctx.getUnits();
+        // fee + TVA = total platform/broker charge; registration duty + CGT = government taxes
+        BigDecimal feePaid = nullSafeAdd(ctx.getFee(), ctx.getTvaAmount());
+        BigDecimal taxPaid = nullSafeAdd(ctx.getRegistrationDutyAmount(), ctx.getCapitalGainsTaxAmount());
         if (side == TradeSide.BUY) {
             portfolioService.updatePositionAfterBuy(ctx.getUserId(), ctx.getAssetId(),
-                    ctx.getUserAssetAccountId(), units, ctx.getExecutionPrice());
+                    ctx.getUserAssetAccountId(), units, ctx.getExecutionPrice(), feePaid, taxPaid);
         } else {
             BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    ctx.getUserId(), ctx.getAssetId(), units, ctx.getExecutionPrice());
+                    ctx.getUserId(), ctx.getAssetId(), units, ctx.getExecutionPrice(), feePaid, taxPaid);
             ctx.setRealizedPnl(realizedPnl);
         }
+    }
+
+    private static BigDecimal nullSafeAdd(BigDecimal a, BigDecimal b) {
+        BigDecimal result = a != null ? a : BigDecimal.ZERO;
+        return b != null ? result.add(b) : result;
     }
 
     /** Record immutable trade log entry. */
@@ -954,6 +1008,7 @@ public class TradingService {
         try {
             List<Map<String, Object>> batchResponses = fineractClient.executeAtomicBatch(batchOps);
             ctx.getOrder().setFineractBatchId(extractBatchId(batchResponses));
+            extractTaxTransferIds(batchOps, batchResponses, ctx);
         } catch (Exception batchError) {
             log.error("Batch transfer failed for {} order {}: {}", side, ctx.getOrderId(), batchError.getMessage());
             ctx.getOrder().setStatus(OrderStatus.FAILED);
@@ -976,7 +1031,8 @@ public class TradingService {
         if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
             taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
                     "REGISTRATION_DUTY", ctx.getGrossAmount(),
-                    taxService.getRegistrationDutyRate(lockedAsset), registrationDuty, null);
+                    taxService.getRegistrationDutyRate(lockedAsset), registrationDuty,
+                    ctx.getRegistrationDutyTransferId());
         }
         // Always record CAPITAL_GAINS tax_transaction when there's a realized gain,
         // even if tax amount is 0 (exemption applied). This ensures sumCapitalGainsByUserAndYear
@@ -986,12 +1042,14 @@ public class TradingService {
             BigDecimal cgtRate = lockedAsset.getCapitalGainsRate() != null
                     ? lockedAsset.getCapitalGainsRate() : new BigDecimal("0.165");
             taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
-                    "CAPITAL_GAINS", realizedPnl, cgtRate, capitalGainsTax, null);
+                    "CAPITAL_GAINS", realizedPnl, cgtRate, capitalGainsTax,
+                    ctx.getCapitalGainsTaxTransferId());
         }
         if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
             taxService.recordTaxTransaction(ctx.getOrderId(), null, ctx.getUserId(), ctx.getAssetId(),
                     "TVA", ctx.getGrossAmount(),
-                    taxService.getTvaRate(lockedAsset), tvaAmount, null);
+                    taxService.getTvaRate(lockedAsset), tvaAmount,
+                    ctx.getTvaTransferId());
         }
     }
 
@@ -1129,13 +1187,13 @@ public class TradingService {
             if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
                         clearingAccountId, taxService.getRegistrationDutyAccountId(),
-                        registrationDuty, "Registration duty: BUY " + asset.getSymbol()));
+                        registrationDuty, DESC_REGISTRATION_DUTY + " BUY " + asset.getSymbol()));
             }
             // Leg 7 (tax): Clearing → Tax Authority (TVA)
             if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
                         clearingAccountId, taxService.getTvaAccountId(),
-                        tvaAmount, "TVA: BUY " + asset.getSymbol()));
+                        tvaAmount, DESC_TVA + " BUY " + asset.getSymbol()));
             }
 
             // Revenue recognition journal entries (reclassify liability → income in GL)
@@ -1180,7 +1238,7 @@ public class TradingService {
                         : taxService.getRegistrationDutyAccountId();
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), taxDestination,
-                        registrationDuty, "Registration duty: SELL " + asset.getSymbol()));
+                        registrationDuty, DESC_REGISTRATION_DUTY + " SELL " + asset.getSymbol()));
             }
             // Leg 7 (tax): LP pays capital gains tax — route to LP Tax account if available, else global
             if (capitalGainsTax.compareTo(BigDecimal.ZERO) > 0) {
@@ -1189,7 +1247,7 @@ public class TradingService {
                         : taxService.getCapitalGainsAccountId();
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), taxDestination,
-                        capitalGainsTax, "Capital gains tax: SELL " + asset.getSymbol()));
+                        capitalGainsTax, DESC_CAPITAL_GAINS + " SELL " + asset.getSymbol()));
             }
             // Leg 8 (tax): LP pays TVA — route to LP Tax account if available, else global
             if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
@@ -1198,7 +1256,7 @@ public class TradingService {
                         : taxService.getTvaAccountId();
                 ops.add(new BatchTransferOp(
                         asset.getLpCashAccountId(), taxDestination,
-                        tvaAmount, "TVA: SELL " + asset.getSymbol()));
+                        tvaAmount, DESC_TVA + " SELL " + asset.getSymbol()));
             }
 
             // Revenue recognition journal entries (reclassify liability → income in GL)
@@ -1217,6 +1275,58 @@ public class TradingService {
         order.setStatus(OrderStatus.REJECTED);
         order.setFailureReason(reason);
         orderRepository.save(order);
+    }
+
+    /**
+     * Scan the batch ops list for tax legs by description prefix and extract the corresponding
+     * Fineract transfer resourceId from the batch response. Stored on ctx for use in recordTaxAudit.
+     * requestId in the response is 1-based and matches the op index + 1.
+     */
+    /**
+     * Scan batch ops for tax legs by description prefix and store the Fineract transfer resourceId
+     * in ctx for use in recordTaxAudit. requestId in the response is 1-based (= op index + 1).
+     */
+    private void extractTaxTransferIds(List<FineractClient.BatchOperation> batchOps,
+                                       List<Map<String, Object>> batchResponses,
+                                       TradeContext ctx) {
+        if (batchResponses == null) return;
+        for (int i = 0; i < batchOps.size(); i++) {
+            if (!(batchOps.get(i) instanceof FineractClient.BatchTransferOp op)) continue;
+            Long resourceId = extractResourceId(batchResponses, i + 1);
+            if (resourceId == null) continue;
+            String desc = op.description();
+            if (desc.startsWith(DESC_REGISTRATION_DUTY)) {
+                ctx.setRegistrationDutyTransferId(resourceId);
+            } else if (desc.startsWith(DESC_CAPITAL_GAINS)) {
+                ctx.setCapitalGainsTaxTransferId(resourceId);
+            } else if (desc.startsWith(DESC_TVA)) {
+                ctx.setTvaTransferId(resourceId);
+            }
+            if (ctx.getRegistrationDutyTransferId() != null
+                    && ctx.getCapitalGainsTaxTransferId() != null
+                    && ctx.getTvaTransferId() != null) break;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Long extractResourceId(List<Map<String, Object>> responses, int requestId) {
+        for (Map<String, Object> resp : responses) {
+            Object rid = resp.get("requestId");
+            if (rid == null || ((Number) rid).intValue() != requestId) continue;
+            Object body = resp.get("body");
+            if (body instanceof Map<?, ?> bodyMap) {
+                Object id = bodyMap.get("resourceId");
+                return id != null ? ((Number) id).longValue() : null;
+            }
+            if (body instanceof String bodyStr) {
+                try {
+                    Map<String, Object> parsed = objectMapper.readValue(bodyStr, Map.class);
+                    Object id = parsed.get("resourceId");
+                    return id != null ? ((Number) id).longValue() : null;
+                } catch (Exception ignored) {}
+            }
+        }
+        return null;
     }
 
     private String extractBatchId(List<Map<String, Object>> batchResponses) {
@@ -1272,11 +1382,14 @@ public class TradingService {
 
         return orders.map(o -> {
             Asset orderAsset = o.getAsset();
+            BigDecimal gross = o.getUnits() != null && o.getExecutionPrice() != null
+                    ? o.getUnits().multiply(o.getExecutionPrice())
+                    : null;
             return new OrderResponse(
                     o.getId(), o.getAssetId(),
                     orderAsset != null ? orderAsset.getSymbol() : null,
                     o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                    o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
+                    gross, o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
                     o.getRegistrationDutyAmount(), o.getCapitalGainsTaxAmount(),
                     o.getTvaAmount(), o.getAccruedInterestAmount()
             );
@@ -1294,11 +1407,14 @@ public class TradingService {
             throw new AssetException("Order not found: " + orderId);
         }
         Asset orderAsset = o.getAsset();
+        BigDecimal gross = o.getUnits() != null && o.getExecutionPrice() != null
+                ? o.getUnits().multiply(o.getExecutionPrice())
+                : null;
         return new OrderResponse(
                 o.getId(), o.getAssetId(),
                 orderAsset != null ? orderAsset.getSymbol() : null,
                 o.getSide(), o.getUnits(), o.getExecutionPrice(),
-                o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
+                gross, o.getCashAmount(), o.getFee(), o.getSpreadAmount(), o.getStatus(), o.getCreatedAt(),
                 o.getRegistrationDutyAmount(), o.getCapitalGainsTaxAmount(),
                 o.getTvaAmount(), o.getAccruedInterestAmount()
         );
@@ -1329,6 +1445,8 @@ public class TradingService {
             quoteReservationService.release(order.getAssetId(), orderId, order.getUnits());
         }
         if (previousStatus == OrderStatus.QUOTED) {
+            // Quote lock is now acquired at confirmOrder time, not at createQuote time.
+            // Cancelling a QUOTED order that was never confirmed means no lock was held — nothing to release.
             assetMetrics.recordQuoteUserCancelled();
         }
 
@@ -1341,11 +1459,14 @@ public class TradingService {
         log.info("Order cancelled: orderId={}, userId={}, previousStatus={}", orderId, userId, previousStatus);
 
         Asset orderAsset = order.getAsset();
+        BigDecimal cancelGross = order.getUnits() != null && order.getExecutionPrice() != null
+                ? order.getUnits().multiply(order.getExecutionPrice())
+                : null;
         return new OrderResponse(
                 order.getId(), order.getAssetId(),
                 orderAsset != null ? orderAsset.getSymbol() : null,
                 order.getSide(), order.getUnits(), order.getExecutionPrice(),
-                order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
+                cancelGross, order.getCashAmount(), order.getFee(), order.getSpreadAmount(),
                 order.getStatus(), order.getCreatedAt(),
                 order.getRegistrationDutyAmount(), order.getCapitalGainsTaxAmount(),
                 order.getTvaAmount(), order.getAccruedInterestAmount()

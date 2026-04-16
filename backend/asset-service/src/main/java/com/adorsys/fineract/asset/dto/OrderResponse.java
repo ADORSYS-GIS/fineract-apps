@@ -40,6 +40,15 @@ public record OrderResponse(
     BigDecimal pricePerUnit,
 
     /**
+     * Gross trade value before fees and taxes, in settlement currency (XAF).
+     * Formula: {@code units × pricePerUnit}.
+     * Null only when {@code units} or {@code pricePerUnit} are not yet available
+     * (e.g. an order in PENDING state before execution price is assigned).
+     * QUOTED orders already have a locked price so this field will be non-null for them.
+     */
+    BigDecimal grossAmount,
+
+    /**
      * Net amount that cleared the user's account, in settlement currency (XAF).
      * <ul>
      *   <li>BUY: total debited from the user's cash account

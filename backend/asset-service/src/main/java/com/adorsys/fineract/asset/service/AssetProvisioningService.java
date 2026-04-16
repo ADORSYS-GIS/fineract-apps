@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Orchestrates Fineract provisioning when an admin creates a new asset.
@@ -51,6 +52,7 @@ public class AssetProvisioningService {
     private final ResolvedGlAccounts resolvedGlAccounts;
     private final FileStorageService fileStorageService;
     private final TaxConfig taxConfig;
+    private final CurrencyCodeGenerator currencyCodeGenerator;
 
     /**
      * Create a new asset with full Fineract provisioning.
@@ -59,33 +61,47 @@ public class AssetProvisioningService {
     @Transactional
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public AssetDetailResponse createAsset(CreateAssetRequest request) {
-        // Auto-derive currencyCode from symbol if not provided
-        String effectiveCurrencyCode = (request.currencyCode() != null && !request.currencyCode().isBlank())
-                ? request.currencyCode() : request.symbol();
+        // Warn if caller still sends an explicit currencyCode (deprecated field)
+        if (request.currencyCode() != null && !request.currencyCode().isBlank()) {
+            log.warn("CreateAssetRequest.currencyCode is deprecated and will be ignored. " +
+                    "The currency code is now auto-generated from symbol. " +
+                    "Caller sent: '{}' for symbol '{}'", request.currencyCode(), request.symbol());
+        }
 
-        // Validate uniqueness in local DB
+        // Validate symbol uniqueness in local DB
         if (assetRepository.findBySymbol(request.symbol()).isPresent()) {
             throw new AssetException("Symbol already exists: " + request.symbol());
         }
+
+        // Auto-generate a collision-safe currency code from the symbol.
+        // Fetch registered codes once so CurrencyCodeGenerator can avoid them without extra API calls.
+        List<Map<String, Object>> currencies = fineractClient.getExistingCurrencies();
+        Set<String> registeredCurrencyCodes = currencies.stream()
+                .map(c -> (String) c.get("code"))
+                .filter(c -> c != null)
+                .collect(Collectors.toSet());
+        String effectiveCurrencyCode = currencyCodeGenerator.generate(request.symbol(), registeredCurrencyCodes);
+        log.info("Auto-generated currency code '{}' for symbol '{}'", effectiveCurrencyCode, request.symbol());
+
+        // Validate generated currency code is not already used locally
         if (assetRepository.findByCurrencyCode(effectiveCurrencyCode).isPresent()) {
             throw new AssetException("Currency code already exists: " + effectiveCurrencyCode);
         }
 
-        // Check Fineract for orphaned resources (from previously failed creations)
+        // Check Fineract for orphaned savings product from a previously failed creation.
+        // Strategy: adopt the orphan rather than blocking. If the product already exists in Fineract
+        // but has no local Asset record, resume provisioning from that product ID.
         Integer existingProduct = fineractClient.findSavingsProductByShortName(request.symbol());
-        if (existingProduct != null) {
-            throw new AssetException("A savings product with symbol '" + request.symbol()
-                    + "' already exists in the core banking system (product ID: " + existingProduct
-                    + "). This may be from a previously failed creation. Please use a different symbol "
-                    + "or clean up the orphaned product.");
-        }
-        List<Map<String, Object>> currencies = fineractClient.getExistingCurrencies();
-        boolean currencyExists = currencies.stream()
-                .anyMatch(c -> effectiveCurrencyCode.equals(c.get("code")));
-        if (currencyExists) {
-            throw new AssetException("A currency with code '" + effectiveCurrencyCode
-                    + "' is already registered in the core banking system. "
-                    + "This may be from a previously failed creation.");
+        boolean adoptingOrphan = existingProduct != null;
+        if (adoptingOrphan) {
+            // Safety check: ensure no local Asset is associated with this product ID
+            if (assetRepository.existsByFineractProductId(existingProduct)) {
+                throw new AssetException("A savings product with symbol '" + request.symbol()
+                        + "' (productId=" + existingProduct + ") already has an active local asset record. "
+                        + "Use a different symbol.");
+            }
+            log.warn("Adopting orphaned Fineract savings product {} for symbol '{}'. " +
+                    "Resuming provisioning from existing product.", existingProduct, request.symbol());
         }
 
         // Derive effective ask/bid: use provided values, or auto-compute from issuerPrice ± spreadPercent
@@ -171,26 +187,30 @@ public class AssetProvisioningService {
                     request.lpClientId(), ltaxProductId, null, null);
             log.info("Created LP tax withholding account (LTAX): {}", lpTaxAccountId);
 
-            // Step 2: Register custom currency in Fineract
+            // Step 2: Register custom currency in Fineract (idempotent — safe to call even if already registered)
             fineractClient.registerCurrencies(List.of(effectiveCurrencyCode));
             log.info("Registered currency: {}", effectiveCurrencyCode);
 
-            // Step 3: Create savings product (using resolved DB IDs, not GL codes)
-            // Fineract shortName: max 4 chars, alphanumeric only. Strip hyphens and truncate.
-            String shortName = request.symbol().replaceAll("[^A-Za-z0-9]", "");
-            if (shortName.length() > 4) shortName = shortName.substring(0, 4);
-            productId = fineractClient.createSavingsProduct(
-                    request.name() + " Token",
-                    shortName,
-                    effectiveCurrencyCode,
-                    request.decimalPlaces(),
-                    resolvedGlAccounts.getDigitalAssetInventoryId(),
-                    resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
-                    resolvedGlAccounts.getTransfersInSuspenseId(),
-                    resolvedGlAccounts.getIncomeFromInterestId(),
-                    resolvedGlAccounts.getExpenseAccountId()
-            );
-            log.info("Created savings product: productId={}", productId);
+            // Step 3: Create savings product, or adopt the orphaned one if it already exists
+            if (adoptingOrphan) {
+                productId = existingProduct;
+                log.info("Skipping savings product creation — adopting orphaned productId={}", productId);
+            } else {
+                // Fineract shortName: max 4 chars, derived from the auto-generated currency code (already 4 chars max)
+                String shortName = effectiveCurrencyCode;
+                productId = fineractClient.createSavingsProduct(
+                        request.name() + " Token",
+                        shortName,
+                        effectiveCurrencyCode,
+                        request.decimalPlaces(),
+                        resolvedGlAccounts.getDigitalAssetInventoryId(),
+                        resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
+                        resolvedGlAccounts.getTransfersInSuspenseId(),
+                        resolvedGlAccounts.getIncomeFromInterestId(),
+                        resolvedGlAccounts.getExpenseAccountId()
+                );
+                log.info("Created savings product: productId={}", productId);
+            }
 
             // Step 4: Atomic account lifecycle — create, approve, activate, deposit initial supply
             // Uses Fineract Batch API (enclosingTransaction=true) so if any step fails, all are rolled back
@@ -202,10 +222,14 @@ public class AssetProvisioningService {
                     lpAssetAccountId, request.totalSupply());
 
         } catch (AssetException e) {
-            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
+            // When adopting an orphan, pass null productId so rollback does NOT delete the
+            // pre-existing savings product — we didn't create it, so we must not destroy it.
+            rollbackFineractResources(adoptingOrphan ? null : productId,
+                    effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
             throw e;
         } catch (Exception e) {
-            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
+            rollbackFineractResources(adoptingOrphan ? null : productId,
+                    effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
             log.error("Fineract provisioning failed for asset {}: {}. productId={}.",
                     assetId, e.getMessage(), productId);
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);

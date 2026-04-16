@@ -93,6 +93,33 @@ public record PositionResponse(
     BigDecimal realizedPnl,
 
     /**
+     * Current LP bid price per unit — the price the LP pays to buy back units from the user, in XAF.
+     * This is what a seller would receive per unit today (before fees and taxes).
+     * For bond assets, this equals the clean price (excluding accrued coupon interest).
+     * Sourced from the latest LP price feed. May be null if no price data is available.
+     */
+    @Schema(description = "Current LP bid price per unit (sell price), in XAF.", nullable = true)
+    BigDecimal marketBidPrice,
+
+    /**
+     * Cumulative platform fees (trading fee + TVA) paid across all FILLED trades for this position,
+     * in settlement currency (XAF).
+     * Denormalized from order history — updated atomically with each trade execution.
+     * Zero for positions with no filled trades.
+     */
+    @Schema(description = "Total platform fees (fee + TVA) paid across all trades for this position, in XAF.")
+    BigDecimal totalFeesPaid,
+
+    /**
+     * Cumulative taxes (registration duty + capital gains tax) paid across all FILLED trades
+     * for this position, in settlement currency (XAF).
+     * Denormalized from order history — updated atomically with each trade execution.
+     * Zero for positions with no applicable taxes.
+     */
+    @Schema(description = "Total taxes (registration duty + CGT) paid across all trades for this position, in XAF.")
+    BigDecimal totalTaxesPaid,
+
+    /**
      * Accrued coupon interest per unit since last coupon date (XAF).
      * Zero for BTA/DISCOUNT bonds (no periodic coupons). Null for non-bond assets.
      */

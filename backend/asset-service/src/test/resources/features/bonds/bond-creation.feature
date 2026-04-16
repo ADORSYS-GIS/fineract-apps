@@ -11,7 +11,6 @@ Feature: Bond Asset Creation
     When the admin creates a bond asset with:
       | name                  | Senegal Bond 2030 |
       | symbol                | SN8               |
-      | currencyCode          | SN8               |
       | category              | BONDS             |
       | initialPrice          | 10000             |
       | totalSupply           | 500               |

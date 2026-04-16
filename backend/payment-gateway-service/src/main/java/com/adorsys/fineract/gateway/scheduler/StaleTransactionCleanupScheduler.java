@@ -46,6 +46,9 @@ public class StaleTransactionCleanupScheduler {
     @Value("${app.cleanup.processing-stale-minutes:60}")
     private int processingStaleMinutes;
 
+    @Value("${app.cleanup.stale-processing-max-retries:5}")
+    private int staleProcessingMaxRetries;
+
     /**
      * Expire stale PENDING transactions (original behavior).
      */
@@ -82,7 +85,7 @@ public class StaleTransactionCleanupScheduler {
     @Scheduled(fixedDelayString = "${app.cleanup.processing-interval-ms:600000}")
     public void resolveStaleProcessingTransactions() {
         Instant cutoff = Instant.now().minus(processingStaleMinutes, ChronoUnit.MINUTES);
-        List<PaymentTransaction> staleProcessing = transactionRepository.findStaleProcessingTransactions(cutoff);
+        List<PaymentTransaction> staleProcessing = transactionRepository.findStaleProcessingTransactions(cutoff, staleProcessingMaxRetries);
 
         if (staleProcessing.isEmpty()) {
             return;
@@ -97,8 +100,29 @@ public class StaleTransactionCleanupScheduler {
             } catch (Exception e) {
                 log.error("Failed to resolve stale PROCESSING transaction: txnId={}, error={}",
                     txn.getTransactionId(), e.getMessage());
+                incrementRetryOrDeadLetter(txn, e.getMessage());
             }
         }
+    }
+
+    @Transactional
+    void incrementRetryOrDeadLetter(PaymentTransaction txn, String errorMessage) {
+        PaymentTransaction locked = transactionRepository.findByIdForUpdate(txn.getTransactionId())
+            .orElse(null);
+        if (locked == null || locked.getStatus() != PaymentStatus.PROCESSING) {
+            return;
+        }
+        locked.setStaleResolutionRetryCount(locked.getStaleResolutionRetryCount() + 1);
+
+        if (locked.getStaleResolutionRetryCount() >= staleProcessingMaxRetries) {
+            String reason = "Max stale resolution retries (%d) exceeded. Last error: %s"
+                .formatted(staleProcessingMaxRetries, errorMessage);
+            reversalService.sendToDeadLetter(locked, reason);
+            locked.setStatus(PaymentStatus.FAILED);
+            log.error("Stale PROCESSING transaction moved to DLQ after {} retries: txnId={}",
+                staleProcessingMaxRetries, locked.getTransactionId());
+        }
+        transactionRepository.save(locked);
     }
 
     @Transactional

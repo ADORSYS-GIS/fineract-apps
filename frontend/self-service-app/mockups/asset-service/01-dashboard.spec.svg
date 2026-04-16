@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 844" width="820" height="844">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./01-dashboard.svg" x="0" y="0" width="390" height="844"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="844" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="844" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">01 · Dashboard</text>
+
+  <!-- Endpoints -->
+  <rect x="406" y="31" width="176" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /portfolio</tspan></text>
+
+  <rect x="406" y="49" width="234" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="60" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /assets?size=3</tspan></text>
+
+  <rect x="406" y="67" width="280" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="78" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /trades/orders?size=3</tspan></text>
+
+  <!-- Section: Portfolio Card -->
+  <line x1="406" y1="95" x2="816" y2="95" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="107" fill="#1e3a5f" font-size="11" font-weight="700">Portfolio Card</text>
+  <text x="410" y="123" fill="#64748b" font-size="10">Total Portfolio Value</text>
+  <text x="814" y="123" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PortfolioSummaryResponse.totalValue</text>
+  <text x="410" y="137" fill="#64748b" font-size="10">Change % today</text>
+  <text x="814" y="137" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PortfolioSummaryResponse.unrealizedPnlPercent</text>
+  <text x="410" y="151" fill="#64748b" font-size="10">Invested (cost basis)</text>
+  <text x="814" y="151" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PortfolioSummaryResponse.totalCostBasis</text>
+  <text x="410" y="165" fill="#64748b" font-size="10">Total Gain</text>
+  <text x="814" y="165" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">PortfolioSummaryResponse.unrealizedPnl</text>
+
+  <!-- Section: Market Snapshot -->
+  <line x1="406" y1="182" x2="816" y2="182" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="194" fill="#1e3a5f" font-size="11" font-weight="700">Market Snapshot  (AssetResponse per row)</text>
+  <text x="410" y="210" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="210" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.name</text>
+  <text x="410" y="224" fill="#64748b" font-size="10">Symbol · Category</text>
+  <text x="814" y="224" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.symbol / .category</text>
+  <text x="410" y="238" fill="#64748b" font-size="10">Ask price</text>
+  <text x="814" y="238" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.askPrice</text>
+  <text x="410" y="252" fill="#64748b" font-size="10">24h change %</text>
+  <text x="814" y="252" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.change24hPercent</text>
+  <text x="410" y="266" fill="#64748b" font-size="10">Status badge</text>
+  <text x="814" y="266" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetResponse.status</text>
+
+  <!-- Section: Recent Activity -->
+  <line x1="406" y1="283" x2="816" y2="283" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="295" fill="#1e3a5f" font-size="11" font-weight="700">Recent Activity  (OrderResponse per row)</text>
+  <text x="410" y="311" fill="#64748b" font-size="10">Type icon (Buy ↑ / Sell ↓)</text>
+  <text x="814" y="311" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.side</text>
+  <text x="410" y="325" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="325" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.symbol</text>
+  <text x="410" y="339" fill="#64748b" font-size="10">Date</text>
+  <text x="814" y="339" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.createdAt</text>
+  <text x="410" y="353" fill="#64748b" font-size="10">Amount (debit / credit)</text>
+  <text x="814" y="353" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.totalAmount</text>
+  <text x="410" y="367" fill="#64748b" font-size="10">Units</text>
+  <text x="814" y="367" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderResponse.units</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="384" x2="816" y2="384" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="396" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="410" fill="#b45309" font-size="9">ⓘ User name from auth session (Keycloak) — not from these endpoints.</text>
+  <text x="410" y="423" fill="#b45309" font-size="9">ⓘ "See all" market → /assets ; "See all" activity → /trades/orders.</text>
+  <text x="410" y="436" fill="#b45309" font-size="9">ⓘ Quick Actions navigate to the Buy/Sell flow (asset list first).</text>
+</svg>
