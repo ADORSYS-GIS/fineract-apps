@@ -2,7 +2,6 @@ package com.adorsys.fineract.gateway.controller;
 
 import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
-import com.adorsys.fineract.gateway.dto.MtnCallbackRequest;
 import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.service.PaymentService;
@@ -20,7 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import org.junit.jupiter.api.BeforeEach;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -63,57 +62,29 @@ class CallbackControllerTest {
     @Test
     @DisplayName("should process MTN collection callback successfully")
     void mtnCollection_success_returns200() throws Exception {
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .referenceId("ref-123")
-                .externalId("ext-ref-123")
-                .status("SUCCESSFUL")
-                .financialTransactionId("fin-txn-123")
-                .build();
-
-        mockMvc.perform(post("/api/callbacks/mtn/collection")
-                        .header("Ocp-Apim-Subscription-Key", MTN_SUBSCRIPTION_KEY)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-123"))
                 .andExpect(status().isOk());
 
-        verify(paymentService).handleMtnCollectionCallback(any(MtnCallbackRequest.class));
+        verify(paymentService).handleMtnCollectionCallbackByRef("ref-123");
     }
 
     @Test
     @DisplayName("should return 200 even when processing error occurs")
     void mtnCollection_processingError_stillReturns200() throws Exception {
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .referenceId("ref-789")
-                .status("SUCCESSFUL")
-                .build();
-
         doThrow(new RuntimeException("Processing error"))
-                .when(paymentService).handleMtnCollectionCallback(any());
+                .when(paymentService).handleMtnCollectionCallbackByRef(anyString());
 
-        mockMvc.perform(post("/api/callbacks/mtn/collection")
-                        .header("Ocp-Apim-Subscription-Key", MTN_SUBSCRIPTION_KEY)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-789"))
                 .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("should process MTN disbursement callback")
     void mtnDisbursement_success_returns200() throws Exception {
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .referenceId("ref-123")
-                .externalId("ext-ref-123")
-                .status("SUCCESSFUL")
-                .financialTransactionId("fin-txn-123")
-                .build();
-
-        mockMvc.perform(post("/api/callbacks/mtn/disbursement")
-                        .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/ref-123"))
                 .andExpect(status().isOk());
 
-        verify(paymentService).handleMtnDisbursementCallback(any(MtnCallbackRequest.class));
+        verify(paymentService).handleMtnDisbursementCallbackByRef("ref-123");
     }
 
     // =========================================================================

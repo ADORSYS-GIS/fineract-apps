@@ -84,7 +84,7 @@ class MtnMomoClientTest {
             assertThat(request.getHeader("X-Reference-Id")).isEqualTo("ref-123");
             assertThat(request.getHeader("X-Target-Environment")).isEqualTo("sandbox");
             assertThat(request.getHeader("Ocp-Apim-Subscription-Key")).isEqualTo("test-collection-key");
-            assertThat(request.getHeader("X-Callback-Url")).isEqualTo("http://localhost:8082/api/callbacks/mtn/collection");
+            assertThat(request.getHeader("X-Callback-Url")).isEqualTo("http://localhost:8082/api/callbacks/mtn/collection/ref-123");
 
             // Verify body contains amount and phone
             String body = request.getBody().readUtf8();
@@ -128,7 +128,7 @@ class MtnMomoClientTest {
             RecordedRequest request = mockWebServer.takeRequest();
             assertThat(request.getPath()).isEqualTo("/disbursement/v1_0/transfer");
             assertThat(request.getHeader("Ocp-Apim-Subscription-Key")).isEqualTo("test-disbursement-key");
-            assertThat(request.getHeader("X-Callback-Url")).isEqualTo("http://localhost:8082/api/callbacks/mtn/disbursement");
+            assertThat(request.getHeader("X-Callback-Url")).isEqualTo("http://localhost:8082/api/callbacks/mtn/disbursement/ref-456");
         }
 
         @Test
