@@ -10,6 +10,7 @@ import com.adorsys.fineract.gateway.entity.PaymentTransaction;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
 import com.adorsys.fineract.gateway.service.ReversalService;
+import com.adorsys.fineract.gateway.service.StaleTransactionReconciler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ public class StaleTransactionCleanupScheduler {
     private final OrangeMoneyClient orangeClient;
     private final CinetPayClient cinetPayClient;
     private final ReversalService reversalService;
+    private final StaleTransactionReconciler reconciler;
 
     @Value("${app.cleanup.stale-minutes:30}")
     private int staleMinutes;
@@ -48,6 +50,9 @@ public class StaleTransactionCleanupScheduler {
 
     @Value("${app.cleanup.stale-processing-max-retries:5}")
     private int staleProcessingMaxRetries;
+
+    @Value("${app.cleanup.pending-stale-minutes:3}")
+    private int pendingStaleMinutes;
 
     /**
      * Expire stale PENDING transactions (original behavior).
@@ -102,6 +107,40 @@ public class StaleTransactionCleanupScheduler {
                 log.error("Failed to resolve stale PROCESSING transaction: txnId={}, error={}",
                     txn.getTransactionId(), e.getMessage());
                 incrementRetryOrDeadLetter(txn, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Poll providers for PENDING transactions (both deposits and withdrawals) that have not
+     * received a callback within pendingStaleMinutes.
+     *
+     * Deposits: credit Fineract if the provider confirms SUCCESSFUL.
+     * Withdrawals: trigger a reversal if the provider confirms FAILED.
+     */
+    @Scheduled(fixedDelayString = "${app.cleanup.pending-interval-ms:120000}")
+    @Transactional
+    public void resolveStaleTransactions() {
+        Instant cutoff = Instant.now().minus(pendingStaleMinutes, ChronoUnit.MINUTES);
+        List<PaymentTransaction> stalePending = transactionRepository
+            .findStalePendingTransactionsForReconciliation(cutoff, staleProcessingMaxRetries);
+
+        if (stalePending.isEmpty()) {
+            return;
+        }
+
+        log.info("Found {} stale PENDING transactions older than {} minutes for reconciliation",
+            stalePending.size(), pendingStaleMinutes);
+
+        for (PaymentTransaction txn : stalePending) {
+            try {
+                StaleTransactionReconciler.ReconcileResult result = reconciler.reconcile(txn);
+                if (result.reversalNeeded()) {
+                    reversalService.reverseWithdrawal(result.transactionForReversal());
+                }
+            } catch (Exception e) {
+                log.error("Failed to reconcile stale PENDING transaction: txnId={}, error={}",
+                    txn.getTransactionId(), e.getMessage());
             }
         }
     }

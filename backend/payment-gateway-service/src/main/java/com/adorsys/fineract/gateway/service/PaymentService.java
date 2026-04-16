@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,12 +58,19 @@ public class PaymentService {
     private final ReversalDeadLetterRepository deadLetterRepository;
     private final CallbackHandlerDelegate callbackDelegate;
     private final TransactionReservationService reservationService;
+    private final StaleTransactionReconciler staleTransactionReconciler;
 
     @Value("${app.limits.daily-deposit-max:500000}")
     private BigDecimal dailyDepositMax;
 
     @Value("${app.limits.daily-withdrawal-max:500000}")
     private BigDecimal dailyWithdrawalMax;
+
+    @Value("${app.status.provider-check-enabled:true}")
+    private boolean statusProviderCheckEnabled;
+
+    @Value("${app.status.pending-poll-min-age-minutes:2}")
+    private int pendingPollMinAgeMinutes;
 
     /**
      * Initiate a deposit operation.
@@ -391,10 +399,28 @@ public class PaymentService {
 
     /**
      * Get transaction status.
+     * When the transaction is PENDING and older than pendingPollMinAgeMinutes, polls the provider
+     * directly so the caller gets an accurate status without waiting for the scheduler.
      */
     public TransactionStatusResponse getTransactionStatus(String transactionId) {
         PaymentTransaction txn = transactionRepository.findById(transactionId)
             .orElseThrow(() -> new PaymentException("Transaction not found: " + transactionId));
+
+        if (statusProviderCheckEnabled
+                && txn.getStatus() == PaymentStatus.PENDING
+                && txn.getCreatedAt().isBefore(Instant.now().minus(pendingPollMinAgeMinutes, ChronoUnit.MINUTES))) {
+            try {
+                StaleTransactionReconciler.ReconcileResult result = staleTransactionReconciler.reconcile(txn);
+                if (result.reversalNeeded()) {
+                    reversalService.reverseWithdrawal(result.transactionForReversal());
+                }
+                // Re-fetch to pick up any state changes from reconciliation
+                txn = transactionRepository.findById(transactionId).orElse(txn);
+            } catch (Exception e) {
+                log.warn("On-demand reconciliation failed for txnId={}, returning last known status: {}",
+                    transactionId, e.getMessage());
+            }
+        }
 
         return TransactionStatusResponse.builder()
             .transactionId(txn.getTransactionId())

@@ -2,6 +2,7 @@ package com.adorsys.fineract.gateway.client;
 
 import com.adorsys.fineract.gateway.config.CinetPayConfig;
 import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
+import com.adorsys.fineract.gateway.dto.PaymentProvider;
 import com.adorsys.fineract.gateway.dto.PaymentStatus;
 import com.adorsys.fineract.gateway.exception.PaymentException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -248,6 +249,60 @@ public class CinetPayClient {
             log.error("Failed to verify CinetPay transaction: transactionId={}, error={}",
                 transactionId, e.getMessage());
             return PaymentStatus.PENDING;
+        }
+    }
+
+    /**
+     * Result of verifyTransactionFull: both the payment status and the underlying provider
+     * (MTN MoMo or Orange Money) chosen by the customer on the CinetPay payment page.
+     * actualProvider is null when the payment method cannot be determined from the API response.
+     */
+    public record VerifyResult(PaymentStatus status, PaymentProvider actualProvider) {}
+
+    /**
+     * Verify transaction status and resolve the underlying payment provider.
+     * Used when reconciling stale PENDING deposits so the correct Fineract GL account is credited.
+     */
+    public VerifyResult verifyTransactionFull(String transactionId) {
+        log.info("Verifying CinetPay transaction (full): transactionId={}", transactionId);
+
+        Map<String, Object> requestBody = Map.of(
+            "apikey", config.getApiKey(),
+            "site_id", config.getSiteId(),
+            "transaction_id", transactionId
+        );
+
+        try {
+            Map<String, Object> response = webClient.post()
+                .uri(config.getBaseUrl() + "/v2/payment/check")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+
+            String code = String.valueOf(response.get("code"));
+            PaymentStatus status = mapCinetPayStatus(code);
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) response.get("data");
+            PaymentProvider actualProvider = null;
+            if (data != null) {
+                String paymentMethod = (String) data.get("cpm_payment_method");
+                if ("MOMO".equalsIgnoreCase(paymentMethod)) {
+                    actualProvider = PaymentProvider.MTN_MOMO;
+                } else if ("OM".equalsIgnoreCase(paymentMethod)) {
+                    actualProvider = PaymentProvider.ORANGE_MONEY;
+                }
+            }
+
+            return new VerifyResult(status, actualProvider);
+
+        } catch (Exception e) {
+            log.error("Failed to verify CinetPay transaction (full): transactionId={}, error={}",
+                transactionId, e.getMessage());
+            return new VerifyResult(PaymentStatus.PENDING, null);
         }
     }
 
