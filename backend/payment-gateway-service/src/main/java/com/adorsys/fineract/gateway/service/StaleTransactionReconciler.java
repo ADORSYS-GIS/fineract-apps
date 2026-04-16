@@ -95,17 +95,19 @@ public class StaleTransactionReconciler {
             return ReconcileResult.failed();
 
         } else {
-            // Still pending — increment retry or expire
-            locked.setStaleResolutionRetryCount(locked.getStaleResolutionRetryCount() + 1);
-            if (locked.getStaleResolutionRetryCount() >= maxRetries) {
+            // Provider returned PENDING or polling failed — increment retry or expire
+            int retries = locked.getStaleResolutionRetryCount() + 1;
+            locked.setStaleResolutionRetryCount(retries);
+            if (retries >= maxRetries) {
                 locked.setStatus(PaymentStatus.EXPIRED);
                 paymentMetrics.incrementTransactionExpired(locked.getProvider());
                 log.error("Stale PENDING expired after {} retries: txnId={}, provider={}",
                     maxRetries, locked.getTransactionId(), locked.getProvider());
-            } else {
-                log.info("Stale PENDING still pending at provider, retry {}/{}: txnId={}",
-                    locked.getStaleResolutionRetryCount(), maxRetries, locked.getTransactionId());
+                transactionRepository.save(locked);
+                return ReconcileResult.stillPending();
             }
+            log.info("Stale PENDING still pending at provider, retry {}/{}: txnId={}",
+                retries, maxRetries, locked.getTransactionId());
             transactionRepository.save(locked);
             return ReconcileResult.stillPending();
         }
