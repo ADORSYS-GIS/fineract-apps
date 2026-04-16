@@ -87,44 +87,21 @@ public class MtnWithdrawalSteps {
         String transactionId = context.getId("transactionId");
         WireMockProviderStubs.stubMtnGetDisbursementStatusSuccess(transactionId);
 
-        String providerRef = context.getId("providerReference");
-
-        Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "SUCCESSFUL",
-                "externalId", providerRef,
-                "amount", "5000",
-                "currency", "XAF",
-                "financialTransactionId", "mtn-fin-txn-" + UUID.randomUUID()
-        );
-
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
-                .body(callback)
-                .post("/api/callbacks/mtn/disbursement");
+                .post("/api/callbacks/mtn/disbursement/" + transactionId);
 
         assertThat(response.statusCode()).isEqualTo(200);
     }
 
     @When("the MTN disbursement callback reports FAILED for the withdrawal")
     public void mtnDisbursementCallbackFailed() {
-        String providerRef = context.getId("providerReference");
-
-        Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "FAILED",
-                "externalId", providerRef,
-                "reason", "PAYER_NOT_FOUND"
-        );
+        String transactionId = context.getId("transactionId");
+        WireMockProviderStubs.stubMtnGetDisbursementStatusFailed(transactionId);
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
-                .body(callback)
-                .post("/api/callbacks/mtn/disbursement");
+                .post("/api/callbacks/mtn/disbursement/" + transactionId);
 
         assertThat(response.statusCode()).isEqualTo(200);
     }

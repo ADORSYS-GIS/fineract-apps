@@ -58,17 +58,12 @@ public class SecuritySteps {
 
     @When("a callback is sent without authentication to the MTN collection endpoint")
     public void callbackWithoutAuth() {
-        Map<String, Object> callback = Map.of(
-                "referenceId", UUID.randomUUID().toString(),
-                "status", "SUCCESSFUL",
-                "externalId", UUID.randomUUID().toString()
-        );
+        // Path-based endpoint: referenceId in URL, no body required
+        String randomRef = UUID.randomUUID().toString();
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .body(callback)
-                .post("/api/callbacks/mtn/collection");
+                .post("/api/callbacks/mtn/collection/" + randomRef);
 
         context.storeValue("callbackResponse", response);
     }
