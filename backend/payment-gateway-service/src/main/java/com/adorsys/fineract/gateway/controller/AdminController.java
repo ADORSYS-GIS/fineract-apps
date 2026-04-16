@@ -3,6 +3,7 @@ package com.adorsys.fineract.gateway.controller;
 import com.adorsys.fineract.gateway.entity.ReversalDeadLetter;
 import com.adorsys.fineract.gateway.repository.ReversalDeadLetterRepository;
 import com.adorsys.fineract.gateway.service.ReversalService;
+import com.adorsys.fineract.gateway.service.ReversalService.AdminRetryResult;
 import com.adorsys.fineract.gateway.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -46,56 +47,53 @@ public class AdminController {
     @PostMapping("/reversals/dlq/{id}/retry")
     @Operation(summary = "Retry a failed reversal",
                description = "Re-attempts the Fineract compensating deposit for a DLQ entry. " +
-                             "Marks resolved on success; increments retryCount on failure.")
+                             "Marks resolved on success; increments retryCount on failure (422). " +
+                             "Returns 400 if already resolved, 409 if max retries exceeded.")
     public ResponseEntity<ReversalDeadLetter> retryDeadLetter(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        return deadLetterRepository.findById(id)
-            .map(entry -> {
-                if (entry.isResolved()) {
-                    return ResponseEntity.badRequest().<ReversalDeadLetter>build();
-                }
+        // Extract identity before any side effects — if JWT has no sub this fails fast with 403
+        String adminSub = JwtUtils.extractExternalId(jwt);
 
-                entry.setRetryCount(entry.getRetryCount() + 1);
-                boolean success = reversalService.retryFromDeadLetter(entry);
+        AdminRetryResult result = reversalService.retryDeadLetterEntry(id, adminSub);
 
-                if (success) {
-                    entry.setResolved(true);
-                    entry.setResolvedAt(Instant.now());
-                    entry.setResolvedBy(JwtUtils.extractExternalId(jwt));
-                    entry.setNotes("Resolved via admin retry");
-                    log.info("DLQ entry {} resolved via admin retry by {}", id, entry.getResolvedBy());
-                } else {
-                    log.warn("Admin retry failed for DLQ entry {}, retryCount now {}", id, entry.getRetryCount());
-                }
-
-                deadLetterRepository.save(entry);
-                return success
-                    ? ResponseEntity.ok(entry)
-                    : ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(entry);
-            })
-            .orElse(ResponseEntity.notFound().build());
+        return switch (result) {
+            case NOT_FOUND -> ResponseEntity.notFound().build();
+            case ALREADY_RESOLVED -> ResponseEntity.badRequest().build();
+            case MAX_RETRIES_EXCEEDED -> ResponseEntity.status(HttpStatus.CONFLICT).build();
+            case RESOLVED -> deadLetterRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.ok().build());
+            case FAILED -> deadLetterRepository.findById(id)
+                .map(e -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e))
+                .orElse(ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).build());
+        };
     }
 
     @PatchMapping("/reversals/dlq/{id}")
     @Operation(summary = "Manually resolve a reversal dead-letter entry",
-               description = "Mark a failed reversal as resolved after manual intervention (e.g. ops processed it out-of-band).")
+               description = "Mark a failed reversal as resolved after manual intervention (e.g. ops processed it out-of-band). " +
+                             "Include 'notes' in the body to set them; omit the key to leave existing notes unchanged.")
     public ResponseEntity<ReversalDeadLetter> resolveDeadLetter(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal Jwt jwt) {
 
+        // Extract identity before DB work
+        String adminSub = JwtUtils.extractExternalId(jwt);
+
         return deadLetterRepository.findById(id)
             .map(entry -> {
                 entry.setResolved(true);
                 entry.setResolvedAt(Instant.now());
-                // Prefer body-supplied display name, fall back to JWT sub
-                String resolvedBy = body.getOrDefault("resolvedBy", JwtUtils.extractExternalId(jwt));
-                entry.setResolvedBy(resolvedBy);
-                entry.setNotes(body.get("notes"));
+                entry.setResolvedBy(adminSub);
+                // Only update notes when the key is explicitly present — omitting it preserves existing notes
+                if (body.containsKey("notes")) {
+                    entry.setNotes(body.get("notes"));
+                }
                 deadLetterRepository.save(entry);
-                log.info("DLQ entry {} manually resolved by {}", id, resolvedBy);
+                log.info("DLQ entry {} manually resolved by {}", id, adminSub);
                 return ResponseEntity.ok(entry);
             })
             .orElse(ResponseEntity.notFound().build());

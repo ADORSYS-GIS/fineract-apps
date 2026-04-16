@@ -12,10 +12,14 @@ import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.ReversalDeadLetterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 /**
  * Handles Fineract withdrawal reversals via compensating deposits.
@@ -33,6 +37,9 @@ public class ReversalService {
     private final CinetPayConfig cinetPayConfig;
     private final PaymentMetrics paymentMetrics;
     private final ReversalDeadLetterRepository deadLetterRepository;
+
+    @Value("${app.dlq.admin-max-retries:10}")
+    private int adminMaxRetries;
 
     /**
      * Reverse a Fineract withdrawal via compensating deposit.
@@ -73,27 +80,43 @@ public class ReversalService {
         }
     }
 
+    public enum AdminRetryResult { RESOLVED, FAILED, NOT_FOUND, ALREADY_RESOLVED, MAX_RETRIES_EXCEEDED }
+
     /**
-     * Manual retry of a dead-letter reversal triggered by an admin.
-     * Does NOT use @Retryable to avoid creating a second DLQ entry on failure.
-     * Returns true on success, false on any error.
+     * Transactional admin retry of a dead-letter entry.
+     * Acquires a pessimistic write lock to prevent concurrent retries from the same entry.
+     * Does NOT use @Retryable — avoids creating a second DLQ entry if the retry also fails.
      */
-    public boolean retryFromDeadLetter(ReversalDeadLetter dlq) {
+    @Transactional
+    public AdminRetryResult retryDeadLetterEntry(Long dlqId, String adminSub) {
+        ReversalDeadLetter entry = deadLetterRepository.findByIdForUpdate(dlqId).orElse(null);
+        if (entry == null) return AdminRetryResult.NOT_FOUND;
+        if (entry.isResolved()) return AdminRetryResult.ALREADY_RESOLVED;
+        if (entry.getRetryCount() >= adminMaxRetries) return AdminRetryResult.MAX_RETRIES_EXCEEDED;
+
+        entry.setRetryCount(entry.getRetryCount() + 1);
+
         try {
-            Long paymentTypeId = getPaymentTypeId(dlq.getProvider(), dlq.getProviderHint());
+            Long paymentTypeId = getPaymentTypeId(entry.getProvider(), entry.getProviderHint());
             fineractClient.createDeposit(
-                dlq.getAccountId(),
-                dlq.getAmount(),
+                entry.getAccountId(),
+                entry.getAmount(),
                 paymentTypeId,
-                "REVERSAL-" + dlq.getTransactionId()
+                "REVERSAL-" + entry.getTransactionId()
             );
+            entry.setResolved(true);
+            entry.setResolvedAt(Instant.now());
+            entry.setResolvedBy(adminSub);
+            entry.setNotes("Resolved via admin retry");
             paymentMetrics.incrementReversalSuccess();
-            log.info("Manual DLQ retry succeeded: dlqId={}, txnId={}", dlq.getId(), dlq.getTransactionId());
-            return true;
+            log.info("Admin DLQ retry succeeded: dlqId={}, txnId={}, by={}", dlqId, entry.getTransactionId(), adminSub);
+            deadLetterRepository.save(entry);
+            return AdminRetryResult.RESOLVED;
         } catch (Exception e) {
-            log.error("Manual DLQ retry failed: dlqId={}, txnId={}, error={}",
-                dlq.getId(), dlq.getTransactionId(), e.getMessage());
-            return false;
+            log.error("Admin DLQ retry failed: dlqId={}, txnId={}, retryCount={}, error={}",
+                dlqId, entry.getTransactionId(), entry.getRetryCount(), e.getMessage());
+            deadLetterRepository.save(entry);
+            return AdminRetryResult.FAILED;
         }
     }
 
