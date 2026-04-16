@@ -193,16 +193,21 @@ public class StaleTransactionCleanupScheduler {
             log.warn("Stale PROCESSING resolved as FAILED via polling: txnId={}", locked.getTransactionId());
 
         } else {
-            // Still pending at provider - check if it's been too long (> 2 hours)
-            Instant twoHoursAgo = Instant.now().minus(2, ChronoUnit.HOURS);
-            if (locked.getCreatedAt().isBefore(twoHoursAgo)) {
-                log.error("CRITICAL: Transaction stuck in PROCESSING for >2 hours. Manual review required! " +
-                    "txnId={}, provider={}, amount={}, accountId={}",
-                    locked.getTransactionId(), locked.getProvider(),
-                    locked.getAmount(), locked.getAccountId());
-                paymentMetrics.incrementStaleProcessingResolved(locked.getProvider(), "escalated");
+            // Provider returned PENDING or polling failed — increment retry or escalate to DLQ
+            int retries = locked.getStaleResolutionRetryCount() + 1;
+            locked.setStaleResolutionRetryCount(retries);
+            if (retries >= staleProcessingMaxRetries) {
+                reversalService.sendToDeadLetter(locked,
+                    "Max stale resolution retries (%d) exceeded - provider status unknown".formatted(staleProcessingMaxRetries));
+                locked.setStatus(PaymentStatus.FAILED);
+                transactionRepository.save(locked);
+                paymentMetrics.incrementStaleProcessingResolved(locked.getProvider(), "escalated_dlq");
+                log.error("Stale PROCESSING moved to DLQ after {} retries: txnId={}, provider={}, amount={}",
+                    staleProcessingMaxRetries, locked.getTransactionId(), locked.getProvider(), locked.getAmount());
             } else {
-                log.info("Stale PROCESSING still pending at provider, will retry: txnId={}", locked.getTransactionId());
+                transactionRepository.save(locked);
+                log.warn("Stale PROCESSING still pending at provider, retry {}/{}: txnId={}, provider={}",
+                    retries, staleProcessingMaxRetries, locked.getTransactionId(), locked.getProvider());
             }
         }
     }
