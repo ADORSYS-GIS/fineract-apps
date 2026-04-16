@@ -30,63 +30,42 @@ public class CallbackController {
     private final PaymentMetrics paymentMetrics;
 
     /**
-     * Handle MTN MoMo collection callback (deposit completed).
+     * Handle MTN MoMo collection callback (deposit completed) — path-based.
+     * The referenceId in the path is the X-Reference-Id we sent to MTN (= our transactionId).
+     * MTN sandbox may send an empty body, so we poll MTN for the actual status.
      */
-    @PostMapping("/mtn/collection")
+    @PostMapping("/mtn/collection/{referenceId}")
     @Operation(summary = "MTN collection callback", description = "Receive MTN MoMo collection (deposit) status update")
     public ResponseEntity<Void> handleMtnCollectionCallback(
-            @RequestBody MtnCallbackRequest callback,
-            @RequestHeader(value = "X-Callback-Url", required = false) String callbackUrl,
-            @RequestHeader(value = "Ocp-Apim-Subscription-Key", required = false) String subscriptionKey) {
+            @PathVariable String referenceId) {
 
-        log.info("Received MTN collection callback: ref={}, status={}, externalId={}",
-            callback.getReferenceId(), callback.getStatus(), callback.getExternalId());
-
-             // TODO: Re-enable this security check for production. It is temporarily disabled
-        // because the MTN Sandbox is not sending the subscription key in the callback header.
-
-        //     if (!isValidMtnCallback(subscriptionKey)) {
-        //     log.warn("Invalid MTN collection callback: subscription key mismatch");
-        //     return ResponseEntity.ok().build();
-        // }
-
-
+        log.info("Received MTN collection callback: referenceId={}", referenceId);
         try {
-            paymentService.handleMtnCollectionCallback(callback);
+            paymentService.handleMtnCollectionCallbackByRef(referenceId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("Failed to process MTN collection callback: {}", e.getMessage(), e);
+            log.error("Failed to process MTN collection callback: referenceId={}, error={}", referenceId, e.getMessage(), e);
             paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.MTN_MOMO);
             return ResponseEntity.ok().build();
         }
     }
 
     /**
-     * Handle MTN MoMo disbursement callback (withdrawal completed).
+     * Handle MTN MoMo disbursement callback (withdrawal completed) — path-based.
+     * The referenceId in the path is the X-Reference-Id we sent to MTN (= our transactionId).
+     * MTN sandbox may send an empty body, so we poll MTN for the actual status.
      */
-    @PostMapping("/mtn/disbursement")
+    @PostMapping("/mtn/disbursement/{referenceId}")
     @Operation(summary = "MTN disbursement callback", description = "Receive MTN MoMo disbursement (withdrawal) status update")
     public ResponseEntity<Void> handleMtnDisbursementCallback(
-            @RequestBody MtnCallbackRequest callback,
-            @RequestHeader(value = "X-Callback-Url", required = false) String callbackUrl,
-            @RequestHeader(value = "Ocp-Apim-Subscription-Key", required = false) String subscriptionKey) {
+            @PathVariable String referenceId) {
 
-        log.info("Received MTN disbursement callback: ref={}, status={}, externalId={}",
-            callback.getReferenceId(), callback.getStatus(), callback.getExternalId());
-
-            // TODO: Re-enable this security check for production. It is temporarily disabled
-        // because the MTN Sandbox is not sending the subscription key in the callback header.
-        
-        //          if (!isValidMtnCallback(subscriptionKey)) {
-        //     log.warn("Invalid MTN disbursement callback: subscription key mismatch");
-        //     return ResponseEntity.ok().build();
-        // }
-
+        log.info("Received MTN disbursement callback: referenceId={}", referenceId);
         try {
-            paymentService.handleMtnDisbursementCallback(callback);
+            paymentService.handleMtnDisbursementCallbackByRef(referenceId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("Failed to process MTN disbursement callback: {}", e.getMessage(), e);
+            log.error("Failed to process MTN disbursement callback: referenceId={}, error={}", referenceId, e.getMessage(), e);
             paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.MTN_MOMO);
             return ResponseEntity.ok().build();
         }

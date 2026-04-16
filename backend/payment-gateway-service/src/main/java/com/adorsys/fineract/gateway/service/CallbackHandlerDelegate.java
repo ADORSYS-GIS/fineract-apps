@@ -49,6 +49,80 @@ public class CallbackHandlerDelegate {
         public static CallbackResult needsReversal(PaymentTransaction txn) { return new CallbackResult(true, txn); }
     }
 
+    // ==================== MTN Collection (Deposit) — path-based ====================
+
+    /**
+     * Process MTN collection callback when identified by referenceId (our transactionId).
+     * Called when MTN sends an empty body; status comes from polling MTN directly.
+     */
+    @Transactional
+    public void processMtnCollectionCallbackByRef(String referenceId, PaymentStatus polledStatus) {
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(referenceId).orElse(null);
+        if (txn == null) {
+            log.warn("MTN collection callback: transaction not found for referenceId={}", referenceId);
+            return;
+        }
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            log.info("MTN collection callback: transaction already in terminal state txnId={}, status={}",
+                referenceId, txn.getStatus());
+            return;
+        }
+        if (polledStatus == PaymentStatus.SUCCESSFUL) {
+            Long fineractTxnId = fineractClient.createDeposit(
+                txn.getAccountId(),
+                txn.getAmount(),
+                mtnConfig.getFineractPaymentTypeId(),
+                null
+            );
+            txn.setStatus(PaymentStatus.SUCCESSFUL);
+            txn.setFineractTransactionId(fineractTxnId);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.SUCCESSFUL);
+            paymentMetrics.recordPaymentAmountTotal(PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT, txn.getAmount());
+            log.info("Deposit completed via polling: txnId={}, fineractTxnId={}", referenceId, fineractTxnId);
+        } else if (polledStatus == PaymentStatus.FAILED) {
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.FAILED);
+            log.warn("Deposit failed via polling: txnId={}", referenceId);
+        } else {
+            log.info("MTN collection still PENDING for txnId={}, ignoring callback", referenceId);
+        }
+    }
+
+    // ==================== MTN Disbursement (Withdrawal) — path-based ====================
+
+    /**
+     * Process MTN disbursement callback when identified by referenceId (our transactionId).
+     * Called when MTN sends an empty body; status comes from polling MTN directly.
+     */
+    @Transactional
+    public CallbackResult processMtnDisbursementCallbackByRef(String referenceId, PaymentStatus polledStatus) {
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(referenceId).orElse(null);
+        if (txn == null) {
+            log.warn("MTN disbursement callback: transaction not found for referenceId={}", referenceId);
+            return CallbackResult.noReversal();
+        }
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            return CallbackResult.noReversal();
+        }
+        if (polledStatus == PaymentStatus.SUCCESSFUL) {
+            txn.setStatus(PaymentStatus.SUCCESSFUL);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.SUCCESSFUL);
+            paymentMetrics.recordPaymentAmountTotal(PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.WITHDRAWAL, txn.getAmount());
+            log.info("Withdrawal completed via polling: txnId={}", referenceId);
+            return CallbackResult.noReversal();
+        } else if (polledStatus == PaymentStatus.FAILED) {
+            log.warn("MTN withdrawal failed via polling: txnId={}. Reversal needed.", referenceId);
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.MTN_MOMO, PaymentStatus.FAILED);
+            return CallbackResult.needsReversal(txn);
+        }
+        return CallbackResult.noReversal();
+    }
+
     // ==================== MTN Collection (Deposit) ====================
 
     @Transactional

@@ -77,7 +77,7 @@ public class MtnMomoClient {
             "payeeNote", "Deposit to savings account"
         );
 
-        String callbackUrl = config.getCallbackUrl() + "/mtn/collection";
+        String callbackUrl = config.getCallbackUrl() + "/mtn/collection/" + referenceId;
         log.info("Sending X-Callback-Url: {}", callbackUrl);
 
         try {
@@ -87,7 +87,7 @@ public class MtnMomoClient {
                 .header("X-Reference-Id", referenceId)
                 .header("X-Target-Environment", config.getTargetEnvironment())
                 .header("Ocp-Apim-Subscription-Key", config.getCollectionSubscriptionKey())
-                .header("X-Callback-Url", config.getCallbackUrl() + "/mtn/collection")
+                .header("X-Callback-Url", callbackUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .retrieve()
@@ -141,7 +141,7 @@ public class MtnMomoClient {
                 .header("X-Reference-Id", referenceId)
                 .header("X-Target-Environment", config.getTargetEnvironment())
                 .header("Ocp-Apim-Subscription-Key", config.getDisbursementSubscriptionKey())
-                .header("X-Callback-Url", config.getCallbackUrl() + "/mtn/disbursement")
+                .header("X-Callback-Url", config.getCallbackUrl() + "/mtn/disbursement/" + referenceId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .retrieve()

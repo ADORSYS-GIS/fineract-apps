@@ -83,6 +83,7 @@ public class StaleTransactionCleanupScheduler {
      * and either confirm success or trigger a reversal.
      */
     @Scheduled(fixedDelayString = "${app.cleanup.processing-interval-ms:600000}")
+    @Transactional
     public void resolveStaleProcessingTransactions() {
         Instant cutoff = Instant.now().minus(processingStaleMinutes, ChronoUnit.MINUTES);
         List<PaymentTransaction> staleProcessing = transactionRepository.findStaleProcessingTransactions(cutoff, staleProcessingMaxRetries);

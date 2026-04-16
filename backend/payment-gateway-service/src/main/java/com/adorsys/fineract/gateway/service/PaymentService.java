@@ -264,6 +264,37 @@ public class PaymentService {
     }
 
     /**
+     * Handle MTN collection callback identified by referenceId in the URL path.
+     * Used when MTN sandbox sends an empty or unparseable body — polls MTN for the real status.
+     * referenceId = X-Reference-Id we sent = our transactionId.
+     */
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
+    public void handleMtnCollectionCallbackByRef(String referenceId) {
+        log.info("Processing MTN collection callback by referenceId: {}", referenceId);
+        PaymentStatus polledStatus = mtnClient.getCollectionStatus(referenceId);
+        log.info("MTN polled status: {} for referenceId={}", polledStatus, referenceId);
+        callbackDelegate.processMtnCollectionCallbackByRef(referenceId, polledStatus);
+    }
+
+    /**
+     * Handle MTN disbursement callback identified by referenceId in the URL path.
+     * Used when MTN sandbox sends an empty or unparseable body — polls MTN for the real status.
+     * referenceId = X-Reference-Id we sent = our transactionId.
+     */
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
+    public void handleMtnDisbursementCallbackByRef(String referenceId) {
+        log.info("Processing MTN disbursement callback by referenceId: {}", referenceId);
+        PaymentStatus polledStatus = mtnClient.getDisbursementStatus(referenceId);
+        log.info("MTN polled status: {} for referenceId={}", polledStatus, referenceId);
+        CallbackHandlerDelegate.CallbackResult result = callbackDelegate.processMtnDisbursementCallbackByRef(referenceId, polledStatus);
+        if (result.reversalNeeded()) {
+            reversalService.reverseWithdrawal(result.transaction());
+        }
+    }
+
+    /**
      * Handle MTN callback for collections (deposits).
      * @Retryable wraps the @Transactional delegate to ensure correct AOP ordering.
      */
