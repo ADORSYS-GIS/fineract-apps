@@ -709,7 +709,7 @@ class TradingServiceTest {
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, units.negate());
         verify(pricingService).updateOhlcAfterTrade(ASSET_ID, bidPrice);
         verify(assetMetrics).recordSell();
-        verify(portfolioService).updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID), eq(units), any());
+        verify(portfolioService).updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID), eq(units), any(), any(), any());
     }
 
     @Test

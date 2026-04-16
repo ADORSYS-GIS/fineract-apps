@@ -211,7 +211,7 @@ public class PortfolioService {
                 .stream()
                 .map(o -> {
                     BigDecimal gross = o.getUnits() != null && o.getExecutionPrice() != null
-                            ? o.getUnits().multiply(o.getExecutionPrice()).setScale(0, RoundingMode.HALF_UP)
+                            ? o.getUnits().multiply(o.getExecutionPrice())
                             : null;
                     return new OrderResponse(
                             o.getId(), o.getAssetId(),
@@ -308,8 +308,10 @@ public class PortfolioService {
         pos.setTotalCostBasis(newTotalCost);
         pos.setAvgPurchasePrice(newAvgPrice);
         pos.setFineractSavingsAccountId(fineractAccountId);
-        pos.setTotalFeesPaid(pos.getTotalFeesPaid().add(feePaid != null ? feePaid : BigDecimal.ZERO));
-        pos.setTotalTaxesPaid(pos.getTotalTaxesPaid().add(taxPaid != null ? taxPaid : BigDecimal.ZERO));
+        BigDecimal currentFees = pos.getTotalFeesPaid() != null ? pos.getTotalFeesPaid() : BigDecimal.ZERO;
+        BigDecimal currentTaxes = pos.getTotalTaxesPaid() != null ? pos.getTotalTaxesPaid() : BigDecimal.ZERO;
+        pos.setTotalFeesPaid(currentFees.add(feePaid != null ? feePaid : BigDecimal.ZERO));
+        pos.setTotalTaxesPaid(currentTaxes.add(taxPaid != null ? taxPaid : BigDecimal.ZERO));
         pos.setLastTradeAt(Instant.now());
 
         // Set first purchase date only on initial buy (lock-up enforcement)
@@ -389,9 +391,11 @@ public class PortfolioService {
         }
 
         pos.setTotalUnits(newTotalUnits);
-        pos.setRealizedPnl(pos.getRealizedPnl().add(realizedPnl));
-        pos.setTotalFeesPaid(pos.getTotalFeesPaid().add(feePaid != null ? feePaid : BigDecimal.ZERO));
-        pos.setTotalTaxesPaid(pos.getTotalTaxesPaid().add(taxPaid != null ? taxPaid : BigDecimal.ZERO));
+        pos.setRealizedPnl(pos.getRealizedPnl() != null ? pos.getRealizedPnl().add(realizedPnl) : realizedPnl);
+        BigDecimal currentFees = pos.getTotalFeesPaid() != null ? pos.getTotalFeesPaid() : BigDecimal.ZERO;
+        BigDecimal currentTaxes = pos.getTotalTaxesPaid() != null ? pos.getTotalTaxesPaid() : BigDecimal.ZERO;
+        pos.setTotalFeesPaid(currentFees.add(feePaid != null ? feePaid : BigDecimal.ZERO));
+        pos.setTotalTaxesPaid(currentTaxes.add(taxPaid != null ? taxPaid : BigDecimal.ZERO));
         pos.setLastTradeAt(Instant.now());
 
         userPositionRepository.save(pos);

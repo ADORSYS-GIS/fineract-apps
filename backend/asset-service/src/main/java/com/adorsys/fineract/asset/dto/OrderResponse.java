@@ -42,7 +42,9 @@ public record OrderResponse(
     /**
      * Gross trade value before fees and taxes, in settlement currency (XAF).
      * Formula: {@code units × pricePerUnit}.
-     * Null while the order is still in QUOTED or PENDING status.
+     * Null only when {@code units} or {@code pricePerUnit} are not yet available
+     * (e.g. an order in PENDING state before execution price is assigned).
+     * QUOTED orders already have a locked price so this field will be non-null for them.
      */
     BigDecimal grossAmount,
 

@@ -642,7 +642,7 @@ public class TradingService {
 
     private OrderResponse toOrderResponse(Order order) {
         BigDecimal grossAmount = order.getUnits() != null && order.getExecutionPrice() != null
-                ? order.getUnits().multiply(order.getExecutionPrice()).setScale(0, java.math.RoundingMode.HALF_UP)
+                ? order.getUnits().multiply(order.getExecutionPrice())
                 : null;
         return new OrderResponse(
                 order.getId(), order.getAssetId(), null,
@@ -1383,7 +1383,7 @@ public class TradingService {
         return orders.map(o -> {
             Asset orderAsset = o.getAsset();
             BigDecimal gross = o.getUnits() != null && o.getExecutionPrice() != null
-                    ? o.getUnits().multiply(o.getExecutionPrice()).setScale(0, java.math.RoundingMode.HALF_UP)
+                    ? o.getUnits().multiply(o.getExecutionPrice())
                     : null;
             return new OrderResponse(
                     o.getId(), o.getAssetId(),
@@ -1408,7 +1408,7 @@ public class TradingService {
         }
         Asset orderAsset = o.getAsset();
         BigDecimal gross = o.getUnits() != null && o.getExecutionPrice() != null
-                ? o.getUnits().multiply(o.getExecutionPrice()).setScale(0, java.math.RoundingMode.HALF_UP)
+                ? o.getUnits().multiply(o.getExecutionPrice())
                 : null;
         return new OrderResponse(
                 o.getId(), o.getAssetId(),
@@ -1460,7 +1460,7 @@ public class TradingService {
 
         Asset orderAsset = order.getAsset();
         BigDecimal cancelGross = order.getUnits() != null && order.getExecutionPrice() != null
-                ? order.getUnits().multiply(order.getExecutionPrice()).setScale(0, java.math.RoundingMode.HALF_UP)
+                ? order.getUnits().multiply(order.getExecutionPrice())
                 : null;
         return new OrderResponse(
                 order.getId(), order.getAssetId(),

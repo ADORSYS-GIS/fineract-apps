@@ -53,7 +53,8 @@ class TradeControllerTest {
         OrderResponse order = new OrderResponse(
                 "order-001", "asset-001", "TST",
                 TradeSide.BUY, new BigDecimal("10"),
-                new BigDecimal("101"), new BigDecimal("1015"),
+                new BigDecimal("101"), new BigDecimal("1010"),
+                new BigDecimal("1015"),
                 new BigDecimal("5"), new BigDecimal("10"), OrderStatus.FILLED,
                 Instant.now(),
                 null, null, null, null
@@ -105,6 +106,7 @@ class TradeControllerTest {
                 "order-001", "asset-001", "TST",
                 TradeSide.BUY, new BigDecimal("10"),
                 new BigDecimal("101"), new BigDecimal("1010"),
+                new BigDecimal("1015"),
                 new BigDecimal("5"), new BigDecimal("10"), OrderStatus.PENDING,
                 Instant.now(),
                 null, null, null, null

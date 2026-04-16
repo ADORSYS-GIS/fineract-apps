@@ -142,7 +142,7 @@ class PrincipalRedemptionServiceTest {
                 .thenReturn(USER_CASH_ACCOUNT);
         when(fineractClient.createAccountTransfer(any(), any(), any(), any()))
                 .thenReturn(100L);
-        when(portfolioService.updatePositionAfterSell(any(), any(), any(), any()))
+        when(portfolioService.updatePositionAfterSell(any(), any(), any(), any(), any(), any()))
                 .thenReturn(new BigDecimal("100000"));
         when(principalRedemptionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
