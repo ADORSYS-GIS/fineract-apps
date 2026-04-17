@@ -62,7 +62,8 @@ class CallbackControllerTest {
     @Test
     @DisplayName("should process MTN collection callback successfully")
     void mtnCollection_success_returns200() throws Exception {
-        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-123"))
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-123")
+                        .header("Ocp-Apim-Subscription-Key", MTN_SUBSCRIPTION_KEY))
                 .andExpect(status().isOk());
 
         verify(paymentService).handleMtnCollectionCallbackByRef("ref-123");
@@ -74,17 +75,57 @@ class CallbackControllerTest {
         doThrow(new RuntimeException("Processing error"))
                 .when(paymentService).handleMtnCollectionCallbackByRef(anyString());
 
-        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-789"))
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-789")
+                        .header("Ocp-Apim-Subscription-Key", MTN_SUBSCRIPTION_KEY))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("should reject MTN collection callback with missing subscription key")
+    void mtnCollection_missingSubscriptionKey_doesNotProcess() throws Exception {
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-123"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnCollectionCallbackByRef(anyString());
+    }
+
+    @Test
+    @DisplayName("should reject MTN collection callback with wrong subscription key")
+    void mtnCollection_wrongSubscriptionKey_doesNotProcess() throws Exception {
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-123")
+                        .header("Ocp-Apim-Subscription-Key", "wrong-key"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnCollectionCallbackByRef(anyString());
     }
 
     @Test
     @DisplayName("should process MTN disbursement callback")
     void mtnDisbursement_success_returns200() throws Exception {
-        mockMvc.perform(post("/api/callbacks/mtn/disbursement/ref-123"))
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/ref-123")
+                        .header("Ocp-Apim-Subscription-Key", MTN_SUBSCRIPTION_KEY))
                 .andExpect(status().isOk());
 
         verify(paymentService).handleMtnDisbursementCallbackByRef("ref-123");
+    }
+
+    @Test
+    @DisplayName("should reject MTN disbursement callback with missing subscription key")
+    void mtnDisbursement_missingSubscriptionKey_doesNotProcess() throws Exception {
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/ref-123"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnDisbursementCallbackByRef(anyString());
+    }
+
+    @Test
+    @DisplayName("should reject MTN disbursement callback with wrong subscription key")
+    void mtnDisbursement_wrongSubscriptionKey_doesNotProcess() throws Exception {
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/ref-123")
+                        .header("Ocp-Apim-Subscription-Key", "wrong-key"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnDisbursementCallbackByRef(anyString());
     }
 
     // =========================================================================

@@ -37,7 +37,13 @@ public class CallbackController {
     @PostMapping("/mtn/collection/{referenceId}")
     @Operation(summary = "MTN collection callback", description = "Receive MTN MoMo collection (deposit) status update")
     public ResponseEntity<Void> handleMtnCollectionCallback(
-            @PathVariable String referenceId) {
+            @PathVariable String referenceId,
+            @RequestHeader(value = "Ocp-Apim-Subscription-Key", required = false) String subscriptionKey) {
+
+        if (!isValidMtnCallback(subscriptionKey)) {
+            log.warn("MTN collection callback rejected: invalid or missing subscription key. referenceId={}", referenceId);
+            return ResponseEntity.ok().build();
+        }
 
         log.info("Received MTN collection callback: referenceId={}", referenceId);
         try {
@@ -58,7 +64,13 @@ public class CallbackController {
     @PostMapping("/mtn/disbursement/{referenceId}")
     @Operation(summary = "MTN disbursement callback", description = "Receive MTN MoMo disbursement (withdrawal) status update")
     public ResponseEntity<Void> handleMtnDisbursementCallback(
-            @PathVariable String referenceId) {
+            @PathVariable String referenceId,
+            @RequestHeader(value = "Ocp-Apim-Subscription-Key", required = false) String subscriptionKey) {
+
+        if (!isValidMtnCallback(subscriptionKey)) {
+            log.warn("MTN disbursement callback rejected: invalid or missing subscription key. referenceId={}", referenceId);
+            return ResponseEntity.ok().build();
+        }
 
         log.info("Received MTN disbursement callback: referenceId={}", referenceId);
         try {
