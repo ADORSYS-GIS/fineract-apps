@@ -296,7 +296,7 @@ export const TaxConfigurationStep: FC<Props> = ({
 				<p className="font-medium mb-1">Tax defaults (Cameroon/CEMAC)</p>
 				<ul className="list-disc list-inside space-y-0.5 text-blue-700 text-xs">
 					<li>
-						Registration duty: 2% on transaction value (enabled by default)
+						Registration duty: 2% on transaction value (disabled by default)
 					</li>
 					<li>IRCM dividends: 16.5% withholding</li>
 					<li>IRCM bonds {"\u2265"}5 years: 5.5% withholding</li>
