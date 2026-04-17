@@ -159,15 +159,49 @@ def generate_temp_password(length=16) -> str:
 
 
 def map_fineract_role_to_keycloak(fineract_role: str) -> str:
-    """Map Fineract role to its corresponding Keycloak role (Exact Match)."""
+    """Map Fineract role to its corresponding Keycloak role.
+
+    Fineract uses title-case space-separated names (e.g., "Loan Officer"),
+    while Keycloak uses lowercase hyphenated names (e.g., "loan-officer").
+    """
     if not fineract_role:
         logger.warning("Empty Fineract role provided, defaulting to DEFAULT_ROLE")
         return DEFAULT_ROLE
 
-    # Enforce exact match: The Fineract role name is used directly as the Keycloak role name.
-    # This ensures consistency for permissions and access control.
-    logger.info(f"Using Fineract role '{fineract_role}' for Keycloak")
-    return fineract_role
+    # Map Fineract title-case roles to Keycloak lowercase hyphenated roles
+    role_map = {
+        # Exact mappings from Fineract to Keycloak
+        "Loan Officer": "loan-officer",
+        "Branch Manager": "branch-manager",
+        "Accountant": "accountant",
+        "System Administrator": "admin",
+        "Cashier": "teller",
+        "Super User": "Super User",  # Keycloak has this exact name
+        "Super user": "Super User",
+        "Admin": "admin",
+        "Manager": "Manager",  # Keycloak has this exact name
+        "Viewer": "Viewer",  # Keycloak has this exact name
+        "Supervisor Accountant": "Supervisor Accountant",  # Keycloak has this exact name
+    }
+
+    # Normalize input: strip whitespace and handle case variations
+    normalized_role = fineract_role.strip()
+
+    # Try exact match first, then case-insensitive match
+    keycloak_role = role_map.get(normalized_role)
+    if not keycloak_role:
+        # Try case-insensitive match
+        for fineract_key, keycloak_val in role_map.items():
+            if fineract_key.lower() == normalized_role.lower():
+                keycloak_role = keycloak_val
+                break
+
+    if not keycloak_role:
+        logger.warning(f"Unknown Fineract role '{fineract_role}', defaulting to '{DEFAULT_ROLE}'")
+        keycloak_role = DEFAULT_ROLE
+
+    logger.info(f"Mapped Fineract role '{fineract_role}' to Keycloak role '{keycloak_role}'")
+    return keycloak_role
 
 
 @app.route('/metrics', methods=['GET'])
@@ -299,28 +333,34 @@ def sync_user():
 
         # Add to appropriate group (based on role)
         try:
-            # Group assignment is based on the Role
+            # Group assignment is based on the Keycloak role (mapped from Fineract)
             group_map = {
-                "Super user": "head-office",
-                "Super User": "head-office",
-                "superuser": "head-office",
-                "Admin": "head-office",
+                # Admin roles
                 "admin": "head-office",
-                
-                "Branch Manager": "branch-managers",
-                "branch manager": "branch-managers",
+                "Super User": "head-office",
+
+                # Branch and operations
                 "branch-manager": "branch-managers",
+                "operations-manager": "head-office",
 
-                "Loan Officer": "loan-officers",
-                "loan officer": "loan-officers",
-                "account-manager": "loan-officers",
+                # Loan and field operations
+                "loan-officer": "loan-officers",
+                "field-officer": "loan-officers",
 
-                "Cashier": "tellers",
-                "cashier": "tellers",
+                # Cashier/Teller
+                "teller": "tellers",
 
-                "Accountant": "head-office",
+                # Accounting roles
                 "accountant": "head-office",
-                "supervisor-accountant": "head-office",
+                "Supervisor Accountant": "head-office",
+
+                # Manager and viewer roles
+                "Manager": "head-office",
+                "Viewer": "head-office",
+
+                # Staff default (fallback for unmapped roles)
+                "staff": "head-office",
+                # Default group assignment uses staff as fallback
             }
             group_name = group_map.get(keycloak_role)
 
