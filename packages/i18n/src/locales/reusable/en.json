@@ -25,7 +25,8 @@
 			"scheduledPayments": "Scheduled Payments",
 			"lpPerformance": "LP Performance",
 			"accounting": "Accounting",
-			"settlement": "Settlement"
+			"settlement": "Settlement",
+			"paymentDlq": "Payment DLQ"
 		},
 		"navbar": {
 			"onlineBank": "OnlineBank"

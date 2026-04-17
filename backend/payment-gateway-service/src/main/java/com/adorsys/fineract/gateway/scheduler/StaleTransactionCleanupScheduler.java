@@ -10,6 +10,7 @@ import com.adorsys.fineract.gateway.entity.PaymentTransaction;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
 import com.adorsys.fineract.gateway.service.ReversalService;
+import com.adorsys.fineract.gateway.service.StaleTransactionReconciler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ public class StaleTransactionCleanupScheduler {
     private final OrangeMoneyClient orangeClient;
     private final CinetPayClient cinetPayClient;
     private final ReversalService reversalService;
+    private final StaleTransactionReconciler reconciler;
 
     @Value("${app.cleanup.stale-minutes:30}")
     private int staleMinutes;
@@ -48,6 +50,9 @@ public class StaleTransactionCleanupScheduler {
 
     @Value("${app.cleanup.stale-processing-max-retries:5}")
     private int staleProcessingMaxRetries;
+
+    @Value("${app.cleanup.pending-stale-minutes:3}")
+    private int pendingStaleMinutes;
 
     /**
      * Expire stale PENDING transactions (original behavior).
@@ -106,6 +111,40 @@ public class StaleTransactionCleanupScheduler {
         }
     }
 
+    /**
+     * Poll providers for PENDING transactions (both deposits and withdrawals) that have not
+     * received a callback within pendingStaleMinutes.
+     *
+     * Deposits: credit Fineract if the provider confirms SUCCESSFUL.
+     * Withdrawals: trigger a reversal if the provider confirms FAILED.
+     */
+    @Scheduled(fixedDelayString = "${app.cleanup.pending-interval-ms:120000}")
+    @Transactional
+    public void resolveStaleTransactions() {
+        Instant cutoff = Instant.now().minus(pendingStaleMinutes, ChronoUnit.MINUTES);
+        List<PaymentTransaction> stalePending = transactionRepository
+            .findStalePendingTransactionsForReconciliation(cutoff, staleProcessingMaxRetries);
+
+        if (stalePending.isEmpty()) {
+            return;
+        }
+
+        log.info("Found {} stale PENDING transactions older than {} minutes for reconciliation",
+            stalePending.size(), pendingStaleMinutes);
+
+        for (PaymentTransaction txn : stalePending) {
+            try {
+                StaleTransactionReconciler.ReconcileResult result = reconciler.reconcile(txn);
+                if (result.reversalNeeded()) {
+                    reversalService.reverseWithdrawal(result.transactionForReversal());
+                }
+            } catch (Exception e) {
+                log.error("Failed to reconcile stale PENDING transaction: txnId={}, error={}",
+                    txn.getTransactionId(), e.getMessage());
+            }
+        }
+    }
+
     @Transactional
     void incrementRetryOrDeadLetter(PaymentTransaction txn, String errorMessage) {
         PaymentTransaction locked = transactionRepository.findByIdForUpdate(txn.getTransactionId())
@@ -154,16 +193,21 @@ public class StaleTransactionCleanupScheduler {
             log.warn("Stale PROCESSING resolved as FAILED via polling: txnId={}", locked.getTransactionId());
 
         } else {
-            // Still pending at provider - check if it's been too long (> 2 hours)
-            Instant twoHoursAgo = Instant.now().minus(2, ChronoUnit.HOURS);
-            if (locked.getCreatedAt().isBefore(twoHoursAgo)) {
-                log.error("CRITICAL: Transaction stuck in PROCESSING for >2 hours. Manual review required! " +
-                    "txnId={}, provider={}, amount={}, accountId={}",
-                    locked.getTransactionId(), locked.getProvider(),
-                    locked.getAmount(), locked.getAccountId());
-                paymentMetrics.incrementStaleProcessingResolved(locked.getProvider(), "escalated");
+            // Provider returned PENDING or polling failed — increment retry or escalate to DLQ
+            int retries = locked.getStaleResolutionRetryCount() + 1;
+            locked.setStaleResolutionRetryCount(retries);
+            if (retries >= staleProcessingMaxRetries) {
+                reversalService.sendToDeadLetter(locked,
+                    "Max stale resolution retries (%d) exceeded - provider status unknown".formatted(staleProcessingMaxRetries));
+                locked.setStatus(PaymentStatus.FAILED);
+                transactionRepository.save(locked);
+                paymentMetrics.incrementStaleProcessingResolved(locked.getProvider(), "escalated_dlq");
+                log.error("Stale PROCESSING moved to DLQ after {} retries: txnId={}, provider={}, amount={}",
+                    staleProcessingMaxRetries, locked.getTransactionId(), locked.getProvider(), locked.getAmount());
             } else {
-                log.info("Stale PROCESSING still pending at provider, will retry: txnId={}", locked.getTransactionId());
+                transactionRepository.save(locked);
+                log.warn("Stale PROCESSING still pending at provider, retry {}/{}: txnId={}, provider={}",
+                    retries, staleProcessingMaxRetries, locked.getTransactionId(), locked.getProvider());
             }
         }
     }

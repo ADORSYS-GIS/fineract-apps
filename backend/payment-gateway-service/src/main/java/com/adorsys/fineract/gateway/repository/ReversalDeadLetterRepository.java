@@ -1,14 +1,22 @@
 package com.adorsys.fineract.gateway.repository;
 
 import com.adorsys.fineract.gateway.entity.ReversalDeadLetter;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReversalDeadLetterRepository extends JpaRepository<ReversalDeadLetter, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT d FROM ReversalDeadLetter d WHERE d.id = :id")
+    Optional<ReversalDeadLetter> findByIdForUpdate(Long id);
 
     List<ReversalDeadLetter> findByResolvedFalseOrderByCreatedAtAsc();
 
@@ -22,4 +30,6 @@ public interface ReversalDeadLetterRepository extends JpaRepository<ReversalDead
      */
     List<ReversalDeadLetter> findByResolvedFalseAndRetryCountLessThanAndCreatedAtBeforeOrderByCreatedAtAsc(
         int maxRetries, Instant cutoff);
+
+    List<ReversalDeadLetter> findAllByOrderByCreatedAtDesc();
 }

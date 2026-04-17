@@ -22,6 +22,7 @@ import { Route as IncomeHistoryRouteImport } from './routes/income-history'
 import { Route as IncomeCalendarRouteImport } from './routes/income-calendar'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CreateAssetRouteImport } from './routes/create-asset'
+import { Route as PaymentDlqRouteImport } from './routes/payment-dlq'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as AccountingRouteImport } from './routes/accounting'
 import { Route as IndexRouteImport } from './routes/index'
@@ -94,6 +95,11 @@ const CreateAssetRoute = CreateAssetRouteImport.update({
   path: '/create-asset',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaymentDlqRoute = PaymentDlqRouteImport.update({
+  id: '/payment-dlq',
+  path: '/payment-dlq',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuditLogRoute = AuditLogRouteImport.update({
   id: '/audit-log',
   path: '/audit-log',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
+  '/payment-dlq': typeof PaymentDlqRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
+  '/payment-dlq': typeof PaymentDlqRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
+  '/payment-dlq': typeof PaymentDlqRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounting'
     | '/audit-log'
+    | '/payment-dlq'
     | '/create-asset'
     | '/dashboard'
     | '/income-calendar'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounting'
     | '/audit-log'
+    | '/payment-dlq'
     | '/create-asset'
     | '/dashboard'
     | '/income-calendar'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accounting'
     | '/audit-log'
+    | '/payment-dlq'
     | '/create-asset'
     | '/dashboard'
     | '/income-calendar'
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountingRoute: typeof AccountingRoute
   AuditLogRoute: typeof AuditLogRoute
+  PaymentDlqRoute: typeof PaymentDlqRoute
   CreateAssetRoute: typeof CreateAssetRoute
   DashboardRoute: typeof DashboardRoute
   IncomeCalendarRoute: typeof IncomeCalendarRoute
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditLogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payment-dlq': {
+      id: '/payment-dlq'
+      path: '/payment-dlq'
+      fullPath: '/payment-dlq'
+      preLoaderRoute: typeof PaymentDlqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/accounting': {
       id: '/accounting'
       path: '/accounting'
@@ -421,6 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountingRoute: AccountingRoute,
   AuditLogRoute: AuditLogRoute,
+  PaymentDlqRoute: PaymentDlqRoute,
   CreateAssetRoute: CreateAssetRoute,
   DashboardRoute: DashboardRoute,
   IncomeCalendarRoute: IncomeCalendarRoute,

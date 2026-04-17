@@ -130,14 +130,21 @@ app:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
     interval-ms: ${APP_CLEANUP_INTERVAL_MS:300000}
+    pending-stale-minutes: ${APP_CLEANUP_PENDING_STALE_MINUTES:3}
+    pending-interval-ms: ${APP_CLEANUP_PENDING_INTERVAL_MS:120000}
     processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:60}
     processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:600000}
     stale-processing-max-retries: ${APP_CLEANUP_STALE_PROCESSING_MAX_RETRIES:5}
+  status:
+    provider-check-enabled: ${APP_STATUS_PROVIDER_CHECK_ENABLED:true}
+    pending-poll-min-age-minutes: ${APP_STATUS_PENDING_POLL_MIN_AGE_MINUTES:2}
   dlq-retry:
     enabled: ${APP_DLQ_RETRY_ENABLED:true}
     interval-ms: ${APP_DLQ_RETRY_INTERVAL_MS:900000}
     max-retries: ${APP_DLQ_RETRY_MAX:5}
     min-age-seconds: ${APP_DLQ_RETRY_MIN_AGE:300}
+  dlq:
+    admin-max-retries: ${APP_DLQ_ADMIN_MAX_RETRIES:10}
   limits:
     daily-deposit-max: ${APP_DAILY_DEPOSIT_MAX:500000}
     daily-withdrawal-max: ${APP_DAILY_WITHDRAWAL_MAX:500000}

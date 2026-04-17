@@ -442,6 +442,157 @@ public class CallbackHandlerDelegate {
      * Verify callback-reported amount matches expected transaction amount.
      * Blocks processing if the mismatch exceeds 1 unit (tolerance for XAF rounding).
      */
+    // ==================== Orange Money — byRef (for scheduler/reconciler) ====================
+
+    /**
+     * Process Orange Money deposit callback identified by our transactionId (status from polling).
+     * No amount verification — the provider-polled status is trusted.
+     */
+    @Transactional
+    public void processOrangeDepositCallbackByRef(String transactionId, PaymentStatus polledStatus) {
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(transactionId).orElse(null);
+        if (txn == null) {
+            log.warn("Orange deposit byRef: transaction not found txnId={}", transactionId);
+            return;
+        }
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            return;
+        }
+        if (polledStatus == PaymentStatus.SUCCESSFUL) {
+            try {
+                Long fineractTxnId = fineractClient.createDeposit(
+                    txn.getAccountId(), txn.getAmount(), orangeConfig.getFineractPaymentTypeId(), null);
+                txn.setStatus(PaymentStatus.SUCCESSFUL);
+                txn.setFineractTransactionId(fineractTxnId);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.SUCCESSFUL);
+                log.info("Orange deposit completed via polling: txnId={}, fineractTxnId={}", transactionId, fineractTxnId);
+            } catch (Exception e) {
+                log.error("CRITICAL: Fineract createDeposit failed after Orange collected funds via polling. " +
+                    "Marking PROCESSING so stale scheduler retries. txnId={}, error={}", transactionId, e.getMessage());
+                txn.setStatus(PaymentStatus.PROCESSING);
+                transactionRepository.save(txn);
+            }
+        } else if (polledStatus == PaymentStatus.FAILED) {
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.FAILED);
+            log.warn("Orange deposit failed via polling: txnId={}", transactionId);
+        }
+    }
+
+    /**
+     * Process Orange Money withdrawal callback identified by transactionId (status from polling).
+     */
+    @Transactional
+    public CallbackResult processOrangeWithdrawalCallbackByRef(String transactionId, PaymentStatus polledStatus) {
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(transactionId).orElse(null);
+        if (txn == null) {
+            log.warn("Orange withdrawal byRef: transaction not found txnId={}", transactionId);
+            return CallbackResult.noReversal();
+        }
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            return CallbackResult.noReversal();
+        }
+        if (polledStatus == PaymentStatus.SUCCESSFUL) {
+            txn.setStatus(PaymentStatus.SUCCESSFUL);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.SUCCESSFUL);
+            log.info("Orange withdrawal completed via polling: txnId={}", transactionId);
+            return CallbackResult.noReversal();
+        } else if (polledStatus == PaymentStatus.FAILED) {
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.ORANGE_MONEY, PaymentStatus.FAILED);
+            log.warn("Orange withdrawal failed via polling: txnId={}. Reversal needed.", transactionId);
+            return CallbackResult.needsReversal(txn);
+        }
+        return CallbackResult.noReversal();
+    }
+
+    // ==================== CinetPay — byRef (for scheduler/reconciler) ====================
+
+    /**
+     * Process CinetPay deposit callback identified by transactionId (status from polling).
+     * actualProvider is the underlying MTN/Orange provider detected from the CinetPay verify response;
+     * falls back to MTN payment type when unknown.
+     */
+    @Transactional
+    public void processCinetPayDepositCallbackByRef(String transactionId, PaymentStatus polledStatus,
+                                                    PaymentProvider actualProvider) {
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(transactionId).orElse(null);
+        if (txn == null) {
+            log.warn("CinetPay deposit byRef: transaction not found txnId={}", transactionId);
+            return;
+        }
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            return;
+        }
+        if (polledStatus == PaymentStatus.SUCCESSFUL) {
+            Long paymentTypeId;
+            if (actualProvider == PaymentProvider.ORANGE_MONEY) {
+                paymentTypeId = orangeConfig.getFineractPaymentTypeId();
+            } else {
+                // Default to MTN when unknown; log so it can be investigated
+                if (actualProvider == null) {
+                    log.warn("CinetPay deposit byRef: actual provider unknown, defaulting to MTN payment type. txnId={}", transactionId);
+                }
+                paymentTypeId = mtnConfig.getFineractPaymentTypeId();
+            }
+            try {
+                Long fineractTxnId = fineractClient.createDeposit(
+                    txn.getAccountId(), txn.getAmount(), paymentTypeId, null);
+                txn.setStatus(PaymentStatus.SUCCESSFUL);
+                txn.setFineractTransactionId(fineractTxnId);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.SUCCESSFUL);
+                log.info("CinetPay deposit completed via polling: txnId={}, fineractTxnId={}, actualProvider={}",
+                    transactionId, fineractTxnId, actualProvider);
+            } catch (Exception e) {
+                log.error("CRITICAL: Fineract createDeposit failed after CinetPay collected funds via polling. " +
+                    "Marking PROCESSING so stale scheduler retries. txnId={}, error={}", transactionId, e.getMessage());
+                txn.setStatus(PaymentStatus.PROCESSING);
+                transactionRepository.save(txn);
+            }
+        } else if (polledStatus == PaymentStatus.FAILED) {
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.FAILED);
+            log.warn("CinetPay deposit failed via polling: txnId={}", transactionId);
+        }
+    }
+
+    /**
+     * Process CinetPay withdrawal callback identified by transactionId (status from polling).
+     */
+    @Transactional
+    public CallbackResult processCinetPayWithdrawalCallbackByRef(String transactionId, PaymentStatus polledStatus) {
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(transactionId).orElse(null);
+        if (txn == null) {
+            log.warn("CinetPay withdrawal byRef: transaction not found txnId={}", transactionId);
+            return CallbackResult.noReversal();
+        }
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            return CallbackResult.noReversal();
+        }
+        if (polledStatus == PaymentStatus.SUCCESSFUL) {
+            txn.setStatus(PaymentStatus.SUCCESSFUL);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.SUCCESSFUL);
+            log.info("CinetPay withdrawal completed via polling: txnId={}", transactionId);
+            return CallbackResult.noReversal();
+        } else if (polledStatus == PaymentStatus.FAILED) {
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.CINETPAY, PaymentStatus.FAILED);
+            log.warn("CinetPay withdrawal failed via polling: txnId={}. Reversal needed.", transactionId);
+            return CallbackResult.needsReversal(txn);
+        }
+        return CallbackResult.noReversal();
+    }
+
+    // ==================== Shared helpers ====================
+
     private void verifyCallbackAmount(String callbackAmountStr, PaymentTransaction txn, PaymentProvider provider) {
         if (callbackAmountStr == null || callbackAmountStr.isEmpty()) {
             // MTN and CinetPay always include amount — missing amount is suspicious
