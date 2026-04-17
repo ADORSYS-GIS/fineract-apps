@@ -4,8 +4,8 @@ import { AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
 import { FC, useState } from "react";
 import toast from "react-hot-toast";
 import {
-	type ReversalDeadLetterEntry,
 	paymentGatewayAdminApi,
+	type ReversalDeadLetterEntry,
 } from "@/services/assetApi";
 
 const PROVIDER_LABELS: Record<ReversalDeadLetterEntry["provider"], string> = {
@@ -136,13 +136,20 @@ export const PaymentDlqTable: FC = () => {
 							{entries.map((entry) => (
 								<tr
 									key={entry.id}
-									className={entry.resolved ? "bg-gray-50 opacity-60" : "hover:bg-gray-50"}
+									className={
+										entry.resolved
+											? "bg-gray-50 opacity-60"
+											: "hover:bg-gray-50"
+									}
 								>
 									<td className="px-3 py-2 font-mono text-xs text-gray-500">
 										#{entry.id}
 									</td>
 									<td className="px-3 py-2">
-										<p className="font-mono text-xs truncate max-w-[120px]" title={entry.transactionId}>
+										<p
+											className="font-mono text-xs truncate max-w-[120px]"
+											title={entry.transactionId}
+										>
 											{entry.transactionId.slice(0, 8)}…
 										</p>
 										<p className="text-xs text-gray-400">
@@ -153,7 +160,11 @@ export const PaymentDlqTable: FC = () => {
 										{PROVIDER_LABELS[entry.provider]}
 										{entry.providerHint && (
 											<span className="ml-1 text-xs text-gray-400">
-												({entry.providerHint.replace("_MOMO", "").replace("_MONEY", "")})
+												(
+												{entry.providerHint
+													.replace("_MOMO", "")
+													.replace("_MONEY", "")}
+												)
 											</span>
 										)}
 									</td>
@@ -187,7 +198,10 @@ export const PaymentDlqTable: FC = () => {
 													</p>
 												)}
 												{entry.notes && (
-													<p className="text-xs text-gray-500 mt-0.5 max-w-[120px] truncate" title={entry.notes}>
+													<p
+														className="text-xs text-gray-500 mt-0.5 max-w-[120px] truncate"
+														title={entry.notes}
+													>
 														{entry.notes}
 													</p>
 												)}
@@ -211,8 +225,12 @@ export const PaymentDlqTable: FC = () => {
 													}}
 													className="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
 												>
-													<RefreshCw className={`h-3 w-3 ${retryingId === entry.id ? "animate-spin" : ""}`} />
-													{retryingId === entry.id ? "Retrying…" : "Retry reversal"}
+													<RefreshCw
+														className={`h-3 w-3 ${retryingId === entry.id ? "animate-spin" : ""}`}
+													/>
+													{retryingId === entry.id
+														? "Retrying…"
+														: "Retry reversal"}
 												</button>
 												<div className="flex gap-1">
 													<input
