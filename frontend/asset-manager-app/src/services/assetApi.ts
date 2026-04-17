@@ -2,9 +2,10 @@ import axios, { type AxiosError } from "axios";
 
 // Payment gateway admin client — routed through nginx gateway at /api/admin/
 const pgAdminClient = axios.create({
-	baseURL: typeof window !== "undefined"
-		? `${window.location.origin}/api`
-		: "http://localhost:8082/api",
+	baseURL:
+		typeof window !== "undefined"
+			? `${window.location.origin}/api`
+			: "http://localhost:8082/api",
 	timeout: 30000,
 });
 
@@ -49,7 +50,9 @@ export const paymentGatewayAdminApi = {
 	countDlq: () =>
 		pgAdminClient.get<{ count: number }>("/admin/reversals/dlq/count"),
 	retryDlq: (id: number) =>
-		pgAdminClient.post<ReversalDeadLetterEntry>(`/admin/reversals/dlq/${id}/retry`),
+		pgAdminClient.post<ReversalDeadLetterEntry>(
+			`/admin/reversals/dlq/${id}/retry`,
+		),
 	resolveDlq: (id: number, notes?: string) =>
 		pgAdminClient.patch<ReversalDeadLetterEntry>(`/admin/reversals/dlq/${id}`, {
 			...(notes !== undefined ? { notes } : {}),
