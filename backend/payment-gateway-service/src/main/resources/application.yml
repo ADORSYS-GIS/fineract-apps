@@ -143,6 +143,8 @@ app:
     interval-ms: ${APP_DLQ_RETRY_INTERVAL_MS:900000}
     max-retries: ${APP_DLQ_RETRY_MAX:5}
     min-age-seconds: ${APP_DLQ_RETRY_MIN_AGE:300}
+  dlq:
+    admin-max-retries: ${APP_DLQ_ADMIN_MAX_RETRIES:10}
   limits:
     daily-deposit-max: ${APP_DAILY_DEPOSIT_MAX:500000}
     daily-withdrawal-max: ${APP_DAILY_WITHDRAWAL_MAX:500000}

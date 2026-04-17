@@ -1,4 +1,5 @@
 import {
+	AlertTriangle,
 	Banknote,
 	BarChart3,
 	BookOpen,
@@ -176,6 +177,12 @@ export const menuAssetManager: MenuItem[] = [
 		title: "sidebar.settlement",
 		link: "/settlement",
 		icon: Banknote,
+	},
+	{
+		name: "payment-dlq",
+		title: "sidebar.paymentDlq",
+		link: "/payment-dlq",
+		icon: AlertTriangle,
 	},
 	{
 		name: "settings",
