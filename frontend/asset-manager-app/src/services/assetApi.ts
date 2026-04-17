@@ -1,5 +1,61 @@
 import axios, { type AxiosError } from "axios";
 
+// Payment gateway admin client — routed through nginx gateway at /api/admin/
+const pgAdminClient = axios.create({
+	baseURL: typeof window !== "undefined"
+		? `${window.location.origin}/api`
+		: "http://localhost:8082/api",
+	timeout: 30000,
+});
+
+pgAdminClient.interceptors.request.use((config) => {
+	try {
+		const raw = sessionStorage.getItem("auth");
+		if (raw) {
+			const auth = JSON.parse(raw);
+			if (auth.token) {
+				config.headers.Authorization = `Bearer ${auth.token}`;
+			}
+		}
+	} catch {
+		// proceed without auth
+	}
+	return config;
+});
+
+export interface ReversalDeadLetterEntry {
+	id: number;
+	transactionId: string;
+	fineractTxnId: number | null;
+	accountId: number;
+	amount: number;
+	currency: string;
+	provider: "MTN_MOMO" | "ORANGE_MONEY" | "CINETPAY";
+	providerHint: string | null;
+	failureReason: string | null;
+	createdAt: string;
+	resolved: boolean;
+	resolvedBy: string | null;
+	resolvedAt: string | null;
+	notes: string | null;
+	retryCount: number;
+}
+
+export const paymentGatewayAdminApi = {
+	listDlq: (all = false) =>
+		pgAdminClient.get<ReversalDeadLetterEntry[]>("/admin/reversals/dlq", {
+			params: all ? { all: true } : undefined,
+		}),
+	countDlq: () =>
+		pgAdminClient.get<{ count: number }>("/admin/reversals/dlq/count"),
+	retryDlq: (id: number) =>
+		pgAdminClient.post<ReversalDeadLetterEntry>(`/admin/reversals/dlq/${id}/retry`),
+	resolveDlq: (id: number, notes?: string) =>
+		pgAdminClient.patch<ReversalDeadLetterEntry>(`/admin/reversals/dlq/${id}`, {
+			...(notes !== undefined ? { notes } : {}),
+		}),
+};
+
 const assetClient = axios.create({
 	baseURL:
 		(import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083") +
