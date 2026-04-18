@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
+import { BOND_ONLY_MODE } from "@/constants/categories";
 import { fineractApi } from "@/services/api";
 import {
 	assetApi,
@@ -87,7 +88,7 @@ const initialFormData: AssetFormData = {
 	lpClientName: "",
 	name: "",
 	symbol: "",
-	category: "REAL_ESTATE",
+	category: BOND_ONLY_MODE ? "BONDS" : "REAL_ESTATE",
 	description: "",
 	imageUrl: "",
 	bondType: "COUPON",
@@ -199,7 +200,7 @@ export const useCreateAsset = () => {
 	const [formData, setFormData] = useState<AssetFormData>(initialFormData);
 	const [isLPDialogOpen, setIsLPDialogOpen] = useState(false);
 
-	const isBond = formData.category === "BONDS";
+	const isBond = BOND_ONLY_MODE || formData.category === "BONDS";
 	const steps = isBond
 		? [
 				"Select Liquidity Partner",
