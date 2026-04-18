@@ -165,6 +165,7 @@ export interface AssetResponse {
 	availableSupply: number;
 	totalSupply: number;
 	// Bond fields (null for non-bond assets)
+	bondType?: string;
 	issuerName?: string;
 	isinCode?: string;
 	maturityDate?: string;

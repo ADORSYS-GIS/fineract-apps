@@ -203,23 +203,23 @@ export const useCreateAsset = () => {
 	const isBond = BOND_ONLY_MODE || formData.category === "BONDS";
 	const steps = isBond
 		? [
-					"Select Liquidity Partner",
-					"Asset Details",
-					"Bond Details",
-					"Pricing & Fees",
-					"Supply",
-					"Tax Configuration",
-					"Review & Create",
-				]
-			: [
-					"Select Liquidity Partner",
-					"Asset Details",
-					"Pricing & Fees",
-					"Supply",
-					"Income Distribution",
-					"Tax Configuration",
-					"Review & Create",
-				];
+				"Select Liquidity Partner",
+				"Asset Details",
+				"Bond Details",
+				"Pricing & Fees",
+				"Supply",
+				"Tax Configuration",
+				"Review & Create",
+			]
+		: [
+				"Select Liquidity Partner",
+				"Asset Details",
+				"Pricing & Fees",
+				"Supply",
+				"Income Distribution",
+				"Tax Configuration",
+				"Review & Create",
+			];
 
 	// Fetch entity clients (companies) from Fineract
 	const { data: clients, isLoading: isLoadingClients } = useQuery({

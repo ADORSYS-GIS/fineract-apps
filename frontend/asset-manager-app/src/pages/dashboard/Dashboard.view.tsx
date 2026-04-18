@@ -103,7 +103,10 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 					role="group"
 					aria-label="Filter by category"
 				>
-					{(BOND_ONLY_MODE ? BOND_FILTER_OPTIONS : ASSET_CATEGORIES_WITH_ALL).map((cat) => (
+					{(BOND_ONLY_MODE
+						? BOND_FILTER_OPTIONS
+						: ASSET_CATEGORIES_WITH_ALL
+					).map((cat) => (
 						<button
 							key={cat.value}
 							onClick={() => onCategoryChange(cat.value)}

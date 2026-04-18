@@ -133,7 +133,10 @@ export const AssetDetailsStep: FC<Props> = ({
 										key={opt.value}
 										type="button"
 										onClick={() =>
-											updateFormData({ category: "BONDS", bondType: opt.value as "COUPON" | "DISCOUNT" })
+											updateFormData({
+												category: "BONDS",
+												bondType: opt.value as "COUPON" | "DISCOUNT",
+											})
 										}
 										className={`flex-1 border-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
 											selected
