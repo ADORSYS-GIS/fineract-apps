@@ -1,6 +1,6 @@
 import { type FC, useRef, useState } from "react";
-import { ASSET_CATEGORIES, BOND_ONLY_MODE } from "@/constants/categories";
 import { BOND_TYPE_OPTIONS } from "@/constants/bondTypes";
+import { ASSET_CATEGORIES, BOND_ONLY_MODE } from "@/constants/categories";
 import { assetApi, extractErrorMessage } from "@/services/assetApi";
 import type { AssetFormData } from "../useCreateAsset";
 

@@ -201,9 +201,8 @@ export const useCreateAsset = () => {
 	const [isLPDialogOpen, setIsLPDialogOpen] = useState(false);
 
 	const isBond = BOND_ONLY_MODE || formData.category === "BONDS";
-	const steps =
-		BOND_ONLY_MODE || formData.category === "BONDS"
-			? [
+	const steps = isBond
+		? [
 					"Select Liquidity Partner",
 					"Asset Details",
 					"Bond Details",
