@@ -2,9 +2,14 @@ package com.adorsys.fineract.gateway.controller;
 
 import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
 import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
+import com.adorsys.fineract.gateway.dto.PaymentProvider;
+import com.adorsys.fineract.gateway.dto.PaymentStatus;
+import com.adorsys.fineract.gateway.entity.PaymentTransaction;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
 import com.adorsys.fineract.gateway.service.PaymentService;
+
+import java.util.Optional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,9 +55,9 @@ class CallbackControllerTest {
     // =========================================================================
 
     @Test
-    @DisplayName("should process MTN collection callback for a known transaction")
+    @DisplayName("should process MTN collection callback for a known PENDING transaction")
     void mtnCollection_knownRef_success_returns200() throws Exception {
-        when(transactionRepository.existsByTransactionId("ref-123")).thenReturn(true);
+        when(transactionRepository.findById("ref-123")).thenReturn(Optional.of(pendingTxn()));
 
         mockMvc.perform(post("/api/callbacks/mtn/collection/ref-123"))
                 .andExpect(status().isOk());
@@ -61,20 +66,33 @@ class CallbackControllerTest {
     }
 
     @Test
-    @DisplayName("should silently drop MTN collection callback for unknown referenceId")
+    @DisplayName("should drop MTN collection callback for unknown referenceId and emit metric")
     void mtnCollection_unknownRef_dropsRequest() throws Exception {
-        when(transactionRepository.existsByTransactionId("unknown-ref")).thenReturn(false);
+        when(transactionRepository.findById("unknown-ref")).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/callbacks/mtn/collection/unknown-ref"))
                 .andExpect(status().isOk());
 
         verify(paymentService, never()).handleMtnCollectionCallbackByRef(anyString());
+        verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.MTN_MOMO, "unknown_ref");
+    }
+
+    @Test
+    @DisplayName("should drop MTN collection callback for already-SUCCESSFUL transaction and emit metric")
+    void mtnCollection_terminalState_dropsRequest() throws Exception {
+        when(transactionRepository.findById("ref-done")).thenReturn(Optional.of(txnWithStatus(PaymentStatus.SUCCESSFUL)));
+
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-done"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnCollectionCallbackByRef(anyString());
+        verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.MTN_MOMO, "terminal_state");
     }
 
     @Test
     @DisplayName("should return 200 even when processing error occurs on known transaction")
     void mtnCollection_processingError_stillReturns200() throws Exception {
-        when(transactionRepository.existsByTransactionId("ref-789")).thenReturn(true);
+        when(transactionRepository.findById("ref-789")).thenReturn(Optional.of(pendingTxn()));
         doThrow(new RuntimeException("Processing error"))
                 .when(paymentService).handleMtnCollectionCallbackByRef(anyString());
 
@@ -83,9 +101,9 @@ class CallbackControllerTest {
     }
 
     @Test
-    @DisplayName("should process MTN disbursement callback for a known transaction")
+    @DisplayName("should process MTN disbursement callback for a known PENDING transaction")
     void mtnDisbursement_knownRef_success_returns200() throws Exception {
-        when(transactionRepository.existsByTransactionId("ref-123")).thenReturn(true);
+        when(transactionRepository.findById("ref-123")).thenReturn(Optional.of(pendingTxn()));
 
         mockMvc.perform(post("/api/callbacks/mtn/disbursement/ref-123"))
                 .andExpect(status().isOk());
@@ -94,14 +112,37 @@ class CallbackControllerTest {
     }
 
     @Test
-    @DisplayName("should silently drop MTN disbursement callback for unknown referenceId")
+    @DisplayName("should drop MTN disbursement callback for unknown referenceId and emit metric")
     void mtnDisbursement_unknownRef_dropsRequest() throws Exception {
-        when(transactionRepository.existsByTransactionId("unknown-ref")).thenReturn(false);
+        when(transactionRepository.findById("unknown-ref")).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/callbacks/mtn/disbursement/unknown-ref"))
                 .andExpect(status().isOk());
 
         verify(paymentService, never()).handleMtnDisbursementCallbackByRef(anyString());
+        verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.MTN_MOMO, "unknown_ref");
+    }
+
+    @Test
+    @DisplayName("should drop MTN disbursement callback for already-SUCCESSFUL transaction and emit metric")
+    void mtnDisbursement_terminalState_dropsRequest() throws Exception {
+        when(transactionRepository.findById("ref-done")).thenReturn(Optional.of(txnWithStatus(PaymentStatus.SUCCESSFUL)));
+
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/ref-done"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnDisbursementCallbackByRef(anyString());
+        verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.MTN_MOMO, "terminal_state");
+    }
+
+    private PaymentTransaction pendingTxn() {
+        return txnWithStatus(PaymentStatus.PENDING);
+    }
+
+    private PaymentTransaction txnWithStatus(PaymentStatus status) {
+        PaymentTransaction txn = new PaymentTransaction();
+        txn.setStatus(status);
+        return txn;
     }
 
     // =========================================================================

@@ -1,6 +1,7 @@
 package com.adorsys.fineract.gateway.controller;
 
 import com.adorsys.fineract.gateway.dto.*;
+import com.adorsys.fineract.gateway.entity.PaymentTransaction;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
 import com.adorsys.fineract.gateway.service.PaymentService;
@@ -258,11 +259,24 @@ public class CallbackController {
 
     /**
      * Guard against random UUID scanning: only process callbacks for transactions
-     * we actually initiated. MTN does not send an auth header in callbacks, so
-     * checking our own DB is the practical alternative.
+     * we actually initiated and that are still in a non-terminal state.
+     * MTN does not send an auth header in callbacks, so checking our own DB is
+     * the practical alternative. Emits a rejection metric so spikes are alertable.
      */
     private boolean isKnownMtnTransaction(String referenceId) {
-        return transactionRepository.existsByTransactionId(referenceId);
+        PaymentTransaction txn = transactionRepository.findById(referenceId).orElse(null);
+        if (txn == null) {
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "unknown_ref");
+            return false;
+        }
+        PaymentStatus status = txn.getStatus();
+        if (status == PaymentStatus.SUCCESSFUL || status == PaymentStatus.FAILED
+                || status == PaymentStatus.EXPIRED || status == PaymentStatus.CANCELLED
+                || status == PaymentStatus.REFUNDED) {
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "terminal_state");
+            return false;
+        }
+        return true;
     }
 
 
