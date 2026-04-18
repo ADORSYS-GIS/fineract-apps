@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { BOND_ONLY_MODE } from "@/constants/categories";
 import { type AssetResponse, assetApi } from "@/services/assetApi";
 
 export const useDashboard = () => {
@@ -68,7 +69,9 @@ export const useDashboard = () => {
 	const assets = useMemo(() => {
 		let filtered = allAssets;
 		if (categoryFilter) {
-			filtered = filtered.filter((a) => a.category === categoryFilter);
+			filtered = BOND_ONLY_MODE
+				? filtered.filter((a) => a.bondType === categoryFilter)
+				: filtered.filter((a) => a.category === categoryFilter);
 		}
 		if (debouncedSearch) {
 			const q = debouncedSearch.toLowerCase();

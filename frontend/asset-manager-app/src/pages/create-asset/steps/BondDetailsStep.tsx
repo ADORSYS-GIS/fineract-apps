@@ -1,5 +1,6 @@
 import { FC } from "react";
 import { BOND_TYPE_OPTIONS } from "@/constants/bondTypes";
+import { BOND_ONLY_MODE } from "@/constants/categories";
 import { DAY_COUNT_OPTIONS } from "@/constants/dayCountConventions";
 import { FREQUENCY_OPTIONS } from "@/constants/frequencies";
 import { ISSUER_COUNTRY_OPTIONS } from "@/constants/issuerCountries";
@@ -35,72 +36,76 @@ export const BondDetailsStep: FC<Props> = ({
 				</p>
 			</div>
 
-			{/* Bond Type */}
-			<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-				Bond Type
-			</h3>
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Instrument Type *
-					</label>
-					<select
-						aria-label="Bond type"
-						className={inputClass("bond type")}
-						value={formData.bondType}
-						onChange={(e) =>
-							updateFormData({
-								bondType: e.target.value as "COUPON" | "DISCOUNT",
-							})
-						}
-					>
-						{BOND_TYPE_OPTIONS.map((b) => (
-							<option key={b.value} value={b.value}>
-								{b.label}
-							</option>
-						))}
-					</select>
-					{fieldError("bond type") ? (
-						<p className="text-xs text-red-600 mt-1">
-							{fieldError("bond type")}
-						</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							{isCoupon
-								? "OTA: periodic coupon payments until maturity"
-								: "BTA: bought at discount, redeemed at face value"}
-						</p>
-					)}
-				</div>
+			{/* Bond Type — hidden in BOND_ONLY_MODE (type is selected in Asset Details step) */}
+			{!BOND_ONLY_MODE && (
+				<>
+					<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+						Bond Type
+					</h3>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Instrument Type *
+							</label>
+							<select
+								aria-label="Bond type"
+								className={inputClass("bond type")}
+								value={formData.bondType}
+								onChange={(e) =>
+									updateFormData({
+										bondType: e.target.value as "COUPON" | "DISCOUNT",
+									})
+								}
+							>
+								{BOND_TYPE_OPTIONS.map((b) => (
+									<option key={b.value} value={b.value}>
+										{b.label}
+									</option>
+								))}
+							</select>
+							{fieldError("bond type") ? (
+								<p className="text-xs text-red-600 mt-1">
+									{fieldError("bond type")}
+								</p>
+							) : (
+								<p className="text-xs text-gray-400 mt-1">
+									{isCoupon
+										? "OTA: periodic coupon payments until maturity"
+										: "BTA: bought at discount, redeemed at face value"}
+								</p>
+							)}
+						</div>
 
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Day Count Convention
-					</label>
-					<select
-						aria-label="Day count convention"
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-						value={formData.dayCountConvention}
-						onChange={(e) =>
-							updateFormData({
-								dayCountConvention: e.target.value as
-									| "ACT_360"
-									| "ACT_365"
-									| "THIRTY_360",
-							})
-						}
-					>
-						{DAY_COUNT_OPTIONS.map((d) => (
-							<option key={d.value} value={d.value}>
-								{d.label}
-							</option>
-						))}
-					</select>
-					<p className="text-xs text-gray-400 mt-1">
-						Used for interest accrual calculations
-					</p>
-				</div>
-			</div>
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Day Count Convention
+							</label>
+							<select
+								aria-label="Day count convention"
+								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={formData.dayCountConvention}
+								onChange={(e) =>
+									updateFormData({
+										dayCountConvention: e.target.value as
+											| "ACT_360"
+											| "ACT_365"
+											| "THIRTY_360",
+									})
+								}
+							>
+								{DAY_COUNT_OPTIONS.map((d) => (
+									<option key={d.value} value={d.value}>
+										{d.label}
+									</option>
+								))}
+							</select>
+							<p className="text-xs text-gray-400 mt-1">
+								Used for interest accrual calculations
+							</p>
+						</div>
+					</div>
+				</>
+			)}
 
 			{/* Identity */}
 			<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 mt-6">
@@ -115,7 +120,7 @@ export const BondDetailsStep: FC<Props> = ({
 						type="text"
 						aria-label="Issuer"
 						className={inputClass("issuer")}
-						placeholder="e.g. Etat du S\u00e9n\u00e9gal"
+						placeholder="e.g. Etat du Sénégal"
 						value={formData.issuerName}
 						onChange={(e) => updateFormData({ issuerName: e.target.value })}
 						maxLength={255}

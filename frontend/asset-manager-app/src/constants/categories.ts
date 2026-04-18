@@ -1,3 +1,12 @@
+/** Set to true to restrict the UI to OTA and BTA bonds only. Flip to false to re-enable all categories. */
+export const BOND_ONLY_MODE = true;
+
+export const BOND_FILTER_OPTIONS = [
+	{ value: "", label: "All" },
+	{ value: "COUPON", label: "OTA" },
+	{ value: "DISCOUNT", label: "BTA" },
+] as const;
+
 /** Must match backend enum: AssetCategory.java */
 export const ASSET_CATEGORIES = [
 	{ value: "REAL_ESTATE", label: "Real Estate" },

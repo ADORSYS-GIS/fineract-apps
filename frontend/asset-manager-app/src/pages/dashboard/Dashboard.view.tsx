@@ -7,7 +7,11 @@ import { ExportTemplateMenu } from "@/components/ExportTemplateMenu";
 import { ImportAssetsDialog } from "@/components/ImportAssetsDialog";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TableSkeleton } from "@/components/TableSkeleton";
-import { ASSET_CATEGORIES_WITH_ALL } from "@/constants/categories";
+import {
+	ASSET_CATEGORIES_WITH_ALL,
+	BOND_FILTER_OPTIONS,
+	BOND_ONLY_MODE,
+} from "@/constants/categories";
 import { useDashboard } from "./useDashboard";
 
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
@@ -99,7 +103,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 					role="group"
 					aria-label="Filter by category"
 				>
-					{ASSET_CATEGORIES_WITH_ALL.map((cat) => (
+					{(BOND_ONLY_MODE ? BOND_FILTER_OPTIONS : ASSET_CATEGORIES_WITH_ALL).map((cat) => (
 						<button
 							key={cat.value}
 							onClick={() => onCategoryChange(cat.value)}
