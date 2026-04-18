@@ -1,15 +1,14 @@
 package com.adorsys.fineract.gateway.controller;
 
-import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
+import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
 import com.adorsys.fineract.gateway.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
-import org.springframework.util.StringUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class CallbackController {
 
     private final PaymentService paymentService;
-    private final MtnMomoConfig mtnConfig;
+    private final PaymentTransactionRepository transactionRepository;
     private final PaymentMetrics paymentMetrics;
 
     /**
@@ -38,6 +37,11 @@ public class CallbackController {
     @Operation(summary = "MTN collection callback", description = "Receive MTN MoMo collection (deposit) status update")
     public ResponseEntity<Void> handleMtnCollectionCallback(
             @PathVariable String referenceId) {
+
+        if (!isKnownMtnTransaction(referenceId)) {
+            log.warn("MTN collection callback rejected: unknown referenceId={}", referenceId);
+            return ResponseEntity.ok().build();
+        }
 
         log.info("Received MTN collection callback: referenceId={}", referenceId);
         try {
@@ -59,6 +63,11 @@ public class CallbackController {
     @Operation(summary = "MTN disbursement callback", description = "Receive MTN MoMo disbursement (withdrawal) status update")
     public ResponseEntity<Void> handleMtnDisbursementCallback(
             @PathVariable String referenceId) {
+
+        if (!isKnownMtnTransaction(referenceId)) {
+            log.warn("MTN disbursement callback rejected: unknown referenceId={}", referenceId);
+            return ResponseEntity.ok().build();
+        }
 
         log.info("Received MTN disbursement callback: referenceId={}", referenceId);
         try {
@@ -247,29 +256,13 @@ public class CallbackController {
     }
 
 
-     /**
-     * Validate MTN callback subscription key.
-     * Fail-closed: rejects callbacks when keys are not configured.
+    /**
+     * Guard against random UUID scanning: only process callbacks for transactions
+     * we actually initiated. MTN does not send an auth header in callbacks, so
+     * checking our own DB is the practical alternative.
      */
-    private boolean isValidMtnCallback(String subscriptionKey) {
-        String collectionKey = mtnConfig.getCollectionSubscriptionKey();
-        String disbursementKey = mtnConfig.getDisbursementSubscriptionKey();
-
-        // Fail-closed: reject if subscription keys are not configured (null, empty, or whitespace)
-        boolean collectionConfigured = StringUtils.hasText(collectionKey);
-        boolean disbursementConfigured = StringUtils.hasText(disbursementKey);
-        if (!collectionConfigured && !disbursementConfigured) {
-            log.error("MTN subscription keys not configured. Rejecting callback for security.");
-            paymentMetrics.incrementCallbackRejected(PaymentProvider.MTN_MOMO, "keys_not_configured");
-            return false;
-        }
-
-        if (!org.springframework.util.StringUtils.hasText(subscriptionKey)) {
-            return false;
-        }
-
-        return (collectionConfigured && subscriptionKey.equals(collectionKey)) ||
-               (disbursementConfigured && subscriptionKey.equals(disbursementKey));
+    private boolean isKnownMtnTransaction(String referenceId) {
+        return transactionRepository.existsByTransactionId(referenceId);
     }
 
 
