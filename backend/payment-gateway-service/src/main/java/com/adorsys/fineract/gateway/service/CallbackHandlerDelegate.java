@@ -4,6 +4,7 @@ import com.adorsys.fineract.gateway.client.CinetPayClient;
 import com.adorsys.fineract.gateway.client.FineractClient;
 import com.adorsys.fineract.gateway.config.CinetPayConfig;
 import com.adorsys.fineract.gateway.config.MtnMomoConfig;
+import com.adorsys.fineract.gateway.config.NokashConfig;
 import com.adorsys.fineract.gateway.config.OrangeMoneyConfig;
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
@@ -37,6 +38,7 @@ public class CallbackHandlerDelegate {
     private final OrangeMoneyConfig orangeConfig;
     private final CinetPayClient cinetPayClient;
     private final CinetPayConfig cinetPayConfig;
+    private final NokashConfig nokashConfig;
     private final PaymentMetrics paymentMetrics;
 
     /**
@@ -413,7 +415,7 @@ public class CallbackHandlerDelegate {
         }
     }
 
-    private CallbackResult processCinetPayWithdrawalCallback(CinetPayCallbackRequest callback, PaymentTransaction txn) {
+        private CallbackResult processCinetPayWithdrawalCallback(CinetPayCallbackRequest callback, PaymentTransaction txn) {
         if (callback.isSuccessful()) {
             txn.setStatus(PaymentStatus.SUCCESSFUL);
             transactionRepository.save(txn);
@@ -434,6 +436,78 @@ public class CallbackHandlerDelegate {
         }
 
         return CallbackResult.noReversal();
+    }
+
+    // ==================== NOKASH ====================
+
+    @Transactional
+    public CallbackResult processNokashCallback(NokashCallbackRequest callback) {
+        if (callback.getOrderId() == null || callback.getStatus() == null) {
+            log.warn("NOKASH callback missing required fields: orderId={}, status={}",
+                callback.getOrderId(), callback.getStatus());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.NOKASH, "missing_fields");
+            return CallbackResult.noReversal();
+        }
+
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(callback.getOrderId())
+            .orElse(null);
+
+        if (txn == null) {
+            log.warn("Transaction not found for NOKASH callback: {}", callback.getOrderId());
+            return CallbackResult.noReversal();
+        }
+
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            return CallbackResult.noReversal();
+        }
+
+        if (txn.getType() == PaymentResponse.TransactionType.DEPOSIT) {
+            if (callback.isSuccessful()) {
+                verifyCallbackAmount(callback.getAmount(), txn, PaymentProvider.NOKASH);
+
+                try {
+                    Long fineractTxnId = fineractClient.createDeposit(
+                        txn.getAccountId(),
+                        txn.getAmount(),
+                        nokashConfig.getFineractPaymentTypeId(),
+                        callback.getReference()
+                    );
+                    txn.setStatus(PaymentStatus.SUCCESSFUL);
+                    txn.setFineractTransactionId(fineractTxnId);
+                    transactionRepository.save(txn);
+                    paymentMetrics.incrementCallbackReceived(PaymentProvider.NOKASH, PaymentStatus.SUCCESSFUL);
+                    paymentMetrics.recordPaymentAmountTotal(PaymentProvider.NOKASH, PaymentResponse.TransactionType.DEPOSIT, txn.getAmount());
+                } catch (Exception e) {
+                    log.error("CRITICAL: Fineract createDeposit failed after NOKASH collected funds. " +
+                        "Marking PROCESSING so stale scheduler retries. " +
+                        "txnId={}, accountId={}, amount={}, error={}",
+                        txn.getTransactionId(), txn.getAccountId(), txn.getAmount(), e.getMessage());
+                    txn.setStatus(PaymentStatus.PROCESSING);
+                    transactionRepository.save(txn);
+                }
+            } else {
+                txn.setStatus(PaymentStatus.FAILED);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.NOKASH, PaymentStatus.FAILED);
+            }
+            return CallbackResult.noReversal();
+        } else {
+            // Withdrawal
+            if (callback.isSuccessful()) {
+                txn.setStatus(PaymentStatus.SUCCESSFUL);
+                transactionRepository.save(txn);
+
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.NOKASH, PaymentStatus.SUCCESSFUL);
+                paymentMetrics.recordPaymentAmountTotal(PaymentProvider.NOKASH, PaymentResponse.TransactionType.WITHDRAWAL, txn.getAmount());
+                return CallbackResult.noReversal();
+            } else {
+                log.warn("NOKASH withdrawal failed: txnId={}. Reversal needed.", txn.getTransactionId());
+                txn.setStatus(PaymentStatus.FAILED);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.NOKASH, PaymentStatus.FAILED);
+                return CallbackResult.needsReversal(txn);
+            }
+        }
     }
 
     // ==================== Shared helpers ====================

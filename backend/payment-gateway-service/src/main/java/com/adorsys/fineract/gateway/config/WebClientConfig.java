@@ -91,6 +91,11 @@ public class WebClientConfig {
         return buildProviderWebClient(builder, config.getBaseUrl(), config.getTimeoutSeconds());
     }
 
+    @Bean("nokashWebClient")
+    public WebClient nokashWebClient(WebClient.Builder builder, NokashConfig config) throws SSLException {
+        return buildProviderWebClient(builder, config.getBaseUrl(), config.getTimeoutSeconds());
+    }
+
     private WebClient buildProviderWebClient(WebClient.Builder builder, String baseUrl, int timeoutSeconds) throws SSLException {
         SslContextBuilder sslBuilder = SslContextBuilder.forClient();
         if (insecureSsl) {

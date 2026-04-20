@@ -3,6 +3,7 @@ package com.adorsys.fineract.gateway.integration;
 import com.adorsys.fineract.gateway.client.CinetPayClient;
 import com.adorsys.fineract.gateway.client.FineractClient;
 import com.adorsys.fineract.gateway.client.MtnMomoClient;
+import com.adorsys.fineract.gateway.client.NokashClient;
 import com.adorsys.fineract.gateway.client.OrangeMoneyClient;
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
@@ -58,6 +59,9 @@ class PaymentIntegrationTest {
 
     @MockBean
     private CinetPayClient cinetPayClient;
+
+    @MockBean
+    private NokashClient nokashClient;
 
     @MockBean
     private PaymentMetrics paymentMetrics;
@@ -137,6 +141,69 @@ class PaymentIntegrationTest {
         assertThat(completedTxn.get().getStatus()).isEqualTo(PaymentStatus.SUCCESSFUL);
         assertThat(completedTxn.get().getFineractTransactionId()).isEqualTo(999L);
     }
+
+    @Test
+    @Order(11)
+    @DisplayName("should complete full NOKASH deposit flow: initiate -> callback -> verify")
+    void deposit_nokash_fullFlow() throws Exception {
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        // Mock external clients
+        when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
+        when(nokashClient.initiatePayin(anyString(), any(BigDecimal.class), eq(PHONE), anyString())).thenReturn("nokash-ref-001");
+
+        // Step 1: Initiate deposit
+        DepositRequest depositRequest = DepositRequest.builder()
+                .externalId(EXTERNAL_ID)
+                .accountId(ACCOUNT_ID)
+                .amount(BigDecimal.valueOf(10000))
+                .provider(PaymentProvider.NOKASH)
+                .phoneNumber(PHONE)
+                .paymentMethod("MTN_MOMO")
+                .build();
+
+        MvcResult depositResult = mockMvc.perform(post("/api/payments/deposit")
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
+                        .header("X-Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(depositRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.transactionId").isNotEmpty())
+                .andReturn();
+
+        // Verify PENDING in DB
+        Optional<PaymentTransaction> pendingTxn = transactionRepository.findByIdempotencyKey(idempotencyKey);
+        assertThat(pendingTxn).isPresent();
+        assertThat(pendingTxn.get().getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(pendingTxn.get().getProviderReference()).isEqualTo("nokash-ref-001");
+
+        // Step 2: Simulate NOKASH callback
+        String transactionId = objectMapper.readTree(depositResult.getResponse().getContentAsString())
+                .get("transactionId").asText();
+
+        NokashCallbackRequest callbackRequest = NokashCallbackRequest.builder()
+                .orderId(transactionId)
+                .status("SUCCESS")
+                .amount("10000")
+                .reference("nokash-callback-ref")
+                .build();
+
+        when(fineractClient.createDeposit(eq(ACCOUNT_ID), any(BigDecimal.class), anyLong(), anyString()))
+                .thenReturn(1000L);
+
+        mockMvc.perform(post("/api/callbacks/nokash/" + transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(callbackRequest)))
+                .andExpect(status().isOk());
+
+        // Step 3: Verify SUCCESSFUL in DB
+        Optional<PaymentTransaction> completedTxn = transactionRepository.findByIdempotencyKey(idempotencyKey);
+        assertThat(completedTxn).isPresent();
+        assertThat(completedTxn.get().getStatus()).isEqualTo(PaymentStatus.SUCCESSFUL);
+        assertThat(completedTxn.get().getFineractTransactionId()).isEqualTo(1000L);
+    }
+
 
     // =========================================================================
     // Idempotency
