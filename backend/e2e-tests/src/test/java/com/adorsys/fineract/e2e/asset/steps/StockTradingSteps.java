@@ -79,6 +79,12 @@ public class StockTradingSteps {
         assertThat(activateResp.statusCode()).isEqualTo(200);
     }
 
+    @Given("the user holds {int} units of {string}")
+    public void the_user_holds_units_of(int units, String symbolRef) {
+        userBuysUnits(units, symbolRef);
+        tradeShouldBeFilled();
+    }
+
     // ---------------------------------------------------------------
     // When steps
     // ---------------------------------------------------------------

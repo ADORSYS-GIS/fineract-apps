@@ -52,3 +52,28 @@ Feature: Full User Journey (E2E)
     Then the journey user's portfolio should contain "JBD" with 3 units
     When the journey user requests their income calendar for 12 months
     Then the income calendar should contain at least 1 projected event
+
+  Scenario: New user registers, deposits XAF, buys stock, sells stock, and verifies balances
+    # Step 1: Customer registration
+    Given a new customer "SellJourney" "User" is registered in Fineract with external ID "e2e-sell-journey-user-001"
+    And the customer has an XAF savings account
+
+    # Step 2: Customer deposits funds
+    When the customer deposits 500000 XAF into their account
+    Then the customer's XAF balance should be 500000
+
+    # Step 3: Asset is available for purchase
+    Given an active stock asset "SLJ" with price 10000 and supply 1000
+
+    # Step 4: Customer buys asset
+    When the journey user buys 5 units of "SLJ"
+    Then the trade should be FILLED
+    And the journey user's portfolio should contain "SLJ" with 5 units
+
+    # Step 5: Customer sells asset
+    When the journey user sells 3 units of "SLJ"
+    Then the trade should be FILLED
+
+    # Step 6: Verify final balances
+    Then the customer's XAF balance should have increased
+    And the journey user's portfolio should contain "SLJ" with 2 units

@@ -77,9 +77,17 @@ public class FullUserJourneySteps {
     @Then("the customer's XAF balance should have decreased")
     public void customerBalanceShouldHaveDecreased() {
         Long accountId = context.getValue("journeyXafAccountId");
-        BigDecimal depositAmount = context.getValue("depositAmount");
+        BigDecimal balanceBefore = context.getValue("xafBalanceBefore");
         BigDecimal currentBalance = fineractTestClient.getAccountBalance(accountId);
-        assertThat(currentBalance).isLessThan(depositAmount);
+        assertThat(currentBalance).isLessThan(balanceBefore);
+    }
+
+    @Then("the customer's XAF balance should have increased")
+    public void customerBalanceShouldHaveIncreased() {
+        Long accountId = context.getValue("journeyXafAccountId");
+        BigDecimal balanceBefore = context.getValue("xafBalanceBefore");
+        BigDecimal currentBalance = fineractTestClient.getAccountBalance(accountId);
+        assertThat(currentBalance).isGreaterThan(balanceBefore);
     }
 
     // ---------------------------------------------------------------
@@ -88,6 +96,21 @@ public class FullUserJourneySteps {
 
     @When("the journey user buys {int} units of {string}")
     public void journeyUserBuys(int units, String symbolRef) {
+        Long accountId = context.getValue("journeyXafAccountId");
+        BigDecimal balanceBefore = fineractTestClient.getAccountBalance(accountId);
+        context.storeValue("xafBalanceBefore", balanceBefore);
+        quoteConfirmAndPoll(symbolRef, "BUY", units);
+    }
+
+    @When("the journey user sells {int} units of {string}")
+    public void journeyUserSells(int units, String symbolRef) {
+        Long accountId = context.getValue("journeyXafAccountId");
+        BigDecimal balanceBefore = fineractTestClient.getAccountBalance(accountId);
+        context.storeValue("xafBalanceBefore", balanceBefore);
+        quoteConfirmAndPoll(symbolRef, "SELL", units);
+    }
+
+    private void quoteConfirmAndPoll(String symbolRef, String side, int units) {
         String assetId = resolveAssetId(symbolRef);
         String externalId = context.getValue("journeyExternalId");
         Long clientId = context.getValue("journeyClientId");
@@ -97,7 +120,7 @@ public class FullUserJourneySteps {
         // 1. Create quote
         Map<String, Object> quoteBody = Map.of(
                 "assetId", assetId,
-                "side", "BUY",
+                "side", side,
                 "units", units
         );
 
@@ -162,6 +185,7 @@ public class FullUserJourneySteps {
                 .as("Order did not reach FILLED within timeout")
                 .isEqualTo("FILLED");
     }
+
 
     // ---------------------------------------------------------------
     // Portfolio verification

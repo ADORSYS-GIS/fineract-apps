@@ -146,6 +146,72 @@ public class ErrorSteps {
                 .post("/api/v1/trades/quote");
 
         context.setLastResponse(second);
+        context.storeValue("idempotencySymbol", symbolRef);
+        context.storeValue("expectedUnitsAfterIdempotent", 1);
+
+        // Confirm and execute the single quote so we can verify only 1 trade is recorded
+        if (orderId != null) {
+            Response confirmResp = RestAssured.given()
+                    .baseUri("http://localhost:" + port)
+                    .contentType(ContentType.JSON)
+                    .header("Authorization", "Bearer " + testUserJwt())
+                    .post("/api/v1/trades/orders/" + orderId + "/confirm");
+
+            if (confirmResp.statusCode() == 202) {
+                // Poll for FILLED
+                long deadline = System.currentTimeMillis() + 15_000;
+                while (System.currentTimeMillis() < deadline) {
+                    Response pollResp = RestAssured.given()
+                            .baseUri("http://localhost:" + port)
+                            .header("Authorization", "Bearer " + testUserJwt())
+                            .get("/api/v1/trades/orders/" + orderId);
+                    String status = pollResp.jsonPath().getString("status");
+                    if ("FILLED".equals(status) || "FAILED".equals(status) || "REJECTED".equals(status)) {
+                        break;
+                    }
+                    try { Thread.sleep(500); } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt(); break;
+                    }
+                }
+            }
+        }
+    }
+
+    @When("the user sends two identical sell orders for {int} units of {string}")
+    public void userSendsIdempotentSellOrders(int units, String symbolRef) {
+        String assetId = context.getId("lastAssetId");
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        Map<String, Object> body = Map.of(
+                "assetId", assetId,
+                "side", "SELL",
+                "units", units
+        );
+
+        // First quote request
+        Response first = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .header("X-Idempotency-Key", idempotencyKey)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .body(body)
+                .post("/api/v1/trades/quote");
+
+        context.storeValue("firstOrderStatus", first.statusCode());
+        String orderId = first.jsonPath().getString("orderId");
+
+        // Second quote request with same idempotency key — should return same quote
+        Response second = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .contentType(ContentType.JSON)
+                .header("X-Idempotency-Key", idempotencyKey)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .body(body)
+                .post("/api/v1/trades/quote");
+
+        context.setLastResponse(second);
+        context.storeValue("idempotencySymbol", symbolRef);
+        context.storeValue("expectedUnitsAfterIdempotent", 9);
 
         // Confirm and execute the single quote so we can verify only 1 trade is recorded
         if (orderId != null) {
@@ -237,14 +303,27 @@ public class ErrorSteps {
 
     @Then("only one trade should be recorded in the trade log")
     public void onlyOneTradeRecorded() {
-        String assetId = context.getId("lastAssetId");
+        String symbol = context.getValue("idempotencySymbol");
+        int expectedUnits = context.getValue("expectedUnitsAfterIdempotent");
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
-                .get("/api/v1/admin/assets/" + assetId);
+                .header("Authorization", "Bearer " + testUserJwt())
+                .get("/api/v1/portfolio");
+        
+        assertThat(response.statusCode()).isEqualTo(200);
 
-        Number circulatingSupply = response.jsonPath().get("circulatingSupply");
-        assertThat(circulatingSupply.intValue()).isEqualTo(1);
+        java.util.List<java.util.Map<String, Object>> positions = response.jsonPath().getList("positions");
+        boolean found = false;
+        for (java.util.Map<String, Object> pos : positions) {
+            if (symbol.equals(pos.get("symbol"))) {
+                java.math.BigDecimal units = new java.math.BigDecimal(pos.get("totalUnits").toString());
+                assertThat(units.intValue()).isEqualTo(expectedUnits);
+                found = true;
+                break;
+            }
+        }
+        assertThat(found).as("Position for %s not found in portfolio", symbol).isTrue();
     }
 
     // ---------------------------------------------------------------

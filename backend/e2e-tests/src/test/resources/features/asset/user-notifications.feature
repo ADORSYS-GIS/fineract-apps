@@ -103,3 +103,10 @@ Feature: User Notifications and Preferences
     Then the response status should be 200
     When the user lists their notifications
     Then the notification list should contain a "DELISTING_ANNOUNCED" event for asset "NT8"
+
+  Scenario: A failed trade does not generate a notification
+    Given an active stock asset "NT9" with price 1000 and supply 5
+    When the user buys more units than available supply of "NT9"
+    Then the trade should be rejected
+    When the user lists their notifications
+    Then the notification list should not contain a "TRADE_EXECUTED" event for asset "NT9"
