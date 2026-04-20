@@ -72,11 +72,13 @@ public class BondStepDefinitions {
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id, trading_fee_percent, version,
                 interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
+                bond_type, day_count_convention,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
                 is_bvmac_listed, is_government_bond, ircm_exempt, tva_enabled,
                 created_at, updated_at)
             VALUES (?, ?, 'XAF', ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL, 0.005, 0,
                 ?, ?, ?, ?,
+                'COUPON', 'ACT_365',
                 true, true, true, false, ?, ?, false,
                 NOW(), NOW())
             """, bondId, shortSymbol(bondId), "Bond " + bondId,
@@ -101,8 +103,9 @@ public class BondStepDefinitions {
     public void userHoldsBondUnits(Long userId, int units, String bondId) {
         jdbcTemplate.update("""
             INSERT INTO user_positions (user_id, asset_id, total_units, avg_purchase_price,
-                total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version)
-            VALUES (?, ?, ?, 10000, ?, 0, 200, ?, 0)
+                total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version,
+                total_fees_paid, total_taxes_paid)
+            VALUES (?, ?, ?, 10000, ?, 0, 200, ?, 0, 0, 0)
             """, userId, bondId, units, units * 10000, Instant.now());
 
         // Keep circulating supply consistent with positions
@@ -135,7 +138,7 @@ public class BondStepDefinitions {
         Map<String, Object> request = new HashMap<>();
         request.put("name", data.get("name"));
         request.put("symbol", data.get("symbol"));
-        request.put("currencyCode", data.get("currencyCode"));
+        // currencyCode is deprecated — auto-generated from symbol; not sent in new requests
         request.put("category", data.get("category"));
         request.put("issuerPrice", new BigDecimal(data.get("initialPrice")));
         request.put("lpAskPrice", new BigDecimal(data.get("initialPrice")).multiply(new BigDecimal("1.10")));
@@ -146,6 +149,9 @@ public class BondStepDefinitions {
         request.put("tradingFeePercent", 0.005);
         request.put("issuerName", data.get("issuerName"));
         if (data.containsKey("isinCode")) request.put("isinCode", data.get("isinCode"));
+        request.put("bondType", data.getOrDefault("bondType", "COUPON"));
+        request.put("dayCountConvention", data.getOrDefault("dayCountConvention", "ACT_365"));
+        if (data.containsKey("issuerCountry")) request.put("issuerCountry", data.get("issuerCountry"));
         request.put("interestRate", new BigDecimal(data.get("interestRate")));
         request.put("couponFrequencyMonths", Integer.parseInt(data.get("couponFrequencyMonths")));
 
@@ -165,11 +171,12 @@ public class BondStepDefinitions {
     @When("the admin creates a bond asset without an issuer")
     public void adminCreatesBondWithoutIssuer() throws Exception {
         Map<String, Object> request = new HashMap<>();
-        request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
+        request.put("name", "Bond"); request.put("symbol", "BND"); // currencyCode auto-generated
         request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
         request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
         request.put("tradingFeePercent", 0.005);
         request.put("lpAskPrice", 11000); request.put("lpBidPrice", 9500);
+        request.put("bondType", "COUPON");
         request.put("interestRate", 5.0); request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().plusYears(1).toString());
         request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
@@ -185,11 +192,12 @@ public class BondStepDefinitions {
     @When("the admin creates a bond asset with maturity date in the past")
     public void adminCreatesBondWithPastMaturity() throws Exception {
         Map<String, Object> request = new HashMap<>();
-        request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
+        request.put("name", "Bond"); request.put("symbol", "BND"); // currencyCode auto-generated
         request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
         request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
         request.put("tradingFeePercent", 0.005);
         request.put("lpAskPrice", 11000); request.put("lpBidPrice", 9500);
+        request.put("bondType", "COUPON");
         request.put("issuerName", "Test Issuer"); request.put("interestRate", 5.0);
         request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().minusDays(1).toString());
@@ -206,11 +214,12 @@ public class BondStepDefinitions {
     @When("the admin creates a bond asset with coupon frequency {int}")
     public void adminCreatesBondWithInvalidFrequency(int frequency) throws Exception {
         Map<String, Object> request = new HashMap<>();
-        request.put("name", "Bond"); request.put("symbol", "BND"); request.put("currencyCode", "BND");
+        request.put("name", "Bond"); request.put("symbol", "BND"); // currencyCode auto-generated
         request.put("category", "BONDS"); request.put("issuerPrice", 10000); request.put("totalSupply", 100);
         request.put("decimalPlaces", 0); request.put("lpClientId", 1L);
         request.put("tradingFeePercent", 0.005);
         request.put("lpAskPrice", 11000); request.put("lpBidPrice", 9500);
+        request.put("bondType", "COUPON");
         request.put("issuerName", "Test Issuer"); request.put("interestRate", 5.0);
         request.put("couponFrequencyMonths", frequency);
         request.put("maturityDate", LocalDate.now().plusYears(1).toString());
@@ -226,12 +235,12 @@ public class BondStepDefinitions {
 
     @When("the maturity scheduler runs")
     public void maturitySchedulerRuns() {
-        maturityScheduler.matureBonds();
+        maturityScheduler.runMaturityCycle(LocalDate.now());
     }
 
     @When("the interest payment scheduler runs")
     public void interestPaymentSchedulerRuns() {
-        interestPaymentScheduler.processCouponPayments();
+        interestPaymentScheduler.runCouponCycle(LocalDate.now());
     }
 
     // -------------------------------------------------------------------------
@@ -312,11 +321,13 @@ public class BondStepDefinitions {
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
                 lp_asset_account_id, lp_cash_account_id, fineract_product_id, trading_fee_percent, version,
                 issuer_name, interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
+                bond_type, day_count_convention,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
                 is_bvmac_listed, is_government_bond, ircm_exempt, tva_enabled,
                 created_at, updated_at)
             VALUES (?, ?, 'XAF', ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, NULL, 0.005, 0,
                 'Test Issuer', 5.80, 6, ?, ?,
+                'COUPON', 'ACT_365',
                 true, true, true, false, false, false, false,
                 NOW(), NOW())
             """, bondId, shortSymbol(bondId), "Bond " + bondId, status, nextCouponDate, maturityDate);

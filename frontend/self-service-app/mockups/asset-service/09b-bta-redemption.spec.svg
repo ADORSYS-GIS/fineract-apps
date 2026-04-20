@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 748" width="820" height="748">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./09b-bta-redemption.svg" x="0" y="0" width="390" height="748"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="748" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="748" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">09b · BTA Maturity Redemption Confirmation</text>
+
+  <!-- Trigger note -->
+  <rect x="406" y="31" width="408" height="15" rx="3" fill="#f0fdf4"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">PUSH</tspan><tspan fill="#1e40af"> notification → taps into screen  (passive / system-triggered)</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">Screen is reached via push notification when BtaMaturityScheduler processes the bond.</text>
+
+  <!-- Endpoint -->
+  <rect x="406" y="62" width="348" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="73" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /portfolio/orders/{orderId}  (PRINCIPAL_REDEMPTION type)</tspan></text>
+  <text x="408" y="88" fill="#64748b" font-size="9">Response: OrderDetailResponse  (fetched after notification tap)</text>
+
+  <!-- Section: Bond Identity -->
+  <line x1="406" y1="103" x2="816" y2="103" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="115" fill="#1e3a5f" font-size="11" font-weight="700">Bond Identity Block</text>
+  <text x="410" y="131" fill="#64748b" font-size="10">Bond name</text>
+  <text x="814" y="131" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.assetName</text>
+  <text x="410" y="145" fill="#64748b" font-size="10">Bond type badge (BTA · Remboursement)</text>
+  <text x="814" y="145" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.assetBondType  (DISCOUNT)</text>
+
+  <!-- Section: Redemption Summary -->
+  <line x1="406" y1="162" x2="816" y2="162" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="174" fill="#1e3a5f" font-size="11" font-weight="700">Redemption Summary Card</text>
+  <text x="410" y="190" fill="#64748b" font-size="10">Unités remboursées</text>
+  <text x="814" y="190" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.units</text>
+  <text x="410" y="204" fill="#64748b" font-size="10">Valeur nominale / unité</text>
+  <text x="814" y="204" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.faceValue</text>
+  <text x="410" y="218" fill="#64748b" font-size="10">Produit brut  (units × faceValue)</text>
+  <text x="814" y="218" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.grossProceeds</text>
+  <text x="410" y="232" fill="#64748b" font-size="10">Prix d'achat moyen / unité</text>
+  <text x="814" y="232" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.avgPurchasePrice</text>
+  <text x="410" y="246" fill="#64748b" font-size="10">Gain en capital brut  (units × (faceValue − avgPurchasePrice))</text>
+  <text x="814" y="246" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.capitalGain</text>
+  <text x="410" y="260" fill="#64748b" font-size="10">IRCM retenu  (capitalGain × ircmRate)</text>
+  <text x="814" y="260" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.ircmWithheld</text>
+  <text x="410" y="274" fill="#64748b" font-size="10">Produit net crédité  (grossProceeds − ircmWithheld)</text>
+  <text x="814" y="274" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.netProceeds</text>
+  <text x="410" y="288" fill="#64748b" font-size="10">ISIN (reference)</text>
+  <text x="814" y="288" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.isinCode</text>
+
+  <!-- Section: Wallet Notice -->
+  <line x1="406" y1="305" x2="816" y2="305" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="317" fill="#1e3a5f" font-size="11" font-weight="700">Wallet Credited Notice</text>
+  <text x="410" y="333" fill="#64748b" font-size="10">Credit amount displayed</text>
+  <text x="814" y="333" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OrderDetailResponse.netProceeds</text>
+  <text x="410" y="347" fill="#64748b" font-size="10">Fineract savings account credited</text>
+  <text x="814" y="347" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">custodialService.releaseToClient()  (backend settlement)</text>
+
+  <!-- Section: Action -->
+  <line x1="406" y1="364" x2="816" y2="364" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="376" fill="#1e3a5f" font-size="11" font-weight="700">CTA Button</text>
+  <text x="410" y="392" fill="#64748b" font-size="10">"Voir mon portefeuille" → navigates to screen 10 (Portfolio)</text>
+  <text x="814" y="392" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">hardcoded navigation</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="409" x2="816" y2="409" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="421" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="435" fill="#b45309" font-size="9">ⓘ This screen is system-triggered, not user-initiated. It appears as a push</text>
+  <text x="410" y="448" fill="#b45309" font-size="9">  notification on the bond's maturity date, processed by BtaMaturityScheduler.</text>
+  <text x="410" y="461" fill="#b45309" font-size="9">ⓘ IRCM is computed by PrincipalRedemptionService: capitalGain × ircmRate.</text>
+  <text x="410" y="474" fill="#b45309" font-size="9">  capitalGain = (faceValue − avgPurchasePrice) × unitsRedeemed.</text>
+  <text x="410" y="487" fill="#b45309" font-size="9">ⓘ avgPurchasePrice is the weighted-average cost basis across all BTA purchases.</text>
+  <text x="410" y="500" fill="#b45309" font-size="9">ⓘ netProceeds = grossProceeds − ircmWithheld (principal is not taxed, only gain).</text>
+  <text x="410" y="513" fill="#b45309" font-size="9">ⓘ IRCM rate sourced from AssetPublicDetailResponse.taxConfig.ircmRate (16.5%).</text>
+  <text x="410" y="526" fill="#b45309" font-size="9">ⓘ OrderDetailResponse.orderType = PRINCIPAL_REDEMPTION for this screen.</text>
+</svg>

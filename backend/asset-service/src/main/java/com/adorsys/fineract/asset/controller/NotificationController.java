@@ -2,8 +2,7 @@ package com.adorsys.fineract.asset.controller;
 
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.service.NotificationService;
-import com.adorsys.fineract.asset.util.JwtUtils;
-import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.util.UserIdentityResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -26,22 +25,20 @@ import java.util.Map;
 public class NotificationController {
 
     private final NotificationService notificationService;
-    private final FineractClient fineractClient;
+    private final UserIdentityResolver userIdentityResolver;
 
     @GetMapping
     @Operation(summary = "List notifications", description = "Paginated list of user notifications, most recent first")
     public Page<NotificationResponse> getNotifications(
             @AuthenticationPrincipal Jwt jwt,
             Pageable pageable) {
-        Long userId = resolveUserId(jwt);
-        return notificationService.getNotifications(userId, pageable);
+        return notificationService.getNotifications(userIdentityResolver.resolveUserId(jwt), pageable);
     }
 
     @GetMapping("/unread-count")
     @Operation(summary = "Get unread count", description = "Number of unread notifications for the current user")
     public Map<String, Long> getUnreadCount(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = resolveUserId(jwt);
-        return Map.of("count", notificationService.getUnreadCount(userId));
+        return Map.of("count", notificationService.getUnreadCount(userIdentityResolver.resolveUserId(jwt)));
     }
 
     @PostMapping("/{id}/read")
@@ -49,24 +46,20 @@ public class NotificationController {
     public ResponseEntity<Void> markRead(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
-        Long userId = resolveUserId(jwt);
-        notificationService.markRead(id, userId);
+        notificationService.markRead(id, userIdentityResolver.resolveUserId(jwt));
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/read-all")
     @Operation(summary = "Mark all as read", description = "Mark all unread notifications as read for the current user")
     public Map<String, Integer> markAllRead(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = resolveUserId(jwt);
-        int count = notificationService.markAllRead(userId);
-        return Map.of("marked", count);
+        return Map.of("marked", notificationService.markAllRead(userIdentityResolver.resolveUserId(jwt)));
     }
 
     @GetMapping("/preferences")
     @Operation(summary = "Get notification preferences", description = "Per-event-type notification toggle settings")
     public NotificationPreferencesResponse getPreferences(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = resolveUserId(jwt);
-        return notificationService.getPreferences(userId);
+        return notificationService.getPreferences(userIdentityResolver.resolveUserId(jwt));
     }
 
     @PutMapping("/preferences")
@@ -74,13 +67,6 @@ public class NotificationController {
     public NotificationPreferencesResponse updatePreferences(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody UpdateNotificationPreferencesRequest request) {
-        Long userId = resolveUserId(jwt);
-        return notificationService.updatePreferences(userId, request);
-    }
-
-    private Long resolveUserId(Jwt jwt) {
-        String externalId = JwtUtils.extractExternalId(jwt);
-        Map<String, Object> clientData = fineractClient.getClientByExternalId(externalId);
-        return ((Number) clientData.get("id")).longValue();
+        return notificationService.updatePreferences(userIdentityResolver.resolveUserId(jwt), request);
     }
 }

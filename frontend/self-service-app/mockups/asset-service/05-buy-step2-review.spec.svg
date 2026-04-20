@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 960" width="820" height="960">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./05-buy-step2-review.svg" x="0" y="0" width="390" height="960"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="960" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="960" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">05 · Buy — Step 2 Review  (Real Estate)</text>
+
+  <!-- Endpoints -->
+  <rect x="406" y="31" width="265" height="15" rx="3" fill="#fff7ed"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#c2410c" font-weight="700">POST</tspan><tspan fill="#1e40af"> /trades/quote</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">result cached from Step 1 · QuoteResponse</text>
+
+  <rect x="406" y="62" width="360" height="15" rx="3" fill="#fff7ed"/>
+  <text x="410" y="73" font-size="10" font-family="monospace"><tspan fill="#c2410c" font-weight="700">POST</tspan><tspan fill="#1e40af"> /trades/orders/{orderId}/confirm</tspan></text>
+  <text x="408" y="88" fill="#64748b" font-size="9">on "Confirm &amp; Buy" tap · Response: OrderResponse</text>
+
+  <!-- Section: Warning Banner -->
+  <line x1="406" y1="103" x2="816" y2="103" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="115" fill="#1e3a5f" font-size="11" font-weight="700">Warning Banner  (conditional)</text>
+  <text x="410" y="131" fill="#64748b" font-size="10">⏰ Market Closed banner (amber)</text>
+  <text x="814" y="131" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.warnings contains "MARKET_CLOSED"</text>
+  <text x="410" y="144" fill="#b45309" font-size="9">  When present → order queues; executes at next market open (08:00 WAT)</text>
+
+  <!-- Section: Order Summary Card -->
+  <line x1="406" y1="159" x2="816" y2="159" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="171" fill="#1e3a5f" font-size="11" font-weight="700">Order Summary Card  (all from QuoteResponse)</text>
+  <text x="410" y="187" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="187" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.assetSymbol</text>
+  <text x="410" y="201" fill="#64748b" font-size="10">Order type badge (BUY)</text>
+  <text x="814" y="201" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.side</text>
+  <text x="410" y="215" fill="#64748b" font-size="10">Units to buy</text>
+  <text x="814" y="215" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.units</text>
+  <text x="410" y="229" fill="#64748b" font-size="10">Price per unit  (incl. LP spread)</text>
+  <text x="814" y="229" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.executionPrice</text>
+  <text x="410" y="243" fill="#64748b" font-size="10">Gross amount</text>
+  <text x="814" y="243" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.grossAmount</text>
+  <text x="410" y="257" fill="#64748b" font-size="10">Trading fee (0.3%)</text>
+  <text x="814" y="257" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.fee  (.feePercent)</text>
+  <text x="410" y="271" fill="#64748b" font-size="10">TVA (19.25% on fee)  — buyer only</text>
+  <text x="814" y="271" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">fee × 0.1925  (computed by BuyStrategy)</text>
+  <text x="410" y="284" fill="#b45309" font-size="9">  TVA is NOT in TaxBreakdown; added by BuyStrategy as a fee surcharge</text>
+  <text x="410" y="298" fill="#64748b" font-size="10">Registration duty (asset-configurable, default OFF)</text>
+  <text x="814" y="298" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.taxBreakdown.registrationDutyAmount</text>
+  <text x="410" y="312" fill="#b45309" font-size="9">  Rate: taxBreakdown.registrationDutyRate  (shown only when &gt; 0)</text>
+  <text x="410" y="326" fill="#64748b" font-size="10">Total (net amount)</text>
+  <text x="814" y="326" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.netAmount</text>
+  <text x="410" y="340" fill="#64748b" font-size="10">Remainder returned to wallet</text>
+  <text x="814" y="340" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.remainder</text>
+  <text x="410" y="354" fill="#64748b" font-size="10">Available balance (green ✓ if feasible)</text>
+  <text x="814" y="354" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.availableBalance</text>
+  <text x="410" y="368" fill="#64748b" font-size="10">Feasibility check</text>
+  <text x="814" y="368" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">netAmount ≤ availableBalance  (client-derived)</text>
+  <text x="410" y="382" fill="#64748b" font-size="10">After-purchase balance</text>
+  <text x="814" y="382" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">availableBalance − netAmount  (computed)</text>
+
+  <!-- Section: Important Notes -->
+  <line x1="406" y1="399" x2="816" y2="399" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="411" fill="#1e3a5f" font-size="11" font-weight="700">Important Notes Block</text>
+  <text x="410" y="427" fill="#64748b" font-size="10">Lock-up period</text>
+  <text x="814" y="427" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.lockupDays</text>
+  <text x="410" y="441" fill="#64748b" font-size="10">Price expires in 30 s</text>
+  <text x="814" y="441" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.quoteExpiresAt</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="458" x2="816" y2="458" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="470" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="484" fill="#b45309" font-size="9">ⓘ LP spread is NEVER itemised here; it is baked into executionPrice.</text>
+  <text x="410" y="497" fill="#b45309" font-size="9">ⓘ TVA applies to BUY only (SellStrategy does not add TVA).</text>
+  <text x="410" y="510" fill="#b45309" font-size="9">ⓘ If feasible=false → redirect to screen 16 (insufficient funds).</text>
+  <text x="410" y="523" fill="#b45309" font-size="9">ⓘ "Go Back" re-uses the same QuoteResponse cached from Step 1.</text>
+</svg>

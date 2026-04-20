@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.client;
 
 import com.adorsys.fineract.asset.config.FineractConfig;
 import com.adorsys.fineract.asset.exception.AssetException;
+import com.adorsys.fineract.asset.exception.ClientNotProvisionedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -583,7 +584,7 @@ public class FineractClient {
 
             var pageItems = (List<Map<String, Object>>) response.get("pageItems");
             if (pageItems == null || pageItems.isEmpty()) {
-                throw new AssetException("Client not found: " + externalId);
+                throw new ClientNotProvisionedException(externalId);
             }
 
             return pageItems.get(0);
@@ -794,15 +795,6 @@ public class FineractClient {
                     .block();
 
             if (responses != null) {
-                // Check if batch router doesn't support some endpoints (501)
-                boolean hasBatchRoutingError = responses.stream()
-                        .anyMatch(r -> Integer.valueOf(501).equals(r.get("statusCode")));
-                if (hasBatchRoutingError) {
-                    log.warn("Fineract batch API returned 501 for some operations. "
-                            + "Falling back to sequential execution.");
-                    return executeSequentially(operations);
-                }
-
                 for (Map<String, Object> resp : responses) {
                     Integer statusCode = (Integer) resp.get("statusCode");
                     if (statusCode == null || statusCode < 200 || statusCode >= 300) {
@@ -821,38 +813,6 @@ public class FineractClient {
             log.error("Fineract batch API failed: {}", e.getMessage());
             throw new AssetException("Batch operation failed: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Fallback: execute batch operations one-by-one using individual Fineract API calls.
-     * Called when the Fineract Batch API doesn't support certain endpoints (e.g. accounttransfers).
-     */
-    private List<Map<String, Object>> executeSequentially(List<BatchOperation> operations) {
-        List<Map<String, Object>> results = new ArrayList<>();
-        for (int i = 0; i < operations.size(); i++) {
-            BatchOperation op = operations.get(i);
-            Long resourceId;
-            switch (op) {
-                case BatchTransferOp t -> resourceId = createAccountTransfer(
-                        t.fromAccountId(), t.toAccountId(), t.amount(), t.description());
-                case BatchJournalEntryOp j -> {
-                    // Journal entries via sequential fallback — use GL code lookup
-                    Map<String, Long> glCodes = lookupGlAccounts();
-                    String debitCode = glCodes.entrySet().stream()
-                            .filter(e -> e.getValue().equals(j.debitGlAccountId()))
-                            .map(Map.Entry::getKey).findFirst().orElse("unknown");
-                    String creditCode = glCodes.entrySet().stream()
-                            .filter(e -> e.getValue().equals(j.creditGlAccountId()))
-                            .map(Map.Entry::getKey).findFirst().orElse("unknown");
-                    createJournalEntry(debitCode, creditCode, j.amount(), j.description());
-                    resourceId = 0L;
-                }
-            }
-            results.add(Map.of("requestId", (long) (i + 1), "statusCode", 200,
-                    "body", Map.of("resourceId", resourceId)));
-        }
-        log.info("Executed {} transfers sequentially (batch API fallback)", operations.size());
-        return results;
     }
 
     /**
@@ -1020,7 +980,7 @@ public class FineractClient {
     @SuppressWarnings("unchecked")
     private String parseFineractError(String context, String rawBody) {
         try {
-            Map<String, Object> errorResponse = new ObjectMapper().readValue(rawBody, Map.class);
+            Map<String, Object> errorResponse = objectMapper.readValue(rawBody, Map.class);
             String userMessage = (String) errorResponse.get("defaultUserMessage");
             if (userMessage != null && !userMessage.isBlank()) {
                 String result = context + ": " + userMessage;

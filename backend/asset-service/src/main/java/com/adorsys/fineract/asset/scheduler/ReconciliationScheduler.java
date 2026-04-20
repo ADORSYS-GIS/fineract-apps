@@ -5,6 +5,7 @@ import com.adorsys.fineract.asset.service.ReconciliationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ public class ReconciliationScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 30 1 * * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "reconciliation-scheduler", lockAtMostFor = "PT1H", lockAtLeastFor = "PT10M")
     public void runReconciliation() {
         try {
             log.info("Starting daily reconciliation...");

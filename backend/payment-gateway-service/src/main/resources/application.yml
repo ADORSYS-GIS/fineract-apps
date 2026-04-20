@@ -64,7 +64,7 @@ mtn:
     api-key: ${MTN_API_KEY:}
     target-environment: ${MTN_TARGET_ENV:sandbox}
     callback-url: ${MTN_CALLBACK_URL:http://localhost:8082/api/callbacks}
-    currency: XAF
+    currency: ${MTN_CURRENCY:EUR}
     timeout-seconds: 60
     fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:1}
     gl-account-code: ${MTN_GL_ACCOUNT_CODE:}
@@ -80,7 +80,7 @@ orange:
     callback-url: ${ORANGE_CALLBACK_URL:http://localhost:8082/api/callbacks}
     return-url: ${ORANGE_RETURN_URL:http://localhost:3000/self-service/transactions}
     cancel-url: ${ORANGE_CANCEL_URL:http://localhost:3000/self-service/transactions}
-    currency: XAF
+    currency: ${ORANGE_CURRENCY:XAF}
     timeout-seconds: 30
     fineract-payment-type-id: ${ORANGE_FINERACT_PAYMENT_TYPE_ID:2}
     gl-account-code: ${ORANGE_GL_ACCOUNT_CODE:}
@@ -95,7 +95,7 @@ cinetpay:
   api-password: ${CINETPAY_API_PASSWORD:}
   transfer-password: ${CINETPAY_TRANSFER_PASSWORD:} 
   secret-key: ${CINETPAY_SECRET_KEY:}
-  currency: XAF
+  currency: ${CINETPAY_CURRENCY:XAF}
   timeout-seconds: 30
 
 # Base URLs for dynamic callback/return URL construction
@@ -125,18 +125,26 @@ fineract:
 
 app:
   ssl:
-    insecure: ${SSL_INSECURE:false}
+    insecure: ${SSL_INSECURE:true}
   cleanup:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
     interval-ms: ${APP_CLEANUP_INTERVAL_MS:300000}
+    pending-stale-minutes: ${APP_CLEANUP_PENDING_STALE_MINUTES:3}
+    pending-interval-ms: ${APP_CLEANUP_PENDING_INTERVAL_MS:120000}
     processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:60}
     processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:600000}
+    stale-processing-max-retries: ${APP_CLEANUP_STALE_PROCESSING_MAX_RETRIES:5}
+  status:
+    provider-check-enabled: ${APP_STATUS_PROVIDER_CHECK_ENABLED:true}
+    pending-poll-min-age-minutes: ${APP_STATUS_PENDING_POLL_MIN_AGE_MINUTES:2}
   dlq-retry:
     enabled: ${APP_DLQ_RETRY_ENABLED:true}
     interval-ms: ${APP_DLQ_RETRY_INTERVAL_MS:900000}
     max-retries: ${APP_DLQ_RETRY_MAX:5}
     min-age-seconds: ${APP_DLQ_RETRY_MIN_AGE:300}
+  dlq:
+    admin-max-retries: ${APP_DLQ_ADMIN_MAX_RETRIES:10}
   limits:
     daily-deposit-max: ${APP_DAILY_DEPOSIT_MAX:500000}
     daily-withdrawal-max: ${APP_DAILY_WITHDRAWAL_MAX:500000}

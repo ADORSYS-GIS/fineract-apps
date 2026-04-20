@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { BOND_ONLY_MODE } from "@/constants/categories";
 import { type AssetResponse, assetApi } from "@/services/assetApi";
-import { exportAssetTemplate } from "@/utils/assetExcelTemplate";
 
 export const useDashboard = () => {
 	const [searchValue, setSearchValue] = useState("");
@@ -69,7 +69,9 @@ export const useDashboard = () => {
 	const assets = useMemo(() => {
 		let filtered = allAssets;
 		if (categoryFilter) {
-			filtered = filtered.filter((a) => a.category === categoryFilter);
+			filtered = BOND_ONLY_MODE
+				? filtered.filter((a) => a.bondType === categoryFilter)
+				: filtered.filter((a) => a.category === categoryFilter);
 		}
 		if (debouncedSearch) {
 			const q = debouncedSearch.toLowerCase();
@@ -83,12 +85,6 @@ export const useDashboard = () => {
 	}, [allAssets, categoryFilter, debouncedSearch]);
 
 	const [isImportOpen, setIsImportOpen] = useState(false);
-
-	const onExportTemplate = useCallback(() => {
-		exportAssetTemplate().catch((err) => {
-			console.error("Failed to export template:", err);
-		});
-	}, []);
 
 	const onOpenImport = useCallback(() => {
 		setIsImportOpen(true);
@@ -115,7 +111,6 @@ export const useDashboard = () => {
 		settlementSummary,
 		refetch,
 		isImportOpen,
-		onExportTemplate,
 		onOpenImport,
 		onCloseImport,
 	};

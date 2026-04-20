@@ -52,4 +52,25 @@ public interface InterestPaymentRepository extends JpaRepository<InterestPayment
      * Most recent successful coupon payment for an asset.
      */
     Optional<InterestPayment> findFirstByAssetIdAndStatusOrderByPaidAtDesc(String assetId, String status);
+
+    /**
+     * All coupon payments for a given user, ordered by most recent first.
+     */
+    Page<InterestPayment> findByUserIdOrderByPaidAtDesc(Long userId, Pageable pageable);
+
+    /**
+     * Total net coupon cash received by a user (all statuses = SUCCESS).
+     */
+    @Query("SELECT COALESCE(SUM(ip.cashAmount), 0) FROM InterestPayment ip " +
+           "WHERE ip.userId = :userId AND ip.status = 'SUCCESS'")
+    BigDecimal sumPaidByUser(@Param("userId") Long userId);
+
+    /**
+     * Idempotency check: returns true if a successful coupon payment already exists
+     * for the given (assetId, couponDate, userId) tuple.
+     * Used in {@code payCouponHolder} to skip already-paid holders on retry.
+     */
+    boolean existsByAssetIdAndCouponDateAndUserIdAndStatus(
+            String assetId, LocalDate couponDate, Long userId, String status);
+
 }

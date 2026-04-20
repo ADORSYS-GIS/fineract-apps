@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,12 +58,19 @@ public class PaymentService {
     private final ReversalDeadLetterRepository deadLetterRepository;
     private final CallbackHandlerDelegate callbackDelegate;
     private final TransactionReservationService reservationService;
+    private final StaleTransactionReconciler staleTransactionReconciler;
 
     @Value("${app.limits.daily-deposit-max:500000}")
     private BigDecimal dailyDepositMax;
 
     @Value("${app.limits.daily-withdrawal-max:500000}")
     private BigDecimal dailyWithdrawalMax;
+
+    @Value("${app.status.provider-check-enabled:true}")
+    private boolean statusProviderCheckEnabled;
+
+    @Value("${app.status.pending-poll-min-age-minutes:2}")
+    private int pendingPollMinAgeMinutes;
 
     /**
      * Initiate a deposit operation.
@@ -75,10 +83,10 @@ public class PaymentService {
         log.info("Initiating deposit: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
-        validateIdempotencyKey(idempotencyKey);
+
 
         // Fast path: return existing transaction for genuine retries
-        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
             return mapToResponse(existing.get());
@@ -91,18 +99,18 @@ public class PaymentService {
             throw new PaymentException("Account does not belong to the customer");
         }
 
-        String transactionId = idempotencyKey;
+        String transactionId = UUID.randomUUID().toString();
         String currency = getProviderCurrency(request.getProvider());
 
         // Atomically enforce daily limit + reserve idempotency key (advisory lock prevents races)
         int inserted = reservationService.reserveWithLimitCheck(
-            transactionId, request.getExternalId(), request.getAccountId(),
+            transactionId, idempotencyKey, request.getExternalId(), request.getAccountId(),
             request.getProvider().name(), PaymentResponse.TransactionType.DEPOSIT.name(),
             request.getAmount(), currency, dailyDepositMax
         );
         if (inserted == 0) {
             log.info("Concurrent idempotency key collision, returning existing: {}", idempotencyKey);
-            return transactionRepository.findById(idempotencyKey)
+            return transactionRepository.findByIdempotencyKey(idempotencyKey)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new PaymentException("Concurrent transaction conflict"));
         }
@@ -144,10 +152,10 @@ public class PaymentService {
         log.info("Initiating withdrawal: externalId={}, amount={}, provider={}, idempotencyKey={}",
             request.getExternalId(), request.getAmount(), request.getProvider(), idempotencyKey);
 
-        validateIdempotencyKey(idempotencyKey);
+
 
         // Fast path: return existing transaction for genuine retries
-        Optional<PaymentTransaction> existing = transactionRepository.findById(idempotencyKey);
+        Optional<PaymentTransaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             log.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
             return mapToResponse(existing.get());
@@ -170,7 +178,7 @@ public class PaymentService {
             throw new PaymentException("Insufficient funds");
         }
 
-        String transactionId = idempotencyKey;
+        String transactionId = UUID.randomUUID().toString();
         String currency = getProviderCurrency(request.getProvider());
 
         // Fix #4: For CinetPay, detect actual provider from phone number for correct GL mapping
@@ -185,13 +193,13 @@ public class PaymentService {
 
         // Atomically enforce daily limit + reserve idempotency key (advisory lock prevents races)
         int inserted = reservationService.reserveWithLimitCheck(
-            transactionId, request.getExternalId(), request.getAccountId(),
+            transactionId, idempotencyKey, request.getExternalId(), request.getAccountId(),
             request.getProvider().name(), PaymentResponse.TransactionType.WITHDRAWAL.name(),
             request.getAmount(), currency, dailyWithdrawalMax
         );
         if (inserted == 0) {
             log.info("Concurrent idempotency key collision, returning existing: {}", idempotencyKey);
-            return transactionRepository.findById(idempotencyKey)
+            return transactionRepository.findByIdempotencyKey(idempotencyKey)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new PaymentException("Concurrent transaction conflict"));
         }
@@ -264,14 +272,65 @@ public class PaymentService {
     }
 
     /**
+     * Handle MTN collection callback identified by referenceId in the URL path.
+     * Used when MTN sandbox sends an empty or unparseable body — polls MTN for the real status.
+     * referenceId = X-Reference-Id we sent = our transactionId.
+     */
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
+    public void handleMtnCollectionCallbackByRef(String referenceId) {
+        log.info("Processing MTN collection callback by referenceId: {}", referenceId);
+        PaymentStatus polledStatus = mtnClient.getCollectionStatus(referenceId);
+        log.info("MTN polled status: {} for referenceId={}", polledStatus, referenceId);
+        callbackDelegate.processMtnCollectionCallbackByRef(referenceId, polledStatus);
+    }
+
+    /**
+     * Handle MTN disbursement callback identified by referenceId in the URL path.
+     * Used when MTN sandbox sends an empty or unparseable body — polls MTN for the real status.
+     * referenceId = X-Reference-Id we sent = our transactionId.
+     */
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
+    public void handleMtnDisbursementCallbackByRef(String referenceId) {
+        log.info("Processing MTN disbursement callback by referenceId: {}", referenceId);
+        PaymentStatus polledStatus = mtnClient.getDisbursementStatus(referenceId);
+        log.info("MTN polled status: {} for referenceId={}", polledStatus, referenceId);
+        CallbackHandlerDelegate.CallbackResult result = callbackDelegate.processMtnDisbursementCallbackByRef(referenceId, polledStatus);
+        if (result.reversalNeeded()) {
+            reversalService.reverseWithdrawal(result.transaction());
+        }
+    }
+
+    /**
      * Handle MTN callback for collections (deposits).
      * @Retryable wraps the @Transactional delegate to ensure correct AOP ordering.
      */
     @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public void handleMtnCollectionCallback(MtnCallbackRequest callback) {
-        log.info("Processing MTN collection callback: ref={}, status={}",
-            callback.getReferenceId(), callback.getStatus());
+        log.info("Processing MTN collection callback: externalId={}, status={}",
+            callback.getExternalId(), callback.getStatus());
+
+        Optional<PaymentTransaction> transactionOpt = transactionRepository.findByProviderReference(callback.getExternalId());
+        if (transactionOpt.isEmpty()) {
+            log.warn("Received MTN collection callback for unknown externalId: {}. Ignoring.", callback.getExternalId());
+            return;
+        }
+        PaymentTransaction transaction = transactionOpt.get();
+        String transactionId = transaction.getTransactionId();
+
+        log.info("Verifying transaction status with MTN for transactionId: {}", transactionId);
+        PaymentStatus status = mtnClient.getCollectionStatus(transactionId);
+        log.info("MTN API returned status: {} for transactionId: {}", status, transactionId);
+
+        if (status != PaymentStatus.SUCCESSFUL) {
+            log.warn("MTN collection callback for externalId {} received with status {}, but provider API reports status {}. Processing as failure.",
+                callback.getExternalId(), callback.getStatus(), status);
+            callback.setStatus("FAILED");
+        }
+
+        log.info("Transaction status verified. Proceeding with callback processing for externalId: {}", callback.getExternalId());
         callbackDelegate.processMtnCollectionCallback(callback);
     }
 
@@ -282,8 +341,28 @@ public class PaymentService {
     @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
                maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
     public void handleMtnDisbursementCallback(MtnCallbackRequest callback) {
-        log.info("Processing MTN disbursement callback: ref={}, status={}",
-            callback.getReferenceId(), callback.getStatus());
+        log.info("Processing MTN disbursement callback: externalId={}, status={}",
+            callback.getExternalId(), callback.getStatus());
+
+        Optional<PaymentTransaction> transactionOpt = transactionRepository.findByProviderReference(callback.getExternalId());
+        if (transactionOpt.isEmpty()) {
+            log.warn("Received MTN disbursement callback for unknown externalId: {}. Ignoring.", callback.getExternalId());
+            return;
+        }
+        PaymentTransaction transaction = transactionOpt.get();
+        String transactionId = transaction.getTransactionId();
+
+        log.info("Verifying transaction status with MTN for transactionId: {}", transactionId);
+        PaymentStatus status = mtnClient.getDisbursementStatus(transactionId);
+        log.info("MTN API returned status: {} for transactionId: {}", status, transactionId);
+
+        if (status != PaymentStatus.SUCCESSFUL) {
+            log.warn("MTN disbursement callback for externalId {} received with status {}, but provider API reports status {}. Processing as failure.",
+                callback.getExternalId(), callback.getStatus(), status);
+            callback.setStatus("FAILED");
+        }
+
+        log.info("Transaction status verified. Proceeding with callback processing for externalId: {}", callback.getExternalId());
         CallbackHandlerDelegate.CallbackResult result = callbackDelegate.processMtnDisbursementCallback(callback);
         if (result.reversalNeeded()) {
             reversalService.reverseWithdrawal(result.transaction());
@@ -320,10 +399,28 @@ public class PaymentService {
 
     /**
      * Get transaction status.
+     * When the transaction is PENDING and older than pendingPollMinAgeMinutes, polls the provider
+     * directly so the caller gets an accurate status without waiting for the scheduler.
      */
     public TransactionStatusResponse getTransactionStatus(String transactionId) {
         PaymentTransaction txn = transactionRepository.findById(transactionId)
             .orElseThrow(() -> new PaymentException("Transaction not found: " + transactionId));
+
+        if (statusProviderCheckEnabled
+                && txn.getStatus() == PaymentStatus.PENDING
+                && txn.getCreatedAt().isBefore(Instant.now().minus(pendingPollMinAgeMinutes, ChronoUnit.MINUTES))) {
+            try {
+                StaleTransactionReconciler.ReconcileResult result = staleTransactionReconciler.reconcile(txn);
+                if (result.reversalNeeded()) {
+                    reversalService.reverseWithdrawal(result.transactionForReversal());
+                }
+                // Re-fetch to pick up any state changes from reconciliation
+                txn = transactionRepository.findById(transactionId).orElse(txn);
+            } catch (Exception e) {
+                log.warn("On-demand reconciliation failed for txnId={}, returning last known status: {}",
+                    transactionId, e.getMessage());
+            }
+        }
 
         return TransactionStatusResponse.builder()
             .transactionId(txn.getTransactionId())
@@ -582,13 +679,7 @@ public class PaymentService {
         };
     }
 
-    private void validateIdempotencyKey(String idempotencyKey) {
-        try {
-            UUID.fromString(idempotencyKey);
-        } catch (IllegalArgumentException e) {
-            throw new PaymentException("X-Idempotency-Key must be a valid UUID");
-        }
-    }
+
 
     private PaymentResponse mapToResponse(PaymentTransaction txn) {
         return PaymentResponse.builder()

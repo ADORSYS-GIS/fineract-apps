@@ -1,5 +1,64 @@
 import axios, { type AxiosError } from "axios";
 
+// Payment gateway admin client — routed through nginx gateway at /api/admin/
+const pgAdminClient = axios.create({
+	baseURL:
+		typeof window !== "undefined"
+			? `${window.location.origin}/api`
+			: "http://localhost:8082/api",
+	timeout: 30000,
+});
+
+pgAdminClient.interceptors.request.use((config) => {
+	try {
+		const raw = sessionStorage.getItem("auth");
+		if (raw) {
+			const auth = JSON.parse(raw);
+			if (auth.token) {
+				config.headers.Authorization = `Bearer ${auth.token}`;
+			}
+		}
+	} catch {
+		// proceed without auth
+	}
+	return config;
+});
+
+export interface ReversalDeadLetterEntry {
+	id: number;
+	transactionId: string;
+	fineractTxnId: number | null;
+	accountId: number;
+	amount: number;
+	currency: string;
+	provider: "MTN_MOMO" | "ORANGE_MONEY" | "CINETPAY";
+	providerHint: string | null;
+	failureReason: string | null;
+	createdAt: string;
+	resolved: boolean;
+	resolvedBy: string | null;
+	resolvedAt: string | null;
+	notes: string | null;
+	retryCount: number;
+}
+
+export const paymentGatewayAdminApi = {
+	listDlq: (all = false) =>
+		pgAdminClient.get<ReversalDeadLetterEntry[]>("/admin/reversals/dlq", {
+			params: all ? { all: true } : undefined,
+		}),
+	countDlq: () =>
+		pgAdminClient.get<{ count: number }>("/admin/reversals/dlq/count"),
+	retryDlq: (id: number) =>
+		pgAdminClient.post<ReversalDeadLetterEntry>(
+			`/admin/reversals/dlq/${id}/retry`,
+		),
+	resolveDlq: (id: number, notes?: string) =>
+		pgAdminClient.patch<ReversalDeadLetterEntry>(`/admin/reversals/dlq/${id}`, {
+			...(notes !== undefined ? { notes } : {}),
+		}),
+};
+
 const assetClient = axios.create({
 	baseURL:
 		(import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083") +
@@ -106,6 +165,7 @@ export interface AssetResponse {
 	availableSupply: number;
 	totalSupply: number;
 	// Bond fields (null for non-bond assets)
+	bondType?: string;
 	issuerName?: string;
 	isinCode?: string;
 	maturityDate?: string;
@@ -144,6 +204,7 @@ export interface AssetDetailResponse {
 	lpAssetAccountId?: number;
 	lpCashAccountId?: number;
 	lpSpreadAccountId?: number;
+	lpTaxAccountId?: number;
 	fineractProductId?: number;
 	lpClientName?: string;
 	fineractProductName?: string;
@@ -166,8 +227,12 @@ export interface AssetDetailResponse {
 	delistingDate?: string;
 	delistingRedemptionPrice?: number;
 	// Bond fields (null for non-bond assets)
+	bondType?: string;
+	dayCountConvention?: string;
+	issuerCountry?: string;
 	issuerName?: string;
 	issuerPrice?: number;
+	faceValue?: number;
 	lpMarginPerUnit?: number;
 	lpMarginPercent?: number;
 	couponAmountPerUnit?: number;
@@ -186,19 +251,26 @@ export interface AssetDetailResponse {
 	ircmExempt?: boolean;
 	capitalGainsTaxEnabled?: boolean;
 	capitalGainsRate?: number;
+	isBvmacListed?: boolean;
+	isGovernmentBond?: boolean;
+	tvaEnabled?: boolean;
+	tvaRate?: number;
 }
 
 export interface CreateAssetRequest {
 	name: string;
 	symbol: string;
-	currencyCode: string;
+	/** @deprecated Since 1.1.0 — auto-generated from symbol by the backend. Do not send. */
+	currencyCode?: string;
 	description?: string;
 	imageUrl?: string;
 	category: string;
 	issuerPrice: number;
+	faceValue?: number;
 	lpBidPrice: number;
 	lpAskPrice: number;
 	tradingFeePercent?: number;
+	spreadPercent?: number;
 	totalSupply: number;
 	decimalPlaces: number;
 
@@ -218,9 +290,13 @@ export interface CreateAssetRequest {
 	distributionFrequencyMonths?: number;
 	nextDistributionDate?: string;
 	// Bond fields (required when category is BONDS)
+	bondType?: string;
+	dayCountConvention?: string;
+	issuerCountry?: string;
 	issuerName?: string;
 	isinCode?: string;
 	maturityDate?: string;
+	issueDate?: string;
 	interestRate?: number;
 	couponFrequencyMonths?: number;
 	nextCouponDate?: string;
@@ -232,6 +308,10 @@ export interface CreateAssetRequest {
 	ircmExempt?: boolean;
 	capitalGainsTaxEnabled?: boolean;
 	capitalGainsRate?: number;
+	isBvmacListed?: boolean;
+	isGovernmentBond?: boolean;
+	tvaEnabled?: boolean;
+	tvaRate?: number;
 }
 
 export interface UpdateAssetRequest {
@@ -260,6 +340,7 @@ export interface UpdateAssetRequest {
 	// Bond-specific updatable fields
 	interestRate?: number;
 	maturityDate?: string;
+	nextCouponDate?: string;
 	// Tax configuration (Cameroon/CEMAC)
 	registrationDutyEnabled?: boolean;
 	registrationDutyRate?: number;
@@ -275,6 +356,9 @@ export interface UpdateAssetRequest {
 	issuerName?: string;
 	isinCode?: string;
 	couponFrequencyMonths?: number;
+	bondType?: string;
+	dayCountConvention?: string;
+	issuerCountry?: string;
 }
 
 /** Coupon payment audit record (matches backend CouponPaymentResponse). */
@@ -296,6 +380,7 @@ export interface CouponPaymentResponse {
 export interface SetPriceRequest {
 	askPrice: number;
 	bidPrice?: number;
+	priceMode?: string;
 }
 
 /** Inventory stats (matches backend InventoryResponse). */
@@ -438,6 +523,169 @@ export interface MarketStatusResponse {
 export interface PriceHistoryPoint {
 	price: number;
 	capturedAt: string;
+}
+
+/**
+ * Order history entry for the authenticated user (matches backend OrderResponse).
+ *
+ * Amount breakdown:
+ *   BUY:  totalAmount = (units × pricePerUnit) + fee + registrationDutyAmount + tvaAmount + accruedInterestAmount
+ *   SELL: totalAmount = (units × pricePerUnit) - fee - registrationDutyAmount - capitalGainsTaxAmount - tvaAmount + accruedInterestAmount
+ *
+ * Tax fields are undefined when not applicable (e.g. capitalGainsTaxAmount is always absent on BUY).
+ */
+export interface OrderResponse {
+	/** UUID of the order. */
+	orderId: string;
+	/** ID of the asset that was traded. */
+	assetId: string;
+	/** Ticker symbol, e.g. "BRVM-TST". */
+	symbol?: string;
+	/** Direction of the trade. */
+	side: "BUY" | "SELL";
+	/** Number of units traded. Absent while order is QUOTED or PENDING. */
+	units?: number;
+	/** LP execution price per unit in XAF. Absent while order is QUOTED or PENDING. */
+	pricePerUnit?: number;
+	/**
+	 * Net amount that cleared the user's account in XAF.
+	 * BUY: total debited (gross + fee + taxes + accrued interest).
+	 * SELL: total credited (gross - fee - taxes + accrued interest).
+	 */
+	totalAmount: number;
+	/** Platform trading fee in XAF. Deducted on BUY; deducted from proceeds on SELL. */
+	fee?: number;
+	/** LP spread collected in XAF. Zero if spread is disabled for this asset. */
+	spreadAmount?: number;
+	/** Lifecycle status of the order (QUOTED, PENDING, EXECUTING, FILLED, FAILED, REJECTED, CANCELLED…). */
+	status: string;
+	/** ISO-8601 timestamp when the order was created. */
+	createdAt: string;
+	/** Registration duty (droit d'enregistrement) in XAF. Absent if not applicable. */
+	registrationDutyAmount?: number;
+	/** Capital gains tax in XAF. Only present on SELL orders where a gain was realised. */
+	capitalGainsTaxAmount?: number;
+	/** TVA (VAT) charged on the platform fee in XAF. Absent if not applicable. */
+	tvaAmount?: number;
+	/** Accrued interest (pied du coupon) for bond assets in XAF. Absent for non-bond assets. */
+	accruedInterestAmount?: number;
+}
+
+/**
+ * Single asset position in the user's portfolio (matches backend PositionResponse).
+ *
+ * Price vs. value:
+ *   avgPurchasePrice and marketPrice are per-unit prices.
+ *   costBasis and marketValue are total position amounts (price × totalUnits).
+ *
+ * Example — bought 10 units @ 1 000 XAF, then 10 more @ 1 200 XAF, market now at 1 300 XAF:
+ *   avgPurchasePrice = 1 100      (weighted average per unit)
+ *   costBasis        = 22 000     (1 100 × 20 — total spent)
+ *   marketPrice      = 1 300      (current ask price per unit)
+ *   marketValue      = 26 000     (1 300 × 20 — current worth)
+ *   unrealizedPnl    = +4 000     (26 000 - 22 000 — paper profit)
+ */
+export interface PositionResponse {
+	/** Internal asset identifier. */
+	assetId: string;
+	/** Ticker symbol, e.g. "BRVM-TST". */
+	symbol?: string;
+	/** Human-readable asset name. */
+	name?: string;
+	/** Units currently held. Increases on BUY, decreases on SELL. */
+	totalUnits: number;
+	/**
+	 * Weighted average purchase price per unit in XAF.
+	 * Recalculated after every BUY; unchanged on SELL.
+	 * Multiply by totalUnits to get costBasis.
+	 */
+	avgPurchasePrice: number;
+	/**
+	 * Current market price per unit (LP ask price) in XAF.
+	 * What a new buyer would pay today.
+	 * Multiply by totalUnits to get marketValue.
+	 */
+	marketPrice: number;
+	/**
+	 * Current market value of the entire position in XAF (marketPrice × totalUnits).
+	 * Recalculated at read time; not persisted.
+	 */
+	marketValue: number;
+	/**
+	 * Total amount spent to acquire current holdings in XAF (avgPurchasePrice × totalUnits).
+	 * Break-even value: marketValue > costBasis means the position is in profit.
+	 */
+	costBasis: number;
+	/**
+	 * Unrealized (paper) P&L in XAF (marketValue - costBasis).
+	 * Positive = paper profit; negative = paper loss.
+	 * Calculated at read time; not persisted.
+	 */
+	unrealizedPnl: number;
+	/**
+	 * Unrealized P&L as a percentage of costBasis (e.g. 18.18 means +18.18%).
+	 * Zero when costBasis is zero.
+	 */
+	unrealizedPnlPercent: number;
+	/**
+	 * Cumulative realized P&L from all completed SELL trades in XAF.
+	 * Calculated at execution via FIFO lot matching and persisted.
+	 */
+	realizedPnl: number;
+	/** Coupon schedule and principal redemption projections. Absent for non-bond assets. */
+	bondBenefit?: BondBenefitProjection;
+	/** Dividend, rent, or yield projections. Absent for bond and non-income assets. */
+	incomeBenefit?: IncomeBenefitProjection;
+	/**
+	 * Full trade history for this position, newest first (up to 200 entries).
+	 * Each entry includes the complete amount breakdown: totalAmount, fee, and all tax fields.
+	 * Empty array if the user has no orders for this asset.
+	 */
+	orders: OrderResponse[];
+
+	// --- Bond pricing fields (added alongside PortfolioSummaryResponse; may be null until backend ships) ---
+
+	/** Bond type: "BTA" (treasury bill) or "OTA" (treasury bond). Null for non-bond assets. */
+	bondType?: string;
+	/**
+	 * Clean price per unit (excluding accrued interest) in XAF.
+	 * Only present for bond positions where the backend computes it.
+	 */
+	cleanPrice?: number;
+	/**
+	 * Dirty price per unit (clean price + accrued interest) in XAF.
+	 * Only present for bond positions where the backend computes it.
+	 */
+	dirtyPrice?: number;
+	/**
+	 * Accrued interest (pied du coupon) per unit since last coupon date in XAF.
+	 * Only present for coupon-bearing bonds (OTA); absent for BTA and non-bonds.
+	 */
+	accruedInterestPerUnit?: number;
+	/**
+	 * Dirty market value of the entire position (dirtyPrice × totalUnits) in XAF.
+	 * Falls back to marketValue when dirtyPrice is absent.
+	 */
+	dirtyMarketValue?: number;
+}
+
+/**
+ * Aggregated portfolio summary returned by GET /portfolio.
+ * Contains top-level metrics and the list of individual positions.
+ */
+export interface PortfolioSummaryResponse {
+	/** Total current market value across all positions in XAF (sum of position marketValues). */
+	totalValue: number;
+	/** Total cost basis across all positions in XAF (sum of position costBases). */
+	totalCostBasis: number;
+	/** Total unrealized P&L in XAF (totalValue - totalCostBasis). */
+	unrealizedPnl: number;
+	/** Total unrealized P&L as a percentage of totalCostBasis. */
+	unrealizedPnlPercent: number;
+	/** Weighted average estimated annual yield across all income-bearing positions (%). */
+	estimatedAnnualYieldPercent?: number;
+	/** Individual asset positions. */
+	positions: PositionResponse[];
 }
 
 /** Admin order view (matches backend AdminOrderResponse). */
@@ -602,6 +850,33 @@ export interface IncomeBenefitProjection {
 	variableIncome: boolean;
 }
 
+// Portfolio Income History
+export interface IncomeHistoryEntry {
+	id: number;
+	assetId: string;
+	symbol: string;
+	assetName: string;
+	/** COUPON | MATURITY | INCOME */
+	incomeType: string;
+	paymentDate: string;
+	units: number;
+	grossAmount: number;
+	ircmWithheld?: number;
+	netAmount: number;
+	/** PAID | SCHEDULED */
+	status: "PAID" | "SCHEDULED";
+	exempt?: boolean;
+}
+
+export interface IncomeHistoryResponse {
+	content: IncomeHistoryEntry[];
+	totalPages: number;
+	totalElements: number;
+	totalPaid: number;
+	totalScheduled: number;
+	totalIrcmWithheld: number;
+}
+
 // Income Calendar
 export interface IncomeEvent {
 	assetId: string;
@@ -652,6 +927,13 @@ export interface ScheduledPaymentResponse {
 	executedAt?: string;
 	createdAt: string;
 	lpCashBalance?: number;
+	// IRCM withholding (optional — populated once backend deploys new API version)
+	ircmExempt?: boolean | null;
+	ircmRate?: number | null;
+	grossAmountPerUnit?: number | null;
+	ircmWithheldPerUnit?: number | null;
+	netAmountPerUnit?: number | null;
+	totalIrcmWithheld?: number | null;
 }
 
 export interface ScheduledPaymentDetailResponse
@@ -916,6 +1198,12 @@ export const assetApi = {
 			params: { months },
 		}),
 
+	// Portfolio - Income History
+	getPortfolioIncomeHistory: (status = "ALL", page = 0, size = 20) =>
+		assetClient.get<IncomeHistoryResponse>("/portfolio/income-history", {
+			params: { status, page, size },
+		}),
+
 	// Dashboard - Admin
 	getDashboardSummary: () =>
 		assetClient.get<AdminDashboardResponse>("/admin/dashboard/summary"),
@@ -1017,6 +1305,25 @@ export const assetApi = {
 			params: { admin, notes },
 		}),
 
+	// User order history
+	getUserOrders: (params?: {
+		assetId?: string;
+		page?: number;
+		size?: number;
+	}) =>
+		assetClient.get<{
+			content: OrderResponse[];
+			totalPages: number;
+			totalElements: number;
+		}>("/trades/orders", { params }),
+	getUserOrder: (orderId: string) =>
+		assetClient.get<OrderResponse>(`/trades/orders/${orderId}`),
+
+	// Portfolio positions
+	getPortfolio: () => assetClient.get<PortfolioSummaryResponse>("/portfolio"),
+	getPosition: (assetId: string) =>
+		assetClient.get<PositionResponse>(`/portfolio/positions/${assetId}`),
+
 	// Order Cancellation
 	cancelOrder: (orderId: string) =>
 		assetClient.post(`/trades/orders/${orderId}/cancel`),
@@ -1106,6 +1413,7 @@ export interface RebalanceProposal {
 	feasible: boolean;
 	shortfall: number;
 	transfers: {
+		phase: number;
 		settlementType: string;
 		sourceGlCode: string;
 		sourceName: string;
@@ -1113,5 +1421,6 @@ export interface RebalanceProposal {
 		destinationName: string;
 		amount: number;
 		description: string;
+		adminAction: string;
 	}[];
 }

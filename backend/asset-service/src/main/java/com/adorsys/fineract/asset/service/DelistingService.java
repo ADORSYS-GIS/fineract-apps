@@ -175,8 +175,9 @@ public class DelistingService {
                         "Delisting redemption: " + asset.getSymbol());
 
                 // Update position via PortfolioService (handles FIFO lots + realized P&L)
+                // Delisting is a system-initiated redemption — no trading fees or taxes apply here
                 portfolioService.updatePositionAfterSell(
-                        holder.getUserId(), asset.getId(), holderUnits, redemptionPrice);
+                        holder.getUserId(), asset.getId(), holderUnits, redemptionPrice, null, null);
 
                 successCount++;
                 totalCashPaid = totalCashPaid.add(cashAmount);

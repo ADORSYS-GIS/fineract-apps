@@ -57,12 +57,12 @@ public class PricingService {
      */
     @Transactional(readOnly = true)
     public PriceResponse getPrice(String assetId) {
-        // Try Redis cache first (format: askPrice:bidPrice:change24h)
+        // Try Redis cache first (format: askPrice|bidPrice|change24h)
         try {
             String cached = redisTemplate.opsForValue().get(PRICE_CACHE_PREFIX + assetId);
             if (cached != null) {
                 try {
-                    String[] parts = cached.split(":");
+                    String[] parts = cached.split("\\|");
                     BigDecimal askPrice = new BigDecimal(parts[0]);
                     BigDecimal bidPrice = parts.length > 1 && !"null".equals(parts[1]) ? new BigDecimal(parts[1]) : null;
                     BigDecimal change = parts.length > 2 && !"null".equals(parts[2]) ? new BigDecimal(parts[2]) : null;
@@ -82,8 +82,8 @@ public class PricingService {
         // Cache in Redis (best-effort)
         try {
             String cacheValue = price.getAskPrice().toPlainString()
-                    + ":" + price.getBidPrice().toPlainString()
-                    + ":" + (price.getChange24hPercent() != null ? price.getChange24hPercent().toPlainString() : "0");
+                    + "|" + price.getBidPrice().toPlainString()
+                    + "|" + (price.getChange24hPercent() != null ? price.getChange24hPercent().toPlainString() : "0");
             redisTemplate.opsForValue().set(PRICE_CACHE_PREFIX + assetId, cacheValue, CACHE_TTL);
         } catch (Exception e) {
             log.warn("Redis error caching price for asset {}: {}", assetId, e.getMessage());

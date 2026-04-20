@@ -26,6 +26,11 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 		clients,
 		isLoadingClients,
 		validationErrors,
+		isLPDialogOpen,
+		openLPDialog,
+		closeLPDialog,
+		onCreateLP,
+		isCreatingLP,
 	} = props;
 
 	const renderStep = () => {
@@ -39,6 +44,11 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 						clients={clients}
 						isLoadingClients={isLoadingClients}
 						validationErrors={validationErrors}
+						isLPDialogOpen={isLPDialogOpen}
+						onOpenCreateLP={openLPDialog}
+						onCloseCreateLP={closeLPDialog}
+						onCreateLP={onCreateLP}
+						isCreatingLP={isCreatingLP}
 					/>
 				);
 			case "Asset Details":

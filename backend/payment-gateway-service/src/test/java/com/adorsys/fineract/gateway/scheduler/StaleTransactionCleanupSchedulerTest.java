@@ -35,7 +35,7 @@ class StaleTransactionCleanupSchedulerTest {
     @DisplayName("should expire stale pending transactions")
     void cleanupStalePendingTransactions_expiresStale() {
         PaymentTransaction staleTxn = new PaymentTransaction(
-            "txn-stale", "ref-1", "ext-1", 100L,
+            "txn-stale", "txn-stale", "ref-1", "ext-1", 100L,
             PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT,
             BigDecimal.valueOf(5000), "XAF", PaymentStatus.PENDING);
 

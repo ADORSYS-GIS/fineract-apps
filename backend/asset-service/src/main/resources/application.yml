@@ -2,6 +2,7 @@ server:
   port: 8083
   servlet:
     context-path: /api/v1
+  forward-headers-strategy: FRAMEWORK
 
 spring:
   application:
@@ -56,9 +57,10 @@ spring:
       password: ${REDIS_PASSWORD:}
       lettuce:
         pool:
-          max-active: 10
-          max-idle: 5
-          min-idle: 1
+          enabled: true   # REQUIRED: without this flag Lettuce ignores all pool size settings
+          max-active: ${SPRING_DATA_REDIS_LETTUCE_POOL_MAX_ACTIVE:10}
+          max-idle: ${SPRING_DATA_REDIS_LETTUCE_POOL_MAX_IDLE:5}
+          min-idle: ${SPRING_DATA_REDIS_LETTUCE_POOL_MIN_IDLE:1}
 
   security:
     oauth2:
@@ -135,7 +137,6 @@ asset-service:
     platform-fee-payable: ${GL_PLATFORM_FEE_PAYABLE:4201}
     # Income
     platform-fee-income: ${GL_PLATFORM_FEE_INCOME:701}
-    spread-income: ${GL_SPREAD_INCOME:702}
     income-from-interest: ${GL_INCOME_FROM_INTEREST:701}
     fee-income: ${GL_FEE_INCOME:701}
     # Expense
@@ -205,7 +206,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,threaddump,heapdump
+        include: health,info,metrics,prometheus
   info:
     git:
       mode: simple
@@ -233,7 +234,7 @@ logging:
     com.adorsys.fineract.asset: DEBUG
     org.springframework.security: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] [%X{correlationId:-}] %logger{36} - %msg%n"
 
 # OpenAPI Configuration
 springdoc:

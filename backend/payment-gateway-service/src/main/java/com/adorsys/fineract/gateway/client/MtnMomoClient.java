@@ -77,6 +77,9 @@ public class MtnMomoClient {
             "payeeNote", "Deposit to savings account"
         );
 
+        String callbackUrl = config.getCallbackUrl() + "/mtn/collection/" + referenceId;
+        log.info("Sending X-Callback-Url: {}", callbackUrl);
+
         try {
             webClient.post()
                 .uri("/collection/v1_0/requesttopay")
@@ -84,7 +87,7 @@ public class MtnMomoClient {
                 .header("X-Reference-Id", referenceId)
                 .header("X-Target-Environment", config.getTargetEnvironment())
                 .header("Ocp-Apim-Subscription-Key", config.getCollectionSubscriptionKey())
-                .header("X-Callback-Url", config.getCallbackUrl() + "/mtn/collection")
+                .header("X-Callback-Url", callbackUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .retrieve()
@@ -138,7 +141,7 @@ public class MtnMomoClient {
                 .header("X-Reference-Id", referenceId)
                 .header("X-Target-Environment", config.getTargetEnvironment())
                 .header("Ocp-Apim-Subscription-Key", config.getDisbursementSubscriptionKey())
-                .header("X-Callback-Url", config.getCallbackUrl() + "/mtn/disbursement")
+                .header("X-Callback-Url", config.getCallbackUrl() + "/mtn/disbursement/" + referenceId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .retrieve()
@@ -173,7 +176,6 @@ public class MtnMomoClient {
     }
 
     private PaymentStatus getTransactionStatus(String product, String referenceId) {
-        String accessToken = getAccessToken(product);
         String subscriptionKey = "collection".equals(product)
             ? config.getCollectionSubscriptionKey()
             : config.getDisbursementSubscriptionKey();
@@ -182,6 +184,9 @@ public class MtnMomoClient {
         String resource = "collection".equals(product) ? "requesttopay" : "transfer";
 
         try {
+            // getAccessToken is inside try-catch so a token fetch failure returns PENDING
+            String accessToken = getAccessToken(product);
+
             Map<String, Object> response = webClient.get()
                 .uri("/{product}/v1_0/{resource}/{referenceId}", product, resource, referenceId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
@@ -191,6 +196,8 @@ public class MtnMomoClient {
                 .bodyToMono(Map.class)
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                 .block();
+
+            log.debug("REAL MTN API response for transaction status: {}", response);
 
             String status = (String) response.get("status");
             return mapMtnStatus(status);
@@ -208,6 +215,8 @@ public class MtnMomoClient {
             String subscriptionKey = "collection".equals(product)
                 ? config.getCollectionSubscriptionKey()
                 : config.getDisbursementSubscriptionKey();
+
+            log.info("Attempting to get MTN access token with userId: {} and subscriptionKey: {}", config.getApiUserId(), subscriptionKey);
 
             String credentials = Base64.getEncoder().encodeToString(
                 (config.getApiUserId() + ":" + config.getApiKey()).getBytes(java.nio.charset.StandardCharsets.UTF_8)

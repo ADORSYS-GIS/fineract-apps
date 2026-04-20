@@ -17,9 +17,12 @@ import { Route as OrderResolutionRouteImport } from './routes/order-resolution'
 import { Route as MarketSettingsRouteImport } from './routes/market-settings'
 import { Route as LpPerformanceRouteImport } from './routes/lp-performance'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
+import { Route as IncomeHistoryRouteImport } from './routes/income-history'
 import { Route as IncomeCalendarRouteImport } from './routes/income-calendar'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CreateAssetRouteImport } from './routes/create-asset'
+import { Route as PaymentDlqRouteImport } from './routes/payment-dlq'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as AccountingRouteImport } from './routes/accounting'
 import { Route as IndexRouteImport } from './routes/index'
@@ -62,6 +65,11 @@ const LpPerformanceRoute = LpPerformanceRouteImport.update({
   path: '/lp-performance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InventoryRoute = InventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
@@ -72,6 +80,11 @@ const IncomeCalendarRoute = IncomeCalendarRouteImport.update({
   path: '/income-calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IncomeHistoryRoute = IncomeHistoryRouteImport.update({
+  id: '/income-history',
+  path: '/income-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -80,6 +93,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const CreateAssetRoute = CreateAssetRouteImport.update({
   id: '/create-asset',
   path: '/create-asset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentDlqRoute = PaymentDlqRouteImport.update({
+  id: '/payment-dlq',
+  path: '/payment-dlq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditLogRoute = AuditLogRouteImport.update({
@@ -117,10 +135,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
+  '/payment-dlq': typeof PaymentDlqRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
+  '/income-history': typeof IncomeHistoryRoute
   '/inventory': typeof InventoryRoute
+  '/portfolio': typeof PortfolioRoute
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -136,10 +157,14 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
+  '/payment-dlq': typeof PaymentDlqRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
+  '/income-history': typeof IncomeHistoryRoute
+  '/income-history': typeof IncomeHistoryRoute
   '/inventory': typeof InventoryRoute
+  '/portfolio': typeof PortfolioRoute
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -156,10 +181,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/accounting': typeof AccountingRoute
   '/audit-log': typeof AuditLogRoute
+  '/payment-dlq': typeof PaymentDlqRoute
   '/create-asset': typeof CreateAssetRoute
   '/dashboard': typeof DashboardRoute
   '/income-calendar': typeof IncomeCalendarRoute
+  '/income-history': typeof IncomeHistoryRoute
+  '/income-history': typeof IncomeHistoryRoute
   '/inventory': typeof InventoryRoute
+  '/portfolio': typeof PortfolioRoute
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -177,13 +206,16 @@ export interface FileRouteTypes {
     | '/'
     | '/accounting'
     | '/audit-log'
+    | '/payment-dlq'
     | '/create-asset'
     | '/dashboard'
     | '/income-calendar'
+    | '/income-history'
     | '/inventory'
     | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
+    | '/portfolio'
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
@@ -196,13 +228,16 @@ export interface FileRouteTypes {
     | '/'
     | '/accounting'
     | '/audit-log'
+    | '/payment-dlq'
     | '/create-asset'
     | '/dashboard'
     | '/income-calendar'
+    | '/income-history'
     | '/inventory'
     | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
+    | '/portfolio'
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
@@ -215,13 +250,16 @@ export interface FileRouteTypes {
     | '/'
     | '/accounting'
     | '/audit-log'
+    | '/payment-dlq'
     | '/create-asset'
     | '/dashboard'
     | '/income-calendar'
+    | '/income-history'
     | '/inventory'
     | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
+    | '/portfolio'
     | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
@@ -235,10 +273,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountingRoute: typeof AccountingRoute
   AuditLogRoute: typeof AuditLogRoute
+  PaymentDlqRoute: typeof PaymentDlqRoute
   CreateAssetRoute: typeof CreateAssetRoute
   DashboardRoute: typeof DashboardRoute
   IncomeCalendarRoute: typeof IncomeCalendarRoute
+  IncomeHistoryRoute: typeof IncomeHistoryRoute
   InventoryRoute: typeof InventoryRoute
+  PortfolioRoute: typeof PortfolioRoute
   LpPerformanceRoute: typeof LpPerformanceRoute
   MarketSettingsRoute: typeof MarketSettingsRoute
   OrderResolutionRoute: typeof OrderResolutionRoute
@@ -253,13 +294,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/accounting': {
-      id: '/accounting'
-      path: '/accounting'
-      fullPath: '/accounting'
-      preLoaderRoute: typeof AccountingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/settlement': {
       id: '/settlement'
       path: '/settlement'
@@ -316,11 +350,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/income-calendar': {
       id: '/income-calendar'
       path: '/income-calendar'
       fullPath: '/income-calendar'
       preLoaderRoute: typeof IncomeCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/income-history': {
+      id: '/income-history'
+      path: '/income-history'
+      fullPath: '/income-history'
+      preLoaderRoute: typeof IncomeHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -342,6 +390,20 @@ declare module '@tanstack/react-router' {
       path: '/audit-log'
       fullPath: '/audit-log'
       preLoaderRoute: typeof AuditLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment-dlq': {
+      id: '/payment-dlq'
+      path: '/payment-dlq'
+      fullPath: '/payment-dlq'
+      preLoaderRoute: typeof PaymentDlqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accounting': {
+      id: '/accounting'
+      path: '/accounting'
+      fullPath: '/accounting'
+      preLoaderRoute: typeof AccountingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -379,10 +441,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountingRoute: AccountingRoute,
   AuditLogRoute: AuditLogRoute,
+  PaymentDlqRoute: PaymentDlqRoute,
   CreateAssetRoute: CreateAssetRoute,
   DashboardRoute: DashboardRoute,
   IncomeCalendarRoute: IncomeCalendarRoute,
+  IncomeHistoryRoute: IncomeHistoryRoute,
   InventoryRoute: InventoryRoute,
+  PortfolioRoute: PortfolioRoute,
   LpPerformanceRoute: LpPerformanceRoute,
   MarketSettingsRoute: MarketSettingsRoute,
   OrderResolutionRoute: OrderResolutionRoute,

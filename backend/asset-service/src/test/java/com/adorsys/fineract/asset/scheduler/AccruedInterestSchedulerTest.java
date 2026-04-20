@@ -31,7 +31,7 @@ class AccruedInterestSchedulerTest {
     @InjectMocks
     private AccruedInterestScheduler accruedInterestScheduler;
 
-    @Captor private ArgumentCaptor<UserPosition> positionCaptor;
+    @Captor private ArgumentCaptor<List<UserPosition>> positionListCaptor;
 
     @Test
     void accrueBond_calculatesCorrectDailyAccrual() {
@@ -50,14 +50,12 @@ class AccruedInterestSchedulerTest {
                 .accruedInterest(BigDecimal.ZERO)
                 .build();
         when(userPositionRepository.findByAssetId("bond-001")).thenReturn(List.of(pos));
-        when(userPositionRepository.save(any(UserPosition.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
 
         int updated = accruedInterestScheduler.accrueBond(bond);
 
         assertEquals(1, updated);
-        verify(userPositionRepository).save(positionCaptor.capture());
-        UserPosition saved = positionCaptor.getValue();
+        verify(userPositionRepository).saveAll(positionListCaptor.capture());
+        UserPosition saved = positionListCaptor.getValue().get(0);
 
         // Expected: 100 * 10000 * 5 / 100 / 365 = 1369.86... rounded to 1370
         BigDecimal expected = new BigDecimal("100")
@@ -85,13 +83,11 @@ class AccruedInterestSchedulerTest {
                 .accruedInterest(new BigDecimal("5000"))
                 .build();
         when(userPositionRepository.findByAssetId("bond-001")).thenReturn(List.of(pos));
-        when(userPositionRepository.save(any(UserPosition.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
 
         accruedInterestScheduler.accrueBond(bond);
 
-        verify(userPositionRepository).save(positionCaptor.capture());
-        UserPosition saved = positionCaptor.getValue();
+        verify(userPositionRepository).saveAll(positionListCaptor.capture());
+        UserPosition saved = positionListCaptor.getValue().get(0);
 
         // Should be > 5000 (previous + daily accrual)
         assertTrue(saved.getAccruedInterest().compareTo(new BigDecimal("5000")) > 0);
@@ -116,7 +112,7 @@ class AccruedInterestSchedulerTest {
         int updated = accruedInterestScheduler.accrueBond(bond);
 
         assertEquals(0, updated);
-        verify(userPositionRepository, never()).save(any());
+        verify(userPositionRepository, never()).saveAll(any());
     }
 
     @Test
@@ -136,13 +132,13 @@ class AccruedInterestSchedulerTest {
                 .userId(2L).assetId("bond-001").accruedInterest(new BigDecimal("3000")).build();
 
         when(userPositionRepository.findByAssetId("bond-001")).thenReturn(List.of(pos1, pos2));
-        when(userPositionRepository.save(any(UserPosition.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
+        when(userPositionRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         accruedInterestScheduler.resetAccruedInterest("bond-001");
 
-        verify(userPositionRepository, times(2)).save(positionCaptor.capture());
-        List<UserPosition> saved = positionCaptor.getAllValues();
+        ArgumentCaptor<List<UserPosition>> posCaptor = ArgumentCaptor.forClass(List.class);
+        verify(userPositionRepository).saveAll(posCaptor.capture());
+        List<UserPosition> saved = posCaptor.getValue();
         for (UserPosition p : saved) {
             assertEquals(0, BigDecimal.ZERO.compareTo(p.getAccruedInterest()));
         }

@@ -1,5 +1,9 @@
 import * as ExcelJS from "exceljs";
-import { parseAssetExcel, REQUIRED_KEYS } from "@/utils/assetExcelTemplate";
+import {
+	buildCemacRows,
+	parseAssetExcel,
+	REQUIRED_KEYS,
+} from "@/utils/assetExcelTemplate";
 
 // Helper: create a workbook ArrayBuffer with header + data rows for testing
 async function createTestWorkbook(
@@ -211,6 +215,99 @@ describe("assetExcelTemplate", () => {
 			expect(result.rows).toHaveLength(1);
 		});
 
+		it("parses new bond fields: bondType, issuerCountry, dayCountConvention", async () => {
+			const workbook = new ExcelJS.Workbook();
+			const sheet = workbook.addWorksheet("Sheet1");
+			const headers = [
+				"name *",
+				"symbol *",
+				"category *",
+				"issuerPrice *",
+				"totalSupply *",
+				"decimalPlaces *",
+				"lpAskPrice *",
+				"lpBidPrice *",
+				"lpClientId *",
+				"bondType",
+				"issuerCountry",
+				"dayCountConvention",
+				"isinCode",
+			];
+			sheet.addRow(headers);
+			sheet.addRow([
+				"Test Bond",
+				"TST",
+				"BONDS",
+				10000,
+				1000000,
+				0,
+				10030,
+				9970,
+				1,
+				"DISCOUNT",
+				"Cameroun",
+				"ACT_360",
+				"CM1300001193",
+			]);
+			const buf = await workbook.xlsx.writeBuffer();
+			const uint8 = new Uint8Array(buf as ArrayBuffer);
+			const file = uint8.buffer.slice(
+				uint8.byteOffset,
+				uint8.byteOffset + uint8.byteLength,
+			) as ArrayBuffer;
+
+			const result = await parseAssetExcel(file);
+			expect(result.errors).toHaveLength(0);
+			const asset = result.rows[0] as unknown as Record<string, unknown>;
+			expect(asset.bondType).toBe("DISCOUNT");
+			expect(asset.issuerCountry).toBe("Cameroun");
+			expect(asset.dayCountConvention).toBe("ACT_360");
+		});
+
+		it("parses isBvmacListed and isGovernmentBond boolean fields", async () => {
+			const workbook = new ExcelJS.Workbook();
+			const sheet = workbook.addWorksheet("Sheet1");
+			const headers = [
+				"name *",
+				"symbol *",
+				"category *",
+				"issuerPrice *",
+				"totalSupply *",
+				"decimalPlaces *",
+				"lpAskPrice *",
+				"lpBidPrice *",
+				"lpClientId *",
+				"isBvmacListed",
+				"isGovernmentBond",
+			];
+			sheet.addRow(headers);
+			sheet.addRow([
+				"BVMAC Stock",
+				"BVS",
+				"STOCKS",
+				50000,
+				200,
+				0,
+				50150,
+				49850,
+				1,
+				"TRUE",
+				"FALSE",
+			]);
+			const buf = await workbook.xlsx.writeBuffer();
+			const uint8 = new Uint8Array(buf as ArrayBuffer);
+			const file = uint8.buffer.slice(
+				uint8.byteOffset,
+				uint8.byteOffset + uint8.byteLength,
+			) as ArrayBuffer;
+
+			const result = await parseAssetExcel(file);
+			expect(result.errors).toHaveLength(0);
+			const asset = result.rows[0] as unknown as Record<string, unknown>;
+			expect(asset.isBvmacListed).toBe(true);
+			expect(asset.isGovernmentBond).toBe(false);
+		});
+
 		it("parses optional tradingFeePercent", async () => {
 			const file = await createTestWorkbook([
 				{
@@ -230,6 +327,145 @@ describe("assetExcelTemplate", () => {
 			const result = await parseAssetExcel(file);
 			expect(result.rows).toHaveLength(1);
 			expect(result.rows[0].tradingFeePercent).toBe(0.01);
+		});
+	});
+
+	describe("buildCemacRows", () => {
+		const LP_ID = 42;
+		let rows: ReturnType<typeof buildCemacRows>;
+
+		beforeEach(() => {
+			rows = buildCemacRows(LP_ID);
+		});
+
+		it("returns exactly 18 rows", () => {
+			expect(rows).toHaveLength(18);
+		});
+
+		it("sets lpClientId on every row", () => {
+			for (const row of rows) {
+				expect(row.lpClientId).toBe(LP_ID);
+			}
+		});
+
+		it("all symbols are 3 characters", () => {
+			for (const row of rows) {
+				expect(String(row.symbol)).toHaveLength(3);
+			}
+		});
+
+		it("all symbols are unique", () => {
+			const symbols = rows.map((r) => r.symbol);
+			expect(new Set(symbols).size).toBe(18);
+		});
+
+		it("computes spread correctly for BANGE stock (228085)", () => {
+			const bange = rows.find((r) => r.symbol === "BNG");
+			expect(bange?.issuerPrice).toBe(228085);
+			expect(bange?.lpAskPrice).toBe(Math.round(228085 * 1.003)); // 228769
+			expect(bange?.lpBidPrice).toBe(Math.round(228085 * 0.997)); // 227401
+		});
+
+		it("BTA rows have bondType=DISCOUNT and no interestRate", () => {
+			const btaSymbols = ["CB1", "GB6", "GB1", "TB6"];
+			for (const sym of btaSymbols) {
+				const row = rows.find((r) => r.symbol === sym);
+				expect(row?.bondType).toBe("DISCOUNT");
+				expect(row?.dayCountConvention).toBe("ACT_360");
+				expect(row?.issuerPrice).toBe(9800);
+				expect(row?.faceValue).toBe(10000);
+				expect(row?.interestRate).toBe("");
+			}
+		});
+
+		it("OTA rows have bondType=COUPON, annual frequency, ACT_365", () => {
+			const otaSymbols = [
+				"CO2",
+				"CO3",
+				"CO4",
+				"CO5",
+				"CO7",
+				"GO1",
+				"TO2",
+				"TO3",
+			];
+			for (const sym of otaSymbols) {
+				const row = rows.find((r) => r.symbol === sym);
+				expect(row?.bondType).toBe("COUPON");
+				expect(row?.dayCountConvention).toBe("ACT_365");
+				expect(row?.couponFrequencyMonths).toBe(12);
+				expect(row?.issuerPrice).toBe(100000);
+			}
+		});
+
+		it("CEMAC bond ISINs match the Elite Capital bulletin", () => {
+			expect(rows.find((r) => r.symbol === "CB1")?.isinCode).toBe(
+				"CM1300001193",
+			);
+			expect(rows.find((r) => r.symbol === "CO7")?.isinCode).toBe(
+				"CM2L00000119",
+			);
+			expect(rows.find((r) => r.symbol === "GO1")?.isinCode).toBe(
+				"CG2A00000684",
+			);
+		});
+
+		it("OTA interest rates are the lower bound from the yield range", () => {
+			expect(rows.find((r) => r.symbol === "CO2")?.interestRate).toBe(6.0);
+			expect(rows.find((r) => r.symbol === "CO3")?.interestRate).toBe(6.5);
+			expect(rows.find((r) => r.symbol === "CO7")?.interestRate).toBe(7.0);
+			expect(rows.find((r) => r.symbol === "GO1")?.interestRate).toBe(5.9);
+		});
+
+		it("registration duty is enabled on all rows", () => {
+			for (const row of rows) {
+				expect(row.registrationDutyEnabled).toBe(true);
+				expect(row.registrationDutyRate).toBe(0.02);
+			}
+		});
+
+		it("BVMAC stocks have IRCM and capital-gains tax enabled", () => {
+			const stockSymbols = ["SMC", "SFC", "SCP", "LRG", "BNG", "SGR"];
+			for (const sym of stockSymbols) {
+				const row = rows.find((r) => r.symbol === sym);
+				expect(row?.ircmEnabled).toBe(true);
+				expect(row?.capitalGainsTaxEnabled).toBe(true);
+			}
+		});
+
+		it("government bonds have IRCM and capital-gains tax disabled", () => {
+			const bondSymbols = [
+				"CB1",
+				"GB6",
+				"GB1",
+				"TB6",
+				"CO2",
+				"CO3",
+				"CO4",
+				"CO5",
+				"CO7",
+				"GO1",
+				"TO2",
+				"TO3",
+			];
+			for (const sym of bondSymbols) {
+				const row = rows.find((r) => r.symbol === sym);
+				expect(row?.ircmEnabled).toBe(false);
+				expect(row?.capitalGainsTaxEnabled).toBe(false);
+			}
+		});
+
+		it("BVMAC stocks have isBvmacListed=true", () => {
+			const stockSymbols = ["SMC", "SFC", "SCP", "LRG", "BNG", "SGR"];
+			for (const sym of stockSymbols) {
+				expect(rows.find((r) => r.symbol === sym)?.isBvmacListed).toBe(true);
+			}
+		});
+
+		it("all rows have 3% trading fee", () => {
+			for (const row of rows) {
+				expect(row.tradingFeePercent).toBe(0.003);
+			}
 		});
 	});
 });

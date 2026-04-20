@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 960" width="820" height="960">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./05c-buy-review-bta.svg" x="0" y="0" width="390" height="960"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="960" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="960" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">05c · Buy — Step 2 Review  (BTA Discount Bond)</text>
+
+  <!-- Endpoints -->
+  <rect x="406" y="31" width="265" height="15" rx="3" fill="#fff7ed"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#c2410c" font-weight="700">POST</tspan><tspan fill="#1e40af"> /trades/quote</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">result cached from Step 1 · QuoteResponse  (bondType=DISCOUNT)</text>
+
+  <rect x="406" y="62" width="360" height="15" rx="3" fill="#fff7ed"/>
+  <text x="410" y="73" font-size="10" font-family="monospace"><tspan fill="#c2410c" font-weight="700">POST</tspan><tspan fill="#1e40af"> /trades/orders/{orderId}/confirm</tspan></text>
+  <text x="408" y="88" fill="#64748b" font-size="9">on "Confirmer l'achat BTA" tap · Response: OrderResponse</text>
+
+  <!-- Section: Order Summary -->
+  <line x1="406" y1="103" x2="816" y2="103" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="115" fill="#1e3a5f" font-size="11" font-weight="700">Order Summary Card  (BTA-specific — no accrued interest)</text>
+  <text x="410" y="131" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="131" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.assetSymbol</text>
+  <text x="410" y="145" fill="#64748b" font-size="10">BTA bond badge</text>
+  <text x="814" y="145" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.bondType  (DISCOUNT)</text>
+  <text x="410" y="159" fill="#64748b" font-size="10">Order type badge (BUY)</text>
+  <text x="814" y="159" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.side</text>
+  <text x="410" y="173" fill="#64748b" font-size="10">Units to buy</text>
+  <text x="814" y="173" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.units</text>
+  <text x="410" y="187" fill="#64748b" font-size="10">Prix actualisé / unité  (accreted price, no dirty/clean split)</text>
+  <text x="814" y="187" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.executionPrice</text>
+  <text x="410" y="200" fill="#b45309" font-size="9">  ⓘ No accrued interest line — BTA has no coupons, price accretes daily.</text>
+  <text x="410" y="214" fill="#64748b" font-size="10">Sous-total  (units × executionPrice)</text>
+  <text x="814" y="214" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.grossAmount</text>
+  <text x="410" y="228" fill="#64748b" font-size="10">Frais de plateforme (0.3%)</text>
+  <text x="814" y="228" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.fee  (.feePercent)</text>
+  <text x="410" y="242" fill="#64748b" font-size="10">TVA (19.25% on fee)  — buyer only</text>
+  <text x="814" y="242" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">fee × 0.1925  (BuyStrategy computed)</text>
+  <text x="410" y="256" fill="#64748b" font-size="10">Total à débiter</text>
+  <text x="814" y="256" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.netAmount</text>
+  <text x="410" y="270" fill="#64748b" font-size="10">Solde disponible</text>
+  <text x="814" y="270" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.availableBalance</text>
+  <text x="410" y="284" fill="#64748b" font-size="10">IRCM deferred warning banner</text>
+  <text x="814" y="284" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">static  (hardcoded UI note for BTA only)</text>
+
+  <!-- Section: Capital Gain Projection -->
+  <line x1="406" y1="301" x2="816" y2="301" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="313" fill="#1e3a5f" font-size="11" font-weight="700">Capital Gain Projection Card  (replaces coupon projection for BTA)</text>
+  <text x="410" y="329" fill="#64748b" font-size="10">Gain brut total  (units × (faceValue − executionPrice))</text>
+  <text x="814" y="329" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">computed: units × (faceValue − executionPrice)</text>
+  <text x="410" y="343" fill="#64748b" font-size="10">IRCM retenu  (16.5% on capital gain)</text>
+  <text x="814" y="343" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">computed: gainBrut × taxConfig.ircmRate</text>
+  <text x="410" y="357" fill="#64748b" font-size="10">Gain net estimé</text>
+  <text x="814" y="357" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">computed: gainBrut − ircm</text>
+  <text x="410" y="371" fill="#64748b" font-size="10">Principal remboursé à maturité</text>
+  <text x="814" y="371" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">computed: units × faceValue</text>
+  <text x="410" y="385" fill="#64748b" font-size="10">Maturity date (label)</text>
+  <text x="814" y="385" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.maturityDate</text>
+
+  <!-- Section: Important Note / Lock-up -->
+  <line x1="406" y1="402" x2="816" y2="402" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="414" fill="#1e3a5f" font-size="11" font-weight="700">Important Note Block</text>
+  <text x="410" y="430" fill="#64748b" font-size="10">Price lock expiry (30 s)</text>
+  <text x="814" y="430" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">QuoteResponse.quoteExpiresAt</text>
+  <text x="410" y="444" fill="#64748b" font-size="10">Lock-up: "Engagement jusqu'au {maturityDate}"</text>
+  <text x="814" y="444" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.maturityDate</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="461" x2="816" y2="461" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="473" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="487" fill="#b45309" font-size="9">ⓘ No "Accrued interest" line item — BTA has zero coupon; no interest accrues between</text>
+  <text x="410" y="500" fill="#b45309" font-size="9">  payment dates. The price itself accretes daily via BtaPriceAccretionScheduler.</text>
+  <text x="410" y="513" fill="#b45309" font-size="9">ⓘ No IRCM in the order summary at purchase time. IRCM is deducted by</text>
+  <text x="410" y="526" fill="#b45309" font-size="9">  PrincipalRedemptionService at maturity on (faceValue − purchasePrice) × ircmRate.</text>
+  <text x="410" y="539" fill="#b45309" font-size="9">ⓘ faceValue sourced from AssetPublicDetailResponse.faceValue (set at asset creation).</text>
+  <text x="410" y="552" fill="#b45309" font-size="9">ⓘ TVA is buyer-only (mirrors 05b). IRCM rate from taxConfig.ircmRate.</text>
+  <text x="410" y="565" fill="#b45309" font-size="9">ⓘ Gain projection uses executionPrice (today's ask) as purchase price basis.</text>
+</svg>

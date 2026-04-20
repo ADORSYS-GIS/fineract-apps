@@ -39,8 +39,9 @@ public class AdminSecurityCheck {
                         + PRODUCTION_PROFILES + ". Active profiles: "
                         + Arrays.toString(environment.getActiveProfiles()));
             }
-            log.warn("Admin security is OPEN (permit-all-admin=true). "
-                    + "This must only be used in development environments.");
+            log.warn("SECURITY WARNING: app.security.permit-all-admin=true — "
+                    + "all /admin/** endpoints are UNAUTHENTICATED. "
+                    + "This must only be used in non-production environments.");
         }
     }
 

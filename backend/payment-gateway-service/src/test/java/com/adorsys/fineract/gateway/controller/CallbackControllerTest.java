@@ -1,11 +1,15 @@
 package com.adorsys.fineract.gateway.controller;
 
-import com.adorsys.fineract.gateway.config.MtnMomoConfig;
 import com.adorsys.fineract.gateway.dto.CinetPayCallbackRequest;
-import com.adorsys.fineract.gateway.dto.MtnCallbackRequest;
 import com.adorsys.fineract.gateway.dto.OrangeCallbackRequest;
+import com.adorsys.fineract.gateway.dto.PaymentProvider;
+import com.adorsys.fineract.gateway.dto.PaymentStatus;
+import com.adorsys.fineract.gateway.entity.PaymentTransaction;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
+import com.adorsys.fineract.gateway.repository.PaymentTransactionRepository;
 import com.adorsys.fineract.gateway.service.PaymentService;
+
+import java.util.Optional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,9 +22,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import org.junit.jupiter.api.BeforeEach;
-
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -29,8 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 class CallbackControllerTest {
-
-    private static final String MTN_SUBSCRIPTION_KEY = "test-collection-key";
 
     @Autowired
     private MockMvc mockMvc;
@@ -42,7 +42,7 @@ class CallbackControllerTest {
     private PaymentService paymentService;
 
     @MockBean
-    private MtnMomoConfig mtnConfig;
+    private PaymentTransactionRepository transactionRepository;
 
     @MockBean
     private PaymentMetrics paymentMetrics;
@@ -50,70 +50,99 @@ class CallbackControllerTest {
     @MockBean
     private JwtDecoder jwtDecoder;
 
-    @BeforeEach
-    void setUp() {
-        when(mtnConfig.getCollectionSubscriptionKey()).thenReturn(MTN_SUBSCRIPTION_KEY);
-        when(mtnConfig.getDisbursementSubscriptionKey()).thenReturn("test-disbursement-key");
-    }
-
     // =========================================================================
     // MTN Callbacks
     // =========================================================================
 
     @Test
-    @DisplayName("should process MTN collection callback successfully")
-    void mtnCollection_success_returns200() throws Exception {
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .referenceId("ref-123")
-                .externalId("ext-ref-123")
-                .status("SUCCESSFUL")
-                .financialTransactionId("fin-txn-123")
-                .build();
+    @DisplayName("should process MTN collection callback for a known PENDING transaction")
+    void mtnCollection_knownRef_success_returns200() throws Exception {
+        when(transactionRepository.findById("ref-123")).thenReturn(Optional.of(pendingTxn()));
 
-        mockMvc.perform(post("/api/callbacks/mtn/collection")
-                        .header("Ocp-Apim-Subscription-Key", MTN_SUBSCRIPTION_KEY)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-123"))
                 .andExpect(status().isOk());
 
-        verify(paymentService).handleMtnCollectionCallback(any(MtnCallbackRequest.class));
+        verify(paymentService).handleMtnCollectionCallbackByRef("ref-123");
     }
 
     @Test
-    @DisplayName("should return 200 even when processing error occurs")
+    @DisplayName("should drop MTN collection callback for unknown referenceId and emit metric")
+    void mtnCollection_unknownRef_dropsRequest() throws Exception {
+        when(transactionRepository.findById("unknown-ref")).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/callbacks/mtn/collection/unknown-ref"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnCollectionCallbackByRef(anyString());
+        verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.MTN_MOMO, "unknown_ref");
+    }
+
+    @Test
+    @DisplayName("should drop MTN collection callback for already-SUCCESSFUL transaction and emit metric")
+    void mtnCollection_terminalState_dropsRequest() throws Exception {
+        when(transactionRepository.findById("ref-done")).thenReturn(Optional.of(txnWithStatus(PaymentStatus.SUCCESSFUL)));
+
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-done"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnCollectionCallbackByRef(anyString());
+        verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.MTN_MOMO, "terminal_state");
+    }
+
+    @Test
+    @DisplayName("should return 200 even when processing error occurs on known transaction")
     void mtnCollection_processingError_stillReturns200() throws Exception {
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .referenceId("ref-789")
-                .status("SUCCESSFUL")
-                .build();
-
+        when(transactionRepository.findById("ref-789")).thenReturn(Optional.of(pendingTxn()));
         doThrow(new RuntimeException("Processing error"))
-                .when(paymentService).handleMtnCollectionCallback(any());
+                .when(paymentService).handleMtnCollectionCallbackByRef(anyString());
 
-        mockMvc.perform(post("/api/callbacks/mtn/collection")
-                        .header("Ocp-Apim-Subscription-Key", MTN_SUBSCRIPTION_KEY)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-789"))
                 .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("should process MTN disbursement callback")
-    void mtnDisbursement_success_returns200() throws Exception {
-        MtnCallbackRequest callback = MtnCallbackRequest.builder()
-                .referenceId("ref-123")
-                .externalId("ext-ref-123")
-                .status("SUCCESSFUL")
-                .financialTransactionId("fin-txn-123")
-                .build();
+    @DisplayName("should process MTN disbursement callback for a known PENDING transaction")
+    void mtnDisbursement_knownRef_success_returns200() throws Exception {
+        when(transactionRepository.findById("ref-123")).thenReturn(Optional.of(pendingTxn()));
 
-        mockMvc.perform(post("/api/callbacks/mtn/disbursement")
-                        .header("Ocp-Apim-Subscription-Key", "test-disbursement-key")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callback)))
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/ref-123"))
                 .andExpect(status().isOk());
 
-        verify(paymentService).handleMtnDisbursementCallback(any(MtnCallbackRequest.class));
+        verify(paymentService).handleMtnDisbursementCallbackByRef("ref-123");
+    }
+
+    @Test
+    @DisplayName("should drop MTN disbursement callback for unknown referenceId and emit metric")
+    void mtnDisbursement_unknownRef_dropsRequest() throws Exception {
+        when(transactionRepository.findById("unknown-ref")).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/unknown-ref"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnDisbursementCallbackByRef(anyString());
+        verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.MTN_MOMO, "unknown_ref");
+    }
+
+    @Test
+    @DisplayName("should drop MTN disbursement callback for already-SUCCESSFUL transaction and emit metric")
+    void mtnDisbursement_terminalState_dropsRequest() throws Exception {
+        when(transactionRepository.findById("ref-done")).thenReturn(Optional.of(txnWithStatus(PaymentStatus.SUCCESSFUL)));
+
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/ref-done"))
+                .andExpect(status().isOk());
+
+        verify(paymentService, never()).handleMtnDisbursementCallbackByRef(anyString());
+        verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.MTN_MOMO, "terminal_state");
+    }
+
+    private PaymentTransaction pendingTxn() {
+        return txnWithStatus(PaymentStatus.PENDING);
+    }
+
+    private PaymentTransaction txnWithStatus(PaymentStatus status) {
+        PaymentTransaction txn = new PaymentTransaction();
+        txn.setStatus(status);
+        return txn;
     }
 
     // =========================================================================

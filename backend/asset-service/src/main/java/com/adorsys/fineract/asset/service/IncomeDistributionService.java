@@ -33,7 +33,6 @@ import java.util.List;
  */
 @Deprecated(forRemoval = true)
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class IncomeDistributionService {
 
@@ -56,8 +55,8 @@ public class IncomeDistributionService {
             return;
         }
 
-        BigDecimal faceValue = asset.getIssuerPrice() != null
-                ? asset.getIssuerPrice() : BigDecimal.ZERO;
+        BigDecimal faceValue = asset.getEffectiveFaceValue() != null
+                ? asset.getEffectiveFaceValue() : BigDecimal.ZERO;
 
         BigDecimal rate = asset.getIncomeRate();
         int frequencyMonths = asset.getDistributionFrequencyMonths();

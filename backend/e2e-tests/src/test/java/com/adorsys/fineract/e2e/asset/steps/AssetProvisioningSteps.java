@@ -57,6 +57,17 @@ public class AssetProvisioningSteps {
     public void testUserHasXafBalance(long expectedBalance) {
         BigDecimal balance = fineractTestClient.getAccountBalance(
                 FineractInitializer.getTestUserXafAccountId());
+
+        // Top up if balance is below the required minimum (previous scenarios may have spent funds)
+        BigDecimal required = BigDecimal.valueOf(expectedBalance);
+        if (balance.compareTo(required) < 0) {
+            BigDecimal topUp = required.subtract(balance);
+            fineractTestClient.depositToSavingsAccount(
+                    FineractInitializer.getTestUserXafAccountId(), topUp);
+            balance = fineractTestClient.getAccountBalance(
+                    FineractInitializer.getTestUserXafAccountId());
+        }
+
         assertThat(balance.longValue())
                 .isGreaterThanOrEqualTo(expectedBalance);
     }
@@ -126,21 +137,57 @@ public class AssetProvisioningSteps {
         request.put("symbol", symbol);
         request.put("currencyCode", currencyCode);
         request.put("category", "BONDS");
+        String bondType = data.getOrDefault("bondType", "COUPON");
         BigDecimal bondIssuerPrice = new BigDecimal(data.getOrDefault("initialPrice", "10000"));
         request.put("issuerPrice", bondIssuerPrice);
-        request.put("lpAskPrice", bondIssuerPrice.multiply(new BigDecimal("1.10")));
-        request.put("lpBidPrice", bondIssuerPrice.multiply(new BigDecimal("0.95")));
+        if ("DISCOUNT".equals(bondType)) {
+            // For discount bonds: faceValue > lpAskPrice > issuerPrice so yield is non-zero.
+            // issuerPrice is the discounted purchase price; faceValue is the par (10% higher).
+            // LP ask is 4% above issuerPrice (still well below face value → positive current yield).
+            request.put("faceValue", bondIssuerPrice.multiply(new BigDecimal("1.10")));
+            request.put("lpAskPrice", bondIssuerPrice.multiply(new BigDecimal("1.04")));
+            request.put("lpBidPrice", bondIssuerPrice.multiply(new BigDecimal("1.02")));
+        } else {
+            request.put("lpAskPrice", bondIssuerPrice.multiply(new BigDecimal("1.10")));
+            request.put("lpBidPrice", bondIssuerPrice.multiply(new BigDecimal("0.95")));
+        }
         request.put("totalSupply", new BigDecimal(data.getOrDefault("totalSupply", "1000")));
         request.put("decimalPlaces", Integer.parseInt(data.getOrDefault("decimalPlaces", "0")));
         request.put("lpClientId", FineractInitializer.getLpClientId());
         request.put("issuerName", data.getOrDefault("issuerName", "Test Issuer"));
-        request.put("interestRate", new BigDecimal(data.getOrDefault("interestRate", "5.80")));
-        request.put("couponFrequencyMonths",
-                Integer.parseInt(data.getOrDefault("couponFrequencyMonths", "6")));
+        request.put("bondType", bondType);
+        request.put("dayCountConvention", data.getOrDefault("dayCountConvention",
+                "DISCOUNT".equals(bondType) ? "ACT_360" : "ACT_365"));
+        if (data.containsKey("issuerCountry")) {
+            request.put("issuerCountry", data.get("issuerCountry"));
+        }
+
+        if (!"DISCOUNT".equals(bondType)) { // COUPON
+            request.put("interestRate", new BigDecimal(data.getOrDefault("interestRate", "5.80")));
+            request.put("couponFrequencyMonths",
+                    Integer.parseInt(data.getOrDefault("couponFrequencyMonths", "6")));
+            request.put("nextCouponDate", resolveDateExpression(
+                    data.getOrDefault("nextCouponDate", "+6m")));
+        }
         request.put("maturityDate", resolveDateExpression(
                 data.getOrDefault("maturityDate", "+5y")));
-        request.put("nextCouponDate", resolveDateExpression(
-                data.getOrDefault("nextCouponDate", "+6m")));
+
+        // New fields from V13 + form reorganization
+        if (data.containsKey("issueDate")) {
+            request.put("issueDate", resolveDateExpression(data.get("issueDate")));
+        }
+        if (data.containsKey("isBvmacListed")) {
+            request.put("isBvmacListed", Boolean.parseBoolean(data.get("isBvmacListed")));
+        }
+        if (data.containsKey("isGovernmentBond")) {
+            request.put("isGovernmentBond", Boolean.parseBoolean(data.get("isGovernmentBond")));
+        }
+        if (data.containsKey("tvaEnabled")) {
+            request.put("tvaEnabled", Boolean.parseBoolean(data.get("tvaEnabled")));
+        }
+        if (data.containsKey("tvaRate")) {
+            request.put("tvaRate", new BigDecimal(data.get("tvaRate")));
+        }
 
         Response response = RestAssured.given()
                 .baseUri("http://localhost:" + port)
@@ -276,6 +323,7 @@ public class AssetProvisioningSteps {
             return switch (unit) {
                 case "y" -> LocalDate.now().plusYears(amount).toString();
                 case "m" -> LocalDate.now().plusMonths(amount).toString();
+                case "w" -> LocalDate.now().plusWeeks(amount).toString();
                 case "d" -> LocalDate.now().plusDays(amount).toString();
                 default -> expr;
             };

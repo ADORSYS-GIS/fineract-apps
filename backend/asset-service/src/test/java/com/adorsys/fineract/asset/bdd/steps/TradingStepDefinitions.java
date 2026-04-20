@@ -72,8 +72,9 @@ public class TradingStepDefinitions {
 
         jdbcTemplate.update("""
             INSERT INTO user_positions (user_id, asset_id, total_units, avg_purchase_price,
-                total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version)
-            VALUES (?, ?, ?, ?, ?, 0, 200, ?, 0)
+                total_cost_basis, realized_pnl, fineract_savings_account_id, last_trade_at, version,
+                total_fees_paid, total_taxes_paid)
+            VALUES (?, ?, ?, ?, ?, 0, 200, ?, 0, 0, 0)
             """, userId, assetId, units, avgPrice, units * avgPrice, Instant.now());
 
         // Keep circulating supply consistent with positions

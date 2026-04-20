@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
@@ -16,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -32,6 +34,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AssetProvisioningServiceTest {
 
+    @Spy private TaxConfig taxConfig = new TaxConfig();
+
     @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
     @Mock private com.adorsys.fineract.asset.repository.PriceHistoryRepository priceHistoryRepository;
@@ -43,6 +47,7 @@ class AssetProvisioningServiceTest {
     @Mock private AssetServiceConfig assetServiceConfig;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
     @Mock private com.adorsys.fineract.asset.storage.FileStorageService fileStorageService;
+    @Mock private CurrencyCodeGenerator currencyCodeGenerator;
 
     @InjectMocks
     private AssetProvisioningService service;
@@ -63,6 +68,9 @@ class AssetProvisioningServiceTest {
         // Default: no orphaned Fineract resources
         lenient().when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
         lenient().when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
+
+        // Default: generator returns a code derived from the symbol (e.g. "TST" for symbol "TST")
+        lenient().when(currencyCodeGenerator.generate(anyString(), any())).thenReturn("TST");
     }
 
     // -------------------------------------------------------------------------
@@ -75,7 +83,6 @@ class AssetProvisioningServiceTest {
 
         // No duplicate
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         // Look up client display name
         when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test Company");
@@ -101,7 +108,7 @@ class AssetProvisioningServiceTest {
                 .thenReturn(400L);
 
         // Return value for getAssetDetailAdmin
-        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        AssetDetailResponse expected = stubDetailResponse();
         when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(expected);
 
         AssetDetailResponse result = service.createAsset(request);
@@ -126,6 +133,92 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
+    void createAsset_noAskBidProvided_autoDerivesFrom03PercentSpread() {
+        // Request omits lpAskPrice and lpBidPrice — should auto-derive from issuerPrice ± 0.3%
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Test Asset", "TST", "TST", "desc", null, AssetCategory.STOCKS,
+                new BigDecimal("1000"), null, new BigDecimal("1000"), 0,  // issuerPrice, faceValue=null, totalSupply, decimalPlaces
+                null, null,  // tradingFeePercent, spreadPercent (both default)
+                null, null,  // lpAskPrice, lpBidPrice (omitted)
+                LP_CLIENT_ID,
+                null, null, null, null, null, null,         // exposure limits
+                null, null, null,                           // bondType, dayCountConvention, issuerCountry
+                null, null, null, null, null, null, null,   // issuerName, isinCode, maturityDate, issueDate, interestRate, couponFreq, nextCouponDate
+                null, null, null, null,                     // income fields
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null);                                // tvaEnabled, tvaRate
+
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(10);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong())).thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
+
+        service.createAsset(request);
+
+        // issuerPrice=1000, spread=0.003 → askPrice=1003, bidPrice=997
+        verify(assetPriceRepository).save(priceCaptor.capture());
+        AssetPrice savedPrice = priceCaptor.getValue();
+        assertEquals(new BigDecimal("1003"), savedPrice.getAskPrice());
+        assertEquals(new BigDecimal("997"), savedPrice.getBidPrice());
+
+        // tradingFeePercent, tvaEnabled, registrationDutyEnabled should default correctly
+        verify(assetRepository).save(assetCaptor.capture());
+        Asset saved = assetCaptor.getValue();
+        assertEquals(new BigDecimal("0.0030"), saved.getTradingFeePercent());
+        assertFalse(saved.getTvaEnabled(), "TVA should be disabled by default");
+        assertTrue(saved.getRegistrationDutyEnabled(), "Registration duty should be enabled by default");
+    }
+
+    @Test
+    void createAsset_customSpreadPercent_derivesCorrectAskBid() {
+        // spreadPercent=0.01 (1%), issuerPrice=1000 → askPrice=1010, bidPrice=990
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Test Asset", "TST", "TST", "desc", null, AssetCategory.STOCKS,
+                new BigDecimal("1000"), null, new BigDecimal("1000"), 0,  // issuerPrice, faceValue=null, totalSupply, decimalPlaces
+                null, new BigDecimal("0.01"),  // tradingFeePercent=null, spreadPercent=1%
+                null, null,  // lpAskPrice, lpBidPrice (omitted)
+                LP_CLIENT_ID,
+                null, null, null, null, null, null,         // exposure limits
+                null, null, null,                           // bondType, dayCountConvention, issuerCountry
+                null, null, null, null, null, null, null,   // issuerName, isinCode, maturityDate, issueDate, interestRate, couponFreq, nextCouponDate
+                null, null, null, null,                     // income fields
+                null, null, null, null, null, null, null, null, null, // tax config
+                null, null);                                // tvaEnabled, tvaRate
+
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(10);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong())).thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
+
+        service.createAsset(request);
+
+        verify(assetPriceRepository).save(priceCaptor.capture());
+        AssetPrice savedPrice = priceCaptor.getValue();
+        assertEquals(new BigDecimal("1010"), savedPrice.getAskPrice());
+        assertEquals(new BigDecimal("990"), savedPrice.getBidPrice());
+    }
+
+    @Test
     void createAsset_duplicateSymbol_throws() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.of(activeAsset()));
@@ -133,6 +226,111 @@ class AssetProvisioningServiceTest {
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Symbol already exists"));
         verify(fineractClient, never()).getClientSavingsAccounts(anyLong());
+    }
+
+    @Test
+    void createAsset_askPriceBelowIssuerPrice_throwsBeforeFineractCalls() {
+        // lpAskPrice=90 < issuerPrice=100 — should fail before any Fineract provisioning
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Test Asset", "TST", "TST", "desc", null, AssetCategory.STOCKS,
+                new BigDecimal("100"), null, new BigDecimal("1000"), 0,
+                null, null,
+                new BigDecimal("90"), new BigDecimal("85"),  // ask < issuerPrice
+                LP_CLIENT_ID,
+                null, null, null, null, null, null,
+                null, null, null,
+                null, null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("ask price"));
+        assertTrue(ex.getMessage().contains("issuer price"));
+        // No Fineract provisioning should have happened
+        verify(fineractClient, never()).provisionSavingsAccount(any(), any(), any(), any());
+    }
+
+    @Test
+    void createAsset_discountBondWithAskBelowIssuerPrice_throws() {
+        // DISCOUNT bond with lpAskPrice < issuerPrice must still be rejected —
+        // issuerPrice is the LP cost basis regardless of bond type.
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Bond", "BTA", "BTA", null, null, AssetCategory.BONDS,
+                new BigDecimal("950000"), null, new BigDecimal("100"), 0,
+                null, null,
+                new BigDecimal("940000"), new BigDecimal("930000"),  // ask < issuerPrice
+                LP_CLIENT_ID,
+                null, null, null, null,
+                null, null,
+                BondType.DISCOUNT, DayCountConvention.ACT_360, "CAMEROUN",
+                "Republique du Cameroun", "CM1300001193", LocalDate.now().plusWeeks(52),
+                null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("BTA")).thenReturn(Optional.empty());
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("ask price"));
+        assertTrue(ex.getMessage().contains("issuer price"));
+        verify(fineractClient, never()).provisionSavingsAccount(any(), any(), any(), any());
+    }
+
+    @Test
+    void createAsset_discountBondWithAskEqualToIssuerPrice_passesAskCheck() {
+        // Zero-spread (ask == issuerPrice) is a valid admin choice and must not be blocked.
+        // The test verifies that NO ask-price validation exception is thrown — any other
+        // exception (e.g. from downstream provisioning) is acceptable.
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Bond", "BTA", "BTA", null, null, AssetCategory.BONDS,
+                new BigDecimal("950000"), new BigDecimal("1000000"), new BigDecimal("100"), 0,
+                null, null,
+                new BigDecimal("950000"), new BigDecimal("940000"),  // ask == issuerPrice (zero spread)
+                LP_CLIENT_ID,
+                null, null, null, null,
+                null, null,
+                BondType.DISCOUNT, DayCountConvention.ACT_360, "CAMEROUN",
+                "Republique du Cameroun", "CM1300001193", LocalDate.now().plusWeeks(52),
+                null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("BTA")).thenReturn(Optional.empty());
+
+        try {
+            service.createAsset(request);
+        } catch (AssetException e) {
+            assertFalse(e.getMessage().contains("ask price"),
+                    "Ask-price check must not fire when ask == issuerPrice, but got: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void createAsset_nonBondWithBondType_throws() {
+        // A STOCKS request with bondType=DISCOUNT must be rejected; bondType is only valid for BONDS.
+        CreateAssetRequest request = new CreateAssetRequest(
+                "Test Asset", "TST", "TST", "desc", null, AssetCategory.STOCKS,
+                new BigDecimal("100"), null, new BigDecimal("1000"), 0,
+                null, null,
+                new BigDecimal("110"), new BigDecimal("90"),
+                LP_CLIENT_ID,
+                null, null, null, null, null, null,
+                BondType.DISCOUNT, null, null,
+                null, null, null, null, null, null, null,
+                null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("bondType is only valid for BONDS assets"));
+        verify(fineractClient, never()).provisionSavingsAccount(any(), any(), any(), any());
     }
 
     @Test
@@ -146,10 +344,37 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
+    void createAsset_generatorReturnsAlternativeCode_usedForProductAndCurrency() {
+        // Simulate collision avoidance: generator returns "TSTA" instead of "TST"
+        when(currencyCodeGenerator.generate(anyString(), any())).thenReturn("TSTA");
+        CreateAssetRequest request = createAssetRequest();
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.createSavingsProduct(anyString(), eq("TSTA"), eq("TSTA"), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(10);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), any(), anyLong())).thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
+
+        service.createAsset(request);
+
+        // The alternative code "TSTA" must be used when registering the currency
+        verify(fineractClient).registerCurrencies(argThat(list -> list.contains("TSTA")));
+        verify(assetRepository).save(assetCaptor.capture());
+        assertEquals("TSTA", assetCaptor.getValue().getCurrencyCode());
+    }
+
+    @Test
     void createAsset_noSettlementProduct_throws() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         // LP settlement product not found
         when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
@@ -163,7 +388,6 @@ class AssetProvisioningServiceTest {
     void createAsset_productCreationFails_noRollbackNeeded() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
         when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
@@ -192,7 +416,6 @@ class AssetProvisioningServiceTest {
     void createAsset_accountProvisioningFails_rollsBackProductAndCurrency() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(assetRepository.findByCurrencyCode("TST")).thenReturn(Optional.empty());
 
         when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
         when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
@@ -237,9 +460,10 @@ class AssetProvisioningServiceTest {
                 null, null, null, // bond fields (interestRate, maturityDate, nextCouponDate)
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                null, null, null, null, null); // PENDING-only fields
+                null, null, null, null, null, null, // PENDING-only: issuerPrice, faceValue, totalSupply, issuerName, isinCode, couponFrequencyMonths
+                null, null, null); // PENDING-only: bondType, dayCountConvention, issuerCountry
 
-        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        AssetDetailResponse expected = stubDetailResponse();
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
 
         service.updateAsset(ASSET_ID, request);
@@ -254,7 +478,7 @@ class AssetProvisioningServiceTest {
     void updateAsset_notFound_throws() {
         when(assetRepository.findById("nonexistent")).thenReturn(Optional.empty());
         assertThrows(AssetException.class, () ->
-                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                service.updateAsset("nonexistent", new UpdateAssetRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)));
     }
 
     @Test
@@ -269,10 +493,11 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                new BigDecimal("6000"), new BigDecimal("2000"), "New Issuer", "SN0000038741", 6); // PENDING-only
+                new BigDecimal("6000"), null, new BigDecimal("2000"), "New Issuer", "SN0000038741", 6, // PENDING-only: issuerPrice, faceValue, totalSupply, issuerName, isinCode, couponFrequencyMonths
+                null, null, null); // bondType, dayCountConvention, issuerCountry
 
 
-        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        AssetDetailResponse expected = stubDetailResponse();
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
 
         service.updateAsset(ASSET_ID, request);
@@ -299,7 +524,8 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                new BigDecimal("6000"), null, null, null, null); // PENDING-only
+                new BigDecimal("6000"), null, null, null, null, null, // PENDING-only: issuerPrice, faceValue, totalSupply..
+                null, null, null); // bondType, dayCountConvention, issuerCountry
 
         AssetException ex = assertThrows(AssetException.class, () -> service.updateAsset(ASSET_ID, request));
         assertTrue(ex.getMessage().contains("PENDING"));
@@ -319,9 +545,10 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax config
                 null, null, // tvaEnabled, tvaRate
-                null, new BigDecimal("1500"), null, null, null); // PENDING-only
+                null, null, new BigDecimal("1500"), null, null, null, // PENDING-only
+                null, null, null); // bondType, dayCountConvention, issuerCountry
 
-        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        AssetDetailResponse expected = stubDetailResponse();
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
 
         service.updateAsset(ASSET_ID, request);
@@ -342,9 +569,10 @@ class AssetProvisioningServiceTest {
                 null, null, null,
                 null, null, null, null, null, null, null, null, null, // tax
                 null, null, // tvaEnabled, tvaRate
-                null, new BigDecimal("800"), null, null, null); // PENDING-only
+                null, null, new BigDecimal("800"), null, null, null, // PENDING-only
+                null, null, null); // bondType, dayCountConvention, issuerCountry
 
-        AssetDetailResponse expected = mock(AssetDetailResponse.class);
+        AssetDetailResponse expected = stubDetailResponse();
         when(assetCatalogService.getAssetDetailAdmin(ASSET_ID)).thenReturn(expected);
 
         service.updateAsset(ASSET_ID, request);
@@ -450,12 +678,13 @@ class AssetProvisioningServiceTest {
     void createBondAsset_missingIssuer_throws() {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
-                new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                new BigDecimal("10000"), null, new BigDecimal("100"), 0,
+                null, null, new BigDecimal("11000"), new BigDecimal("9500"),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
-                null, null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 6,
+                BondType.COUPON, DayCountConvention.ACT_365, null, // bondType, dayCountConvention, issuerCountry
+                null, null, LocalDate.now().plusYears(1), null, new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
                 null, null, null, null, null, null, null, null, null, // tax config
@@ -470,12 +699,13 @@ class AssetProvisioningServiceTest {
     void createBondAsset_invalidCouponFrequency_throws() {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
-                new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                new BigDecimal("10000"), null, new BigDecimal("100"), 0,
+                null, null, new BigDecimal("11000"), new BigDecimal("9500"),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
-                "Issuer", null, LocalDate.now().plusYears(1), new BigDecimal("5.0"), 5,
+                BondType.COUPON, DayCountConvention.ACT_365, null, // bondType, dayCountConvention, issuerCountry
+                "Issuer", null, LocalDate.now().plusYears(1), null, new BigDecimal("5.0"), 5,
                 LocalDate.now().plusMonths(5),
                 null, null, null, null, // income fields
                 null, null, null, null, null, null, null, null, null, // tax config
@@ -557,12 +787,13 @@ class AssetProvisioningServiceTest {
     void createBondAsset_pastMaturityDate_throws() {
         CreateAssetRequest request = new CreateAssetRequest(
                 "Bond", "BND", "BND", null, null, AssetCategory.BONDS,
-                new BigDecimal("10000"), new BigDecimal("100"), 0,
-                null, new BigDecimal("11000"), new BigDecimal("9500"),
+                new BigDecimal("10000"), null, new BigDecimal("100"), 0,
+                null, null, new BigDecimal("11000"), new BigDecimal("9500"),
                 LP_CLIENT_ID,
                 null, null, null, null, // exposure limits
                 null, null, // min order size/cash
-                "Issuer", null, LocalDate.now().minusDays(1), new BigDecimal("5.0"), 6,
+                BondType.COUPON, DayCountConvention.ACT_365, null, // bondType, dayCountConvention, issuerCountry
+                "Issuer", null, LocalDate.now().minusDays(1), null, new BigDecimal("5.0"), 6,
                 LocalDate.now().plusMonths(6),
                 null, null, null, null, // income fields
                 null, null, null, null, null, null, null, null, null, // tax config
@@ -571,5 +802,29 @@ class AssetProvisioningServiceTest {
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
         assertTrue(ex.getMessage().contains("Maturity date must be in the future"));
+    }
+
+    /** Returns a minimal real AssetDetailResponse (record is final, cannot be mocked). */
+    private static AssetDetailResponse stubDetailResponse() {
+        return new AssetDetailResponse(
+            "stub-id", null, null, null, null, null,    // id..imageUrl
+            null, null, null,                            // category, status, priceMode
+            null, null, null, null, null,                // OHLC + change
+            null, null, null,                            // supply
+            null, null,                                  // tradingFeePercent, decimalPlaces
+            null, null, null,                            // issuerName, issuerPrice, faceValue
+            null, null, null, null, null, null,          // LP accounts + productId
+            null, null, null, null,                      // lpClientName, fineractProductName, margins
+            null, null,                                  // createdAt, updatedAt
+            null, null, null,                            // bondType, dayCountConvention, issuerCountry
+            null, null, null, null, null, null, null, null, null, // bond fields (isinCode, maturityDate, issueDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, couponAmountPerUnit)
+            null, null,                                  // bidPrice, askPrice
+            null, null, null, null, null, null,          // exposure limits
+            null, null, null, null,                      // income fields
+            null, null,                                  // delisting
+            null, null, null, null, null, null, null, null, null, // tax config
+            null, null,                                  // tvaEnabled, tvaRate
+            null                                         // currentMarketData
+        );
     }
 }

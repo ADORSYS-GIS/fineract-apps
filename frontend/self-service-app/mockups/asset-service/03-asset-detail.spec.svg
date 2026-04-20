@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 920" width="820" height="920">
+  <defs>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- Left: mockup -->
+  <image href="./03-asset-detail.svg" x="0" y="0" width="390" height="920"/>
+
+  <!-- Divider -->
+  <line x1="397" y1="0" x2="397" y2="920" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Annotation panel -->
+  <rect x="397" y="0" width="423" height="920" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="408" y="26" fill="#111827" font-size="13" font-weight="700">03 · Asset Detail  (Real Estate / Non-Bond)</text>
+
+  <!-- Endpoint -->
+  <rect x="406" y="31" width="255" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="42" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /assets/{id}</tspan></text>
+  <text x="408" y="57" fill="#64748b" font-size="9">Response: AssetPublicDetailResponse</text>
+
+  <!-- Section: Asset Header Card -->
+  <line x1="406" y1="72" x2="816" y2="72" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="84" fill="#1e3a5f" font-size="11" font-weight="700">Asset Header Card</text>
+  <text x="410" y="100" fill="#64748b" font-size="10">Asset name</text>
+  <text x="814" y="100" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">AssetPublicDetailResponse.name</text>
+  <text x="410" y="114" fill="#64748b" font-size="10">Symbol · Category</text>
+  <text x="814" y="114" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.symbol / .category</text>
+  <text x="410" y="128" fill="#64748b" font-size="10">Status badge (Active / Halted…)</text>
+  <text x="814" y="128" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.status</text>
+  <text x="410" y="142" fill="#64748b" font-size="10">Lock-up badge ("90 days")</text>
+  <text x="814" y="142" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.lockupDays</text>
+
+  <!-- Section: Price Block -->
+  <line x1="406" y1="159" x2="816" y2="159" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="171" fill="#1e3a5f" font-size="11" font-weight="700">Price Block</text>
+  <text x="410" y="187" fill="#64748b" font-size="10">Ask Price (Buy at) — headline</text>
+  <text x="814" y="187" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.askPrice</text>
+  <text x="410" y="201" fill="#64748b" font-size="10">24h change %</text>
+  <text x="814" y="201" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.change24hPercent</text>
+  <text x="410" y="215" fill="#64748b" font-size="10">Bid price</text>
+  <text x="814" y="215" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.bidPrice</text>
+  <text x="410" y="229" fill="#64748b" font-size="10">Day High / Low</text>
+  <text x="814" y="229" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.dayHigh / .dayLow</text>
+
+  <!-- Section: Price History Chart -->
+  <line x1="406" y1="246" x2="816" y2="246" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="258" fill="#1e3a5f" font-size="11" font-weight="700">Price History Chart</text>
+  <text x="410" y="274" fill="#64748b" font-size="10">Period tab (1D / 1W / 1M / 3M / 1Y / ALL)</text>
+  <text x="814" y="274" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">query param: period</text>
+
+  <rect x="406" y="278" width="314" height="15" rx="3" fill="#ecfdf5"/>
+  <text x="410" y="289" font-size="10" font-family="monospace"><tspan fill="#065f46" font-weight="700">GET</tspan><tspan fill="#1e40af"> /assets/{id}/ohlc?period=1M</tspan></text>
+  <text x="410" y="303" fill="#64748b" font-size="10">OHLC data points</text>
+  <text x="814" y="303" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">OhlcResponse (list)</text>
+
+  <!-- Section: Key Statistics -->
+  <line x1="406" y1="320" x2="816" y2="320" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="332" fill="#1e3a5f" font-size="11" font-weight="700">Key Statistics</text>
+  <text x="410" y="348" fill="#64748b" font-size="10">Total Supply</text>
+  <text x="814" y="348" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.totalSupply</text>
+  <text x="410" y="362" fill="#64748b" font-size="10">Available (circulating supply)</text>
+  <text x="814" y="362" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.availableSupply</text>
+  <text x="410" y="376" fill="#64748b" font-size="10">Min. Order (cash)</text>
+  <text x="814" y="376" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.minOrderCashAmount</text>
+  <text x="410" y="390" fill="#64748b" font-size="10">Income Type · Rate</text>
+  <text x="814" y="390" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.incomeType / .incomeRate</text>
+
+  <!-- Section: Next Income Payment -->
+  <line x1="406" y1="407" x2="816" y2="407" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="419" fill="#1e3a5f" font-size="11" font-weight="700">Next Income Payment Card</text>
+  <text x="410" y="435" fill="#64748b" font-size="10">Next distribution date</text>
+  <text x="814" y="435" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.nextDistributionDate</text>
+  <text x="410" y="449" fill="#64748b" font-size="10">Amount per unit (estimate)</text>
+  <text x="814" y="449" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.couponAmountPerUnit</text>
+  <text x="410" y="463" fill="#64748b" font-size="10">Frequency label ("Quarterly")</text>
+  <text x="814" y="463" fill="#7c3aed" font-size="9" font-family="monospace" text-anchor="end">.distributionFrequencyMonths</text>
+
+  <!-- Notes -->
+  <line x1="406" y1="480" x2="816" y2="480" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="408" y="492" fill="#1e3a5f" font-size="11" font-weight="700">Notes</text>
+  <text x="410" y="506" fill="#b45309" font-size="9">ⓘ Bond variant uses 03b screen; field set is same endpoint, different UI sections.</text>
+  <text x="410" y="519" fill="#b45309" font-size="9">ⓘ Favourite ♡ button: POST /assets/{id}/favorites (not shown in mockup detail).</text>
+  <text x="410" y="532" fill="#b45309" font-size="9">ⓘ "Buy" button navigates to screen 04; "Sell" navigates to screen 07.</text>
+  <text x="410" y="545" fill="#b45309" font-size="9">ⓘ Recent trades ticker: GET /assets/{id}/recent-trades → List&lt;RecentTradeDto&gt;.</text>
+</svg>

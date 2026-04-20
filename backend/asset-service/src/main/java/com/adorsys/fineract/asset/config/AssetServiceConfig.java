@@ -161,8 +161,6 @@ public class AssetServiceConfig {
         private String platformFeePayable = "4201";
         /** GL code for platform fee income. */
         private String platformFeeIncome = "701";
-        /** GL code for LP spread income. */
-        private String spreadIncome = "702";
         /** GL code for income from interest account. */
         private String incomeFromInterest = "701";
         /** GL code for trading fee income (alias for platformFeeIncome). */

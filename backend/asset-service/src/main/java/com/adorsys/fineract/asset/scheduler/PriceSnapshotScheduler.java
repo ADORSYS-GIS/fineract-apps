@@ -5,6 +5,7 @@ import com.adorsys.fineract.asset.service.PricingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ public class PriceSnapshotScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "${asset-service.pricing.snapshot-cron:0 0 * * * *}")
+    @SchedulerLock(name = "price-snapshot-scheduler", lockAtMostFor = "PT50M", lockAtLeastFor = "PT5M")
     public void snapshotPrices() {
         try {
             log.info("Running hourly price snapshot");

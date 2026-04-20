@@ -29,10 +29,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,6 +67,7 @@ class TradingServiceTest {
     @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
     @Mock private QuoteReservationService quoteReservationService;
     @Mock private TaxService taxService;
+    @Mock private AccruedInterestCalculator accruedInterestCalculator;
     @Mock private com.adorsys.fineract.asset.repository.AssetProjectionRepository assetProjectionRepository;
 
     @InjectMocks
@@ -82,6 +87,7 @@ class TradingServiceTest {
     private static final Long LP_ASSET_ACCOUNT = 400L;
     private static final Long LP_SPREAD_ACCOUNT = 500L;
     private static final Long FEE_COLLECTION_ACCOUNT = 999L;
+    private static final Long CLEARING_ACCOUNT_ID = 550L;
     private static final Long FEE_INCOME_GL_ID = 87L;
     private static final Long FUND_SOURCE_GL_ID = 42L;
     private static final String IDEMPOTENCY_KEY = "idem-key-1";
@@ -114,6 +120,7 @@ class TradingServiceTest {
         lenient().when(resolvedGlAccounts.getFeeIncomeId()).thenReturn(FEE_INCOME_GL_ID);
         lenient().when(resolvedGlAccounts.getFundSourceId()).thenReturn(FUND_SOURCE_GL_ID);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECTION_ACCOUNT);
+        lenient().when(resolvedGlAccounts.getClearingAccountId()).thenReturn(CLEARING_ACCOUNT_ID);
 
         // Market hours config
         AssetServiceConfig.MarketHours marketHours = new AssetServiceConfig.MarketHours();
@@ -126,15 +133,22 @@ class TradingServiceTest {
         quoteConfig.setMaxActivePerUser(5);
         lenient().when(assetServiceConfig.getQuote()).thenReturn(quoteConfig);
 
+        // Trade lock config (used in confirmOrder to set Redis TTL)
+        AssetServiceConfig.TradeLock tradeLock = new AssetServiceConfig.TradeLock();
+        lenient().when(assetServiceConfig.getTradeLock()).thenReturn(tradeLock);
+
         // Tax service defaults (returns zero tax for all calculations)
         lenient().when(taxService.calculateRegistrationDuty(any(), any())).thenReturn(BigDecimal.ZERO);
         lenient().when(taxService.calculateCapitalGainsTax(any(), anyLong(), any())).thenReturn(BigDecimal.ZERO);
         lenient().when(taxService.calculateTva(any(), any())).thenReturn(BigDecimal.ZERO);
         lenient().when(taxService.getRegistrationDutyRate(any())).thenReturn(BigDecimal.ZERO);
         lenient().when(taxService.getTvaRate(any())).thenReturn(BigDecimal.ZERO);
-        lenient().when(taxService.buildTaxBreakdown(any(), anyLong(), any(), any(), anyBoolean()))
+        lenient().when(taxService.buildTaxBreakdown(any(), anyLong(), any(), any(), any(), anyBoolean()))
                 .thenReturn(new TaxBreakdown(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                         BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
+
+        // Accrued interest calculator defaults (returns zero for non-bond assets)
+        lenient().when(accruedInterestCalculator.calculate(any(), any())).thenReturn(BigDecimal.ZERO);
 
         // AssetMetrics timer mocks
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
@@ -156,8 +170,6 @@ class TradingServiceTest {
         BigDecimal askPrice = new BigDecimal("110");
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
-        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
         when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(0L);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, askPrice, new BigDecimal("90"), null));
@@ -167,7 +179,7 @@ class TradingServiceTest {
         when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
         when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT)).thenReturn(new BigDecimal("500000"));
 
-        QuoteResponse response = tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY);
+        QuoteResponse response = tradingService.createQuote(request, USER_ID, EXTERNAL_ID, IDEMPOTENCY_KEY);
 
         assertNotNull(response);
         assertEquals(OrderStatus.QUOTED, response.status());
@@ -206,10 +218,9 @@ class TradingServiceTest {
                 .quotedBidPrice(new BigDecimal("90"))
                 .build();
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.of(existingOrder));
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
 
         QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
-        QuoteResponse response = tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY);
+        QuoteResponse response = tradingService.createQuote(request, USER_ID, EXTERNAL_ID, IDEMPOTENCY_KEY);
 
         assertEquals("existing-order", response.orderId());
         verify(orderRepository, never()).save(any());
@@ -223,32 +234,27 @@ class TradingServiceTest {
                 .status(OrderStatus.QUOTED)
                 .build();
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.of(existingOrder));
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
 
         QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
         TradingException ex = assertThrows(TradingException.class,
-                () -> tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY));
+                () -> tradingService.createQuote(request, USER_ID, EXTERNAL_ID, IDEMPOTENCY_KEY));
         assertTrue(ex.getMessage().contains("Idempotency key already used"));
     }
 
     @Test
     void createQuote_maxQuotesExceeded_throws() {
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
-        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
         when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(5L);
 
         QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
         TradingException ex = assertThrows(TradingException.class,
-                () -> tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY));
+                () -> tradingService.createQuote(request, USER_ID, EXTERNAL_ID, IDEMPOTENCY_KEY));
         assertTrue(ex.getMessage().contains("Too many active quotes"));
     }
 
     @Test
     void createQuote_haltedAsset_throws() {
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
-        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
         when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(0L);
 
         Asset halted = Asset.builder()
@@ -257,7 +263,7 @@ class TradingServiceTest {
 
         QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
         assertThrows(TradingHaltedException.class,
-                () -> tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY));
+                () -> tradingService.createQuote(request, USER_ID, EXTERNAL_ID, IDEMPOTENCY_KEY));
     }
 
     @Test
@@ -266,8 +272,6 @@ class TradingServiceTest {
         BigDecimal bidPrice = new BigDecimal("95");
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
-        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
         when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(0L);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("110"), bidPrice, null));
@@ -280,7 +284,7 @@ class TradingServiceTest {
                 .thenReturn(Optional.of(UserPosition.builder()
                         .totalUnits(new BigDecimal("10")).build()));
 
-        QuoteResponse response = tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY);
+        QuoteResponse response = tradingService.createQuote(request, USER_ID, EXTERNAL_ID, IDEMPOTENCY_KEY);
 
         assertNotNull(response);
         assertEquals(bidPrice, response.executionPrice());
@@ -293,8 +297,6 @@ class TradingServiceTest {
         QuoteRequest request = new QuoteRequest(ASSET_ID, TradeSide.BUY, new BigDecimal("10"), null);
 
         when(orderRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
-        when(jwt.getSubject()).thenReturn(EXTERNAL_ID);
-        when(fineractClient.getClientByExternalId(EXTERNAL_ID)).thenReturn(Map.of("id", USER_ID));
         when(orderRepository.countByUserIdAndStatus(USER_ID, OrderStatus.QUOTED)).thenReturn(0L);
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(activeAsset));
         when(pricingService.getPrice(ASSET_ID)).thenReturn(new PriceResponse(ASSET_ID, new BigDecimal("110"), new BigDecimal("90"), null));
@@ -304,7 +306,7 @@ class TradingServiceTest {
         when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF")).thenReturn(USER_CASH_ACCOUNT);
         when(fineractClient.getAccountBalance(USER_CASH_ACCOUNT)).thenReturn(new BigDecimal("500000"));
 
-        QuoteResponse response = tradingService.createQuote(request, jwt, IDEMPOTENCY_KEY);
+        QuoteResponse response = tradingService.createQuote(request, USER_ID, EXTERNAL_ID, IDEMPOTENCY_KEY);
 
         assertNotNull(response);
         assertTrue(response.warnings().contains("MARKET_CLOSED"));
@@ -488,6 +490,104 @@ class TradingServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    // getUserOrders tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getUserOrders_noAssetFilter_excludesCancelledViaStatusNotIn() {
+        Order filled = Order.builder()
+                .id("order-filled").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.FILLED)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106")).fee(new BigDecimal("6"))
+                .asset(activeAsset)
+                .build();
+
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndStatusNotIn(eq(USER_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of(filled)));
+
+        var result = tradingService.getUserOrders(USER_ID, null, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(OrderStatus.FILLED, result.getContent().get(0).status());
+        // verify it called NotIn (not the old unfiltered method) with CANCELLED excluded
+        verify(orderRepository).findByUserIdAndStatusNotIn(
+                eq(USER_ID),
+                argThat((Collection<OrderStatus> s) -> s.contains(OrderStatus.CANCELLED)),
+                any());
+    }
+
+    @Test
+    void getUserOrders_withAssetFilter_excludesCancelledViaStatusNotIn() {
+        Order filled = Order.builder()
+                .id("order-filled").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.SELL).status(OrderStatus.FILLED)
+                .units(new BigDecimal("5")).executionPrice(new BigDecimal("90"))
+                .cashAmount(new BigDecimal("448")).fee(new BigDecimal("2"))
+                .asset(activeAsset)
+                .build();
+
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndAssetIdAndStatusNotIn(eq(USER_ID), eq(ASSET_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of(filled)));
+
+        var result = tradingService.getUserOrders(USER_ID, ASSET_ID, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(OrderStatus.FILLED, result.getContent().get(0).status());
+        verify(orderRepository).findByUserIdAndAssetIdAndStatusNotIn(
+                eq(USER_ID),
+                eq(ASSET_ID),
+                argThat((Collection<OrderStatus> s) -> s.contains(OrderStatus.CANCELLED)),
+                any());
+    }
+
+    @Test
+    void getUserOrders_emptyHistory_returnsEmptyPage() {
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndStatusNotIn(eq(USER_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        var result = tradingService.getUserOrders(USER_ID, null, pageable);
+
+        assertEquals(0, result.getTotalElements());
+        assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    void getUserOrders_mapsOrderFieldsCorrectly() {
+        Instant createdAt = Instant.parse("2026-04-09T10:00:00Z");
+        Order order = Order.builder()
+                .id("order-123").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.FILLED)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1106")).fee(new BigDecimal("6"))
+                .spreadAmount(new BigDecimal("100"))
+                .createdAt(createdAt)
+                .asset(activeAsset)
+                .build();
+
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndStatusNotIn(eq(USER_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of(order)));
+
+        var result = tradingService.getUserOrders(USER_ID, null, pageable);
+        var response = result.getContent().get(0);
+
+        assertEquals("order-123", response.orderId());
+        assertEquals(ASSET_ID, response.assetId());
+        assertEquals("TST", response.symbol());
+        assertEquals(TradeSide.BUY, response.side());
+        assertEquals(new BigDecimal("10"), response.units());
+        assertEquals(new BigDecimal("110"), response.pricePerUnit());
+        assertEquals(new BigDecimal("1106"), response.totalAmount());
+        assertEquals(new BigDecimal("6"), response.fee());
+        assertEquals(OrderStatus.FILLED, response.status());
+        assertEquals(createdAt, response.createdAt());
+    }
+
+    // -------------------------------------------------------------------------
     // executeOrderAsync tests (covers executeInsideLock pipeline)
     // -------------------------------------------------------------------------
 
@@ -534,7 +634,7 @@ class TradingServiceTest {
         lenient().when(assetRepository.adjustCirculatingSupply(eq(ASSET_ID), any())).thenReturn(1);
 
         // Fineract batch succeeds
-        lenient().when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of(Map.of("requestId", "batch-1")));
+        lenient().when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of(Map.of("requestId", 1)));
     }
 
     @Test
@@ -603,7 +703,7 @@ class TradingServiceTest {
         // Verify 4-leg batch: token return, LP pays investor, fee, spread
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        assertEquals(6, ops.size());
+        assertEquals(5, ops.size());
         assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, units); // token return
         BigDecimal grossAmount = new BigDecimal("450"); // 5 * 90
         assertTransferOp(ops.get(1), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(fee)); // net proceeds
@@ -613,7 +713,7 @@ class TradingServiceTest {
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, units.negate());
         verify(pricingService).updateOhlcAfterTrade(ASSET_ID, bidPrice);
         verify(assetMetrics).recordSell();
-        verify(portfolioService).updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID), eq(units), any());
+        verify(portfolioService).updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID), eq(units), any(), any(), any());
     }
 
     @Test
@@ -768,11 +868,12 @@ class TradingServiceTest {
         assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, units); // token return
         // Leg 2: buyback premium from LP Spread → LP Cash
         assertTransferOp(ops.get(1), LP_SPREAD_ACCOUNT, LP_CASH_ACCOUNT, new BigDecimal("25"));
-        // Leg 3: net proceeds (grossAmount=525, net=525-3=522)
+        // Leg 3: net proceeds (grossAmount=525, fee=floor(525*0.005)=floor(2.625)=2, net=525-2=523)
         BigDecimal grossAmount = new BigDecimal("525");
-        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(fee));
-        // Leg 4: fee
-        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, fee);
+        BigDecimal actualFee = grossAmount.multiply(new BigDecimal("0.005")).setScale(0, java.math.RoundingMode.FLOOR);
+        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(actualFee));
+        // Leg 4: fee (same actualFee computed above)
+        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, actualFee);
     }
 
     @Test

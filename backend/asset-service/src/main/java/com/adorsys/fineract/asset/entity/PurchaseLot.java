@@ -10,8 +10,22 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Tracks an individual purchase lot for FIFO cost basis and per-lot lockup.
- * Created on each BUY. Consumed (remainingUnits decremented) on each SELL in FIFO order.
+ * Records a single purchase lot for a user's position in an asset.
+ * One row is created on every filled BUY order. Lots are consumed in FIFO order
+ * on SELL: each SELL decrements {@code remainingUnits} from the oldest lot(s) first
+ * until the sold quantity is fully accounted for.
+ * <p>
+ * Two purposes:
+ * <ol>
+ *   <li><b>Cost basis:</b> the FIFO weighted average of {@code purchasePrice} across
+ *       consumed lots is used to calculate realized P&amp;L on SELL.</li>
+ *   <li><b>Per-lot lock-up:</b> if {@link Asset#lockupDays} is set, a SELL is rejected
+ *       when the oldest unconsumed lot's {@code lockupExpiresAt} has not yet passed.
+ *       This prevents early flipping of locked assets.</li>
+ * </ol>
+ * <p>
+ * Lots are never deleted. Once fully consumed ({@code remainingUnits == 0}), the row
+ * remains as a permanent cost-basis audit trail.
  */
 @Data
 @Entity

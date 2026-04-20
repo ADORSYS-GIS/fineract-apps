@@ -10,8 +10,23 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Tracks a user's holding in a specific asset. One row per (userId, assetId) pair.
- * Updated on each BUY (increases units/cost) and SELL (decreases units, accumulates realizedPnl).
+ * Tracks a user's current holding in a single asset. One row per (userId, assetId) pair,
+ * created on the user's first BUY and kept permanently even after they sell all units.
+ * <p>
+ * Mutated atomically with each trade execution:
+ * <ul>
+ *   <li><b>BUY:</b> {@code totalUnits} and {@code totalCostBasis} increase; {@code avgPurchasePrice}
+ *       is recalculated as {@code (oldCostBasis + newCost) / (oldUnits + newUnits)}.</li>
+ *   <li><b>SELL:</b> {@code totalUnits} and {@code totalCostBasis} decrease; {@code realizedPnl}
+ *       increases by {@code (sellPrice - avgPurchasePrice) * unitsSold}.</li>
+ * </ul>
+ * <p>
+ * The position is the source of truth for the user's current holdings in the asset service.
+ * It mirrors the balance in the user's Fineract savings account ({@code fineractSavingsAccountId});
+ * the reconciliation job validates these stay in sync.
+ * <p>
+ * Optimistic locking ({@code @Version}) prevents double-fill races where two orders for the same
+ * user+asset complete concurrently and would corrupt the running averages.
  */
 @Data
 @Entity
@@ -61,6 +76,14 @@ public class UserPosition {
     @Column(name = "realized_pnl", nullable = false, precision = 20, scale = 0)
     private BigDecimal realizedPnl;
 
+    /** Cumulative platform fees (fee + TVA) paid across all FILLED trades for this position, in settlement currency. Starts at 0 and accumulates on every BUY and SELL. */
+    @Column(name = "total_fees_paid", nullable = false, precision = 20, scale = 0)
+    private BigDecimal totalFeesPaid;
+
+    /** Cumulative taxes (registration duty + capital gains tax) paid across all FILLED trades for this position, in settlement currency. Starts at 0 and accumulates on every applicable trade. */
+    @Column(name = "total_taxes_paid", nullable = false, precision = 20, scale = 0)
+    private BigDecimal totalTaxesPaid;
+
     /** Timestamp of the most recent BUY or SELL trade on this position. */
     @Column(name = "last_trade_at", nullable = false)
     private Instant lastTradeAt;
@@ -84,6 +107,8 @@ public class UserPosition {
         if (totalCostBasis == null) totalCostBasis = BigDecimal.ZERO;
         if (realizedPnl == null) realizedPnl = BigDecimal.ZERO;
         if (accruedInterest == null) accruedInterest = BigDecimal.ZERO;
+        if (totalFeesPaid == null) totalFeesPaid = BigDecimal.ZERO;
+        if (totalTaxesPaid == null) totalTaxesPaid = BigDecimal.ZERO;
         if (lastTradeAt == null) lastTradeAt = Instant.now();
     }
 }

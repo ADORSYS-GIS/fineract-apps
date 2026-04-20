@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
+import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Orchestrates Fineract provisioning when an admin creates a new asset.
@@ -49,6 +51,8 @@ public class AssetProvisioningService {
     private final AssetServiceConfig assetServiceConfig;
     private final ResolvedGlAccounts resolvedGlAccounts;
     private final FileStorageService fileStorageService;
+    private final TaxConfig taxConfig;
+    private final CurrencyCodeGenerator currencyCodeGenerator;
 
     /**
      * Create a new asset with full Fineract provisioning.
@@ -57,42 +61,79 @@ public class AssetProvisioningService {
     @Transactional
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public AssetDetailResponse createAsset(CreateAssetRequest request) {
-        // Auto-derive currencyCode from symbol if not provided
-        String effectiveCurrencyCode = (request.currencyCode() != null && !request.currencyCode().isBlank())
-                ? request.currencyCode() : request.symbol();
+        // Warn if caller still sends an explicit currencyCode (deprecated field)
+        if (request.currencyCode() != null && !request.currencyCode().isBlank()) {
+            log.warn("CreateAssetRequest.currencyCode is deprecated and will be ignored. " +
+                    "The currency code is now auto-generated from symbol. " +
+                    "Caller sent: '{}' for symbol '{}'", request.currencyCode(), request.symbol());
+        }
 
-        // Validate uniqueness in local DB
+        // Validate symbol uniqueness in local DB
         if (assetRepository.findBySymbol(request.symbol()).isPresent()) {
             throw new AssetException("Symbol already exists: " + request.symbol());
         }
+
+        // Auto-generate a collision-safe currency code from the symbol.
+        // Fetch registered codes once so CurrencyCodeGenerator can avoid them without extra API calls.
+        List<Map<String, Object>> currencies = fineractClient.getExistingCurrencies();
+        Set<String> registeredCurrencyCodes = currencies.stream()
+                .map(c -> (String) c.get("code"))
+                .filter(c -> c != null)
+                .collect(Collectors.toSet());
+        String effectiveCurrencyCode = currencyCodeGenerator.generate(request.symbol(), registeredCurrencyCodes);
+        log.info("Auto-generated currency code '{}' for symbol '{}'", effectiveCurrencyCode, request.symbol());
+
+        // Validate generated currency code is not already used locally
         if (assetRepository.findByCurrencyCode(effectiveCurrencyCode).isPresent()) {
             throw new AssetException("Currency code already exists: " + effectiveCurrencyCode);
         }
 
-        // Check Fineract for orphaned resources (from previously failed creations)
+        // Check Fineract for orphaned savings product from a previously failed creation.
+        // Strategy: adopt the orphan rather than blocking. If the product already exists in Fineract
+        // but has no local Asset record, resume provisioning from that product ID.
         Integer existingProduct = fineractClient.findSavingsProductByShortName(request.symbol());
-        if (existingProduct != null) {
-            throw new AssetException("A savings product with symbol '" + request.symbol()
-                    + "' already exists in the core banking system (product ID: " + existingProduct
-                    + "). This may be from a previously failed creation. Please use a different symbol "
-                    + "or clean up the orphaned product.");
-        }
-        List<Map<String, Object>> currencies = fineractClient.getExistingCurrencies();
-        boolean currencyExists = currencies.stream()
-                .anyMatch(c -> effectiveCurrencyCode.equals(c.get("code")));
-        if (currencyExists) {
-            throw new AssetException("A currency with code '" + effectiveCurrencyCode
-                    + "' is already registered in the core banking system. "
-                    + "This may be from a previously failed creation.");
+        boolean adoptingOrphan = existingProduct != null;
+        if (adoptingOrphan) {
+            // Safety check: ensure no local Asset is associated with this product ID
+            if (assetRepository.existsByFineractProductId(existingProduct)) {
+                throw new AssetException("A savings product with symbol '" + request.symbol()
+                        + "' (productId=" + existingProduct + ") already has an active local asset record. "
+                        + "Use a different symbol.");
+            }
+            log.warn("Adopting orphaned Fineract savings product {} for symbol '{}'. " +
+                    "Resuming provisioning from existing product.", existingProduct, request.symbol());
         }
 
-        // Validate bid/ask spread before provisioning Fineract resources
-        if (request.lpBidPrice().compareTo(request.lpAskPrice()) > 0) {
-            throw new AssetException("Invalid spread: bid price (" + request.lpBidPrice()
-                    + ") must not exceed ask price (" + request.lpAskPrice() + ")");
+        // Derive effective ask/bid: use provided values, or auto-compute from issuerPrice ± spreadPercent
+        BigDecimal effectiveSpread = request.spreadPercent() != null
+                ? request.spreadPercent() : new BigDecimal("0.0030");
+        BigDecimal effectiveAskPrice = request.lpAskPrice() != null
+                ? request.lpAskPrice()
+                : request.issuerPrice().multiply(BigDecimal.ONE.add(effectiveSpread)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal effectiveBidPrice = request.lpBidPrice() != null
+                ? request.lpBidPrice()
+                : request.issuerPrice().multiply(BigDecimal.ONE.subtract(effectiveSpread)).setScale(0, RoundingMode.HALF_UP);
+
+        // Validate pricing before provisioning any Fineract resources
+        // ask >= issuerPrice must hold for all asset types: issuerPrice is the LP cost basis
+        // and the spread leg clamps to max(0, executionPrice - issuerPrice), so a sub-cost
+        // ask produces unrecoverable losses. For DISCOUNT bonds the discount is relative to
+        // faceValue, not to issuerPrice; that invariant (faceValue > issuerPrice) is enforced
+        // separately in validateBondFields below.
+        if (effectiveAskPrice.compareTo(request.issuerPrice()) < 0) {
+            throw new AssetException("Invalid pricing: ask price (" + effectiveAskPrice
+                    + ") must be >= issuer price (" + request.issuerPrice() + ")");
+        }
+        if (effectiveBidPrice.compareTo(effectiveAskPrice) > 0) {
+            throw new AssetException("Invalid spread: bid price (" + effectiveBidPrice
+                    + ") must not exceed ask price (" + effectiveAskPrice + ")");
         }
 
-        // Validate bond-specific fields when category is BONDS
+        // Validate bond-specific fields when category is BONDS; reject bondType on all others
+        if (request.bondType() != null && request.category() != AssetCategory.BONDS) {
+            throw new AssetException(
+                    "bondType is only valid for BONDS assets; received category=" + request.category());
+        }
         if (request.category() == AssetCategory.BONDS) {
             validateBondFields(request);
         }
@@ -146,23 +187,30 @@ public class AssetProvisioningService {
                     request.lpClientId(), ltaxProductId, null, null);
             log.info("Created LP tax withholding account (LTAX): {}", lpTaxAccountId);
 
-            // Step 2: Register custom currency in Fineract
+            // Step 2: Register custom currency in Fineract (idempotent — safe to call even if already registered)
             fineractClient.registerCurrencies(List.of(effectiveCurrencyCode));
             log.info("Registered currency: {}", effectiveCurrencyCode);
 
-            // Step 3: Create savings product (using resolved DB IDs, not GL codes)
-            productId = fineractClient.createSavingsProduct(
-                    request.name() + " Token",
-                    request.symbol(),
-                    effectiveCurrencyCode,
-                    request.decimalPlaces(),
-                    resolvedGlAccounts.getDigitalAssetInventoryId(),
-                    resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
-                    resolvedGlAccounts.getTransfersInSuspenseId(),
-                    resolvedGlAccounts.getIncomeFromInterestId(),
-                    resolvedGlAccounts.getExpenseAccountId()
-            );
-            log.info("Created savings product: productId={}", productId);
+            // Step 3: Create savings product, or adopt the orphaned one if it already exists
+            if (adoptingOrphan) {
+                productId = existingProduct;
+                log.info("Skipping savings product creation — adopting orphaned productId={}", productId);
+            } else {
+                // Fineract shortName: max 4 chars, derived from the auto-generated currency code (already 4 chars max)
+                String shortName = effectiveCurrencyCode;
+                productId = fineractClient.createSavingsProduct(
+                        request.name() + " Token",
+                        shortName,
+                        effectiveCurrencyCode,
+                        request.decimalPlaces(),
+                        resolvedGlAccounts.getDigitalAssetInventoryId(),
+                        resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
+                        resolvedGlAccounts.getTransfersInSuspenseId(),
+                        resolvedGlAccounts.getIncomeFromInterestId(),
+                        resolvedGlAccounts.getExpenseAccountId()
+                );
+                log.info("Created savings product: productId={}", productId);
+            }
 
             // Step 4: Atomic account lifecycle — create, approve, activate, deposit initial supply
             // Uses Fineract Batch API (enclosingTransaction=true) so if any step fails, all are rolled back
@@ -174,10 +222,14 @@ public class AssetProvisioningService {
                     lpAssetAccountId, request.totalSupply());
 
         } catch (AssetException e) {
-            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
+            // When adopting an orphan, pass null productId so rollback does NOT delete the
+            // pre-existing savings product — we didn't create it, so we must not destroy it.
+            rollbackFineractResources(adoptingOrphan ? null : productId,
+                    effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
             throw e;
         } catch (Exception e) {
-            rollbackFineractResources(productId, effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
+            rollbackFineractResources(adoptingOrphan ? null : productId,
+                    effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
             log.error("Fineract provisioning failed for asset {}: {}. productId={}.",
                     assetId, e.getMessage(), productId);
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
@@ -197,13 +249,19 @@ public class AssetProvisioningService {
                 .priceMode(PriceMode.MANUAL)
                 .manualPrice(request.issuerPrice())
                 .issuerPrice(request.issuerPrice())
+                .faceValue(request.faceValue() != null ? request.faceValue() : request.issuerPrice())
                 .decimalPlaces(request.decimalPlaces())
                 .totalSupply(request.totalSupply())
                 .circulatingSupply(BigDecimal.ZERO)
-                .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0050"))
+                .tradingFeePercent(request.tradingFeePercent() != null ? request.tradingFeePercent() : new BigDecimal("0.0030"))
+                .bondType(request.bondType())
+                .dayCountConvention(request.dayCountConvention() != null ? request.dayCountConvention()
+                        : (request.bondType() == BondType.DISCOUNT ? DayCountConvention.ACT_360 : DayCountConvention.ACT_365))
+                .issuerCountry(request.issuerCountry())
                 .issuerName(request.issuerName())
                 .isinCode(request.isinCode())
                 .maturityDate(request.maturityDate())
+                .issueDate(request.issueDate())
                 .interestRate(request.interestRate())
                 .couponFrequencyMonths(request.couponFrequencyMonths())
                 .nextCouponDate(request.nextCouponDate())
@@ -223,31 +281,35 @@ public class AssetProvisioningService {
                 .incomeRate(request.incomeRate())
                 .distributionFrequencyMonths(request.distributionFrequencyMonths())
                 .nextDistributionDate(request.nextDistributionDate())
-                // Tax configuration (defaults applied by @Builder.Default on entity)
+                // Tax configuration — defaults: registration duty ON, TVA OFF, others OFF
                 .registrationDutyEnabled(request.registrationDutyEnabled() != null ? request.registrationDutyEnabled() : true)
-                .registrationDutyRate(request.registrationDutyRate())
-                .ircmEnabled(request.ircmEnabled() != null ? request.ircmEnabled() : true)
+                .registrationDutyRate(request.registrationDutyRate() != null
+                        ? request.registrationDutyRate() : taxConfig.getDefaultRegistrationDutyRate())
+                .ircmEnabled(request.ircmEnabled() != null ? request.ircmEnabled() : false)
                 .ircmRateOverride(request.ircmRateOverride())
                 .ircmExempt(request.ircmExempt() != null ? request.ircmExempt() : false)
-                .capitalGainsTaxEnabled(request.capitalGainsTaxEnabled() != null ? request.capitalGainsTaxEnabled() : true)
-                .capitalGainsRate(request.capitalGainsRate())
+                .capitalGainsTaxEnabled(request.capitalGainsTaxEnabled() != null ? request.capitalGainsTaxEnabled() : false)
+                .capitalGainsRate(request.capitalGainsRate() != null
+                        ? request.capitalGainsRate() : taxConfig.getDefaultCapitalGainsRate())
                 .isBvmacListed(request.isBvmacListed() != null ? request.isBvmacListed() : false)
                 .isGovernmentBond(request.isGovernmentBond() != null ? request.isGovernmentBond() : false)
-                .tvaEnabled(request.tvaEnabled() != null ? request.tvaEnabled() : false)
-                .tvaRate(request.tvaRate())
+                // tvaEnabled: null → false (disabled by default); explicit true respected
+                .tvaEnabled(Boolean.TRUE.equals(request.tvaEnabled()))
+                .tvaRate(request.tvaRate() != null
+                        ? request.tvaRate() : taxConfig.getDefaultTvaRate())
                 .build();
 
         assetRepository.save(asset);
 
-        // Step 6: Initialize price row with LP bid/ask prices
+        // Step 6: Initialize price row with effective bid/ask prices
         AssetPrice price = AssetPrice.builder()
                 .assetId(assetId)
-                .dayOpen(request.lpAskPrice())
-                .dayHigh(request.lpAskPrice())
-                .dayLow(request.lpAskPrice())
-                .dayClose(request.lpAskPrice())
-                .bidPrice(request.lpBidPrice())
-                .askPrice(request.lpAskPrice())
+                .dayOpen(effectiveAskPrice)
+                .dayHigh(effectiveAskPrice)
+                .dayLow(effectiveAskPrice)
+                .dayClose(effectiveAskPrice)
+                .bidPrice(effectiveBidPrice)
+                .askPrice(effectiveAskPrice)
                 .change24hPercent(BigDecimal.ZERO)
                 .updatedAt(Instant.now())
                 .build();
@@ -269,12 +331,15 @@ public class AssetProvisioningService {
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
 
         // PENDING-only fields: reject early before any mutations
-        boolean hasPendingOnlyField = request.issuerPrice() != null || request.totalSupply() != null
+        boolean hasPendingOnlyField = request.issuerPrice() != null || request.faceValue() != null
+                || request.totalSupply() != null
                 || request.issuerName() != null || request.isinCode() != null
-                || request.couponFrequencyMonths() != null;
+                || request.couponFrequencyMonths() != null || request.bondType() != null
+                || request.dayCountConvention() != null || request.issuerCountry() != null;
 
         if (hasPendingOnlyField && asset.getStatus() != AssetStatus.PENDING) {
-            throw new AssetException("Fields issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths "
+            throw new AssetException("Fields issuerPrice, totalSupply, issuerName, isinCode, couponFrequencyMonths, "
+                    + "bondType, dayCountConvention, issuerCountry "
                     + "can only be changed when asset is PENDING. Current status: " + asset.getStatus());
         }
 
@@ -350,6 +415,7 @@ public class AssetProvisioningService {
                 asset.setIssuerPrice(request.issuerPrice());
                 asset.setManualPrice(request.issuerPrice());
             }
+            if (request.faceValue() != null) asset.setFaceValue(request.faceValue());
             if (request.totalSupply() != null) {
                 BigDecimal oldSupply = asset.getTotalSupply();
                 BigDecimal newSupply = request.totalSupply();
@@ -372,6 +438,9 @@ public class AssetProvisioningService {
             if (request.issuerName() != null) asset.setIssuerName(request.issuerName());
             if (request.isinCode() != null) asset.setIsinCode(request.isinCode());
             if (request.couponFrequencyMonths() != null) asset.setCouponFrequencyMonths(request.couponFrequencyMonths());
+            if (request.bondType() != null) asset.setBondType(request.bondType());
+            if (request.dayCountConvention() != null) asset.setDayCountConvention(request.dayCountConvention());
+            if (request.issuerCountry() != null) asset.setIssuerCountry(request.issuerCountry());
         }
 
         assetRepository.save(asset);
@@ -588,20 +657,37 @@ public class AssetProvisioningService {
         if (!request.maturityDate().isAfter(LocalDate.now())) {
             throw new AssetException("Maturity date must be in the future");
         }
-        if (request.interestRate() == null) {
-            throw new AssetException("Interest rate is required for BONDS category");
+        if (request.bondType() == null) {
+            throw new AssetException("Bond type (COUPON or DISCOUNT) is required for BONDS category");
         }
-        if (request.couponFrequencyMonths() == null) {
-            throw new AssetException("Coupon frequency is required for BONDS category");
+
+        if (request.bondType() == BondType.COUPON) {
+            // OTA (T-Bonds): require coupon fields
+            if (request.interestRate() == null) {
+                throw new AssetException("Interest rate is required for COUPON bonds");
+            }
+            if (request.couponFrequencyMonths() == null) {
+                throw new AssetException("Coupon frequency is required for COUPON bonds");
+            }
+            if (!Set.of(1, 3, 6, 12).contains(request.couponFrequencyMonths())) {
+                throw new AssetException("Coupon frequency must be 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual)");
+            }
+            if (request.nextCouponDate() == null) {
+                throw new AssetException("First coupon date is required for COUPON bonds");
+            }
+            if (request.nextCouponDate().isAfter(request.maturityDate())) {
+                throw new AssetException("First coupon date must be on or before the maturity date");
+            }
         }
-        if (!Set.of(1, 3, 6, 12).contains(request.couponFrequencyMonths())) {
-            throw new AssetException("Coupon frequency must be 1 (monthly), 3 (quarterly), 6 (semi-annual), or 12 (annual)");
-        }
-        if (request.nextCouponDate() == null) {
-            throw new AssetException("First coupon date is required for BONDS category");
-        }
-        if (request.nextCouponDate().isAfter(request.maturityDate())) {
-            throw new AssetException("First coupon date must be on or before the maturity date");
+
+        if (request.bondType() == BondType.DISCOUNT) {
+            // BTA: faceValue required and must be > issuerPrice
+            if (request.faceValue() == null) {
+                throw new AssetException("Face value (redemption price) is required for DISCOUNT bonds");
+            }
+            if (request.faceValue().compareTo(request.issuerPrice()) <= 0) {
+                throw new AssetException("Face value must be greater than issuer price for DISCOUNT bonds");
+            }
         }
     }
 

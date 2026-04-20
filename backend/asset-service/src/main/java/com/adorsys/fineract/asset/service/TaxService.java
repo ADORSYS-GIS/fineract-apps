@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.AssetCategory;
@@ -29,6 +30,7 @@ public class TaxService {
     private final TaxConfig taxConfig;
     private final ResolvedTaxAccounts resolvedTaxAccounts;
     private final TaxTransactionRepository taxTransactionRepository;
+    private final AssetServiceConfig assetServiceConfig;
 
     public TaxConfig getTaxConfig() {
         return taxConfig;
@@ -120,7 +122,7 @@ public class TaxService {
                 : taxConfig.getDefaultCapitalGainsRate();
 
         // Check annual exemption
-        int fiscalYear = LocalDate.now(ZoneId.of("Africa/Douala")).getYear();
+        int fiscalYear = LocalDate.now(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone())).getYear();
         BigDecimal cumulativeGains = taxTransactionRepository.sumCapitalGainsByUserAndYear(userId, fiscalYear);
         BigDecimal exemptionThreshold = taxConfig.getCapitalGainsAnnualExemption();
 
@@ -145,9 +147,14 @@ public class TaxService {
 
     /**
      * Build a tax breakdown for a trade quote response.
+     *
+     * <p>TVA is calculated on the {@code fee} (the platform service charge), not on the full
+     * gross trade amount. This is correct under OHADA/CEMAC tax law: TVA is a consumption tax
+     * on financial services (the brokerage fee), not on the capital investment itself.
+     * Registration duty stays on {@code grossAmount} as it is a securities transfer stamp tax.
      */
     public TaxBreakdown buildTaxBreakdown(Asset asset, Long userId, BigDecimal grossAmount,
-                                           BigDecimal realizedGain, boolean isSell) {
+                                           BigDecimal fee, BigDecimal realizedGain, boolean isSell) {
         BigDecimal regDutyRate = getRegistrationDutyRate(asset);
         BigDecimal regDutyAmount = calculateRegistrationDuty(asset, grossAmount);
 
@@ -165,7 +172,7 @@ public class TaxService {
         }
 
         BigDecimal tvaRate = getTvaRate(asset);
-        BigDecimal tvaAmount = calculateTva(asset, grossAmount);
+        BigDecimal tvaAmount = calculateTva(asset, fee); // TVA base = fee, not gross
         BigDecimal totalTax = regDutyAmount.add(cgtAmount).add(tvaAmount);
         return new TaxBreakdown(regDutyRate, regDutyAmount, cgtRate, cgtAmount, tvaRate, tvaAmount, totalTax, cgtExemptionApplied);
     }
@@ -177,7 +184,7 @@ public class TaxService {
                                                 Long userId, String assetId, String taxType,
                                                 BigDecimal taxableAmount, BigDecimal taxRate,
                                                 BigDecimal taxAmount, Long fineractTransferId) {
-        LocalDate now = LocalDate.now(ZoneId.of("Africa/Douala"));
+        LocalDate now = LocalDate.now(ZoneId.of(assetServiceConfig.getMarketHours().getTimezone()));
         TaxTransaction tx = TaxTransaction.builder()
                 .orderId(orderId)
                 .scheduledPaymentId(scheduledPaymentId)

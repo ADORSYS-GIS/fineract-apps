@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.exception.TradingException;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -27,6 +29,7 @@ class LockupServiceTest {
     @Mock private UserPositionRepository userPositionRepository;
     @Mock private PurchaseLotRepository purchaseLotRepository;
     @Mock private AssetMetrics assetMetrics;
+    @Spy private AssetServiceConfig assetServiceConfig = new AssetServiceConfig();
 
     @InjectMocks
     private LockupService lockupService;

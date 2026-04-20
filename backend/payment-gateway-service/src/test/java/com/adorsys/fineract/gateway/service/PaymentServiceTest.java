@@ -101,19 +101,20 @@ class PaymentServiceTest {
         @Test
         @DisplayName("should initiate MTN deposit successfully")
         void initiateDeposit_mtn_happyPath() {
-            when(transactionRepository.findById(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+            when(transactionRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
             when(reservationService.reserveWithLimitCheck(
-                    eq(IDEMPOTENCY_KEY), eq(EXTERNAL_ID), eq(ACCOUNT_ID),
+                    anyString(), eq(IDEMPOTENCY_KEY), eq(EXTERNAL_ID), eq(ACCOUNT_ID),
                     eq("MTN_MOMO"), eq("DEPOSIT"), eq(BigDecimal.valueOf(10000)),
                     eq("XAF"), any())).thenReturn(1);
-            when(mtnClient.requestToPay(eq(IDEMPOTENCY_KEY), eq(BigDecimal.valueOf(10000)),
+            when(mtnClient.requestToPay(anyString(), eq(BigDecimal.valueOf(10000)),
                     eq(PHONE), anyString())).thenReturn("mtn-ref-123");
 
             PaymentResponse response = paymentService.initiateDeposit(depositRequest, IDEMPOTENCY_KEY);
 
             assertThat(response).isNotNull();
-            assertThat(response.getTransactionId()).isEqualTo(IDEMPOTENCY_KEY);
+            assertThat(response.getTransactionId()).isNotBlank();
+            assertThat(response.getTransactionId()).isNotEqualTo(IDEMPOTENCY_KEY);
             assertThat(response.getProviderReference()).isEqualTo("mtn-ref-123");
             assertThat(response.getProvider()).isEqualTo(PaymentProvider.MTN_MOMO);
             assertThat(response.getType()).isEqualTo(PaymentResponse.TransactionType.DEPOSIT);
@@ -121,7 +122,7 @@ class PaymentServiceTest {
             assertThat(response.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(10000));
             assertThat(response.getCurrency()).isEqualTo("XAF");
 
-            verify(reservationService).reserveWithLimitCheck(anyString(), anyString(), anyLong(),
+            verify(reservationService).reserveWithLimitCheck(anyString(), anyString(), anyString(), anyLong(),
                     anyString(), anyString(), any(), anyString(), any());
             verify(paymentMetrics).incrementTransaction(PaymentProvider.MTN_MOMO,
                     PaymentResponse.TransactionType.DEPOSIT, PaymentStatus.PENDING);
@@ -133,12 +134,12 @@ class PaymentServiceTest {
             depositRequest = depositRequest.toBuilder().provider(PaymentProvider.ORANGE_MONEY).build();
             String key = UUID.randomUUID().toString();
 
-            when(transactionRepository.findById(key)).thenReturn(Optional.empty());
+            when(transactionRepository.findByIdempotencyKey(key)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
             when(reservationService.reserveWithLimitCheck(
-                    eq(key), anyString(), anyLong(), eq("ORANGE_MONEY"), eq("DEPOSIT"),
+                    anyString(), eq(key), anyString(), anyLong(), eq("ORANGE_MONEY"), eq("DEPOSIT"),
                     any(), anyString(), any())).thenReturn(1);
-            when(orangeClient.initializePayment(eq(key), eq(BigDecimal.valueOf(10000)), anyString()))
+            when(orangeClient.initializePayment(anyString(), eq(BigDecimal.valueOf(10000)), anyString()))
                     .thenReturn(new OrangeMoneyClient.PaymentInitResponse(
                             "https://pay.orange.com/checkout", "pay-token-123", "notif-token"));
 
@@ -156,12 +157,12 @@ class PaymentServiceTest {
             depositRequest = depositRequest.toBuilder().provider(PaymentProvider.CINETPAY).build();
             String key = UUID.randomUUID().toString();
 
-            when(transactionRepository.findById(key)).thenReturn(Optional.empty());
+            when(transactionRepository.findByIdempotencyKey(key)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
             when(reservationService.reserveWithLimitCheck(
-                    eq(key), anyString(), anyLong(), eq("CINETPAY"), eq("DEPOSIT"),
+                    anyString(), eq(key), anyString(), anyLong(), eq("CINETPAY"), eq("DEPOSIT"),
                     any(), anyString(), any())).thenReturn(1);
-            when(cinetPayClient.initializePayment(eq(key), eq(BigDecimal.valueOf(10000)),
+            when(cinetPayClient.initializePayment(anyString(), eq(BigDecimal.valueOf(10000)),
                     anyString(), eq(PHONE)))
                     .thenReturn(new CinetPayClient.PaymentInitResponse(
                             "https://checkout.cinetpay.com/pay", "cp-token-123"));
@@ -177,49 +178,49 @@ class PaymentServiceTest {
         @DisplayName("should return existing transaction for idempotent request")
         void initiateDeposit_idempotent_returnsExisting() {
             PaymentTransaction existing = new PaymentTransaction(
-                    IDEMPOTENCY_KEY, "mtn-ref-existing", EXTERNAL_ID, ACCOUNT_ID,
+                    "existing-uuid", IDEMPOTENCY_KEY, "mtn-ref-existing", EXTERNAL_ID, ACCOUNT_ID,
                     PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT,
                     BigDecimal.valueOf(10000), "XAF", PaymentStatus.PENDING);
 
-            when(transactionRepository.findById(IDEMPOTENCY_KEY)).thenReturn(Optional.of(existing));
+            when(transactionRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.of(existing));
 
             PaymentResponse response = paymentService.initiateDeposit(depositRequest, IDEMPOTENCY_KEY);
 
-            assertThat(response.getTransactionId()).isEqualTo(IDEMPOTENCY_KEY);
+            assertThat(response.getTransactionId()).isEqualTo("existing-uuid");
             assertThat(response.getProviderReference()).isEqualTo("mtn-ref-existing");
 
             verify(fineractClient, never()).verifyAccountOwnership(any(), any());
             verify(mtnClient, never()).requestToPay(any(), any(), any(), any());
             verify(transactionRepository, never()).insertIfAbsent(
-                    anyString(), anyString(), anyLong(), anyString(), anyString(), any(), anyString(), anyString());
+                    anyString(), anyString(), anyString(), anyLong(), anyString(), anyString(), any(), anyString(), anyString());
         }
 
         @Test
         @DisplayName("should return existing on concurrent idempotency key collision")
         void initiateDeposit_concurrentCollision_returnsExisting() {
             PaymentTransaction existing = new PaymentTransaction(
-                    IDEMPOTENCY_KEY, null, EXTERNAL_ID, ACCOUNT_ID,
+                    "winner-uuid", IDEMPOTENCY_KEY, null, EXTERNAL_ID, ACCOUNT_ID,
                     PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT,
                     BigDecimal.valueOf(10000), "XAF", PaymentStatus.PENDING);
 
-            when(transactionRepository.findById(IDEMPOTENCY_KEY))
+            when(transactionRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
                     .thenReturn(Optional.empty())   // first check
                     .thenReturn(Optional.of(existing)); // after collision
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
             when(reservationService.reserveWithLimitCheck(
-                    anyString(), anyString(), anyLong(), anyString(), anyString(),
+                    anyString(), anyString(), anyString(), anyLong(), anyString(), anyString(),
                     any(), anyString(), any())).thenReturn(0); // another thread won
 
             PaymentResponse response = paymentService.initiateDeposit(depositRequest, IDEMPOTENCY_KEY);
 
-            assertThat(response.getTransactionId()).isEqualTo(IDEMPOTENCY_KEY);
+            assertThat(response.getTransactionId()).isEqualTo("winner-uuid");
             verify(mtnClient, never()).requestToPay(any(), any(), any(), any());
         }
 
         @Test
         @DisplayName("should throw when account ownership verification fails")
         void initiateDeposit_accountOwnershipFails_throws() {
-            when(transactionRepository.findById(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
+            when(transactionRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(false);
 
             assertThatThrownBy(() -> paymentService.initiateDeposit(depositRequest, IDEMPOTENCY_KEY))
@@ -229,13 +230,7 @@ class PaymentServiceTest {
             verify(mtnClient, never()).requestToPay(any(), any(), any(), any());
         }
 
-        @Test
-        @DisplayName("should throw for invalid idempotency key")
-        void initiateDeposit_invalidIdempotencyKey_throws() {
-            assertThatThrownBy(() -> paymentService.initiateDeposit(depositRequest, "not-a-uuid"))
-                    .isInstanceOf(PaymentException.class)
-                    .hasMessageContaining("X-Idempotency-Key must be a valid UUID");
-        }
+
     }
 
     // =========================================================================
@@ -251,17 +246,17 @@ class PaymentServiceTest {
         void initiateWithdrawal_mtn_happyPath() {
             String key = UUID.randomUUID().toString();
 
-            when(transactionRepository.findById(key)).thenReturn(Optional.empty());
+            when(transactionRepository.findByIdempotencyKey(key)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
             when(fineractClient.getSavingsAccount(ACCOUNT_ID))
                     .thenReturn(Map.of("availableBalance", 50000));
             when(reservationService.reserveWithLimitCheck(
-                    eq(key), anyString(), anyLong(), eq("MTN_MOMO"), eq("WITHDRAWAL"),
+                    anyString(), eq(key), anyString(), anyLong(), eq("MTN_MOMO"), eq("WITHDRAWAL"),
                     any(), anyString(), any())).thenReturn(1);
             when(mtnConfig.getFineractPaymentTypeId()).thenReturn(1L);
             when(fineractClient.createWithdrawal(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(5000)),
-                    eq(1L), eq(key))).thenReturn(789L);
-            when(mtnClient.transfer(eq(key), eq(BigDecimal.valueOf(5000)),
+                    eq(1L), anyString())).thenReturn(789L);
+            when(mtnClient.transfer(anyString(), eq(BigDecimal.valueOf(5000)),
                     eq(PHONE), anyString())).thenReturn("mtn-transfer-ref");
 
             PaymentResponse response = paymentService.initiateWithdrawal(withdrawalRequest, key);
@@ -278,7 +273,7 @@ class PaymentServiceTest {
         void initiateWithdrawal_insufficientFunds_throws() {
             String key = UUID.randomUUID().toString();
 
-            when(transactionRepository.findById(key)).thenReturn(Optional.empty());
+            when(transactionRepository.findByIdempotencyKey(key)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
             when(fineractClient.getSavingsAccount(ACCOUNT_ID))
                     .thenReturn(Map.of("availableBalance", 1000));
@@ -295,17 +290,17 @@ class PaymentServiceTest {
         void initiateWithdrawal_providerFails_reversesWithdrawal() {
             String key = UUID.randomUUID().toString();
 
-            when(transactionRepository.findById(key)).thenReturn(Optional.empty());
+            when(transactionRepository.findByIdempotencyKey(key)).thenReturn(Optional.empty());
             when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
             when(fineractClient.getSavingsAccount(ACCOUNT_ID))
                     .thenReturn(Map.of("availableBalance", 50000));
             when(reservationService.reserveWithLimitCheck(
-                    eq(key), anyString(), anyLong(), anyString(), anyString(),
+                    anyString(), eq(key), anyString(), anyLong(), anyString(), anyString(),
                     any(), anyString(), any())).thenReturn(1);
             when(mtnConfig.getFineractPaymentTypeId()).thenReturn(1L);
             when(fineractClient.createWithdrawal(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(5000)),
-                    eq(1L), eq(key))).thenReturn(789L);
-            when(mtnClient.transfer(eq(key), eq(BigDecimal.valueOf(5000)),
+                    eq(1L), anyString())).thenReturn(789L);
+            when(mtnClient.transfer(anyString(), eq(BigDecimal.valueOf(5000)),
                     eq(PHONE), anyString())).thenThrow(new RuntimeException("MTN API error"));
 
             assertThatThrownBy(() -> paymentService.initiateWithdrawal(withdrawalRequest, key))
@@ -313,22 +308,22 @@ class PaymentServiceTest {
 
             // Verify compensating deposit was called
             verify(fineractClient).createDeposit(eq(ACCOUNT_ID), eq(BigDecimal.valueOf(5000)),
-                    eq(1L), eq("REVERSAL-" + key));
+                    eq(1L), startsWith("REVERSAL-"));
         }
 
         @Test
         @DisplayName("should return existing transaction for idempotent withdrawal")
         void initiateWithdrawal_idempotent_returnsExisting() {
             PaymentTransaction existing = new PaymentTransaction(
-                    IDEMPOTENCY_KEY, "mtn-ref-existing", EXTERNAL_ID, ACCOUNT_ID,
+                    "existing-uuid", IDEMPOTENCY_KEY, "mtn-ref-existing", EXTERNAL_ID, ACCOUNT_ID,
                     PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.WITHDRAWAL,
                     BigDecimal.valueOf(5000), "XAF", PaymentStatus.PROCESSING);
 
-            when(transactionRepository.findById(IDEMPOTENCY_KEY)).thenReturn(Optional.of(existing));
+            when(transactionRepository.findByIdempotencyKey(IDEMPOTENCY_KEY)).thenReturn(Optional.of(existing));
 
             PaymentResponse response = paymentService.initiateWithdrawal(withdrawalRequest, IDEMPOTENCY_KEY);
 
-            assertThat(response.getTransactionId()).isEqualTo(IDEMPOTENCY_KEY);
+            assertThat(response.getTransactionId()).isEqualTo("existing-uuid");
             verify(fineractClient, never()).verifyAccountOwnership(any(), any());
         }
     }
@@ -352,6 +347,11 @@ class PaymentServiceTest {
                     .status("SUCCESSFUL")
                     .build();
 
+            PaymentTransaction transaction = new PaymentTransaction();
+            transaction.setTransactionId("txn-1");
+            when(transactionRepository.findByProviderReference("mtn-ref-1")).thenReturn(Optional.of(transaction));
+            when(mtnClient.getCollectionStatus("txn-1")).thenReturn(PaymentStatus.SUCCESSFUL);
+
             paymentService.handleMtnCollectionCallback(callback);
 
             verify(callbackDelegate).processMtnCollectionCallback(callback);
@@ -370,6 +370,11 @@ class PaymentServiceTest {
                     .status("SUCCESSFUL")
                     .build();
 
+            PaymentTransaction transaction = new PaymentTransaction();
+            transaction.setTransactionId("txn-w1");
+            when(transactionRepository.findByProviderReference("mtn-ref-w1")).thenReturn(Optional.of(transaction));
+            when(mtnClient.getDisbursementStatus("txn-w1")).thenReturn(PaymentStatus.SUCCESSFUL);
+
             when(callbackDelegate.processMtnDisbursementCallback(callback))
                     .thenReturn(CallbackHandlerDelegate.CallbackResult.noReversal());
 
@@ -382,7 +387,7 @@ class PaymentServiceTest {
         @DisplayName("should call reversal when delegate signals reversal needed")
         void handleMtnDisbursementCallback_failed_callsReversal() {
             PaymentTransaction txn = new PaymentTransaction(
-                    "txn-w2", "mtn-ref-w2", EXTERNAL_ID, ACCOUNT_ID,
+                    "txn-w2", "txn-w2", "mtn-ref-w2", EXTERNAL_ID, ACCOUNT_ID,
                     PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.WITHDRAWAL,
                     BigDecimal.valueOf(5000), "XAF", PaymentStatus.FAILED);
             txn.setFineractTransactionId(789L);
@@ -392,6 +397,9 @@ class PaymentServiceTest {
                     .status("FAILED")
                     .reason("Provider error")
                     .build();
+
+            when(transactionRepository.findByProviderReference("mtn-ref-w2")).thenReturn(Optional.of(txn));
+            when(mtnClient.getDisbursementStatus("txn-w2")).thenReturn(PaymentStatus.SUCCESSFUL);
 
             when(callbackDelegate.processMtnDisbursementCallback(callback))
                     .thenReturn(CallbackHandlerDelegate.CallbackResult.needsReversal(txn));
@@ -410,7 +418,7 @@ class PaymentServiceTest {
         @DisplayName("should delegate to callbackDelegate and call reversal when needed")
         void handleOrangeCallback_withdrawalFailed_callsReversal() {
             PaymentTransaction txn = new PaymentTransaction(
-                    "txn-o2", "orange-ref-2", EXTERNAL_ID, ACCOUNT_ID,
+                    "txn-o2", "txn-o2", "orange-ref-2", EXTERNAL_ID, ACCOUNT_ID,
                     PaymentProvider.ORANGE_MONEY, PaymentResponse.TransactionType.WITHDRAWAL,
                     BigDecimal.valueOf(5000), "XAF", PaymentStatus.FAILED);
 
@@ -462,7 +470,7 @@ class PaymentServiceTest {
         @DisplayName("should return status for existing transaction")
         void getTransactionStatus_found_returnsResponse() {
             PaymentTransaction txn = new PaymentTransaction(
-                    "txn-s1", "mtn-ref-s1", EXTERNAL_ID, ACCOUNT_ID,
+                    "txn-s1", "txn-s1", "mtn-ref-s1", EXTERNAL_ID, ACCOUNT_ID,
                     PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.DEPOSIT,
                     BigDecimal.valueOf(10000), "XAF", PaymentStatus.SUCCESSFUL);
             txn.setFineractTransactionId(999L);

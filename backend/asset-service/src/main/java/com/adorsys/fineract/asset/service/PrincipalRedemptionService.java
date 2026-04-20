@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.AssetStatus;
+import com.adorsys.fineract.asset.dto.BondType;
 import com.adorsys.fineract.asset.dto.RedemptionTriggerResponse;
 import com.adorsys.fineract.asset.dto.RedemptionTriggerResponse.HolderRedemptionDetail;
 import com.adorsys.fineract.asset.entity.Asset;
@@ -12,6 +13,7 @@ import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository;
+import com.adorsys.fineract.asset.repository.ScheduledPaymentRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,9 +43,11 @@ public class PrincipalRedemptionService {
     private final AssetRepository assetRepository;
     private final UserPositionRepository userPositionRepository;
     private final PrincipalRedemptionRepository principalRedemptionRepository;
+    private final ScheduledPaymentRepository scheduledPaymentRepository;
     private final FineractClient fineractClient;
     private final AssetServiceConfig assetServiceConfig;
     private final PortfolioService portfolioService;
+    private final TaxService taxService;
     private final AssetMetrics assetMetrics;
 
     /**
@@ -71,7 +75,17 @@ public class PrincipalRedemptionService {
             throw new AssetException("Bond " + bond.getSymbol() + " is missing LP account configuration");
         }
 
-        BigDecimal faceValue = bond.getIssuerPrice();
+        // Block redemption when there are pending coupon schedules.
+        // Coupon holders must receive their final coupon before the bond is redeemed,
+        // otherwise the income history will be incomplete and the IRCM obligation unresolved.
+        if (scheduledPaymentRepository.existsByAssetIdAndPaymentTypeAndStatus(
+                assetId, "COUPON", "PENDING")) {
+            throw new AssetException(
+                    "Bond " + bond.getSymbol() + " has a PENDING coupon payment that must be confirmed "
+                    + "before redemption can be processed. Confirm or cancel the pending coupon first.");
+        }
+
+        BigDecimal faceValue = bond.getEffectiveFaceValue();
         if (faceValue == null || faceValue.compareTo(BigDecimal.ZERO) <= 0) {
             throw new AssetException("Bond " + bond.getSymbol() + " has no face value configured");
         }
@@ -185,12 +199,30 @@ public class PrincipalRedemptionService {
     /**
      * Redeem principal for a single holder. Never throws — all failures captured.
      * Asset leg executes first (safer: if cash fails, treasury still has the money).
+     *
+     * <p>For DISCOUNT (BTA) bonds with IRCM enabled: IRCM is applied to the capital gain
+     * (faceValue - avgPurchasePrice) per unit. The net cash amount after IRCM deduction is
+     * transferred to the user; the IRCM amount is transferred to the tax authority account.
      */
     private RedeemResult redeemHolder(Asset bond, UserPosition holder,
                                       BigDecimal faceValue, LocalDate redemptionDate,
                                       String currency) {
         BigDecimal units = holder.getTotalUnits();
-        BigDecimal cashAmount = units.multiply(faceValue).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal grossCashAmount = units.multiply(faceValue).setScale(0, RoundingMode.HALF_UP);
+
+        // For BTA discount bonds, compute IRCM on the capital gain (faceValue - avgPurchasePrice)
+        BigDecimal ircmAmount = BigDecimal.ZERO;
+        if (bond.getBondType() == BondType.DISCOUNT) {
+            BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
+            if (ircmRate.compareTo(BigDecimal.ZERO) > 0 && holder.getAvgPurchasePrice() != null) {
+                BigDecimal gainPerUnit = faceValue.subtract(holder.getAvgPurchasePrice());
+                if (gainPerUnit.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal totalGain = gainPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP);
+                    ircmAmount = totalGain.multiply(ircmRate).setScale(0, RoundingMode.HALF_UP);
+                }
+            }
+        }
+        BigDecimal cashAmount = grossCashAmount.subtract(ircmAmount);
 
         PrincipalRedemption.PrincipalRedemptionBuilder record = PrincipalRedemption.builder()
                 .assetId(bond.getId())
@@ -216,21 +248,39 @@ public class PrincipalRedemptionService {
                     holder.getFineractSavingsAccountId(), bond.getLpAssetAccountId(),
                     units, assetDescription);
 
-            // c. Cash leg: LP cash account → user XAF account
-            String cashDescription = String.format("Principal redemption: %s (%.8f units @ %s face value)",
-                    bond.getSymbol(), units, faceValue);
+            // c. Cash leg: LP cash account → user XAF account (net of IRCM)
+            String cashDescription = String.format("Principal redemption: %s (%.8f units @ %s face value%s)",
+                    bond.getSymbol(), units, faceValue,
+                    ircmAmount.compareTo(BigDecimal.ZERO) > 0 ? ", net of IRCM " + ircmAmount : "");
             Long cashTransferId = fineractClient.createAccountTransfer(
                     bond.getLpCashAccountId(), userCashAccountId,
                     cashAmount, cashDescription);
 
-            // d. Update position: zero out units, record realized P&L
-            BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    holder.getUserId(), bond.getId(), units, faceValue);
+            // d. IRCM leg: LP cash account → tax authority account
+            if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
+                BigDecimal totalGain = grossCashAmount.subtract(
+                        units.multiply(holder.getAvgPurchasePrice()).setScale(0, RoundingMode.HALF_UP));
+                String ircmDescription = String.format("IRCM on BTA capital gain: %s, user=%d, gain=%s",
+                        bond.getSymbol(), holder.getUserId(), totalGain);
+                fineractClient.createAccountTransfer(
+                        bond.getLpCashAccountId(), taxService.getIrcmAccountId(),
+                        ircmAmount, ircmDescription);
+                taxService.recordTaxTransaction(null, null, holder.getUserId(), bond.getId(),
+                        "IRCM", grossCashAmount, ircmRate, ircmAmount, null);
+                log.debug("IRCM withheld on BTA redemption: bond={}, user={}, gross={}, ircm={}, net={}",
+                        bond.getSymbol(), holder.getUserId(), grossCashAmount, ircmAmount, cashAmount);
+            }
 
-            // e. Decrement circulating supply
+            // e. Update position: zero out units, record realized P&L
+            // Bond maturity is a system-initiated redemption — no trading fees or taxes apply here
+            BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
+                    holder.getUserId(), bond.getId(), units, faceValue, null, null);
+
+            // f. Decrement circulating supply
             assetRepository.adjustCirculatingSupply(bond.getId(), units.negate());
 
-            // f. Save audit record
+            // g. Save audit record
             record.fineractCashTransferId(cashTransferId)
                   .fineractAssetTransferId(assetTransferId)
                   .realizedPnl(realizedPnl)

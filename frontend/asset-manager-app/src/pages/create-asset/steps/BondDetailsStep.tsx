@@ -1,5 +1,9 @@
 import { FC } from "react";
+import { BOND_TYPE_OPTIONS } from "@/constants/bondTypes";
+import { BOND_ONLY_MODE } from "@/constants/categories";
+import { DAY_COUNT_OPTIONS } from "@/constants/dayCountConventions";
 import { FREQUENCY_OPTIONS } from "@/constants/frequencies";
+import { ISSUER_COUNTRY_OPTIONS } from "@/constants/issuerCountries";
 import type { AssetFormData } from "../useCreateAsset";
 
 interface Props {
@@ -18,6 +22,8 @@ export const BondDetailsStep: FC<Props> = ({
 	const inputClass = (keyword: string) =>
 		`w-full border rounded-lg px-3 py-2 focus:ring-2 ${fieldError(keyword) ? "border-red-400 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`;
 
+	const isCoupon = formData.bondType === "COUPON";
+
 	return (
 		<div className="space-y-6">
 			<div>
@@ -25,13 +31,84 @@ export const BondDetailsStep: FC<Props> = ({
 					Bond Details
 				</h2>
 				<p className="text-sm text-gray-500">
-					Configure the bond-specific parameters: issuer, maturity, coupon rate,
-					and payment schedule.
+					Configure the bond-specific parameters: type, issuer, maturity
+					{isCoupon ? ", coupon rate, and payment schedule" : ""}.
 				</p>
 			</div>
 
+			{/* Bond Type — hidden in BOND_ONLY_MODE (type is selected in Asset Details step) */}
+			{!BOND_ONLY_MODE && (
+				<>
+					<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+						Bond Type
+					</h3>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Instrument Type *
+							</label>
+							<select
+								aria-label="Bond type"
+								className={inputClass("bond type")}
+								value={formData.bondType}
+								onChange={(e) =>
+									updateFormData({
+										bondType: e.target.value as "COUPON" | "DISCOUNT",
+									})
+								}
+							>
+								{BOND_TYPE_OPTIONS.map((b) => (
+									<option key={b.value} value={b.value}>
+										{b.label}
+									</option>
+								))}
+							</select>
+							{fieldError("bond type") ? (
+								<p className="text-xs text-red-600 mt-1">
+									{fieldError("bond type")}
+								</p>
+							) : (
+								<p className="text-xs text-gray-400 mt-1">
+									{isCoupon
+										? "OTA: periodic coupon payments until maturity"
+										: "BTA: bought at discount, redeemed at face value"}
+								</p>
+							)}
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Day Count Convention
+							</label>
+							<select
+								aria-label="Day count convention"
+								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={formData.dayCountConvention}
+								onChange={(e) =>
+									updateFormData({
+										dayCountConvention: e.target.value as
+											| "ACT_360"
+											| "ACT_365"
+											| "THIRTY_360",
+									})
+								}
+							>
+								{DAY_COUNT_OPTIONS.map((d) => (
+									<option key={d.value} value={d.value}>
+										{d.label}
+									</option>
+								))}
+							</select>
+							<p className="text-xs text-gray-400 mt-1">
+								Used for interest accrual calculations
+							</p>
+						</div>
+					</div>
+				</>
+			)}
+
 			{/* Identity */}
-			<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+			<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 mt-6">
 				Bond Identity
 			</h3>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -59,6 +136,26 @@ export const BondDetailsStep: FC<Props> = ({
 
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Issuer Country
+					</label>
+					<select
+						aria-label="Issuer country"
+						className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						value={formData.issuerCountry}
+						onChange={(e) => updateFormData({ issuerCountry: e.target.value })}
+					>
+						<option value="">-- Select --</option>
+						{ISSUER_COUNTRY_OPTIONS.map((c) => (
+							<option key={c.value} value={c.value}>
+								{c.label}
+							</option>
+						))}
+					</select>
+					<p className="text-xs text-gray-400 mt-1">CEMAC member state</p>
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
 						ISIN Code
 					</label>
 					<input
@@ -79,40 +176,43 @@ export const BondDetailsStep: FC<Props> = ({
 					</p>
 				</div>
 
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Interest Rate (%) *
-					</label>
-					<input
-						type="number"
-						aria-label="Interest rate"
-						className={inputClass("interest rate")}
-						placeholder="e.g. 5.80"
-						step="0.01"
-						min="0"
-						value={formData.interestRate || ""}
-						onChange={(e) =>
-							updateFormData({
-								interestRate: Number.parseFloat(e.target.value),
-							})
-						}
-					/>
-					{fieldError("interest rate") ? (
-						<p className="text-xs text-red-600 mt-1">
-							{fieldError("interest rate")}
-						</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							Annual coupon rate. Coupon per period = units × faceValue ×
-							(rate/100) × (months/12)
-						</p>
-					)}
-				</div>
+				{isCoupon && (
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Interest Rate (%) *
+						</label>
+						<input
+							type="number"
+							aria-label="Interest rate"
+							className={inputClass("interest rate")}
+							placeholder="e.g. 5.80"
+							step="0.01"
+							min="0"
+							value={formData.interestRate || ""}
+							onChange={(e) => {
+								const parsed = Number.parseFloat(e.target.value);
+								updateFormData({
+									interestRate: Number.isNaN(parsed) ? 0 : parsed,
+								});
+							}}
+						/>
+						{fieldError("interest rate") ? (
+							<p className="text-xs text-red-600 mt-1">
+								{fieldError("interest rate")}
+							</p>
+						) : (
+							<p className="text-xs text-gray-400 mt-1">
+								Annual coupon rate. Coupon per period = units x faceValue x
+								(rate/100) x (months/12)
+							</p>
+						)}
+					</div>
+				)}
 			</div>
 
 			{/* Payment Schedule */}
 			<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 mt-6">
-				Payment Schedule
+				{isCoupon ? "Payment Schedule" : "Maturity"}
 			</h3>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div>
@@ -132,65 +232,91 @@ export const BondDetailsStep: FC<Props> = ({
 						</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							On this date the bond status changes to MATURED. Admin can then
-							trigger principal redemption
+							{isCoupon
+								? "On this date the bond status changes to MATURED. Admin can then trigger principal redemption"
+								: "On this date the investor receives the face value (redemption)"}
 						</p>
 					)}
 				</div>
 
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						First Coupon Date *
-					</label>
-					<input
-						type="date"
-						aria-label="First coupon date"
-						className={inputClass("coupon date")}
-						value={formData.nextCouponDate}
-						onChange={(e) => updateFormData({ nextCouponDate: e.target.value })}
-					/>
-					{fieldError("coupon date") ? (
-						<p className="text-xs text-red-600 mt-1">
-							{fieldError("coupon date")}
-						</p>
-					) : (
+				{!isCoupon && (
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Issue / Auction Date
+						</label>
+						<input
+							type="date"
+							aria-label="Issue date"
+							className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							value={formData.issueDate}
+							onChange={(e) => updateFormData({ issueDate: e.target.value })}
+						/>
 						<p className="text-xs text-gray-400 mt-1">
-							The system automatically advances to the next coupon date after
-							each payment
+							BTA auction/issue date. Used for price accretion formula. Defaults
+							to creation date if left empty.
 						</p>
-					)}
-				</div>
+					</div>
+				)}
 
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Coupon Frequency *
-					</label>
-					<select
-						aria-label="Coupon frequency"
-						className={inputClass("coupon frequency")}
-						value={formData.couponFrequencyMonths}
-						onChange={(e) =>
-							updateFormData({
-								couponFrequencyMonths: Number.parseInt(e.target.value),
-							})
-						}
-					>
-						{FREQUENCY_OPTIONS.map((f) => (
-							<option key={f.value} value={f.value}>
-								{f.label}
-							</option>
-						))}
-					</select>
-					{fieldError("coupon frequency") ? (
-						<p className="text-xs text-red-600 mt-1">
-							{fieldError("coupon frequency")}
-						</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							How often coupon payments are distributed to holders
-						</p>
-					)}
-				</div>
+				{isCoupon && (
+					<>
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								First Coupon Date *
+							</label>
+							<input
+								type="date"
+								aria-label="First coupon date"
+								className={inputClass("coupon date")}
+								value={formData.nextCouponDate}
+								onChange={(e) =>
+									updateFormData({ nextCouponDate: e.target.value })
+								}
+							/>
+							{fieldError("coupon date") ? (
+								<p className="text-xs text-red-600 mt-1">
+									{fieldError("coupon date")}
+								</p>
+							) : (
+								<p className="text-xs text-gray-400 mt-1">
+									The system automatically advances to the next coupon date
+									after each payment
+								</p>
+							)}
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Coupon Frequency *
+							</label>
+							<select
+								aria-label="Coupon frequency"
+								className={inputClass("coupon frequency")}
+								value={formData.couponFrequencyMonths}
+								onChange={(e) =>
+									updateFormData({
+										couponFrequencyMonths: Number.parseInt(e.target.value),
+									})
+								}
+							>
+								{FREQUENCY_OPTIONS.map((f) => (
+									<option key={f.value} value={f.value}>
+										{f.label}
+									</option>
+								))}
+							</select>
+							{fieldError("coupon frequency") ? (
+								<p className="text-xs text-red-600 mt-1">
+									{fieldError("coupon frequency")}
+								</p>
+							) : (
+								<p className="text-xs text-gray-400 mt-1">
+									How often coupon payments are distributed to holders
+								</p>
+							)}
+						</div>
+					</>
+				)}
 			</div>
 		</div>
 	);

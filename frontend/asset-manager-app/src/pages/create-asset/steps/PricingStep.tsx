@@ -17,7 +17,10 @@ export const PricingStep: FC<Props> = ({
 	const inputClass = (keyword: string) =>
 		`w-full border rounded-lg px-3 py-2 focus:ring-2 ${fieldError(keyword) ? "border-red-400 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`;
 
-	// Computed LP margin
+	const isBtaBond =
+		formData.category === "BONDS" && formData.bondType === "DISCOUNT";
+
+	// LP margin display (manual mode or when ask/bid are set)
 	const lpMargin =
 		formData.lpAskPrice > 0 && formData.issuerPrice > 0
 			? formData.lpAskPrice - formData.issuerPrice
@@ -32,12 +35,42 @@ export const PricingStep: FC<Props> = ({
 					Pricing & Fees
 				</h2>
 				<p className="text-sm text-gray-500">
-					Set the issuer price, LP bid/ask prices, and fee structure for this
+					Set the issuer price, LP bid/ask spread, and fee structure for this
 					asset.
 				</p>
 			</div>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+				{/* Face Value — BTA only */}
+				{isBtaBond && (
+					<div className="md:col-span-2">
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Face Value (XAF) *
+						</label>
+						<input
+							type="number"
+							aria-label="Face value"
+							className={inputClass("face value")}
+							placeholder="e.g. 5000"
+							value={formData.faceValue || ""}
+							onChange={(e) =>
+								updateFormData({ faceValue: Number(e.target.value) })
+							}
+							min={0}
+						/>
+						{fieldError("face value") ? (
+							<p className="text-xs text-red-600 mt-1">
+								{fieldError("face value")}
+							</p>
+						) : (
+							<p className="text-xs text-gray-400 mt-1">
+								Par value redeemed at maturity. BTA purchase price is discounted
+								below this value.
+							</p>
+						)}
+					</div>
+				)}
+
 				<div>
 					<label className="block text-sm font-medium text-gray-700 mb-1">
 						Issuer Price (XAF) *
@@ -59,7 +92,9 @@ export const PricingStep: FC<Props> = ({
 						</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							The face value (bonds) or wholesale price from the original issuer
+							{isBtaBond
+								? "Current discounted purchase price (below face value)"
+								: "Wholesale price from the original issuer"}
 						</p>
 					)}
 				</div>
@@ -87,59 +122,138 @@ export const PricingStep: FC<Props> = ({
 						</p>
 					) : (
 						<p className="text-xs text-gray-400 mt-1">
-							Fee charged on each BUY/SELL transaction. Added to buyer's cost,
-							deducted from seller's proceeds. Default: 0.50%
+							Fee on each BUY/SELL transaction. Default: 0.50%
 						</p>
 					)}
+				</div>
+			</div>
+
+			{/* LP Pricing Mode */}
+			<div>
+				<label className="block text-sm font-medium text-gray-700 mb-2">
+					LP Pricing Mode
+				</label>
+				<div className="flex gap-2 mb-4">
+					<button
+						type="button"
+						onClick={() => updateFormData({ pricingMode: "spread" })}
+						className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+							formData.pricingMode === "spread"
+								? "bg-blue-600 text-white border-blue-600"
+								: "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+						}`}
+					>
+						Spread %
+					</button>
+					<button
+						type="button"
+						onClick={() => updateFormData({ pricingMode: "manual" })}
+						className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+							formData.pricingMode === "manual"
+								? "bg-blue-600 text-white border-blue-600"
+								: "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+						}`}
+					>
+						Manual Prices
+					</button>
 				</div>
 
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						LP Ask Price (XAF) *
-					</label>
-					<input
-						type="number"
-						aria-label="LP ask price"
-						className={inputClass("lp ask")}
-						placeholder="e.g. 5100"
-						value={formData.lpAskPrice || ""}
-						onChange={(e) =>
-							updateFormData({ lpAskPrice: Number(e.target.value) })
-						}
-						min={0}
-					/>
-					{fieldError("lp ask") ? (
-						<p className="text-xs text-red-600 mt-1">{fieldError("lp ask")}</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							What investors pay to buy. Must be &ge; issuer price
-						</p>
-					)}
-				</div>
+				{formData.pricingMode === "spread" ? (
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Spread (%)
+							</label>
+							<input
+								type="number"
+								aria-label="Spread percent"
+								className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								placeholder="0.30"
+								value={formData.spreadPercent}
+								onChange={(e) =>
+									updateFormData({ spreadPercent: Number(e.target.value) })
+								}
+								min={0}
+								max={10}
+								step={0.01}
+							/>
+							<p className="text-xs text-gray-400 mt-1">
+								Ask = issuerPrice × (1 + spread%), Bid = issuerPrice × (1 −
+								spread%). Default: 0.30%
+							</p>
+						</div>
+						{formData.issuerPrice > 0 && (
+							<div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex flex-col justify-center gap-1 text-sm">
+								<div className="flex justify-between">
+									<span className="text-gray-600">LP Ask Price:</span>
+									<span className="font-medium">
+										{formData.lpAskPrice.toLocaleString()} XAF
+									</span>
+								</div>
+								<div className="flex justify-between">
+									<span className="text-gray-600">LP Bid Price:</span>
+									<span className="font-medium">
+										{formData.lpBidPrice.toLocaleString()} XAF
+									</span>
+								</div>
+							</div>
+						)}
+					</div>
+				) : (
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								LP Ask Price (XAF) *
+							</label>
+							<input
+								type="number"
+								aria-label="LP ask price"
+								className={inputClass("lp ask")}
+								placeholder="e.g. 5100"
+								value={formData.lpAskPrice || ""}
+								onChange={(e) =>
+									updateFormData({ lpAskPrice: Number(e.target.value) })
+								}
+								min={0}
+							/>
+							{fieldError("lp ask") ? (
+								<p className="text-xs text-red-600 mt-1">
+									{fieldError("lp ask")}
+								</p>
+							) : (
+								<p className="text-xs text-gray-400 mt-1">
+									What investors pay to buy. Must be &ge; issuer price
+								</p>
+							)}
+						</div>
 
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						LP Bid Price (XAF)
-					</label>
-					<input
-						type="number"
-						aria-label="LP bid price"
-						className={inputClass("lp bid")}
-						placeholder="e.g. 4900"
-						value={formData.lpBidPrice || ""}
-						onChange={(e) =>
-							updateFormData({ lpBidPrice: Number(e.target.value) })
-						}
-						min={0}
-					/>
-					{fieldError("lp bid") ? (
-						<p className="text-xs text-red-600 mt-1">{fieldError("lp bid")}</p>
-					) : (
-						<p className="text-xs text-gray-400 mt-1">
-							What investors receive when selling. Must be &le; LP ask price
-						</p>
-					)}
-				</div>
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
+								LP Bid Price (XAF)
+							</label>
+							<input
+								type="number"
+								aria-label="LP bid price"
+								className={inputClass("lp bid")}
+								placeholder="e.g. 4900"
+								value={formData.lpBidPrice || ""}
+								onChange={(e) =>
+									updateFormData({ lpBidPrice: Number(e.target.value) })
+								}
+								min={0}
+							/>
+							{fieldError("lp bid") ? (
+								<p className="text-xs text-red-600 mt-1">
+									{fieldError("lp bid")}
+								</p>
+							) : (
+								<p className="text-xs text-gray-400 mt-1">
+									What investors receive when selling. Must be &le; LP ask price
+								</p>
+							)}
+						</div>
+					</div>
+				)}
 			</div>
 
 			{/* LP Margin Display */}
@@ -151,134 +265,6 @@ export const PricingStep: FC<Props> = ({
 					</p>
 				</div>
 			)}
-
-			{/* Exposure Limits */}
-			<div className="mt-6">
-				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-					Trading Limits
-				</h3>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Max Position (% of supply)
-						</label>
-						<input
-							type="number"
-							aria-label="Max position percent"
-							className={inputClass("max position")}
-							placeholder="e.g. 10"
-							value={formData.maxPositionPercent || ""}
-							onChange={(e) =>
-								updateFormData({
-									maxPositionPercent: Number(e.target.value),
-								})
-							}
-							min={0}
-							max={100}
-							step={0.01}
-						/>
-						<p className="text-xs text-gray-400 mt-1">
-							Max % of total supply one user can hold. Leave at 0 for no limit.
-							Example: 10 means a user can hold at most 10% of all units
-						</p>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Max Order Size (units)
-						</label>
-						<input
-							type="number"
-							aria-label="Max order size"
-							className={inputClass("max order")}
-							placeholder="e.g. 1000"
-							value={formData.maxOrderSize || ""}
-							onChange={(e) =>
-								updateFormData({
-									maxOrderSize: Number(e.target.value),
-								})
-							}
-							min={0}
-						/>
-						<p className="text-xs text-gray-400 mt-1">
-							Max units a user can buy or sell in a single order. Leave at 0 for
-							no limit
-						</p>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Daily Trade Limit (XAF)
-						</label>
-						<input
-							type="number"
-							aria-label="Daily trade limit"
-							className={inputClass("daily")}
-							placeholder="e.g. 5000000"
-							value={formData.dailyTradeLimitXaf || ""}
-							onChange={(e) =>
-								updateFormData({
-									dailyTradeLimitXaf: Number(e.target.value),
-								})
-							}
-							min={0}
-						/>
-						<p className="text-xs text-gray-400 mt-1">
-							Max total XAF value a user can trade per day for this asset.
-							Resets at midnight. Leave at 0 for no limit
-						</p>
-					</div>
-				</div>
-
-				<h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3 mt-6">
-					Minimum Order Size
-				</h3>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Min Order Size (units)
-						</label>
-						<input
-							type="number"
-							aria-label="Min order size"
-							className={inputClass("min order")}
-							placeholder="e.g. 1"
-							value={formData.minOrderSize || ""}
-							onChange={(e) =>
-								updateFormData({
-									minOrderSize: Number(e.target.value),
-								})
-							}
-							min={0}
-						/>
-						<p className="text-xs text-gray-400 mt-1">
-							Minimum units per single order. Leave at 0 for no minimum
-						</p>
-					</div>
-
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
-							Min Order Amount (XAF)
-						</label>
-						<input
-							type="number"
-							aria-label="Min order cash amount"
-							className={inputClass("min cash")}
-							placeholder="e.g. 10000"
-							value={formData.minOrderCashAmount || ""}
-							onChange={(e) =>
-								updateFormData({
-									minOrderCashAmount: Number(e.target.value),
-								})
-							}
-							min={0}
-						/>
-						<p className="text-xs text-gray-400 mt-1">
-							Minimum XAF amount per single order. Leave at 0 for no minimum
-						</p>
-					</div>
-				</div>
-			</div>
 		</div>
 	);
 };

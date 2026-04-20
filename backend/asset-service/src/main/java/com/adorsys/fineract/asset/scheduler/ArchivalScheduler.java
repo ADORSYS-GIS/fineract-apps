@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +39,7 @@ public class ArchivalScheduler {
     private final ApplicationEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 0 3 1 * *", zone = "Africa/Douala")
+    @SchedulerLock(name = "archival-scheduler", lockAtMostFor = "PT2H", lockAtLeastFor = "PT30M")
     public void archiveRecords() {
         try {
             Instant cutoff = Instant.now().minus(
@@ -95,36 +97,42 @@ public class ArchivalScheduler {
     }
 
     private int archiveTradeBatch(Instant cutoff, int batchSize) {
-        // Insert into archive, skip duplicates
+        // Insert into archive, skip duplicates.
+        // SELECT is parenthesised to avoid a parse ambiguity between LIMIT (part of SELECT)
+        // and ON CONFLICT (part of INSERT) that some PgJDBC versions mishandle.
         int inserted = jdbcTemplate.update("""
                 INSERT INTO trade_log_archive (
                     id, order_id, user_id, asset_id, side, units,
                     price_per_unit, total_amount, fee, spread_amount,
                     realized_pnl, fineract_cash_transfer_id,
-                    fineract_asset_transfer_id, executed_at
+                    fineract_asset_transfer_id, executed_at,
+                    accrued_interest_amount
                 )
-                SELECT id, order_id, user_id, asset_id, side, units,
-                       price_per_unit, total_amount, fee, spread_amount,
-                       realized_pnl, fineract_cash_transfer_id,
-                       fineract_asset_transfer_id, executed_at
-                FROM trade_log
-                WHERE executed_at < ?
-                ORDER BY executed_at
-                LIMIT ?
+                (SELECT id, order_id, user_id, asset_id, side, units,
+                        price_per_unit, total_amount, fee, spread_amount,
+                        realized_pnl, fineract_cash_transfer_id,
+                        fineract_asset_transfer_id, executed_at,
+                        accrued_interest_amount
+                 FROM trade_log
+                 WHERE executed_at < ?
+                 ORDER BY executed_at
+                 LIMIT ?)
                 ON CONFLICT (id) DO NOTHING
                 """, cutoff, batchSize);
 
         if (inserted == 0) return 0;
 
-        // Delete the archived rows from the hot table
+        // CTE-based delete: PostgreSQL does not support LIMIT directly on DELETE,
+        // so we select the exact IDs to remove in a CTE first.
         int deleted = jdbcTemplate.update("""
-                DELETE FROM trade_log
-                WHERE id IN (
+                WITH to_delete AS (
                     SELECT tl.id FROM trade_log tl
                     JOIN trade_log_archive tla ON tla.id = tl.id
                     WHERE tl.executed_at < ?
                     LIMIT ?
                 )
+                DELETE FROM trade_log
+                WHERE id IN (SELECT id FROM to_delete)
                 """, cutoff, batchSize);
 
         return deleted;
@@ -137,32 +145,38 @@ public class ArchivalScheduler {
                     id, idempotency_key, user_id, user_external_id,
                     asset_id, side, cash_amount, units, execution_price,
                     fee, spread_amount, status, failure_reason,
-                    created_at, updated_at, version
+                    created_at, updated_at, version,
+                    registration_duty_amount, capital_gains_tax_amount,
+                    tva_amount, accrued_interest_amount
                 )
-                SELECT id, idempotency_key, user_id, user_external_id,
-                       asset_id, side, cash_amount, units, execution_price,
-                       fee, spread_amount, status, failure_reason,
-                       created_at, updated_at, version
-                FROM orders
-                WHERE created_at < ?
-                  AND status IN ('FILLED', 'FAILED', 'REJECTED')
-                ORDER BY created_at
-                LIMIT ?
+                (SELECT id, idempotency_key, user_id, user_external_id,
+                        asset_id, side, cash_amount, units, execution_price,
+                        fee, spread_amount, status, failure_reason,
+                        created_at, updated_at, version,
+                        registration_duty_amount, capital_gains_tax_amount,
+                        tva_amount, accrued_interest_amount
+                 FROM orders
+                 WHERE created_at < ?
+                   AND status IN ('FILLED', 'FAILED', 'REJECTED')
+                 ORDER BY created_at
+                 LIMIT ?)
                 ON CONFLICT (id) DO NOTHING
                 """, cutoff, batchSize);
 
         if (inserted == 0) return 0;
 
-        // Delete the archived rows from the hot table
+        // CTE-based delete: PostgreSQL does not support LIMIT directly on DELETE,
+        // so we select the exact IDs to remove in a CTE first.
         int deleted = jdbcTemplate.update("""
-                DELETE FROM orders
-                WHERE id IN (
+                WITH to_delete AS (
                     SELECT o.id FROM orders o
                     JOIN orders_archive oa ON oa.id = o.id
                     WHERE o.created_at < ?
                       AND o.status IN ('FILLED', 'FAILED', 'REJECTED')
                     LIMIT ?
                 )
+                DELETE FROM orders
+                WHERE id IN (SELECT id FROM to_delete)
                 """, cutoff, batchSize);
 
         return deleted;

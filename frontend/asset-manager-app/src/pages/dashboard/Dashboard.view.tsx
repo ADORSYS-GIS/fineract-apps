@@ -1,12 +1,17 @@
 import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
-import { Download, PlusCircle, Upload } from "lucide-react";
+import { PlusCircle, Upload } from "lucide-react";
 import { FC } from "react";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import { ExportTemplateMenu } from "@/components/ExportTemplateMenu";
 import { ImportAssetsDialog } from "@/components/ImportAssetsDialog";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TableSkeleton } from "@/components/TableSkeleton";
-import { ASSET_CATEGORIES_WITH_ALL } from "@/constants/categories";
+import {
+	ASSET_CATEGORIES_WITH_ALL,
+	BOND_FILTER_OPTIONS,
+	BOND_ONLY_MODE,
+} from "@/constants/categories";
 import { useDashboard } from "./useDashboard";
 
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
@@ -40,7 +45,6 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	settlementSummary,
 	refetch,
 	isImportOpen,
-	onExportTemplate,
 	onOpenImport,
 	onCloseImport,
 }) => {
@@ -75,14 +79,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 							placeholder="Search assets..."
 							className="w-full md:w-64"
 						/>
-						<Button
-							variant="outline"
-							onClick={onExportTemplate}
-							className="flex items-center gap-2 whitespace-nowrap"
-						>
-							<Download className="h-4 w-4" />
-							<span>Export Template</span>
-						</Button>
+						<ExportTemplateMenu />
 						<Button
 							variant="outline"
 							onClick={onOpenImport}
@@ -106,7 +103,10 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 					role="group"
 					aria-label="Filter by category"
 				>
-					{ASSET_CATEGORIES_WITH_ALL.map((cat) => (
+					{(BOND_ONLY_MODE
+						? BOND_FILTER_OPTIONS
+						: ASSET_CATEGORIES_WITH_ALL
+					).map((cat) => (
 						<button
 							key={cat.value}
 							onClick={() => onCategoryChange(cat.value)}

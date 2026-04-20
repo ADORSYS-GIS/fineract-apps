@@ -25,7 +25,8 @@
 			"scheduledPayments": "Paiements programmés",
 			"lpPerformance": "Performance LP",
 			"accounting": "Comptabilité",
-			"settlement": "Règlement"
+			"settlement": "Règlement",
+			"paymentDlq": "File d'attente DLQ"
 		},
 		"navbar": {
 			"onlineBank": "Banque en ligne"

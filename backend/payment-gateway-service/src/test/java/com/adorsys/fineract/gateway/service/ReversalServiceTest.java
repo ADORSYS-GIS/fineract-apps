@@ -37,7 +37,7 @@ class ReversalServiceTest {
     @DisplayName("should reverse withdrawal via compensating deposit")
     void reverseWithdrawal_success() {
         PaymentTransaction txn = new PaymentTransaction(
-            "txn-1", "ref-1", "ext-1", 100L,
+            "txn-1", "txn-1", "ref-1", "ext-1", 100L,
             PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.WITHDRAWAL,
             BigDecimal.valueOf(5000), "XAF", PaymentStatus.PROCESSING);
         txn.setFineractTransactionId(789L);
@@ -57,7 +57,7 @@ class ReversalServiceTest {
     @DisplayName("should skip reversal when no Fineract transaction ID")
     void reverseWithdrawal_nullFineractTxnId_skips() {
         PaymentTransaction txn = new PaymentTransaction(
-            "txn-2", "ref-2", "ext-2", 100L,
+            "txn-2", "txn-2", "ref-2", "ext-2", 100L,
             PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.WITHDRAWAL,
             BigDecimal.valueOf(5000), "XAF", PaymentStatus.PROCESSING);
 
@@ -70,7 +70,7 @@ class ReversalServiceTest {
     @DisplayName("should log critical error in fallback after retries exhausted")
     void reverseWithdrawalFallback_logsCritical() {
         PaymentTransaction txn = new PaymentTransaction(
-            "txn-3", "ref-3", "ext-3", 100L,
+            "txn-3", "txn-3", "ref-3", "ext-3", 100L,
             PaymentProvider.MTN_MOMO, PaymentResponse.TransactionType.WITHDRAWAL,
             BigDecimal.valueOf(5000), "XAF", PaymentStatus.PROCESSING);
         txn.setFineractTransactionId(789L);

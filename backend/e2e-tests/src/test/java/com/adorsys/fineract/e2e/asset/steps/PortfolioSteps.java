@@ -79,6 +79,128 @@ public class PortfolioSteps {
         assertThat(totalValue.doubleValue()).isGreaterThanOrEqualTo(0);
     }
 
+    // ---------------------------------------------------------------
+    // Bond position assertions
+    // ---------------------------------------------------------------
+
+    @Then("the position bondBenefit bondType should be {string}")
+    public void positionBondBenefitTypeShouldBe(String expectedType) {
+        String bondType = context.getLastResponse().jsonPath().getString("bondBenefit.bondType");
+        assertThat(bondType)
+                .as("bondBenefit.bondType — response: %s", context.getLastResponse().body().asString())
+                .isEqualTo(expectedType);
+    }
+
+    @Then("the bond currentYield should be greater than {int}")
+    public void bondCurrentYieldShouldBeGreaterThan(int min) {
+        Number currentYield = context.getLastResponse().jsonPath().get("currentYield");
+        assertThat(currentYield)
+                .as("currentYield should be present and > %d", min)
+                .isNotNull();
+        assertThat(currentYield.doubleValue()).isGreaterThan(min);
+    }
+
+    // ---------------------------------------------------------------
+    // Income history steps
+    // ---------------------------------------------------------------
+
+    @When("the user requests their income history")
+    public void requestIncomeHistory() {
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .get("/api/v1/portfolio/income-history");
+        context.setLastResponse(response);
+    }
+
+    @When("the user requests their income history with status {string}")
+    public void requestIncomeHistoryWithStatus(String status) {
+        Response response = RestAssured.given()
+                .baseUri("http://localhost:" + port)
+                .header("Authorization", "Bearer " + testUserJwt())
+                .queryParam("status", status)
+                .get("/api/v1/portfolio/income-history");
+        context.setLastResponse(response);
+    }
+
+    @Then("the income history should contain at least {int} paid event(s)")
+    public void incomeHistoryShouldContainPaidEvents(int minCount) {
+        List<String> statuses = context.getLastResponse().jsonPath().getList("content.status");
+        long paidCount = statuses == null ? 0 : statuses.stream().filter("PAID"::equals).count();
+        assertThat(paidCount)
+                .as("Expected >= %d PAID events in income history — response: %s",
+                        minCount, context.getLastResponse().body().asString())
+                .isGreaterThanOrEqualTo(minCount);
+    }
+
+    @Then("the income history paid events should have positive net amounts")
+    public void incomeHistoryPaidEventsShouldHavePositiveNetAmounts() {
+        List<String> statuses = context.getLastResponse().jsonPath().getList("content.status");
+        List<Number> netAmounts = context.getLastResponse().jsonPath().getList("content.totalNet");
+        if (statuses == null) return;
+        for (int i = 0; i < statuses.size(); i++) {
+            if ("PAID".equals(statuses.get(i))) {
+                assertThat(netAmounts.get(i).doubleValue())
+                        .as("PAID event at index %d should have positive totalNet", i)
+                        .isPositive();
+            }
+        }
+    }
+
+    @Then("the income history summary total paid should be greater than {int}")
+    public void incomeHistorySummaryTotalPaidGreaterThan(int min) {
+        Number totalPaid = context.getLastResponse().jsonPath().get("summary.totalPaid");
+        assertThat(totalPaid)
+                .as("summary.totalPaid should be present")
+                .isNotNull();
+        assertThat(totalPaid.doubleValue())
+                .as("summary.totalPaid should be > %d", min)
+                .isGreaterThan(min);
+    }
+
+    @Then("the first paid event should have IRCM withheld greater than {int}")
+    public void firstPaidEventIrcmWithheldGreaterThan(int min) {
+        List<String> statuses = context.getLastResponse().jsonPath().getList("content.status");
+        List<Number> ircmWithheld = context.getLastResponse().jsonPath().getList("content.ircmWithheldPerUnit");
+        assertThat(statuses).as("income history content should not be empty").isNotEmpty();
+        int firstPaidIdx = statuses.indexOf("PAID");
+        assertThat(firstPaidIdx).as("At least one PAID event should exist").isGreaterThanOrEqualTo(0);
+        assertThat(ircmWithheld.get(firstPaidIdx).doubleValue())
+                .as("First PAID event ircmWithheldPerUnit should be > %d", min)
+                .isGreaterThan(min);
+    }
+
+    @Then("the first paid event net amount should be less than gross amount")
+    public void firstPaidEventNetShouldBeLessThanGross() {
+        List<String> statuses = context.getLastResponse().jsonPath().getList("content.status");
+        List<Number> grossAmounts = context.getLastResponse().jsonPath().getList("content.grossAmountPerUnit");
+        List<Number> netAmounts = context.getLastResponse().jsonPath().getList("content.netAmountPerUnit");
+        int firstPaidIdx = statuses.indexOf("PAID");
+        assertThat(firstPaidIdx).as("At least one PAID event should exist").isGreaterThanOrEqualTo(0);
+        assertThat(netAmounts.get(firstPaidIdx).doubleValue())
+                .as("Net amount should be less than gross for IRCM-taxable event")
+                .isLessThan(grossAmounts.get(firstPaidIdx).doubleValue());
+    }
+
+    @Then("the income history should contain at least {int} scheduled event(s)")
+    public void incomeHistoryShouldContainScheduledEvents(int minCount) {
+        List<String> statuses = context.getLastResponse().jsonPath().getList("content.status");
+        long scheduledCount = statuses == null ? 0 : statuses.stream().filter("SCHEDULED"::equals).count();
+        assertThat(scheduledCount)
+                .as("Expected >= %d SCHEDULED events — response: %s",
+                        minCount, context.getLastResponse().body().asString())
+                .isGreaterThanOrEqualTo(minCount);
+    }
+
+    @Then("all income history events should have status {string}")
+    public void allIncomeHistoryEventsShouldHaveStatus(String expectedStatus) {
+        List<String> statuses = context.getLastResponse().jsonPath().getList("content.status");
+        assertThat(statuses)
+                .as("All events should have status %s", expectedStatus)
+                .isNotEmpty()
+                .allMatch(expectedStatus::equals);
+    }
+
     private String testUserJwt() {
         return JwtTokenFactory.generateToken(
                 FineractInitializer.TEST_USER_EXTERNAL_ID,
