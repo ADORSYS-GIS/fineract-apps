@@ -415,7 +415,7 @@ public class CallbackHandlerDelegate {
         }
     }
 
-        private CallbackResult processCinetPayWithdrawalCallback(CinetPayCallbackRequest callback, PaymentTransaction txn) {
+    private CallbackResult processCinetPayWithdrawalCallback(CinetPayCallbackRequest callback, PaymentTransaction txn) {
         if (callback.isSuccessful()) {
             txn.setStatus(PaymentStatus.SUCCESSFUL);
             transactionRepository.save(txn);

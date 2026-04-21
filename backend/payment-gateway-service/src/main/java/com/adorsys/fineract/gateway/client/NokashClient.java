@@ -138,7 +138,6 @@ public class NokashClient {
     }
 
     public String getTemporaryAuthKey() {
-        log.info("Requesting temporary auth key from NOKASH");
 
         log.info("Requesting temporary auth key from NOKASH with i_space_key={} and app_space_key={}", config.getISpaceKey(), config.getAppSpaceKey());
 
