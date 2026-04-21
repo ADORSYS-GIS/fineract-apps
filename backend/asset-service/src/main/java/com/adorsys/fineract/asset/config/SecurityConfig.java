@@ -49,7 +49,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(authz -> {
                 authz
-                    .requestMatchers("/api/version").permitAll()
+                    .requestMatchers("/version").permitAll()
                     .requestMatchers("/actuator/**").permitAll()
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                     // Public catalog and market endpoints
