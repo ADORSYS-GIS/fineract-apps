@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -83,20 +84,26 @@ public class NokashClient {
         log.info("Checking NOKASH transaction status for transactionId={}", transactionId);
 
         try {
-            Map<String, Object> response = webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                    .path("/lapas-on-trans/trans/310/status-request")
-                    .queryParam("transaction_id", transactionId)
-                    .build())
+            String rawResponse = webClient.post()
+                .uri(uriBuilder -> {
+                    var uri = uriBuilder
+                        .path("/lapas-on-trans/trans/310/status-request")
+                        .queryParam("transaction_id", transactionId)
+                        .build();
+                    log.info("Full NOKASH status request URL: {}", uri);
+                    return uri;
+                })
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                     resp -> resp.bodyToMono(String.class)
                         .flatMap(body -> Mono.error(new PaymentException("NOKASH API error: " + body))))
-                .bodyToMono(Map.class)
+                .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                 .block();
 
-            log.info("NOKASH getTransactionStatus response: {}", response);
+            log.info("NOKASH getTransactionStatus response: {}", rawResponse);
+
+            Map<String, Object> response = new ObjectMapper().readValue(rawResponse, Map.class);
 
             if (response != null && "REQUEST_OK".equals(response.get("status"))) {
                 Map<String, Object> data = (Map<String, Object>) response.get("data");

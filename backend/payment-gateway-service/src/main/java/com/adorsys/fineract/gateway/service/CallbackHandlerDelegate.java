@@ -516,6 +516,45 @@ public class CallbackHandlerDelegate {
      * Verify callback-reported amount matches expected transaction amount.
      * Blocks processing if the mismatch exceeds 1 unit (tolerance for XAF rounding).
      */
+    // ==================== NOKASH — byRef (for scheduler/reconciler) ====================
+
+    /**
+     * Process NOKASH deposit callback identified by our transactionId (status from polling).
+     * No amount verification — the provider-polled status is trusted.
+     */
+    @Transactional
+    public void processNokashDepositCallbackByRef(String transactionId, PaymentStatus polledStatus) {
+        PaymentTransaction txn = transactionRepository.findByIdForUpdate(transactionId).orElse(null);
+        if (txn == null) {
+            log.warn("NOKASH deposit byRef: transaction not found txnId={}", transactionId);
+            return;
+        }
+        if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
+            return;
+        }
+        if (polledStatus == PaymentStatus.SUCCESSFUL) {
+            try {
+                Long fineractTxnId = fineractClient.createDeposit(
+                    txn.getAccountId(), txn.getAmount(), nokashConfig.getFineractPaymentTypeId(), null);
+                txn.setStatus(PaymentStatus.SUCCESSFUL);
+                txn.setFineractTransactionId(fineractTxnId);
+                transactionRepository.save(txn);
+                paymentMetrics.incrementCallbackReceived(PaymentProvider.NOKASH, PaymentStatus.SUCCESSFUL);
+                log.info("NOKASH deposit completed via polling: txnId={}, fineractTxnId={}", transactionId, fineractTxnId);
+            } catch (Exception e) {
+                log.error("CRITICAL: Fineract createDeposit failed after NOKASH collected funds via polling. " +
+                    "Marking PROCESSING so stale scheduler retries. txnId={}, error={}", transactionId, e.getMessage());
+                txn.setStatus(PaymentStatus.PROCESSING);
+                transactionRepository.save(txn);
+            }
+        } else if (polledStatus == PaymentStatus.FAILED) {
+            txn.setStatus(PaymentStatus.FAILED);
+            transactionRepository.save(txn);
+            paymentMetrics.incrementCallbackReceived(PaymentProvider.NOKASH, PaymentStatus.FAILED);
+            log.warn("NOKASH deposit failed via polling: txnId={}", transactionId);
+        }
+    }
+
     // ==================== Orange Money — byRef (for scheduler/reconciler) ====================
 
     /**
