@@ -49,8 +49,12 @@ import java.time.ZoneId;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
+import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
+import com.adorsys.fineract.asset.service.FineractOutboxService;
+
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -98,6 +102,7 @@ public class TradingService {
     private final AccruedInterestCalculator accruedInterestCalculator;
     private final ObjectMapper objectMapper;
     private final AssetProjectionRepository assetProjectionRepository;
+    private final FineractOutboxService outboxService;
 
     private static final List<OrderStatus> HIDDEN_FROM_USER_HISTORY = List.of(OrderStatus.CANCELLED);
 
@@ -714,28 +719,134 @@ public class TradingService {
         recalculatePriceInsideLock(ctx);
         checkBalanceInsideLock(ctx);
 
-        // Inventory reservation: atomically decrement/increment circulating supply.
-        // If this fails (constraint violated), the order is rejected before any money moves.
-        adjustSupply(ctx);
+        // Write outbox entry before Fineract (REQUIRES_NEW — commits immediately so it survives
+        // any outer transaction rollback and lets the processor retry DB finalization on failure).
+        FineractOutboxEntry outbox = outboxService.writePendingEntry(
+                side == TradeSide.BUY ? "TRADE_BUY" : "TRADE_SELL",
+                "ORDER", ctx.getOrderId(), ctx.getIdempotencyKey(),
+                buildTradePayload(ctx));
 
-        // Execute Fineract settlement — if this fails, undo the supply adjustment so the
-        // reservation is cleanly reversed and no DB state is permanently corrupted.
+        // Execute Fineract atomic batch
         try {
             executeAtomicSettlement(ctx, lockedAsset);
         } catch (TradingException settlementFailure) {
-            // Compensate the supply adjustment — negate the delta to undo the reservation
-            BigDecimal reverseDelta = ctx.getStrategy().supplyAdjustment(ctx.getUnits()).negate();
-            assetRepository.adjustCirculatingSupply(ctx.getAssetId(), reverseDelta);
+            outboxService.markAborted(outbox.getId(), settlementFailure.getMessage());
             throw settlementFailure;
         }
 
-        // DB mutations only after confirmed money movement
+        // Fineract confirmed — persist result immediately (REQUIRES_NEW) so it survives outer TX rollback
+        outboxService.markDispatched(outbox.getId(), buildFineractContextPayload(ctx));
+
+        // DB finalization: supply + portfolio + tradelog + tax + order, all in one atomic transaction.
+        // outboxService.markConfirmed commits atomically with these writes. If this TX rolls back,
+        // the outbox stays DISPATCHED and the processor retries finalizeTrade.
+        finalizeTrade(ctx, lockedAsset, outbox.getId());
+    }
+
+    private void finalizeTrade(TradeContext ctx, Asset asset, UUID outboxId) {
+        adjustSupply(ctx);
         updatePortfolio(ctx);       // sets ctx.realizedPnl for SELL
         recordTradeLog(ctx);
-        recordTaxAudit(ctx, lockedAsset);   // uses ctx.realizedPnl set above
+        recordTaxAudit(ctx, asset); // uses ctx.realizedPnl set above
         pricingService.updateOhlcAfterTrade(ctx.getAssetId(), ctx.getExecutionPrice());
+        markOrderFilled(ctx, asset);
+        outboxService.markConfirmed(outboxId);
+    }
 
-        markOrderFilled(ctx, lockedAsset);
+    private Map<String, Object> buildTradePayload(TradeContext ctx) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("orderId", ctx.getOrderId());
+        p.put("side", ctx.getStrategy().side().name());
+        p.put("userId", ctx.getUserId());
+        p.put("assetId", ctx.getAssetId());
+        p.put("units", ctx.getUnits().toPlainString());
+        if (ctx.getExecutionPrice() != null)      p.put("executionPrice", ctx.getExecutionPrice().toPlainString());
+        if (ctx.getGrossAmount() != null)         p.put("grossAmount", ctx.getGrossAmount().toPlainString());
+        if (ctx.getFee() != null)                 p.put("fee", ctx.getFee().toPlainString());
+        if (ctx.getSpreadAmount() != null)        p.put("spreadAmount", ctx.getSpreadAmount().toPlainString());
+        if (ctx.getBuybackPremium() != null)      p.put("buybackPremium", ctx.getBuybackPremium().toPlainString());
+        if (ctx.getOrderCashAmount() != null)     p.put("orderCashAmount", ctx.getOrderCashAmount().toPlainString());
+        if (ctx.getRegistrationDutyAmount() != null) p.put("registrationDutyAmount", ctx.getRegistrationDutyAmount().toPlainString());
+        if (ctx.getCapitalGainsTaxAmount() != null)  p.put("capitalGainsTaxAmount", ctx.getCapitalGainsTaxAmount().toPlainString());
+        if (ctx.getTvaAmount() != null)           p.put("tvaAmount", ctx.getTvaAmount().toPlainString());
+        if (ctx.getAccruedInterestAmount() != null)  p.put("accruedInterestAmount", ctx.getAccruedInterestAmount().toPlainString());
+        p.put("userAssetAccountId", ctx.getUserAssetAccountId());
+        return p;
+    }
+
+    private Map<String, Object> buildFineractContextPayload(TradeContext ctx) {
+        Map<String, Object> r = new HashMap<>();
+        r.put("fineractBatchId", ctx.getOrder().getFineractBatchId());
+        r.put("registrationDutyTransferId", ctx.getRegistrationDutyTransferId());
+        r.put("capitalGainsTaxTransferId", ctx.getCapitalGainsTaxTransferId());
+        r.put("tvaTransferId", ctx.getTvaTransferId());
+        return r;
+    }
+
+    /**
+     * Retry the DB finalization step for a DISPATCHED outbox entry.
+     * Called by {@link com.adorsys.fineract.asset.scheduler.FineractOutboxProcessor}.
+     * Does NOT re-call Fineract — the batch was already confirmed when the entry was DISPATCHED.
+     */
+    @Transactional
+    public void finalizeTradeFromOutbox(FineractOutboxEntry entry) {
+        Map<String, Object> payload = outboxService.parsePayload(entry);
+        Map<String, Object> fineractResp = outboxService.parseFineractResponse(entry);
+
+        String orderId = (String) payload.get("orderId");
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalStateException("Order not found for outbox retry: " + orderId));
+
+        if (order.getStatus() == OrderStatus.FILLED) {
+            outboxService.markConfirmed(entry.getId());
+            return;
+        }
+
+        String assetId = (String) payload.get("assetId");
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new IllegalStateException("Asset not found for outbox retry: " + assetId));
+
+        TradeSide side = TradeSide.valueOf((String) payload.get("side"));
+        TradeStrategy strategy = side == TradeSide.BUY ? BuyStrategy.INSTANCE : SellStrategy.INSTANCE;
+
+        TradeContext ctx = TradeContext.builder()
+                .assetId(assetId)
+                .units(new BigDecimal((String) payload.get("units")))
+                .idempotencyKey(order.getIdempotencyKey())
+                .strategy(strategy)
+                .build();
+        ctx.setOrderId(orderId);
+        ctx.setOrder(order);
+        ctx.setUserId(order.getUserId());
+        ctx.setAsset(asset);
+        ctx.setExecutionPrice(bdOrNull(payload, "executionPrice"));
+        ctx.setGrossAmount(bdOrNull(payload, "grossAmount"));
+        ctx.setFee(bdOrNull(payload, "fee"));
+        ctx.setSpreadAmount(bdOrNull(payload, "spreadAmount"));
+        ctx.setBuybackPremium(bdOrNull(payload, "buybackPremium"));
+        ctx.setOrderCashAmount(bdOrNull(payload, "orderCashAmount"));
+        ctx.setRegistrationDutyAmount(bdOrNull(payload, "registrationDutyAmount"));
+        ctx.setCapitalGainsTaxAmount(bdOrNull(payload, "capitalGainsTaxAmount"));
+        ctx.setTvaAmount(bdOrNull(payload, "tvaAmount"));
+        ctx.setAccruedInterestAmount(bdOrNull(payload, "accruedInterestAmount"));
+        Object uaaid = payload.get("userAssetAccountId");
+        if (uaaid != null) ctx.setUserAssetAccountId(((Number) uaaid).longValue());
+
+        order.setFineractBatchId((String) fineractResp.get("fineractBatchId"));
+        Object rdtId = fineractResp.get("registrationDutyTransferId");
+        if (rdtId != null) ctx.setRegistrationDutyTransferId(((Number) rdtId).longValue());
+        Object cgtId = fineractResp.get("capitalGainsTaxTransferId");
+        if (cgtId != null) ctx.setCapitalGainsTaxTransferId(((Number) cgtId).longValue());
+        Object tvtId = fineractResp.get("tvaTransferId");
+        if (tvtId != null) ctx.setTvaTransferId(((Number) tvtId).longValue());
+
+        log.info("Outbox retry: finalizing {} orderId={}", side, orderId);
+        finalizeTrade(ctx, asset, entry.getId());
+    }
+
+    private static BigDecimal bdOrNull(Map<String, Object> map, String key) {
+        Object v = map.get(key);
+        return v != null ? new BigDecimal(v.toString()) : null;
     }
 
     /** Re-fetch asset inside lock, validate LP account configuration. */

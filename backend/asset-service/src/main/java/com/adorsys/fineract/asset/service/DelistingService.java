@@ -1,9 +1,12 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
+import com.adorsys.fineract.asset.client.FineractClient.BatchTransferOp;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.event.DelistingAnnouncedEvent;
 import com.adorsys.fineract.asset.exception.AssetException;
@@ -22,7 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Manages the asset delisting lifecycle:
@@ -42,6 +48,7 @@ public class DelistingService {
     private final AssetServiceConfig assetServiceConfig;
     private final ApplicationEventPublisher eventPublisher;
     private final AssetMetrics assetMetrics;
+    private final FineractOutboxService outboxService;
 
     /**
      * Initiate delisting for an asset. Sets status to DELISTING and notifies all holders.
@@ -161,23 +168,36 @@ public class DelistingService {
                     continue;
                 }
 
-                // Return asset units to LP
-                fineractClient.createAccountTransfer(
-                        holder.getFineractSavingsAccountId(),
-                        asset.getLpAssetAccountId(),
-                        holderUnits,
-                        "Delisting buyback: " + asset.getSymbol());
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("assetId", asset.getId());
+                payload.put("userId", String.valueOf(holder.getUserId()));
+                payload.put("holderFineractSavingsAccountId", String.valueOf(holder.getFineractSavingsAccountId()));
+                payload.put("lpAssetAccountId", String.valueOf(asset.getLpAssetAccountId()));
+                payload.put("lpCashAccountId", String.valueOf(asset.getLpCashAccountId()));
+                payload.put("userCashAccountId", String.valueOf(userCashAccountId));
+                payload.put("holderUnits", holderUnits.toPlainString());
+                payload.put("cashAmount", cashAmount.toPlainString());
+                payload.put("redemptionPrice", redemptionPrice.toPlainString());
 
-                // Pay cash to holder
-                fineractClient.createAccountTransfer(
-                        asset.getLpCashAccountId(), userCashAccountId,
-                        cashAmount,
-                        "Delisting redemption: " + asset.getSymbol());
+                String idempotencyKey = "DELIST-" + asset.getId() + "-" + holder.getUserId();
+                FineractOutboxEntry outbox = outboxService.writePendingEntry(
+                        "FORCED_BUYBACK", "USER_POSITION",
+                        asset.getId() + "-" + holder.getUserId(),
+                        idempotencyKey, payload);
 
-                // Update position via PortfolioService (handles FIFO lots + realized P&L)
-                // Delisting is a system-initiated redemption — no trading fees or taxes apply here
+                List<BatchOperation> ops = new ArrayList<>();
+                ops.add(new BatchTransferOp(holder.getFineractSavingsAccountId(), asset.getLpAssetAccountId(),
+                        holderUnits, "Delisting buyback: " + asset.getSymbol()));
+                ops.add(new BatchTransferOp(asset.getLpCashAccountId(), userCashAccountId,
+                        cashAmount, "Delisting redemption: " + asset.getSymbol()));
+
+                fineractClient.executeAtomicBatch(ops);
+                outboxService.markDispatched(outbox.getId(), Map.of("ok", "true"));
+
+                // Update position — no fees or taxes apply for system-initiated delisting
                 portfolioService.updatePositionAfterSell(
                         holder.getUserId(), asset.getId(), holderUnits, redemptionPrice, null, null);
+                outboxService.markConfirmed(outbox.getId());
 
                 successCount++;
                 totalCashPaid = totalCashPaid.add(cashAmount);
@@ -206,5 +226,39 @@ public class DelistingService {
         }
         log.info("Forced buyback complete for asset {}: {}/{} holders paid, total={} {}",
                 asset.getSymbol(), successCount, holders.size(), totalCashPaid, currency);
+    }
+
+    /**
+     * Retry DB finalization for a FORCED_BUYBACK outbox entry whose Fineract batch already succeeded.
+     * Called by {@link com.adorsys.fineract.asset.scheduler.FineractOutboxProcessor}.
+     */
+    @Transactional
+    public void finalizeBuybackFromOutbox(FineractOutboxEntry entry) {
+        Map<String, Object> payload = outboxService.parsePayload(entry);
+        String assetId = (String) payload.get("assetId");
+        Long userId = Long.valueOf((String) payload.get("userId"));
+        BigDecimal holderUnits = new BigDecimal((String) payload.get("holderUnits"));
+        BigDecimal cashAmount = new BigDecimal((String) payload.get("cashAmount"));
+        BigDecimal redemptionPrice = new BigDecimal((String) payload.get("redemptionPrice"));
+
+        // Idempotency: if position is already zeroed out, finalization already ran
+        UserPosition position = userPositionRepository.findByUserIdAndAssetId(userId, assetId).orElse(null);
+        if (position == null || position.getTotalUnits().compareTo(BigDecimal.ZERO) <= 0) {
+            log.info("Outbox buyback already finalized: userId={}, assetId={}", userId, assetId);
+            outboxService.markConfirmed(entry.getId());
+            return;
+        }
+
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
+
+        portfolioService.updatePositionAfterSell(userId, assetId, holderUnits, redemptionPrice, null, null);
+
+        asset.setCirculatingSupply(asset.getCirculatingSupply().subtract(holderUnits));
+        assetRepository.save(asset);
+
+        outboxService.markConfirmed(entry.getId());
+        log.info("Outbox: finalized buyback for userId={}, assetId={}, units={}, cash={}",
+                userId, assetId, holderUnits, cashAmount);
     }
 }

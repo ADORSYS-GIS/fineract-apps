@@ -8,6 +8,7 @@ import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.*;
+import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
 import com.adorsys.fineract.asset.event.CouponPaidEvent;
 import com.adorsys.fineract.asset.event.IncomePaidEvent;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
@@ -27,6 +28,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +52,7 @@ public class ScheduledPaymentService {
     private final ApplicationEventPublisher eventPublisher;
     private final TaxService taxService;
     private final ResolvedGlAccounts resolvedGlAccounts;
+    private final FineractOutboxService outboxService;
 
     // ── Create pending schedule ─────────────────────────────────────────────
 
@@ -564,7 +567,24 @@ public class ScheduledPaymentService {
                         String.format("IRCM tax expense: %s coupon", bond.getSymbol())));
             }
 
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("bondId", bond.getId());
+            payload.put("userId", String.valueOf(holder.getUserId()));
+            payload.put("holderUnits", holder.getTotalUnits().toPlainString());
+            payload.put("grossAmount", cashAmount.toPlainString());
+            payload.put("ircmAmount", ircmAmount.toPlainString());
+            payload.put("netPayment", netPayment.toPlainString());
+            payload.put("couponDate", couponDate.toString());
+            payload.put("grossAmountPerUnit", grossAmountPerUnit.toPlainString());
+
+            String idempotencyKey = "COUPON-" + bond.getId() + "-" + couponDate + "-" + holder.getUserId();
+            FineractOutboxEntry outbox = outboxService.writePendingEntry(
+                    "COUPON_PAYMENT", "INTEREST_PAYMENT",
+                    bond.getId() + "-" + couponDate + "-" + holder.getUserId(),
+                    idempotencyKey, payload);
+
             List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
+            outboxService.markDispatched(outbox.getId(), Map.of("ok", "true"));
 
             // Extract transferId from first batch response (net payment)
             Long transferId = results.isEmpty() ? null :
@@ -585,6 +605,7 @@ public class ScheduledPaymentService {
                     netPayment, bond.getInterestRate(), couponDate));
 
             interestPaymentRepository.save(record.build());
+            outboxService.markConfirmed(outbox.getId());
             return true;
 
         } catch (Exception e) {
@@ -650,7 +671,25 @@ public class ScheduledPaymentService {
                         String.format("IRCM tax expense: %s %s", asset.getSymbol(), incomeType)));
             }
 
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("assetId", asset.getId());
+            payload.put("userId", String.valueOf(holder.getUserId()));
+            payload.put("holderUnits", holder.getTotalUnits().toPlainString());
+            payload.put("grossAmount", cashAmount.toPlainString());
+            payload.put("ircmAmount", ircmAmount.toPlainString());
+            payload.put("netPayment", netPayment.toPlainString());
+            payload.put("distributionDate", distributionDate.toString());
+            payload.put("incomeType", incomeType);
+            payload.put("rateApplied", rateApplied != null ? rateApplied.toPlainString() : null);
+
+            String idempotencyKey = "INCOME-" + asset.getId() + "-" + distributionDate + "-" + holder.getUserId();
+            FineractOutboxEntry outbox = outboxService.writePendingEntry(
+                    "INCOME_DISTRIBUTION", "INCOME_DISTRIBUTION",
+                    asset.getId() + "-" + distributionDate + "-" + holder.getUserId(),
+                    idempotencyKey, payload);
+
             List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
+            outboxService.markDispatched(outbox.getId(), Map.of("ok", "true"));
 
             // Extract transferId from first batch response (net payment)
             Long transferId = results.isEmpty() ? null :
@@ -671,6 +710,7 @@ public class ScheduledPaymentService {
                     incomeType, netPayment, distributionDate));
 
             incomeDistributionRepository.save(record.build());
+            outboxService.markConfirmed(outbox.getId());
             return true;
 
         } catch (Exception e) {
@@ -681,6 +721,112 @@ public class ScheduledPaymentService {
             incomeDistributionRepository.save(record.build());
             return false;
         }
+    }
+
+    // ── Outbox retry finalization ────────────────────────────────────────────
+
+    /**
+     * Retry DB finalization for a COUPON_PAYMENT entry whose Fineract batch already succeeded.
+     * Called by {@link com.adorsys.fineract.asset.scheduler.FineractOutboxProcessor}.
+     */
+    @Transactional
+    public void finalizeCouponFromOutbox(FineractOutboxEntry entry) {
+        Map<String, Object> payload = outboxService.parsePayload(entry);
+        String bondId = (String) payload.get("bondId");
+        Long userId = Long.valueOf((String) payload.get("userId"));
+        LocalDate couponDate = LocalDate.parse((String) payload.get("couponDate"));
+
+        if (interestPaymentRepository.existsByAssetIdAndCouponDateAndUserIdAndStatus(
+                bondId, couponDate, userId, "SUCCESS")) {
+            log.info("Outbox coupon already recorded: bondId={}, userId={}, date={}", bondId, userId, couponDate);
+            outboxService.markConfirmed(entry.getId());
+            return;
+        }
+
+        BigDecimal holderUnits = new BigDecimal((String) payload.get("holderUnits"));
+        BigDecimal grossAmount = new BigDecimal((String) payload.get("grossAmount"));
+        BigDecimal ircmAmount = new BigDecimal((String) payload.get("ircmAmount"));
+        BigDecimal netPayment = new BigDecimal((String) payload.get("netPayment"));
+        BigDecimal grossAmountPerUnit = new BigDecimal((String) payload.get("grossAmountPerUnit"));
+
+        Asset bond = assetRepository.findById(bondId)
+                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + bondId));
+        BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
+
+        if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
+            taxService.recordTaxTransaction(null, null, userId, bondId,
+                    "IRCM", grossAmount, ircmRate, ircmAmount, null);
+        }
+
+        InterestPayment payment = InterestPayment.builder()
+                .assetId(bondId)
+                .userId(userId)
+                .units(holderUnits)
+                .faceValue(bond.getEffectiveFaceValue())
+                .annualRate(bond.getInterestRate())
+                .periodMonths(bond.getCouponFrequencyMonths())
+                .cashAmount(netPayment)
+                .grossAmountPerUnit(grossAmountPerUnit)
+                .couponDate(couponDate)
+                .status("SUCCESS")
+                .build();
+        interestPaymentRepository.save(payment);
+
+        outboxService.markConfirmed(entry.getId());
+        log.info("Outbox: finalized coupon for bondId={}, userId={}, date={}, net={}",
+                bondId, userId, couponDate, netPayment);
+    }
+
+    /**
+     * Retry DB finalization for an INCOME_DISTRIBUTION entry whose Fineract batch already succeeded.
+     * Called by {@link com.adorsys.fineract.asset.scheduler.FineractOutboxProcessor}.
+     */
+    @Transactional
+    public void finalizeIncomeFromOutbox(FineractOutboxEntry entry) {
+        Map<String, Object> payload = outboxService.parsePayload(entry);
+        String assetId = (String) payload.get("assetId");
+        Long userId = Long.valueOf((String) payload.get("userId"));
+        LocalDate distributionDate = LocalDate.parse((String) payload.get("distributionDate"));
+
+        if (incomeDistributionRepository.existsByAssetIdAndDistributionDateAndUserIdAndStatus(
+                assetId, distributionDate, userId, "SUCCESS")) {
+            log.info("Outbox income already recorded: assetId={}, userId={}, date={}", assetId, userId, distributionDate);
+            outboxService.markConfirmed(entry.getId());
+            return;
+        }
+
+        BigDecimal holderUnits = new BigDecimal((String) payload.get("holderUnits"));
+        BigDecimal grossAmount = new BigDecimal((String) payload.get("grossAmount"));
+        BigDecimal ircmAmount = new BigDecimal((String) payload.get("ircmAmount"));
+        BigDecimal netPayment = new BigDecimal((String) payload.get("netPayment"));
+        String incomeType = (String) payload.get("incomeType");
+        String rateStr = (String) payload.get("rateApplied");
+        BigDecimal rateApplied = rateStr != null ? new BigDecimal(rateStr) : null;
+
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + assetId));
+        BigDecimal ircmRate = taxService.getEffectiveIrcmRate(asset);
+
+        if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
+            taxService.recordTaxTransaction(null, null, userId, assetId,
+                    "IRCM", grossAmount, ircmRate, ircmAmount, null);
+        }
+
+        IncomeDistribution distribution = IncomeDistribution.builder()
+                .assetId(assetId)
+                .userId(userId)
+                .incomeType(incomeType)
+                .units(holderUnits)
+                .rateApplied(rateApplied)
+                .cashAmount(netPayment)
+                .distributionDate(distributionDate)
+                .status("SUCCESS")
+                .build();
+        incomeDistributionRepository.save(distribution);
+
+        outboxService.markConfirmed(entry.getId());
+        log.info("Outbox: finalized income for assetId={}, userId={}, date={}, net={}",
+                assetId, userId, distributionDate, netPayment);
     }
 
     // ── Mapping ─────────────────────────────────────────────────────────────

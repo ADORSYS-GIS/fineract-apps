@@ -1,12 +1,15 @@
 package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.client.FineractClient;
+import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
+import com.adorsys.fineract.asset.client.FineractClient.BatchTransferOp;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.dto.BondType;
 import com.adorsys.fineract.asset.dto.RedemptionTriggerResponse;
 import com.adorsys.fineract.asset.dto.RedemptionTriggerResponse.HolderRedemptionDetail;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
 import com.adorsys.fineract.asset.entity.PrincipalRedemption;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.exception.AssetException;
@@ -24,7 +27,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,6 +54,7 @@ public class PrincipalRedemptionService {
     private final PortfolioService portfolioService;
     private final TaxService taxService;
     private final AssetMetrics assetMetrics;
+    private final FineractOutboxService outboxService;
 
     /**
      * Redeem principal for all holders of a matured bond.
@@ -241,51 +247,58 @@ public class PrincipalRedemptionService {
                         + " account for user " + holder.getUserId());
             }
 
-            // b. Asset leg first: user asset account → LP asset account
-            String assetDescription = String.format("Principal redemption — asset return: %s (%.8f units)",
-                    bond.getSymbol(), units);
-            Long assetTransferId = fineractClient.createAccountTransfer(
+            // b. Build atomic batch: all 3 legs in one transaction
+            List<BatchOperation> ops = new ArrayList<>();
+            ops.add(new BatchTransferOp(
                     holder.getFineractSavingsAccountId(), bond.getLpAssetAccountId(),
-                    units, assetDescription);
-
-            // c. Cash leg: LP cash account → user XAF account (net of IRCM)
-            String cashDescription = String.format("Principal redemption: %s (%.8f units @ %s face value%s)",
-                    bond.getSymbol(), units, faceValue,
-                    ircmAmount.compareTo(BigDecimal.ZERO) > 0 ? ", net of IRCM " + ircmAmount : "");
-            Long cashTransferId = fineractClient.createAccountTransfer(
+                    units, "Principal redemption — asset return: " + bond.getSymbol()));
+            ops.add(new BatchTransferOp(
                     bond.getLpCashAccountId(), userCashAccountId,
-                    cashAmount, cashDescription);
+                    cashAmount, String.format("Principal redemption: %s (net of IRCM %s)", bond.getSymbol(), ircmAmount)));
+            if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
+                ops.add(new BatchTransferOp(
+                        bond.getLpCashAccountId(), taxService.getIrcmAccountId(),
+                        ircmAmount, "IRCM on BTA capital gain: " + bond.getSymbol() + " user=" + holder.getUserId()));
+            }
 
-            // d. IRCM leg: LP cash account → tax authority account
+            // c. Write outbox before Fineract (REQUIRES_NEW — persists regardless of outer TX)
+            String idempotencyKey = "REDEEM-" + bond.getId() + "-" + holder.getUserId();
+            FineractOutboxEntry outbox = outboxService.writePendingEntry(
+                    "PRINCIPAL_REDEMPTION", "PRINCIPAL_REDEMPTION", bond.getId() + ":" + holder.getUserId(),
+                    idempotencyKey, buildRedemptionPayload(bond, holder, units, cashAmount, ircmAmount, grossCashAmount, userCashAccountId));
+
+            // d. Execute atomic batch
+            List<Map<String, Object>> batchResult;
+            try {
+                batchResult = fineractClient.executeAtomicBatch(ops);
+            } catch (Exception batchError) {
+                outboxService.markAborted(outbox.getId(), batchError.getMessage());
+                throw batchError;
+            }
+            outboxService.markDispatched(outbox.getId(), Map.of("batchResult", "ok"));
+
+            // e. DB finalization: position, supply, audit record
+            Long assetTransferId = extractFirstResourceId(batchResult, 1);
+            Long cashTransferId  = extractFirstResourceId(batchResult, 2);
+
+            BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
+                    holder.getUserId(), bond.getId(), units, faceValue, null, null);
+            assetRepository.adjustCirculatingSupply(bond.getId(), units.negate());
+
             if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
-                BigDecimal totalGain = grossCashAmount.subtract(
-                        units.multiply(holder.getAvgPurchasePrice()).setScale(0, RoundingMode.HALF_UP));
-                String ircmDescription = String.format("IRCM on BTA capital gain: %s, user=%d, gain=%s",
-                        bond.getSymbol(), holder.getUserId(), totalGain);
-                fineractClient.createAccountTransfer(
-                        bond.getLpCashAccountId(), taxService.getIrcmAccountId(),
-                        ircmAmount, ircmDescription);
                 taxService.recordTaxTransaction(null, null, holder.getUserId(), bond.getId(),
                         "IRCM", grossCashAmount, ircmRate, ircmAmount, null);
                 log.debug("IRCM withheld on BTA redemption: bond={}, user={}, gross={}, ircm={}, net={}",
                         bond.getSymbol(), holder.getUserId(), grossCashAmount, ircmAmount, cashAmount);
             }
 
-            // e. Update position: zero out units, record realized P&L
-            // Bond maturity is a system-initiated redemption — no trading fees or taxes apply here
-            BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(
-                    holder.getUserId(), bond.getId(), units, faceValue, null, null);
-
-            // f. Decrement circulating supply
-            assetRepository.adjustCirculatingSupply(bond.getId(), units.negate());
-
-            // g. Save audit record
             record.fineractCashTransferId(cashTransferId)
                   .fineractAssetTransferId(assetTransferId)
                   .realizedPnl(realizedPnl)
                   .status("SUCCESS");
             principalRedemptionRepository.save(record.build());
+            outboxService.markConfirmed(outbox.getId());
 
             log.info("Principal redeemed: bond={}, user={}, units={}, cash={}, pnl={}, cashTx={}, assetTx={}",
                     bond.getSymbol(), holder.getUserId(), units, cashAmount, realizedPnl,
@@ -301,6 +314,83 @@ public class PrincipalRedemptionService {
             principalRedemptionRepository.save(record.build());
             return new RedeemResult("FAILED", reason);
         }
+    }
+
+    /**
+     * Retry DB finalization for a DISPATCHED outbox entry. Called by FineractOutboxProcessor.
+     */
+    @Transactional
+    public void finalizeRedemptionFromOutbox(FineractOutboxEntry entry) {
+        Map<String, Object> payload = outboxService.parsePayload(entry);
+
+        String bondId = (String) payload.get("bondId");
+        Long userId = ((Number) payload.get("userId")).longValue();
+
+        // Idempotency: already finalized if SUCCESS record exists
+        if (principalRedemptionRepository.findByAssetId(bondId).stream()
+                .anyMatch(r -> "SUCCESS".equals(r.getStatus()) && userId.equals(r.getUserId()))) {
+            outboxService.markConfirmed(entry.getId());
+            return;
+        }
+
+        Asset bond = assetRepository.findById(bondId)
+                .orElseThrow(() -> new IllegalStateException("Bond not found for outbox retry: " + bondId));
+        UserPosition holder = userPositionRepository.findByUserIdAndAssetId(userId, bondId)
+                .orElseThrow(() -> new IllegalStateException("Position not found: user=" + userId + " bond=" + bondId));
+
+        BigDecimal units        = new BigDecimal((String) payload.get("units"));
+        BigDecimal faceValue    = new BigDecimal((String) payload.get("faceValue"));
+        BigDecimal cashAmount   = new BigDecimal((String) payload.get("cashAmount"));
+        BigDecimal ircmAmount   = new BigDecimal((String) payload.get("ircmAmount"));
+        BigDecimal grossCash    = new BigDecimal((String) payload.get("grossCashAmount"));
+
+        BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(userId, bondId, units, faceValue, null, null);
+        assetRepository.adjustCirculatingSupply(bondId, units.negate());
+
+        if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
+            taxService.recordTaxTransaction(null, null, userId, bondId,
+                    "IRCM", grossCash, ircmRate, ircmAmount, null);
+        }
+
+        PrincipalRedemption rec = PrincipalRedemption.builder()
+                .assetId(bondId).userId(userId).units(units).faceValue(faceValue)
+                .cashAmount(cashAmount).redemptionDate(java.time.LocalDate.now())
+                .realizedPnl(realizedPnl).status("SUCCESS").build();
+        principalRedemptionRepository.save(rec);
+        outboxService.markConfirmed(entry.getId());
+
+        log.info("Outbox retry: principal redemption finalized bond={}, user={}", bond.getSymbol(), userId);
+    }
+
+    private Map<String, Object> buildRedemptionPayload(Asset bond, UserPosition holder,
+            BigDecimal units, BigDecimal cashAmount, BigDecimal ircmAmount,
+            BigDecimal grossCashAmount, Long userCashAccountId) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("bondId", bond.getId());
+        p.put("userId", holder.getUserId());
+        p.put("units", units.toPlainString());
+        p.put("faceValue", bond.getEffectiveFaceValue().toPlainString());
+        p.put("cashAmount", cashAmount.toPlainString());
+        p.put("ircmAmount", ircmAmount.toPlainString());
+        p.put("grossCashAmount", grossCashAmount.toPlainString());
+        p.put("userCashAccountId", userCashAccountId);
+        return p;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Long extractFirstResourceId(List<Map<String, Object>> batchResult, int requestId) {
+        for (Map<String, Object> resp : batchResult) {
+            Object rid = resp.get("requestId");
+            if (rid != null && ((Number) rid).intValue() == requestId) {
+                Object body = resp.get("body");
+                if (body instanceof Map<?, ?> bodyMap) {
+                    Object id = bodyMap.get("resourceId");
+                    return id != null ? ((Number) id).longValue() : null;
+                }
+            }
+        }
+        return null;
     }
 
     private record RedeemResult(String status, String failureReason) {}
