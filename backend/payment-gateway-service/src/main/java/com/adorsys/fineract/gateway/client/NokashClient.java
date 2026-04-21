@@ -42,7 +42,7 @@ public class NokashClient {
             "country", config.getCountry(),
             "payment_method", paymentMethod,
             "order_id", orderId,
-            "amount", amount.longValue(),
+            "amount", String.valueOf(amount.longValue()),
             "callback_url", secureCallbackUrl,
             "user_data", Map.of("user_phone", PhoneNumberUtils.normalizePhoneNumber(phoneNumber))
         );
@@ -186,7 +186,7 @@ public class NokashClient {
             "payment_method", paymentMethod,
             "country", config.getCountry(),
             "order_id", orderId,
-            "amount", amount.longValue(),
+            "amount", String.valueOf(amount.longValue()),
             "callback_url", secureCallbackUrl,
             "user_data", Map.of("user_phone", PhoneNumberUtils.normalizePhoneNumber(phoneNumber))
         );
