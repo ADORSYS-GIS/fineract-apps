@@ -671,6 +671,9 @@ public class PaymentService {
 
     private PaymentResponse initiateNokashDeposit(String transactionId, DepositRequest request) {
         log.info("Initiating NOKASH deposit for transactionId: {}", transactionId);
+        if (request.getPaymentMethod() == null || request.getPaymentMethod().isBlank()) {
+            throw new PaymentException("Payment method is required for NOKASH deposits");
+        }
         String providerReference = nokashClient.initiatePayin(
             transactionId,
             request.getAmount(),
