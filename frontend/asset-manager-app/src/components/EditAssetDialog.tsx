@@ -805,21 +805,6 @@ const TaxSection: FC<{
 				/>
 			</div>
 		)}
-		{/* BVMAC listing */}
-		<div className="flex items-center justify-between">
-			<div>
-				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-					BVMAC Listed
-				</p>
-				<p className="text-xs text-gray-400">Triggers reduced 11% IRCM rate</p>
-			</div>
-			<input
-				type="checkbox"
-				checked={isBvmacListed}
-				onChange={(e) => setFieldValue("isBvmacListed", e.target.checked)}
-				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-			/>
-		</div>
 		{/* Government bond */}
 		<div className="flex items-center justify-between">
 			<div>

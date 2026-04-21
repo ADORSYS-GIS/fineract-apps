@@ -260,10 +260,6 @@ export const ReviewStep: FC<Props> = ({ formData }) => {
 				<div className="grid grid-cols-2 gap-2 text-sm">
 					{formData.category === "BONDS" && (
 						<>
-							<div className="text-gray-600">BVMAC Listed:</div>
-							<div className="font-medium">
-								{formData.isBvmacListed ? "Yes (IRCM 11%)" : "No"}
-							</div>
 							<div className="text-gray-600">Government Bond:</div>
 							<div className="font-medium">
 								{formData.isGovernmentBond ? "Yes (IRCM exempt)" : "No"}

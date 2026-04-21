@@ -38,21 +38,6 @@ export const TaxConfigurationStep: FC<Props> = ({
 					<div className="flex items-center gap-3">
 						<input
 							type="checkbox"
-							id="bvmac-listed"
-							className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-							checked={formData.isBvmacListed}
-							onChange={(e) =>
-								updateFormData({ isBvmacListed: e.target.checked })
-							}
-						/>
-						<label htmlFor="bvmac-listed" className="text-sm text-gray-700">
-							Listed on BVMAC{" "}
-							<span className="text-gray-400">(→ IRCM rate: 11%)</span>
-						</label>
-					</div>
-					<div className="flex items-center gap-3">
-						<input
-							type="checkbox"
 							id="gov-bond"
 							className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
 							checked={formData.isGovernmentBond}
@@ -182,7 +167,7 @@ export const TaxConfigurationStep: FC<Props> = ({
 								/>
 								<p className="text-xs text-gray-400 mt-1">
 									Leave at 0 for automatic rate: dividends 16.5%, bonds
-									{" \u2265"}5yr 5.5%, BVMAC-listed 11%.
+									{" \u2265"}5yr 5.5%.
 								</p>
 							</div>
 						)}
@@ -300,7 +285,6 @@ export const TaxConfigurationStep: FC<Props> = ({
 					</li>
 					<li>IRCM dividends: 16.5% withholding</li>
 					<li>IRCM bonds {"\u2265"}5 years: 5.5% withholding</li>
-					<li>IRCM BVMAC-listed equities: 11% withholding</li>
 					<li>Capital gains: 16.5% (500,000 XAF annual exemption)</li>
 					<li>TVA: 19.25% on trading fees (disabled by default)</li>
 				</ul>
