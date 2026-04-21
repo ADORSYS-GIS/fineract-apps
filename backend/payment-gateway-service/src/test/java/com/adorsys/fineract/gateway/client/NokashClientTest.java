@@ -22,8 +22,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ExtendWith(MockitoExtension.class)
 class NokashClientTest {
 
-    @Mock
-    private TokenCacheService tokenCacheService;
 
     private MockWebServer mockWebServer;
     private NokashClient nokashClient;
@@ -46,7 +44,7 @@ class NokashClientTest {
                 .baseUrl(mockWebServer.url("/").toString())
                 .build();
 
-        nokashClient = new NokashClient(config, webClient, tokenCacheService);
+        nokashClient = new NokashClient(config, webClient);
     }
 
     @AfterEach

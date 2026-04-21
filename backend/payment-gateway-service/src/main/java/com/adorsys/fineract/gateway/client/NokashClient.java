@@ -22,12 +22,10 @@ public class NokashClient {
 
     private final NokashConfig config;
     private final WebClient webClient;
-    private final TokenCacheService tokenCacheService;
 
-    public NokashClient(NokashConfig config, @Qualifier("nokashWebClient") WebClient webClient, TokenCacheService tokenCacheService) {
+    public NokashClient(NokashConfig config, @Qualifier("nokashWebClient") WebClient webClient) {
         this.config = config;
         this.webClient = webClient;
-        this.tokenCacheService = tokenCacheService;
     }
     public String initiatePayin(String orderId, BigDecimal amount, String phoneNumber, String paymentMethod) {
         log.info("Initiating NOKASH Payin: orderId={}, amount={}, phone={}, method={}",
