@@ -74,7 +74,9 @@ public class OrangeMoneyConfig {
     private Long fineractPaymentTypeId;
 
     /**
-     * GL account code for Orange Money in Fineract
+     * GL account code for Orange Money in Fineract.
+     * Used for GL reconciliation reporting — not passed to createDeposit/createWithdrawal.
+     * Fineract GL routing happens via paymentTypeId → paymentChannelToFundSourceMappings.
      */
     private String glAccountCode = "44";
 }

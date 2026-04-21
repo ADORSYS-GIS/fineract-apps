@@ -18,5 +18,7 @@ public class NokashConfig {
     private int timeoutSeconds = 90;
     private String currency = "XAF";
     private Long fineractPaymentTypeId;
+    // TODO: Used for GL reconciliation reporting — not passed to createDeposit/createWithdrawal.
+    // Fineract GL routing happens via paymentTypeId → paymentChannelToFundSourceMappings.
     private String glAccountCode;
 }
