@@ -1004,7 +1004,7 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 										</p>
 										<div className="grid grid-cols-2 gap-4">
 											<div>
-												<label className={LABEL_CLASS}>Coupon Rate (%)</label>
+												<label className={LABEL_CLASS}>Interest Rate (%)</label>
 												<Field
 													name="interestRate"
 													type="number"
