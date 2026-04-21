@@ -192,14 +192,16 @@ public final class WireMockProviderStubs {
     }
 
     /** Stub NOKASH collection status poll returning SUCCESSFUL. */
-    public static void stubNokashGetCollectionStatusSuccess(String referenceId) {
-        WIRE_MOCK.stubFor(post(urlPathEqualTo("/lapas-on-trans/trans/310/status-request"))
+    public static void stubNokashGetCollectionStatusSuccess(String transactionId) {
+        WIRE_MOCK.stubFor(get(urlPathEqualTo("/lapas-on-trans/trans/310/status-request"))
+                .withQueryParam("transaction_id", equalTo(transactionId))
                 .willReturn(okJson("{\"status\":\"REQUEST_OK\",\"data\":{\"status\":\"SUCCESS\"}}")));
     }
 
     /** Stub NOKASH collection status poll returning FAILED. */
-    public static void stubNokashGetCollectionStatusFailed(String referenceId) {
-        WIRE_MOCK.stubFor(post(urlPathEqualTo("/lapas-on-trans/trans/310/status-request"))
+    public static void stubNokashGetCollectionStatusFailed(String transactionId) {
+        WIRE_MOCK.stubFor(get(urlPathEqualTo("/lapas-on-trans/trans/310/status-request"))
+                .withQueryParam("transaction_id", equalTo(transactionId))
                 .willReturn(okJson("{\"status\":\"REQUEST_OK\",\"data\":{\"status\":\"FAILED\"}}")));
     }
 
