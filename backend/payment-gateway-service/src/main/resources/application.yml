@@ -142,10 +142,10 @@ app:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
     interval-ms: ${APP_CLEANUP_INTERVAL_MS:300000}
-    pending-stale-minutes: ${APP_CLEANUP_PENDING_STALE_MINUTES:3}
-    pending-interval-ms: ${APP_CLEANUP_PENDING_INTERVAL_MS:120000}
-    processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:60}
-    processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:600000}
+    pending-stale-minutes: ${APP_CLEANUP_PENDING_STALE_MINUTES:1}
+    pending-interval-ms: ${APP_CLEANUP_PENDING_INTERVAL_MS:30000}
+    processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:1}
+    processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:30000}
     stale-processing-max-retries: ${APP_CLEANUP_STALE_PROCESSING_MAX_RETRIES:5}
   status:
     provider-check-enabled: ${APP_STATUS_PROVIDER_CHECK_ENABLED:true}
