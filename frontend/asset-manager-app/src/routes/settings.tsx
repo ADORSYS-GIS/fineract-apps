@@ -58,7 +58,7 @@ function Settings() {
 						<div className="flex justify-between">
 							<span className="text-gray-500">Asset Service</span>
 							<span className="font-mono text-gray-900">
-								{backendVersion
+								{backendVersion && backendVersion.commit !== "unknown"
 									? `${backendVersion.commit} (${backendVersion.branch})`
 									: "—"}
 							</span>
