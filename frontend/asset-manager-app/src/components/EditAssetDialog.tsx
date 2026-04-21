@@ -36,7 +36,6 @@ interface EditFormValues {
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
 	capitalGainsRate: string;
-	isBvmacListed: boolean;
 	isGovernmentBond: boolean;
 	tvaEnabled: boolean;
 	tvaRate: string;
@@ -93,7 +92,6 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 			asset.capitalGainsRate != null
 				? (asset.capitalGainsRate * 100).toString()
 				: "",
-		isBvmacListed: asset.isBvmacListed ?? false,
 		isGovernmentBond: asset.isGovernmentBond ?? false,
 		tvaEnabled: asset.tvaEnabled ?? false,
 		tvaRate: asset.tvaRate != null ? (asset.tvaRate * 100).toString() : "",
@@ -168,7 +166,6 @@ const BOOL_FIELDS: (keyof EditFormValues)[] = [
 	"ircmEnabled",
 	"ircmExempt",
 	"capitalGainsTaxEnabled",
-	"isBvmacListed",
 	"isGovernmentBond",
 	"tvaEnabled",
 ];
@@ -673,7 +670,6 @@ const TaxSection: FC<{
 	ircmEnabled: boolean;
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
-	isBvmacListed: boolean;
 	isGovernmentBond: boolean;
 	tvaEnabled: boolean;
 	setFieldValue: (field: string, value: boolean | string) => void;
@@ -682,7 +678,6 @@ const TaxSection: FC<{
 	ircmEnabled,
 	ircmExempt,
 	capitalGainsTaxEnabled,
-	isBvmacListed,
 	isGovernmentBond,
 	tvaEnabled,
 	setFieldValue,
@@ -805,21 +800,6 @@ const TaxSection: FC<{
 				/>
 			</div>
 		)}
-		{/* BVMAC listing */}
-		<div className="flex items-center justify-between">
-			<div>
-				<p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-					BVMAC Listed
-				</p>
-				<p className="text-xs text-gray-400">Triggers reduced 11% IRCM rate</p>
-			</div>
-			<input
-				type="checkbox"
-				checked={isBvmacListed}
-				onChange={(e) => setFieldValue("isBvmacListed", e.target.checked)}
-				className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-			/>
-		</div>
 		{/* Government bond */}
 		<div className="flex items-center justify-between">
 			<div>
@@ -1040,7 +1020,6 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 									ircmEnabled={formik.values.ircmEnabled}
 									ircmExempt={formik.values.ircmExempt}
 									capitalGainsTaxEnabled={formik.values.capitalGainsTaxEnabled}
-									isBvmacListed={formik.values.isBvmacListed}
 									isGovernmentBond={formik.values.isGovernmentBond}
 									tvaEnabled={formik.values.tvaEnabled}
 									setFieldValue={formik.setFieldValue}

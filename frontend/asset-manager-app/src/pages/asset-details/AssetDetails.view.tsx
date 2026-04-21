@@ -563,11 +563,6 @@ function BondInfoCard({
 						<p className="font-medium text-green-700">Exempté (manuel)</p>
 					) : !asset.ircmEnabled ? (
 						<p className="font-medium text-gray-500">Disabled</p>
-					) : asset.isBvmacListed ? (
-						<p className="font-medium flex items-center gap-1">
-							<AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-							Assujetti — 11% (BVMAC listed)
-						</p>
 					) : (
 						<p className="font-medium flex items-center gap-1">
 							<AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
@@ -589,12 +584,7 @@ function BondInfoCard({
 								Government bond
 							</span>
 						)}
-						{asset.isBvmacListed && (
-							<span className="inline-block px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
-								BVMAC listed
-							</span>
-						)}
-						{!asset.isGovernmentBond && !asset.isBvmacListed && (
+						{!asset.isGovernmentBond && (
 							<span className="text-gray-500">Standard</span>
 						)}
 					</p>
@@ -865,19 +855,6 @@ function TaxConfigCard({
 			<div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
 				{asset.category === "BONDS" && (
 					<>
-						<div>
-							<p className="text-gray-500">BVMAC Listed</p>
-							<p className="font-medium">
-								{a.isBvmacListed ? (
-									<span className="text-blue-700">Yes</span>
-								) : (
-									"No"
-								)}
-							</p>
-							<p className="text-xs text-gray-400">
-								BVMAC-listed bonds use 11% IRCM rate
-							</p>
-						</div>
 						<div>
 							<p className="text-gray-500">Government Bond</p>
 							<p className="font-medium">
