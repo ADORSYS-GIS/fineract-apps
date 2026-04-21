@@ -15,7 +15,7 @@ public class VersionController {
     @Value("${git.branch:unknown}")
     private String branch;
 
-    @GetMapping("/api/version")
+    @GetMapping("/version")
     public Map<String, String> getVersion() {
         return Map.of(
             "commit", commitId,

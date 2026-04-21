@@ -14,11 +14,10 @@ export const Route = createFileRoute("/settings")({
 function Settings() {
 	const { t } = useTranslation();
 
-	const apiEndpoint =
+	const fineractApiUrl =
 		import.meta.env.VITE_FINERACT_API_URL || "http://localhost:8443";
-	const authMode = import.meta.env.VITE_AUTH_MODE || "basic";
-	const assetServiceUrl =
-		import.meta.env.VITE_ASSET_SERVICE_URL || "http://localhost:8083";
+	const apiVersionMatch = fineractApiUrl.match(/\/v(\d+)/);
+	const apiVersion = apiVersionMatch ? `v${apiVersionMatch[1]}` : "v1";
 
 	const [backendVersion, setBackendVersion] = useState<{
 		commit: string;
@@ -26,11 +25,11 @@ function Settings() {
 	} | null>(null);
 
 	useEffect(() => {
-		fetch(`${assetServiceUrl}/api/version`)
+		fetch("/api/v1/version")
 			.then((res) => res.json())
 			.then(setBackendVersion)
 			.catch(() => setBackendVersion(null));
-	}, [assetServiceUrl]);
+	}, []);
 
 	return (
 		<div className="bg-gray-50 min-h-screen">
@@ -45,12 +44,8 @@ function Settings() {
 					</h2>
 					<div className="space-y-4 text-sm">
 						<div className="flex justify-between">
-							<span className="text-gray-500">API Endpoint</span>
-							<span className="font-mono text-gray-900">{apiEndpoint}</span>
-						</div>
-						<div className="flex justify-between">
-							<span className="text-gray-500">Auth Mode</span>
-							<span className="font-medium text-gray-900">{authMode}</span>
+							<span className="text-gray-500">API Version</span>
+							<span className="font-mono text-gray-900">{apiVersion}</span>
 						</div>
 						<div className="flex justify-between">
 							<span className="text-gray-500">Release Tag</span>
