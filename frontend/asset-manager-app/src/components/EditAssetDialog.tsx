@@ -36,7 +36,6 @@ interface EditFormValues {
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
 	capitalGainsRate: string;
-	isBvmacListed: boolean;
 	isGovernmentBond: boolean;
 	tvaEnabled: boolean;
 	tvaRate: string;
@@ -93,7 +92,6 @@ function buildInitialValues(asset: AssetDetailResponse): EditFormValues {
 			asset.capitalGainsRate != null
 				? (asset.capitalGainsRate * 100).toString()
 				: "",
-		isBvmacListed: asset.isBvmacListed ?? false,
 		isGovernmentBond: asset.isGovernmentBond ?? false,
 		tvaEnabled: asset.tvaEnabled ?? false,
 		tvaRate: asset.tvaRate != null ? (asset.tvaRate * 100).toString() : "",
@@ -168,7 +166,6 @@ const BOOL_FIELDS: (keyof EditFormValues)[] = [
 	"ircmEnabled",
 	"ircmExempt",
 	"capitalGainsTaxEnabled",
-	"isBvmacListed",
 	"isGovernmentBond",
 	"tvaEnabled",
 ];
@@ -673,7 +670,6 @@ const TaxSection: FC<{
 	ircmEnabled: boolean;
 	ircmExempt: boolean;
 	capitalGainsTaxEnabled: boolean;
-	isBvmacListed: boolean;
 	isGovernmentBond: boolean;
 	tvaEnabled: boolean;
 	setFieldValue: (field: string, value: boolean | string) => void;
@@ -682,7 +678,6 @@ const TaxSection: FC<{
 	ircmEnabled,
 	ircmExempt,
 	capitalGainsTaxEnabled,
-	isBvmacListed,
 	isGovernmentBond,
 	tvaEnabled,
 	setFieldValue,
@@ -1025,7 +1020,6 @@ export const EditAssetDialog: FC<EditAssetDialogProps> = ({
 									ircmEnabled={formik.values.ircmEnabled}
 									ircmExempt={formik.values.ircmExempt}
 									capitalGainsTaxEnabled={formik.values.capitalGainsTaxEnabled}
-									isBvmacListed={formik.values.isBvmacListed}
 									isGovernmentBond={formik.values.isGovernmentBond}
 									tvaEnabled={formik.values.tvaEnabled}
 									setFieldValue={formik.setFieldValue}
