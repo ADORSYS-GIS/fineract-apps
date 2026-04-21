@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,7 +25,8 @@ import java.util.List;
  * Does NOT re-call Fineract to avoid double transfers.</p>
  *
  * <p>PENDING entries older than 5 minutes indicate a stuck execution (service crash
- * between outbox write and Fineract call) and require admin attention.</p>
+ * between outbox write and Fineract call). These require manual review — the Fineract
+ * call was never made, so no money moved. The processor alerts via log.error and a metric.</p>
  */
 @Slf4j
 @Component
@@ -40,11 +40,30 @@ public class FineractOutboxProcessor {
     private final PrincipalRedemptionService principalRedemptionService;
     private final DelistingService delistingService;
 
+    /**
+     * Retries DB finalization for DISPATCHED entries (Fineract succeeded, DB write failed).
+     *
+     * <p>No outer {@code @Transactional}: each {@code finalizeXxxFromOutbox} call is independently
+     * transactional, and {@code markFailed} uses REQUIRES_NEW. An outer transaction would bundle
+     * all 50 entries into one unit-of-work and hold FOR UPDATE locks during HTTP calls.</p>
+     *
+     * <p>ShedLock ensures single-pod execution, so FOR UPDATE SKIP LOCKED is belt-and-suspenders.
+     * Idempotency guards + optimistic locking on entity @Version fields handle any theoretical
+     * duplicate if ShedLock ever misses.</p>
+     */
     @Scheduled(fixedDelay = 10_000)
     @SchedulerLock(name = "fineract-outbox-processor", lockAtMostFor = "PT55S", lockAtLeastFor = "PT5S")
-    @Transactional
     public void processPendingEntries() {
-        Instant cutoff = Instant.now().minusSeconds(30);
+        Instant now = Instant.now();
+
+        // Alert on stuck PENDING entries: Fineract was never called, no money moved, needs triage.
+        long stuckPending = outboxRepository.countStuckPending(now.minusSeconds(300));
+        if (stuckPending > 0) {
+            log.error("Outbox: {} PENDING entr{} older than 5 min — possible crash before Fineract call. Manual review required.",
+                    stuckPending, stuckPending == 1 ? "y" : "ies");
+        }
+
+        Instant cutoff = now.minusSeconds(30);
         List<FineractOutboxEntry> entries = outboxRepository.findDispatchedForProcessing(cutoff, 50);
 
         if (!entries.isEmpty()) {

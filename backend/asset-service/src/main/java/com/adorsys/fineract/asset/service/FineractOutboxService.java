@@ -71,8 +71,13 @@ public class FineractOutboxService {
     }
 
     /**
-     * Mark an entry as CONFIRMED. Participates in the caller's transaction so that
-     * the status update commits atomically with all DB finalization writes.
+     * Mark an entry as CONFIRMED. Uses default REQUIRED propagation to join the caller's
+     * transaction so the status update commits atomically with all DB finalization writes.
+     *
+     * <p><strong>Do NOT change to REQUIRES_NEW.</strong> If markConfirmed committed in its own
+     * transaction before the caller's DB writes commit, a crash between the two would leave the
+     * entry CONFIRMED but the portfolio/position writes absent — exactly the inconsistency the
+     * outbox pattern is designed to prevent.</p>
      */
     @Transactional
     public void markConfirmed(UUID id) {

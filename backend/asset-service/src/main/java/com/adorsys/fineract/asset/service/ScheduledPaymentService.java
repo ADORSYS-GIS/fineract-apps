@@ -541,48 +541,53 @@ public class ScheduledPaymentService {
                 .grossAmountPerUnit(grossAmountPerUnit)
                 .couponDate(couponDate);
 
+        Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(
+                holder.getUserId(), currency);
+        if (userCashAccountId == null) {
+            record.status("FAILED").failureReason("No active " + currency + " account");
+            assetMetrics.recordCouponFailed();
+            interestPaymentRepository.save(record.build());
+            return false;
+        }
+
+        // Build atomic batch: net payment + IRCM transfer
+        String description = String.format("Coupon payment: %s %s%% (%dm) [net after IRCM]",
+                bond.getSymbol(), bond.getInterestRate(), bond.getCouponFrequencyMonths());
+
+        List<BatchOperation> ops = new ArrayList<>();
+        ops.add(new BatchTransferOp(bond.getLpCashAccountId(), userCashAccountId, netPayment, description));
+
+        if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
+            String ircmDesc = String.format("IRCM withholding: %s coupon (%s%%)",
+                    bond.getSymbol(), ircmRate.multiply(new BigDecimal("100")));
+            ops.add(new BatchTransferOp(bond.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+            // GL entry: debit tax expense (608), credit IRCM withholding payable (4013)
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getTaxExpenseIrcmId(),
+                    resolvedGlAccounts.getLpTaxWithholdingId(),
+                    ircmAmount, "XAF",
+                    String.format("IRCM tax expense: %s coupon", bond.getSymbol())));
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("bondId", bond.getId());
+        payload.put("userId", String.valueOf(holder.getUserId()));
+        payload.put("holderUnits", holder.getTotalUnits().toPlainString());
+        payload.put("grossAmount", cashAmount.toPlainString());
+        payload.put("ircmAmount", ircmAmount.toPlainString());
+        payload.put("netPayment", netPayment.toPlainString());
+        payload.put("couponDate", couponDate.toString());
+        payload.put("grossAmountPerUnit", grossAmountPerUnit.toPlainString());
+
+        String idempotencyKey = "COUPON-" + bond.getId() + "-" + couponDate + "-" + holder.getUserId();
+        // writePendingEntry commits in its own transaction (REQUIRES_NEW) — declared outside
+        // the try block so markAborted can reference it in the catch.
+        FineractOutboxEntry outbox = outboxService.writePendingEntry(
+                "COUPON_PAYMENT", "INTEREST_PAYMENT",
+                bond.getId() + "-" + couponDate + "-" + holder.getUserId(),
+                idempotencyKey, payload);
+
         try {
-            Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(
-                    holder.getUserId(), currency);
-            if (userCashAccountId == null) {
-                throw new RuntimeException("No active " + currency + " account for user " + holder.getUserId());
-            }
-
-            // Build atomic batch: net payment + IRCM transfer
-            String description = String.format("Coupon payment: %s %s%% (%dm) [net after IRCM]",
-                    bond.getSymbol(), bond.getInterestRate(), bond.getCouponFrequencyMonths());
-
-            List<BatchOperation> ops = new ArrayList<>();
-            ops.add(new BatchTransferOp(bond.getLpCashAccountId(), userCashAccountId, netPayment, description));
-
-            if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
-                String ircmDesc = String.format("IRCM withholding: %s coupon (%s%%)",
-                        bond.getSymbol(), ircmRate.multiply(new BigDecimal("100")));
-                ops.add(new BatchTransferOp(bond.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
-                // GL entry: debit tax expense (608), credit IRCM withholding payable (4013)
-                ops.add(new BatchJournalEntryOp(
-                        resolvedGlAccounts.getTaxExpenseIrcmId(),
-                        resolvedGlAccounts.getLpTaxWithholdingId(),
-                        ircmAmount, "XAF",
-                        String.format("IRCM tax expense: %s coupon", bond.getSymbol())));
-            }
-
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("bondId", bond.getId());
-            payload.put("userId", String.valueOf(holder.getUserId()));
-            payload.put("holderUnits", holder.getTotalUnits().toPlainString());
-            payload.put("grossAmount", cashAmount.toPlainString());
-            payload.put("ircmAmount", ircmAmount.toPlainString());
-            payload.put("netPayment", netPayment.toPlainString());
-            payload.put("couponDate", couponDate.toString());
-            payload.put("grossAmountPerUnit", grossAmountPerUnit.toPlainString());
-
-            String idempotencyKey = "COUPON-" + bond.getId() + "-" + couponDate + "-" + holder.getUserId();
-            FineractOutboxEntry outbox = outboxService.writePendingEntry(
-                    "COUPON_PAYMENT", "INTEREST_PAYMENT",
-                    bond.getId() + "-" + couponDate + "-" + holder.getUserId(),
-                    idempotencyKey, payload);
-
             List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
             outboxService.markDispatched(outbox.getId(), Map.of("ok", "true"));
 
@@ -609,6 +614,7 @@ public class ScheduledPaymentService {
             return true;
 
         } catch (Exception e) {
+            outboxService.markAborted(outbox.getId(), e.getMessage());
             record.status("FAILED").failureReason(truncate(e.getMessage(), 500));
             assetMetrics.recordCouponFailed();
             log.error("Coupon payment failed: bond={}, user={}, amount={} {}, error={}",
@@ -646,48 +652,53 @@ public class ScheduledPaymentService {
                 .cashAmount(netPayment)
                 .distributionDate(distributionDate);
 
+        Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(
+                holder.getUserId(), currency);
+        if (userCashAccountId == null) {
+            record.status("FAILED").failureReason("No active " + currency + " account");
+            assetMetrics.recordIncomeDistributionFailed(asset.getId(), incomeType);
+            incomeDistributionRepository.save(record.build());
+            return false;
+        }
+
+        // Build atomic batch: net payment + IRCM transfer
+        String description = String.format("%s payment: %s [net after IRCM]", incomeType, asset.getSymbol());
+
+        List<BatchOperation> ops = new ArrayList<>();
+        ops.add(new BatchTransferOp(asset.getLpCashAccountId(), userCashAccountId, netPayment, description));
+
+        if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
+            String ircmDesc = String.format("IRCM withholding: %s %s (%s%%)",
+                    asset.getSymbol(), incomeType, ircmRate.multiply(new BigDecimal("100")));
+            ops.add(new BatchTransferOp(asset.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+            // GL entry: debit tax expense (608), credit IRCM withholding payable (4013)
+            ops.add(new BatchJournalEntryOp(
+                    resolvedGlAccounts.getTaxExpenseIrcmId(),
+                    resolvedGlAccounts.getLpTaxWithholdingId(),
+                    ircmAmount, "XAF",
+                    String.format("IRCM tax expense: %s %s", asset.getSymbol(), incomeType)));
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("assetId", asset.getId());
+        payload.put("userId", String.valueOf(holder.getUserId()));
+        payload.put("holderUnits", holder.getTotalUnits().toPlainString());
+        payload.put("grossAmount", cashAmount.toPlainString());
+        payload.put("ircmAmount", ircmAmount.toPlainString());
+        payload.put("netPayment", netPayment.toPlainString());
+        payload.put("distributionDate", distributionDate.toString());
+        payload.put("incomeType", incomeType);
+        payload.put("rateApplied", rateApplied != null ? rateApplied.toPlainString() : null);
+
+        String idempotencyKey = "INCOME-" + asset.getId() + "-" + distributionDate + "-" + holder.getUserId();
+        // writePendingEntry commits in its own transaction (REQUIRES_NEW) — declared outside
+        // the try block so markAborted can reference it in the catch.
+        FineractOutboxEntry outbox = outboxService.writePendingEntry(
+                "INCOME_DISTRIBUTION", "INCOME_DISTRIBUTION",
+                asset.getId() + "-" + distributionDate + "-" + holder.getUserId(),
+                idempotencyKey, payload);
+
         try {
-            Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(
-                    holder.getUserId(), currency);
-            if (userCashAccountId == null) {
-                throw new RuntimeException("No active " + currency + " account for user " + holder.getUserId());
-            }
-
-            // Build atomic batch: net payment + IRCM transfer
-            String description = String.format("%s payment: %s [net after IRCM]", incomeType, asset.getSymbol());
-
-            List<BatchOperation> ops = new ArrayList<>();
-            ops.add(new BatchTransferOp(asset.getLpCashAccountId(), userCashAccountId, netPayment, description));
-
-            if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
-                String ircmDesc = String.format("IRCM withholding: %s %s (%s%%)",
-                        asset.getSymbol(), incomeType, ircmRate.multiply(new BigDecimal("100")));
-                ops.add(new BatchTransferOp(asset.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
-                // GL entry: debit tax expense (608), credit IRCM withholding payable (4013)
-                ops.add(new BatchJournalEntryOp(
-                        resolvedGlAccounts.getTaxExpenseIrcmId(),
-                        resolvedGlAccounts.getLpTaxWithholdingId(),
-                        ircmAmount, "XAF",
-                        String.format("IRCM tax expense: %s %s", asset.getSymbol(), incomeType)));
-            }
-
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("assetId", asset.getId());
-            payload.put("userId", String.valueOf(holder.getUserId()));
-            payload.put("holderUnits", holder.getTotalUnits().toPlainString());
-            payload.put("grossAmount", cashAmount.toPlainString());
-            payload.put("ircmAmount", ircmAmount.toPlainString());
-            payload.put("netPayment", netPayment.toPlainString());
-            payload.put("distributionDate", distributionDate.toString());
-            payload.put("incomeType", incomeType);
-            payload.put("rateApplied", rateApplied != null ? rateApplied.toPlainString() : null);
-
-            String idempotencyKey = "INCOME-" + asset.getId() + "-" + distributionDate + "-" + holder.getUserId();
-            FineractOutboxEntry outbox = outboxService.writePendingEntry(
-                    "INCOME_DISTRIBUTION", "INCOME_DISTRIBUTION",
-                    asset.getId() + "-" + distributionDate + "-" + holder.getUserId(),
-                    idempotencyKey, payload);
-
             List<Map<String, Object>> results = fineractClient.executeAtomicBatch(ops);
             outboxService.markDispatched(outbox.getId(), Map.of("ok", "true"));
 
@@ -714,6 +725,7 @@ public class ScheduledPaymentService {
             return true;
 
         } catch (Exception e) {
+            outboxService.markAborted(outbox.getId(), e.getMessage());
             record.status("FAILED").failureReason(truncate(e.getMessage(), 500));
             assetMetrics.recordIncomeDistributionFailed(asset.getId(), incomeType);
             log.error("{} payment failed: asset={}, user={}, amount={} {}, error={}",

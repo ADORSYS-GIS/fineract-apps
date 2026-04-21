@@ -335,8 +335,6 @@ public class PrincipalRedemptionService {
 
         Asset bond = assetRepository.findById(bondId)
                 .orElseThrow(() -> new IllegalStateException("Bond not found for outbox retry: " + bondId));
-        UserPosition holder = userPositionRepository.findByUserIdAndAssetId(userId, bondId)
-                .orElseThrow(() -> new IllegalStateException("Position not found: user=" + userId + " bond=" + bondId));
 
         BigDecimal units        = new BigDecimal((String) payload.get("units"));
         BigDecimal faceValue    = new BigDecimal((String) payload.get("faceValue"));

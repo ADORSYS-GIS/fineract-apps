@@ -158,39 +158,41 @@ public class DelistingService {
             BigDecimal cashAmount = holderUnits.multiply(redemptionPrice)
                     .setScale(0, RoundingMode.HALF_UP);
 
+            Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(
+                    holder.getUserId(), currency);
+            if (userCashAccountId == null) {
+                log.error("No cash account for user {} during delisting buyback of {}",
+                        holder.getUserId(), asset.getSymbol());
+                failCount++;
+                continue;
+            }
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("assetId", asset.getId());
+            payload.put("userId", String.valueOf(holder.getUserId()));
+            payload.put("holderFineractSavingsAccountId", String.valueOf(holder.getFineractSavingsAccountId()));
+            payload.put("lpAssetAccountId", String.valueOf(asset.getLpAssetAccountId()));
+            payload.put("lpCashAccountId", String.valueOf(asset.getLpCashAccountId()));
+            payload.put("userCashAccountId", String.valueOf(userCashAccountId));
+            payload.put("holderUnits", holderUnits.toPlainString());
+            payload.put("cashAmount", cashAmount.toPlainString());
+            payload.put("redemptionPrice", redemptionPrice.toPlainString());
+
+            String idempotencyKey = "DELIST-" + asset.getId() + "-" + holder.getUserId();
+            // writePendingEntry commits in its own transaction (REQUIRES_NEW) — declared outside
+            // the try block so markAborted can reference it in the catch.
+            FineractOutboxEntry outbox = outboxService.writePendingEntry(
+                    "FORCED_BUYBACK", "USER_POSITION",
+                    asset.getId() + "-" + holder.getUserId(),
+                    idempotencyKey, payload);
+
+            List<BatchOperation> ops = new ArrayList<>();
+            ops.add(new BatchTransferOp(holder.getFineractSavingsAccountId(), asset.getLpAssetAccountId(),
+                    holderUnits, "Delisting buyback: " + asset.getSymbol()));
+            ops.add(new BatchTransferOp(asset.getLpCashAccountId(), userCashAccountId,
+                    cashAmount, "Delisting redemption: " + asset.getSymbol()));
+
             try {
-                Long userCashAccountId = fineractClient.findClientSavingsAccountByCurrency(
-                        holder.getUserId(), currency);
-                if (userCashAccountId == null) {
-                    log.error("No cash account for user {} during delisting buyback of {}",
-                            holder.getUserId(), asset.getSymbol());
-                    failCount++;
-                    continue;
-                }
-
-                Map<String, Object> payload = new HashMap<>();
-                payload.put("assetId", asset.getId());
-                payload.put("userId", String.valueOf(holder.getUserId()));
-                payload.put("holderFineractSavingsAccountId", String.valueOf(holder.getFineractSavingsAccountId()));
-                payload.put("lpAssetAccountId", String.valueOf(asset.getLpAssetAccountId()));
-                payload.put("lpCashAccountId", String.valueOf(asset.getLpCashAccountId()));
-                payload.put("userCashAccountId", String.valueOf(userCashAccountId));
-                payload.put("holderUnits", holderUnits.toPlainString());
-                payload.put("cashAmount", cashAmount.toPlainString());
-                payload.put("redemptionPrice", redemptionPrice.toPlainString());
-
-                String idempotencyKey = "DELIST-" + asset.getId() + "-" + holder.getUserId();
-                FineractOutboxEntry outbox = outboxService.writePendingEntry(
-                        "FORCED_BUYBACK", "USER_POSITION",
-                        asset.getId() + "-" + holder.getUserId(),
-                        idempotencyKey, payload);
-
-                List<BatchOperation> ops = new ArrayList<>();
-                ops.add(new BatchTransferOp(holder.getFineractSavingsAccountId(), asset.getLpAssetAccountId(),
-                        holderUnits, "Delisting buyback: " + asset.getSymbol()));
-                ops.add(new BatchTransferOp(asset.getLpCashAccountId(), userCashAccountId,
-                        cashAmount, "Delisting redemption: " + asset.getSymbol()));
-
                 fineractClient.executeAtomicBatch(ops);
                 outboxService.markDispatched(outbox.getId(), Map.of("ok", "true"));
 
@@ -205,6 +207,7 @@ public class DelistingService {
 
             } catch (Exception e) {
                 failCount++;
+                outboxService.markAborted(outbox.getId(), e.getMessage());
                 log.error("Forced buyback failed for user {} on asset {}: {}",
                         holder.getUserId(), asset.getSymbol(), e.getMessage());
             }

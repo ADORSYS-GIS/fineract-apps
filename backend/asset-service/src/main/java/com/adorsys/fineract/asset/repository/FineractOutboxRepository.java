@@ -33,4 +33,8 @@ public interface FineractOutboxRepository extends JpaRepository<FineractOutboxEn
     List<FineractOutboxEntry> findDispatchedForProcessing(
             @Param("cutoff") Instant cutoff,
             @Param("limit") int limit);
+
+    @Query(value = "SELECT COUNT(*) FROM fineract_outbox WHERE status = 'PENDING' AND created_at < :cutoff",
+            nativeQuery = true)
+    long countStuckPending(@Param("cutoff") Instant cutoff);
 }
