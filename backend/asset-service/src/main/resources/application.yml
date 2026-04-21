@@ -46,7 +46,6 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
     validate-on-migrate: true
 
   # Redis configuration
