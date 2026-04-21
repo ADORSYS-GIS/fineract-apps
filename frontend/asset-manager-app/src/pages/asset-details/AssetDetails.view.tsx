@@ -527,11 +527,8 @@ function BondInfoCard({
 				</div>
 				{asset.bondType === "COUPON" && asset.interestRate != null && (
 					<div>
-						<p className="text-gray-500">Annual Coupon Rate</p>
+						<p className="text-gray-500">Interest Rate</p>
 						<p className="font-medium">{asset.interestRate}%</p>
-						<p className="text-xs text-gray-400">
-							Annualised rate used to compute periodic coupon payments
-						</p>
 					</div>
 				)}
 				<div>
