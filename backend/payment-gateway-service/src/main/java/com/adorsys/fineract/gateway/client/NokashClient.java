@@ -84,17 +84,12 @@ public class NokashClient {
     public PaymentStatus getTransactionStatus(String transactionId) {
         log.info("Checking NOKASH transaction status for transactionId={}", transactionId);
 
-        Map<String, Object> requestBody = Map.of(
-            "transaction_id", transactionId
-        );
-
-        log.info("NOKASH getTransactionStatus request body: {}", requestBody);
-
         try {
-            Map<String, Object> response = webClient.post()
-                .uri("/lapas-on-trans/trans/310/status-request")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestBody)
+            Map<String, Object> response = webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/lapas-on-trans/trans/310/status-request")
+                    .queryParam("transaction_id", transactionId)
+                    .build())
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                     resp -> resp.bodyToMono(String.class)
