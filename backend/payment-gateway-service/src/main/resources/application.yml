@@ -107,7 +107,7 @@ nokash:
   callback-url: ${NOKASH_CALLBACK_URL:http://localhost:8082/api/callbacks/nokash}
   country: "CM"
   timeout-seconds: 90
-  fineract-payment-type-id: ${NOKASH_FINERACT_PAYMENT_TYPE_ID:1}
+  fineract-payment-type-id: ${NOKASH_FINERACT_PAYMENT_TYPE_ID:3}
   gl-account-code: ${NOKASH_GL_ACCOUNT_CODE:}
 
 # Base URLs for dynamic callback/return URL construction
