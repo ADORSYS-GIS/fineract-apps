@@ -17,6 +17,6 @@ public class NokashConfig {
     private String country = "CM";
     private int timeoutSeconds = 90;
     private String currency = "XAF";
-    private Long fineractPaymentTypeId = 2L;
+    private Long fineractPaymentTypeId;
     private String glAccountCode;
 }
