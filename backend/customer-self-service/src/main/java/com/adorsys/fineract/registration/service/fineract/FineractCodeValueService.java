@@ -1,13 +1,16 @@
 package com.adorsys.fineract.registration.service.fineract;
 
 import com.adorsys.fineract.registration.config.FineractProperties;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -19,7 +22,10 @@ public class FineractCodeValueService {
      * these values from the Fineract API and caches them to reduce redundant API calls. The service can
      * resolve human-readable labels (e.g., "Male") into their corresponding numeric IDs required by Fineract.
      */
-    private final Map<String, Long> codeValueCache = new ConcurrentHashMap<>();
+    private final Cache<String, Long> codeValueCache = Caffeine.newBuilder()
+            .maximumSize(2_000)
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .build();
     private final RestClient fineractRestClient;
     private final FineractProperties fineractProperties;
 
@@ -28,7 +34,6 @@ public class FineractCodeValueService {
         this.fineractProperties = fineractProperties;
     }
 
-    @SuppressWarnings("unchecked")
     public void refreshCodeValueCache(String codeName) {
         log.info("Fetching dynamic IDs for code: {}", codeName);
 
@@ -42,7 +47,7 @@ public class FineractCodeValueService {
             List<Map<String, Object>> values = fineractRestClient.get()
                     .uri("/fineract-provider/api/v1/codes/{codeId}/codevalues", codeId)
                     .retrieve()
-                    .body(List.class);
+                    .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
 
             if (values != null) {
                 for (Map<String, Object> val : values) {
@@ -61,9 +66,9 @@ public class FineractCodeValueService {
             return null;
         }
         String key = codeName + ":" + label.toLowerCase();
-        if (!codeValueCache.containsKey(key)) {
+        if (codeValueCache.getIfPresent(key) == null) {
             refreshCodeValueCache(codeName);
         }
-        return codeValueCache.get(key);
+        return codeValueCache.getIfPresent(key);
     }
 }
