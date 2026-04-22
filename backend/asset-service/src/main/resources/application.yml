@@ -174,6 +174,7 @@ storage:
 # Resilience4j Circuit Breaker
 resilience4j:
   circuitbreaker:
+    circuitBreakerAspectOrder: 2  # inner — sees individual attempt outcomes from the retry wrapper
     instances:
       fineract:
         slidingWindowSize: 10
@@ -184,12 +185,14 @@ resilience4j:
           - com.adorsys.fineract.asset.exception.AssetException
           - org.springframework.web.reactive.function.client.WebClientResponseException
   retry:
+    retryAspectOrder: 1  # outermost — retries before circuit breaker records a failure
     instances:
       fineract:
         maxAttempts: 3
         waitDuration: 500ms
         exponentialBackoffMultiplier: 2
         retryExceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
           - org.springframework.web.reactive.function.client.WebClientResponseException$ServiceUnavailable
           - org.springframework.web.reactive.function.client.WebClientResponseException$GatewayTimeout
           - java.util.concurrent.TimeoutException
