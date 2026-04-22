@@ -92,6 +92,9 @@ spring:
   config:
     activate:
       on-profile: kubernetes
+  data:
+    redis:
+      password: ${REDIS_PASSWORD}
 
 # In Kubernetes, use service discovery
 
@@ -108,12 +111,6 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
-
-# Redis password required in production
-spring:
-  data:
-    redis:
-      password: ${REDIS_PASSWORD}
 
 # Swagger disabled in production
 springdoc:

@@ -227,6 +227,9 @@ spring:
         jwt:
           issuer-uri: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract
           jwk-set-uri: http://keycloak.fineract.svc.cluster.local:8080/realms/fineract/protocol/openid-connect/certs
+  data:
+    redis:
+      password: ${REDIS_PASSWORD}
 
 fineract:
   url: http://fineract.fineract.svc.cluster.local:8443/fineract-provider
@@ -264,12 +267,6 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
-
-# Redis password required in production
-spring:
-  data:
-    redis:
-      password: ${REDIS_PASSWORD}
 
 # Callback IP whitelist must be active in production
 app:
