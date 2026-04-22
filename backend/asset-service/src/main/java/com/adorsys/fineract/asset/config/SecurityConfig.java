@@ -36,6 +36,9 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String[] allowedOrigins;
 
+    @Value("${app.security.permit-all-admin:false}")
+    private boolean permitAllAdmin;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -44,19 +47,25 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            .authorizeHttpRequests(authz -> authz
+            .authorizeHttpRequests(authz -> {
+                authz
                     .requestMatchers("/version").permitAll()
                     .requestMatchers("/actuator/**").permitAll()
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                     // Public catalog and market endpoints
                     .requestMatchers("/assets/**").permitAll()
                     .requestMatchers("/prices/**").permitAll()
-                    .requestMatchers("/market/**").permitAll()
-                    // Admin endpoints always require ASSET_MANAGER role
-                    .requestMatchers("/admin/**").hasRole("ASSET_MANAGER")
+                    .requestMatchers("/market/**").permitAll();
+                // Admin endpoints: open in E2E/test, require ASSET_MANAGER in production
+                if (permitAllAdmin) {
+                    authz.requestMatchers("/admin/**").permitAll();
+                } else {
+                    authz.requestMatchers("/admin/**").hasRole("ASSET_MANAGER");
+                }
+                authz
                     // All other endpoints require JWT
-                    .anyRequest().authenticated()
-            )
+                    .anyRequest().authenticated();
+            })
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .decoder(jwtDecoder())
