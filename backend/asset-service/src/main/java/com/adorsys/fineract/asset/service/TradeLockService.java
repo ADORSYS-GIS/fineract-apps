@@ -47,7 +47,10 @@ public class TradeLockService {
     private final ConcurrentHashMap<String, LockEntry> localLocks = new ConcurrentHashMap<>();
 
     /**
-     * Evict unlocked entries and, if held for more than 5 minutes, also evict stuck locks.
+     * Evict unlocked entries. Logs a warning for locks held beyond the stuck threshold but does
+     * NOT remove them — the thread holding the lock will eventually call releaseTradeLock, which
+     * finds the entry and unlocks it normally. Evicting a live locked entry would cause
+     * releaseTradeLock to silently no-op and allow a second concurrent trade for the same user.
      */
     @Scheduled(fixedRate = 60_000)
     public void evictStaleLocalLocks() {
@@ -56,10 +59,10 @@ public class TradeLockService {
         localLocks.entrySet().removeIf(entry -> {
             LockEntry le = entry.getValue();
             if (!le.lock().isLocked()) return true;
-            // Warn about and evict locks held far beyond the configured TTL
+            // Warn about stuck locks but keep them so releaseTradeLock can still unlock normally
             if (now - le.createdAt() > STUCK_LOCK_THRESHOLD_MILLIS) {
-                log.warn("Evicting stuck local trade lock: key={}, heldForMs={}", entry.getKey(), now - le.createdAt());
-                return true;
+                log.warn("Stuck local trade lock detected (NOT evicted): key={}, heldForMs={}",
+                        entry.getKey(), now - le.createdAt());
             }
             return false;
         });

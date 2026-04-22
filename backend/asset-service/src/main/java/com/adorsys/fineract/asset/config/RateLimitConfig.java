@@ -75,8 +75,11 @@ public class RateLimitConfig {
     }
 
     private void evictOldestIfOverLimit(Map<String, BucketEntry> map) {
-        if (map.size() <= MAX_BUCKETS) return;
-        int toRemove = (int) (map.size() * EVICT_OLDEST_FRACTION);
+        int current = map.size();
+        if (current <= MAX_BUCKETS) return;
+        // Re-read size after TTL eviction has already run so the removal count reflects
+        // the live state rather than a pre-eviction snapshot.
+        int toRemove = (int) ((current - MAX_BUCKETS) + current * EVICT_OLDEST_FRACTION);
         map.entrySet().stream()
                 .sorted(Comparator.comparingLong(e -> e.getValue().lastAccessMillis()))
                 .limit(toRemove)

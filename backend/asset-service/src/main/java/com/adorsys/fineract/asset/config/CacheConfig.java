@@ -21,6 +21,11 @@ public class CacheConfig {
                         .maximumSize(500)
                         .expireAfterWrite(30, TimeUnit.MINUTES)
                         .build());
+        // Default spec applied to any @Cacheable cache not explicitly registered above.
+        // Prevents unbounded growth when new cache names are introduced.
+        manager.setCaffeine(Caffeine.newBuilder()
+                .maximumSize(1_000)
+                .expireAfterWrite(15, TimeUnit.MINUTES));
         return manager;
     }
 }

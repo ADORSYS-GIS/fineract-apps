@@ -42,17 +42,33 @@ public class SseEmitterManager {
     /**
      * Register a new SSE emitter for an order. Sends an initial "connected" event.
      * Auto-removes on timeout, completion, or error.
+     * <p>
+     * The cap-enforce and list.add run atomically inside {@code emitters.compute} so that two
+     * concurrent subscribes cannot both pass the cap check and both add, which would exceed
+     * {@code MAX_EMITTERS_PER_USER}. Lifecycle callbacks are registered after compute returns
+     * because calling emitter methods inside a compute lambda would risk deadlock.
      */
     public SseEmitter subscribe(String orderId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         emitterCreationTimes.put(emitter, System.currentTimeMillis());
 
-        List<SseEmitter> list = emitters.computeIfAbsent(orderId, k -> new CopyOnWriteArrayList<>());
+        // Atomically evict oldest emitters (if at cap) and add the new one.
+        emitters.compute(orderId, (key, existing) -> {
+            List<SseEmitter> list = (existing != null) ? existing : new CopyOnWriteArrayList<>();
+            while (list.size() >= MAX_EMITTERS_PER_USER) {
+                SseEmitter oldest = list.stream()
+                        .min(Comparator.comparingLong(e -> emitterCreationTimes.getOrDefault(e, Long.MAX_VALUE)))
+                        .orElse(null);
+                if (oldest == null) break;
+                list.remove(oldest);
+                emitterCreationTimes.remove(oldest);
+                oldest.complete();
+            }
+            list.add(emitter);
+            return list;
+        });
 
-        enforceMaxConnections(list);
-
-        list.add(emitter);
-
+        // Register lifecycle callbacks outside compute to avoid re-entrant map access.
         Runnable cleanup = () -> {
             List<SseEmitter> current = emitters.get(orderId);
             if (current != null) {
@@ -134,16 +150,5 @@ public class SseEmitterManager {
         });
     }
 
-    private void enforceMaxConnections(List<SseEmitter> list) {
-        while (list.size() >= MAX_EMITTERS_PER_USER) {
-            // Remove the oldest emitter first
-            SseEmitter oldest = list.stream()
-                    .min(Comparator.comparingLong(e -> emitterCreationTimes.getOrDefault(e, Long.MAX_VALUE)))
-                    .orElse(null);
-            if (oldest == null) break;
-            list.remove(oldest);
-            emitterCreationTimes.remove(oldest);
-            oldest.complete();
-        }
-    }
+
 }
