@@ -59,7 +59,7 @@ public class AdminReconciliationController {
     public ResponseEntity<Void> acknowledgeReport(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
-        reconciliationService.acknowledgeReport(id, jwt.getSubject());
+        reconciliationService.acknowledgeReport(id, jwt != null ? jwt.getSubject() : "admin");
         return ResponseEntity.ok().build();
     }
 
@@ -69,7 +69,7 @@ public class AdminReconciliationController {
             @PathVariable Long id,
             @RequestParam(required = false) String notes,
             @AuthenticationPrincipal Jwt jwt) {
-        reconciliationService.resolveReport(id, jwt.getSubject(), notes);
+        reconciliationService.resolveReport(id, jwt != null ? jwt.getSubject() : "admin", notes);
         return ResponseEntity.ok().build();
     }
 
