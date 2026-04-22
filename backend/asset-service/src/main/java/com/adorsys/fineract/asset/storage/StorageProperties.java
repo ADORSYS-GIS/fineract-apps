@@ -19,6 +19,6 @@ public class StorageProperties {
     private String publicBaseUrl;
     private long maxFileSize = 5 * 1024 * 1024; // 5MB
     private Set<String> allowedContentTypes = Set.of(
-            "image/jpeg", "image/png", "image/webp", "image/svg+xml"
+            "image/jpeg", "image/png", "image/webp"
     );
 }

@@ -9,6 +9,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -19,6 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/reconciliation")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ASSET_MANAGER')")
 @Tag(name = "Admin - Reconciliation", description = "View and manage reconciliation reports")
 public class AdminReconciliationController {
 
@@ -54,8 +58,8 @@ public class AdminReconciliationController {
     @Operation(summary = "Acknowledge a reconciliation report")
     public ResponseEntity<Void> acknowledgeReport(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "admin") String admin) {
-        reconciliationService.acknowledgeReport(id, admin);
+            @AuthenticationPrincipal Jwt jwt) {
+        reconciliationService.acknowledgeReport(id, jwt.getSubject());
         return ResponseEntity.ok().build();
     }
 
@@ -63,9 +67,9 @@ public class AdminReconciliationController {
     @Operation(summary = "Resolve a reconciliation report")
     public ResponseEntity<Void> resolveReport(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "admin") String admin,
-            @RequestParam(required = false) String notes) {
-        reconciliationService.resolveReport(id, admin, notes);
+            @RequestParam(required = false) String notes,
+            @AuthenticationPrincipal Jwt jwt) {
+        reconciliationService.resolveReport(id, jwt.getSubject(), notes);
         return ResponseEntity.ok().build();
     }
 

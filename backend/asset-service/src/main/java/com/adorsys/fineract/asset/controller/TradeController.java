@@ -68,7 +68,7 @@ public class TradeController {
             @AuthenticationPrincipal Jwt jwt) {
         Long userId = userIdentityResolver.resolveUserId(jwt);
         tradingService.getOrder(id, userId); // verify ownership
-        return sseEmitterManager.subscribe(id);
+        return sseEmitterManager.subscribe(id, jwt.getSubject());
     }
 
     // ──────────────────────────────────────────────────────────────────────
