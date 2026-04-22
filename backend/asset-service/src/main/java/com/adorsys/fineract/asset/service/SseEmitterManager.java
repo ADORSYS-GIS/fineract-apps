@@ -2,13 +2,16 @@ package com.adorsys.fineract.asset.service;
 
 import com.adorsys.fineract.asset.dto.OrderStatus;
 import com.adorsys.fineract.asset.event.OrderStatusChangedEvent;
+import com.adorsys.fineract.asset.exception.AssetException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -18,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Manages SSE (Server-Sent Events) connections for real-time order status updates.
@@ -32,15 +36,18 @@ public class SseEmitterManager {
     private static final long SSE_TIMEOUT = 120_000L; // 2 minutes
     private static final long STALE_THRESHOLD_MILLIS = SSE_TIMEOUT * 3; // 6 minutes
     private static final int MAX_EMITTERS_PER_USER = 5;
+    private static final int MAX_CONNECTIONS_PER_USER = MAX_EMITTERS_PER_USER;
     private static final Set<OrderStatus> TERMINAL_STATUSES = Set.of(
             OrderStatus.FILLED, OrderStatus.FAILED, OrderStatus.REJECTED, OrderStatus.CANCELLED);
 
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<SseEmitter, Long> emitterCreationTimes = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicInteger> userConnectionCount = new ConcurrentHashMap<>();
 
     /**
      * Register a new SSE emitter for an order. Sends an initial "connected" event.
+     * Enforces a per-user connection cap of {@value #MAX_CONNECTIONS_PER_USER}.
      * Auto-removes on timeout, completion, or error.
      * <p>
      * The cap-enforce and list.add run atomically inside {@code emitters.compute} so that two
@@ -48,7 +55,14 @@ public class SseEmitterManager {
      * {@code MAX_EMITTERS_PER_USER}. Lifecycle callbacks are registered after compute returns
      * because calling emitter methods inside a compute lambda would risk deadlock.
      */
-    public SseEmitter subscribe(String orderId) {
+    public SseEmitter subscribe(String orderId, String userId) {
+        AtomicInteger counter = userConnectionCount.computeIfAbsent(userId, k -> new AtomicInteger(0));
+        if (counter.get() >= MAX_CONNECTIONS_PER_USER) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Maximum SSE connections per user exceeded");
+        }
+        counter.incrementAndGet();
+
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         emitterCreationTimes.put(emitter, System.currentTimeMillis());
 
@@ -76,6 +90,7 @@ public class SseEmitterManager {
                 if (current.isEmpty()) emitters.remove(orderId);
             }
             emitterCreationTimes.remove(emitter);
+            counter.decrementAndGet();
         };
         emitter.onCompletion(cleanup);
         emitter.onTimeout(cleanup);

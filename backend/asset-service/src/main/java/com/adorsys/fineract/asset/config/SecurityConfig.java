@@ -56,14 +56,15 @@ public class SecurityConfig {
                     .requestMatchers("/assets/**").permitAll()
                     .requestMatchers("/prices/**").permitAll()
                     .requestMatchers("/market/**").permitAll();
-                // Admin endpoints: permitAll in dev mode, require ASSET_MANAGER role otherwise
+                // Admin endpoints: open in E2E/test, require ASSET_MANAGER in production
                 if (permitAllAdmin) {
                     authz.requestMatchers("/admin/**").permitAll();
                 } else {
                     authz.requestMatchers("/admin/**").hasRole("ASSET_MANAGER");
                 }
-                // All other endpoints require JWT
-                authz.anyRequest().authenticated();
+                authz
+                    // All other endpoints require JWT
+                    .anyRequest().authenticated();
             })
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt

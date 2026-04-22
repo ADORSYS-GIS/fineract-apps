@@ -67,8 +67,9 @@ public class TradeController {
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
         Long userId = userIdentityResolver.resolveUserId(jwt);
+        String externalId = userIdentityResolver.resolveExternalId(jwt);
         tradingService.getOrder(id, userId); // verify ownership
-        return sseEmitterManager.subscribe(id);
+        return sseEmitterManager.subscribe(id, externalId);
     }
 
     // ──────────────────────────────────────────────────────────────────────

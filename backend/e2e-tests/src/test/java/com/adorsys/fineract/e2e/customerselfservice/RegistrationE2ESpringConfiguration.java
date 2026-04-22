@@ -74,8 +74,8 @@ public class RegistrationE2ESpringConfiguration {
         // Fineract (basic auth, pointing at the container)
         registry.add("fineract.url", TestcontainersConfig::getFineractBaseUrl);
         registry.add("fineract.auth.type", () -> "basic");
-        registry.add("fineract.username", () -> "mifos");
-        registry.add("fineract.password", () -> "password");
+        registry.add("fineract.auth.username", () -> "mifos");
+        registry.add("fineract.auth.password", () -> "password");
         registry.add("fineract.tenant", () -> "default");
         registry.add("fineract.verifySsl", () -> "false");
         registry.add("fineract.default-office-id", () -> "1");
