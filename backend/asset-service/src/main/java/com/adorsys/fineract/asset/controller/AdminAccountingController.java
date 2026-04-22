@@ -19,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/accounting")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ASSET_MANAGER')")
 @Tag(name = "Accounting", description = "GL trial balance and accounting reports")
 public class AdminAccountingController {
 
@@ -27,7 +28,7 @@ public class AdminAccountingController {
 
     @GetMapping("/trial-balance")
     @Operation(summary = "Trial balance", description = "Full trial balance across all GL accounts with SYSCOHADA hierarchy.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<TrialBalanceResponse> getTrialBalance(
             @RequestParam(required = false) String currencyCode,
             @RequestParam(required = false) String fromDate,
@@ -37,14 +38,14 @@ public class AdminAccountingController {
 
     @GetMapping("/currencies")
     @Operation(summary = "Available currencies", description = "List of available currency codes for reporting.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<List<String>> getAvailableCurrencies() {
         return ResponseEntity.ok(accountingReportService.getAvailableCurrencies());
     }
 
     @GetMapping("/fee-tax-summary")
     @Operation(summary = "Fee and tax summary", description = "Summary of fee and tax GL account balances.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<java.util.Map<String, Object>> getFeeTaxSummary(
             @RequestParam(required = false) String currencyCode) {
         TrialBalanceResponse tb = accountingReportService.getTrialBalance(currencyCode, null, null);
@@ -63,14 +64,14 @@ public class AdminAccountingController {
 
     @GetMapping("/projections")
     @Operation(summary = "All asset projections", description = "Denormalized per-asset trade volume, spread, fee, and tax totals.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<List<AssetProjection>> getAllProjections() {
         return ResponseEntity.ok(assetProjectionRepository.findAll());
     }
 
     @GetMapping("/projections/{assetId}")
     @Operation(summary = "Asset projection", description = "Per-asset trade volume, spread, fee, and tax totals.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<AssetProjection> getProjection(@PathVariable String assetId) {
         return assetProjectionRepository.findById(assetId)
                 .map(ResponseEntity::ok)

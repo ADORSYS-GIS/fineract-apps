@@ -17,7 +17,7 @@ import java.util.Set;
 @RestController
 @RequestMapping("/admin/files")
 @RequiredArgsConstructor
-@PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+@PreAuthorize("hasRole('ASSET_MANAGER')")
 @Tag(name = "Admin - File Upload", description = "Upload files to object storage")
 public class FileUploadController {
 

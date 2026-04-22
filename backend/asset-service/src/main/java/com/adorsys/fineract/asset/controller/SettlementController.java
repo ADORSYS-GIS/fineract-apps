@@ -26,6 +26,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/settlement")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ASSET_MANAGER')")
 @Tag(name = "Settlement", description = "LP payout, tax remittance, and trust account settlement")
 public class SettlementController {
 
@@ -38,7 +39,7 @@ public class SettlementController {
         @ApiResponse(responseCode = "400", description = "Invalid request"),
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<Settlement> create(@Valid @RequestBody SettlementRequest request, Authentication auth) {
         Settlement settlement = Settlement.builder()
                 .settlementType(request.settlementType())
@@ -54,7 +55,7 @@ public class SettlementController {
 
     @GetMapping
     @Operation(summary = "List settlements", description = "List settlements with optional status filter.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<Page<Settlement>> list(
             @RequestParam(required = false) String status,
             Pageable pageable) {
@@ -64,14 +65,14 @@ public class SettlementController {
 
     @GetMapping("/pending")
     @Operation(summary = "Pending settlements", description = "List all pending settlements awaiting approval.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<List<Settlement>> getPending() {
         return ResponseEntity.ok(settlementService.getPendingSettlements());
     }
 
     @GetMapping("/summary")
     @Operation(summary = "Settlement summary", description = "Aggregate counts of pending, approved, and total settlements.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<Map<String, Object>> getSummary() {
         return ResponseEntity.ok(settlementService.getSummary());
     }
@@ -83,7 +84,7 @@ public class SettlementController {
         @ApiResponse(responseCode = "400", description = "Not PENDING or same user as creator (maker-checker violation)"),
         @ApiResponse(responseCode = "404", description = "Settlement not found")
     })
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<Settlement> approve(@PathVariable String id, Authentication auth) {
         String approver = auth != null ? auth.getName() : "system";
         return ResponseEntity.ok(settlementService.approveSettlement(id, approver));
@@ -96,14 +97,14 @@ public class SettlementController {
         @ApiResponse(responseCode = "400", description = "Not APPROVED or GL codes not found"),
         @ApiResponse(responseCode = "404", description = "Settlement not found")
     })
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<Settlement> execute(@PathVariable String id) {
         return ResponseEntity.ok(settlementService.executeSettlement(id));
     }
 
     @PostMapping("/{id}/reject")
     @Operation(summary = "Reject settlement", description = "Reject a pending or approved settlement.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<Settlement> reject(@PathVariable String id, @RequestBody(required = false) Map<String, String> body) {
         String reason = body != null ? body.get("reason") : null;
         return ResponseEntity.ok(settlementService.rejectSettlement(id, reason));
@@ -111,7 +112,7 @@ public class SettlementController {
 
     @GetMapping("/{id}/report")
     @Operation(summary = "Export settlement report", description = "Download settlement as CSV for bank wire instructions.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<String> exportReport(@PathVariable String id) {
         Settlement s = settlementService.getSettlement(id);
         StringBuilder csv = new StringBuilder();
@@ -134,21 +135,21 @@ public class SettlementController {
 
     @GetMapping("/lp-balances")
     @Operation(summary = "LP unsettled balances", description = "Per-LP LSAV/LSPD/LTAX balances for settlement creation.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<?> getLpBalances() {
         return ResponseEntity.ok(settlementService.getLpBalances());
     }
 
     @GetMapping("/trust-balances")
     @Operation(summary = "Trust account balances", description = "Physical cash balances in MoMo, Orange, UBA, Afriland trust accounts.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<?> getTrustBalances() {
         return ResponseEntity.ok(settlementService.getTrustBalances());
     }
 
     @GetMapping("/rebalance-proposal")
     @Operation(summary = "Rebalance proposal", description = "Calculate proposed MoMo/Orange → UBA/Afriland transfers to cover LP, tax, and fee obligations.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<com.adorsys.fineract.asset.dto.RebalanceProposalResponse> getRebalanceProposal(
             @RequestParam(required = false) java.math.BigDecimal reservePercent) {
         return ResponseEntity.ok(settlementService.proposeRebalance(reservePercent));
@@ -156,7 +157,7 @@ public class SettlementController {
 
     @PostMapping("/rebalance-proposal/execute")
     @Operation(summary = "Execute rebalance proposal", description = "Batch-create all proposed settlements as PENDING.")
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+
     public ResponseEntity<?> executeRebalanceProposal(
             @RequestBody com.adorsys.fineract.asset.dto.ExecuteRebalanceRequest request,
             Authentication auth) {

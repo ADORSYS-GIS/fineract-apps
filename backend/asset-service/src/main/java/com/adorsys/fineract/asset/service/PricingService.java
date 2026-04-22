@@ -144,7 +144,7 @@ public class PricingService {
      * the existing spread structure.
      */
     @Transactional
-    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
+    @PreAuthorize("hasRole('ASSET_MANAGER')")
     public void setPrice(String assetId, SetPriceRequest request) {
         var asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
