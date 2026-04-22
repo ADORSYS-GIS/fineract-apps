@@ -57,7 +57,6 @@ public class FineractTokenProvider {
         return tokenCacheService.getToken(CACHE_KEY).orElseGet(this::refreshToken);
     }
 
-    @SuppressWarnings("unchecked")
     private String refreshToken() {
         try {
             if (!refreshLock.tryLock(LOCK_WAIT_SECONDS, TimeUnit.SECONDS)) {
@@ -85,7 +84,7 @@ public class FineractTokenProvider {
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                             .bodyValue("grant_type=client_credentials")
                             .retrieve()
-                            .bodyToMono(Map.class)
+                            .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
                             .timeout(Duration.ofSeconds(10))
                             .block();
 
@@ -104,7 +103,7 @@ public class FineractTokenProvider {
                         expiresIn = ((Number) expiresInObj).intValue();
                     }
 
-                    long ttlSeconds = expiresIn - 60; // 60s buffer before expiry
+                    long ttlSeconds = Math.max(30L, expiresIn - 60L); // 60s buffer before expiry; floor at 30s to guard against reduced expires_in under auth server load
                     tokenCacheService.putToken(CACHE_KEY, accessToken, ttlSeconds);
 
                     log.info("Successfully obtained Fineract OAuth token (expires in {} seconds)", expiresIn);

@@ -22,6 +22,8 @@ public interface ReversalDeadLetterRepository extends JpaRepository<ReversalDead
 
     List<ReversalDeadLetter> findByResolvedFalseOrderByCreatedAtAsc();
 
+    Page<ReversalDeadLetter> findByResolvedFalseOrderByCreatedAtAsc(Pageable pageable);
+
     Page<ReversalDeadLetter> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     long countByResolvedFalse();

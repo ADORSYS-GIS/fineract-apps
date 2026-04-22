@@ -8,6 +8,8 @@ import com.adorsys.fineract.gateway.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,10 +20,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -31,20 +33,20 @@ import java.util.Map;
 @Tag(name = "Admin", description = "Administrative endpoints for operations team")
 @SecurityRequirement(name = "bearer-jwt")
 @PreAuthorize("hasRole('ADMIN')")
+@Validated
 public class AdminController {
 
     private final ReversalDeadLetterRepository deadLetterRepository;
     private final ReversalService reversalService;
 
     @GetMapping("/reversals/dlq")
-    @Operation(summary = "List reversal failures",
-               description = "Returns unresolved DLQ entries by default. Pass ?all=true to include resolved entries (audit trail).")
-    public ResponseEntity<List<ReversalDeadLetter>> listReversals(
-            @RequestParam(defaultValue = "false") boolean all) {
-        List<ReversalDeadLetter> entries = all
-            ? deadLetterRepository.findAllByOrderByCreatedAtDesc()
-            : deadLetterRepository.findByResolvedFalseOrderByCreatedAtAsc();
-        return ResponseEntity.ok(entries);
+    @Operation(summary = "List unresolved reversal failures",
+               description = "Returns unresolved reversal dead-letter entries ordered by creation date ascending. Paginated to avoid loading the full table.")
+    public ResponseEntity<Page<ReversalDeadLetter>> listUnresolvedReversals(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(500) int size) {
+        var pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        return ResponseEntity.ok(deadLetterRepository.findByResolvedFalseOrderByCreatedAtAsc(pageable));
     }
 
     @PostMapping("/reversals/dlq/{id}/retry")
@@ -56,7 +58,6 @@ public class AdminController {
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        // Extract identity before any side effects — if JWT has no sub this fails fast with 403
         String adminSub = JwtUtils.extractExternalId(jwt);
 
         AdminRetryResult result = reversalService.retryDeadLetterEntry(id, adminSub);
@@ -78,8 +79,8 @@ public class AdminController {
     @Operation(summary = "List all reversal dead-letter entries",
                description = "Returns all reversal dead-letter entries ordered by creation date, newest first. Paginated to avoid loading the full table.")
     public ResponseEntity<Page<ReversalDeadLetter>> listReversals(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "100") int size) {
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "100") @Min(1) @Max(500) int size) {
         var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return ResponseEntity.ok(deadLetterRepository.findAllByOrderByCreatedAtDesc(pageable));
     }
