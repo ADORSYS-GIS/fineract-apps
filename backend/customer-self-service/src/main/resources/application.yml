@@ -36,11 +36,11 @@ fineract:
     # OAuth grant type: client_credentials (default) or password
     grant-type: ${FINERACT_OAUTH_GRANT_TYPE:password}
     # OAuth credentials (used when grant-type=password)
-    oauth-username: ${FINERACT_OAUTH_USERNAME:mifos}
-    oauth-password: ${FINERACT_OAUTH_PASSWORD:password}
+    oauth-username: ${FINERACT_OAUTH_USERNAME:}
+    oauth-password: ${FINERACT_OAUTH_PASSWORD:}
     # Basic auth settings (used when auth-type=basic)
-    username: ${FINERACT_USERNAME:mifos}
-    password: ${FINERACT_PASSWORD:password}
+    username: ${FINERACT_USERNAME:}
+    password: ${FINERACT_PASSWORD:}
   # Fineract defaults
   defaults:
     office-id: ${DEFAULT_OFFICE_ID:1}
@@ -108,5 +108,18 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+
+# Redis password required in production
+spring:
+  data:
+    redis:
+      password: ${REDIS_PASSWORD}
+
+# Swagger disabled in production
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
 
 # Security properties

@@ -81,8 +81,8 @@ fineract:
   token-url: ${FINERACT_TOKEN_URL:http://keycloak:8080/realms/fineract/protocol/openid-connect/token}
   client-id: ${FINERACT_CLIENT_ID:fineract-service}
   client-secret: ${FINERACT_CLIENT_SECRET:}
-  username: ${FINERACT_USERNAME:mifos}
-  password: ${FINERACT_PASSWORD:password}
+  username: ${FINERACT_USERNAME:}
+  password: ${FINERACT_PASSWORD:}
   timeout-seconds: 30
 
 # Asset Service Configuration
@@ -165,11 +165,11 @@ storage:
   bucket: ${STORAGE_BUCKET:fineract-assets}
   region: ${STORAGE_REGION:us-east-1}
   endpoint: ${STORAGE_ENDPOINT:http://localhost:9000}
-  access-key: ${STORAGE_ACCESS_KEY:minioadmin}
-  secret-key: ${STORAGE_SECRET_KEY:minioadmin}
+  access-key: ${STORAGE_ACCESS_KEY:}
+  secret-key: ${STORAGE_SECRET_KEY:}
   public-base-url: ${STORAGE_PUBLIC_BASE_URL:http://localhost:9000/fineract-assets}
   max-file-size: ${STORAGE_MAX_FILE_SIZE:5242880}
-  allowed-content-types: image/jpeg,image/png,image/webp,image/svg+xml
+  allowed-content-types: image/jpeg,image/png,image/webp
 
 # Resilience4j Circuit Breaker
 resilience4j:
@@ -284,3 +284,16 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+
+# Redis password required in production
+spring:
+  data:
+    redis:
+      password: ${REDIS_PASSWORD}
+
+# Swagger disabled in production
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false

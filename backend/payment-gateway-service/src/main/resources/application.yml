@@ -117,14 +117,14 @@ fineract:
   client-id: ${FINERACT_CLIENT_ID:fineract-service}
   client-secret: ${FINERACT_CLIENT_SECRET:}
   # Basic auth settings (used when auth-type=basic)
-  username: ${FINERACT_USERNAME:mifos}
-  password: ${FINERACT_PASSWORD:password}
+  username: ${FINERACT_USERNAME:}
+  password: ${FINERACT_PASSWORD:}
   timeout-seconds: 15
   default-savings-product-id: ${FINERACT_SAVINGS_PRODUCT_ID:9}
 
 app:
   ssl:
-    insecure: ${SSL_INSECURE:true}
+    insecure: ${SSL_INSECURE:false}
   cleanup:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
@@ -161,10 +161,12 @@ app:
 
 # Actuator Configuration
 management:
+  server:
+    port: 8084
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,threaddump,heapdump
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when-authorized
@@ -249,4 +251,25 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+
+# Redis password required in production
+spring:
+  data:
+    redis:
+      password: ${REDIS_PASSWORD}
+
+# Callback IP whitelist must be active in production
+app:
+  ssl:
+    insecure: false
+  callbacks:
+    ip-whitelist:
+      enabled: true
+
+# Swagger disabled in production
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
 
