@@ -19,7 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/accounting")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ASSET_MANAGER')")
+@PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
 @Tag(name = "Accounting", description = "GL trial balance and accounting reports")
 public class AdminAccountingController {
 

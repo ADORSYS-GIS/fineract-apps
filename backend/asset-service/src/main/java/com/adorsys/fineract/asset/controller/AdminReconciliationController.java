@@ -22,7 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/reconciliation")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ASSET_MANAGER')")
+@PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
 @Tag(name = "Admin - Reconciliation", description = "View and manage reconciliation reports")
 public class AdminReconciliationController {
 

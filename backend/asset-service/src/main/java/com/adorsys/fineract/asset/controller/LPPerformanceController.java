@@ -24,7 +24,7 @@ public class LPPerformanceController {
 
     @GetMapping("/performance")
     @Operation(summary = "LP performance summary", description = "Aggregated spread, buyback premium, and fee metrics.")
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public ResponseEntity<LPPerformanceResponse> getPerformance() {
         return ResponseEntity.ok(lpPerformanceService.getPerformanceSummary());
     }

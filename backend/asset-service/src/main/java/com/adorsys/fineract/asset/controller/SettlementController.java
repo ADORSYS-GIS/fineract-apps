@@ -26,7 +26,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/settlement")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ASSET_MANAGER')")
+@PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
 @Tag(name = "Settlement", description = "LP payout, tax remittance, and trust account settlement")
 public class SettlementController {
 

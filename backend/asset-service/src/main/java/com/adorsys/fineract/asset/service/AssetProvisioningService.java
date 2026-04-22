@@ -59,7 +59,7 @@ public class AssetProvisioningService {
      */
     @SuppressWarnings("unchecked")
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public AssetDetailResponse createAsset(CreateAssetRequest request) {
         // Warn if caller still sends an explicit currencyCode (deprecated field)
         if (request.currencyCode() != null && !request.currencyCode().isBlank()) {
@@ -325,7 +325,7 @@ public class AssetProvisioningService {
      * Update asset metadata.
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public AssetDetailResponse updateAsset(String assetId, UpdateAssetRequest request) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -471,7 +471,7 @@ public class AssetProvisioningService {
      * Activate an asset (PENDING -> ACTIVE).
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public void activateAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -489,7 +489,7 @@ public class AssetProvisioningService {
      * Halt trading for an asset.
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public void haltAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -507,7 +507,7 @@ public class AssetProvisioningService {
      * Mint additional supply for an asset (deposit more tokens into LP inventory).
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public void mintSupply(String assetId, MintSupplyRequest request) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -530,7 +530,7 @@ public class AssetProvisioningService {
      * Resume trading for a halted asset.
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public void resumeAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
@@ -549,7 +549,7 @@ public class AssetProvisioningService {
      * Only PENDING assets can be deleted — no trades, positions, or payments exist.
      */
     @Transactional
-    @PreAuthorize("hasRole('ASSET_MANAGER')")
+    @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public void deletePendingAsset(String assetId) {
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new AssetException("Asset not found: " + assetId));
