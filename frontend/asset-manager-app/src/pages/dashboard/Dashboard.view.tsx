@@ -180,42 +180,6 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 								<p className="text-2xl font-bold text-green-600">All clear</p>
 							)}
 						</StatCard>
-
-						<StatCard title="Reconciliation">
-							{dashboardSummary.reconciliation.openReports > 0 ? (
-								<>
-									<p
-										className={`text-2xl font-bold ${dashboardSummary.reconciliation.criticalOpen > 0 ? "text-red-600" : "text-yellow-600"}`}
-									>
-										{dashboardSummary.reconciliation.openReports}
-										<span className="text-sm font-normal text-gray-500">
-											{" "}
-											open
-										</span>
-									</p>
-									<div className="flex gap-3 mt-1 text-xs text-gray-500">
-										{dashboardSummary.reconciliation.criticalOpen > 0 && (
-											<span className="text-red-600">
-												{dashboardSummary.reconciliation.criticalOpen} critical
-											</span>
-										)}
-										{dashboardSummary.reconciliation.warningOpen > 0 && (
-											<span className="text-yellow-600">
-												{dashboardSummary.reconciliation.warningOpen} warnings
-											</span>
-										)}
-										<span>{dashboardSummary.activeInvestors} investors</span>
-									</div>
-								</>
-							) : (
-								<>
-									<p className="text-2xl font-bold text-green-600">All clear</p>
-									<p className="text-xs text-gray-500 mt-1">
-										{dashboardSummary.activeInvestors} active investors
-									</p>
-								</>
-							)}
-						</StatCard>
 					</div>
 				)}
 
