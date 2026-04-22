@@ -75,7 +75,7 @@ public class AdminDlqSteps {
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + adminJwt())
                 .get("/api/admin/reversals/dlq");
-        List<Integer> ids = listResp.jsonPath().getList("id");
+        List<Integer> ids = listResp.jsonPath().getList("content.id");
         assertThat(ids).as("DLQ list should not be empty").isNotEmpty();
         int firstId = ids.get(0);
 
@@ -114,21 +114,21 @@ public class AdminDlqSteps {
     @Then("the DLQ list should have {int} entries")
     public void dlqListShouldHaveEntries(int expected) {
         Response response = context.getValue("adminDlqResponse");
-        List<?> entries = response.jsonPath().getList("");
+        List<?> entries = response.jsonPath().getList("content");
         assertThat(entries).hasSize(expected);
     }
 
     @Then("the DLQ list should be empty")
     public void dlqListShouldBeEmpty() {
         Response response = context.getValue("adminDlqResponse");
-        List<?> entries = response.jsonPath().getList("");
+        List<?> entries = response.jsonPath().getList("content");
         assertThat(entries).isEmpty();
     }
 
     @Then("each DLQ entry should have a transaction ID and failure reason")
     public void eachDlqEntryShouldHaveFields() {
         Response response = context.getValue("adminDlqResponse");
-        List<Map<String, Object>> entries = response.jsonPath().getList("");
+        List<Map<String, Object>> entries = response.jsonPath().getList("content");
         assertThat(entries).isNotEmpty();
         for (Map<String, Object> entry : entries) {
             assertThat(entry.get("transactionId")).as("transactionId").isNotNull();
