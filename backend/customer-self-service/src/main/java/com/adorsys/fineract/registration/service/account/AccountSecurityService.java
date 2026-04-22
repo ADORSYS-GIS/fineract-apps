@@ -142,10 +142,15 @@ public class AccountSecurityService {
      * GenericJackson2JsonRedisSerializer deserializes JSON numbers as Integer for small values,
      * so we normalize via Number before boxing to Long.
      */
-    @SuppressWarnings("unchecked")
     private Set<Long> toAccountIdSet(Object raw) {
         if (raw instanceof Collection<?> c) {
             return c.stream()
+                    .filter(e -> {
+                        if (e instanceof Number) return true;
+                        log.warn("Unexpected element type in account ownership cache: {}",
+                                 e == null ? "null" : e.getClass().getName());
+                        return false;
+                    })
                     .map(e -> ((Number) e).longValue())
                     .collect(Collectors.toSet());
         }

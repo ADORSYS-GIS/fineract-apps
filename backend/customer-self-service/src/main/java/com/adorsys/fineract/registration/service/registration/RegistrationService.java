@@ -93,7 +93,14 @@ public class RegistrationService {
         log.info("Registration process completed successfully for externalId: {}", externalId);
         registrationMetrics.incrementRegistrationSuccess();
         if (fineractClientId != null) {
-            accountSecurityService.invalidateCache(fineractClientId);
+            try {
+                accountSecurityService.invalidateCache(fineractClientId);
+            } catch (Exception e) {
+                // Cache invalidation is best-effort — a Redis failure must not roll back
+                // an already-succeeded Fineract registration and return a false 500.
+                log.warn("Failed to invalidate account ownership cache for client {}: {}",
+                         fineractClientId, e.getMessage());
+            }
         }
 
         return response;
