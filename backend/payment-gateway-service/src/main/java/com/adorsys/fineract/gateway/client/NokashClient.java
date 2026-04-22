@@ -195,7 +195,7 @@ public class NokashClient {
 
         try {
             Map<String, Object> response = webClient.post()
-                .uri("/lapas-on-trans/trans/api-payin-request/407")
+                .uri("/lapas-on-trans/trans/api-payout-request/407")
                 .header("auth-code", tempAuthKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
