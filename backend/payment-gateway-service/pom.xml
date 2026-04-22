@@ -118,6 +118,12 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- Caffeine for TTL-based in-memory token cache fallback -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- Spring Retry for optimistic locking retries -->
         <dependency>
             <groupId>org.springframework.retry</groupId>

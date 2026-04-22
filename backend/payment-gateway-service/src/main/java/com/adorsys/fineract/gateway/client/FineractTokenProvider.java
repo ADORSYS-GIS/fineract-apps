@@ -1,7 +1,6 @@
 package com.adorsys.fineract.gateway.client;
 
 import com.adorsys.fineract.gateway.config.FineractConfig;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -13,25 +12,33 @@ import com.adorsys.fineract.gateway.service.TokenCacheService;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Provides OAuth2 access tokens for Fineract API authentication.
  *
  * Features:
  * - Automatic token caching with expiration tracking
- * - Thread-safe token refresh (ConcurrentHashMap)
+ * - Thread-safe token refresh via double-checked locking with ReentrantLock
  * - 60-second buffer before actual expiration to prevent token-in-flight expiry
  * - Falls back gracefully if OAuth is not configured
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class FineractTokenProvider {
 
     private final FineractConfig config;
     private final TokenCacheService tokenCacheService;
+    private final ReentrantLock refreshLock = new ReentrantLock();
 
     private static final String CACHE_KEY = "fineract:oauth";
+    private static final long LOCK_WAIT_SECONDS = 5;
+
+    public FineractTokenProvider(FineractConfig config, TokenCacheService tokenCacheService) {
+        this.config = config;
+        this.tokenCacheService = tokenCacheService;
+    }
 
     /**
      * Get a valid access token for Fineract API.
@@ -50,58 +57,66 @@ public class FineractTokenProvider {
         return tokenCacheService.getToken(CACHE_KEY).orElseGet(this::refreshToken);
     }
 
-    /**
-     * Force refresh the OAuth token.
-     */
-    @SuppressWarnings("unchecked")
-    private synchronized String refreshToken() {
-        // Double-check: another thread might have refreshed while we waited
-        return tokenCacheService.getToken(CACHE_KEY).orElseGet(() -> {
-            log.info("Fetching new Fineract OAuth token from: {}", config.getTokenUrl());
-
-            try {
-                String credentials = config.getClientId() + ":" + config.getClientSecret();
-                String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
-
-                WebClient tokenClient = WebClient.builder()
-                        .baseUrl(config.getTokenUrl())
-                        .build();
-
-                Map<String, Object> response = tokenClient.post()
-                        .header(HttpHeaders.AUTHORIZATION, "Basic " + encodedCredentials)
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .bodyValue("grant_type=client_credentials")
-                        .retrieve()
-                        .bodyToMono(Map.class)
-                        .timeout(Duration.ofSeconds(10))
-                        .block();
-
-                if (response == null) {
-                    throw new RuntimeException("Empty response from token endpoint");
-                }
-
-                String accessToken = (String) response.get("access_token");
-                if (accessToken == null) {
-                    throw new RuntimeException("No access_token in response: " + response);
-                }
-
-                int expiresIn = 300;
-                Object expiresInObj = response.get("expires_in");
-                if (expiresInObj instanceof Number) {
-                    expiresIn = ((Number) expiresInObj).intValue();
-                }
-
-                long ttlSeconds = expiresIn - 60; // 60s buffer before expiry
-                tokenCacheService.putToken(CACHE_KEY, accessToken, ttlSeconds);
-
-                log.info("Successfully obtained Fineract OAuth token (expires in {} seconds)", expiresIn);
-                return accessToken;
-
-            } catch (Exception e) {
-                log.error("Failed to obtain Fineract OAuth token: {}", e.getMessage());
-                throw new RuntimeException("Failed to obtain Fineract OAuth token", e);
+    private String refreshToken() {
+        try {
+            if (!refreshLock.tryLock(LOCK_WAIT_SECONDS, TimeUnit.SECONDS)) {
+                throw new RuntimeException("Timed out waiting for token refresh lock");
             }
-        });
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for token refresh lock", e);
+        }
+        try {
+            // Another thread may have refreshed while we were waiting for the lock.
+            return tokenCacheService.getToken(CACHE_KEY).orElseGet(() -> {
+                log.info("Fetching new Fineract OAuth token from: {}", config.getTokenUrl());
+
+                try {
+                    String credentials = config.getClientId() + ":" + config.getClientSecret();
+                    String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
+
+                    WebClient tokenClient = WebClient.builder()
+                            .baseUrl(config.getTokenUrl())
+                            .build();
+
+                    Map<String, Object> response = tokenClient.post()
+                            .header(HttpHeaders.AUTHORIZATION, "Basic " + encodedCredentials)
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .bodyValue("grant_type=client_credentials")
+                            .retrieve()
+                            .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                            .timeout(Duration.ofSeconds(10))
+                            .block();
+
+                    if (response == null) {
+                        throw new RuntimeException("Empty response from token endpoint");
+                    }
+
+                    String accessToken = (String) response.get("access_token");
+                    if (accessToken == null) {
+                        throw new RuntimeException("No access_token in response: " + response);
+                    }
+
+                    int expiresIn = 300;
+                    Object expiresInObj = response.get("expires_in");
+                    if (expiresInObj instanceof Number) {
+                        expiresIn = ((Number) expiresInObj).intValue();
+                    }
+
+                    long ttlSeconds = Math.max(30L, expiresIn - 60L); // 60s buffer before expiry; floor at 30s to guard against reduced expires_in under auth server load
+                    tokenCacheService.putToken(CACHE_KEY, accessToken, ttlSeconds);
+
+                    log.info("Successfully obtained Fineract OAuth token (expires in {} seconds)", expiresIn);
+                    return accessToken;
+
+                } catch (Exception e) {
+                    log.error("Failed to obtain Fineract OAuth token: {}", e.getMessage());
+                    throw new RuntimeException("Failed to obtain Fineract OAuth token", e);
+                }
+            });
+        } finally {
+            refreshLock.unlock();
+        }
     }
 
     private void validateOAuthConfig() {

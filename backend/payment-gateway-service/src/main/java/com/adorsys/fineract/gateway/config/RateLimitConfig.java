@@ -14,11 +14,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.time.Instant;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -44,11 +45,13 @@ public class RateLimitConfig {
 
     private static final Duration WINDOW = Duration.ofMinutes(1);
 
-    // In-memory fallback buckets (used when Redis is unavailable)
-    // Entries are evicted after 2 minutes to prevent unbounded memory growth during Redis outages
     private static final int MAX_FALLBACK_BUCKETS = 10_000;
-    private final Map<String, Bucket> fallbackBuckets = new ConcurrentHashMap<>();
-    private final Map<String, Instant> fallbackTimestamps = new ConcurrentHashMap<>();
+    private static final long FALLBACK_TTL_MILLIS = Duration.ofHours(1).toMillis();
+    private static final int TRIM_PERCENT = 20;
+
+    private record FallbackEntry(Bucket bucket, long lastAccessMillis) {}
+
+    private final Map<String, FallbackEntry> fallbackBuckets = new ConcurrentHashMap<>();
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -59,6 +62,23 @@ public class RateLimitConfig {
     @Bean
     public RateLimitFilter rateLimitFilter() {
         return new RateLimitFilter();
+    }
+
+    @Scheduled(fixedRate = 60_000)
+    public void evictStaleFallbackBuckets() {
+        long cutoff = System.currentTimeMillis() - FALLBACK_TTL_MILLIS;
+        fallbackBuckets.entrySet().removeIf(e -> e.getValue().lastAccessMillis() < cutoff);
+
+        int over = fallbackBuckets.size() - MAX_FALLBACK_BUCKETS;
+        if (over <= 0) return;
+
+        int trimCount = Math.max(over, MAX_FALLBACK_BUCKETS * TRIM_PERCENT / 100);
+        fallbackBuckets.entrySet().stream()
+            .sorted(Comparator.comparingLong(e -> e.getValue().lastAccessMillis()))
+            .limit(trimCount)
+            .map(Map.Entry::getKey)
+            .toList()
+            .forEach(fallbackBuckets::remove);
     }
 
     public class RateLimitFilter extends OncePerRequestFilter {
@@ -125,26 +145,17 @@ public class RateLimitConfig {
         }
 
         private boolean fallbackIsAllowed(String type, String clientId, int limit) {
-            evictStaleFallbackBuckets();
             String key = type + ":" + clientId;
-            fallbackTimestamps.put(key, Instant.now());
-            Bucket bucket = fallbackBuckets.computeIfAbsent(key,
-                k -> Bucket.builder()
-                    .addLimit(Bandwidth.classic(limit, Refill.greedy(limit, WINDOW)))
-                    .build());
-            return bucket.tryConsume(1);
-        }
-
-        private void evictStaleFallbackBuckets() {
-            if (fallbackBuckets.size() <= MAX_FALLBACK_BUCKETS) return;
-            Instant cutoff = Instant.now().minus(WINDOW);
-            fallbackTimestamps.entrySet().removeIf(e -> {
-                if (e.getValue().isBefore(cutoff)) {
-                    fallbackBuckets.remove(e.getKey());
-                    return true;
-                }
-                return false;
+            long now = System.currentTimeMillis();
+            FallbackEntry entry = fallbackBuckets.compute(key, (k, existing) -> {
+                Bucket bucket = existing != null
+                    ? existing.bucket()
+                    : Bucket.builder()
+                        .addLimit(Bandwidth.classic(limit, Refill.greedy(limit, WINDOW)))
+                        .build();
+                return new FallbackEntry(bucket, now);
             });
+            return entry.bucket().tryConsume(1);
         }
 
         private void sendRateLimitResponse(HttpServletResponse response) throws IOException {
