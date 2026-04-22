@@ -1,6 +1,8 @@
 package com.adorsys.fineract.asset.repository;
 
 import com.adorsys.fineract.asset.entity.UserPosition;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,4 +33,10 @@ public interface UserPositionRepository extends JpaRepository<UserPosition, Long
      */
     @Query("SELECT DISTINCT p.userId FROM UserPosition p WHERE p.totalUnits > 0")
     List<Long> findDistinctUserIdsWithPositions();
+
+    /**
+     * Paginated overload — use this in batch jobs to avoid loading every user ID into memory at once.
+     */
+    @Query("SELECT DISTINCT p.userId FROM UserPosition p WHERE p.totalUnits > 0")
+    Page<Long> findDistinctUserIdsWithPositions(Pageable pageable);
 }
