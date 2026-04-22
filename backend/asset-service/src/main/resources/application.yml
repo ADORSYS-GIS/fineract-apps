@@ -72,6 +72,8 @@ spring:
 app:
   fineract:
     ssl-verify: ${FINERACT_SSL_VERIFY:false}  # Only disable in dev; defaults to true in WebClientConfig
+  notifications:
+    excluded-alert-types: RECONCILIATION_CRITICAL
 
 # Fineract Configuration
 fineract:
