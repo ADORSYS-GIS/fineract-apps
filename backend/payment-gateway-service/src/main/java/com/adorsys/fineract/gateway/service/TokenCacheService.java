@@ -27,6 +27,7 @@ public class TokenCacheService {
     public TokenCacheService(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
         this.localCache = Caffeine.newBuilder()
+            .maximumSize(10)
             .expireAfterWrite(LOCAL_CACHE_TTL_MINUTES, TimeUnit.MINUTES)
             .build();
     }
@@ -38,7 +39,7 @@ public class TokenCacheService {
                 return Optional.of(token);
             }
         } catch (Exception e) {
-            log.debug("Redis unavailable for token cache, using local fallback: {}", e.getMessage());
+            log.warn("Redis unavailable for token cache, using local fallback: {}", e.getMessage());
         }
 
         CachedToken local = localCache.getIfPresent(cacheKey);
@@ -56,7 +57,7 @@ public class TokenCacheService {
         try {
             redisTemplate.opsForValue().set(PREFIX + cacheKey, token, ttl);
         } catch (Exception e) {
-            log.debug("Redis unavailable for token cache, using local fallback: {}", e.getMessage());
+            log.warn("Redis unavailable for token cache, using local fallback: {}", e.getMessage());
         }
     }
 
@@ -65,7 +66,7 @@ public class TokenCacheService {
         try {
             redisTemplate.delete(PREFIX + cacheKey);
         } catch (Exception e) {
-            log.debug("Redis unavailable for cache clear: {}", e.getMessage());
+            log.warn("Redis unavailable for cache clear: {}", e.getMessage());
         }
     }
 
