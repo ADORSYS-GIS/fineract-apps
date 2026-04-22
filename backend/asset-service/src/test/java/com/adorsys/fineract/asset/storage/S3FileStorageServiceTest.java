@@ -44,7 +44,8 @@ class S3FileStorageServiceTest {
         when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenReturn(PutObjectResponse.builder().build());
 
-        byte[] content = "fake-image".getBytes();
+        // PNG magic bytes: \x89PNG\r\n\x1a\n
+        byte[] content = new byte[]{(byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00};
         String key = service.upload("assets/icons", "logo.png",
                 new ByteArrayInputStream(content), content.length, "image/png");
 
@@ -61,7 +62,7 @@ class S3FileStorageServiceTest {
         when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenReturn(PutObjectResponse.builder().build());
 
-        byte[] content = "data".getBytes();
+        byte[] content = new byte[]{(byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00};
         String key = service.upload("icons", "my file (1).png",
                 new ByteArrayInputStream(content), content.length, "image/png");
 

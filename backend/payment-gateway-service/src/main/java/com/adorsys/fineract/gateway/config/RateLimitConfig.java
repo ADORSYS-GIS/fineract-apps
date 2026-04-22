@@ -17,6 +17,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Comparator;
@@ -173,35 +177,11 @@ public class RateLimitConfig {
         }
 
         private String getClientIdentifier(HttpServletRequest request) {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String subject = extractJwtSubject(authHeader.substring(7));
-                if (subject != null) {
-                    return "user:" + subject;
-                }
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+                return "user:" + jwt.getSubject();
             }
             return "ip:" + getIpAddress(request);
-        }
-
-        private String extractJwtSubject(String token) {
-            try {
-                String[] parts = token.split("\\.");
-                if (parts.length < 2) return null;
-                String payload = new String(java.util.Base64.getUrlDecoder().decode(parts[1]),
-                    java.nio.charset.StandardCharsets.UTF_8);
-                int subIdx = payload.indexOf("\"sub\"");
-                if (subIdx < 0) return null;
-                int colonIdx = payload.indexOf(':', subIdx);
-                int quoteStart = payload.indexOf('"', colonIdx + 1);
-                int quoteEnd = payload.indexOf('"', quoteStart + 1);
-                if (quoteStart >= 0 && quoteEnd > quoteStart) {
-                    return payload.substring(quoteStart + 1, quoteEnd);
-                }
-                return null;
-            } catch (Exception e) {
-                log.debug("Could not extract JWT subject: {}", e.getMessage());
-                return null;
-            }
         }
     }
 }
