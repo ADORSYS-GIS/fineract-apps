@@ -6,6 +6,8 @@ import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -24,11 +26,11 @@ public class RegistrationMetrics {
     private final Counter registrationRequestsTotal;
     private final Counter registrationSuccessTotal;
     private final Timer registrationDuration;
+    private final Map<String, Counter> failureCounters;
     private final MeterRegistry meterRegistry;
 
     public RegistrationMetrics(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
-
         // Registration counters
         this.registrationRequestsTotal = Counter.builder("registration_requests_total")
                 .description("Total number of registration requests received")
@@ -42,6 +44,22 @@ public class RegistrationMetrics {
         this.registrationDuration = Timer.builder("registration_duration_seconds")
                 .description("Time taken to complete a registration")
                 .register(meterRegistry);
+
+        // Pre-register all known failure reason counters and the catch-all "OTHER"
+        // counter so that incrementRegistrationFailure never performs a registry
+        // traversal on the hot path — only a map lookup.
+        Map<String, Counter> counters = new HashMap<>();
+        for (String reason : KNOWN_FAILURE_REASONS) {
+            counters.put(reason, Counter.builder("registration_failure_total")
+                    .tag("reason", reason)
+                    .description("Total number of failed registrations")
+                    .register(meterRegistry));
+        }
+        counters.put("OTHER", Counter.builder("registration_failure_total")
+                .tag("reason", "OTHER")
+                .description("Total number of failed registrations")
+                .register(meterRegistry));
+        this.failureCounters = Map.copyOf(counters);
 
         log.info("Registration metrics initialized");
     }
@@ -62,14 +80,11 @@ public class RegistrationMetrics {
 
     /**
      * Increment failed registration counter with reason tag.
+     * Uses pre-registered counters to avoid registry traversal on every failure event.
      */
     public void incrementRegistrationFailure(String reason) {
         String normalizedReason = KNOWN_FAILURE_REASONS.contains(reason) ? reason : "OTHER";
-        Counter.builder("registration_failure_total")
-                .tag("reason", normalizedReason)
-                .description("Total number of failed registrations")
-                .register(meterRegistry)
-                .increment();
+        failureCounters.get(normalizedReason).increment();
     }
 
     /**

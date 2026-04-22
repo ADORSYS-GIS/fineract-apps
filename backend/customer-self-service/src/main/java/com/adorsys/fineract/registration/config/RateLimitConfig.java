@@ -3,11 +3,13 @@ package com.adorsys.fineract.registration.config;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -16,10 +18,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Rate limiting configuration to protect against abuse.
@@ -31,6 +36,30 @@ import java.util.concurrent.ConcurrentHashMap;
 @Configuration
 @org.springframework.context.annotation.Profile("!e2e")
 public class RateLimitConfig {
+
+    /**
+     * Comma-separated list of trusted proxy IP prefixes (e.g., "10.0.0.,172.16.").
+     * X-Forwarded-For is only honoured when the direct caller's IP matches one of these
+     * prefixes. Defaults to empty string, which means no proxy is trusted and
+     * request.getRemoteAddr() is always used directly — the safe default.
+     */
+    @Value("${app.rate-limit.trusted-proxy-cidrs:}")
+    private String trustedProxyCidrs;
+
+    private Set<String> trustedProxyPrefixes = Collections.emptySet();
+
+    @PostConstruct
+    void initTrustedProxies() {
+        if (trustedProxyCidrs == null || trustedProxyCidrs.isBlank()) {
+            trustedProxyPrefixes = Collections.emptySet();
+            return;
+        }
+        trustedProxyPrefixes = Arrays.stream(trustedProxyCidrs.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toUnmodifiableSet());
+        log.info("Rate limiter: trusting X-Forwarded-For from proxy prefixes: {}", trustedProxyPrefixes);
+    }
 
     // Rate limit: 10 requests per minute per IP for registration
     private static final int REGISTRATION_LIMIT = 10;
@@ -143,15 +172,27 @@ public class RateLimitConfig {
         }
 
         private String getClientIp(HttpServletRequest request) {
-            String xForwardedFor = request.getHeader("X-Forwarded-For");
-            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                return xForwardedFor.split(",")[0].trim();
+            String remoteAddr = request.getRemoteAddr();
+
+            // Only trust forwarded headers when the immediate caller is a known proxy.
+            // Trusting X-Forwarded-For unconditionally lets any client spoof their IP
+            // and bypass per-IP rate limiting (OWASP: Broken Access Control).
+            if (!trustedProxyPrefixes.isEmpty() && isTrustedProxy(remoteAddr)) {
+                String xForwardedFor = request.getHeader("X-Forwarded-For");
+                if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+                    return xForwardedFor.split(",")[0].trim();
+                }
+                String xRealIp = request.getHeader("X-Real-IP");
+                if (xRealIp != null && !xRealIp.isBlank()) {
+                    return xRealIp;
+                }
             }
-            String xRealIp = request.getHeader("X-Real-IP");
-            if (xRealIp != null && !xRealIp.isEmpty()) {
-                return xRealIp;
-            }
-            return request.getRemoteAddr();
+
+            return remoteAddr;
+        }
+
+        private boolean isTrustedProxy(String remoteAddr) {
+            return trustedProxyPrefixes.stream().anyMatch(remoteAddr::startsWith);
         }
     }
 }

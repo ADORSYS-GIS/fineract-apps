@@ -108,8 +108,6 @@ public class FineractTokenProvider {
             tokenCache.put(CACHE_KEY, new TokenInfo(accessToken, expiresAt));
 
             log.info("Successfully obtained Fineract OAuth token (expires in {} seconds)", expiresIn);
-            log.warn("Logging full access token for debugging purposes. Do not use this in production.");
-            log.debug("Fineract access token: {}", accessToken);
             return accessToken;
 
         } catch (Exception e) {

@@ -4,6 +4,7 @@ import com.adorsys.fineract.registration.config.FineractProperties;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -33,7 +34,6 @@ public class FineractCodeValueService {
         this.fineractProperties = fineractProperties;
     }
 
-    @SuppressWarnings("unchecked")
     public void refreshCodeValueCache(String codeName) {
         log.info("Fetching dynamic IDs for code: {}", codeName);
 
@@ -47,7 +47,7 @@ public class FineractCodeValueService {
             List<Map<String, Object>> values = fineractRestClient.get()
                     .uri("/fineract-provider/api/v1/codes/{codeId}/codevalues", codeId)
                     .retrieve()
-                    .body(List.class);
+                    .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
 
             if (values != null) {
                 for (Map<String, Object> val : values) {

@@ -1,5 +1,6 @@
 package com.adorsys.fineract.registration.service.account;
 
+import java.util.Collections;
 import java.util.List;
 
 import com.adorsys.fineract.registration.exception.RegistrationException;
@@ -97,13 +98,17 @@ public class AccountSecurityService {
             throw new RegistrationException("FORBIDDEN", "Access denied to account " + accountId, null);
         }
 
-        // Update cache
-        Set<Long> cached = accountOwnershipCache.getIfPresent(customerClientId);
-        if (cached == null) {
-            cached = new HashSet<>();
-            accountOwnershipCache.put(customerClientId, cached);
-        }
-        cached.add(accountId);
+        // Update cache atomically — merge the new account ID into the existing set without
+        // mutating the cached reference, which would be unsafe under concurrent reads.
+        accountOwnershipCache.asMap().merge(
+                customerClientId,
+                Collections.singleton(accountId),
+                (existing, added) -> {
+                    Set<Long> combined = new HashSet<>(existing);
+                    combined.addAll(added);
+                    return Collections.unmodifiableSet(combined);
+                }
+        );
         log.debug("Account {} ownership verified and cached for client {}", accountId, customerClientId);
     }
 
@@ -119,14 +124,15 @@ public class AccountSecurityService {
 
         List<Map<String, Object>> accounts = fineractService.getSavingsAccountsByClientId(customerClientId);
 
-        // Update cache with all owned account IDs
+        // Populate cache with all owned account IDs as an unmodifiable set to prevent
+        // accidental mutation of the cached reference from concurrent callers.
         Set<Long> accountIds = new HashSet<>();
         for (Map<String, Object> account : accounts) {
             if (account.containsKey("id")) {
                 accountIds.add(((Number) account.get("id")).longValue());
             }
         }
-        accountOwnershipCache.put(customerClientId, accountIds);
+        accountOwnershipCache.put(customerClientId, Collections.unmodifiableSet(accountIds));
 
         return accounts;
     }
