@@ -1,9 +1,5 @@
 package com.adorsys.fineract.e2e.asset.steps;
 
-import com.adorsys.fineract.asset.exception.TradeLockException;
-import com.adorsys.fineract.asset.scheduler.FineractOutboxProcessor;
-import com.adorsys.fineract.asset.service.TradingService;
-import com.adorsys.fineract.asset.service.TradeWorkerService;
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
@@ -37,15 +33,6 @@ public class QuoteTradingSteps {
     @Autowired
     private FineractTestClient fineractTestClient;
 
-    @Autowired
-    private TradeWorkerService tradeWorkerService;
-
-    @Autowired
-    private FineractOutboxProcessor outboxProcessor;
-
-    @Autowired
-    private TradingService tradingService;
-
     // ---------------------------------------------------------------
     // When steps
     // ---------------------------------------------------------------
@@ -75,11 +62,6 @@ public class QuoteTradingSteps {
                 .as("Confirm quote: %s", response.body().asString())
                 .isEqualTo(202);
         context.setLastResponse(response);
-
-        // Execute synchronously to bypass the 5s @Scheduled window and surface hidden errors.
-        executeOrderSynchronously(orderId);
-        // Safety net: pick up any DISPATCHED outbox entry if finalizeTrade rolled back.
-        outboxProcessor.processNow();
     }
 
     @When("the user cancels the quote")
@@ -205,8 +187,8 @@ public class QuoteTradingSteps {
         String orderId = context.getId("lastQuoteOrderId");
         assertThat(orderId).as("No quote order ID stored").isNotNull();
 
-        // Poll until FILLED (up to 20s)
-        long deadline = System.currentTimeMillis() + 20_000;
+        // Poll until FILLED (up to 15s)
+        long deadline = System.currentTimeMillis() + 15_000;
         while (System.currentTimeMillis() < deadline) {
             Response response = RestAssured.given()
                     .baseUri("http://localhost:" + port)
@@ -270,18 +252,6 @@ public class QuoteTradingSteps {
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
-
-    private void executeOrderSynchronously(String orderId) {
-        for (int attempt = 0; attempt < 5; attempt++) {
-            try {
-                tradingService.executeOrderAsync(orderId);
-                return;
-            } catch (TradeLockException e) {
-                if (attempt == 4) return;
-                try { Thread.sleep(300); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); return; }
-            }
-        }
-    }
 
     private void createQuote(String side, int units, String symbolRef) {
         String assetId = resolveAssetId(symbolRef);
