@@ -303,7 +303,10 @@ public class CallbackController {
             @PathVariable String orderId,
             @RequestBody NokashCallbackRequest callback) {
 
-        if (!orderId.equals(callback.getOrderId())) {
+        // Nokash sends callbacks with orderId in the URL path but not in the body
+        if (callback.getOrderId() == null) {
+            callback.setOrderId(orderId);
+        } else if (!orderId.equals(callback.getOrderId())) {
             log.warn("NOKASH callback rejected: Path orderId={} does not match body orderId={}", orderId, callback.getOrderId());
             return ResponseEntity.badRequest().build();
         }

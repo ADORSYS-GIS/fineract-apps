@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
@@ -179,17 +180,22 @@ public class NokashClient {
 
         String secureCallbackUrl = config.getCallbackUrl() + "/" + orderId;
 
-        Map<String, Object> requestBody = Map.of(
-            "i_space_key", config.getISpaceKey(),
-            "app_space_key", config.getAppSpaceKey(),
-            "payment_type", "CM_MOBILEMONEY",
-            "payment_method", paymentMethod,
-            "country", config.getCountry(),
-            "order_id", orderId,
-            "amount", String.valueOf(amount.longValue()),
-            "callback_url", secureCallbackUrl,
-            "user_data", Map.of("user_phone", PhoneNumberUtils.normalizePhoneNumber(phoneNumber))
-        );
+        Map<String, Object> remittanceData = new HashMap<>();
+        remittanceData.put("sender_first_name", config.getSenderFirstName());
+        remittanceData.put("sender_last_name", config.getSenderLastName());
+        remittanceData.put("reason", "withdrawal");
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("i_space_key", config.getISpaceKey());
+        requestBody.put("app_space_key", config.getAppSpaceKey());
+        requestBody.put("payment_type", "CM_MOBILEMONEY");
+        requestBody.put("payment_method", paymentMethod);
+        requestBody.put("country", config.getCountry());
+        requestBody.put("order_id", orderId);
+        requestBody.put("amount", String.valueOf(amount.longValue()));
+        requestBody.put("callback_url", secureCallbackUrl);
+        requestBody.put("user_data", Map.of("user_phone", PhoneNumberUtils.normalizePhoneNumber(phoneNumber)));
+        requestBody.put("other_info", Map.of("remittance_data", remittanceData));
 
         log.info("NOKASH Payout request body: {}", requestBody);
 

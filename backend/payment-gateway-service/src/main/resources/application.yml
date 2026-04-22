@@ -109,6 +109,8 @@ nokash:
   currency: ${NOKASH_CURRENCY:XAF}
   fineract-payment-type-id: ${NOKASH_FINERACT_PAYMENT_TYPE_ID:3}
   gl-account-code: ${NOKASH_GL_ACCOUNT_CODE:}
+  sender-first-name: ${NOKASH_SENDER_FIRST_NAME:Azamra}
+  sender-last-name: ${NOKASH_SENDER_LAST_NAME:Platform}
 
 # Base URLs for dynamic callback/return URL construction
 payment:

@@ -21,4 +21,6 @@ public class NokashConfig {
     // TODO: Used for GL reconciliation reporting — not passed to createDeposit/createWithdrawal.
     // Fineract GL routing happens via paymentTypeId → paymentChannelToFundSourceMappings.
     private String glAccountCode;
+    private String senderFirstName;
+    private String senderLastName;
 }
