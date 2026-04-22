@@ -3,9 +3,11 @@ package com.adorsys.fineract.gateway.service;
 import com.adorsys.fineract.gateway.client.CinetPayClient;
 import com.adorsys.fineract.gateway.client.FineractClient;
 import com.adorsys.fineract.gateway.client.MtnMomoClient;
+import com.adorsys.fineract.gateway.client.NokashClient;
 import com.adorsys.fineract.gateway.client.OrangeMoneyClient;
 import com.adorsys.fineract.gateway.config.CinetPayConfig;
 import com.adorsys.fineract.gateway.config.MtnMomoConfig;
+import com.adorsys.fineract.gateway.config.NokashConfig;
 import com.adorsys.fineract.gateway.config.OrangeMoneyConfig;
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
@@ -48,10 +50,12 @@ public class PaymentService {
     private final MtnMomoClient mtnClient;
     private final OrangeMoneyClient orangeClient;
     private final CinetPayClient cinetPayClient;
+    private final NokashClient nokashClient;
     private final FineractClient fineractClient;
     private final MtnMomoConfig mtnConfig;
     private final OrangeMoneyConfig orangeConfig;
     private final CinetPayConfig cinetPayConfig;
+    private final NokashConfig nokashConfig;
     private final PaymentMetrics paymentMetrics;
     private final PaymentTransactionRepository transactionRepository;
     private final ReversalService reversalService;
@@ -122,6 +126,7 @@ public class PaymentService {
                 case MTN_MOMO -> initiateMtnDeposit(transactionId, request);
                 case ORANGE_MONEY -> initiateOrangeDeposit(transactionId, request);
                 case CINETPAY -> initiateCinetPayDeposit(transactionId, request);
+                case NOKASH -> initiateNokashDeposit(transactionId, request);
                 default -> throw new PaymentException("Unsupported payment provider for deposits: " + request.getProvider());
             };
         } catch (Exception e) {
@@ -228,6 +233,7 @@ public class PaymentService {
                 case MTN_MOMO -> initiateMtnWithdrawal(transactionId, request);
                 case ORANGE_MONEY -> initiateOrangeWithdrawal(transactionId, request);
                 case CINETPAY -> initiateCinetPayWithdrawal(transactionId, request);
+                case NOKASH -> initiateNokashWithdrawal(transactionId, request);
                 default -> throw new PaymentException("Unsupported payment provider for withdrawals: " + request.getProvider());
             };
             response.setFineractTransactionId(fineractTxnId);
@@ -392,6 +398,20 @@ public class PaymentService {
         log.info("Processing CinetPay callback: transactionId={}, status={}, paymentMethod={}",
             callback.getTransactionId(), callback.getResultCode(), callback.getPaymentMethod());
         CallbackHandlerDelegate.CallbackResult result = callbackDelegate.processCinetPayCallback(callback);
+        if (result.reversalNeeded()) {
+            reversalService.reverseWithdrawal(result.transaction());
+        }
+    }
+
+    /**
+     * Handle NOKASH callback.
+     */
+    @Retryable(retryFor = {PessimisticLockingFailureException.class, CannotAcquireLockException.class},
+               maxAttempts = 3, backoff = @Backoff(delay = 100, multiplier = 2))
+    public void handleNokashCallback(NokashCallbackRequest callback) {
+        log.info("Processing NOKASH callback: orderId={}, status={}",
+            callback.getOrderId(), callback.getStatus());
+        CallbackHandlerDelegate.CallbackResult result = callbackDelegate.processNokashCallback(callback);
         if (result.reversalNeeded()) {
             reversalService.reverseWithdrawal(result.transaction());
         }
@@ -649,11 +669,64 @@ public class PaymentService {
             .build();
     }
 
+    private PaymentResponse initiateNokashDeposit(String transactionId, DepositRequest request) {
+        log.info("Initiating NOKASH deposit for transactionId: {}", transactionId);
+        if (request.getPaymentMethod() == null || request.getPaymentMethod().isBlank()) {
+            throw new PaymentException("Payment method is required for NOKASH deposits");
+        }
+        String providerReference = nokashClient.initiatePayin(
+            transactionId,
+            request.getAmount(),
+            request.getPhoneNumber(),
+            request.getPaymentMethod()
+        );
+
+        return PaymentResponse.builder()
+            .transactionId(transactionId)
+            .providerReference(providerReference)
+            .provider(PaymentProvider.NOKASH)
+            .type(PaymentResponse.TransactionType.DEPOSIT)
+            .amount(request.getAmount())
+            .currency(nokashConfig.getCurrency())
+            .status(PaymentStatus.PENDING)
+            .message("Please approve the payment on your phone")
+            .createdAt(Instant.now())
+            .build();
+    }
+
+    private PaymentResponse initiateNokashWithdrawal(String transactionId, WithdrawalRequest request) {
+        log.info("Initiating NOKASH withdrawal for transactionId: {}", transactionId);
+        if (request.getPaymentMethod() == null || request.getPaymentMethod().isBlank()) {
+            throw new PaymentException("Payment method is required for NOKASH withdrawals");
+        }
+        String tempAuthKey = nokashClient.getTemporaryAuthKey();
+        String providerReference = nokashClient.initiatePayout(
+            tempAuthKey,
+            transactionId,
+            request.getAmount(),
+            request.getPhoneNumber(),
+            request.getPaymentMethod()
+        );
+
+        return PaymentResponse.builder()
+            .transactionId(transactionId)
+            .providerReference(providerReference)
+            .provider(PaymentProvider.NOKASH)
+            .type(PaymentResponse.TransactionType.WITHDRAWAL)
+            .amount(request.getAmount())
+            .currency(nokashConfig.getCurrency())
+            .status(PaymentStatus.PROCESSING)
+            .message("Withdrawal is being processed")
+            .createdAt(Instant.now())
+            .build();
+    }
+
     private String getProviderCurrency(PaymentProvider provider) {
         return switch (provider) {
             case MTN_MOMO -> mtnConfig.getCurrency();
             case ORANGE_MONEY -> orangeConfig.getCurrency();
             case CINETPAY -> cinetPayConfig.getCurrency();
+            case NOKASH -> nokashConfig.getCurrency();
             default -> "XAF";
         };
     }
@@ -675,6 +748,7 @@ public class PaymentService {
                 // Default to MTN for CinetPay if provider cannot be detected
                 yield mtnConfig.getFineractPaymentTypeId();
             }
+            case NOKASH -> nokashConfig.getFineractPaymentTypeId();
             default -> throw new PaymentException("Unknown payment type for provider: " + provider);
         };
     }

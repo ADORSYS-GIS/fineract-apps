@@ -2,6 +2,7 @@ package com.adorsys.fineract.gateway.service;
 
 import com.adorsys.fineract.gateway.client.CinetPayClient;
 import com.adorsys.fineract.gateway.client.MtnMomoClient;
+import com.adorsys.fineract.gateway.client.NokashClient;
 import com.adorsys.fineract.gateway.client.OrangeMoneyClient;
 import com.adorsys.fineract.gateway.dto.PaymentProvider;
 import com.adorsys.fineract.gateway.dto.PaymentResponse;
@@ -24,6 +25,7 @@ public class ProviderStatusPoller {
     private final MtnMomoClient mtnClient;
     private final OrangeMoneyClient orangeClient;
     private final CinetPayClient cinetPayClient;
+    private final NokashClient nokashClient;
 
     /**
      * Poll result from a provider status check.
@@ -58,6 +60,9 @@ public class ProviderStatusPoller {
                     CinetPayClient.VerifyResult result = cinetPayClient.verifyTransactionFull(txn.getTransactionId());
                     yield PollResult.ofCinetPay(result.status(), result.actualProvider());
                 }
+                case NOKASH -> PollResult.of(
+                    nokashClient.getTransactionStatus(txn.getProviderReference())
+                );
                 default -> PollResult.of(PaymentStatus.PENDING);
             };
         } catch (Exception e) {

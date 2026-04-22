@@ -45,6 +45,12 @@ public class WithdrawalRequest {
     private PaymentProvider provider;
 
     /**
+     * Specific payment method for the provider (e.g., MTN_MOMO, ORANGE_MONEY)
+     * Required for some providers like NOKASH.
+     */
+    private String paymentMethod;
+
+    /**
      * Destination phone number (for mobile money)
      */
     @Pattern(regexp = "^\\+?237[0-9]{9}$|^[0-9]{9}$", message = "Invalid Cameroon phone number")
