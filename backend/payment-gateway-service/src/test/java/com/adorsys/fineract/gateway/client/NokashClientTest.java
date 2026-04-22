@@ -109,7 +109,7 @@ class NokashClientTest {
             assertThat(reference).isEqualTo("test-payout-id");
 
             RecordedRequest request = mockWebServer.takeRequest();
-            assertThat(request.getPath()).isEqualTo("/lapas-on-trans/trans/api-payin-request/407");
+            assertThat(request.getPath()).isEqualTo("/lapas-on-trans/trans/api-payout-request/407");
             assertThat(request.getHeader("auth-code")).isEqualTo("temp-auth-key");
             String requestBody = request.getBody().readUtf8();
             assertThat(requestBody).contains("\"payment_method\":\"MTN_MOMO\"");
