@@ -2,6 +2,8 @@ package com.adorsys.fineract.gateway.repository;
 
 import com.adorsys.fineract.gateway.entity.ReversalDeadLetter;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -19,6 +21,8 @@ public interface ReversalDeadLetterRepository extends JpaRepository<ReversalDead
     Optional<ReversalDeadLetter> findByIdForUpdate(Long id);
 
     List<ReversalDeadLetter> findByResolvedFalseOrderByCreatedAtAsc();
+
+    Page<ReversalDeadLetter> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     long countByResolvedFalse();
 

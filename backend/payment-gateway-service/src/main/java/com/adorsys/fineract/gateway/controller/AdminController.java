@@ -10,6 +10,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -69,6 +72,16 @@ public class AdminController {
                 .map(e -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e))
                 .orElse(ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).build());
         };
+    }
+
+    @GetMapping("/reversals/dlq/all")
+    @Operation(summary = "List all reversal dead-letter entries",
+               description = "Returns all reversal dead-letter entries ordered by creation date, newest first. Paginated to avoid loading the full table.")
+    public ResponseEntity<Page<ReversalDeadLetter>> listReversals(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size) {
+        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(deadLetterRepository.findAllByOrderByCreatedAtDesc(pageable));
     }
 
     @PatchMapping("/reversals/dlq/{id}")
