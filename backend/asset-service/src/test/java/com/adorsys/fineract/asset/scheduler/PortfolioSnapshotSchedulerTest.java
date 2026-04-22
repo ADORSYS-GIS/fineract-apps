@@ -13,11 +13,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -37,7 +38,10 @@ class PortfolioSnapshotSchedulerTest {
 
     @Test
     void takeSnapshots_noUsers_skips() {
-        when(userPositionRepository.findDistinctUserIdsWithPositions()).thenReturn(List.of());
+        when(assetPriceRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+        when(assetRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+        when(userPositionRepository.findDistinctUserIdsWithPositions(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
 
         scheduler.takeSnapshots();
 
@@ -46,14 +50,14 @@ class PortfolioSnapshotSchedulerTest {
 
     @Test
     void takeSnapshots_singleUser_delegatesToWriter() {
-        when(userPositionRepository.findDistinctUserIdsWithPositions()).thenReturn(List.of(42L));
-
         AssetPrice price = new AssetPrice();
         price.setAssetId("asset-1");
         price.setAskPrice(new BigDecimal("150"));
         price.setBidPrice(new BigDecimal("145"));
-        when(assetPriceRepository.findAll()).thenReturn(List.of(price));
-        when(assetRepository.findAll()).thenReturn(List.of());
+        when(assetPriceRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(price)));
+        when(assetRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+        when(userPositionRepository.findDistinctUserIdsWithPositions(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(42L)));
 
         scheduler.takeSnapshots();
 
@@ -62,25 +66,21 @@ class PortfolioSnapshotSchedulerTest {
 
     @Test
     void takeSnapshots_oneUserFails_otherStillProcessed() {
-        when(userPositionRepository.findDistinctUserIdsWithPositions()).thenReturn(List.of(1L, 2L));
-
         AssetPrice price = new AssetPrice();
         price.setAssetId("a");
         price.setAskPrice(new BigDecimal("100"));
         price.setBidPrice(new BigDecimal("95"));
-        when(assetPriceRepository.findAll()).thenReturn(List.of(price));
-        when(assetRepository.findAll()).thenReturn(List.of());
+        when(assetPriceRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(price)));
+        when(assetRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+        when(userPositionRepository.findDistinctUserIdsWithPositions(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(1L, 2L)));
 
-        // User 1 throws
         doThrow(new RuntimeException("DB error"))
                 .when(snapshotWriter).snapshotUser(eq(1L), any(), any(), any());
-
-        // User 2 succeeds
         doNothing().when(snapshotWriter).snapshotUser(eq(2L), any(), any(), any());
 
         scheduler.takeSnapshots();
 
-        // Both users should have been attempted
         verify(snapshotWriter).snapshotUser(eq(1L), any(), any(), any());
         verify(snapshotWriter).snapshotUser(eq(2L), any(), any(), any());
     }

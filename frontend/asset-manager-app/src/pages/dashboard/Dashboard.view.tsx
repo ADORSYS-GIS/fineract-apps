@@ -181,7 +181,6 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 								<p className="text-2xl font-bold text-green-600">All clear</p>
 							)}
 						</StatCard>
-
 					</div>
 				)}
 
