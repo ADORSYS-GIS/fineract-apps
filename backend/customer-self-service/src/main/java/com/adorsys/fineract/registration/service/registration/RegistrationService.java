@@ -12,6 +12,7 @@ import com.adorsys.fineract.registration.exception.JsonSerializationException;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
 import com.adorsys.fineract.registration.service.FineractService;
+import com.adorsys.fineract.registration.service.account.AccountSecurityService;
 import com.adorsys.fineract.registration.service.fineract.FineractAccountService;
 import com.adorsys.fineract.registration.service.fineract.FineractBatchService;
 import com.adorsys.fineract.registration.service.fineract.FineractClientService;
@@ -46,6 +47,7 @@ public class RegistrationService {
     private final FineractClientService fineractClientService;
     private final FineractAccountService fineractAccountService;
     private final FineractProperties fineractProperties;
+    private final AccountSecurityService accountSecurityService;
 
     @Timed(value = "registration.service.registerClientAndAccount", description = "Time taken to register a new customer and create an account")
     @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
@@ -90,6 +92,16 @@ public class RegistrationService {
 
         log.info("Registration process completed successfully for externalId: {}", externalId);
         registrationMetrics.incrementRegistrationSuccess();
+        if (fineractClientId != null) {
+            try {
+                accountSecurityService.invalidateCache(fineractClientId);
+            } catch (Exception e) {
+                // Cache invalidation is best-effort — a Redis failure must not roll back
+                // an already-succeeded Fineract registration and return a false 500.
+                log.warn("Failed to invalidate account ownership cache for client {}: {}",
+                         fineractClientId, e.getMessage());
+            }
+        }
 
         return response;
     }

@@ -1,19 +1,21 @@
 package com.adorsys.fineract.registration.service.account;
 
+import java.time.Duration;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.service.FineractService;
 import com.adorsys.fineract.registration.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Security service for verifying account ownership.
@@ -21,18 +23,18 @@ import java.util.concurrent.ConcurrentHashMap;
  * Ensures customers can only access their own accounts by:
  * 1. Extracting fineract_client_id from JWT (fast path)
  * 2. Falling back to sub claim (Keycloak UUID = Fineract externalId) lookup
- * 3. Caching customer's account list for fast ownership checks
+ * 3. Caching customer's account list in Redis for cross-pod consistency
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountSecurityService {
 
-    private final FineractService fineractService;
+    private static final String ACCOUNT_CACHE_KEY_PREFIX = "css:account-ownership:";
+    private static final Duration CACHE_TTL = Duration.ofMinutes(10);
 
-    // Simple in-memory cache for account ownership (consider Redis for production)
-    // Key: clientId, Value: Set of owned account IDs
-    private final ConcurrentHashMap<Long, Set<Long>> accountOwnershipCache = new ConcurrentHashMap<>();
+    private final FineractService fineractService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * Get the Fineract client ID from the JWT token.
@@ -73,15 +75,17 @@ public class AccountSecurityService {
      */
     public void verifySavingsAccountOwnership(Long accountId, Jwt jwt) {
         Long customerClientId = getCustomerClientId(jwt);
+        String key = ACCOUNT_CACHE_KEY_PREFIX + customerClientId;
 
-        // Check cache first
-        Set<Long> ownedAccounts = accountOwnershipCache.get(customerClientId);
+        // Check Redis cache first
+        Object cached = redisTemplate.opsForValue().get(key);
+        Set<Long> ownedAccounts = toAccountIdSet(cached);
         if (ownedAccounts != null && ownedAccounts.contains(accountId)) {
             log.debug("Account {} ownership verified from cache for client {}", accountId, customerClientId);
             return;
         }
 
-        // Cache miss - fetch account and verify
+        // Cache miss - fetch account and verify via Fineract
         Long accountOwnerClientId = fineractService.getSavingsAccountOwner(accountId);
         if (accountOwnerClientId == null) {
             throw new RegistrationException("NOT_FOUND", "Account not found", null);
@@ -93,14 +97,16 @@ public class AccountSecurityService {
             throw new RegistrationException("FORBIDDEN", "Access denied to account " + accountId, null);
         }
 
-        // Update cache
-        accountOwnershipCache.computeIfAbsent(customerClientId, k -> new HashSet<>()).add(accountId);
-        log.debug("Account {} ownership verified and cached for client {}", accountId, customerClientId);
+        // Invalidate rather than partially updating — the full set is only written by
+        // getCustomerSavingsAccounts, which fetches all accounts in one call. A partial
+        // add here could produce an incomplete set across pods.
+        redisTemplate.delete(key);
+        log.debug("Account {} ownership verified; cache invalidated for client {}", accountId, customerClientId);
     }
 
     /**
      * Get all savings accounts owned by the customer.
-     * Results are cached for performance.
+     * Writes the full owned-account set to Redis so all pods share a consistent view.
      *
      * @param jwt The customer's JWT token
      * @return List of savings accounts
@@ -110,25 +116,44 @@ public class AccountSecurityService {
 
         List<Map<String, Object>> accounts = fineractService.getSavingsAccountsByClientId(customerClientId);
 
-        // Update cache with all owned account IDs
         Set<Long> accountIds = new HashSet<>();
         for (Map<String, Object> account : accounts) {
             if (account.containsKey("id")) {
                 accountIds.add(((Number) account.get("id")).longValue());
             }
         }
-        accountOwnershipCache.put(customerClientId, accountIds);
+        redisTemplate.opsForValue().set(ACCOUNT_CACHE_KEY_PREFIX + customerClientId, accountIds, CACHE_TTL);
 
         return accounts;
     }
 
     /**
-     * Invalidate cache for a customer (call when accounts change).
+     * Invalidate the ownership cache for a customer (call when accounts change).
      *
      * @param clientId The Fineract client ID
      */
     public void invalidateCache(Long clientId) {
-        accountOwnershipCache.remove(clientId);
+        redisTemplate.delete(ACCOUNT_CACHE_KEY_PREFIX + clientId);
         log.info("Invalidated account cache for client {}", clientId);
+    }
+
+    /**
+     * Convert the raw Redis value to a Set<Long>.
+     * GenericJackson2JsonRedisSerializer deserializes JSON numbers as Integer for small values,
+     * so we normalize via Number before boxing to Long.
+     */
+    private Set<Long> toAccountIdSet(Object raw) {
+        if (raw instanceof Collection<?> c) {
+            return c.stream()
+                    .filter(e -> {
+                        if (e instanceof Number) return true;
+                        log.warn("Unexpected element type in account ownership cache: {}",
+                                 e == null ? "null" : e.getClass().getName());
+                        return false;
+                    })
+                    .map(e -> ((Number) e).longValue())
+                    .collect(Collectors.toSet());
+        }
+        return null;
     }
 }

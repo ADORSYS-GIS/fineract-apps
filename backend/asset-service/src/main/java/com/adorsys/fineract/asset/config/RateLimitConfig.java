@@ -18,8 +18,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * Rate limiting configuration for trading and API endpoints.
@@ -42,9 +44,13 @@ public class RateLimitConfig {
     private int generalDurationMinutes;
 
     private static final int MAX_BUCKETS = 10_000;
+    private static final long BUCKET_TTL_MILLIS = 3_600_000L; // 1 hour
+    private static final double EVICT_OLDEST_FRACTION = 0.20;
 
-    private final Map<String, Bucket> tradeBuckets = new ConcurrentHashMap<>();
-    private final Map<String, Bucket> generalBuckets = new ConcurrentHashMap<>();
+    private record BucketEntry(Bucket bucket, long lastAccessMillis) {}
+
+    private final Map<String, BucketEntry> tradeBuckets = new ConcurrentHashMap<>();
+    private final Map<String, BucketEntry> generalBuckets = new ConcurrentHashMap<>();
 
     @Bean
     public RateLimitFilter rateLimitFilter() {
@@ -52,17 +58,33 @@ public class RateLimitConfig {
     }
 
     /**
-     * Evict only idle buckets every 10 minutes to prevent unbounded memory growth.
-     * A bucket is idle when it is back to its full token count, meaning the client
-     * has not made requests recently and resetting it has no effective impact.
-     * Active clients with partially-consumed buckets are left untouched.
+     * Evict entries not accessed within the TTL window. If maps still exceed MAX_BUCKETS
+     * after TTL eviction, remove the 20% oldest entries by lastAccess to cap memory.
      */
     @Scheduled(fixedRate = 600000)
     public void evictStaleBuckets() {
-        tradeBuckets.entrySet().removeIf(e -> e.getValue().getAvailableTokens() == tradeLimit);
-        generalBuckets.entrySet().removeIf(e -> e.getValue().getAvailableTokens() == generalLimit);
-        log.debug("Evicted idle rate limit buckets (trade={}, general={})",
+        long cutoff = System.currentTimeMillis() - BUCKET_TTL_MILLIS;
+        tradeBuckets.entrySet().removeIf(e -> e.getValue().lastAccessMillis() < cutoff);
+        generalBuckets.entrySet().removeIf(e -> e.getValue().lastAccessMillis() < cutoff);
+
+        evictOldestIfOverLimit(tradeBuckets);
+        evictOldestIfOverLimit(generalBuckets);
+
+        log.debug("Evicted stale rate limit buckets (trade={}, general={})",
                 tradeBuckets.size(), generalBuckets.size());
+    }
+
+    private void evictOldestIfOverLimit(Map<String, BucketEntry> map) {
+        int current = map.size();
+        if (current <= MAX_BUCKETS) return;
+        // Re-read size after TTL eviction has already run so the removal count reflects
+        // the live state rather than a pre-eviction snapshot.
+        int toRemove = (int) ((current - MAX_BUCKETS) + current * EVICT_OLDEST_FRACTION);
+        map.entrySet().stream()
+                .sorted(Comparator.comparingLong(e -> e.getValue().lastAccessMillis()))
+                .limit(toRemove)
+                .map(Map.Entry::getKey)
+                .forEach(map::remove);
     }
 
     public class RateLimitFilter extends OncePerRequestFilter {
@@ -82,16 +104,9 @@ public class RateLimitConfig {
             Bucket bucket;
 
             if (path.contains("/trades/buy") || path.contains("/trades/sell")) {
-                // Safety check: don't let map grow beyond MAX_BUCKETS
-                if (tradeBuckets.size() >= MAX_BUCKETS) {
-                    tradeBuckets.clear();
-                }
-                bucket = tradeBuckets.computeIfAbsent(clientIdentifier, this::createTradeBucket);
+                bucket = getOrCreateBucket(tradeBuckets, clientIdentifier, this::createTradeBucket);
             } else {
-                if (generalBuckets.size() >= MAX_BUCKETS) {
-                    generalBuckets.clear();
-                }
-                bucket = generalBuckets.computeIfAbsent(clientIdentifier, this::createGeneralBucket);
+                bucket = getOrCreateBucket(generalBuckets, clientIdentifier, this::createGeneralBucket);
             }
 
             if (bucket.tryConsume(1)) {
@@ -104,6 +119,18 @@ public class RateLimitConfig {
                     "{\"error\":\"TOO_MANY_REQUESTS\",\"message\":\"Rate limit exceeded. Please wait before retrying.\"}"
                 );
             }
+        }
+
+        private Bucket getOrCreateBucket(Map<String, BucketEntry> map, String key,
+                                          Function<String, Bucket> factory) {
+            long now = System.currentTimeMillis();
+            BucketEntry entry = map.compute(key, (k, existing) -> {
+                if (existing != null) {
+                    return new BucketEntry(existing.bucket(), now);
+                }
+                return new BucketEntry(factory.apply(k), now);
+            });
+            return entry.bucket();
         }
 
         private Bucket createTradeBucket(String key) {

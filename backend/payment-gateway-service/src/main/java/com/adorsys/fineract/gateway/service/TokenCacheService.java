@@ -1,13 +1,14 @@
 package com.adorsys.fineract.gateway.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Distributed token cache backed by Redis with in-memory fallback.
@@ -18,12 +19,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TokenCacheService {
 
     private final RedisTemplate<String, String> redisTemplate;
-    private final Map<String, CachedToken> localCache = new ConcurrentHashMap<>();
+    private final Cache<String, CachedToken> localCache;
 
     private static final String PREFIX = "pgw:token:";
+    private static final int LOCAL_CACHE_TTL_MINUTES = 5;
 
     public TokenCacheService(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
+        this.localCache = Caffeine.newBuilder()
+            .maximumSize(10)
+            .expireAfterWrite(LOCAL_CACHE_TTL_MINUTES, TimeUnit.MINUTES)
+            .build();
     }
 
     public Optional<String> getToken(String cacheKey) {
@@ -33,12 +39,11 @@ public class TokenCacheService {
                 return Optional.of(token);
             }
         } catch (Exception e) {
-            log.debug("Redis unavailable for token cache, using local fallback: {}", e.getMessage());
+            log.warn("Redis unavailable for token cache, using local fallback: {}", e.getMessage());
         }
 
-        // Fallback to local cache
-        CachedToken local = localCache.get(cacheKey);
-        if (local != null && !local.isExpired()) {
+        CachedToken local = localCache.getIfPresent(cacheKey);
+        if (local != null) {
             return Optional.of(local.token);
         }
         return Optional.empty();
@@ -47,28 +52,23 @@ public class TokenCacheService {
     public void putToken(String cacheKey, String token, long ttlSeconds) {
         Duration ttl = Duration.ofSeconds(ttlSeconds);
 
-        // Always update local cache as fallback
-        localCache.put(cacheKey, new CachedToken(token, System.currentTimeMillis() + (ttlSeconds * 1000)));
+        localCache.put(cacheKey, new CachedToken(token));
 
         try {
             redisTemplate.opsForValue().set(PREFIX + cacheKey, token, ttl);
         } catch (Exception e) {
-            log.debug("Redis unavailable for token cache, using local fallback: {}", e.getMessage());
+            log.warn("Redis unavailable for token cache, using local fallback: {}", e.getMessage());
         }
     }
 
     public void clear(String cacheKey) {
-        localCache.remove(cacheKey);
+        localCache.invalidate(cacheKey);
         try {
             redisTemplate.delete(PREFIX + cacheKey);
         } catch (Exception e) {
-            log.debug("Redis unavailable for cache clear: {}", e.getMessage());
+            log.warn("Redis unavailable for cache clear: {}", e.getMessage());
         }
     }
 
-    private record CachedToken(String token, long expiresAt) {
-        boolean isExpired() {
-            return System.currentTimeMillis() >= expiresAt;
-        }
-    }
+    private record CachedToken(String token) {}
 }
