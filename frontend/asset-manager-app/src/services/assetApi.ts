@@ -24,6 +24,14 @@ pgAdminClient.interceptors.request.use((config) => {
 	return config;
 });
 
+export interface SpringPage<T> {
+	content: T[];
+	totalElements: number;
+	totalPages: number;
+	size: number;
+	number: number;
+}
+
 export interface ReversalDeadLetterEntry {
 	id: number;
 	transactionId: string;
@@ -44,9 +52,9 @@ export interface ReversalDeadLetterEntry {
 
 export const paymentGatewayAdminApi = {
 	listDlq: (all = false) =>
-		pgAdminClient.get<ReversalDeadLetterEntry[]>("/admin/reversals/dlq", {
-			params: all ? { all: true } : undefined,
-		}),
+		pgAdminClient.get<SpringPage<ReversalDeadLetterEntry>>(
+			all ? "/admin/reversals/dlq/all" : "/admin/reversals/dlq",
+		),
 	countDlq: () =>
 		pgAdminClient.get<{ count: number }>("/admin/reversals/dlq/count"),
 	retryDlq: (id: number) =>
