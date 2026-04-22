@@ -293,4 +293,31 @@ public class CallbackController {
             .errorMessage(formData.getFirst("comment")) // Mapping comment to error/message
             .build();
     }
+
+    /**
+     * Handle NOKASH payment callback.
+     */
+    @PostMapping("/nokash/{orderId}")
+    @Operation(summary = "NOKASH payment callback", description = "Receive NOKASH payment status update")
+    public ResponseEntity<Void> handleNokashCallback(
+            @PathVariable String orderId,
+            @RequestBody NokashCallbackRequest callback) {
+
+        if (!orderId.equals(callback.getOrderId())) {
+            log.warn("NOKASH callback rejected: Path orderId={} does not match body orderId={}", orderId, callback.getOrderId());
+            return ResponseEntity.badRequest().build();
+        }
+
+        log.info("Received NOKASH payment callback: orderId={}, status={}",
+            callback.getOrderId(), callback.getStatus());
+
+        try {
+            paymentService.handleNokashCallback(callback);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Failed to process NOKASH payment callback: {}", e.getMessage(), e);
+            paymentMetrics.incrementCallbackProcessingFailure(PaymentProvider.NOKASH);
+            return ResponseEntity.ok().build();
+        }
+    }
 }

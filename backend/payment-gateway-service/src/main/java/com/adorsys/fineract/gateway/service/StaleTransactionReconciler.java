@@ -121,6 +121,8 @@ public class StaleTransactionReconciler {
                     locked.getTransactionId(), PaymentStatus.SUCCESSFUL);
                 case CINETPAY -> callbackDelegate.processCinetPayDepositCallbackByRef(
                     locked.getTransactionId(), PaymentStatus.SUCCESSFUL, cinetPayProvider);
+                case NOKASH -> callbackDelegate.processNokashDepositCallbackByRef(
+                    locked.getTransactionId(), PaymentStatus.SUCCESSFUL);
                 default -> log.warn("Unknown provider {} for deposit reconciliation", locked.getProvider());
             }
         } else {

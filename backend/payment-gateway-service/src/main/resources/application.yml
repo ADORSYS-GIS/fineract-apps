@@ -97,6 +97,19 @@ cinetpay:
   currency: ${CINETPAY_CURRENCY:XAF}
   timeout-seconds: 30
 
+# Nokash Configuration
+nokash:
+  enabled: ${NOKASH_ENABLED:true}
+  base-url: ${NOKASH_BASE_URL:https://api.nokash.app}
+  i-space-key: ${NOKASH_I_SPACE_KEY:}
+  app-space-key: ${NOKASH_APP_SPACE_KEY:}
+  callback-url: ${NOKASH_CALLBACK_URL:http://localhost:8082/api/callbacks/nokash}
+  country: "CM"
+  timeout-seconds: 90
+  currency: ${NOKASH_CURRENCY:XAF}
+  fineract-payment-type-id: ${NOKASH_FINERACT_PAYMENT_TYPE_ID:3}
+  gl-account-code: ${NOKASH_GL_ACCOUNT_CODE:}
+
 # Base URLs for dynamic callback/return URL construction
 payment:
   gateway:
@@ -129,10 +142,10 @@ app:
     enabled: ${APP_CLEANUP_ENABLED:true}
     stale-minutes: ${APP_CLEANUP_STALE_MINUTES:30}
     interval-ms: ${APP_CLEANUP_INTERVAL_MS:300000}
-    pending-stale-minutes: ${APP_CLEANUP_PENDING_STALE_MINUTES:3}
-    pending-interval-ms: ${APP_CLEANUP_PENDING_INTERVAL_MS:120000}
-    processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:60}
-    processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:600000}
+    pending-stale-minutes: ${APP_CLEANUP_PENDING_STALE_MINUTES:1}
+    pending-interval-ms: ${APP_CLEANUP_PENDING_INTERVAL_MS:30000}
+    processing-stale-minutes: ${APP_CLEANUP_PROCESSING_STALE_MINUTES:1}
+    processing-interval-ms: ${APP_CLEANUP_PROCESSING_INTERVAL_MS:30000}
     stale-processing-max-retries: ${APP_CLEANUP_STALE_PROCESSING_MAX_RETRIES:5}
   status:
     provider-check-enabled: ${APP_STATUS_PROVIDER_CHECK_ENABLED:true}
