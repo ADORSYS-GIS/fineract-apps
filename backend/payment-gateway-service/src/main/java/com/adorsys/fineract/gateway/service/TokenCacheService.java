@@ -52,7 +52,9 @@ public class TokenCacheService {
     public void putToken(String cacheKey, String token, long ttlSeconds) {
         Duration ttl = Duration.ofSeconds(ttlSeconds);
 
-        localCache.put(cacheKey, new CachedToken(token));
+        if (ttlSeconds > 0) {
+            localCache.put(cacheKey, new CachedToken(token));
+        }
 
         try {
             redisTemplate.opsForValue().set(PREFIX + cacheKey, token, ttl);
