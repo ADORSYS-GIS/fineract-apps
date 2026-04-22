@@ -1,11 +1,15 @@
 package com.adorsys.fineract.e2e.asset.steps;
 
+import com.adorsys.fineract.asset.exception.TradeLockException;
+import com.adorsys.fineract.asset.scheduler.FineractOutboxProcessor;
+import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
+import com.adorsys.fineract.asset.service.TradingService;
+import com.adorsys.fineract.asset.service.TradeWorkerService;
+import com.adorsys.fineract.asset.scheduler.MaturityScheduler;
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
 import com.adorsys.fineract.e2e.support.JwtTokenFactory;
-import com.adorsys.fineract.asset.scheduler.InterestPaymentScheduler;
-import com.adorsys.fineract.asset.scheduler.MaturityScheduler;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -46,6 +50,15 @@ public class BondLifecycleSteps {
 
     @Autowired
     private InterestPaymentScheduler interestPaymentScheduler;
+
+    @Autowired
+    private FineractOutboxProcessor outboxProcessor;
+
+    @Autowired
+    private TradeWorkerService tradeWorkerService;
+
+    @Autowired
+    private TradingService tradingService;
 
     // ---------------------------------------------------------------
     // Given steps
@@ -134,18 +147,38 @@ public class BondLifecycleSteps {
                     .as("Confirm quote for bond unit %d: %s", i + 1, confirmResp.body().asString())
                     .isEqualTo(202);
 
-            // 3. Poll for FILLED (up to 15s)
+            // Execute synchronously to bypass the 5s @Scheduled window and surface hidden errors.
+            executeOrderSynchronously(orderId);
+            // Safety net: pick up any DISPATCHED outbox entry if finalizeTrade rolled back.
+            outboxProcessor.processNow();
+
+            // 3. Poll for FILLED (up to 20s)
             pollUntilTerminal(orderId);
         }
 
         context.storeValue("bondUnitsHeld", units);
     }
 
+    private void executeOrderSynchronously(String orderId) {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            try {
+                tradingService.executeOrderAsync(orderId);
+                return;
+            } catch (TradeLockException e) {
+                if (attempt == 4) return;
+                try { Thread.sleep(300); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); return; }
+            } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+                // Async handler may have already committed — let poll loop verify terminal state
+                return;
+            }
+        }
+    }
+
     /**
      * Polls the order status until it reaches a terminal state (FILLED, FAILED, REJECTED).
      */
     private void pollUntilTerminal(String orderId) {
-        long deadline = System.currentTimeMillis() + 15_000;
+        long deadline = System.currentTimeMillis() + 20_000;
         while (System.currentTimeMillis() < deadline) {
             Response pollResp = RestAssured.given()
                     .baseUri("http://localhost:" + port)

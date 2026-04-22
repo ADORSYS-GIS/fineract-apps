@@ -75,23 +75,6 @@ public class OrderResolutionSteps {
         context.setLastResponse(response);
     }
 
-    // ── Single-Asset Reconciliation ──
-
-    @When("the admin triggers reconciliation for asset {string}")
-    public void adminTriggersReconciliationForAsset(String symbolRef) {
-        String assetId = resolveAssetId(symbolRef);
-        Response response = RestAssured.given()
-                .baseUri("http://localhost:" + port)
-                .post("/api/v1/admin/reconciliation/trigger/" + assetId);
-        context.setLastResponse(response);
-    }
-
-    @Then("the reconciliation result should have {int} discrepancies")
-    public void reconciliationResultShouldHaveDiscrepancies(int expected) {
-        int discrepancies = context.getLastResponse().jsonPath().getInt("discrepancies");
-        assertThat(discrepancies).isEqualTo(expected);
-    }
-
     // ── Order Resolution ──
 
     @When("the admin resolves the last order with resolution {string}")

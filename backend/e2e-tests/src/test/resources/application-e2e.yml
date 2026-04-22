@@ -6,8 +6,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  task:
+    scheduling:
+      pool:
+        size: 0
 
-# GL codes (same as production - GlAccountResolver resolves them from Fineract at startup)
 app:
   security:
     permit-all-admin: true
@@ -15,6 +18,8 @@ app:
 asset-service:
   settlement-currency: XAF
   settlement-currency-product-short-name: VSAV
+  outbox:
+    dispatched-cutoff-seconds: 0
   gl-accounts:
     digital-asset-inventory: "47"
     customer-digital-asset-holdings: "65"
@@ -35,6 +40,14 @@ asset-service:
     uba-bank: "42"
     afriland-bank: "42"
     tax-payable-fund-source: "42"
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      fineract:
+        slidingWindowSize: 100
+        failureRateThreshold: 100
+        waitDurationInOpenState: 1s
 
 logging:
   level:

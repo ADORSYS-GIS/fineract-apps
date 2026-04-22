@@ -1,5 +1,9 @@
 package com.adorsys.fineract.e2e.asset.steps;
 
+import com.adorsys.fineract.asset.exception.TradeLockException;
+import com.adorsys.fineract.asset.scheduler.FineractOutboxProcessor;
+import com.adorsys.fineract.asset.service.TradingService;
+import com.adorsys.fineract.asset.service.TradeWorkerService;
 import com.adorsys.fineract.e2e.client.FineractTestClient;
 import com.adorsys.fineract.e2e.config.FineractInitializer;
 import com.adorsys.fineract.e2e.support.E2EScenarioContext;
@@ -33,6 +37,15 @@ public class StockTradingSteps {
 
     @Autowired
     private FineractTestClient fineractTestClient;
+
+    @Autowired
+    private FineractOutboxProcessor outboxProcessor;
+
+    @Autowired
+    private TradeWorkerService tradeWorkerService;
+
+    @Autowired
+    private TradingService tradingService;
 
     // ---------------------------------------------------------------
     // Given steps
@@ -202,8 +215,14 @@ public class StockTradingSteps {
                 .as("Confirm quote: %s", confirmResp.body().asString())
                 .isEqualTo(202);
 
-        // 3. Poll for FILLED (up to 15s)
-        long deadline = System.currentTimeMillis() + 15_000;
+        // Execute synchronously to bypass the 5s @Scheduled window and surface hidden errors.
+        // Retry on TradeLockException only (contention with the concurrent @Async handler).
+        executeOrderSynchronously(orderId);
+        // Safety net: pick up any DISPATCHED outbox entry if finalizeTrade rolled back.
+        outboxProcessor.processNow();
+
+        // 3. Poll for FILLED (up to 20s)
+        long deadline = System.currentTimeMillis() + 20_000;
         while (System.currentTimeMillis() < deadline) {
             Response pollResp = RestAssured.given()
                     .baseUri("http://localhost:" + port)
@@ -227,7 +246,28 @@ public class StockTradingSteps {
                 .baseUri("http://localhost:" + port)
                 .header("Authorization", "Bearer " + testUserJwt())
                 .get("/api/v1/trades/orders/" + orderId);
+        assertThat(finalResp.jsonPath().getString("status"))
+                .as("Order %s did not reach FILLED within timeout", orderId)
+                .isEqualTo("FILLED");
         context.setLastResponse(finalResp);
+    }
+
+    /**
+     * Calls executeOrderAsync directly on the test thread.
+     * Retries up to 5 times (1.5s window) on TradeLockException to handle contention
+     * with the concurrent @Async event handler.  Any other exception propagates immediately,
+     * making the actual failure visible in the test report instead of a silent PENDING timeout.
+     */
+    private void executeOrderSynchronously(String orderId) {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            try {
+                tradingService.executeOrderAsync(orderId);
+                return;
+            } catch (TradeLockException e) {
+                if (attempt == 4) return; // async handler may have succeeded; let poll loop verify
+                try { Thread.sleep(300); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); return; }
+            }
+        }
     }
 
     private String testUserJwt() {

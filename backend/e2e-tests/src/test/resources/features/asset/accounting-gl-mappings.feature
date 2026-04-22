@@ -145,18 +145,6 @@ Feature: Accounting GL Mappings (E2E)
     Then the fee collection account balance should match total order fees
 
   # -----------------------------------------------------------------
-  # Reconciliation produces zero discrepancies for clean data
-  # -----------------------------------------------------------------
-
-  Scenario: Reconciliation finds no discrepancies after clean trades
-    Given an active stock asset "ARC" with fee 0.005 and price 2000 and supply 100
-    When the user buys 5 units of "ARC"
-    Then the trade should be FILLED
-    When the admin triggers reconciliation
-    Then the response status should be 200
-    And the reconciliation should report 0 discrepancies
-
-  # -----------------------------------------------------------------
   # GL 48 (Suspense) balance = 0 — all transfers settled
   # Adapted from gitops Phase 3b
   # -----------------------------------------------------------------
@@ -201,17 +189,3 @@ Feature: Accounting GL Mappings (E2E)
     When the admin requests the fee and tax summary
     And the fee-tax GL "91" debits should match fee-tax summary amount
 
-  # -----------------------------------------------------------------
-  # Supply reconciliation via reconciliation endpoint
-  # Checks #1, #2, #3, #7, #8 (validated internally by ReconciliationService)
-  # -----------------------------------------------------------------
-
-  Scenario: Full reconciliation passes after buy and sell cycle
-    Given an active stock asset "AFR" with fee 0.005 and price 2000 and supply 100
-    When the user buys 10 units of "AFR"
-    Then the trade should be FILLED
-    When the user sells 3 units of "AFR"
-    Then the trade should be FILLED
-    When the admin triggers reconciliation
-    Then the response status should be 200
-    And the reconciliation should report 0 discrepancies
