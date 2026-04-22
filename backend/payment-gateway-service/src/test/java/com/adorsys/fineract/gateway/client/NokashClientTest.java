@@ -38,6 +38,8 @@ class NokashClientTest {
         config.setCallbackUrl("http://localhost:8082/api/callbacks/nokash");
         config.setCountry("CM");
         config.setTimeoutSeconds(5);
+        config.setSenderFirstName("Azamra");
+        config.setSenderLastName("Platform");
 
         WebClient webClient = WebClient.builder()
                 .baseUrl(mockWebServer.url("/").toString())
@@ -109,10 +111,12 @@ class NokashClientTest {
             assertThat(reference).isEqualTo("test-payout-id");
 
             RecordedRequest request = mockWebServer.takeRequest();
-            assertThat(request.getPath()).isEqualTo("/lapas-on-trans/trans/api-payin-request/407");
+            assertThat(request.getPath()).isEqualTo("/lapas-on-trans/trans/api-payout-request/407");
             assertThat(request.getHeader("auth-code")).isEqualTo("temp-auth-key");
             String requestBody = request.getBody().readUtf8();
             assertThat(requestBody).contains("\"payment_method\":\"MTN_MOMO\"");
+            assertThat(requestBody).contains("other_info");
+            assertThat(requestBody).contains("remittance_data");
         }
     }
 
