@@ -6,11 +6,6 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-  task:
-    scheduling:
-      pool:
-        size: 0
-
 app:
   security:
     permit-all-admin: true
