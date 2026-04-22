@@ -4,8 +4,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.handler.timeout.ReadTimeoutHandler;
-import io.netty.handler.timeout.WriteTimeoutHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,10 +15,10 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 
 import javax.net.ssl.SSLException;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 /**
  * WebClient configuration for HTTP calls to Fineract.
@@ -34,13 +32,17 @@ public class WebClientConfig {
 
     @Bean
     public WebClient.Builder webClientBuilder() throws SSLException {
-        HttpClient httpClient = HttpClient.create()
+        ConnectionProvider connectionProvider = ConnectionProvider.builder("fineract-pool")
+            .maxConnections(50)
+            .maxIdleTime(Duration.ofSeconds(20))
+            .maxLifeTime(Duration.ofMinutes(3))
+            .pendingAcquireTimeout(Duration.ofSeconds(45))
+            .evictInBackground(Duration.ofSeconds(30))
+            .build();
+
+        HttpClient httpClient = HttpClient.create(connectionProvider)
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
-            .responseTimeout(Duration.ofSeconds(30))
-            .doOnConnected(conn -> conn
-                .addHandlerLast(new ReadTimeoutHandler(30, TimeUnit.SECONDS))
-                .addHandlerLast(new WriteTimeoutHandler(30, TimeUnit.SECONDS))
-            );
+            .responseTimeout(Duration.ofSeconds(30));
 
         if (!sslVerify) {
             log.warn("SSL verification DISABLED for Fineract WebClient — do not use in production");
