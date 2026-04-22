@@ -69,7 +69,7 @@ public class AdminOrderController {
             @PathVariable String id,
             @Valid @RequestBody ResolveOrderRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        String adminUsername = jwt != null ? jwt.getClaimAsString("preferred_username") : "system";
+        String adminUsername = jwt != null ? jwt.getSubject() : "system";
         return ResponseEntity.ok(adminOrderService.resolveOrder(id, request.resolution(), adminUsername));
     }
 }

@@ -1,5 +1,6 @@
 package com.adorsys.fineract.asset.config;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -30,5 +31,19 @@ public class FineractConfig {
 
     public boolean isOAuthEnabled() {
         return "oauth".equalsIgnoreCase(authType);
+    }
+
+    @PostConstruct
+    public void validate() {
+        if ("basic".equalsIgnoreCase(authType)) {
+            if (username == null || username.isBlank()) {
+                throw new IllegalStateException(
+                        "fineract.username must be set when fineract.auth-type=basic");
+            }
+            if (password == null || password.isBlank()) {
+                throw new IllegalStateException(
+                        "fineract.password must be set when fineract.auth-type=basic");
+            }
+        }
     }
 }

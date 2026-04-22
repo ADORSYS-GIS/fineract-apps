@@ -69,6 +69,36 @@ The platform supports two government bond types issued in the CEMAC zone:
 | Income calendar | `GET /portfolio/income-calendar` → `IncomeCalendarResponse` | 11 |
 | Redemption detail | `GET /portfolio/orders/{id}` → `OrderDetailResponse` | 09b |
 
+## Frontend Implementation Notes
+
+### Number Formatting
+
+All numeric values coming from the asset service API are typed as `number` in the generated TypeScript DTOs. However, backend `BigDecimal` fields serialised as JSON arrive as IEEE 754 doubles — so `1.00` becomes the JS number `1`, and standard formatters handle it correctly.
+
+**Units / quantity fields** (e.g. `totalUnits`, `units` on orders and portfolio positions) should be formatted with `minimumFractionDigits: 0` so that whole-number values display as `"1"` rather than `"1,00"`. The recommended helper:
+
+```ts
+// In self-service-app/src/lib/formatters.ts
+export function formatUnits(
+  value: number | string | null | undefined,
+  locale: string = DEFAULT_LOCALE,
+): string {
+  if (value == null) return "—";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "—";
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 6,
+  }).format(num);
+}
+```
+
+The `string` branch handles cases where an API response is unmarshalled as a raw string `"1.000000"` before proper typing is applied. `maximumFractionDigits: 6` gives room for fractional unit support if it is ever needed, while still stripping trailing zeros (e.g. `1.5` → `"1,5"`, `1000` → `"1 000"`).
+
+**Currency fields** use `formatCurrency()` / `formatCurrencyWithSymbol()` from the same file. XAF is always rendered with 0 decimal places.
+
+**Pitfall to avoid:** do not reuse `formatCurrency` for unit counts — it enforces `minimumFractionDigits: 2` for non-XAF currencies, which is what produces the unwanted `"1,00"` display.
+
 ## Changelog
 
 | Date | Change |
