@@ -86,8 +86,8 @@ public class AdminDashboardSteps {
     }
 
     @Then("the dashboard needs reconciliation count should be at least {int}")
-    public void dashboardNeedsReconCountAtLeast(int minimum) {
-        int count = context.getLastResponse().jsonPath().getInt("orders.needsReconciliation");
+    public void dashboardNeedsReconciliationCountAtLeast(int minimum) {
+        long count = context.getLastResponse().jsonPath().getLong("orders.needsReconciliation");
         assertThat(count).isGreaterThanOrEqualTo(minimum);
     }
 
