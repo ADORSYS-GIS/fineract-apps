@@ -15,12 +15,14 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Daily scheduler that snapshots portfolio values for all users with positions.
@@ -54,12 +56,8 @@ public class PortfolioSnapshotScheduler {
                 return;
             }
 
-            // Bulk-load all prices and assets once
-            Map<String, BigDecimal> priceMap = assetPriceRepository.findAll().stream()
-                    .collect(Collectors.toMap(AssetPrice::getAssetId, AssetPrice::getAskPrice,
-                            (a, b) -> b));
-            Map<String, Asset> assetMap = assetRepository.findAll().stream()
-                    .collect(Collectors.toMap(Asset::getId, Function.identity(), (a, b) -> b));
+            Map<String, BigDecimal> priceMap = loadPriceMapPaged();
+            Map<String, Asset> assetMap = loadAssetMapPaged();
 
             LocalDate today = LocalDate.now();
             int success = 0;
@@ -90,5 +88,27 @@ public class PortfolioSnapshotScheduler {
                     "SCHEDULER_FAILURE", "Portfolio snapshot scheduler failed",
                     e.getMessage(), null, "SCHEDULER"));
         }
+    }
+
+    private Map<String, BigDecimal> loadPriceMapPaged() {
+        Map<String, BigDecimal> result = new HashMap<>();
+        int page = 0;
+        Page<AssetPrice> current;
+        do {
+            current = assetPriceRepository.findAll(PageRequest.of(page++, 200));
+            current.forEach(p -> result.merge(p.getAssetId(), p.getAskPrice(), (a, b) -> b));
+        } while (!current.isLast());
+        return result;
+    }
+
+    private Map<String, Asset> loadAssetMapPaged() {
+        Map<String, Asset> result = new HashMap<>();
+        int page = 0;
+        Page<Asset> current;
+        do {
+            current = assetRepository.findAll(PageRequest.of(page++, 200));
+            current.forEach(a -> result.merge(a.getId(), a, (x, y) -> y));
+        } while (!current.isLast());
+        return result;
     }
 }

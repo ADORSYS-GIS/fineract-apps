@@ -7,11 +7,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -27,11 +30,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class SseEmitterManager {
 
     private static final long SSE_TIMEOUT = 120_000L; // 2 minutes
+    private static final long STALE_THRESHOLD_MILLIS = SSE_TIMEOUT * 3; // 6 minutes
+    private static final int MAX_EMITTERS_PER_USER = 5;
     private static final Set<OrderStatus> TERMINAL_STATUSES = Set.of(
             OrderStatus.FILLED, OrderStatus.FAILED, OrderStatus.REJECTED, OrderStatus.CANCELLED);
 
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<SseEmitter, Long> emitterCreationTimes = new ConcurrentHashMap<>();
 
     /**
      * Register a new SSE emitter for an order. Sends an initial "connected" event.
@@ -39,14 +45,21 @@ public class SseEmitterManager {
      */
     public SseEmitter subscribe(String orderId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
-        emitters.computeIfAbsent(orderId, k -> new CopyOnWriteArrayList<>()).add(emitter);
+        emitterCreationTimes.put(emitter, System.currentTimeMillis());
+
+        List<SseEmitter> list = emitters.computeIfAbsent(orderId, k -> new CopyOnWriteArrayList<>());
+
+        enforceMaxConnections(list);
+
+        list.add(emitter);
 
         Runnable cleanup = () -> {
-            List<SseEmitter> list = emitters.get(orderId);
-            if (list != null) {
-                list.remove(emitter);
-                if (list.isEmpty()) emitters.remove(orderId);
+            List<SseEmitter> current = emitters.get(orderId);
+            if (current != null) {
+                current.remove(emitter);
+                if (current.isEmpty()) emitters.remove(orderId);
             }
+            emitterCreationTimes.remove(emitter);
         };
         emitter.onCompletion(cleanup);
         emitter.onTimeout(cleanup);
@@ -98,6 +111,39 @@ public class SseEmitterManager {
 
         if (isTerminal) {
             emitters.remove(event.orderId());
+        }
+    }
+
+    /**
+     * Evict emitters that have exceeded 3× the SSE timeout without a network-level close signal.
+     */
+    @Scheduled(fixedDelay = 60_000)
+    public void evictStaleEmitters() {
+        long cutoff = System.currentTimeMillis() - STALE_THRESHOLD_MILLIS;
+        emitters.forEach((orderId, list) -> {
+            list.removeIf(emitter -> {
+                Long created = emitterCreationTimes.get(emitter);
+                if (created != null && created < cutoff) {
+                    emitter.complete();
+                    emitterCreationTimes.remove(emitter);
+                    return true;
+                }
+                return false;
+            });
+            if (list.isEmpty()) emitters.remove(orderId);
+        });
+    }
+
+    private void enforceMaxConnections(List<SseEmitter> list) {
+        while (list.size() >= MAX_EMITTERS_PER_USER) {
+            // Remove the oldest emitter first
+            SseEmitter oldest = list.stream()
+                    .min(Comparator.comparingLong(e -> emitterCreationTimes.getOrDefault(e, Long.MAX_VALUE)))
+                    .orElse(null);
+            if (oldest == null) break;
+            list.remove(oldest);
+            emitterCreationTimes.remove(oldest);
+            oldest.complete();
         }
     }
 }
