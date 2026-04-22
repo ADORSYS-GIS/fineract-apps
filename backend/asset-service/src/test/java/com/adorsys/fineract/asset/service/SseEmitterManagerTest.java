@@ -28,7 +28,7 @@ class SseEmitterManagerTest {
 
     @Test
     void subscribe_returnsEmitter() {
-        SseEmitter emitter = sseEmitterManager.subscribe("order-001");
+        SseEmitter emitter = sseEmitterManager.subscribe("order-001", "user-001");
 
         assertNotNull(emitter);
     }
@@ -43,7 +43,7 @@ class SseEmitterManagerTest {
 
     @Test
     void onOrderStatusChanged_terminalStatus_completesEmitter() {
-        SseEmitter emitter = sseEmitterManager.subscribe("order-001");
+        SseEmitter emitter = sseEmitterManager.subscribe("order-001", "user-001");
         assertNotNull(emitter);
 
         OrderStatusChangedEvent event = createEvent("order-001", OrderStatus.FILLED);
@@ -51,14 +51,14 @@ class SseEmitterManagerTest {
 
         // After terminal status, subscribing again should give a fresh emitter (old one completed)
         // The internal map should have been cleaned up
-        SseEmitter newEmitter = sseEmitterManager.subscribe("order-001");
+        SseEmitter newEmitter = sseEmitterManager.subscribe("order-001", "user-001");
         assertNotNull(newEmitter);
     }
 
     @Test
     void subscribe_multipleEmitters_forSameOrder() {
-        SseEmitter emitter1 = sseEmitterManager.subscribe("order-001");
-        SseEmitter emitter2 = sseEmitterManager.subscribe("order-001");
+        SseEmitter emitter1 = sseEmitterManager.subscribe("order-001", "user-001");
+        SseEmitter emitter2 = sseEmitterManager.subscribe("order-001", "user-001");
 
         assertNotNull(emitter1);
         assertNotNull(emitter2);
@@ -67,7 +67,7 @@ class SseEmitterManagerTest {
 
     @Test
     void onOrderStatusChanged_nonTerminalStatus_doesNotComplete() {
-        sseEmitterManager.subscribe("order-001");
+        sseEmitterManager.subscribe("order-001", "user-001");
 
         OrderStatusChangedEvent event = createEvent("order-001", OrderStatus.EXECUTING);
 
