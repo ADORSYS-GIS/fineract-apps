@@ -17,7 +17,8 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import java.util.concurrent.ConcurrentHashMap;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 
 @Slf4j
@@ -194,7 +195,10 @@ public class FineractAccountService {
         }
     }
 
-    private final Map<String, Long> paymentTypeCache = new ConcurrentHashMap<>();
+    private final Cache<String, Long> paymentTypeCache = Caffeine.newBuilder()
+            .maximumSize(1_000)
+            .expireAfterWrite(30, TimeUnit.MINUTES)
+            .build();
 
     private Map<String, Object> performDeposit(Long savingsAccountId, BigDecimal amount, String paymentType) {
         log.info("Making deposit to savings account: {}", savingsAccountId);
@@ -225,13 +229,12 @@ public class FineractAccountService {
 
     private Long getPaymentTypeIdByName(String paymentTypeName) {
         String key = paymentTypeName.toLowerCase();
-        // Check cache first
-        if (paymentTypeCache.containsKey(key)) {
+        Long cached = paymentTypeCache.getIfPresent(key);
+        if (cached != null) {
             log.info("Payment type cache hit for '{}'.", paymentTypeName);
-            return paymentTypeCache.get(key);
+            return cached;
         }
 
-        // If not in cache, fetch from API
         log.info("Payment type cache miss for '{}'. Fetching all payment types from API.", paymentTypeName);
         List<Map<String, Object>> paymentTypes = fineractRestClient.get()
                 .uri("/fineract-provider/api/v1/paymenttypes")
@@ -239,7 +242,6 @@ public class FineractAccountService {
                 .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
 
         if (paymentTypes != null) {
-            // Populate cache with lowercase keys for case-insensitive lookup
             log.debug("Populating payment type cache with {} entries.", paymentTypes.size());
             for (Map<String, Object> pt : paymentTypes) {
                 String name = (String) pt.get("name");
@@ -248,9 +250,9 @@ public class FineractAccountService {
             }
         }
 
-        // Check cache again
-        if (paymentTypeCache.containsKey(key)) {
-            return paymentTypeCache.get(key);
+        Long resolved = paymentTypeCache.getIfPresent(key);
+        if (resolved != null) {
+            return resolved;
         }
 
         log.error("Payment type '{}' not found after fetching from API.", paymentTypeName);

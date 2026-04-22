@@ -3,7 +3,6 @@ package com.adorsys.fineract.registration.client;
 import com.adorsys.fineract.registration.config.FineractProperties;
 import com.adorsys.fineract.registration.exception.FineractConfigurationException;
 import com.adorsys.fineract.registration.exception.FineractAuthenticationException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -23,12 +22,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class FineractTokenProvider {
 
     private final FineractProperties config;
+    private final RestClient tokenClient;
 
     private final Map<String, TokenInfo> tokenCache = new ConcurrentHashMap<>();
+
+    public FineractTokenProvider(FineractProperties config) {
+        this.config = config;
+        this.tokenClient = RestClient.builder()
+                .baseUrl(config.getAuth().getTokenUrl() != null ? config.getAuth().getTokenUrl() : "")
+                .build();
+    }
 
     private static final String CACHE_KEY = "fineract";
     private static final long EXPIRATION_BUFFER_MS = 60_000; // 60 seconds buffer
@@ -72,11 +78,6 @@ public class FineractTokenProvider {
 
         try {
             String requestBody = buildTokenRequestBody();
-
-            // Create a simple RestClient for token endpoint
-            RestClient tokenClient = RestClient.builder()
-                    .baseUrl(config.getAuth().getTokenUrl())
-                    .build();
 
             Map<String, Object> response = tokenClient.post()
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)

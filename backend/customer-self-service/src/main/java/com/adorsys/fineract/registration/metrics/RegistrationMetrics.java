@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -15,6 +16,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 public class RegistrationMetrics {
+
+    private static final Set<String> KNOWN_FAILURE_REASONS = Set.of(
+            "BATCH_REQUEST_FAILED"
+    );
 
     private final Counter registrationRequestsTotal;
     private final Counter registrationSuccessTotal;
@@ -59,8 +64,9 @@ public class RegistrationMetrics {
      * Increment failed registration counter with reason tag.
      */
     public void incrementRegistrationFailure(String reason) {
+        String normalizedReason = KNOWN_FAILURE_REASONS.contains(reason) ? reason : "OTHER";
         Counter.builder("registration_failure_total")
-                .tag("reason", reason)
+                .tag("reason", normalizedReason)
                 .description("Total number of failed registrations")
                 .register(meterRegistry)
                 .increment();

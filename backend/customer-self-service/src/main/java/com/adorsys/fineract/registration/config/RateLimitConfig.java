@@ -16,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,26 +49,36 @@ public class RateLimitConfig {
 
     );
 
-    private final Map<String, Bucket> registrationBuckets = new ConcurrentHashMap<>();
-    private final Map<String, Bucket> generalBuckets = new ConcurrentHashMap<>();
+    private static final long IDLE_EVICTION_MS = 3_600_000L; // 1 hour
+
+    private record BucketEntry(Bucket bucket, long lastAccessMillis) {}
+
+    private final Map<String, BucketEntry> registrationBuckets = new ConcurrentHashMap<>();
+    private final Map<String, BucketEntry> generalBuckets = new ConcurrentHashMap<>();
 
     @Bean
     public RateLimitFilter rateLimitFilter() {
         return new RateLimitFilter();
     }
 
-    /**
-     * Periodically clear rate limit buckets to prevent memory leaks.
-     * Runs every 10 minutes.
-     */
-    @Scheduled(fixedRate = 600_000)
+    @Scheduled(fixedRate = 60_000)
     public void cleanupBuckets() {
-        int regSize = registrationBuckets.size();
-        int genSize = generalBuckets.size();
-        registrationBuckets.clear();
-        generalBuckets.clear();
-        if (regSize > 0 || genSize > 0) {
-            log.debug("Rate limit bucket cleanup: cleared {} registration + {} general buckets", regSize, genSize);
+        evictStale(registrationBuckets, "registration");
+        evictStale(generalBuckets, "general");
+    }
+
+    private void evictStale(Map<String, BucketEntry> map, String label) {
+        long cutoff = System.currentTimeMillis() - IDLE_EVICTION_MS;
+        map.entrySet().removeIf(e -> e.getValue().lastAccessMillis() < cutoff);
+
+        if (map.size() > MAX_BUCKETS) {
+            int toRemove = map.size() / 5; // trim 20%
+            map.entrySet().stream()
+                    .sorted(Comparator.comparingLong(e -> e.getValue().lastAccessMillis()))
+                    .limit(toRemove)
+                    .map(Map.Entry::getKey)
+                    .forEach(map::remove);
+            log.debug("Rate limit trim: removed {} oldest {} buckets, {} remaining", toRemove, label, map.size());
         }
     }
 
@@ -90,17 +101,9 @@ public class RateLimitConfig {
 
             Bucket bucket;
             if (path.contains("/register")) {
-                if (registrationBuckets.size() >= MAX_BUCKETS) {
-                    log.warn("Registration rate limit buckets at capacity ({}), clearing", MAX_BUCKETS);
-                    registrationBuckets.clear();
-                }
-                bucket = registrationBuckets.computeIfAbsent(clientIp, this::createRegistrationBucket);
+                bucket = touchBucket(registrationBuckets, clientIp, true);
             } else {
-                if (generalBuckets.size() >= MAX_BUCKETS) {
-                    log.warn("General rate limit buckets at capacity ({}), clearing", MAX_BUCKETS);
-                    generalBuckets.clear();
-                }
-                bucket = generalBuckets.computeIfAbsent(clientIp, this::createGeneralBucket);
+                bucket = touchBucket(generalBuckets, clientIp, false);
             }
 
             if (bucket.tryConsume(1)) {
@@ -113,14 +116,26 @@ public class RateLimitConfig {
             }
         }
 
-        private Bucket createRegistrationBucket(String key) {
+        private Bucket touchBucket(Map<String, BucketEntry> map, String clientIp, boolean registration) {
+            long now = System.currentTimeMillis();
+            BucketEntry entry = map.compute(clientIp, (k, existing) -> {
+                if (existing != null) {
+                    return new BucketEntry(existing.bucket(), now);
+                }
+                Bucket newBucket = registration ? newRegistrationBucket() : newGeneralBucket();
+                return new BucketEntry(newBucket, now);
+            });
+            return entry.bucket();
+        }
+
+        private Bucket newRegistrationBucket() {
             return Bucket.builder()
                     .addLimit(Bandwidth.classic(REGISTRATION_LIMIT,
                             Refill.greedy(REGISTRATION_LIMIT, REGISTRATION_DURATION)))
                     .build();
         }
 
-        private Bucket createGeneralBucket(String key) {
+        private Bucket newGeneralBucket() {
             return Bucket.builder()
                     .addLimit(Bandwidth.classic(GENERAL_LIMIT,
                             Refill.greedy(GENERAL_LIMIT, GENERAL_DURATION)))
