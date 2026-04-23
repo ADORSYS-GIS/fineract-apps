@@ -59,12 +59,17 @@ public class AccruedInterestCalculator {
     }
 
     /**
-     * Derive the last coupon date from the next coupon date and frequency.
-     * lastCouponDate = nextCouponDate - couponFrequencyMonths
+     * Derive the last coupon date from the next coupon date and frequency,
+     * floored at the bond's issue date so that newly issued bonds do not
+     * accrue phantom interest for the period before they existed.
      */
     private LocalDate computeLastCouponDate(Asset asset) {
         LocalDate nextCoupon = asset.getNextCouponDate();
         if (nextCoupon == null) return null;
-        return nextCoupon.minusMonths(asset.getCouponFrequencyMonths());
+        LocalDate derived = nextCoupon.minusMonths(asset.getCouponFrequencyMonths());
+        if (asset.getIssueDate() != null && derived.isBefore(asset.getIssueDate())) {
+            return asset.getIssueDate();
+        }
+        return derived;
     }
 }

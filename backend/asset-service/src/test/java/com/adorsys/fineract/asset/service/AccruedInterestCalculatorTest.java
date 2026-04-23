@@ -197,6 +197,55 @@ class AccruedInterestCalculatorTest {
         assertTrue(result.compareTo(BigDecimal.ZERO) > 0);
     }
 
+    // ── Newly issued bond (issueDate = today) ──
+
+    @Test
+    void calculate_newlyIssuedBond_returnsZero() {
+        // issueDate = today, nextCouponDate = today + 12 months
+        // Without the issueDate floor, derived lastCoupon = today - 12 months → ~365 phantom days
+        Asset bond = Asset.builder()
+                .id("new-bond")
+                .category(AssetCategory.BONDS)
+                .bondType(BondType.COUPON)
+                .dayCountConvention(DayCountConvention.ACT_365)
+                .issuerPrice(new BigDecimal("2000"))
+                .faceValue(new BigDecimal("2000"))
+                .interestRate(new BigDecimal("5.80"))
+                .couponFrequencyMonths(12)
+                .nextCouponDate(LocalDate.now().plusMonths(12))
+                .issueDate(LocalDate.now())
+                .build();
+
+        BigDecimal result = calculator.calculate(bond, new BigDecimal("3"));
+        assertEquals(BigDecimal.ZERO, result,
+                "Newly issued bond with issueDate=today must not accrue phantom interest");
+    }
+
+    @Test
+    void calculate_issuedMidPeriod_accruedFromIssueDate() {
+        // Bond issued 30 days ago, first coupon in ~11 months → only 30 days should accrue
+        LocalDate issueDate = LocalDate.now().minusDays(30);
+        Asset bond = Asset.builder()
+                .id("mid-period")
+                .category(AssetCategory.BONDS)
+                .bondType(BondType.COUPON)
+                .dayCountConvention(DayCountConvention.ACT_365)
+                .issuerPrice(new BigDecimal("1000000"))
+                .faceValue(new BigDecimal("1000000"))
+                .interestRate(new BigDecimal("7.00"))
+                .couponFrequencyMonths(12)
+                .nextCouponDate(issueDate.plusMonths(12))
+                .issueDate(issueDate)
+                .build();
+
+        BigDecimal result = calculator.calculate(bond, BigDecimal.ONE);
+
+        // Expected: 1,000,000 * 7/100 * 30/365 ≈ 5,753 XAF
+        assertTrue(result.compareTo(BigDecimal.ZERO) > 0, "Should accrue from issue date");
+        assertTrue(result.compareTo(new BigDecimal("4000")) > 0);
+        assertTrue(result.compareTo(new BigDecimal("8000")) < 0);
+    }
+
     // ── Next coupon date is today (just paid) ──
 
     @Test
