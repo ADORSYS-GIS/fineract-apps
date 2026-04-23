@@ -471,8 +471,10 @@ function BondInfoCard({
 				)}
 				{asset.bondType === "DISCOUNT" &&
 					asset.faceValue != null &&
-					asset.issuerPrice != null && (
-						<>
+					asset.issuerPrice != null &&
+					asset.issuerPrice > 0 &&
+					asset.faceValue > asset.issuerPrice && (
+						<div className="col-span-2 md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-gray-100 pt-3">
 							<div>
 								<p className="text-gray-500">Discount Spread</p>
 								<p className="font-medium">
@@ -497,7 +499,7 @@ function BondInfoCard({
 									return at redemption
 								</p>
 							</div>
-						</>
+						</div>
 					)}
 				<div>
 					<p className="text-gray-500">Coupon Amount</p>
