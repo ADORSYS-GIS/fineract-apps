@@ -201,7 +201,9 @@ public class BondStepDefinitions {
         request.put("issuerName", "Test Issuer"); request.put("interestRate", 5.0);
         request.put("couponFrequencyMonths", 6);
         request.put("maturityDate", LocalDate.now().minusDays(1).toString());
-        request.put("nextCouponDate", LocalDate.now().plusMonths(6).toString());
+        // nextCouponDate must be before maturityDate so the cross-field constraint passes;
+        // the future-date check (service level) is what this scenario tests.
+        request.put("nextCouponDate", LocalDate.now().minusMonths(7).toString());
 
         MvcResult result = mockMvc.perform(post("/admin/assets")
                         .with(jwt().authorities(ADMIN))
