@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -200,9 +201,10 @@ class AccruedInterestCalculatorTest {
     // ── Newly issued bond (issueDate = today) ──
 
     @Test
-    void calculate_newlyIssuedBond_returnsZero() {
+    void shouldReturnZero_whenBondIsNewlyIssued() {
         // issueDate = today, nextCouponDate = today + 12 months
         // Without the issueDate floor, derived lastCoupon = today - 12 months → ~365 phantom days
+        LocalDate today = LocalDate.now(ZoneId.of("Africa/Douala"));
         Asset bond = Asset.builder()
                 .id("new-bond")
                 .category(AssetCategory.BONDS)
@@ -212,8 +214,8 @@ class AccruedInterestCalculatorTest {
                 .faceValue(new BigDecimal("2000"))
                 .interestRate(new BigDecimal("5.80"))
                 .couponFrequencyMonths(12)
-                .nextCouponDate(LocalDate.now().plusMonths(12))
-                .issueDate(LocalDate.now())
+                .nextCouponDate(today.plusMonths(12))
+                .issueDate(today)
                 .build();
 
         BigDecimal result = calculator.calculate(bond, new BigDecimal("3"));
@@ -222,9 +224,9 @@ class AccruedInterestCalculatorTest {
     }
 
     @Test
-    void calculate_issuedMidPeriod_accruedFromIssueDate() {
+    void shouldAccrueFromIssueDate_whenBondIssuedMidPeriod() {
         // Bond issued 30 days ago, first coupon in ~11 months → only 30 days should accrue
-        LocalDate issueDate = LocalDate.now().minusDays(30);
+        LocalDate issueDate = LocalDate.now(ZoneId.of("Africa/Douala")).minusDays(30);
         Asset bond = Asset.builder()
                 .id("mid-period")
                 .category(AssetCategory.BONDS)
@@ -244,6 +246,29 @@ class AccruedInterestCalculatorTest {
         assertTrue(result.compareTo(BigDecimal.ZERO) > 0, "Should accrue from issue date");
         assertTrue(result.compareTo(new BigDecimal("4000")) > 0);
         assertTrue(result.compareTo(new BigDecimal("8000")) < 0);
+    }
+
+    @Test
+    void shouldReturnZero_whenIssueDateIsInFuture() {
+        // Bond pre-loaded before settlement; issueDate is tomorrow → lastCouponDate is in the future
+        // daysSinceLastCoupon will be negative, guard on line 49 returns zero
+        LocalDate tomorrow = LocalDate.now(ZoneId.of("Africa/Douala")).plusDays(1);
+        Asset bond = Asset.builder()
+                .id("future-issue")
+                .category(AssetCategory.BONDS)
+                .bondType(BondType.COUPON)
+                .dayCountConvention(DayCountConvention.ACT_365)
+                .issuerPrice(new BigDecimal("10000"))
+                .faceValue(new BigDecimal("10000"))
+                .interestRate(new BigDecimal("6.00"))
+                .couponFrequencyMonths(12)
+                .nextCouponDate(tomorrow.plusMonths(12))
+                .issueDate(tomorrow)
+                .build();
+
+        BigDecimal result = calculator.calculate(bond, BigDecimal.ONE);
+        assertEquals(BigDecimal.ZERO, result,
+                "Bond not yet issued must accrue zero interest");
     }
 
     // ── Next coupon date is today (just paid) ──
