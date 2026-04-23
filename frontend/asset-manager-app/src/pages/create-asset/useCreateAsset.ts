@@ -155,7 +155,11 @@ function validateBondDetails(data: AssetFormData): string[] {
 	if (!data.bondType) errors.push("Bond type is required");
 	if (!data.issuerName.trim()) errors.push("Issuer is required");
 	if (!data.maturityDate) errors.push("Maturity date is required");
-	if (data.issueDate && data.maturityDate && data.maturityDate <= data.issueDate)
+	if (
+		data.issueDate &&
+		data.maturityDate &&
+		data.maturityDate <= data.issueDate
+	)
 		errors.push("Maturity date must be after the issue date");
 	if (data.bondType === "COUPON") {
 		if (data.interestRate <= 0)
