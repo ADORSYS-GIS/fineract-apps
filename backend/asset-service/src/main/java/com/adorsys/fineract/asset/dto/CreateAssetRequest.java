@@ -388,7 +388,7 @@ public record CreateAssetRequest(
     @PositiveOrZero @DecimalMax("1.00") BigDecimal tvaRate
 ) {
     @AssertTrue(message = "nextCouponDate must be strictly after issueDate for COUPON bonds")
-    boolean isNextCouponDateAfterIssueDate() {
+    public boolean isNextCouponDateAfterIssueDate() {
         if (bondType != BondType.COUPON) return true;
         if (nextCouponDate == null || issueDate == null) return true;
         return nextCouponDate.isAfter(issueDate);

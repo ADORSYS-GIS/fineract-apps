@@ -31,6 +31,7 @@ class AccruedInterestCalculatorTest {
                 .bondType(BondType.COUPON)
                 .dayCountConvention(convention)
                 .issuerPrice(faceValue)
+                .faceValue(faceValue)
                 .interestRate(rate)
                 .couponFrequencyMonths(freqMonths)
                 .nextCouponDate(nextCoupon)

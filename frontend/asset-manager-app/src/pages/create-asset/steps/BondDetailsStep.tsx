@@ -277,8 +277,9 @@ export const BondDetailsStep: FC<Props> = ({
 								</p>
 							) : (
 								<p className="text-xs text-gray-400 mt-1">
-									Bond issue/settlement date. Prevents phantom accrued interest
-									on the first purchase if left empty, defaults to today.
+									Bond issue/settlement date. Used to prevent phantom accrued
+									interest on the first purchase. If left empty, the accrual
+									floor does not apply.
 								</p>
 							)}
 						</div>
