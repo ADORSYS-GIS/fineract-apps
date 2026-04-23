@@ -155,8 +155,7 @@ function validateBondDetails(data: AssetFormData): string[] {
 	if (!data.bondType) errors.push("Bond type is required");
 	if (!data.issuerName.trim()) errors.push("Issuer is required");
 	if (!data.maturityDate) errors.push("Maturity date is required");
-	if (data.issueDate && data.maturityDate &&
-			new Date(data.maturityDate) <= new Date(data.issueDate))
+	if (data.issueDate && data.maturityDate && data.maturityDate <= data.issueDate)
 		errors.push("Maturity date must be after the issue date");
 	if (data.bondType === "COUPON") {
 		if (data.interestRate <= 0)
@@ -164,15 +163,9 @@ function validateBondDetails(data: AssetFormData): string[] {
 		if (![1, 3, 6, 12].includes(data.couponFrequencyMonths))
 			errors.push("Coupon frequency must be 1, 3, 6, or 12 months");
 		if (!data.nextCouponDate) errors.push("First coupon date is required");
-		else if (
-				data.maturityDate &&
-				new Date(data.nextCouponDate) >= new Date(data.maturityDate)
-			)
+		else if (data.maturityDate && data.nextCouponDate >= data.maturityDate)
 			errors.push("First coupon date must be before the maturity date");
-		else if (
-				data.issueDate &&
-				new Date(data.nextCouponDate) <= new Date(data.issueDate)
-			)
+		else if (data.issueDate && data.nextCouponDate <= data.issueDate)
 			errors.push("First coupon date must be after the issue date");
 	}
 	return errors;
