@@ -262,6 +262,30 @@ export const BondDetailsStep: FC<Props> = ({
 					<>
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-1">
+								Issue Date
+							</label>
+							<input
+								type="date"
+								aria-label="Issue date"
+								className={inputClass("issue date")}
+								value={formData.issueDate}
+								onChange={(e) => updateFormData({ issueDate: e.target.value })}
+							/>
+							{fieldError("issue date") ? (
+								<p className="text-xs text-red-600 mt-1">
+									{fieldError("issue date")}
+								</p>
+							) : (
+								<p className="text-xs text-gray-400 mt-1">
+									Bond issue/settlement date. Used to prevent phantom accrued
+									interest on the first purchase. If left empty, the accrual
+									floor does not apply.
+								</p>
+							)}
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-1">
 								First Coupon Date *
 							</label>
 							<input
