@@ -63,9 +63,6 @@ export interface AssetFormData {
 	capitalGainsRate: number;
 	tvaEnabled: boolean;
 	tvaRate: number;
-	// Bond classification (affects IRCM auto-rate)
-	isBvmacListed: boolean;
-	isGovernmentBond: boolean;
 }
 
 const toDateStr = (d: Date) => d.toISOString().split("T")[0];
@@ -129,8 +126,6 @@ const initialFormData: AssetFormData = {
 	capitalGainsRate: 0,
 	tvaEnabled: false,
 	tvaRate: 0,
-	isBvmacListed: false,
-	isGovernmentBond: false,
 };
 
 function validateLiquidityPartner(data: AssetFormData): string[] {
@@ -471,8 +466,6 @@ export const useCreateAsset = () => {
 				: undefined,
 			tvaEnabled: formData.tvaEnabled,
 			tvaRate: formData.tvaRate ? formData.tvaRate / 100 : undefined,
-			isBvmacListed: formData.isBvmacListed || undefined,
-			isGovernmentBond: formData.isGovernmentBond || undefined,
 		};
 
 		createMutation.mutate(request);
