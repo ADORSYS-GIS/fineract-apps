@@ -12,17 +12,18 @@ COPY frontend/accounting-app/ ./frontend/accounting-app/
 # Install dependencies and build
 RUN corepack enable pnpm && \
     pnpm install --frozen-lockfile && \
-    pnpm --filter accounting-app build
+    pnpm --filter accounting-app build && \
+    echo "healthy" > /app/frontend/accounting-app/dist/health
 
 # Production stage
-FROM nginx:1.28.2-alpine
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 # Copy built assets
-COPY --from=builder /app/frontend/accounting-app/dist /usr/share/nginx/html
+COPY --chown=101:101 --from=builder /app/frontend/accounting-app/dist /usr/share/nginx/html
 
 # Configure nginx
 RUN echo 'server { \
-    listen 80; \
+    listen 8080; \
     root /usr/share/nginx/html; \
     index index.html; \
     location / { \
@@ -30,6 +31,12 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+# Create health check file (now handled in builder stage)
+
+EXPOSE 8080
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
