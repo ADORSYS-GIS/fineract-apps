@@ -127,6 +127,15 @@ public class PaymentE2ESpringConfiguration {
         // CinetPay callback/return/cancel URLs are computed from these base URLs
         registry.add("payment.gateway.base-url", () -> "http://localhost");
         registry.add("self-service.app.base-url", () -> "http://localhost:3000");
+ 
+        // NOKASH -> WireMock
+        registry.add("nokash.base-url", () -> wireMockUrl);
+        registry.add("nokash.i-space-key", () -> "test-ispace-key");
+        registry.add("nokash.app-space-key", () -> "test-appspace-key");
+        registry.add("nokash.fineract-payment-type-id",
+                () -> String.valueOf(FineractInitializer.getPaymentTypeNokashId()));
+        registry.add("nokash.gl-account-code", () -> "48");
+
 
         // Disable schedulers and rate limiting for tests
         registry.add("app.cleanup.enabled", () -> "false");

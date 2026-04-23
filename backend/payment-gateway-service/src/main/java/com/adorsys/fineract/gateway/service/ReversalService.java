@@ -3,6 +3,7 @@ package com.adorsys.fineract.gateway.service;
 import com.adorsys.fineract.gateway.client.FineractClient;
 import com.adorsys.fineract.gateway.config.CinetPayConfig;
 import com.adorsys.fineract.gateway.config.MtnMomoConfig;
+import com.adorsys.fineract.gateway.config.NokashConfig;
 import com.adorsys.fineract.gateway.config.OrangeMoneyConfig;
 import com.adorsys.fineract.gateway.dto.PaymentProvider;
 import com.adorsys.fineract.gateway.entity.PaymentTransaction;
@@ -35,6 +36,7 @@ public class ReversalService {
     private final MtnMomoConfig mtnConfig;
     private final OrangeMoneyConfig orangeConfig;
     private final CinetPayConfig cinetPayConfig;
+    private final NokashConfig nokashConfig;
     private final PaymentMetrics paymentMetrics;
     private final ReversalDeadLetterRepository deadLetterRepository;
 
@@ -152,6 +154,7 @@ public class ReversalService {
             case MTN_MOMO -> mtnConfig.getFineractPaymentTypeId();
             case ORANGE_MONEY -> orangeConfig.getFineractPaymentTypeId();
             case CINETPAY -> resolveCinetPayPaymentTypeId(underlyingProviderHint);
+            case NOKASH -> nokashConfig.getFineractPaymentTypeId();
             default -> throw new PaymentException("Unknown payment type for provider: " + provider);
         };
     }

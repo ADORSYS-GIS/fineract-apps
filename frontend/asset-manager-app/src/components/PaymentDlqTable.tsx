@@ -24,7 +24,7 @@ export const PaymentDlqTable: FC = () => {
 	const { data, isLoading } = useQuery({
 		queryKey: ["payment-dlq", showAll],
 		queryFn: () => paymentGatewayAdminApi.listDlq(showAll),
-		select: (res) => res.data,
+		select: (res) => res.data.content,
 		refetchInterval: 30000,
 	});
 

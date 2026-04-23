@@ -95,9 +95,10 @@ public class AccountController {
         // Verify ownership first
         accountSecurityService.verifySavingsAccountOwnership(accountId, jwt);
 
+        // TODO: pass page/limit to Fineract API once server-side pagination is supported
+        //  (GET /savingsaccounts/{id}?associations=transactions has no offset/limit params).
         List<Map<String, Object>> allTransactions = fineractService.getSavingsAccountTransactions(accountId);
 
-        // Apply pagination
         int total = allTransactions.size();
         int start = Math.max(0, (page - 1) * limit);
         int end = Math.min(start + limit, total);

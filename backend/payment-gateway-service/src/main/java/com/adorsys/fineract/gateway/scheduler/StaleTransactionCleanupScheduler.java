@@ -3,6 +3,7 @@ package com.adorsys.fineract.gateway.scheduler;
 import com.adorsys.fineract.gateway.client.CinetPayClient;
 import com.adorsys.fineract.gateway.client.MtnMomoClient;
 import com.adorsys.fineract.gateway.client.OrangeMoneyClient;
+import com.adorsys.fineract.gateway.client.NokashClient;
 import com.adorsys.fineract.gateway.dto.PaymentProvider;
 import com.adorsys.fineract.gateway.dto.PaymentResponse;
 import com.adorsys.fineract.gateway.dto.PaymentStatus;
@@ -39,19 +40,20 @@ public class StaleTransactionCleanupScheduler {
     private final MtnMomoClient mtnClient;
     private final OrangeMoneyClient orangeClient;
     private final CinetPayClient cinetPayClient;
+    private final NokashClient nokashClient;
     private final ReversalService reversalService;
     private final StaleTransactionReconciler reconciler;
 
     @Value("${app.cleanup.stale-minutes:30}")
     private int staleMinutes;
 
-    @Value("${app.cleanup.processing-stale-minutes:60}")
+    @Value("${app.cleanup.processing-stale-minutes:1}")
     private int processingStaleMinutes;
 
     @Value("${app.cleanup.stale-processing-max-retries:5}")
     private int staleProcessingMaxRetries;
 
-    @Value("${app.cleanup.pending-stale-minutes:3}")
+    @Value("${app.cleanup.pending-stale-minutes:1}")
     private int pendingStaleMinutes;
 
     /**
@@ -87,7 +89,7 @@ public class StaleTransactionCleanupScheduler {
      * but the provider never confirmed delivery. We poll the provider for status
      * and either confirm success or trigger a reversal.
      */
-    @Scheduled(fixedDelayString = "${app.cleanup.processing-interval-ms:600000}")
+    @Scheduled(fixedDelayString = "${app.cleanup.processing-interval-ms:30000}")
     @Transactional
     public void resolveStaleProcessingTransactions() {
         Instant cutoff = Instant.now().minus(processingStaleMinutes, ChronoUnit.MINUTES);
@@ -118,7 +120,7 @@ public class StaleTransactionCleanupScheduler {
      * Deposits: credit Fineract if the provider confirms SUCCESSFUL.
      * Withdrawals: trigger a reversal if the provider confirms FAILED.
      */
-    @Scheduled(fixedDelayString = "${app.cleanup.pending-interval-ms:120000}")
+    @Scheduled(fixedDelayString = "${app.cleanup.pending-interval-ms:30000}")
     @Transactional
     public void resolveStaleTransactions() {
         Instant cutoff = Instant.now().minus(pendingStaleMinutes, ChronoUnit.MINUTES);
@@ -229,6 +231,7 @@ public class StaleTransactionCleanupScheduler {
                 case ORANGE_MONEY -> orangeClient.getTransactionStatus(
                     txn.getTransactionId(), txn.getProviderReference());
                 case CINETPAY -> cinetPayClient.verifyTransaction(txn.getTransactionId());
+                case NOKASH -> nokashClient.getTransactionStatus(txn.getProviderReference());
                 default -> PaymentStatus.PENDING;
             };
         } catch (Exception e) {

@@ -45,6 +45,12 @@ public class DepositRequest {
     private PaymentProvider provider;
 
     /**
+     * For gateway providers like NOKASH, specifies the underlying payment method (e.g., "MTN_MOMO")
+     */
+    @Size(max = 50, message = "Payment method cannot exceed 50 characters")
+    private String paymentMethod;
+
+    /**
      * Customer's phone number for mobile money (required for MTN/Orange)
      */
     @Pattern(regexp = "^\\+?237[0-9]{9}$|^[0-9]{9}$", message = "Invalid Cameroon phone number")

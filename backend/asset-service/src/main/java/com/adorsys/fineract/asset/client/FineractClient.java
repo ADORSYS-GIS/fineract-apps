@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Mono;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -463,6 +464,7 @@ public class FineractClient {
      * Uses the client-specific endpoint which properly filters by client ID.
      * Note: /savingsaccounts?clientId= does NOT filter in Fineract; use /clients/{id}/accounts instead.
      */
+    @Retry(name = "fineract")
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getClientSavingsAccounts(Long clientId) {
         try {
@@ -477,6 +479,9 @@ public class FineractClient {
             return response != null
                     ? (List<Map<String, Object>>) response.getOrDefault("savingsAccounts", List.of())
                     : List.of();
+        } catch (WebClientRequestException e) {
+            log.warn("Network error getting savings accounts for clientId={}: {}", clientId, e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("Failed to get client savings accounts: clientId={}, error={}", clientId, e.getMessage());
             throw new AssetException("Failed to get client savings accounts from Fineract", e);

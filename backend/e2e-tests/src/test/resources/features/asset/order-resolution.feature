@@ -46,28 +46,6 @@ Feature: Order Resolution (E2E)
     Then the response status should be 200
 
   # -----------------------------------------------------------------
-  # Single-Asset Reconciliation
-  # -----------------------------------------------------------------
-
-  Scenario: Admin can trigger single-asset reconciliation
-    Given an active stock asset "SR1" with price 2000 and supply 100
-    When the user buys 5 units of "SR1"
-    Then the trade should be FILLED
-    When the admin triggers reconciliation for asset "SR1"
-    Then the response status should be 200
-    And the reconciliation result should have 0 discrepancies
-
-  Scenario: Reconciliation confirms consistent state after trades
-    Given an active stock asset "SM1" with price 1000 and supply 50
-    When the user buys 10 units of "SM1"
-    Then the trade should be FILLED
-    When the user sells 3 units of "SM1"
-    Then the trade should be FILLED
-    When the admin triggers reconciliation for asset "SM1"
-    Then the response status should be 200
-    And the reconciliation result should have 0 discrepancies
-
-  # -----------------------------------------------------------------
   # Order Resolution (admin manual close)
   # -----------------------------------------------------------------
 

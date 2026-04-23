@@ -182,6 +182,43 @@ public final class WireMockProviderStubs {
     }
 
     // ---------------------------------------------------------------
+    // NOKASH Stubs
+    // ---------------------------------------------------------------
+
+    /** Stub NOKASH RequestToPay (collection/deposit) — returns 200 with reference. */
+    public static void stubNokashRequestToPaySuccess() {
+        WIRE_MOCK.stubFor(post(urlPathEqualTo("/lapas-on-trans/trans/api-payin-request/407"))
+                .willReturn(okJson("{\"status\":\"REQUEST_OK\",\"data\":{\"id\":\"test-reference\"}}")));
+    }
+
+    /** Stub NOKASH collection status poll returning SUCCESSFUL. */
+    public static void stubNokashGetCollectionStatusSuccess(String transactionId) {
+        WIRE_MOCK.stubFor(get(urlPathEqualTo("/lapas-on-trans/trans/310/status-request"))
+                .withQueryParam("transaction_id", equalTo(transactionId))
+                .willReturn(okJson("{\"status\":\"REQUEST_OK\",\"data\":{\"status\":\"SUCCESS\"}}")));
+    }
+
+    /** Stub NOKASH collection status poll returning FAILED. */
+    public static void stubNokashGetCollectionStatusFailed(String transactionId) {
+        WIRE_MOCK.stubFor(get(urlPathEqualTo("/lapas-on-trans/trans/310/status-request"))
+                .withQueryParam("transaction_id", equalTo(transactionId))
+                .willReturn(okJson("{\"status\":\"REQUEST_OK\",\"data\":{\"status\":\"FAILED\"}}")));
+    }
+
+    /** Stub NOKASH auth — returns 200 with temporary auth key. */
+    public static void stubNokashAuthSuccess() {
+        WIRE_MOCK.stubFor(post(urlPathEqualTo("/lapas-on-trans/trans/auth"))
+                .willReturn(okJson("{\"status\":\"LOGIN_SUCCESS\",\"data\":\"test-auth-key\"}")));
+    }
+
+    /** Stub NOKASH Payout (withdrawal) — returns 200 with reference. */
+    public static void stubNokashPayoutSuccess() {
+        WIRE_MOCK.stubFor(post(urlPathEqualTo("/lapas-on-trans/trans/api-payout-request/407"))
+                .willReturn(okJson("{\"status\":\"REQUEST_OK\",\"data\":{\"id\":\"test-payout-reference\"}}")));
+    }
+
+
+    // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
 

@@ -40,15 +40,32 @@ public class TradeLockService {
     private static final String QUOTE_LOCK_PREFIX = "lock:quote:";
     private static final String LOCAL_LOCK_PREFIX = "LOCAL:";
 
-    private final ConcurrentHashMap<String, ReentrantLock> localLocks = new ConcurrentHashMap<>();
+    private static final long STUCK_LOCK_THRESHOLD_MILLIS = 5 * 60 * 1_000L; // 5 minutes
+
+    private record LockEntry(ReentrantLock lock, long createdAt) {}
+
+    private final ConcurrentHashMap<String, LockEntry> localLocks = new ConcurrentHashMap<>();
 
     /**
-     * Evict unlocked entries from the local trade-lock fallback map to prevent unbounded growth.
+     * Evict unlocked entries. Logs a warning for locks held beyond the stuck threshold but does
+     * NOT remove them — the thread holding the lock will eventually call releaseTradeLock, which
+     * finds the entry and unlocks it normally. Evicting a live locked entry would cause
+     * releaseTradeLock to silently no-op and allow a second concurrent trade for the same user.
      */
-    @Scheduled(fixedRate = 600000)
+    @Scheduled(fixedRate = 60_000)
     public void evictStaleLocalLocks() {
+        long now = System.currentTimeMillis();
         int before = localLocks.size();
-        localLocks.entrySet().removeIf(entry -> !entry.getValue().isLocked());
+        localLocks.entrySet().removeIf(entry -> {
+            LockEntry le = entry.getValue();
+            if (!le.lock().isLocked()) return true;
+            // Warn about stuck locks but keep them so releaseTradeLock can still unlock normally
+            if (now - le.createdAt() > STUCK_LOCK_THRESHOLD_MILLIS) {
+                log.warn("Stuck local trade lock detected (NOT evicted): key={}, heldForMs={}",
+                        entry.getKey(), now - le.createdAt());
+            }
+            return false;
+        });
         int removed = before - localLocks.size();
         if (removed > 0) {
             log.debug("Evicted {} stale local trade locks, {} remaining", removed, localLocks.size());
@@ -86,10 +103,11 @@ public class TradeLockService {
         } catch (RedisConnectionFailureException e) {
             log.warn("Redis unavailable, falling back to local lock: userId={}, assetId={}", userId, assetId);
             String localKey = userKey + ":" + treasuryKey;
-            ReentrantLock lock = localLocks.computeIfAbsent(localKey, k -> new ReentrantLock());
+            LockEntry entry = localLocks.computeIfAbsent(localKey,
+                    k -> new LockEntry(new ReentrantLock(), System.currentTimeMillis()));
             try {
                 int timeoutSeconds = config.getTradeLock().getLocalFallbackTimeoutSeconds();
-                if (!lock.tryLock(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)) {
+                if (!entry.lock().tryLock(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)) {
                     assetMetrics.recordTradeLockFailure();
                     throw new TradeLockException("Another trade is in progress (local lock). Please wait.");
                 }
@@ -108,9 +126,9 @@ public class TradeLockService {
     public void releaseTradeLock(Long userId, String assetId, String lockValue) {
         if (lockValue != null && lockValue.startsWith(LOCAL_LOCK_PREFIX)) {
             String localKey = lockValue.substring(LOCAL_LOCK_PREFIX.length());
-            ReentrantLock lock = localLocks.get(localKey);
-            if (lock != null && lock.isHeldByCurrentThread()) {
-                lock.unlock();
+            LockEntry entry = localLocks.get(localKey);
+            if (entry != null && entry.lock().isHeldByCurrentThread()) {
+                entry.lock().unlock();
             }
             return;
         }

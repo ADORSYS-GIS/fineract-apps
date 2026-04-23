@@ -58,10 +58,13 @@ public class AssetProvisioningSteps {
         BigDecimal balance = fineractTestClient.getAccountBalance(
                 FineractInitializer.getTestUserXafAccountId());
 
-        // Top up if balance is below the required minimum (previous scenarios may have spent funds)
+        // Top up if balance is below the required minimum (previous scenarios may have spent funds).
+        // Add a 500 000 XAF buffer so a concurrent scheduler trade cannot push the balance below
+        // the threshold between the deposit and the assertion.
         BigDecimal required = BigDecimal.valueOf(expectedBalance);
+        BigDecimal buffer = BigDecimal.valueOf(500_000);
         if (balance.compareTo(required) < 0) {
-            BigDecimal topUp = required.subtract(balance);
+            BigDecimal topUp = required.subtract(balance).add(buffer);
             fineractTestClient.depositToSavingsAccount(
                     FineractInitializer.getTestUserXafAccountId(), topUp);
             balance = fineractTestClient.getAccountBalance(

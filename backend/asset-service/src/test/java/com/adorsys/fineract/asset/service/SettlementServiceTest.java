@@ -3,7 +3,6 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractClient.BatchJournalEntryOp;
 import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
-import com.adorsys.fineract.asset.config.AdminSecurityCheck;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
@@ -39,7 +38,6 @@ class SettlementServiceTest {
     @Mock private FineractOutboxService outboxService;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
     @Mock private ResolvedTaxAccounts resolvedTaxAccounts;
-    @Mock private AdminSecurityCheck adminSecurity;
     @Mock private AssetServiceConfig assetServiceConfig;
     @Mock private AssetRepository assetRepository;
 

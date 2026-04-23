@@ -346,28 +346,6 @@ public class AccountingSteps {
     }
 
     // ---------------------------------------------------------------
-    // When/Then steps — reconciliation
-    // ---------------------------------------------------------------
-
-    @When("the admin triggers reconciliation")
-    public void adminTriggersReconciliation() {
-        Response response = RestAssured.given()
-                .baseUri("http://localhost:" + port)
-                .contentType(ContentType.JSON)
-                .post("/api/v1/admin/reconciliation/trigger");
-        context.setLastResponse(response);
-    }
-
-    @Then("the reconciliation should report {int} discrepancies")
-    public void reconciliationShouldReportDiscrepancies(int expectedCount) {
-        Object discrepancies = context.jsonPath("totalDiscrepancies");
-        assertThat(discrepancies).as("Reconciliation discrepancy count").isNotNull();
-        assertThat(Integer.parseInt(discrepancies.toString()))
-                .as("Expected %d discrepancies", expectedCount)
-                .isEqualTo(expectedCount);
-    }
-
-    // ---------------------------------------------------------------
     // Then steps — GL net balance (debits - credits)
     // ---------------------------------------------------------------
 

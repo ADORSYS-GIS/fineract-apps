@@ -24,6 +24,14 @@ pgAdminClient.interceptors.request.use((config) => {
 	return config;
 });
 
+export interface SpringPage<T> {
+	content: T[];
+	totalElements: number;
+	totalPages: number;
+	size: number;
+	number: number;
+}
+
 export interface ReversalDeadLetterEntry {
 	id: number;
 	transactionId: string;
@@ -44,9 +52,9 @@ export interface ReversalDeadLetterEntry {
 
 export const paymentGatewayAdminApi = {
 	listDlq: (all = false) =>
-		pgAdminClient.get<ReversalDeadLetterEntry[]>("/admin/reversals/dlq", {
-			params: all ? { all: true } : undefined,
-		}),
+		pgAdminClient.get<SpringPage<ReversalDeadLetterEntry>>(
+			all ? "/admin/reversals/dlq/all" : "/admin/reversals/dlq",
+		),
 	countDlq: () =>
 		pgAdminClient.get<{ count: number }>("/admin/reversals/dlq/count"),
 	retryDlq: (id: number) =>
@@ -797,24 +805,6 @@ export interface UpdateNotificationPreferencesRequest {
 	delistingAnnounced?: boolean;
 }
 
-/** Reconciliation report (matches backend ReconciliationReportResponse). */
-export interface ReconciliationReportResponse {
-	id: number;
-	reportDate: string;
-	reportType: string;
-	assetId?: string;
-	userId?: number;
-	expectedValue?: number;
-	actualValue?: number;
-	discrepancy?: number;
-	severity: string;
-	status: string;
-	notes?: string;
-	resolvedBy?: string;
-	resolvedAt?: string;
-	createdAt: string;
-}
-
 export interface DelistAssetRequest {
 	delistingDate: string;
 	delistingRedemptionPrice?: number;
@@ -1014,11 +1004,6 @@ export interface AdminDashboardResponse {
 		needsReconciliation: number;
 		failed: number;
 		manuallyClosed: number;
-	};
-	reconciliation: {
-		openReports: number;
-		criticalOpen: number;
-		warningOpen: number;
 	};
 	activeInvestors: number;
 }
@@ -1272,38 +1257,6 @@ export const assetApi = {
 		assetClient.get<PaymentSummaryResponse>(
 			`/admin/assets/${assetId}/income-summary`,
 		),
-
-	// Reconciliation - Admin
-	getReconciliationReports: (params?: {
-		page?: number;
-		size?: number;
-		status?: string;
-		severity?: string;
-		assetId?: string;
-	}) =>
-		assetClient.get<{
-			content: ReconciliationReportResponse[];
-			totalPages: number;
-			totalElements: number;
-		}>("/admin/reconciliation/reports", { params }),
-	getReconciliationSummary: () =>
-		assetClient.get<{ openReports: number }>("/admin/reconciliation/summary"),
-	triggerReconciliation: () =>
-		assetClient.post<{ discrepancies: number }>(
-			"/admin/reconciliation/trigger",
-		),
-	triggerAssetReconciliation: (assetId: string) =>
-		assetClient.post<{ discrepancies: number }>(
-			`/admin/reconciliation/trigger/${assetId}`,
-		),
-	acknowledgeReport: (id: number, admin?: string) =>
-		assetClient.patch(`/admin/reconciliation/reports/${id}/acknowledge`, null, {
-			params: { admin },
-		}),
-	resolveReport: (id: number, admin?: string, notes?: string) =>
-		assetClient.patch(`/admin/reconciliation/reports/${id}/resolve`, null, {
-			params: { admin, notes },
-		}),
 
 	// User order history
 	getUserOrders: (params?: {

@@ -123,7 +123,7 @@ class TradeControllerTest {
 
     @Test
     void streamOrderStatus_returns200() throws Exception {
-        when(sseEmitterManager.subscribe("order-001")).thenReturn(new SseEmitter());
+        when(sseEmitterManager.subscribe("order-001", "test-sub")).thenReturn(new SseEmitter());
 
         mockMvc.perform(get("/trades/orders/order-001/stream")
                         .accept(MediaType.TEXT_EVENT_STREAM))

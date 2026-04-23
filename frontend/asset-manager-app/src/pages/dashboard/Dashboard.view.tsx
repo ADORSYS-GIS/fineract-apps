@@ -124,7 +124,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 
 				{/* Dashboard Summary */}
 				{dashboardSummary && (
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
 						<StatCard title="Assets">
 							<p className="text-2xl font-bold text-gray-900">
 								{dashboardSummary.assets.active}
@@ -137,6 +137,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 								<span>{dashboardSummary.assets.pending} pending</span>
 								<span>{dashboardSummary.assets.halted} halted</span>
 								<span>{dashboardSummary.assets.total} total</span>
+								<span>{dashboardSummary.activeInvestors} investors</span>
 							</div>
 						</StatCard>
 
@@ -178,42 +179,6 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 								</>
 							) : (
 								<p className="text-2xl font-bold text-green-600">All clear</p>
-							)}
-						</StatCard>
-
-						<StatCard title="Reconciliation">
-							{dashboardSummary.reconciliation.openReports > 0 ? (
-								<>
-									<p
-										className={`text-2xl font-bold ${dashboardSummary.reconciliation.criticalOpen > 0 ? "text-red-600" : "text-yellow-600"}`}
-									>
-										{dashboardSummary.reconciliation.openReports}
-										<span className="text-sm font-normal text-gray-500">
-											{" "}
-											open
-										</span>
-									</p>
-									<div className="flex gap-3 mt-1 text-xs text-gray-500">
-										{dashboardSummary.reconciliation.criticalOpen > 0 && (
-											<span className="text-red-600">
-												{dashboardSummary.reconciliation.criticalOpen} critical
-											</span>
-										)}
-										{dashboardSummary.reconciliation.warningOpen > 0 && (
-											<span className="text-yellow-600">
-												{dashboardSummary.reconciliation.warningOpen} warnings
-											</span>
-										)}
-										<span>{dashboardSummary.activeInvestors} investors</span>
-									</div>
-								</>
-							) : (
-								<>
-									<p className="text-2xl font-bold text-green-600">All clear</p>
-									<p className="text-xs text-gray-500 mt-1">
-										{dashboardSummary.activeInvestors} active investors
-									</p>
-								</>
 							)}
 						</StatCard>
 					</div>

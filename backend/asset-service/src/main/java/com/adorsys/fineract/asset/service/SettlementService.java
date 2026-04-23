@@ -3,7 +3,6 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractClient.BatchJournalEntryOp;
 import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
-import com.adorsys.fineract.asset.config.AdminSecurityCheck;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
@@ -42,7 +41,6 @@ public class SettlementService {
     private final FineractOutboxService outboxService;
     private final ResolvedGlAccounts resolvedGlAccounts;
     private final ResolvedTaxAccounts resolvedTaxAccounts;
-    private final AdminSecurityCheck adminSecurity;
     private final AssetServiceConfig assetServiceConfig;
     private final com.adorsys.fineract.asset.repository.AssetRepository assetRepository;
 
@@ -66,8 +64,7 @@ public class SettlementService {
             throw new AssetException("Settlement " + id + " is not PENDING (current: " + s.getStatus() + ")");
         }
 
-        // Maker-checker: approver must differ from creator (skipped in dev mode)
-        if (!adminSecurity.isOpen() && approverUsername.equals(s.getCreatedBy())) {
+        if (approverUsername.equals(s.getCreatedBy())) {
             throw new AssetException("Maker-checker violation: approver cannot be the same as creator");
         }
 

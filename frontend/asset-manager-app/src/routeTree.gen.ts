@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettlementRouteImport } from './routes/settlement'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScheduledPaymentsRouteImport } from './routes/scheduled-payments'
-import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as OrderResolutionRouteImport } from './routes/order-resolution'
 import { Route as MarketSettingsRouteImport } from './routes/market-settings'
 import { Route as LpPerformanceRouteImport } from './routes/lp-performance'
@@ -43,11 +42,6 @@ const SettingsRoute = SettingsRouteImport.update({
 const ScheduledPaymentsRoute = ScheduledPaymentsRouteImport.update({
   id: '/scheduled-payments',
   path: '/scheduled-payments',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReconciliationRoute = ReconciliationRouteImport.update({
-  id: '/reconciliation',
-  path: '/reconciliation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderResolutionRoute = OrderResolutionRouteImport.update({
@@ -145,7 +139,6 @@ export interface FileRoutesByFullPath {
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
-  '/reconciliation': typeof ReconciliationRoute
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
   '/settlement': typeof SettlementRoute
@@ -168,7 +161,6 @@ export interface FileRoutesByTo {
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
-  '/reconciliation': typeof ReconciliationRoute
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
   '/settlement': typeof SettlementRoute
@@ -192,7 +184,6 @@ export interface FileRoutesById {
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
-  '/reconciliation': typeof ReconciliationRoute
   '/scheduled-payments': typeof ScheduledPaymentsRoute
   '/settings': typeof SettingsRoute
   '/settlement': typeof SettlementRoute
@@ -216,7 +207,6 @@ export interface FileRouteTypes {
     | '/market-settings'
     | '/order-resolution'
     | '/portfolio'
-    | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
     | '/settlement'
@@ -238,7 +228,6 @@ export interface FileRouteTypes {
     | '/market-settings'
     | '/order-resolution'
     | '/portfolio'
-    | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
     | '/settlement'
@@ -260,7 +249,6 @@ export interface FileRouteTypes {
     | '/market-settings'
     | '/order-resolution'
     | '/portfolio'
-    | '/reconciliation'
     | '/scheduled-payments'
     | '/settings'
     | '/settlement'
@@ -283,7 +271,6 @@ export interface RootRouteChildren {
   LpPerformanceRoute: typeof LpPerformanceRoute
   MarketSettingsRoute: typeof MarketSettingsRoute
   OrderResolutionRoute: typeof OrderResolutionRoute
-  ReconciliationRoute: typeof ReconciliationRoute
   ScheduledPaymentsRoute: typeof ScheduledPaymentsRoute
   SettingsRoute: typeof SettingsRoute
   SettlementRoute: typeof SettlementRoute
@@ -313,13 +300,6 @@ declare module '@tanstack/react-router' {
       path: '/scheduled-payments'
       fullPath: '/scheduled-payments'
       preLoaderRoute: typeof ScheduledPaymentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reconciliation': {
-      id: '/reconciliation'
-      path: '/reconciliation'
-      fullPath: '/reconciliation'
-      preLoaderRoute: typeof ReconciliationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order-resolution': {
@@ -451,7 +431,6 @@ const rootRouteChildren: RootRouteChildren = {
   LpPerformanceRoute: LpPerformanceRoute,
   MarketSettingsRoute: MarketSettingsRoute,
   OrderResolutionRoute: OrderResolutionRoute,
-  ReconciliationRoute: ReconciliationRoute,
   ScheduledPaymentsRoute: ScheduledPaymentsRoute,
   SettingsRoute: SettingsRoute,
   SettlementRoute: SettlementRoute,

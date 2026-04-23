@@ -26,7 +26,7 @@ public class ScenarioCleanupHook {
             "scheduled_payments", "income_distributions", "principal_redemptions",
             "interest_payments", "portfolio_snapshots", "price_history",
             "purchase_lots", "trade_log", "orders", "user_positions",
-            "user_favorites", "reconciliation_reports", "settlements",
+            "user_favorites", "settlements",
             "asset_projections", "asset_prices", "assets"
         };
         for (String table : tables) {
