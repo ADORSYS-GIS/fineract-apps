@@ -189,6 +189,35 @@ class SettlementServiceTest {
     }
 
     @Test
+    void executeSettlement_fineractFailure_abortsOutboxAndRethrows() {
+        Settlement approved = Settlement.builder()
+                .id("settle-001")
+                .status("APPROVED")
+                .settlementType("LP_PAYOUT")
+                .sourceGlCode("4011")
+                .amount(new BigDecimal("5000"))
+                .build();
+
+        FineractOutboxEntry outbox = FineractOutboxEntry.builder()
+                .id(UUID.randomUUID()).eventType("SETTLEMENT_EXECUTION").build();
+
+        when(settlementRepository.transitionToExecuting("settle-001")).thenReturn(1);
+        when(settlementRepository.findById("settle-001")).thenReturn(Optional.of(approved));
+        when(fineractClient.lookupGlAccounts()).thenReturn(Map.of("4011", 10L, "5011", 20L));
+        when(outboxService.writePendingEntry(anyString(), anyString(), anyString(), anyString(), anyMap()))
+                .thenReturn(outbox);
+        when(fineractClient.executeAtomicBatch(anyList()))
+                .thenThrow(new RuntimeException("Fineract unavailable"));
+
+        assertThrows(AssetException.class, () -> settlementService.executeSettlement("settle-001"));
+
+        verify(outboxService).markAborted(eq(outbox.getId()), anyString());
+        verify(outboxService, never()).markDispatched(any(), any());
+        verify(outboxService, never()).markConfirmed(any());
+        verify(settlementRepository, never()).save(any());
+    }
+
+    @Test
     void executeSettlement_trustRebalance_swapsDebitCreditLegs() {
         // TRUST_REBALANCE moves cash from a source 5xxx asset account to a destination 5xxx account.
         // For asset accounts: debit = increase, credit = decrease.
@@ -318,7 +347,7 @@ class SettlementServiceTest {
 
         when(outboxService.parsePayload(entry))
                 .thenReturn(Map.of("settlementId", "settle-010", "settlementType", "LP_PAYOUT",
-                        "amount", "10000", "ops", 1));
+                        "amount", "10000"));
         when(outboxService.parseFineractResponse(entry))
                 .thenReturn(Map.of("batchId", "batch-retry-1"));
         when(settlementRepository.findById("settle-010")).thenReturn(Optional.of(executing));
@@ -344,7 +373,7 @@ class SettlementServiceTest {
 
         when(outboxService.parsePayload(entry))
                 .thenReturn(Map.of("settlementId", "settle-010", "settlementType", "LP_PAYOUT",
-                        "amount", "10000", "ops", 1));
+                        "amount", "10000"));
         when(settlementRepository.findById("settle-010")).thenReturn(Optional.of(executed));
 
         settlementService.finalizeSettlementFromOutbox(entry);

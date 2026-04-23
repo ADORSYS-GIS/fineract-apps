@@ -103,7 +103,7 @@ public class SettlementService {
         String idempotencyKey = "SETTLE-" + id;
         FineractOutboxEntry outbox = outboxService.writePendingEntry(
                 "SETTLEMENT_EXECUTION", "SETTLEMENT", id, idempotencyKey,
-                buildSettlementPayload(s, ops.size()));
+                buildSettlementPayload(s));
 
         // Execute atomic batch
         List<Map<String, Object>> batchResponses;
@@ -120,8 +120,9 @@ public class SettlementService {
                 : null;
 
         // Mark DISPATCHED (REQUIRES_NEW — commits independently so processor can retry finalization)
-        outboxService.markDispatched(outbox.getId(),
-                Map.of("batchId", batchId != null ? batchId : ""));
+        Map<String, Object> dispatchPayload = new HashMap<>();
+        dispatchPayload.put("batchId", batchId);
+        outboxService.markDispatched(outbox.getId(), dispatchPayload);
 
         // DB finalization + markConfirmed commit atomically in the outer @Transactional
         s.setStatus("EXECUTED");
@@ -139,6 +140,12 @@ public class SettlementService {
     /**
      * Retry DB finalization for a DISPATCHED outbox entry. Called by FineractOutboxProcessor.
      * Fineract has already run; this method only writes the local settlement state.
+     *
+     * <p>The settlement may be in either EXECUTING or APPROVED when this runs. APPROVED occurs
+     * when the outer transaction in executeSettlement rolled back after markDispatched committed
+     * (e.g. a DB error during the final save), which also rolls back the transitionToExecuting
+     * update. In both cases the correct action is the same: mark the settlement EXECUTED, since
+     * the Fineract journal entry was already posted.</p>
      */
     @Transactional
     public void finalizeSettlementFromOutbox(FineractOutboxEntry entry) {
@@ -156,8 +163,7 @@ public class SettlementService {
         }
 
         Map<String, Object> fineractResponse = outboxService.parseFineractResponse(entry);
-        String batchId = (String) fineractResponse.getOrDefault("batchId", null);
-        if (batchId != null && batchId.isEmpty()) batchId = null;
+        String batchId = (String) fineractResponse.get("batchId");
 
         s.setStatus("EXECUTED");
         s.setExecutedAt(Instant.now());
@@ -168,12 +174,11 @@ public class SettlementService {
         log.info("Outbox retry: settlement finalized id={}, type={}", settlementId, s.getSettlementType());
     }
 
-    private Map<String, Object> buildSettlementPayload(Settlement s, int opCount) {
+    private Map<String, Object> buildSettlementPayload(Settlement s) {
         Map<String, Object> p = new HashMap<>();
         p.put("settlementId", s.getId());
         p.put("settlementType", s.getSettlementType());
         p.put("amount", s.getAmount().toPlainString());
-        p.put("ops", opCount);
         return p;
     }
 
