@@ -5,6 +5,7 @@ import com.adorsys.fineract.asset.dto.OrderStatus;
 import com.adorsys.fineract.asset.entity.Order;
 import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
+import com.adorsys.fineract.asset.repository.FineractOutboxRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ import java.util.List;
 public class StaleOrderCleanupScheduler {
 
     private final OrderRepository orderRepository;
+    private final FineractOutboxRepository outboxRepository;
     private final AssetServiceConfig config;
     private final AssetMetrics assetMetrics;
     private final ApplicationEventPublisher eventPublisher;
@@ -49,6 +51,12 @@ public class StaleOrderCleanupScheduler {
 
             List<Order> stuckExecuting = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.EXECUTING, cutoff);
             for (Order order : stuckExecuting) {
+                // Skip orders whose outbox entry is still actively retrying — the processor will escalate if needed
+                if (outboxRepository.existsByReferenceIdAndStatusIn(
+                        order.getId(), List.of("PENDING", "DISPATCHED"))) {
+                    log.debug("Order {} skipped by stale cleanup — active outbox entry still retrying", order.getId());
+                    continue;
+                }
                 log.warn("RECONCILIATION NEEDED: Order {} has been EXECUTING for over {} minutes. "
                         + "assetId={}, userId={}, side={}, amount={}. "
                         + "Verify Fineract batch transfer status before resolving.",

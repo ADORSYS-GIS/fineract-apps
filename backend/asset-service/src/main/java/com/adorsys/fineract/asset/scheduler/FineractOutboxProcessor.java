@@ -79,6 +79,12 @@ public class FineractOutboxProcessor {
                 log.error("Outbox finalization failed for entry {} (event={}): {}",
                         entry.getId(), entry.getEventType(), e.getMessage(), e);
                 outboxService.markFailed(entry.getId(), e.getMessage());
+                // If retries exhausted, immediately escalate rather than waiting 30 min for stale cleanup
+                outboxRepository.findById(entry.getId())
+                        .filter(u -> "FAILED".equals(u.getStatus()))
+                        .ifPresent(failed -> tradingService.escalateOrderToNeedsReconciliation(
+                                failed.getReferenceId(),
+                                "Outbox finalization exhausted " + failed.getMaxRetries() + " retries: " + e.getMessage()));
             }
         }
     }
