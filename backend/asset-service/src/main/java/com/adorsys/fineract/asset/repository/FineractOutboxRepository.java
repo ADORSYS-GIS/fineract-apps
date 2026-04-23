@@ -37,4 +37,6 @@ public interface FineractOutboxRepository extends JpaRepository<FineractOutboxEn
     @Query(value = "SELECT COUNT(*) FROM fineract_outbox WHERE status = 'PENDING' AND created_at < :cutoff",
             nativeQuery = true)
     long countStuckPending(@Param("cutoff") Instant cutoff);
+
+    boolean existsByReferenceIdAndStatusIn(String referenceId, List<String> statuses);
 }

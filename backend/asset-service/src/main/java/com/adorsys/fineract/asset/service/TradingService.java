@@ -24,6 +24,7 @@ import com.adorsys.fineract.asset.service.trade.BuyStrategy;
 import com.adorsys.fineract.asset.service.trade.SellStrategy;
 import com.adorsys.fineract.asset.service.trade.TradeContext;
 import com.adorsys.fineract.asset.service.trade.TradeStrategy;
+import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.event.OrderStatusChangedEvent;
 import com.adorsys.fineract.asset.event.TradeExecutedEvent;
 import com.adorsys.fineract.asset.event.TreasuryShortfallEvent;
@@ -842,6 +843,31 @@ public class TradingService {
 
         log.info("Outbox retry: finalizing {} orderId={}", side, orderId);
         finalizeTrade(ctx, asset, entry.getId());
+    }
+
+    /**
+     * Immediately moves an order from EXECUTING (or already NEEDS_RECONCILIATION) to
+     * NEEDS_RECONCILIATION and fires an admin alert. Called by the outbox processor when
+     * all retries are exhausted so the order doesn't silently sit in EXECUTING for 30 min.
+     */
+    @Transactional
+    public void escalateOrderToNeedsReconciliation(String orderId, String reason) {
+        orderRepository.findById(orderId).ifPresent(order -> {
+            if (order.getStatus() == OrderStatus.EXECUTING
+                    || order.getStatus() == OrderStatus.NEEDS_RECONCILIATION) {
+                order.setStatus(OrderStatus.NEEDS_RECONCILIATION);
+                order.setFailureReason(reason.length() > 500 ? reason.substring(0, 500) : reason);
+                orderRepository.save(order);
+                eventPublisher.publishEvent(new AdminAlertEvent(
+                        "OUTBOX_EXHAUSTED",
+                        "Order finalization exhausted all retries",
+                        String.format("Order %s asset=%s user=%s side=%s — Fineract succeeded but DB "
+                                + "finalization failed permanently. Verify Fineract state manually.",
+                                orderId, order.getAssetId(), order.getUserId(), order.getSide()),
+                        orderId, "ORDER"));
+                log.error("Order {} escalated to NEEDS_RECONCILIATION after outbox exhaustion", orderId);
+            }
+        });
     }
 
     private static BigDecimal bdOrNull(Map<String, Object> map, String key) {
