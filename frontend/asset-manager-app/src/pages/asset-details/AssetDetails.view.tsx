@@ -452,6 +452,53 @@ function BondInfoCard({
 						</p>
 					</div>
 				)}
+				{asset.issuerPrice != null && (
+					<div>
+						<p className="text-gray-500">
+							{asset.bondType === "DISCOUNT"
+								? "Issue Price (Auction)"
+								: "Issue Price"}
+						</p>
+						<p className="font-medium">
+							{asset.issuerPrice.toLocaleString()} XAF
+						</p>
+						<p className="text-xs text-gray-400">
+							{asset.bondType === "DISCOUNT"
+								? "Price LP paid at BTA auction — discounted below face value; gain realised at maturity"
+								: "Price LP paid at issuance — typically equals face value for coupon bonds"}
+						</p>
+					</div>
+				)}
+				{asset.bondType === "DISCOUNT" &&
+					asset.faceValue != null &&
+					asset.issuerPrice != null && (
+						<>
+							<div>
+								<p className="text-gray-500">Discount Spread</p>
+								<p className="font-medium">
+									{(asset.faceValue - asset.issuerPrice).toLocaleString()} XAF
+								</p>
+								<p className="text-xs text-gray-400">
+									= faceValue &minus; issuerPrice — absolute gain per unit at
+									maturity
+								</p>
+							</div>
+							<div>
+								<p className="text-gray-500">Implied Gross Return</p>
+								<p className="font-medium">
+									{(
+										(asset.faceValue / asset.issuerPrice - 1) *
+										100
+									).toFixed(2)}
+									%
+								</p>
+								<p className="text-xs text-gray-400">
+									= (faceValue / issuerPrice &minus; 1) &times; 100 — total
+									return at redemption
+								</p>
+							</div>
+						</>
+					)}
 				<div>
 					<p className="text-gray-500">Coupon Amount</p>
 					<p className="font-medium">
@@ -695,14 +742,6 @@ function PricingLimitsCard({
 				Pricing & Limits
 			</h2>
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-				{asset.issuerPrice != null && (
-					<div>
-						<p className="text-gray-500">Issuer Price</p>
-						<p className="font-medium">
-							{asset.issuerPrice.toLocaleString()} XAF
-						</p>
-					</div>
-				)}
 				{asset.tradingFeePercent != null && (
 					<div>
 						<p className="text-gray-500">Trading Fee</p>
