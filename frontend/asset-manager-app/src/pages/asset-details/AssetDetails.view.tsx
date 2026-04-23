@@ -488,10 +488,7 @@ function BondInfoCard({
 							<div>
 								<p className="text-gray-500">Implied Gross Return</p>
 								<p className="font-medium">
-									{(
-										(asset.faceValue / asset.issuerPrice - 1) *
-										100
-									).toFixed(2)}
+									{((asset.faceValue / asset.issuerPrice - 1) * 100).toFixed(2)}
 									%
 								</p>
 								<p className="text-xs text-gray-400">
