@@ -9,6 +9,7 @@ import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.dto.ExecuteRebalanceRequest;
 import com.adorsys.fineract.asset.dto.RebalanceProposalResponse;
+import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.SettlementRepository;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +39,7 @@ public class SettlementService {
 
     private final SettlementRepository settlementRepository;
     private final FineractClient fineractClient;
+    private final FineractOutboxService outboxService;
     private final ResolvedGlAccounts resolvedGlAccounts;
     private final ResolvedTaxAccounts resolvedTaxAccounts;
     private final AdminSecurityCheck adminSecurity;
@@ -93,27 +96,85 @@ public class SettlementService {
         Settlement s = settlementRepository.findById(id)
                 .orElseThrow(() -> new AssetException("Settlement not found after lock: " + id));
 
+        Map<String, Long> glCodeToId = fineractClient.lookupGlAccounts();
+        List<BatchOperation> ops = buildSettlementOps(s, glCodeToId);
+
+        // Write outbox before Fineract (REQUIRES_NEW — persists regardless of outer TX)
+        String idempotencyKey = "SETTLE-" + id;
+        FineractOutboxEntry outbox = outboxService.writePendingEntry(
+                "SETTLEMENT_EXECUTION", "SETTLEMENT", id, idempotencyKey,
+                buildSettlementPayload(s, ops.size()));
+
+        // Execute atomic batch
+        List<Map<String, Object>> batchResponses;
         try {
-            Map<String, Long> glCodeToId = fineractClient.lookupGlAccounts();
-            List<BatchOperation> ops = buildSettlementOps(s, glCodeToId);
-            var batchResponses = fineractClient.executeAtomicBatch(ops);
-
-            String batchId = batchResponses != null && !batchResponses.isEmpty()
-                    ? batchResponses.get(0).getOrDefault("requestId", "").toString()
-                    : null;
-
-            s.setStatus("EXECUTED");
-            s.setExecutedAt(Instant.now());
-            s.setFineractJournalEntryId(batchId);
-            settlementRepository.save(s);
-            log.info("Settlement executed via batch: id={}, type={}, legs={}, batchId={}",
-                    id, s.getSettlementType(), ops.size(), batchId);
+            batchResponses = fineractClient.executeAtomicBatch(ops);
         } catch (Exception e) {
+            outboxService.markAborted(outbox.getId(), e.getMessage());
             log.error("Settlement execution failed: id={}, error={}", id, e.getMessage());
             throw new AssetException("Settlement execution failed: " + e.getMessage(), e);
         }
 
+        String batchId = batchResponses != null && !batchResponses.isEmpty()
+                ? batchResponses.get(0).getOrDefault("requestId", "").toString()
+                : null;
+
+        // Mark DISPATCHED (REQUIRES_NEW — commits independently so processor can retry finalization)
+        outboxService.markDispatched(outbox.getId(),
+                Map.of("batchId", batchId != null ? batchId : ""));
+
+        // DB finalization + markConfirmed commit atomically in the outer @Transactional
+        s.setStatus("EXECUTED");
+        s.setExecutedAt(Instant.now());
+        s.setFineractJournalEntryId(batchId);
+        settlementRepository.save(s);
+        outboxService.markConfirmed(outbox.getId());
+
+        log.info("Settlement executed via batch: id={}, type={}, legs={}, batchId={}",
+                id, s.getSettlementType(), ops.size(), batchId);
+
         return s;
+    }
+
+    /**
+     * Retry DB finalization for a DISPATCHED outbox entry. Called by FineractOutboxProcessor.
+     * Fineract has already run; this method only writes the local settlement state.
+     */
+    @Transactional
+    public void finalizeSettlementFromOutbox(FineractOutboxEntry entry) {
+        Map<String, Object> payload = outboxService.parsePayload(entry);
+        String settlementId = (String) payload.get("settlementId");
+
+        Settlement s = settlementRepository.findById(settlementId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Settlement not found for outbox retry: " + settlementId));
+
+        // Idempotency: already finalized
+        if ("EXECUTED".equals(s.getStatus())) {
+            outboxService.markConfirmed(entry.getId());
+            return;
+        }
+
+        Map<String, Object> fineractResponse = outboxService.parseFineractResponse(entry);
+        String batchId = (String) fineractResponse.getOrDefault("batchId", null);
+        if (batchId != null && batchId.isEmpty()) batchId = null;
+
+        s.setStatus("EXECUTED");
+        s.setExecutedAt(Instant.now());
+        s.setFineractJournalEntryId(batchId);
+        settlementRepository.save(s);
+        outboxService.markConfirmed(entry.getId());
+
+        log.info("Outbox retry: settlement finalized id={}, type={}", settlementId, s.getSettlementType());
+    }
+
+    private Map<String, Object> buildSettlementPayload(Settlement s, int opCount) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("settlementId", s.getId());
+        p.put("settlementType", s.getSettlementType());
+        p.put("amount", s.getAmount().toPlainString());
+        p.put("ops", opCount);
+        return p;
     }
 
     /**
