@@ -163,6 +163,8 @@ function validateBondDetails(data: AssetFormData): string[] {
 		if (!data.nextCouponDate) errors.push("First coupon date is required");
 		else if (data.maturityDate && data.nextCouponDate >= data.maturityDate)
 			errors.push("First coupon date must be before the maturity date");
+		else if (data.issueDate && data.nextCouponDate <= data.issueDate)
+			errors.push("First coupon date must be after the issue date");
 	}
 	return errors;
 }

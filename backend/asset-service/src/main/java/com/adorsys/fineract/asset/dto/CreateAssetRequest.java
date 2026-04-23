@@ -386,4 +386,11 @@ public record CreateAssetRequest(
      */
     @Schema(description = "TVA rate override (e.g. 0.1925 = 19.25%). Max: 1.0.")
     @PositiveOrZero @DecimalMax("1.00") BigDecimal tvaRate
-) {}
+) {
+    @AssertTrue(message = "nextCouponDate must be strictly after issueDate for COUPON bonds")
+    boolean isNextCouponDateAfterIssueDate() {
+        if (bondType != BondType.COUPON) return true;
+        if (nextCouponDate == null || issueDate == null) return true;
+        return nextCouponDate.isAfter(issueDate);
+    }
+}
