@@ -32,6 +32,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
+import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -40,6 +43,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -69,6 +73,8 @@ class TradingServiceTest {
     @Mock private TaxService taxService;
     @Mock private AccruedInterestCalculator accruedInterestCalculator;
     @Mock private com.adorsys.fineract.asset.repository.AssetProjectionRepository assetProjectionRepository;
+    @Mock private FineractOutboxService outboxService;
+    @Mock private ObjectMapper objectMapper;
 
     @InjectMocks
     private TradingService tradingService;
@@ -635,6 +641,11 @@ class TradingServiceTest {
 
         // Fineract batch succeeds
         lenient().when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of(Map.of("requestId", 1)));
+
+        // Outbox service: writePendingEntry returns a mock entry with a stable ID
+        FineractOutboxEntry mockOutboxEntry = mock(FineractOutboxEntry.class);
+        lenient().when(mockOutboxEntry.getId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        lenient().when(outboxService.writePendingEntry(any(), any(), any(), any(), any())).thenReturn(mockOutboxEntry);
     }
 
     @Test
@@ -965,7 +976,9 @@ class TradingServiceTest {
         verify(orderRepository, atLeast(1)).save(orderCaptor.capture());
         assertTrue(orderCaptor.getAllValues().stream()
                 .anyMatch(o -> o.getStatus() == OrderStatus.REJECTED));
-        verify(fineractClient, never()).executeAtomicBatch(anyList());
+        // With the outbox pattern, Fineract is called before the atomic supply adjustment
+        // in finalizeTrade — so executeAtomicBatch IS called here.
+        verify(fineractClient, atLeastOnce()).executeAtomicBatch(anyList());
     }
 
     // -------------------------------------------------------------------------

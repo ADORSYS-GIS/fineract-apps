@@ -7,6 +7,7 @@ import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.dto.RebalanceProposalResponse;
+import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetRepository;
@@ -23,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -33,6 +35,7 @@ class SettlementServiceTest {
 
     @Mock private SettlementRepository settlementRepository;
     @Mock private FineractClient fineractClient;
+    @Mock private FineractOutboxService outboxService;
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
     @Mock private ResolvedTaxAccounts resolvedTaxAccounts;
     @Mock private AssetServiceConfig assetServiceConfig;
@@ -138,11 +141,16 @@ class SettlementServiceTest {
                 .description("LP payout test")
                 .build();
 
+        FineractOutboxEntry outbox = FineractOutboxEntry.builder()
+                .id(UUID.randomUUID()).eventType("SETTLEMENT_EXECUTION").build();
+
         when(settlementRepository.transitionToExecuting("settle-001")).thenReturn(1);
         when(settlementRepository.findById("settle-001")).thenReturn(Optional.of(approved));
         when(fineractClient.lookupGlAccounts()).thenReturn(Map.of("4011", 10L, "5011", 20L));
         when(fineractClient.executeAtomicBatch(anyList())).thenReturn(
                 List.of(Map.of("requestId", "batch-1")));
+        when(outboxService.writePendingEntry(anyString(), anyString(), anyString(), anyString(), anyMap()))
+                .thenReturn(outbox);
         when(settlementRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Settlement result = settlementService.executeSettlement("settle-001");
@@ -152,6 +160,10 @@ class SettlementServiceTest {
         assertEquals("batch-1", result.getFineractJournalEntryId());
 
         verify(fineractClient).executeAtomicBatch(anyList());
+        verify(outboxService).writePendingEntry(eq("SETTLEMENT_EXECUTION"), eq("SETTLEMENT"),
+                eq("settle-001"), eq("SETTLE-settle-001"), anyMap());
+        verify(outboxService).markDispatched(eq(outbox.getId()), anyMap());
+        verify(outboxService).markConfirmed(outbox.getId());
     }
 
     @Test
@@ -175,6 +187,35 @@ class SettlementServiceTest {
     }
 
     @Test
+    void executeSettlement_fineractFailure_abortsOutboxAndRethrows() {
+        Settlement approved = Settlement.builder()
+                .id("settle-001")
+                .status("APPROVED")
+                .settlementType("LP_PAYOUT")
+                .sourceGlCode("4011")
+                .amount(new BigDecimal("5000"))
+                .build();
+
+        FineractOutboxEntry outbox = FineractOutboxEntry.builder()
+                .id(UUID.randomUUID()).eventType("SETTLEMENT_EXECUTION").build();
+
+        when(settlementRepository.transitionToExecuting("settle-001")).thenReturn(1);
+        when(settlementRepository.findById("settle-001")).thenReturn(Optional.of(approved));
+        when(fineractClient.lookupGlAccounts()).thenReturn(Map.of("4011", 10L, "5011", 20L));
+        when(outboxService.writePendingEntry(anyString(), anyString(), anyString(), anyString(), anyMap()))
+                .thenReturn(outbox);
+        when(fineractClient.executeAtomicBatch(anyList()))
+                .thenThrow(new RuntimeException("Fineract unavailable"));
+
+        assertThrows(AssetException.class, () -> settlementService.executeSettlement("settle-001"));
+
+        verify(outboxService).markAborted(eq(outbox.getId()), anyString());
+        verify(outboxService, never()).markDispatched(any(), any());
+        verify(outboxService, never()).markConfirmed(any());
+        verify(settlementRepository, never()).save(any());
+    }
+
+    @Test
     void executeSettlement_trustRebalance_swapsDebitCreditLegs() {
         // TRUST_REBALANCE moves cash from a source 5xxx asset account to a destination 5xxx account.
         // For asset accounts: debit = increase, credit = decrease.
@@ -188,12 +229,17 @@ class SettlementServiceTest {
                 .amount(new BigDecimal("1000000"))
                 .build();
 
+        FineractOutboxEntry outbox = FineractOutboxEntry.builder()
+                .id(UUID.randomUUID()).eventType("SETTLEMENT_EXECUTION").build();
+
         when(settlementRepository.transitionToExecuting("settle-002")).thenReturn(1);
         when(settlementRepository.findById("settle-002")).thenReturn(Optional.of(rebalance));
         when(fineractClient.lookupGlAccounts()).thenReturn(
                 Map.of("5101", 101L, "5201", 201L));
         when(fineractClient.executeAtomicBatch(batchOpsCaptor.capture())).thenReturn(
                 List.of(Map.of("requestId", "batch-rebalance")));
+        when(outboxService.writePendingEntry(anyString(), anyString(), anyString(), anyString(), anyMap()))
+                .thenReturn(outbox);
         when(settlementRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         settlementService.executeSettlement("settle-002");
@@ -278,6 +324,60 @@ class SettlementServiceTest {
         assertEquals(3L, summary.get("pendingCount"));
         assertEquals(1L, summary.get("approvedCount"));
         assertEquals(10L, summary.get("totalCount"));
+    }
+
+    // -------------------------------------------------------------------------
+    // Outbox retry — finalizeSettlementFromOutbox
+    // -------------------------------------------------------------------------
+
+    @Test
+    void finalizeSettlementFromOutbox_notYetExecuted_finalizesAndConfirms() {
+        UUID outboxId = UUID.randomUUID();
+        FineractOutboxEntry entry = FineractOutboxEntry.builder()
+                .id(outboxId).eventType("SETTLEMENT_EXECUTION").build();
+
+        Settlement executing = Settlement.builder()
+                .id("settle-010")
+                .status("EXECUTING")
+                .settlementType("LP_PAYOUT")
+                .amount(new BigDecimal("10000"))
+                .build();
+
+        when(outboxService.parsePayload(entry))
+                .thenReturn(Map.of("settlementId", "settle-010", "settlementType", "LP_PAYOUT",
+                        "amount", "10000"));
+        when(outboxService.parseFineractResponse(entry))
+                .thenReturn(Map.of("batchId", "batch-retry-1"));
+        when(settlementRepository.findById("settle-010")).thenReturn(Optional.of(executing));
+        when(settlementRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        settlementService.finalizeSettlementFromOutbox(entry);
+
+        verify(settlementRepository).save(argThat(s ->
+                "EXECUTED".equals(s.getStatus()) && "batch-retry-1".equals(s.getFineractJournalEntryId())));
+        verify(outboxService).markConfirmed(outboxId);
+    }
+
+    @Test
+    void finalizeSettlementFromOutbox_alreadyExecuted_skipsAndConfirms() {
+        UUID outboxId = UUID.randomUUID();
+        FineractOutboxEntry entry = FineractOutboxEntry.builder()
+                .id(outboxId).eventType("SETTLEMENT_EXECUTION").build();
+
+        Settlement executed = Settlement.builder()
+                .id("settle-010")
+                .status("EXECUTED")
+                .build();
+
+        when(outboxService.parsePayload(entry))
+                .thenReturn(Map.of("settlementId", "settle-010", "settlementType", "LP_PAYOUT",
+                        "amount", "10000"));
+        when(settlementRepository.findById("settle-010")).thenReturn(Optional.of(executed));
+
+        settlementService.finalizeSettlementFromOutbox(entry);
+
+        verify(settlementRepository, never()).save(any());
+        verify(outboxService).markConfirmed(outboxId);
     }
 
     // -------------------------------------------------------------------------

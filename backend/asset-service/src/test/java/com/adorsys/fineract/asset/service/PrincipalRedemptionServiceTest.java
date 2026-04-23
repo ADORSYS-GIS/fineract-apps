@@ -7,6 +7,7 @@ import com.adorsys.fineract.asset.dto.RedemptionTriggerResponse;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.exception.AssetException;
+import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository;
@@ -22,6 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.adorsys.fineract.asset.testutil.TestDataFactory.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,6 +42,7 @@ class PrincipalRedemptionServiceTest {
     @Mock PortfolioService portfolioService;
     @Mock TaxService taxService;
     @Mock AssetMetrics assetMetrics;
+    @Mock FineractOutboxService outboxService;
 
     @InjectMocks
     PrincipalRedemptionService service;
@@ -140,11 +143,14 @@ class PrincipalRedemptionServiceTest {
         when(assetServiceConfig.getSettlementCurrency()).thenReturn("XAF");
         when(fineractClient.findClientSavingsAccountByCurrency(USER_ID, "XAF"))
                 .thenReturn(USER_CASH_ACCOUNT);
-        when(fineractClient.createAccountTransfer(any(), any(), any(), any()))
-                .thenReturn(100L);
+        when(fineractClient.executeAtomicBatch(anyList())).thenReturn(List.of());
         when(portfolioService.updatePositionAfterSell(any(), any(), any(), any(), any(), any()))
                 .thenReturn(new BigDecimal("100000"));
         when(principalRedemptionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        FineractOutboxEntry mockEntry = mock(FineractOutboxEntry.class);
+        when(mockEntry.getId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        when(outboxService.writePendingEntry(any(), any(), any(), any(), any())).thenReturn(mockEntry);
 
         service.redeemBond(ASSET_ID);
 
