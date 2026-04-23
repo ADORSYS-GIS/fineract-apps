@@ -393,4 +393,17 @@ public record CreateAssetRequest(
         if (nextCouponDate == null || issueDate == null) return true;
         return nextCouponDate.isAfter(issueDate);
     }
+
+    @AssertTrue(message = "maturityDate must be after issueDate")
+    public boolean isMaturityDateAfterIssueDate() {
+        if (maturityDate == null || issueDate == null) return true;
+        return maturityDate.isAfter(issueDate);
+    }
+
+    @AssertTrue(message = "maturityDate must be after nextCouponDate for COUPON bonds")
+    public boolean isMaturityDateAfterNextCouponDate() {
+        if (bondType != BondType.COUPON) return true;
+        if (maturityDate == null || nextCouponDate == null) return true;
+        return maturityDate.isAfter(nextCouponDate);
+    }
 }
