@@ -9,6 +9,7 @@ import com.adorsys.fineract.asset.repository.NotificationLogRepository;
 import com.adorsys.fineract.asset.repository.NotificationPreferencesRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Instant;
+import java.util.Set;
 
 /**
  * Handles domain events and creates persistent notifications for users.
@@ -33,6 +35,9 @@ public class NotificationService {
     private final NotificationLogRepository notificationLogRepository;
     private final NotificationPreferencesRepository preferencesRepository;
     private final AssetMetrics assetMetrics;
+
+    @Value("${app.notifications.excluded-alert-types:}")
+    private Set<String> excludedAlertTypes;
 
     // ── Event handlers ──
 
@@ -190,6 +195,10 @@ public class NotificationService {
     @Async
     @EventListener
     public void onAdminAlert(AdminAlertEvent event) {
+        if (excludedAlertTypes.contains(event.alertType())) {
+            log.debug("Admin alert suppressed (excluded type): type={}", event.alertType());
+            return;
+        }
         try {
             NotificationLog notif = NotificationLog.builder()
                     .userId(null) // admin broadcast

@@ -213,7 +213,7 @@ public final class WireMockProviderStubs {
 
     /** Stub NOKASH Payout (withdrawal) — returns 200 with reference. */
     public static void stubNokashPayoutSuccess() {
-        WIRE_MOCK.stubFor(post(urlPathEqualTo("/lapas-on-trans/trans/api-payin-request/407"))
+        WIRE_MOCK.stubFor(post(urlPathEqualTo("/lapas-on-trans/trans/api-payout-request/407"))
                 .willReturn(okJson("{\"status\":\"REQUEST_OK\",\"data\":{\"id\":\"test-payout-reference\"}}")));
     }
 
