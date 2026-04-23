@@ -82,9 +82,16 @@ public class FineractOutboxProcessor {
                 // If retries exhausted, immediately escalate rather than waiting 30 min for stale cleanup
                 outboxRepository.findById(entry.getId())
                         .filter(u -> "FAILED".equals(u.getStatus()))
-                        .ifPresent(failed -> tradingService.escalateOrderToNeedsReconciliation(
-                                failed.getReferenceId(),
-                                "Outbox finalization exhausted " + failed.getMaxRetries() + " retries: " + e.getMessage()));
+                        .ifPresent(failed -> {
+                            if ("ORDER".equals(failed.getReferenceType())) {
+                                tradingService.escalateOrderToNeedsReconciliation(
+                                        failed.getReferenceId(),
+                                        "Outbox finalization exhausted " + failed.getMaxRetries() + " retries: " + e.getMessage());
+                            } else {
+                                log.error("Non-trade outbox entry {} (event={}, refType={}, ref={}) exhausted all retries — manual reconciliation required.",
+                                        failed.getId(), failed.getEventType(), failed.getReferenceType(), failed.getReferenceId());
+                            }
+                        });
             }
         }
     }

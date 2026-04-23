@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -50,6 +51,7 @@ public class StaleOrderCleanupScheduler {
             }
 
             List<Order> stuckExecuting = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.EXECUTING, cutoff);
+            List<Order> toEscalate = new ArrayList<>();
             for (Order order : stuckExecuting) {
                 // Skip orders whose outbox entry is still actively retrying — the processor will escalate if needed
                 if (outboxRepository.existsByReferenceIdAndStatusIn(
@@ -66,14 +68,15 @@ public class StaleOrderCleanupScheduler {
                 order.setFailureReason("Order stuck in EXECUTING for over " + minutes + " minutes. "
                         + "Requires manual verification against Fineract batch transfer logs.");
                 assetMetrics.recordReconciliationNeeded();
+                toEscalate.add(order);
             }
 
             if (!stalePending.isEmpty()) {
                 orderRepository.saveAll(stalePending);
             }
-            if (!stuckExecuting.isEmpty()) {
-                orderRepository.saveAll(stuckExecuting);
-                for (Order stuck : stuckExecuting) {
+            if (!toEscalate.isEmpty()) {
+                orderRepository.saveAll(toEscalate);
+                for (Order stuck : toEscalate) {
                     eventPublisher.publishEvent(new AdminAlertEvent(
                             "ORDER_STUCK",
                             "Order stuck in EXECUTING",
@@ -85,10 +88,10 @@ public class StaleOrderCleanupScheduler {
                 }
             }
 
-            int total = stalePending.size() + stuckExecuting.size();
+            int total = stalePending.size() + toEscalate.size();
             if (total > 0) {
                 log.info("Cleaned up stale orders: {} PENDING (failed), {} EXECUTING (needs reconciliation)",
-                        stalePending.size(), stuckExecuting.size());
+                        stalePending.size(), toEscalate.size());
             }
         } catch (Exception e) {
             log.error("Stale order cleanup failed: {}", e.getMessage(), e);
