@@ -39,7 +39,7 @@ public class FineractOutboxEntry {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    /** Event type: TRADE_BUY, TRADE_SELL, COUPON_PAYMENT, INCOME_DISTRIBUTION, PRINCIPAL_REDEMPTION, FORCED_BUYBACK */
+    /** Event type: TRADE_BUY, TRADE_SELL, COUPON_PAYMENT, INCOME_DISTRIBUTION, PRINCIPAL_REDEMPTION, FORCED_BUYBACK, SETTLEMENT_EXECUTION */
     @Column(name = "event_type", nullable = false, length = 50)
     private String eventType;
 

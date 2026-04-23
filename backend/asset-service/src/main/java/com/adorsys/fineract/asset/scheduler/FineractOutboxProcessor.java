@@ -6,6 +6,7 @@ import com.adorsys.fineract.asset.service.DelistingService;
 import com.adorsys.fineract.asset.service.FineractOutboxService;
 import com.adorsys.fineract.asset.service.PrincipalRedemptionService;
 import com.adorsys.fineract.asset.service.ScheduledPaymentService;
+import com.adorsys.fineract.asset.service.SettlementService;
 import com.adorsys.fineract.asset.service.TradingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class FineractOutboxProcessor {
     private final ScheduledPaymentService scheduledPaymentService;
     private final PrincipalRedemptionService principalRedemptionService;
     private final DelistingService delistingService;
+    private final SettlementService settlementService;
 
     /**
      * Retries DB finalization for DISPATCHED entries (Fineract succeeded, DB write failed).
@@ -95,6 +97,8 @@ public class FineractOutboxProcessor {
                     principalRedemptionService.finalizeRedemptionFromOutbox(entry);
             case "FORCED_BUYBACK" ->
                     delistingService.finalizeBuybackFromOutbox(entry);
+            case "SETTLEMENT_EXECUTION" ->
+                    settlementService.finalizeSettlementFromOutbox(entry);
             default ->
                     log.warn("Unknown outbox event type: {}", entry.getEventType());
         }
