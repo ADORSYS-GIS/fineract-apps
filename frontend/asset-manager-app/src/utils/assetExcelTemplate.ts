@@ -346,7 +346,7 @@ const COLUMNS: ColumnDef[] = [
 		header: "ircmEnabled",
 		required: false,
 		comment:
-			"IRCM (Impôt sur les Revenus des Capitaux Mobiliers) — withholding tax on income distributions (dividends, coupons, rent). Auto-determined: 16.5% standard, 11% for BVMAC-listed, 5.5% for bonds ≥5yr. Default: true. Use TRUE or FALSE.",
+			"IRCM (Impôt sur les Revenus des Capitaux Mobiliers) — withholding tax on income distributions (dividends, coupons, rent). Auto-determined: 16.5% standard, 5.5% for bonds ≥5yr. Default: true. Use TRUE or FALSE.",
 		example: true,
 		type: "boolean",
 	},
@@ -385,24 +385,6 @@ const COLUMNS: ColumnDef[] = [
 			"Capital gains tax rate override (default 0.165 = 16.5%). Only change for special tax treatment.",
 		example: 0.165,
 		type: "number",
-	},
-	{
-		key: "isBvmacListed",
-		header: "isBvmacListed",
-		required: false,
-		comment:
-			"Whether this asset is listed on BVMAC (Bourse des Valeurs Mobilières de l'Afrique Centrale). If true, a reduced 11% IRCM rate applies instead of the standard 16.5%. Default: false. Use TRUE or FALSE.",
-		example: false,
-		type: "boolean",
-	},
-	{
-		key: "isGovernmentBond",
-		header: "isGovernmentBond",
-		required: false,
-		comment:
-			"Government-issued bond. If true, IRCM exemption is automatically applied (no withholding tax on coupon payments). Default: false. Use TRUE or FALSE.",
-		example: false,
-		type: "boolean",
 	},
 	{
 		key: "tvaEnabled",
@@ -471,8 +453,6 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		ircmExempt: false,
 		capitalGainsTaxEnabled: true,
 		capitalGainsRate: "",
-		isBvmacListed: false,
-		isGovernmentBond: false,
 		tvaEnabled: false,
 		tvaRate: "",
 	},
@@ -518,8 +498,6 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		ircmExempt: true,
 		capitalGainsTaxEnabled: true,
 		capitalGainsRate: "",
-		isBvmacListed: false,
-		isGovernmentBond: true,
 		tvaEnabled: false,
 		tvaRate: "",
 	},
@@ -564,8 +542,6 @@ const SAMPLE_ROWS: Record<string, string | number | boolean>[] = [
 		ircmExempt: false,
 		capitalGainsTaxEnabled: true,
 		capitalGainsRate: "",
-		isBvmacListed: false,
-		isGovernmentBond: false,
 		tvaEnabled: false,
 		tvaRate: "",
 	},
@@ -676,28 +652,21 @@ export async function exportAssetTemplate(): Promise<void> {
 
 // ─── CEMAC bulletin pre-filled template ──────────────────────────────────────
 
-// BVMAC-listed equities: IRCM applies at the reduced 11% rate (auto-applied when
-// isBvmacListed=true), and capital-gains tax is also active.
 const STOCK_TAX_BASE = {
 	registrationDutyEnabled: true,
 	registrationDutyRate: 0.02,
 	ircmEnabled: true,
 	ircmExempt: false,
 	capitalGainsTaxEnabled: true,
-	isBvmacListed: false, // overridden to true per-asset in cemacStock
-	isGovernmentBond: false,
 };
 
 // Central-government bonds (BTA/OTA): exempt from IRCM by CEMAC fiscal law.
-// The backend auto-applies the exemption when isGovernmentBond=true.
 const GOVT_BOND_TAX_BASE = {
 	registrationDutyEnabled: true,
 	registrationDutyRate: 0.02,
 	ircmEnabled: false,
 	ircmExempt: true,
 	capitalGainsTaxEnabled: false,
-	isBvmacListed: false,
-	isGovernmentBond: true,
 };
 
 function spread(issuerPrice: number) {
@@ -739,7 +708,6 @@ function cemacStock(
 		distributionFrequencyMonths: "",
 		nextDistributionDate: "",
 		...STOCK_TAX_BASE,
-		isBvmacListed: true,
 	};
 }
 
@@ -829,9 +797,9 @@ export function buildCemacRows(
 	lpClientId: number,
 ): Record<string, string | number | boolean>[] {
 	return [
-		// ── BVMAC Stocks ──────────────────────────────────────────────────────
-		// Source: Bulletin officiel de la cote (BOC) BVMAC du 27/03/2026
-		// totalSupply = BID (shares offered on BVMAC), or ASK when BID=0
+		// ── CEMAC Equities ──────────────────────────────────────────────────────
+		// Source: Bulletin officiel de la cote (BOC) CEMAC du 27/03/2026
+		// totalSupply = BID (shares offered on exchange), or ASK when BID=0
 		cemacStock("SMC", "SEMC", 50000, 103, lpClientId),
 		cemacStock("SFC", "SAFACAM", 33000, 303, lpClientId),
 		cemacStock("SCP", "SOCAPALM", 55000, 197, lpClientId),
@@ -1184,8 +1152,7 @@ export async function parseAssetExcel(
 			"ircmEnabled",
 			"ircmExempt",
 			"capitalGainsTaxEnabled",
-			"isBvmacListed",
-			"isGovernmentBond",
+			"tvaEnabled",
 		] as const;
 		for (const k of optionalBool) {
 			const v = parseBoolean(raw[k]);

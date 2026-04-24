@@ -96,7 +96,6 @@ export const CreateAssetView: FC<ReturnType<typeof useCreateAsset>> = (
 					<TaxConfigurationStep
 						formData={formData}
 						updateFormData={updateFormData}
-						validationErrors={validationErrors}
 					/>
 				);
 			case "Review & Create":

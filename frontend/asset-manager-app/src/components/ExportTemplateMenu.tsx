@@ -82,9 +82,9 @@ const CemacExportDialog: FC<CemacDialogProps> = ({ onClose }) => {
 				</div>
 
 				<p className="text-sm text-gray-500 mb-5">
-					Generates a pre-filled Excel template with 18 CEMAC assets (6 BVMAC
-					stocks + 12 government bonds) from the Elite Capital bulletin
-					30/03/2026. Select the Liquidity Partner who will hold these assets.
+					Generates a pre-filled Excel template with 18 CEMAC assets (stocks and
+					bonds) from the Elite Capital bulletin 30/03/2026. Select the
+					Liquidity Partner who will hold these assets.
 				</p>
 
 				<div className="mb-5">
