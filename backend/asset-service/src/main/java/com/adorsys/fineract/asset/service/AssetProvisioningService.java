@@ -91,14 +91,30 @@ public class AssetProvisioningService {
         // Check Fineract for orphaned savings product from a previously failed creation.
         // Strategy: adopt the orphan rather than blocking. If the product already exists in Fineract
         // but has no local Asset record, resume provisioning from that product ID.
-        Integer existingProduct = fineractClient.findSavingsProductByShortName(request.symbol());
+        // Search by effectiveCurrencyCode (the actual shortName written at creation time), then
+        // fall back to the full product name — Fineract enforces uniqueness on both.
+        Integer existingProduct = fineractClient.findSavingsProductByShortName(effectiveCurrencyCode);
+        if (existingProduct == null) {
+            Integer byName = fineractClient.findSavingsProductByName(request.name() + " Token");
+            if (byName != null) {
+                // Cross-verify shortName before adopting: a different asset with the same display
+                // name could produce a false match, which would silently entangle two assets.
+                String foundShortName = fineractClient.getSavingsProductShortName(byName);
+                if (effectiveCurrencyCode.equals(foundShortName)) {
+                    existingProduct = byName;
+                } else {
+                    log.warn("Skipping name-based adoption of productId={}: shortName '{}' != expected '{}'",
+                            byName, foundShortName, effectiveCurrencyCode);
+                }
+            }
+        }
         boolean adoptingOrphan = existingProduct != null;
         if (adoptingOrphan) {
             // Safety check: ensure no local Asset is associated with this product ID
             if (assetRepository.existsByFineractProductId(existingProduct)) {
-                throw new AssetException("A savings product with symbol '" + request.symbol()
+                throw new AssetException("A savings product for asset '" + request.name()
                         + "' (productId=" + existingProduct + ") already has an active local asset record. "
-                        + "Use a different symbol.");
+                        + "Use a different symbol and name.");
             }
             log.warn("Adopting orphaned Fineract savings product {} for symbol '{}'. " +
                     "Resuming provisioning from existing product.", existingProduct, request.symbol());
@@ -191,25 +207,56 @@ public class AssetProvisioningService {
             fineractClient.registerCurrencies(List.of(effectiveCurrencyCode));
             log.info("Registered currency: {}", effectiveCurrencyCode);
 
-            // Step 3: Create savings product, or adopt the orphaned one if it already exists
+            // Step 3: Create savings product, or adopt the orphaned one if it already exists.
+            // On a 409 conflict (race condition or orphan missed by initial search), re-run
+            // orphan detection with a fresh query before giving up.
             if (adoptingOrphan) {
                 productId = existingProduct;
                 log.info("Skipping savings product creation — adopting orphaned productId={}", productId);
             } else {
-                // Fineract shortName: max 4 chars, derived from the auto-generated currency code (already 4 chars max)
+                // shortName is the auto-generated currency code (max 3 chars, matches m_currency VARCHAR(3))
                 String shortName = effectiveCurrencyCode;
-                productId = fineractClient.createSavingsProduct(
-                        request.name() + " Token",
-                        shortName,
-                        effectiveCurrencyCode,
-                        request.decimalPlaces(),
-                        resolvedGlAccounts.getDigitalAssetInventoryId(),
-                        resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
-                        resolvedGlAccounts.getTransfersInSuspenseId(),
-                        resolvedGlAccounts.getIncomeFromInterestId(),
-                        resolvedGlAccounts.getExpenseAccountId()
-                );
-                log.info("Created savings product: productId={}", productId);
+                try {
+                    productId = fineractClient.createSavingsProduct(
+                            request.name() + " Token",
+                            shortName,
+                            effectiveCurrencyCode,
+                            request.decimalPlaces(),
+                            resolvedGlAccounts.getDigitalAssetInventoryId(),
+                            resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
+                            resolvedGlAccounts.getTransfersInSuspenseId(),
+                            resolvedGlAccounts.getIncomeFromInterestId(),
+                            resolvedGlAccounts.getExpenseAccountId()
+                    );
+                    log.info("Created savings product: productId={}", productId);
+                } catch (AssetException createEx) {
+                    // 409 / data-integrity: a concurrent request or a previously-missed orphan
+                    // created the product between our orphan check and now. Re-query and adopt.
+                    if (createEx.getMessage() != null && createEx.getMessage().contains("data integrity")) {
+                        log.warn("Savings product creation conflict for symbol '{}' — re-checking for orphan",
+                                request.symbol());
+                        Integer retryProduct = fineractClient.findSavingsProductByShortName(effectiveCurrencyCode);
+                        if (retryProduct == null) {
+                            Integer byName = fineractClient.findSavingsProductByName(request.name() + " Token");
+                            if (byName != null) {
+                                String foundShortName = fineractClient.getSavingsProductShortName(byName);
+                                if (effectiveCurrencyCode.equals(foundShortName)) {
+                                    retryProduct = byName;
+                                }
+                            }
+                        }
+                        if (retryProduct != null && !assetRepository.existsByFineractProductId(retryProduct)) {
+                            productId = retryProduct;
+                            adoptingOrphan = true;
+                            log.warn("Adopted orphaned savings product {} on retry for symbol '{}'",
+                                    productId, request.symbol());
+                        } else {
+                            throw createEx;
+                        }
+                    } else {
+                        throw createEx;
+                    }
+                }
             }
 
             // Step 4: Atomic account lifecycle — create, approve, activate, deposit initial supply
@@ -299,22 +346,31 @@ public class AssetProvisioningService {
                         ? request.tvaRate() : taxConfig.getDefaultTvaRate())
                 .build();
 
-        assetRepository.save(asset);
+        // Step 5+6: Persist asset and price row. If the DB save fails, roll back Fineract
+        // resources to prevent orphaned products on the next creation attempt.
+        try {
+            assetRepository.save(asset);
 
-        // Step 6: Initialize price row with effective bid/ask prices
-        AssetPrice price = AssetPrice.builder()
-                .assetId(assetId)
-                .dayOpen(effectiveAskPrice)
-                .dayHigh(effectiveAskPrice)
-                .dayLow(effectiveAskPrice)
-                .dayClose(effectiveAskPrice)
-                .bidPrice(effectiveBidPrice)
-                .askPrice(effectiveAskPrice)
-                .change24hPercent(BigDecimal.ZERO)
-                .updatedAt(Instant.now())
-                .build();
+            AssetPrice price = AssetPrice.builder()
+                    .assetId(assetId)
+                    .dayOpen(effectiveAskPrice)
+                    .dayHigh(effectiveAskPrice)
+                    .dayLow(effectiveAskPrice)
+                    .dayClose(effectiveAskPrice)
+                    .bidPrice(effectiveBidPrice)
+                    .askPrice(effectiveAskPrice)
+                    .change24hPercent(BigDecimal.ZERO)
+                    .updatedAt(Instant.now())
+                    .build();
 
-        assetPriceRepository.save(price);
+            assetPriceRepository.save(price);
+        } catch (Exception e) {
+            rollbackFineractResources(adoptingOrphan ? null : productId,
+                    effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId,
+                    lpTaxAccountId, lpAssetAccountId, assetId);
+            log.error("DB persist failed for asset {} after Fineract provisioning: {}", assetId, e.getMessage());
+            throw new AssetException("Failed to persist asset after Fineract provisioning: " + e.getMessage(), e);
+        }
 
         log.info("Asset created successfully: id={}, symbol={}", assetId, request.symbol());
 
