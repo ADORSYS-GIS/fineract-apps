@@ -290,6 +290,37 @@ public class FineractClient {
     }
 
     /**
+     * Find a savings product by its full name.
+     * Used as a fallback orphan check — Fineract enforces name uniqueness in addition to shortName.
+     *
+     * @param name The full product name (e.g. "Treasury Bond 5Y Token")
+     * @return The product ID, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public Integer findSavingsProductByName(String name) {
+        try {
+            List<Map<String, Object>> products = webClient.get()
+                    .uri("/fineract-provider/api/v1/savingsproducts")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            if (products == null) return null;
+
+            return products.stream()
+                    .filter(p -> name.equals(p.get("name")))
+                    .map(p -> ((Number) p.get("id")).intValue())
+                    .findFirst()
+                    .orElse(null);
+        } catch (Exception e) {
+            log.error("Failed to find savings product by name '{}': {}", name, e.getMessage());
+            throw new AssetException("Failed to look up savings product by name: " + name, e);
+        }
+    }
+
+    /**
      * Deposit into a savings account (used for initial supply minting).
      *
      * @return Transaction ID

@@ -91,14 +91,19 @@ public class AssetProvisioningService {
         // Check Fineract for orphaned savings product from a previously failed creation.
         // Strategy: adopt the orphan rather than blocking. If the product already exists in Fineract
         // but has no local Asset record, resume provisioning from that product ID.
-        Integer existingProduct = fineractClient.findSavingsProductByShortName(request.symbol());
+        // Search by effectiveCurrencyCode (the actual shortName written at creation time), then
+        // fall back to the full product name — Fineract enforces uniqueness on both.
+        Integer existingProduct = fineractClient.findSavingsProductByShortName(effectiveCurrencyCode);
+        if (existingProduct == null) {
+            existingProduct = fineractClient.findSavingsProductByName(request.name() + " Token");
+        }
         boolean adoptingOrphan = existingProduct != null;
         if (adoptingOrphan) {
             // Safety check: ensure no local Asset is associated with this product ID
             if (assetRepository.existsByFineractProductId(existingProduct)) {
-                throw new AssetException("A savings product with symbol '" + request.symbol()
+                throw new AssetException("A savings product for asset '" + request.name()
                         + "' (productId=" + existingProduct + ") already has an active local asset record. "
-                        + "Use a different symbol.");
+                        + "Use a different symbol and name.");
             }
             log.warn("Adopting orphaned Fineract savings product {} for symbol '{}'. " +
                     "Resuming provisioning from existing product.", existingProduct, request.symbol());
@@ -299,22 +304,31 @@ public class AssetProvisioningService {
                         ? request.tvaRate() : taxConfig.getDefaultTvaRate())
                 .build();
 
-        assetRepository.save(asset);
+        // Step 5+6: Persist asset and price row. If the DB save fails, roll back Fineract
+        // resources to prevent orphaned products on the next creation attempt.
+        try {
+            assetRepository.save(asset);
 
-        // Step 6: Initialize price row with effective bid/ask prices
-        AssetPrice price = AssetPrice.builder()
-                .assetId(assetId)
-                .dayOpen(effectiveAskPrice)
-                .dayHigh(effectiveAskPrice)
-                .dayLow(effectiveAskPrice)
-                .dayClose(effectiveAskPrice)
-                .bidPrice(effectiveBidPrice)
-                .askPrice(effectiveAskPrice)
-                .change24hPercent(BigDecimal.ZERO)
-                .updatedAt(Instant.now())
-                .build();
+            AssetPrice price = AssetPrice.builder()
+                    .assetId(assetId)
+                    .dayOpen(effectiveAskPrice)
+                    .dayHigh(effectiveAskPrice)
+                    .dayLow(effectiveAskPrice)
+                    .dayClose(effectiveAskPrice)
+                    .bidPrice(effectiveBidPrice)
+                    .askPrice(effectiveAskPrice)
+                    .change24hPercent(BigDecimal.ZERO)
+                    .updatedAt(Instant.now())
+                    .build();
 
-        assetPriceRepository.save(price);
+            assetPriceRepository.save(price);
+        } catch (Exception e) {
+            rollbackFineractResources(adoptingOrphan ? null : productId,
+                    effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId,
+                    lpTaxAccountId, lpAssetAccountId, assetId);
+            log.error("DB persist failed for asset {} after Fineract provisioning: {}", assetId, e.getMessage());
+            throw new AssetException("Failed to persist asset after Fineract provisioning: " + e.getMessage(), e);
+        }
 
         log.info("Asset created successfully: id={}, symbol={}", assetId, request.symbol());
 

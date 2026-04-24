@@ -67,6 +67,7 @@ class AssetProvisioningServiceTest {
 
         // Default: no orphaned Fineract resources
         lenient().when(fineractClient.findSavingsProductByShortName(anyString())).thenReturn(null);
+        lenient().when(fineractClient.findSavingsProductByName(anyString())).thenReturn(null);
         lenient().when(fineractClient.getExistingCurrencies()).thenReturn(List.of());
 
         // Default: generator returns a code derived from the symbol (e.g. "TST" for symbol "TST")
@@ -441,6 +442,67 @@ class AssetProvisioningServiceTest {
         // Both product and currency should be rolled back
         verify(fineractClient).deleteSavingsProduct(10);
         verify(fineractClient).deregisterCurrency("TST");
+    }
+
+    @Test
+    void createAsset_orphanFoundByShortName_adoptedSkipsProductCreation() {
+        // Simulate a previously orphaned Fineract product detected via shortName (effectiveCurrencyCode).
+        // The service should adopt it instead of creating a new one.
+        CreateAssetRequest request = createAssetRequest();
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(fineractClient.findSavingsProductByShortName("TST")).thenReturn(77);  // orphan found by shortName
+        when(assetRepository.existsByFineractProductId(77)).thenReturn(false);     // no local asset for it
+
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(77), eq(new BigDecimal("1000")), anyLong()))
+                .thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
+
+        service.createAsset(request);
+
+        // Must NOT create a new savings product — the orphan is reused
+        verify(fineractClient, never()).createSavingsProduct(any(), any(), any(), anyInt(), any(), any(), any(), any(), any());
+        verify(assetRepository).save(assetCaptor.capture());
+        assertEquals(77, assetCaptor.getValue().getFineractProductId());
+    }
+
+    @Test
+    void createAsset_orphanFoundByName_adoptedSkipsProductCreation() {
+        // Simulate orphan detection via product name fallback (shortName check returned null).
+        CreateAssetRequest request = createAssetRequest();
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        // shortName check returns null, but name check finds the orphan
+        when(fineractClient.findSavingsProductByName("Test Asset Token")).thenReturn(88);
+        when(assetRepository.existsByFineractProductId(88)).thenReturn(false);
+
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(88), eq(new BigDecimal("1000")), anyLong()))
+                .thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
+
+        service.createAsset(request);
+
+        verify(fineractClient, never()).createSavingsProduct(any(), any(), any(), anyInt(), any(), any(), any(), any(), any());
+        verify(assetRepository).save(assetCaptor.capture());
+        assertEquals(88, assetCaptor.getValue().getFineractProductId());
     }
 
     // -------------------------------------------------------------------------
