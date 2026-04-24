@@ -95,7 +95,18 @@ public class AssetProvisioningService {
         // fall back to the full product name — Fineract enforces uniqueness on both.
         Integer existingProduct = fineractClient.findSavingsProductByShortName(effectiveCurrencyCode);
         if (existingProduct == null) {
-            existingProduct = fineractClient.findSavingsProductByName(request.name() + " Token");
+            Integer byName = fineractClient.findSavingsProductByName(request.name() + " Token");
+            if (byName != null) {
+                // Cross-verify shortName before adopting: a different asset with the same display
+                // name could produce a false match, which would silently entangle two assets.
+                String foundShortName = fineractClient.getSavingsProductShortName(byName);
+                if (effectiveCurrencyCode.equals(foundShortName)) {
+                    existingProduct = byName;
+                } else {
+                    log.warn("Skipping name-based adoption of productId={}: shortName '{}' != expected '{}'",
+                            byName, foundShortName, effectiveCurrencyCode);
+                }
+            }
         }
         boolean adoptingOrphan = existingProduct != null;
         if (adoptingOrphan) {
@@ -226,7 +237,13 @@ public class AssetProvisioningService {
                                 request.symbol());
                         Integer retryProduct = fineractClient.findSavingsProductByShortName(effectiveCurrencyCode);
                         if (retryProduct == null) {
-                            retryProduct = fineractClient.findSavingsProductByName(request.name() + " Token");
+                            Integer byName = fineractClient.findSavingsProductByName(request.name() + " Token");
+                            if (byName != null) {
+                                String foundShortName = fineractClient.getSavingsProductShortName(byName);
+                                if (effectiveCurrencyCode.equals(foundShortName)) {
+                                    retryProduct = byName;
+                                }
+                            }
                         }
                         if (retryProduct != null && !assetRepository.existsByFineractProductId(retryProduct)) {
                             productId = retryProduct;

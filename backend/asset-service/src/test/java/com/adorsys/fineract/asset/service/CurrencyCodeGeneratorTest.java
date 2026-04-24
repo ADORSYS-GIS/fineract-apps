@@ -100,6 +100,18 @@ class CurrencyCodeGeneratorTest {
         assertEquals("BRB", code);
     }
 
+    @Test
+    void generate_oneCharSymbol_round2ProducesThreeCharCode() {
+        // "A" → clean "A" (1 char) → Round 1 "A" taken → Round 2 base2 padded to "AX" → first hit "AXA"
+        when(assetRepository.existsByCurrencyCode("A")).thenReturn(true);
+        when(assetRepository.existsByCurrencyCode("AXA")).thenReturn(false);
+
+        String code = generator.generate("A", Collections.emptySet());
+
+        assertEquals("AXA", code);
+        assertEquals(3, code.length());
+    }
+
     // ----- Round 3: 1-char prefix + two-letter suffix AA–ZZ (= 3 chars) -----
 
     @Test

@@ -62,8 +62,9 @@ public class CurrencyCodeGenerator {
             return base3;
         }
 
-        // Round 2: 2-char prefix + single letter suffix (A–Z → 26 candidates)
-        String base2 = clean.substring(0, Math.min(2, clean.length()));
+        // Round 2: 2-char prefix + single letter suffix (A–Z → 26 candidates, always 3 chars)
+        // Pad to 2 chars if clean has only 1 char to preserve the 3-char invariant.
+        String base2 = clean.length() >= 2 ? clean.substring(0, 2) : clean + "X";
         for (char c = 'A'; c <= 'Z'; c++) {
             String candidate = base2 + c;
             if (isAvailable(candidate, registeredInFineract)) {

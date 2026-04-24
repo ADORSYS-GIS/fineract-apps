@@ -478,10 +478,12 @@ class AssetProvisioningServiceTest {
     @Test
     void createAsset_orphanFoundByName_adoptedSkipsProductCreation() {
         // Simulate orphan detection via product name fallback (shortName check returned null).
+        // The product's shortName must be cross-verified to match the expected currency code.
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
         // shortName check returns null, but name check finds the orphan
         when(fineractClient.findSavingsProductByName("Test Asset Token")).thenReturn(88);
+        when(fineractClient.getSavingsProductShortName(88)).thenReturn("TST"); // shortName matches → safe to adopt
         when(assetRepository.existsByFineractProductId(88)).thenReturn(false);
 
         when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
@@ -503,6 +505,89 @@ class AssetProvisioningServiceTest {
         verify(fineractClient, never()).createSavingsProduct(any(), any(), any(), anyInt(), any(), any(), any(), any(), any());
         verify(assetRepository).save(assetCaptor.capture());
         assertEquals(88, assetCaptor.getValue().getFineractProductId());
+    }
+
+    @Test
+    void createAsset_orphanFoundByNameButShortNameMismatch_notAdopted() {
+        // A different asset's product was found by name but its shortName doesn't match ours.
+        // The service must NOT adopt it — instead it should create a fresh savings product.
+        CreateAssetRequest request = createAssetRequest();
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(fineractClient.findSavingsProductByName("Test Asset Token")).thenReturn(88);
+        when(fineractClient.getSavingsProductShortName(88)).thenReturn("XYZ"); // mismatch — different asset's product
+
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
+                .thenReturn(10);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong()))
+                .thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
+
+        service.createAsset(request);
+
+        // Must create a NEW product — must NOT reuse product 88
+        verify(fineractClient).createSavingsProduct(any(), eq("TST"), eq("TST"), anyInt(), any(), any(), any(), any(), any());
+        verify(assetRepository).save(assetCaptor.capture());
+        assertEquals(10, assetCaptor.getValue().getFineractProductId());
+    }
+
+    @Test
+    void createAsset_post409Retry_adoptsOrphanFoundByShortName() {
+        // createSavingsProduct throws a 409/data-integrity exception (race condition).
+        // On retry, orphan is found by shortName and adopted.
+        CreateAssetRequest request = createAssetRequest();
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+
+        // First shortName call: null (no orphan). Second call (retry): returns 99.
+        when(fineractClient.findSavingsProductByShortName("TST"))
+                .thenReturn(null)
+                .thenReturn(99);
+        when(assetRepository.existsByFineractProductId(99)).thenReturn(false);
+
+        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
+        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
+        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
+        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
+        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
+        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
+        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
+        when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
+                .thenThrow(new AssetException("Failed to create savings product: data integrity issue"));
+        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(99), eq(new BigDecimal("1000")), anyLong()))
+                .thenReturn(400L);
+        when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
+
+        service.createAsset(request);
+
+        verify(assetRepository).save(assetCaptor.capture());
+        assertEquals(99, assetCaptor.getValue().getFineractProductId());
+        // Adopted orphan must NOT be deleted on any subsequent rollback path
+        verify(fineractClient, never()).deleteSavingsProduct(99);
+    }
+
+    @Test
+    void createAsset_orphanFoundByShortName_hasActiveLocalRecord_throws() {
+        // Orphan found by shortName but a local Asset already references that productId → conflict.
+        CreateAssetRequest request = createAssetRequest();
+        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
+        when(fineractClient.findSavingsProductByShortName("TST")).thenReturn(77);
+        when(assetRepository.existsByFineractProductId(77)).thenReturn(true); // already owned
+
+        AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
+        assertTrue(ex.getMessage().contains("already has an active local asset record"));
+        verify(fineractClient, never()).createSavingsProduct(any(), any(), any(), anyInt(), any(), any(), any(), any(), any());
     }
 
     // -------------------------------------------------------------------------

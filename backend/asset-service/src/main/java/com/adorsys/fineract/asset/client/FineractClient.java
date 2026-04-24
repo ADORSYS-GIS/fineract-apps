@@ -279,11 +279,14 @@ public class FineractClient {
             List<Map<String, Object>> accounts = response != null
                     ? (List<Map<String, Object>>) response.get("pageItems") : List.of();
             if (accounts != null && !accounts.isEmpty()) {
-                accounts.forEach(a -> log.warn(
-                        "Orphan blocker — savings account id={}, accountNo={}, status={} references productId={}",
-                        a.get("id"), a.get("accountNo"),
-                        ((Map<?, ?>) a.getOrDefault("status", java.util.Map.of())).get("value"),
-                        productId));
+                accounts.forEach(a -> {
+                    Object statusRaw = a.getOrDefault("status", Map.of());
+                    String statusValue = statusRaw instanceof Map<?, ?> statusMap
+                            ? String.valueOf(statusMap.get("value"))
+                            : String.valueOf(statusRaw);
+                    log.warn("Orphan blocker — savings account id={}, accountNo={}, status={} references productId={}",
+                            a.get("id"), a.get("accountNo"), statusValue, productId);
+                });
             }
         } catch (Exception ignored) {
             // best-effort diagnostic; don't mask the original deletion failure
@@ -348,6 +351,30 @@ public class FineractClient {
         } catch (Exception e) {
             log.error("Failed to find savings product by name '{}': {}", name, e.getMessage());
             throw new AssetException("Failed to look up savings product by name: " + name, e);
+        }
+    }
+
+    /**
+     * Fetch the shortName of a savings product by its ID.
+     * Used to cross-verify that a name-matched orphan belongs to the current asset before adopting it,
+     * preventing a product created for a different asset from being silently reused.
+     *
+     * @return the product's shortName, or null if the product is not found
+     */
+    @SuppressWarnings("unchecked")
+    public String getSavingsProductShortName(Integer productId) {
+        try {
+            Map<String, Object> product = webClient.get()
+                    .uri("/fineract-provider/api/v1/savingsproducts/{id}?fields=id,shortName", productId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+            return product != null ? (String) product.get("shortName") : null;
+        } catch (Exception e) {
+            log.warn("Failed to fetch shortName for savings product {}: {}", productId, e.getMessage());
+            return null;
         }
     }
 
