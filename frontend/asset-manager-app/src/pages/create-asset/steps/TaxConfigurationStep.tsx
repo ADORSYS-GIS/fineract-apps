@@ -4,7 +4,6 @@ import type { AssetFormData } from "../useCreateAsset";
 interface Props {
 	formData: AssetFormData;
 	updateFormData: (updates: Partial<AssetFormData>) => void;
-	validationErrors: string[];
 }
 
 export const TaxConfigurationStep: FC<Props> = ({
@@ -137,7 +136,7 @@ export const TaxConfigurationStep: FC<Props> = ({
 								/>
 								<p className="text-xs text-gray-400 mt-1">
 									Leave at 0 for automatic rate: dividends 16.5%, bonds
-									{" \u2265"}5yr 5.5%, BVMAC-listed 11%.
+									{" \u2265"}5yr 5.5%.
 								</p>
 							</div>
 						)}
@@ -255,7 +254,6 @@ export const TaxConfigurationStep: FC<Props> = ({
 					</li>
 					<li>IRCM dividends: 16.5% withholding</li>
 					<li>IRCM bonds {"\u2265"}5 years: 5.5% withholding</li>
-					<li>IRCM BVMAC-listed equities: 11% withholding</li>
 					<li>Capital gains: 16.5% (500,000 XAF annual exemption)</li>
 					<li>TVA: 19.25% on trading fees (disabled by default)</li>
 				</ul>

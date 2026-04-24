@@ -598,19 +598,10 @@ function BondInfoCard({
 				</div>
 				<div>
 					<p className="text-gray-500">IRCM Status</p>
-					{asset.isGovernmentBond ? (
-						<p className="font-medium text-green-700">
-							Exempté (obligation d'État)
-						</p>
-					) : asset.ircmExempt === true ? (
+					{asset.ircmExempt === true ? (
 						<p className="font-medium text-green-700">Exempté (manuel)</p>
 					) : !asset.ircmEnabled ? (
 						<p className="font-medium text-gray-500">Disabled</p>
-					) : asset.isBvmacListed ? (
-						<p className="font-medium flex items-center gap-1">
-							<AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-							Assujetti — 11% (BVMAC listed)
-						</p>
 					) : (
 						<p className="font-medium flex items-center gap-1">
 							<AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
@@ -622,27 +613,6 @@ function BondInfoCard({
 					)}
 					<p className="text-xs text-gray-400">
 						Withholding tax deducted at source on income distributions
-					</p>
-				</div>
-				<div>
-					<p className="text-gray-500">Bond Classification</p>
-					<p className="font-medium text-xs">
-						{asset.isGovernmentBond && (
-							<span className="inline-block mr-2 px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
-								Government bond
-							</span>
-						)}
-						{asset.isBvmacListed && (
-							<span className="inline-block px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
-								BVMAC listed
-							</span>
-						)}
-						{!asset.isGovernmentBond && !asset.isBvmacListed && (
-							<span className="text-gray-500">Standard</span>
-						)}
-					</p>
-					<p className="text-xs text-gray-400">
-						Determines automatic IRCM rate applied
 					</p>
 				</div>
 			</div>
@@ -884,50 +854,12 @@ function TaxConfigCard({
 }: {
 	asset: NonNullable<ReturnType<typeof useAssetDetails>["asset"]>;
 }) {
-	const a = asset as NonNullable<
-		ReturnType<typeof useAssetDetails>["asset"]
-	> & {
-		isBvmacListed?: boolean;
-		isGovernmentBond?: boolean;
-		tvaEnabled?: boolean;
-		tvaRate?: number;
-	};
 	return (
 		<Card className="p-4 mb-6">
 			<h2 className="text-lg font-semibold text-gray-800 mb-3">
 				Tax Configuration
 			</h2>
 			<div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-				{asset.category === "BONDS" && (
-					<>
-						<div>
-							<p className="text-gray-500">BVMAC Listed</p>
-							<p className="font-medium">
-								{a.isBvmacListed ? (
-									<span className="text-blue-700">Yes</span>
-								) : (
-									"No"
-								)}
-							</p>
-							<p className="text-xs text-gray-400">
-								BVMAC-listed bonds use 11% IRCM rate
-							</p>
-						</div>
-						<div>
-							<p className="text-gray-500">Government Bond</p>
-							<p className="font-medium">
-								{a.isGovernmentBond ? (
-									<span className="text-green-700">Yes</span>
-								) : (
-									"No"
-								)}
-							</p>
-							<p className="text-xs text-gray-400">
-								Government bonds are IRCM-exempt by default
-							</p>
-						</div>
-					</>
-				)}
 				<div>
 					<p className="text-gray-500">Registration Duty</p>
 					<p className="font-medium">
@@ -968,13 +900,13 @@ function TaxConfigCard({
 						= 16.5% on gains above 500,000 XAF annual exemption
 					</p>
 				</div>
-				{a.tvaEnabled && (
+				{asset.tvaEnabled && (
 					<div>
 						<p className="text-gray-500">TVA (VAT)</p>
 						<p className="font-medium">
 							{formatTaxField(
-								a.tvaEnabled,
-								a.tvaRate,
+								asset.tvaEnabled,
+								asset.tvaRate,
 								"Enabled (default 19.25%)",
 							)}
 						</p>

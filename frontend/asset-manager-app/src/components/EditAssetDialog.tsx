@@ -758,7 +758,7 @@ const TaxSection: FC<{
 							placeholder="Leave empty for auto rate"
 						/>
 						<p className="text-xs text-gray-400 mt-1">
-							Auto: dividends 16.5%, bonds {"\u2265"}5yr 5.5%, BVMAC-listed 11%
+							Auto: dividends 16.5%, bonds {"\u2265"}5yr 5.5%
 						</p>
 					</div>
 				)}
