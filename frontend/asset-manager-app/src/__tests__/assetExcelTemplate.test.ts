@@ -264,50 +264,6 @@ describe("assetExcelTemplate", () => {
 			expect(asset.dayCountConvention).toBe("ACT_360");
 		});
 
-		it("parses isBvmacListed and isGovernmentBond boolean fields", async () => {
-			const workbook = new ExcelJS.Workbook();
-			const sheet = workbook.addWorksheet("Sheet1");
-			const headers = [
-				"name *",
-				"symbol *",
-				"category *",
-				"issuerPrice *",
-				"totalSupply *",
-				"decimalPlaces *",
-				"lpAskPrice *",
-				"lpBidPrice *",
-				"lpClientId *",
-				"isBvmacListed",
-				"isGovernmentBond",
-			];
-			sheet.addRow(headers);
-			sheet.addRow([
-				"BVMAC Stock",
-				"BVS",
-				"STOCKS",
-				50000,
-				200,
-				0,
-				50150,
-				49850,
-				1,
-				"TRUE",
-				"FALSE",
-			]);
-			const buf = await workbook.xlsx.writeBuffer();
-			const uint8 = new Uint8Array(buf as ArrayBuffer);
-			const file = uint8.buffer.slice(
-				uint8.byteOffset,
-				uint8.byteOffset + uint8.byteLength,
-			) as ArrayBuffer;
-
-			const result = await parseAssetExcel(file);
-			expect(result.errors).toHaveLength(0);
-			const asset = result.rows[0] as unknown as Record<string, unknown>;
-			expect(asset.isBvmacListed).toBe(true);
-			expect(asset.isGovernmentBond).toBe(false);
-		});
-
 		it("parses optional tradingFeePercent", async () => {
 			const file = await createTestWorkbook([
 				{
@@ -424,7 +380,7 @@ describe("assetExcelTemplate", () => {
 			}
 		});
 
-		it("BVMAC stocks have IRCM and capital-gains tax enabled", () => {
+		it("CEMAC equities have IRCM and capital-gains tax enabled", () => {
 			const stockSymbols = ["SMC", "SFC", "SCP", "LRG", "BNG", "SGR"];
 			for (const sym of stockSymbols) {
 				const row = rows.find((r) => r.symbol === sym);
@@ -452,13 +408,6 @@ describe("assetExcelTemplate", () => {
 				const row = rows.find((r) => r.symbol === sym);
 				expect(row?.ircmEnabled).toBe(false);
 				expect(row?.capitalGainsTaxEnabled).toBe(false);
-			}
-		});
-
-		it("BVMAC stocks have isBvmacListed=true", () => {
-			const stockSymbols = ["SMC", "SFC", "SCP", "LRG", "BNG", "SGR"];
-			for (const sym of stockSymbols) {
-				expect(rows.find((r) => r.symbol === sym)?.isBvmacListed).toBe(true);
 			}
 		});
 
