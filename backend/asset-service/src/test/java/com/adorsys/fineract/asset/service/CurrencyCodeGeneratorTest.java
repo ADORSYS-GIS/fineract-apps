@@ -25,86 +25,96 @@ class CurrencyCodeGeneratorTest {
     @InjectMocks
     private CurrencyCodeGenerator generator;
 
-    // ----- Round 1: 4-char base -----
+    // ----- Round 1: 3-char base (m_currency.code is VARCHAR(3)) -----
 
     @Test
-    void generate_shortSymbol_returnsFourCharBase() {
+    void generate_fourCharSymbol_truncatesTo3() {
         when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(false);
 
+        // "BRVM" → first 3 chars → "BRV"
         String code = generator.generate("BRVM", Collections.emptySet());
 
-        assertEquals("BRVM", code);
+        assertEquals("BRV", code);
     }
 
     @Test
-    void generate_symbolWithHyphen_stripsAndTruncatesTo4() {
+    void generate_symbolWithHyphen_stripsAndTruncatesTo3() {
         when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(false);
 
-        // "BRVM-SABC" → clean "BRVMSABC" → base4 "BRVM"
+        // "BRVM-SABC" → clean "BRVMSABC" → base3 "BRV"
         String code = generator.generate("BRVM-SABC", Collections.emptySet());
 
-        assertEquals("BRVM", code);
+        assertEquals("BRV", code);
+    }
+
+    @Test
+    void generate_threeCharSymbol_returnsExact() {
+        when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(false);
+
+        String code = generator.generate("CCC", Collections.emptySet());
+
+        assertEquals("CCC", code);
     }
 
     @Test
     void generate_shortSymbol_usesAvailableChars() {
         when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(false);
 
-        // Symbol shorter than 4 chars
+        // Symbol shorter than 3 chars — returned as-is
         String code = generator.generate("AB", Collections.emptySet());
 
         assertEquals("AB", code);
     }
 
-    // ----- Round 2: 3-char + suffix A–Z -----
+    // ----- Round 2: 2-char prefix + single letter A–Z (= 3 chars) -----
 
     @Test
-    void generate_base4Collides_fallsBackToSuffixedCandidate() {
-        // "BRVM" is taken; "BRVA" is available
-        when(assetRepository.existsByCurrencyCode("BRVM")).thenReturn(true);
-        when(assetRepository.existsByCurrencyCode("BRVA")).thenReturn(false);
+    void generate_base3Collides_fallsBackToSuffixedCandidate() {
+        // "BRV" is taken; "BRA" is available
+        when(assetRepository.existsByCurrencyCode("BRV")).thenReturn(true);
+        when(assetRepository.existsByCurrencyCode("BRA")).thenReturn(false);
 
         String code = generator.generate("BRVM-SABC", Collections.emptySet());
 
-        assertEquals("BRVA", code);
+        assertEquals("BRA", code);
     }
 
     @Test
-    void generate_base4CollidesInFineract_fallsBackToSuffixedCandidate() {
-        // "BRVM" is registered in Fineract; DB has nothing
+    void generate_base3CollidesInFineract_fallsBackToSuffixedCandidate() {
+        // "BRV" is registered in Fineract; DB has nothing
         when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(false);
 
-        String code = generator.generate("BRVM-SABC", Set.of("BRVM"));
+        String code = generator.generate("BRVM-SABC", Set.of("BRV"));
 
-        assertEquals("BRVA", code);
+        assertEquals("BRA", code);
     }
 
     @Test
-    void generate_base4AndFirstSuffixCollide_usesNextSuffix() {
-        when(assetRepository.existsByCurrencyCode("BRVM")).thenReturn(true);
-        when(assetRepository.existsByCurrencyCode("BRVA")).thenReturn(true);
-        when(assetRepository.existsByCurrencyCode("BRVB")).thenReturn(false);
+    void generate_base3AndFirstSuffixCollide_usesNextSuffix() {
+        when(assetRepository.existsByCurrencyCode("BRV")).thenReturn(true);
+        when(assetRepository.existsByCurrencyCode("BRA")).thenReturn(true);
+        when(assetRepository.existsByCurrencyCode("BRB")).thenReturn(false);
 
         String code = generator.generate("BRVMSABC", Collections.emptySet());
 
-        assertEquals("BRVB", code);
+        assertEquals("BRB", code);
     }
 
-    // ----- Round 3: 2-char + two-letter suffix AA–ZZ -----
+    // ----- Round 3: 1-char prefix + two-letter suffix AA–ZZ (= 3 chars) -----
 
     @Test
-    void generate_allSuffixedCandidatesCollide_fallsBackToTwoCharBase() {
-        // All round-2 candidates taken in Fineract; round-3 first hit is BRAA
+    void generate_allRound2CandidatesCollide_fallsBackToOneCharBase() {
+        // All round-2 candidates taken in Fineract; round-3 first hit is BAA
         Set<String> fineractCodes = new HashSet<>();
-        fineractCodes.add("BRVM"); // base4
+        fineractCodes.add("BRV"); // base3
         for (char c = 'A'; c <= 'Z'; c++) {
-            fineractCodes.add("BRV" + c); // all round-2 candidates
+            fineractCodes.add("BR" + c); // all round-2 candidates
         }
         when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(false);
 
         String code = generator.generate("BRVM-SABC", fineractCodes);
 
-        assertEquals("BRAA", code);
+        assertEquals("BAA", code);
     }
 
     // ----- Edge cases -----
@@ -123,23 +133,24 @@ class CurrencyCodeGeneratorTest {
     void generate_lowercaseSymbol_normalisedToUppercase() {
         when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(false);
 
-        String code = generator.generate("brvm", Collections.emptySet());
+        String code = generator.generate("brv", Collections.emptySet());
 
-        assertEquals("BRVM", code);
+        assertEquals("BRV", code);
     }
 
     @Test
     void generate_numericSymbol_includesDigits() {
         when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(false);
 
-        String code = generator.generate("1234", Collections.emptySet());
+        // "123" → "123" (3 chars)
+        String code = generator.generate("123", Collections.emptySet());
 
-        assertEquals("1234", code);
+        assertEquals("123", code);
     }
 
     @Test
     void generate_noCollision_doesNotQueryDbForOtherCandidates() {
-        when(assetRepository.existsByCurrencyCode("BRVM")).thenReturn(false);
+        when(assetRepository.existsByCurrencyCode("BRV")).thenReturn(false);
 
         generator.generate("BRVM", Collections.emptySet());
 
@@ -149,10 +160,22 @@ class CurrencyCodeGeneratorTest {
 
     @Test
     void generate_exhaustedNamespace_throwsAssetException() {
-        // Force all 702 candidates to be taken by always returning true from DB
+        // Force all candidates to be taken
         when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(true);
 
         assertThrows(AssetException.class,
                 () -> generator.generate("AB", Collections.emptySet()));
+    }
+
+    @Test
+    void generate_producedCodeNeverExceedsThreeChars() {
+        // Verify every generated code fits m_currency.code VARCHAR(3)
+        when(assetRepository.existsByCurrencyCode(anyString())).thenReturn(false);
+
+        for (String symbol : new String[]{"A", "AB", "ABC", "ABCD", "ABCDE", "AB-CD", "BRVM", "TEST"}) {
+            String code = generator.generate(symbol, Collections.emptySet());
+            assertTrue(code.length() <= 3,
+                    "Expected code length <= 3 for symbol '" + symbol + "' but got '" + code + "'");
+        }
     }
 }

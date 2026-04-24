@@ -196,25 +196,50 @@ public class AssetProvisioningService {
             fineractClient.registerCurrencies(List.of(effectiveCurrencyCode));
             log.info("Registered currency: {}", effectiveCurrencyCode);
 
-            // Step 3: Create savings product, or adopt the orphaned one if it already exists
+            // Step 3: Create savings product, or adopt the orphaned one if it already exists.
+            // On a 409 conflict (race condition or orphan missed by initial search), re-run
+            // orphan detection with a fresh query before giving up.
             if (adoptingOrphan) {
                 productId = existingProduct;
                 log.info("Skipping savings product creation — adopting orphaned productId={}", productId);
             } else {
-                // Fineract shortName: max 4 chars, derived from the auto-generated currency code (already 4 chars max)
+                // shortName is the auto-generated currency code (max 3 chars, matches m_currency VARCHAR(3))
                 String shortName = effectiveCurrencyCode;
-                productId = fineractClient.createSavingsProduct(
-                        request.name() + " Token",
-                        shortName,
-                        effectiveCurrencyCode,
-                        request.decimalPlaces(),
-                        resolvedGlAccounts.getDigitalAssetInventoryId(),
-                        resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
-                        resolvedGlAccounts.getTransfersInSuspenseId(),
-                        resolvedGlAccounts.getIncomeFromInterestId(),
-                        resolvedGlAccounts.getExpenseAccountId()
-                );
-                log.info("Created savings product: productId={}", productId);
+                try {
+                    productId = fineractClient.createSavingsProduct(
+                            request.name() + " Token",
+                            shortName,
+                            effectiveCurrencyCode,
+                            request.decimalPlaces(),
+                            resolvedGlAccounts.getDigitalAssetInventoryId(),
+                            resolvedGlAccounts.getCustomerDigitalAssetHoldingsId(),
+                            resolvedGlAccounts.getTransfersInSuspenseId(),
+                            resolvedGlAccounts.getIncomeFromInterestId(),
+                            resolvedGlAccounts.getExpenseAccountId()
+                    );
+                    log.info("Created savings product: productId={}", productId);
+                } catch (AssetException createEx) {
+                    // 409 / data-integrity: a concurrent request or a previously-missed orphan
+                    // created the product between our orphan check and now. Re-query and adopt.
+                    if (createEx.getMessage() != null && createEx.getMessage().contains("data integrity")) {
+                        log.warn("Savings product creation conflict for symbol '{}' — re-checking for orphan",
+                                request.symbol());
+                        Integer retryProduct = fineractClient.findSavingsProductByShortName(effectiveCurrencyCode);
+                        if (retryProduct == null) {
+                            retryProduct = fineractClient.findSavingsProductByName(request.name() + " Token");
+                        }
+                        if (retryProduct != null && !assetRepository.existsByFineractProductId(retryProduct)) {
+                            productId = retryProduct;
+                            adoptingOrphan = true;
+                            log.warn("Adopted orphaned savings product {} on retry for symbol '{}'",
+                                    productId, request.symbol());
+                        } else {
+                            throw createEx;
+                        }
+                    } else {
+                        throw createEx;
+                    }
+                }
             }
 
             // Step 4: Atomic account lifecycle — create, approve, activate, deposit initial supply

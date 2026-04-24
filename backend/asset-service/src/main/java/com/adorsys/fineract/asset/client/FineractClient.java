@@ -254,8 +254,39 @@ public class FineractClient {
                     .block();
             log.info("Rolled back savings product: productId={}", productId);
         } catch (Exception e) {
-            log.error("ROLLBACK FAILURE: Failed to delete savings product {}. "
-                    + "Orphaned resource requires manual cleanup.", productId, e);
+            // Fineract refuses to delete a product that still has savings accounts.
+            // Log the blocking account IDs so ops can close them manually before retrying.
+            logBlockingAccountsForProduct(productId);
+            log.error("ROLLBACK FAILURE: Failed to delete savings product {} — "
+                    + "manually close the accounts above, then DELETE /savingsproducts/{}",
+                    productId, productId, e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void logBlockingAccountsForProduct(Integer productId) {
+        try {
+            Map<String, Object> response = webClient.get()
+                    .uri(u -> u.path("/fineract-provider/api/v1/savingsaccounts")
+                            .queryParam("productId", productId)
+                            .queryParam("fields", "id,accountNo,status")
+                            .build())
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+            List<Map<String, Object>> accounts = response != null
+                    ? (List<Map<String, Object>>) response.get("pageItems") : List.of();
+            if (accounts != null && !accounts.isEmpty()) {
+                accounts.forEach(a -> log.warn(
+                        "Orphan blocker — savings account id={}, accountNo={}, status={} references productId={}",
+                        a.get("id"), a.get("accountNo"),
+                        ((Map<?, ?>) a.getOrDefault("status", java.util.Map.of())).get("value"),
+                        productId));
+            }
+        } catch (Exception ignored) {
+            // best-effort diagnostic; don't mask the original deletion failure
         }
     }
 
@@ -269,7 +300,7 @@ public class FineractClient {
     public Integer findSavingsProductByShortName(String shortName) {
         try {
             List<Map<String, Object>> products = webClient.get()
-                    .uri("/fineract-provider/api/v1/savingsproducts")
+                    .uri("/fineract-provider/api/v1/savingsproducts?fields=id,name,shortName")
                     .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                     .retrieve()
                     .bodyToMono(List.class)
@@ -300,7 +331,7 @@ public class FineractClient {
     public Integer findSavingsProductByName(String name) {
         try {
             List<Map<String, Object>> products = webClient.get()
-                    .uri("/fineract-provider/api/v1/savingsproducts")
+                    .uri("/fineract-provider/api/v1/savingsproducts?fields=id,name,shortName")
                     .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                     .retrieve()
                     .bodyToMono(List.class)
