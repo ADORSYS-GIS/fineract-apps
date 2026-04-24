@@ -22,51 +22,6 @@ export const TaxConfigurationStep: FC<Props> = ({
 				</p>
 			</div>
 
-			{/* Bond Classification */}
-			{formData.category === "BONDS" && (
-				<div className="border border-gray-200 rounded-lg p-4 space-y-3">
-					<div>
-						<h3 className="text-sm font-semibold text-gray-700">
-							Bond Classification
-						</h3>
-						<p className="text-xs text-gray-400 mt-0.5">
-							These flags determine the automatic IRCM withholding rate applied
-							to coupon/income payments.
-						</p>
-					</div>
-					<div className="flex items-center gap-3">
-						<input
-							type="checkbox"
-							id="bvmac-listed"
-							className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-							checked={formData.isBvmacListed}
-							onChange={(e) =>
-								updateFormData({ isBvmacListed: e.target.checked })
-							}
-						/>
-						<label htmlFor="bvmac-listed" className="text-sm text-gray-700">
-							Listed on BVMAC{" "}
-							<span className="text-gray-400">(→ IRCM rate: 11%)</span>
-						</label>
-					</div>
-					<div className="flex items-center gap-3">
-						<input
-							type="checkbox"
-							id="gov-bond"
-							className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-							checked={formData.isGovernmentBond}
-							onChange={(e) =>
-								updateFormData({ isGovernmentBond: e.target.checked })
-							}
-						/>
-						<label htmlFor="gov-bond" className="text-sm text-gray-700">
-							Government bond{" "}
-							<span className="text-gray-400">(→ IRCM exempt by default)</span>
-						</label>
-					</div>
-				</div>
-			)}
-
 			{/* Registration Duty */}
 			<div className="border border-gray-200 rounded-lg p-4 space-y-3">
 				<div className="flex items-center justify-between">
