@@ -1,5 +1,6 @@
 package com.adorsys.fineract.gateway.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,7 +19,8 @@ public class NokashCallbackRequest {
     /**
      * Our transaction ID
      */
-    @JsonProperty("order_id")
+    @JsonProperty("orderId")
+    @JsonAlias("order_id")
     private String orderId;
 
     /**
