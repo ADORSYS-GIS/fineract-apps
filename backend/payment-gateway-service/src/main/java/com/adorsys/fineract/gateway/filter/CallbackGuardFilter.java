@@ -103,7 +103,8 @@ public class CallbackGuardFilter extends OncePerRequestFilter {
                 // Path is under /api/callbacks/ but matches no known provider.
                 log.warn("Callback received for unrecognised path={} — dropping", path);
             } else {
-                log.debug("No guards configured for callback path={} — dropping, relying on scheduler", path);
+                log.info("No guards configured for callback path={} — dropping, relying on scheduler", path);
+                paymentMetrics.incrementCallbackRejected(provider, "no_guards_configured");
             }
             response.setStatus(HttpServletResponse.SC_OK);
             return;

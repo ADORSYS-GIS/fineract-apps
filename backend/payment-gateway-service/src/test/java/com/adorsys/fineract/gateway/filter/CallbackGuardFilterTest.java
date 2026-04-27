@@ -1,5 +1,6 @@
 package com.adorsys.fineract.gateway.filter;
 
+import com.adorsys.fineract.gateway.dto.PaymentProvider;
 import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,17 @@ class CallbackGuardFilterTest {
 
         assertThat(response.getStatus()).isEqualTo(200);
         verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void noGuardsConfigured_knownProvider_emitsNoGuardsRejectionMetric() throws Exception {
+        CallbackGuardFilter f = filter("", "");
+        request.setRequestURI("/api/callbacks/nokash/some-id");
+        request.setMethod("POST");
+
+        f.doFilterInternal(request, response, chain);
+
+        verify(paymentMetrics).incrementCallbackRejected(PaymentProvider.NOKASH, "no_guards_configured");
     }
 
     @Test
