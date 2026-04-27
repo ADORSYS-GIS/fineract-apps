@@ -2,6 +2,7 @@ package com.adorsys.fineract.gateway.controller;
 
 import com.adorsys.fineract.gateway.dto.*;
 import com.adorsys.fineract.gateway.exception.PaymentException;
+import com.adorsys.fineract.gateway.metrics.PaymentMetrics;
 import com.adorsys.fineract.gateway.service.PaymentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -40,6 +41,9 @@ class PaymentControllerTest {
 
     @MockBean
     private JwtDecoder jwtDecoder;
+
+    @MockBean
+    private PaymentMetrics paymentMetrics;
 
     private static final String EXTERNAL_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     private static final Long ACCOUNT_ID = 456L;

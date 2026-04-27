@@ -61,9 +61,14 @@ public class CinetPayConfig {
     private String transferPassword;
 
     /**
-     * CinetPay Secret Key (for HMAC validation)
+     * CinetPay Secret Key (for HMAC validation of callback body)
      */
     private String secretKey;
+
+    /**
+     * Optional shared secret for the X-Callback-Secret header guard (pre-HMAC filter).
+     */
+    private String callbackSecret;
 
     /**
      * Currency code (XAF for Central Africa)

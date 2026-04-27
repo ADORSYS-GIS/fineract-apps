@@ -67,6 +67,7 @@ mtn:
     timeout-seconds: 60
     fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:1}
     gl-account-code: ${MTN_GL_ACCOUNT_CODE:}
+    callback-secret: ${MTN_CALLBACK_SECRET:}
 
 # Orange Money Configuration
 orange:
@@ -83,6 +84,7 @@ orange:
     timeout-seconds: 30
     fineract-payment-type-id: ${ORANGE_FINERACT_PAYMENT_TYPE_ID:2}
     gl-account-code: ${ORANGE_GL_ACCOUNT_CODE:}
+    callback-secret: ${ORANGE_CALLBACK_SECRET:}
 
 # CinetPay Configuration (Gateway - routes to MTN/Orange)
 # GL account mapping is dynamic based on cpm_payment_method from callback
@@ -94,6 +96,7 @@ cinetpay:
   api-password: ${CINETPAY_API_PASSWORD:}
   transfer-password: ${CINETPAY_TRANSFER_PASSWORD:} 
   secret-key: ${CINETPAY_SECRET_KEY:}
+  callback-secret: ${CINETPAY_CALLBACK_SECRET:}
   currency: ${CINETPAY_CURRENCY:XAF}
   timeout-seconds: 30
 
@@ -109,6 +112,7 @@ nokash:
   currency: ${NOKASH_CURRENCY:XAF}
   fineract-payment-type-id: ${NOKASH_FINERACT_PAYMENT_TYPE_ID:3}
   gl-account-code: ${NOKASH_GL_ACCOUNT_CODE:}
+  callback-secret: ${NOKASH_CALLBACK_SECRET:}
 
 # Base URLs for dynamic callback/return URL construction
 payment:
@@ -167,10 +171,10 @@ app:
     callback-per-minute: ${RATE_LIMIT_CALLBACK:100}
   callbacks:
     ip-whitelist:
-      enabled: ${CALLBACK_IP_WHITELIST_ENABLED:false}
       mtn: ${CALLBACK_IPS_MTN:}
       orange: ${CALLBACK_IPS_ORANGE:}
       cinetpay: ${CALLBACK_IPS_CINETPAY:}
+      nokash: ${CALLBACK_IPS_NOKASH:}
 
 # Actuator Configuration
 management:

@@ -268,8 +268,10 @@ public class CallbackHandlerDelegate {
                 return CallbackResult.noReversal();
             }
         } else {
-            log.warn("No notif_token stored for Orange transaction {}. Accepting callback without token validation.",
+            log.error("SECURITY: No notif_token stored for Orange transaction {} — rejecting callback.",
                 txn.getTransactionId());
+            paymentMetrics.incrementCallbackRejected(PaymentProvider.ORANGE_MONEY, "missing_stored_token");
+            return CallbackResult.noReversal();
         }
 
         if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
