@@ -40,23 +40,31 @@ function Settings() {
 
 				<Card className="p-6 max-w-lg">
 					<h2 className="text-lg font-semibold text-gray-800 mb-4">
-						Application Info
+						{t("assetManager.settings.applicationInfo")}
 					</h2>
 					<div className="space-y-4 text-sm">
 						<div className="flex justify-between">
-							<span className="text-gray-500">API Version</span>
+							<span className="text-gray-500">
+								{t("assetManager.settings.apiVersion")}
+							</span>
 							<span className="font-mono text-gray-900">{apiVersion}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-gray-500">Release Tag</span>
+							<span className="text-gray-500">
+								{t("assetManager.settings.releaseTag")}
+							</span>
 							<span className="font-mono text-gray-900">{__BUILD_TAG__}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-gray-500">Asset Manager</span>
+							<span className="text-gray-500">
+								{t("assetManager.settings.assetManager")}
+							</span>
 							<span className="font-mono text-gray-900">{__COMMIT_SHA__}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-gray-500">Asset Service</span>
+							<span className="text-gray-500">
+								{t("assetManager.settings.assetService")}
+							</span>
 							<span className="font-mono text-gray-900">
 								{backendVersion && backendVersion.commit !== "unknown"
 									? `${backendVersion.commit} (${backendVersion.branch})`
