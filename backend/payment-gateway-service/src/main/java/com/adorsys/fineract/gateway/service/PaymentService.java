@@ -736,8 +736,7 @@ public class PaymentService {
             if (cause instanceof java.util.concurrent.TimeoutException) return true;
             cause = cause.getCause();
         }
-        String msg = e.getMessage();
-        return msg != null && msg.contains("TimeoutException");
+        return false;
     }
 
     private String getProviderCurrency(PaymentProvider provider) {

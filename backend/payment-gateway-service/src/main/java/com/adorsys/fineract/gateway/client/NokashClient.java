@@ -170,7 +170,9 @@ public class NokashClient {
 
         } catch (Exception e) {
             log.error("NOKASH Auth failed: {}", e.getMessage());
-            throw new PaymentException("Failed to get temporary auth key from NOKASH: " + e.getMessage(), e);
+            // Strip the cause chain so auth-phase timeouts are not mistaken for
+            // ambiguous payout timeouts by the timeout guard in PaymentService.
+            throw new PaymentException("Failed to get temporary auth key from NOKASH: " + e.getMessage());
         }
     }
 

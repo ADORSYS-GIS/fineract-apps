@@ -19,7 +19,8 @@ public class NokashCallbackRequest {
     /**
      * Our transaction ID
      */
-    @JsonAlias({"orderId", "order_id"})
+    @JsonProperty("orderId")
+    @JsonAlias("order_id")
     private String orderId;
 
     /**
