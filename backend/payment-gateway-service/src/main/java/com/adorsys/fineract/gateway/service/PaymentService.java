@@ -238,6 +238,15 @@ public class PaymentService {
             };
             response.setFineractTransactionId(fineractTxnId);
         } catch (Exception e) {
+            // Nokash's payout API is async — a timeout means the HTTP call hung, not
+            // that the provider failed. The disbursement may already be in flight.
+            // Leave the tx in PROCESSING so the stale reconciler polls the outcome.
+            if (request.getProvider() == PaymentProvider.NOKASH && isTimeoutException(e)) {
+                log.warn("NOKASH payout timed out for transactionId={}, leaving as PROCESSING for stale reconciler", transactionId);
+                updateWithdrawalTransaction(transactionId, null, fineractTxnId, underlyingProvider);
+                paymentMetrics.incrementTransaction(request.getProvider(), PaymentResponse.TransactionType.WITHDRAWAL, PaymentStatus.PROCESSING);
+                throw e;
+            }
             log.error("Withdrawal to provider failed, reversing Fineract transaction: {}", e.getMessage());
             try {
                 fineractClient.createDeposit(
@@ -719,6 +728,16 @@ public class PaymentService {
             .message("Withdrawal is being processed")
             .createdAt(Instant.now())
             .build();
+    }
+
+    private boolean isTimeoutException(Exception e) {
+        Throwable cause = e;
+        while (cause != null) {
+            if (cause instanceof java.util.concurrent.TimeoutException) return true;
+            cause = cause.getCause();
+        }
+        String msg = e.getMessage();
+        return msg != null && msg.contains("TimeoutException");
     }
 
     private String getProviderCurrency(PaymentProvider provider) {
