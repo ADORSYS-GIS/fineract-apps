@@ -7,14 +7,23 @@ function getLocale(): string {
 }
 
 /**
- * Locale-aware integer-rounded number formatter that follows the active i18n language.
+ * Locale-aware integer-rounded number formatter following the active i18n
+ * language.
+ *
+ * @remarks
+ * Reads `i18n.language` at call time. The calling component must be subscribed
+ * to i18n re-renders (e.g. via `useTranslation()`) for output to refresh on
+ * language change. Values are rounded via `Math.round` before formatting.
  */
 export function formatNumber(value: number): string {
 	return new Intl.NumberFormat(getLocale()).format(Math.round(value));
 }
 
 /**
- * Locale-aware date formatter for short dates following the active i18n language.
+ * Locale-aware date formatter for short dates following the active i18n
+ * language.
+ *
+ * @remarks Same i18n re-render contract as {@link formatNumber}.
  */
 export function formatDate(value: string | number | Date): string {
 	const date = value instanceof Date ? value : new Date(value);

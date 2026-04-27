@@ -321,7 +321,9 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 												{asset.symbol}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-												{asset.askPrice?.toLocaleString() ?? "—"}
+												{asset.askPrice != null
+													? formatNumber(asset.askPrice)
+													: "—"}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm">
 												<span
@@ -336,7 +338,9 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 												</span>
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-												{asset.availableSupply?.toLocaleString() ?? "—"}
+												{asset.availableSupply != null
+													? formatNumber(asset.availableSupply)
+													: "—"}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap">
 												<StatusBadge status={asset.status} />

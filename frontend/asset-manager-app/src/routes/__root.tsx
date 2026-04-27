@@ -68,7 +68,7 @@ function RootLayout() {
 					<Navbar
 						logo={
 							<h1 className="text-lg font-bold">
-								{t("welcome")}, {userData?.displayName}
+								{t("assetManager.navbar.welcome")}, {userData?.displayName}
 							</h1>
 						}
 						links={null}

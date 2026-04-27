@@ -35,7 +35,7 @@ function Settings() {
 		<div className="bg-gray-50 min-h-screen">
 			<main className="p-4 sm:p-6 lg:p-8">
 				<h1 className="text-2xl font-bold text-gray-800 mb-6">
-					{t("sidebar.settings")}
+					{t("assetManager.settings.title")}
 				</h1>
 
 				<Card className="p-6 max-w-lg">
