@@ -14,6 +14,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -32,6 +34,10 @@ import java.util.stream.Stream;
  *
  * The stale-transaction scheduler is always the safety net; callbacks are an optimisation
  * that is opt-in by configuring at least one guard per provider.
+ *
+ * IP extraction: prefers X-Real-IP (set by nginx Ingress, not overridable by clients through
+ * the Ingress) over remoteAddr. Only meaningful when deployed behind a trusted nginx proxy that
+ * strips client-supplied X-Real-IP and sets its own.
  */
 @Slf4j
 @Component
@@ -39,6 +45,7 @@ import java.util.stream.Stream;
 public class CallbackGuardFilter extends OncePerRequestFilter {
 
     static final String SECRET_HEADER = "X-Callback-Secret";
+    private static final String REAL_IP_HEADER = "X-Real-IP";
 
     private final PaymentMetrics paymentMetrics;
 
@@ -75,7 +82,8 @@ public class CallbackGuardFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/api/callbacks");
+        // Trailing slash required to avoid matching /api/callbacks-admin or similar paths.
+        return !request.getRequestURI().startsWith("/api/callbacks/");
     }
 
     @Override
@@ -91,14 +99,19 @@ public class CallbackGuardFilter extends OncePerRequestFilter {
         boolean ipConfigured = !allowedIps.isEmpty();
 
         if (!secretConfigured && !ipConfigured) {
-            log.debug("No guards configured for callback path={} — dropping, relying on scheduler", path);
+            if (provider == null) {
+                // Path is under /api/callbacks/ but matches no known provider.
+                log.warn("Callback received for unrecognised path={} — dropping", path);
+            } else {
+                log.debug("No guards configured for callback path={} — dropping, relying on scheduler", path);
+            }
             response.setStatus(HttpServletResponse.SC_OK);
             return;
         }
 
         if (secretConfigured) {
             String incoming = request.getHeader(SECRET_HEADER);
-            if (!configuredSecret.equals(incoming)) {
+            if (!secretsEqual(configuredSecret, incoming)) {
                 log.warn("Callback dropped: secret mismatch for path={}", path);
                 if (provider != null) {
                     paymentMetrics.incrementCallbackRejected(provider, "invalid_secret");
@@ -109,7 +122,7 @@ public class CallbackGuardFilter extends OncePerRequestFilter {
         }
 
         if (ipConfigured) {
-            String clientIp = request.getRemoteAddr();
+            String clientIp = extractClientIp(request);
             if (!allowedIps.contains(clientIp)) {
                 log.warn("Callback dropped: IP {} not whitelisted for path={}", clientIp, path);
                 if (provider != null) {
@@ -121,6 +134,26 @@ public class CallbackGuardFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Constant-time secret comparison to prevent timing oracle attacks.
+     * MessageDigest.isEqual compares all bytes without short-circuiting on first mismatch.
+     */
+    private static boolean secretsEqual(String configured, String incoming) {
+        byte[] a = configured.getBytes(StandardCharsets.UTF_8);
+        byte[] b = (incoming != null ? incoming : "").getBytes(StandardCharsets.UTF_8);
+        return MessageDigest.isEqual(a, b);
+    }
+
+    /**
+     * Extracts the client IP. Prefers X-Real-IP (set by nginx Ingress and not overridable
+     * by clients through the Ingress) over remoteAddr (which Spring rewrites from
+     * X-Forwarded-For when forward-headers-strategy=framework is active).
+     */
+    private static String extractClientIp(HttpServletRequest request) {
+        String realIp = request.getHeader(REAL_IP_HEADER);
+        return (StringUtils.hasText(realIp)) ? realIp.trim() : request.getRemoteAddr();
     }
 
     private String getSecretForPath(String path) {
