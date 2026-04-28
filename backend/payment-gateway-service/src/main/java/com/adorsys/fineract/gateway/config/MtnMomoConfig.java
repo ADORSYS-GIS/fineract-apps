@@ -75,4 +75,5 @@ public class MtnMomoConfig {
      * Fineract GL routing happens via paymentTypeId → paymentChannelToFundSourceMappings.
      */
     private String glAccountCode = "43";
+    private String callbackSecret;
 }

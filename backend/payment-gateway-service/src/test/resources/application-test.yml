@@ -36,6 +36,7 @@ mtn:
     timeout-seconds: 5
     fineract-payment-type-id: 1
     gl-account-code: 123456
+    callback-secret: test-mtn-secret
 
 orange:
   money:
@@ -51,16 +52,31 @@ orange:
     timeout-seconds: 5
     fineract-payment-type-id: 2
     gl-account-code: 654321
+    callback-secret: test-orange-secret
 
 cinetpay:
   api-key: test-api-key
   site-id: 12345
   secret-key: test-secret-key
+  callback-secret: test-cinetpay-secret
   base-url: http://localhost:9997
   transfer-url: http://localhost:9997
   currency: XAF
   timeout-seconds: 5
   callback-url: http://localhost:8082/api/callbacks/cinetpay
+
+nokash:
+  enabled: true
+  base-url: http://localhost:9996
+  i-space-key: test-i-space-key
+  app-space-key: test-app-space-key
+  callback-url: http://localhost:8082/api/callbacks/nokash
+  country: CM
+  timeout-seconds: 5
+  currency: XAF
+  fineract-payment-type-id: 3
+  gl-account-code: 789
+  callback-secret: test-nokash-secret
 
 fineract:
   url: http://localhost:8443/fineract-provider
@@ -84,4 +100,7 @@ app:
     daily-withdrawal-max: 500000
   callbacks:
     ip-whitelist:
-      enabled: false
+      mtn:
+      orange:
+      cinetpay:
+      nokash:

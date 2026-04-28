@@ -79,4 +79,5 @@ public class OrangeMoneyConfig {
      * Fineract GL routing happens via paymentTypeId → paymentChannelToFundSourceMappings.
      */
     private String glAccountCode = "44";
+    private String callbackSecret;
 }

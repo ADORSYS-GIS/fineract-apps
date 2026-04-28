@@ -9,6 +9,12 @@ spring:
 app:
   security:
     permit-all-admin: true
+  callbacks:
+    ip-whitelist:
+      mtn: 127.0.0.1,0:0:0:0:0:0:0:1
+      orange: 127.0.0.1,0:0:0:0:0:0:0:1
+      cinetpay: 127.0.0.1,0:0:0:0:0:0:0:1
+      nokash: 127.0.0.1,0:0:0:0:0:0:0:1
 
 asset-service:
   settlement-currency: XAF

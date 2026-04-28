@@ -259,17 +259,24 @@ public class CallbackHandlerDelegate {
             return CallbackResult.noReversal();
         }
 
-        // Validate Orange notif_token to authenticate the callback
-        if (txn.getNotifToken() != null && !txn.getNotifToken().isEmpty()) {
-            if (callback.getNotifToken() == null || !txn.getNotifToken().equals(callback.getNotifToken())) {
-                log.warn("Orange callback notif_token mismatch for txnId={}: expected={}, received={}",
-                    txn.getTransactionId(), txn.getNotifToken(), callback.getNotifToken());
-                paymentMetrics.incrementCallbackRejected(PaymentProvider.ORANGE_MONEY, "invalid_notif_token");
+        // Validate Orange notif_token to authenticate the callback. Only enforced for deposits:
+        // Orange's WebPayment init returns notif_token, but the cashout endpoint does not, so
+        // withdrawal transactions never have one stored. Cashout callbacks are still protected by
+        // the CallbackGuardFilter (X-Callback-Secret header + IP whitelist).
+        if (txn.getType() == PaymentResponse.TransactionType.DEPOSIT) {
+            if (txn.getNotifToken() != null && !txn.getNotifToken().isEmpty()) {
+                if (callback.getNotifToken() == null || !txn.getNotifToken().equals(callback.getNotifToken())) {
+                    log.warn("Orange callback notif_token mismatch for txnId={}: expected={}, received={}",
+                        txn.getTransactionId(), txn.getNotifToken(), callback.getNotifToken());
+                    paymentMetrics.incrementCallbackRejected(PaymentProvider.ORANGE_MONEY, "invalid_notif_token");
+                    return CallbackResult.noReversal();
+                }
+            } else {
+                log.error("SECURITY: No notif_token stored for Orange deposit {} — rejecting callback.",
+                    txn.getTransactionId());
+                paymentMetrics.incrementCallbackRejected(PaymentProvider.ORANGE_MONEY, "missing_stored_token");
                 return CallbackResult.noReversal();
             }
-        } else {
-            log.warn("No notif_token stored for Orange transaction {}. Accepting callback without token validation.",
-                txn.getTransactionId());
         }
 
         if (txn.getStatus() == PaymentStatus.SUCCESSFUL || txn.getStatus() == PaymentStatus.FAILED) {
