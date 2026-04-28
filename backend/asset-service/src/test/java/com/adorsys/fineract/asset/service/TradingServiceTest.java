@@ -127,7 +127,8 @@ class TradingServiceTest {
         lenient().when(resolvedGlAccounts.getFundSourceId()).thenReturn(FUND_SOURCE_GL_ID);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECTION_ACCOUNT);
         lenient().when(resolvedGlAccounts.getClearingAccountId()).thenReturn(CLEARING_ACCOUNT_ID);
-        lenient().when(resolvedGlAccounts.getTradeSettlementPaymentTypeId()).thenReturn(2L);
+        lenient().when(resolvedGlAccounts.getBuyPaymentTypeId()).thenReturn(20L);
+        lenient().when(resolvedGlAccounts.getSellPaymentTypeId()).thenReturn(21L);
 
         // Market hours config
         AssetServiceConfig.MarketHours marketHours = new AssetServiceConfig.MarketHours();

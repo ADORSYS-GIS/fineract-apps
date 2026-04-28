@@ -93,7 +93,8 @@ class TradingServiceAccountingTest {
 
         lenient().when(resolvedGlAccounts.getClearingAccountId()).thenReturn(CLEARING);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECT);
-        lenient().when(resolvedGlAccounts.getTradeSettlementPaymentTypeId()).thenReturn(2L);
+        lenient().when(resolvedGlAccounts.getBuyPaymentTypeId()).thenReturn(20L);
+        lenient().when(resolvedGlAccounts.getSellPaymentTypeId()).thenReturn(21L);
         lenient().when(taxService.getRegistrationDutyAccountId()).thenReturn(TAX_REG_DUTY);
         lenient().when(taxService.getCapitalGainsAccountId()).thenReturn(TAX_CGT);
         lenient().when(taxService.getTvaAccountId()).thenReturn(TAX_TVA);
