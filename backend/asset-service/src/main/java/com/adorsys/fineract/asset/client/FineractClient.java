@@ -77,7 +77,7 @@ public class FineractClient {
      * unlike {@code POST /accounttransfers} which does not propagate {@code transferDescription}
      * to the linked savings transaction's {@code note} column.
      *
-     * @param paymentTypeId optional payment type DB ID; falls back to {@code 1L} if null
+     * @param paymentTypeId required payment type DB ID (mandatory per Fineract API)
      */
     public record BatchSavingsWithdrawOp(Long savingsAccountId, BigDecimal amount, String note, Long paymentTypeId) implements BatchOperation {}
 
@@ -86,7 +86,7 @@ public class FineractClient {
      * unlike {@code POST /accounttransfers} which does not propagate {@code transferDescription}
      * to the linked savings transaction's {@code note} column.
      *
-     * @param paymentTypeId optional payment type DB ID; falls back to {@code 1L} if null
+     * @param paymentTypeId required payment type DB ID (mandatory per Fineract API)
      */
     public record BatchSavingsDepositOp(Long savingsAccountId, BigDecimal amount, String note, Long paymentTypeId) implements BatchOperation {}
 
@@ -505,7 +505,7 @@ public class FineractClient {
             // TODO: resolve this via ResolvedGlAccounts.getTradeSettlementPaymentTypeId() if this method is
             //  ever used from trade settlement paths. Currently called only from AssetProvisioningService
             //  (fee deductions) and not from BUY/SELL batch flows.
-            body.put("paymentTypeId", 2); // Bank Transfer (hardcoded; not used in trade settlement)
+            body.put("paymentTypeId", 2); // TODO: resolve via GlAccountResolver — currently unused in trade paths
             body.put("note", note);
             body.put("locale", "en");
             body.put("dateFormat", "dd MMMM yyyy");
@@ -880,7 +880,7 @@ public class FineractClient {
                     body = new HashMap<>();
                     body.put("transactionDate", today);
                     body.put("transactionAmount", w.amount());
-                    body.put("paymentTypeId", w.paymentTypeId() != null ? w.paymentTypeId() : 1L);
+                    body.put("paymentTypeId", Objects.requireNonNull(w.paymentTypeId(), "paymentTypeId is required"));
                     body.put("locale", "en");
                     body.put("dateFormat", "dd MMMM yyyy");
                     if (w.note() != null) body.put("note", w.note());
@@ -890,7 +890,7 @@ public class FineractClient {
                     body = new HashMap<>();
                     body.put("transactionDate", today);
                     body.put("transactionAmount", d.amount());
-                    body.put("paymentTypeId", d.paymentTypeId() != null ? d.paymentTypeId() : 1L);
+                    body.put("paymentTypeId", Objects.requireNonNull(d.paymentTypeId(), "paymentTypeId is required"));
                     body.put("locale", "en");
                     body.put("dateFormat", "dd MMMM yyyy");
                     if (d.note() != null) body.put("note", d.note());
