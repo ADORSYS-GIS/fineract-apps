@@ -4,10 +4,17 @@ package com.adorsys.fineract.gateway.dto;
  * Supported payment providers.
  */
 public enum PaymentProvider {
+    // Corresponds to Fineract payment type ID 1 in asset-demo.yml
     MTN_MOMO("mtn_transfer", "MTN Mobile Money"),
+
+    // Corresponds to Fineract payment type ID 2 in asset-demo.yml
     ORANGE_MONEY("orange_transfer", "Orange Money"),
+
     CINETPAY("cinetpay", "CinetPay (Gateway)"),
+
+    // Corresponds to Fineract payment type ID 3 in asset-demo.yml
     NOKASH("nokash", "Nokash"),
+
     UBA_BANK("uba_bank_transfer", "UBA Bank Transfer"),
     AFRILAND_BANK("afriland_bank_transfer", "Afriland Bank Transfer");
 
