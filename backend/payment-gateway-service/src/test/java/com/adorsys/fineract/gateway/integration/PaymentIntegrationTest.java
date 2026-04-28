@@ -73,6 +73,10 @@ class PaymentIntegrationTest {
     private static final Long ACCOUNT_ID = 456L;
     private static final String PHONE = "+237612345678";
 
+    // Must match values in application-test.yml
+    private static final String MTN_SECRET    = "test-mtn-secret";
+    private static final String NOKASH_SECRET = "test-nokash-secret";
+
     @BeforeEach
     void setUp() {
         lenient().when(paymentMetrics.startTimer())
@@ -132,7 +136,8 @@ class PaymentIntegrationTest {
                 .thenReturn(999L);
         when(mtnClient.getCollectionStatus(transactionId)).thenReturn(PaymentStatus.SUCCESSFUL);
 
-        mockMvc.perform(post("/api/callbacks/mtn/collection/" + transactionId))
+        mockMvc.perform(post("/api/callbacks/mtn/collection/" + transactionId)
+                        .header("X-Callback-Secret", MTN_SECRET))
                 .andExpect(status().isOk());
 
         // Step 3: Verify SUCCESSFUL in DB
@@ -193,6 +198,7 @@ class PaymentIntegrationTest {
                 .thenReturn(1000L);
 
         mockMvc.perform(post("/api/callbacks/nokash/" + transactionId)
+                        .header("X-Callback-Secret", NOKASH_SECRET)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(callbackRequest)))
                 .andExpect(status().isOk());
@@ -298,7 +304,8 @@ class PaymentIntegrationTest {
         String withdrawalTxnId = processingTxnForCallback.get().getTransactionId();
         when(mtnClient.getDisbursementStatus(withdrawalTxnId)).thenReturn(PaymentStatus.SUCCESSFUL);
 
-        mockMvc.perform(post("/api/callbacks/mtn/disbursement/" + withdrawalTxnId))
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/" + withdrawalTxnId)
+                        .header("X-Callback-Secret", MTN_SECRET))
                 .andExpect(status().isOk());
 
         // Verify SUCCESSFUL in DB
@@ -345,7 +352,8 @@ class PaymentIntegrationTest {
         String withdrawalTxnId = processingTxnForCallback.get().getTransactionId();
         when(mtnClient.getDisbursementStatus(withdrawalTxnId)).thenReturn(PaymentStatus.FAILED);
 
-        mockMvc.perform(post("/api/callbacks/mtn/disbursement/" + withdrawalTxnId))
+        mockMvc.perform(post("/api/callbacks/mtn/disbursement/" + withdrawalTxnId)
+                        .header("X-Callback-Secret", MTN_SECRET))
                 .andExpect(status().isOk());
 
         // Verify FAILED in DB and reversal was called
@@ -402,14 +410,69 @@ class PaymentIntegrationTest {
 
     @Test
     @Order(7)
-    @DisplayName("should allow callback without authentication")
-    void callback_mtn_noAuth_returns200() throws Exception {
-        // Path-based endpoint: no body needed, referenceId is in the URL
-        // mtnClient.getCollectionStatus will be called — stub it to avoid NPE
-        when(mtnClient.getCollectionStatus("ref-no-auth")).thenReturn(PaymentStatus.PENDING);
-
-        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-no-auth"))
+    @DisplayName("callback with wrong secret is silently dropped — returns 200, guard relies on scheduler")
+    void callback_mtn_wrongSecret_droppedWith200() throws Exception {
+        mockMvc.perform(post("/api/callbacks/mtn/collection/ref-no-auth")
+                        .header("X-Callback-Secret", "wrong-secret"))
                 .andExpect(status().isOk());
+
+        verify(mtnClient, never()).getCollectionStatus(any());
+    }
+
+    // =========================================================================
+    // Callback Guard Tests
+    // =========================================================================
+
+    @Test
+    @Order(20)
+    @DisplayName("nokash callback with no secret header is silently dropped — no DB change")
+    void callback_nokash_noSecret_droppedWithNoDbChange() throws Exception {
+        String transactionId = UUID.randomUUID().toString();
+
+        mockMvc.perform(post("/api/callbacks/nokash/" + transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"SUCCESS\",\"amount\":\"10000\"}"))
+                .andExpect(status().isOk());
+
+        assertThat(transactionRepository.findById(transactionId)).isEmpty();
+        verify(fineractClient, never()).createDeposit(any(), any(), any(), any());
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("nokash callback with correct secret is processed")
+    void callback_nokash_correctSecret_processed() throws Exception {
+        when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
+        when(nokashClient.initiatePayin(anyString(), any(), eq(PHONE), anyString())).thenReturn("nokash-ref-guard");
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        MvcResult depositResult = mockMvc.perform(post("/api/payments/deposit")
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
+                        .header("X-Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(DepositRequest.builder()
+                                .externalId(EXTERNAL_ID).accountId(ACCOUNT_ID)
+                                .amount(BigDecimal.valueOf(5000))
+                                .provider(PaymentProvider.NOKASH).phoneNumber(PHONE)
+                                .paymentMethod("MTN_MOMO").build())))
+                .andExpect(status().isOk()).andReturn();
+
+        String transactionId = objectMapper.readTree(depositResult.getResponse().getContentAsString())
+                .get("transactionId").asText();
+        when(fineractClient.createDeposit(eq(ACCOUNT_ID), any(), anyLong(), anyString())).thenReturn(2000L);
+
+        NokashCallbackRequest cb = NokashCallbackRequest.builder()
+                .orderId(transactionId).status("SUCCESS").amount("5000").reference("ref-guard").build();
+
+        mockMvc.perform(post("/api/callbacks/nokash/" + transactionId)
+                        .header("X-Callback-Secret", NOKASH_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(cb)))
+                .andExpect(status().isOk());
+
+        assertThat(transactionRepository.findById(transactionId))
+                .isPresent()
+                .hasValueSatisfying(t -> assertThat(t.getStatus()).isEqualTo(PaymentStatus.SUCCESSFUL));
     }
 
     // =========================================================================
@@ -495,6 +558,122 @@ class PaymentIntegrationTest {
     // =========================================================================
     // Validation
     // =========================================================================
+
+    // =========================================================================
+    // Nokash Timeout Scenario Tests
+    // =========================================================================
+
+    @Test
+    @Order(22)
+    @DisplayName("nokash payout timeout leaves withdrawal in PROCESSING — no immediate reversal")
+    void nokashWithdrawal_timeout_staysProcessing() throws Exception {
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
+        when(fineractClient.getSavingsAccount(ACCOUNT_ID)).thenReturn(Map.of("availableBalance", 50000));
+        when(fineractClient.createWithdrawal(eq(ACCOUNT_ID), any(), anyLong(), anyString())).thenReturn(777L);
+        when(nokashClient.getTemporaryAuthKey()).thenReturn("test-auth-key");
+        when(nokashClient.initiatePayout(anyString(), anyString(), any(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("timeout", new java.util.concurrent.TimeoutException("simulated Nokash payout timeout")));
+
+        WithdrawalRequest request = WithdrawalRequest.builder()
+                .externalId(EXTERNAL_ID).accountId(ACCOUNT_ID)
+                .amount(BigDecimal.valueOf(3000))
+                .provider(PaymentProvider.NOKASH).phoneNumber(PHONE)
+                .paymentMethod("MTN_MOMO").build();
+
+        mockMvc.perform(post("/api/payments/withdraw")
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
+                        .header("X-Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)));
+
+        Optional<PaymentTransaction> txn = transactionRepository.findByIdempotencyKey(idempotencyKey);
+        assertThat(txn).isPresent();
+        assertThat(txn.get().getStatus()).isEqualTo(PaymentStatus.PROCESSING);
+        assertThat(txn.get().getFineractTransactionId()).isEqualTo(777L);
+        verify(fineractClient, never()).createDeposit(eq(ACCOUNT_ID), any(), anyLong(), startsWith("REVERSAL-"));
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("stale PROCESSING withdrawal resolved as SUCCESSFUL — no reversal triggered")
+    void nokashWithdrawal_processing_reconcilerConfirmsSuccess() throws Exception {
+        when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
+        when(fineractClient.getSavingsAccount(ACCOUNT_ID)).thenReturn(Map.of("availableBalance", 50000));
+        when(fineractClient.createWithdrawal(eq(ACCOUNT_ID), any(), anyLong(), anyString())).thenReturn(888L);
+        when(nokashClient.getTemporaryAuthKey()).thenReturn("test-auth-key");
+        when(nokashClient.initiatePayout(anyString(), anyString(), any(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("timeout", new java.util.concurrent.TimeoutException("simulated timeout")));
+
+        String idempotencyKey = UUID.randomUUID().toString();
+        mockMvc.perform(post("/api/payments/withdraw")
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
+                        .header("X-Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(WithdrawalRequest.builder()
+                                .externalId(EXTERNAL_ID).accountId(ACCOUNT_ID)
+                                .amount(BigDecimal.valueOf(3000))
+                                .provider(PaymentProvider.NOKASH).phoneNumber(PHONE)
+                                .paymentMethod("MTN_MOMO").build())));
+
+        PaymentTransaction txn = transactionRepository.findByIdempotencyKey(idempotencyKey).orElseThrow();
+        assertThat(txn.getStatus()).isEqualTo(PaymentStatus.PROCESSING);
+
+        // Stale reconciler polls Nokash → confirms SUCCESS
+        when(nokashClient.getTransactionStatus(any())).thenReturn(PaymentStatus.SUCCESSFUL);
+
+        NokashCallbackRequest successCb = NokashCallbackRequest.builder()
+                .orderId(txn.getTransactionId()).status("SUCCESS").build();
+        mockMvc.perform(post("/api/callbacks/nokash/" + txn.getTransactionId())
+                        .header("X-Callback-Secret", NOKASH_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(successCb)))
+                .andExpect(status().isOk());
+
+        Optional<PaymentTransaction> resolved = transactionRepository.findByIdempotencyKey(idempotencyKey);
+        assertThat(resolved.get().getStatus()).isEqualTo(PaymentStatus.SUCCESSFUL);
+        verify(fineractClient, never()).createDeposit(eq(ACCOUNT_ID), any(), anyLong(), startsWith("REVERSAL-"));
+    }
+
+    @Test
+    @Order(24)
+    @DisplayName("stale PROCESSING withdrawal confirmed FAILED by provider — Fineract is reversed")
+    void nokashWithdrawal_processing_reconcilerConfirmsFailure_reverses() throws Exception {
+        when(fineractClient.verifyAccountOwnership(EXTERNAL_ID, ACCOUNT_ID)).thenReturn(true);
+        when(fineractClient.getSavingsAccount(ACCOUNT_ID)).thenReturn(Map.of("availableBalance", 50000));
+        when(fineractClient.createWithdrawal(eq(ACCOUNT_ID), any(), anyLong(), anyString())).thenReturn(999L);
+        when(nokashClient.getTemporaryAuthKey()).thenReturn("test-auth-key");
+        when(nokashClient.initiatePayout(anyString(), anyString(), any(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("timeout", new java.util.concurrent.TimeoutException("simulated timeout")));
+
+        String idempotencyKey = UUID.randomUUID().toString();
+        mockMvc.perform(post("/api/payments/withdraw")
+                        .with(jwt().jwt(j -> j.subject(EXTERNAL_ID)))
+                        .header("X-Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(WithdrawalRequest.builder()
+                                .externalId(EXTERNAL_ID).accountId(ACCOUNT_ID)
+                                .amount(BigDecimal.valueOf(3000))
+                                .provider(PaymentProvider.NOKASH).phoneNumber(PHONE)
+                                .paymentMethod("MTN_MOMO").build())));
+
+        PaymentTransaction txn = transactionRepository.findByIdempotencyKey(idempotencyKey).orElseThrow();
+        assertThat(txn.getStatus()).isEqualTo(PaymentStatus.PROCESSING);
+
+        // Callback arrives confirming FAILED → reversal must be triggered
+        NokashCallbackRequest failedCb = NokashCallbackRequest.builder()
+                .orderId(txn.getTransactionId()).status("FAILED").build();
+        mockMvc.perform(post("/api/callbacks/nokash/" + txn.getTransactionId())
+                        .header("X-Callback-Secret", NOKASH_SECRET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(failedCb)))
+                .andExpect(status().isOk());
+
+        Optional<PaymentTransaction> resolved = transactionRepository.findByIdempotencyKey(idempotencyKey);
+        assertThat(resolved.get().getStatus()).isEqualTo(PaymentStatus.FAILED);
+        verify(fineractClient).createDeposit(eq(ACCOUNT_ID), any(), anyLong(), startsWith("REVERSAL-"));
+    }
 
     @Test
     @Order(10)
