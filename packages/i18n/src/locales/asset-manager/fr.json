@@ -1,0 +1,93 @@
+{
+	"translation": {
+		"assetManager": {
+			"appTitle": "Gestionnaire d'actifs",
+			"common": {
+				"actions": "Actions",
+				"back": "Retour",
+				"cancel": "Annuler",
+				"close": "Fermer",
+				"confirm": "Confirmer",
+				"create": "Créer",
+				"delete": "Supprimer",
+				"edit": "Modifier",
+				"loading": "Chargement...",
+				"manage": "Gérer",
+				"retry": "Réessayer",
+				"save": "Enregistrer",
+				"search": "Rechercher",
+				"submit": "Valider",
+				"empty": "—"
+			},
+			"navbar": {
+				"welcome": "Bienvenue",
+				"toggleDarkMode": "Basculer le mode sombre",
+				"logout": "Se déconnecter"
+			},
+			"language": {
+				"label": "Langue",
+				"english": "English",
+				"french": "Français"
+			},
+			"settings": {
+				"title": "Paramètres",
+				"applicationInfo": "Informations sur l'application",
+				"apiVersion": "Version de l'API",
+				"releaseTag": "Étiquette de version",
+				"assetManager": "Gestionnaire d'actifs",
+				"assetService": "Service des actifs"
+			},
+			"dashboard": {
+				"title": "Catalogue des actifs",
+				"market": "Marché",
+				"marketOpen": "Ouvert",
+				"marketClosed": "Fermé",
+				"searchPlaceholder": "Rechercher des actifs...",
+				"importAssets": "Importer des actifs",
+				"createAsset": "Créer un actif",
+				"createFirstAsset": "Créez votre premier actif",
+				"manageAsset": "Gérer",
+				"filterByCategory": "Filtrer par catégorie",
+				"settlementsPending": "{{count}} règlement(s) en attente",
+				"settlementsApproved": "{{count}} approuvé(s) et prêt(s) à être exécuté(s)",
+				"settlementsAwaitingApproval": "En attente d'approbation",
+				"viewSettlements": "Voir les règlements",
+				"loadAssetsFailed": "Échec du chargement des actifs.",
+				"noAssets": "Aucun actif trouvé.",
+				"stats": {
+					"assets": "Actifs",
+					"trading24h": "Transactions (24 h)",
+					"orderHealth": "Santé des ordres",
+					"active": "actifs",
+					"pending": "{{count}} en attente",
+					"halted": "{{count}} suspendus",
+					"total": "{{count}} au total",
+					"investors": "{{count}} investisseurs",
+					"trades": "transactions",
+					"buy": "Achat {{volume}}",
+					"sell": "Vente {{volume}}",
+					"traders": "{{count}} traders",
+					"issues": "incidents",
+					"stuck": "{{count}} bloqués",
+					"failed": "{{count}} échoués",
+					"allClear": "Tout est en ordre"
+				},
+				"table": {
+					"name": "Nom",
+					"symbol": "Symbole",
+					"priceXaf": "Prix (XAF)",
+					"change24h": "Variation 24 h",
+					"available": "Disponible",
+					"status": "Statut",
+					"actions": "Actions",
+					"caption": "Catalogue des actifs",
+					"region": "Tableau du catalogue des actifs"
+				}
+			},
+			"errors": {
+				"genericTitle": "Une erreur s'est produite",
+				"genericMessage": "Veuillez réessayer ou contacter le support si le problème persiste."
+			}
+		}
+	}
+}

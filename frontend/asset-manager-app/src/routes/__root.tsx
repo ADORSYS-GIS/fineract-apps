@@ -1,6 +1,7 @@
 import {
 	AppLayout,
 	Button,
+	LanguageSwitcher,
 	menuAssetManager,
 	Navbar,
 	Sidebar,
@@ -52,7 +53,11 @@ function RootLayout() {
 			<AppLayout
 				sidebar={
 					<Sidebar
-						logo={<h1 className="text-lg font-bold">Asset Manager</h1>}
+						logo={
+							<h1 className="text-lg font-bold">
+								{t("assetManager.appTitle")}
+							</h1>
+						}
 						menuItems={menuAssetManager}
 						onLogout={onLogout}
 						onNavigate={(to: string) => navigate({ to })}
@@ -63,16 +68,17 @@ function RootLayout() {
 					<Navbar
 						logo={
 							<h1 className="text-lg font-bold">
-								{t("welcome")}, {userData?.displayName}
+								{t("assetManager.navbar.welcome")}, {userData?.displayName}
 							</h1>
 						}
 						links={null}
 						notifications={
 							<div className="flex items-center gap-2">
+								<LanguageSwitcher />
 								<button
 									onClick={toggleDarkMode}
 									className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-									aria-label="Toggle dark mode"
+									aria-label={t("assetManager.navbar.toggleDarkMode")}
 								>
 									{isDark ? (
 										<Sun className="w-5 h-5" />
@@ -88,7 +94,11 @@ function RootLayout() {
 								<UserCircle className="w-5 h-5 text-gray-600" />
 							</div>
 						}
-						actions={<Button onClick={onLogout}>Logout</Button>}
+						actions={
+							<Button onClick={onLogout}>
+								{t("assetManager.navbar.logout")}
+							</Button>
+						}
 						onToggleMenu={() => {
 							/* noop */
 						}}

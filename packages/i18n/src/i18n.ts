@@ -8,6 +8,8 @@ import enAccounting from "./locales/accounting/en.json";
 import frAccounting from "./locales/accounting/fr.json";
 import enAdmin from "./locales/admin/en.json";
 import frAdmin from "./locales/admin/fr.json";
+import enAssetManager from "./locales/asset-manager/en.json";
+import frAssetManager from "./locales/asset-manager/fr.json";
 import enBranchManager from "./locales/branch-manager/en.json";
 import frBranchManager from "./locales/branch-manager/fr.json";
 import enCashier from "./locales/cashier/en.json";
@@ -31,6 +33,7 @@ i18n
 			en: {
 				translation: {
 					...enAccountManager,
+					...enAssetManager.translation,
 					...enBranchManager.translation,
 					...enCashier.translation,
 					...enAccounting.translation,
@@ -43,6 +46,7 @@ i18n
 			fr: {
 				translation: {
 					...frAccountManager,
+					...frAssetManager.translation,
 					...frBranchManager.translation,
 					...frCashier.translation,
 					...frAccounting.translation,
