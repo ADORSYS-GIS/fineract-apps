@@ -2,6 +2,7 @@ import { Button, Card, Pagination, SearchBar } from "@fineract-apps/ui";
 import { Link } from "@tanstack/react-router";
 import { PlusCircle, Upload } from "lucide-react";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { ErrorFallback } from "@/components/ErrorFallback";
 import { ExportTemplateMenu } from "@/components/ExportTemplateMenu";
 import { ImportAssetsDialog } from "@/components/ImportAssetsDialog";
@@ -12,9 +13,8 @@ import {
 	BOND_FILTER_OPTIONS,
 	BOND_ONLY_MODE,
 } from "@/constants/categories";
+import { formatNumber } from "@/lib/format";
 import { useDashboard } from "./useDashboard";
-
-const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
 
 const StatCard: FC<{
 	title: string;
@@ -48,16 +48,20 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 	onOpenImport,
 	onCloseImport,
 }) => {
+	const { t } = useTranslation();
+
 	return (
 		<div className="bg-gray-50 min-h-screen">
 			<main className="p-4 sm:p-6 lg:p-8">
 				{/* Header */}
 				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
 					<div>
-						<h1 className="text-2xl font-bold text-gray-800">Asset Catalog</h1>
+						<h1 className="text-2xl font-bold text-gray-800">
+							{t("assetManager.dashboard.title")}
+						</h1>
 						{marketStatus && (
 							<p className="text-sm text-gray-500 mt-1">
-								Market:{" "}
+								{t("assetManager.dashboard.market")}:{" "}
 								<span
 									className={
 										marketStatus.isOpen
@@ -65,7 +69,9 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 											: "text-red-600 font-medium"
 									}
 								>
-									{marketStatus.isOpen ? "Open" : "Closed"}
+									{marketStatus.isOpen
+										? t("assetManager.dashboard.marketOpen")
+										: t("assetManager.dashboard.marketClosed")}
 								</span>{" "}
 								({marketStatus.schedule})
 							</p>
@@ -76,7 +82,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 							value={searchValue}
 							onValueChange={onSearchValueChange}
 							onSearch={onSearch}
-							placeholder="Search assets..."
+							placeholder={t("assetManager.dashboard.searchPlaceholder")}
 							className="w-full md:w-64"
 						/>
 						<ExportTemplateMenu />
@@ -86,12 +92,12 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 							className="flex items-center gap-2 whitespace-nowrap"
 						>
 							<Upload className="h-4 w-4" />
-							<span>Import Assets</span>
+							<span>{t("assetManager.dashboard.importAssets")}</span>
 						</Button>
 						<Link to="/create-asset">
 							<Button className="flex items-center gap-2 whitespace-nowrap">
 								<PlusCircle className="h-4 w-4" />
-								<span>Create Asset</span>
+								<span>{t("assetManager.dashboard.createAsset")}</span>
 							</Button>
 						</Link>
 					</div>
@@ -101,7 +107,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 				<div
 					className="flex gap-2 mb-6 flex-wrap"
 					role="group"
-					aria-label="Filter by category"
+					aria-label={t("assetManager.dashboard.filterByCategory")}
 				>
 					{(BOND_ONLY_MODE
 						? BOND_FILTER_OPTIONS
@@ -125,42 +131,68 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 				{/* Dashboard Summary */}
 				{dashboardSummary && (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-						<StatCard title="Assets">
+						<StatCard title={t("assetManager.dashboard.stats.assets")}>
 							<p className="text-2xl font-bold text-gray-900">
 								{dashboardSummary.assets.active}
 								<span className="text-sm font-normal text-gray-500">
 									{" "}
-									active
+									{t("assetManager.dashboard.stats.active")}
 								</span>
 							</p>
 							<div className="flex gap-3 mt-1 text-xs text-gray-500">
-								<span>{dashboardSummary.assets.pending} pending</span>
-								<span>{dashboardSummary.assets.halted} halted</span>
-								<span>{dashboardSummary.assets.total} total</span>
-								<span>{dashboardSummary.activeInvestors} investors</span>
+								<span>
+									{t("assetManager.dashboard.stats.pending", {
+										count: dashboardSummary.assets.pending,
+									})}
+								</span>
+								<span>
+									{t("assetManager.dashboard.stats.halted", {
+										count: dashboardSummary.assets.halted,
+									})}
+								</span>
+								<span>
+									{t("assetManager.dashboard.stats.total", {
+										count: dashboardSummary.assets.total,
+									})}
+								</span>
+								<span>
+									{t("assetManager.dashboard.stats.investors", {
+										count: dashboardSummary.activeInvestors,
+									})}
+								</span>
 							</div>
 						</StatCard>
 
-						<StatCard title="Trading (24h)">
+						<StatCard title={t("assetManager.dashboard.stats.trading24h")}>
 							<p className="text-2xl font-bold text-gray-900">
 								{dashboardSummary.trading.tradeCount24h}
 								<span className="text-sm font-normal text-gray-500">
 									{" "}
-									trades
+									{t("assetManager.dashboard.stats.trades")}
 								</span>
 							</p>
 							<div className="flex gap-3 mt-1 text-xs text-gray-500">
 								<span className="text-green-600">
-									Buy {fmt(dashboardSummary.trading.buyVolume24h)}
+									{t("assetManager.dashboard.stats.buy", {
+										volume: formatNumber(dashboardSummary.trading.buyVolume24h),
+									})}
 								</span>
 								<span className="text-red-600">
-									Sell {fmt(dashboardSummary.trading.sellVolume24h)}
+									{t("assetManager.dashboard.stats.sell", {
+										volume: formatNumber(
+											dashboardSummary.trading.sellVolume24h,
+										),
+									})}
 								</span>
-								<span>{dashboardSummary.trading.activeTraders24h} traders</span>
+								<span>
+									{t("assetManager.dashboard.stats.traders", {
+										count: dashboardSummary.trading.activeTraders24h,
+									})}
+								</span>
 							</div>
 						</StatCard>
 
-						<StatCard title="Order Health">
+						<StatCard title={t("assetManager.dashboard.stats.orderHealth")}>
 							{dashboardSummary.orders.needsReconciliation +
 								dashboardSummary.orders.failed >
 							0 ? (
@@ -168,17 +200,28 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 									<p className="text-2xl font-bold text-red-600">
 										{dashboardSummary.orders.needsReconciliation +
 											dashboardSummary.orders.failed}
-										<span className="text-sm font-normal"> issues</span>
+										<span className="text-sm font-normal">
+											{" "}
+											{t("assetManager.dashboard.stats.issues")}
+										</span>
 									</p>
 									<div className="flex gap-3 mt-1 text-xs text-gray-500">
 										<span>
-											{dashboardSummary.orders.needsReconciliation} stuck
+											{t("assetManager.dashboard.stats.stuck", {
+												count: dashboardSummary.orders.needsReconciliation,
+											})}
 										</span>
-										<span>{dashboardSummary.orders.failed} failed</span>
+										<span>
+											{t("assetManager.dashboard.stats.failed", {
+												count: dashboardSummary.orders.failed,
+											})}
+										</span>
 									</div>
 								</>
 							) : (
-								<p className="text-2xl font-bold text-green-600">All clear</p>
+								<p className="text-2xl font-bold text-green-600">
+									{t("assetManager.dashboard.stats.allClear")}
+								</p>
 							)}
 						</StatCard>
 					</div>
@@ -189,33 +232,42 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 					<div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 flex items-center justify-between">
 						<div>
 							<p className="font-semibold text-yellow-800 dark:text-yellow-200">
-								{settlementSummary.pendingCount} pending settlement(s)
+								{t("assetManager.dashboard.settlementsPending", {
+									count: settlementSummary.pendingCount,
+								})}
 							</p>
 							<p className="text-sm text-yellow-600 dark:text-yellow-400">
 								{settlementSummary.approvedCount > 0
-									? `${settlementSummary.approvedCount} approved and ready for execution`
-									: "Awaiting approval"}
+									? t("assetManager.dashboard.settlementsApproved", {
+											count: settlementSummary.approvedCount,
+										})
+									: t("assetManager.dashboard.settlementsAwaitingApproval")}
 							</p>
 						</div>
 						<Link
 							to="/settlement"
 							className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm"
 						>
-							View Settlements
+							{t("assetManager.dashboard.viewSettlements")}
 						</Link>
 					</div>
 				)}
 
 				{/* Assets Table */}
 				{isAssetsError ? (
-					<ErrorFallback message="Failed to load assets." onRetry={refetch} />
+					<ErrorFallback
+						message={t("assetManager.dashboard.loadAssetsFailed")}
+						onRetry={refetch}
+					/>
 				) : isFetchingAssets ? (
 					<TableSkeleton rows={5} cols={6} />
 				) : assets.length === 0 ? (
 					<Card className="p-12 text-center">
-						<p className="text-gray-500">No assets found.</p>
+						<p className="text-gray-500">
+							{t("assetManager.dashboard.noAssets")}
+						</p>
 						<Link to="/create-asset" className="mt-4 inline-block">
-							<Button>Create your first asset</Button>
+							<Button>{t("assetManager.dashboard.createFirstAsset")}</Button>
 						</Link>
 					</Card>
 				) : (
@@ -223,34 +275,34 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 						<div
 							className="bg-white rounded-lg shadow overflow-hidden"
 							role="region"
-							aria-label="Asset catalog table"
+							aria-label={t("assetManager.dashboard.table.region")}
 						>
 							<table
 								className="min-w-full divide-y divide-gray-200"
-								aria-label="Asset catalog"
+								aria-label={t("assetManager.dashboard.table.caption")}
 							>
 								<thead className="bg-gray-50">
 									<tr>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-											Name
+											{t("assetManager.dashboard.table.name")}
 										</th>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-											Symbol
+											{t("assetManager.dashboard.table.symbol")}
 										</th>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-											Price (XAF)
+											{t("assetManager.dashboard.table.priceXaf")}
 										</th>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-											24h Change
+											{t("assetManager.dashboard.table.change24h")}
 										</th>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-											Available
+											{t("assetManager.dashboard.table.available")}
 										</th>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-											Status
+											{t("assetManager.dashboard.table.status")}
 										</th>
 										<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-											Actions
+											{t("assetManager.dashboard.table.actions")}
 										</th>
 									</tr>
 								</thead>
@@ -269,7 +321,9 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 												{asset.symbol}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-												{asset.askPrice?.toLocaleString() ?? "—"}
+												{asset.askPrice != null
+													? formatNumber(asset.askPrice)
+													: "—"}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm">
 												<span
@@ -284,7 +338,9 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 												</span>
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-												{asset.availableSupply?.toLocaleString() ?? "—"}
+												{asset.availableSupply != null
+													? formatNumber(asset.availableSupply)
+													: "—"}
 											</td>
 											<td className="px-6 py-4 whitespace-nowrap">
 												<StatusBadge status={asset.status} />
@@ -295,7 +351,7 @@ export const DashboardView: FC<ReturnType<typeof useDashboard>> = ({
 													params={{ assetId: asset.id }}
 												>
 													<Button variant="outline" className="text-xs">
-														Manage
+														{t("assetManager.dashboard.manageAsset")}
 													</Button>
 												</Link>
 											</td>

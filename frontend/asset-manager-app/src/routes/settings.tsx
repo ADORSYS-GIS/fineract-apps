@@ -35,28 +35,36 @@ function Settings() {
 		<div className="bg-gray-50 min-h-screen">
 			<main className="p-4 sm:p-6 lg:p-8">
 				<h1 className="text-2xl font-bold text-gray-800 mb-6">
-					{t("sidebar.settings")}
+					{t("assetManager.settings.title")}
 				</h1>
 
 				<Card className="p-6 max-w-lg">
 					<h2 className="text-lg font-semibold text-gray-800 mb-4">
-						Application Info
+						{t("assetManager.settings.applicationInfo")}
 					</h2>
 					<div className="space-y-4 text-sm">
 						<div className="flex justify-between">
-							<span className="text-gray-500">API Version</span>
+							<span className="text-gray-500">
+								{t("assetManager.settings.apiVersion")}
+							</span>
 							<span className="font-mono text-gray-900">{apiVersion}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-gray-500">Release Tag</span>
+							<span className="text-gray-500">
+								{t("assetManager.settings.releaseTag")}
+							</span>
 							<span className="font-mono text-gray-900">{__BUILD_TAG__}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-gray-500">Asset Manager</span>
+							<span className="text-gray-500">
+								{t("assetManager.settings.assetManager")}
+							</span>
 							<span className="font-mono text-gray-900">{__COMMIT_SHA__}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-gray-500">Asset Service</span>
+							<span className="text-gray-500">
+								{t("assetManager.settings.assetService")}
+							</span>
 							<span className="font-mono text-gray-900">
 								{backendVersion && backendVersion.commit !== "unknown"
 									? `${backendVersion.commit} (${backendVersion.branch})`
