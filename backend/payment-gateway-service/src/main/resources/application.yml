@@ -33,8 +33,8 @@ spring:
   # JPA configuration
   jpa:
     hibernate:
-      ddl-auto: validate  # Flyway handles schema, Hibernate only validates
-    open-in-view: false   
+      ddl-auto: validate # Flyway handles schema, Hibernate only validates
+    open-in-view: false
     properties:
       hibernate:
         jdbc:
@@ -65,7 +65,7 @@ mtn:
     callback-url: ${MTN_CALLBACK_URL:http://localhost:8082/api/callbacks}
     currency: ${MTN_CURRENCY:EUR}
     timeout-seconds: 60
-    fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:1}
+    fineract-payment-type-id: ${MTN_FINERACT_PAYMENT_TYPE_ID:2}
     gl-account-code: ${MTN_GL_ACCOUNT_CODE:}
     callback-secret: ${MTN_CALLBACK_SECRET:}
 
@@ -82,7 +82,7 @@ orange:
     cancel-url: ${ORANGE_CANCEL_URL:http://localhost:3000/self-service/transactions}
     currency: ${ORANGE_CURRENCY:XAF}
     timeout-seconds: 30
-    fineract-payment-type-id: ${ORANGE_FINERACT_PAYMENT_TYPE_ID:2}
+    fineract-payment-type-id: ${ORANGE_FINERACT_PAYMENT_TYPE_ID:3}
     gl-account-code: ${ORANGE_GL_ACCOUNT_CODE:}
     callback-secret: ${ORANGE_CALLBACK_SECRET:}
 
@@ -94,7 +94,7 @@ cinetpay:
   api-key: ${CINETPAY_API_KEY:}
   site-id: ${CINETPAY_SITE_ID:}
   api-password: ${CINETPAY_API_PASSWORD:}
-  transfer-password: ${CINETPAY_TRANSFER_PASSWORD:} 
+  transfer-password: ${CINETPAY_TRANSFER_PASSWORD:}
   secret-key: ${CINETPAY_SECRET_KEY:}
   callback-secret: ${CINETPAY_CALLBACK_SECRET:}
   currency: ${CINETPAY_CURRENCY:XAF}
@@ -110,7 +110,7 @@ nokash:
   country: "CM"
   timeout-seconds: 90
   currency: ${NOKASH_CURRENCY:XAF}
-  fineract-payment-type-id: ${NOKASH_FINERACT_PAYMENT_TYPE_ID:3}
+  fineract-payment-type-id: ${NOKASH_FINERACT_PAYMENT_TYPE_ID:4}
   gl-account-code: ${NOKASH_GL_ACCOUNT_CODE:}
   callback-secret: ${NOKASH_CALLBACK_SECRET:}
 
@@ -217,7 +217,6 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
-
 ---
 # Kubernetes Profile
 spring:
@@ -286,4 +285,3 @@ springdoc:
     enabled: false
   api-docs:
     enabled: false
-
