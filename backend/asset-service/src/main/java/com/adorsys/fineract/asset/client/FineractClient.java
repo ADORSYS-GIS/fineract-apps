@@ -873,7 +873,6 @@ public class FineractClient {
                     body = new HashMap<>();
                     body.put("transactionDate", today);
                     body.put("transactionAmount", w.amount());
-                    body.put("paymentTypeId", 2);
                     body.put("locale", "en");
                     body.put("dateFormat", "dd MMMM yyyy");
                     if (w.note() != null) body.put("note", w.note());
@@ -883,7 +882,6 @@ public class FineractClient {
                     body = new HashMap<>();
                     body.put("transactionDate", today);
                     body.put("transactionAmount", d.amount());
-                    body.put("paymentTypeId", 2);
                     body.put("locale", "en");
                     body.put("dateFormat", "dd MMMM yyyy");
                     if (d.note() != null) body.put("note", d.note());

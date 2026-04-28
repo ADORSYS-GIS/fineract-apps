@@ -675,7 +675,7 @@ class TradingServiceTest {
         // Verify batch contains expected ops (clearing pattern + revenue recognition + TVA)
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        assertTrue(ops.size() >= 4, "Should have at least 4 batch ops, got: " + ops.size());
+        assertEquals(7, ops.size()); // withdraw(user), deposit(clearing), asset-delivery, clearing→LP, clearing→spread, clearing→fee, fee-income JE
 
         // Verify supply adjusted, OHLC updated, metrics recorded
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, units);

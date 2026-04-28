@@ -1289,7 +1289,8 @@ public class TradingService {
             Long clearingAccountId = resolvedGlAccounts.getClearingAccountId();
             BigDecimal totalClientPays = grossAmount.add(fee).add(totalTax).add(accruedInterest);
 
-            // Leg 1: Client pays total to Clearing (single customer-visible withdrawal)
+            // Leg 1a: client withdrawal (user-visible, note persisted to savings_account_transactions)
+            // Leg 1b: clearing credit (internal — accounttransfers would omit note, so split into two ops)
             ops.add(new FineractClient.BatchSavingsWithdrawOp(
                     userCashAccountId, totalClientPays, "Asset purchase: " + asset.getSymbol()));
             ops.add(new FineractClient.BatchSavingsDepositOp(
