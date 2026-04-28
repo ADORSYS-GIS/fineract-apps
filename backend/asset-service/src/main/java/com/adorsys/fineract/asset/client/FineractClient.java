@@ -54,7 +54,7 @@ public class FineractClient {
     /**
      * Sealed interface for operations that can be included in an atomic Fineract batch.
      */
-    public sealed interface BatchOperation permits BatchTransferOp, BatchJournalEntryOp {}
+    public sealed interface BatchOperation permits BatchTransferOp, BatchJournalEntryOp, BatchSavingsWithdrawOp, BatchSavingsDepositOp {}
 
     /**
      * Account transfer between two savings accounts.
@@ -71,6 +71,20 @@ public class FineractClient {
             Long debitGlAccountId, Long creditGlAccountId,
             BigDecimal amount, String currencyCode, String description
     ) implements BatchOperation {}
+
+    /**
+     * Direct savings account withdrawal — persists the {@code note} field on the transaction,
+     * unlike {@code POST /accounttransfers} which does not propagate {@code transferDescription}
+     * to the linked savings transaction's {@code note} column.
+     */
+    public record BatchSavingsWithdrawOp(Long savingsAccountId, BigDecimal amount, String note) implements BatchOperation {}
+
+    /**
+     * Direct savings account deposit — persists the {@code note} field on the transaction,
+     * unlike {@code POST /accounttransfers} which does not propagate {@code transferDescription}
+     * to the linked savings transaction's {@code note} column.
+     */
+    public record BatchSavingsDepositOp(Long savingsAccountId, BigDecimal amount, String note) implements BatchOperation {}
 
     /**
      * Get existing currencies registered in Fineract.
@@ -854,6 +868,26 @@ public class FineractClient {
                     body.put("debits", List.of(Map.of("glAccountId", j.debitGlAccountId(), "amount", j.amount())));
                     body.put("credits", List.of(Map.of("glAccountId", j.creditGlAccountId(), "amount", j.amount())));
                     relativeUrl = "journalentries";
+                }
+                case BatchSavingsWithdrawOp w -> {
+                    body = new HashMap<>();
+                    body.put("transactionDate", today);
+                    body.put("transactionAmount", w.amount());
+                    body.put("paymentTypeId", 2);
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    if (w.note() != null) body.put("note", w.note());
+                    relativeUrl = "savingsaccounts/" + w.savingsAccountId() + "/transactions?command=withdrawal";
+                }
+                case BatchSavingsDepositOp d -> {
+                    body = new HashMap<>();
+                    body.put("transactionDate", today);
+                    body.put("transactionAmount", d.amount());
+                    body.put("paymentTypeId", 2);
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    if (d.note() != null) body.put("note", d.note());
+                    relativeUrl = "savingsaccounts/" + d.savingsAccountId() + "/transactions?command=deposit";
                 }
             }
 

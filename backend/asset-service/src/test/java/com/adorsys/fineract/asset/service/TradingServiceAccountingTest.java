@@ -3,6 +3,8 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
 import com.adorsys.fineract.asset.client.FineractClient.BatchTransferOp;
+import com.adorsys.fineract.asset.client.FineractClient.BatchSavingsWithdrawOp;
+import com.adorsys.fineract.asset.client.FineractClient.BatchSavingsDepositOp;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.TradeSide;
@@ -135,10 +137,11 @@ class TradingServiceAccountingTest {
                     bd("100000"), bd("10"), bd("500"), bd("5000"), bd("0"),
                     bd("2000"), bd("0"), bd("0"));
 
-            // Leg 1: Client → Clearing (total: 100000 + 500 + 2000 = 102500)
-            BatchTransferOp leg1 = findTransfer(ops, USER_CASH, CLEARING);
-            assertNotNull(leg1, "Should transfer from client to clearing");
+            // Leg 1: Client withdrawal (total: 100000 + 500 + 2000 = 102500)
+            BatchSavingsWithdrawOp leg1 = findWithdraw(ops, USER_CASH);
+            assertNotNull(leg1, "Should withdraw from client savings account");
             assertEquals(bd("102500"), leg1.amount());
+            assertEquals("Asset purchase: TST", leg1.note());
         }
 
         @Test
@@ -192,10 +195,13 @@ class TradingServiceAccountingTest {
                     gross, bd("10"), fee, spread, bd("0"),
                     regDuty, bd("0"), tva);
 
-            // Sum inflows to clearing
+            // Sum inflows to clearing (now via BatchSavingsDepositOp) and outflows (BatchTransferOp)
             BigDecimal inflow = bd("0");
             BigDecimal outflow = bd("0");
             for (BatchOperation op : ops) {
+                if (op instanceof BatchSavingsDepositOp d && d.savingsAccountId().equals(CLEARING)) {
+                    inflow = inflow.add(d.amount());
+                }
                 if (op instanceof BatchTransferOp t) {
                     if (t.toAccountId().equals(CLEARING)) inflow = inflow.add(t.amount());
                     if (t.fromAccountId().equals(CLEARING)) outflow = outflow.add(t.amount());
@@ -233,9 +239,10 @@ class TradingServiceAccountingTest {
                     bd("95000"), bd("10"), bd("500"), bd("5000"), bd("0"),
                     bd("1900"), bd("0"), bd("0"));
 
-            BatchTransferOp clientLeg = findTransfer(ops, LP_CASH, USER_CASH);
-            assertNotNull(clientLeg, "Should transfer proceeds to client");
+            BatchSavingsDepositOp clientLeg = findDeposit(ops, USER_CASH);
+            assertNotNull(clientLeg, "Should deposit proceeds to client savings account");
             assertEquals(bd("94500"), clientLeg.amount()); // gross - fee, no tax deduction
+            assertEquals("Asset sale proceeds: TST", clientLeg.note());
         }
 
         @Test
@@ -330,6 +337,20 @@ class TradingServiceAccountingTest {
                         && t.fromAccountId().equals(from) && t.toAccountId().equals(to)
                         && t.amount().compareTo(amount) == 0)
                 .map(op -> (BatchTransferOp) op)
+                .findFirst().orElse(null);
+    }
+
+    private static BatchSavingsWithdrawOp findWithdraw(List<BatchOperation> ops, Long accountId) {
+        return ops.stream()
+                .filter(op -> op instanceof BatchSavingsWithdrawOp w && w.savingsAccountId().equals(accountId))
+                .map(op -> (BatchSavingsWithdrawOp) op)
+                .findFirst().orElse(null);
+    }
+
+    private static BatchSavingsDepositOp findDeposit(List<BatchOperation> ops, Long accountId) {
+        return ops.stream()
+                .filter(op -> op instanceof BatchSavingsDepositOp d && d.savingsAccountId().equals(accountId))
+                .map(op -> (BatchSavingsDepositOp) op)
                 .findFirst().orElse(null);
     }
 }

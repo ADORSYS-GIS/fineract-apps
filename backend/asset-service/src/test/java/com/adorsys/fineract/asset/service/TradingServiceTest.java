@@ -711,15 +711,21 @@ class TradingServiceTest {
                 .filter(o -> o.getStatus() == OrderStatus.FILLED).findFirst().orElse(null);
         assertNotNull(finalOrder, "Order should be marked FILLED");
 
-        // Verify 4-leg batch: token return, LP pays investor, fee, spread
+        // Verify batch: token return, LP withdraw, investor deposit, fee, spread, revenue recognition
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
-        assertEquals(5, ops.size());
+        assertEquals(6, ops.size());
         assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, units); // token return
         BigDecimal grossAmount = new BigDecimal("450"); // 5 * 90
-        assertTransferOp(ops.get(1), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(fee)); // net proceeds
-        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, fee); // fee
-        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT, spreadAmount); // spread
+        BigDecimal netProceeds = grossAmount.subtract(fee);
+        assertInstanceOf(BatchSavingsWithdrawOp.class, ops.get(1)); // LP Cash withdrawal
+        assertEquals(LP_CASH_ACCOUNT, ((BatchSavingsWithdrawOp) ops.get(1)).savingsAccountId());
+        assertEquals(netProceeds, ((BatchSavingsWithdrawOp) ops.get(1)).amount());
+        assertInstanceOf(BatchSavingsDepositOp.class, ops.get(2)); // investor deposit
+        assertEquals(USER_CASH_ACCOUNT, ((BatchSavingsDepositOp) ops.get(2)).savingsAccountId());
+        assertEquals(netProceeds, ((BatchSavingsDepositOp) ops.get(2)).amount());
+        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, fee); // fee
+        assertTransferOp(ops.get(4), LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT, spreadAmount); // spread
 
         verify(assetRepository).adjustCirculatingSupply(ASSET_ID, units.negate());
         verify(pricingService).updateOhlcAfterTrade(ASSET_ID, bidPrice);
@@ -874,17 +880,23 @@ class TradingServiceTest {
         verify(fineractClient).executeAtomicBatch(batchOpsCaptor.capture());
         List<BatchOperation> ops = batchOpsCaptor.getValue();
 
-        // Expect 5 legs: token return, buyback premium (spread→LP cash), net proceeds, fee, + revenue recognition
-        assertEquals(5, ops.size());
+        // Expect 6 legs: token return, buyback premium (spread→LP cash), LP withdraw, investor deposit, fee, + revenue recognition
+        assertEquals(6, ops.size());
         assertTransferOp(ops.get(0), USER_ASSET_ACCOUNT, LP_ASSET_ACCOUNT, units); // token return
         // Leg 2: buyback premium from LP Spread → LP Cash
         assertTransferOp(ops.get(1), LP_SPREAD_ACCOUNT, LP_CASH_ACCOUNT, new BigDecimal("25"));
-        // Leg 3: net proceeds (grossAmount=525, fee=floor(525*0.005)=floor(2.625)=2, net=525-2=523)
+        // Leg 3+4: net proceeds (grossAmount=525, fee=floor(525*0.005)=floor(2.625)=2, net=525-2=523)
         BigDecimal grossAmount = new BigDecimal("525");
         BigDecimal actualFee = grossAmount.multiply(new BigDecimal("0.005")).setScale(0, java.math.RoundingMode.FLOOR);
-        assertTransferOp(ops.get(2), LP_CASH_ACCOUNT, USER_CASH_ACCOUNT, grossAmount.subtract(actualFee));
-        // Leg 4: fee (same actualFee computed above)
-        assertTransferOp(ops.get(3), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, actualFee);
+        BigDecimal netProceeds = grossAmount.subtract(actualFee);
+        assertInstanceOf(BatchSavingsWithdrawOp.class, ops.get(2)); // LP Cash withdrawal
+        assertEquals(LP_CASH_ACCOUNT, ((BatchSavingsWithdrawOp) ops.get(2)).savingsAccountId());
+        assertEquals(netProceeds, ((BatchSavingsWithdrawOp) ops.get(2)).amount());
+        assertInstanceOf(BatchSavingsDepositOp.class, ops.get(3)); // investor deposit
+        assertEquals(USER_CASH_ACCOUNT, ((BatchSavingsDepositOp) ops.get(3)).savingsAccountId());
+        assertEquals(netProceeds, ((BatchSavingsDepositOp) ops.get(3)).amount());
+        // Leg 5: fee
+        assertTransferOp(ops.get(4), LP_CASH_ACCOUNT, FEE_COLLECTION_ACCOUNT, actualFee);
     }
 
     @Test
