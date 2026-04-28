@@ -54,7 +54,7 @@ public class FineractClient {
     /**
      * Sealed interface for operations that can be included in an atomic Fineract batch.
      */
-    public sealed interface BatchOperation permits BatchTransferOp, BatchJournalEntryOp {}
+    public sealed interface BatchOperation permits BatchTransferOp, BatchJournalEntryOp, BatchSavingsWithdrawOp, BatchSavingsDepositOp {}
 
     /**
      * Account transfer between two savings accounts.
@@ -71,6 +71,24 @@ public class FineractClient {
             Long debitGlAccountId, Long creditGlAccountId,
             BigDecimal amount, String currencyCode, String description
     ) implements BatchOperation {}
+
+    /**
+     * Direct savings account withdrawal — persists the {@code note} field on the transaction,
+     * unlike {@code POST /accounttransfers} which does not propagate {@code transferDescription}
+     * to the linked savings transaction's {@code note} column.
+     *
+     * @param paymentTypeId required payment type DB ID (mandatory per Fineract API)
+     */
+    public record BatchSavingsWithdrawOp(Long savingsAccountId, BigDecimal amount, String note, Long paymentTypeId) implements BatchOperation {}
+
+    /**
+     * Direct savings account deposit — persists the {@code note} field on the transaction,
+     * unlike {@code POST /accounttransfers} which does not propagate {@code transferDescription}
+     * to the linked savings transaction's {@code note} column.
+     *
+     * @param paymentTypeId required payment type DB ID (mandatory per Fineract API)
+     */
+    public record BatchSavingsDepositOp(Long savingsAccountId, BigDecimal amount, String note, Long paymentTypeId) implements BatchOperation {}
 
     /**
      * Get existing currencies registered in Fineract.
@@ -484,7 +502,10 @@ public class FineractClient {
             Map<String, Object> body = new HashMap<>();
             body.put("transactionDate", LocalDate.now().format(DATE_FORMAT));
             body.put("transactionAmount", amount);
-            body.put("paymentTypeId", 2); // Bank Transfer
+            // TODO: resolve this via ResolvedGlAccounts.getTradeSettlementPaymentTypeId() if this method is
+            //  ever used from trade settlement paths. Currently called only from AssetProvisioningService
+            //  (fee deductions) and not from BUY/SELL batch flows.
+            body.put("paymentTypeId", 2); // TODO: resolve via GlAccountResolver — currently unused in trade paths
             body.put("note", note);
             body.put("locale", "en");
             body.put("dateFormat", "dd MMMM yyyy");
@@ -854,6 +875,26 @@ public class FineractClient {
                     body.put("debits", List.of(Map.of("glAccountId", j.debitGlAccountId(), "amount", j.amount())));
                     body.put("credits", List.of(Map.of("glAccountId", j.creditGlAccountId(), "amount", j.amount())));
                     relativeUrl = "journalentries";
+                }
+                case BatchSavingsWithdrawOp w -> {
+                    body = new HashMap<>();
+                    body.put("transactionDate", today);
+                    body.put("transactionAmount", w.amount());
+                    body.put("paymentTypeId", Objects.requireNonNull(w.paymentTypeId(), "paymentTypeId is required"));
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    if (w.note() != null) body.put("note", w.note());
+                    relativeUrl = "savingsaccounts/" + w.savingsAccountId() + "/transactions?command=withdrawal";
+                }
+                case BatchSavingsDepositOp d -> {
+                    body = new HashMap<>();
+                    body.put("transactionDate", today);
+                    body.put("transactionAmount", d.amount());
+                    body.put("paymentTypeId", Objects.requireNonNull(d.paymentTypeId(), "paymentTypeId is required"));
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    if (d.note() != null) body.put("note", d.note());
+                    relativeUrl = "savingsaccounts/" + d.savingsAccountId() + "/transactions?command=deposit";
                 }
             }
 

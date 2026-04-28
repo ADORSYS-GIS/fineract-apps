@@ -75,6 +75,10 @@ public class ResolvedGlAccounts {
     // --- Payment types ---
     /** Database ID of the asset issuance payment type. */
     private Long assetIssuancePaymentTypeId;
+    /** Database ID of the BUY payment type (user cash withdrawal leg). */
+    private Long buyPaymentTypeId;
+    /** Database ID of the SELL payment type (user cash deposit leg). */
+    private Long sellPaymentTypeId;
 
     // --- Savings accounts ---
     /** Database ID of the platform-wide fee collection savings account (mandatory). */

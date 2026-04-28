@@ -189,6 +189,10 @@ public class AssetServiceConfig {
         // --- Payment types ---
         /** Payment type name for asset issuance. Resolved to DB ID at startup. */
         private String assetIssuancePaymentType = "Asset Issuance";
+        /** Payment type name for BUY user cash withdrawal. Resolved to DB ID at startup. */
+        private String buyPaymentType = "Asset Purchase";
+        /** Payment type name for SELL user cash deposit. Resolved to DB ID at startup. */
+        private String sellPaymentType = "Asset Sale";
     }
 
     @PostConstruct

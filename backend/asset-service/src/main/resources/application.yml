@@ -152,6 +152,8 @@ asset-service:
     tax-payable-fund-source: ${GL_TAX_PAYABLE_FUND_SOURCE:5031}
     # Payment types
     asset-issuance-payment-type: ${ASSET_ISSUANCE_PAYMENT_TYPE:Asset Issuance}
+    buy-payment-type: ${BUY_PAYMENT_TYPE:Asset Purchase}
+    sell-payment-type: ${SELL_PAYMENT_TYPE:Asset Sale}
   quote:
     ttl-seconds: ${QUOTE_TTL_SECONDS:30}
     max-active-per-user: ${QUOTE_MAX_ACTIVE_PER_USER:5}

@@ -30,6 +30,8 @@ public final class FineractInitializer {
     private static Long paymentTypeMtnId;
     private static Long paymentTypeOrangeId;
     private static Long paymentTypeNokashId;
+    private static Long paymentTypeAssetPurchaseId;
+    private static Long paymentTypeAssetSaleId;
     private static Integer xafSavingsProductId;
     private static Long lpClientId;
     private static Long testUserClientId;
@@ -86,12 +88,15 @@ public final class FineractInitializer {
         log.info("Created Financial Activity Account mapping: 200 -> GL {}", glTransfersInSuspenseId);
 
         // 2. Create payment types
-        paymentTypeId = client.createPaymentType("Asset Issuance", 20);
-        paymentTypeMtnId = client.createPaymentType("MTN Mobile Money", 21);
-        paymentTypeOrangeId = client.createPaymentType("Orange Money", 22);
-        paymentTypeNokashId = client.createPaymentType("NOKASH", 23);
-        log.info("Created payment types: Asset Issuance={}, MTN={}, Orange={}, NOKASH={}",
-                paymentTypeId, paymentTypeMtnId, paymentTypeOrangeId, paymentTypeNokashId);
+        paymentTypeAssetPurchaseId = client.createPaymentType("Asset Purchase", 20);
+        paymentTypeAssetSaleId = client.createPaymentType("Asset Sale", 21);
+        paymentTypeId = client.createPaymentType("Asset Issuance", 22);
+        paymentTypeMtnId = client.createPaymentType("MTN Mobile Money", 23);
+        paymentTypeOrangeId = client.createPaymentType("Orange Money", 24);
+        paymentTypeNokashId = client.createPaymentType("NOKASH", 25);
+        log.info("Created payment types: Asset Purchase={}, Asset Sale={}, Asset Issuance={}, MTN={}, Orange={}, NOKASH={}",
+                paymentTypeAssetPurchaseId, paymentTypeAssetSaleId, paymentTypeId,
+                paymentTypeMtnId, paymentTypeOrangeId, paymentTypeNokashId);
 
         // 3. Register XAF currency
         client.registerCurrencies(List.of("XAF"));
@@ -177,6 +182,8 @@ public final class FineractInitializer {
     public static Long getPaymentTypeMtnId() { return paymentTypeMtnId; }
     public static Long getPaymentTypeOrangeId() { return paymentTypeOrangeId; }
     public static Long getPaymentTypeNokashId() { return paymentTypeNokashId; }
+    public static Long getPaymentTypeAssetPurchaseId() { return paymentTypeAssetPurchaseId; }
+    public static Long getPaymentTypeAssetSaleId() { return paymentTypeAssetSaleId; }
     public static Long getGlAssetInventoryId() { return glAssetInventoryId; }
     public static Long getGlCustomerHoldingsId() { return glCustomerHoldingsId; }
     public static Long getGlTransfersInSuspenseId() { return glTransfersInSuspenseId; }

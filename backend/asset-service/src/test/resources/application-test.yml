@@ -43,5 +43,7 @@ asset-service:
     transfers-in-suspense: "48"
     income-from-interest: "87"
     asset-issuance-payment-type: "Asset Issuance"
+    buy-payment-type: "Asset Purchase"
+    sell-payment-type: "Asset Sale"
     fee-income: "87"
     fund-source: "42"

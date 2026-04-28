@@ -149,6 +149,10 @@ public class GlAccountResolver implements ApplicationRunner {
 
         resolvedGlAccounts.setAssetIssuancePaymentTypeId(
                 resolvePaymentType(paymentTypeNameToId, glConfig.getAssetIssuancePaymentType(), "assetIssuancePaymentType"));
+        resolvedGlAccounts.setBuyPaymentTypeId(
+                resolvePaymentType(paymentTypeNameToId, glConfig.getBuyPaymentType(), "buyPaymentType"));
+        resolvedGlAccounts.setSellPaymentTypeId(
+                resolvePaymentType(paymentTypeNameToId, glConfig.getSellPaymentType(), "sellPaymentType"));
 
         // Resolve fee collection savings account by external ID (mandatory)
         String feeExtId = assetServiceConfig.getAccounting().getFeeCollectionAccountExternalId();

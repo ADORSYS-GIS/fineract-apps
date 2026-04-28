@@ -1289,10 +1289,14 @@ public class TradingService {
             Long clearingAccountId = resolvedGlAccounts.getClearingAccountId();
             BigDecimal totalClientPays = grossAmount.add(fee).add(totalTax).add(accruedInterest);
 
-            // Leg 1: Client pays total to Clearing (single customer-visible withdrawal)
-            ops.add(new BatchTransferOp(
-                    userCashAccountId, clearingAccountId,
-                    totalClientPays, "Asset purchase: " + asset.getSymbol()));
+            // Leg 1a: client withdrawal (user-visible, note persisted to savings_account_transactions)
+            // Leg 1b: clearing credit (internal — accounttransfers would omit note, so split into two ops)
+            ops.add(new BatchSavingsWithdrawOp(
+                    userCashAccountId, totalClientPays, "Asset purchase: " + asset.getSymbol(),
+                    resolvedGlAccounts.getBuyPaymentTypeId()));
+            ops.add(new BatchSavingsDepositOp(
+                    clearingAccountId, totalClientPays, null,
+                    resolvedGlAccounts.getBuyPaymentTypeId()));
             // Leg 2: LP delivers tokens to investor
             ops.add(new BatchTransferOp(
                     asset.getLpAssetAccountId(), userAssetAccountId,
@@ -1353,9 +1357,12 @@ public class TradingService {
             }
             // Leg 3: LP Cash pays proceeds to investor (gross - fee + accruedInterest) — LP bears tax separately
             BigDecimal sellProceeds = grossAmount.subtract(fee).add(accruedInterest);
-            ops.add(new BatchTransferOp(
-                    asset.getLpCashAccountId(), userCashAccountId,
-                    sellProceeds, "Asset sale proceeds: " + asset.getSymbol()));
+            ops.add(new BatchSavingsWithdrawOp(
+                    asset.getLpCashAccountId(), sellProceeds, null,
+                    resolvedGlAccounts.getSellPaymentTypeId()));
+            ops.add(new BatchSavingsDepositOp(
+                    userCashAccountId, sellProceeds, "Asset sale proceeds: " + asset.getSymbol(),
+                    resolvedGlAccounts.getSellPaymentTypeId()));
             // Leg 4 (internal): LP Cash sweeps fee to Fee Collection (mandatory)
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(

@@ -61,7 +61,9 @@ class GlAccountResolverTest {
     );
 
     private static final Map<String, Long> PAYMENT_TYPE_NAME_TO_ID = Map.of(
-            "Asset Issuance", 20L
+            "Asset Purchase", 20L,
+            "Asset Sale",     21L,
+            "Asset Issuance", 22L
     );
 
     @BeforeEach
@@ -162,7 +164,9 @@ class GlAccountResolverTest {
 
         resolver.run(null);
 
-        assertEquals(20L, resolvedGlAccounts.getAssetIssuancePaymentTypeId());
+        assertEquals(20L, resolvedGlAccounts.getBuyPaymentTypeId());
+        assertEquals(21L, resolvedGlAccounts.getSellPaymentTypeId());
+        assertEquals(22L, resolvedGlAccounts.getAssetIssuancePaymentTypeId());
     }
 
     @Test
