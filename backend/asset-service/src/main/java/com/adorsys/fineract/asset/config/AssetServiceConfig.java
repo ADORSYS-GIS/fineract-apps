@@ -189,6 +189,8 @@ public class AssetServiceConfig {
         // --- Payment types ---
         /** Payment type name for asset issuance. Resolved to DB ID at startup. */
         private String assetIssuancePaymentType = "Asset Issuance";
+        /** Payment type name for trade cash settlements (BUY/SELL user cash legs). Resolved to DB ID at startup. */
+        private String tradeSettlementPaymentType = "Bank Transfer";
     }
 
     @PostConstruct

@@ -30,6 +30,7 @@ public final class FineractInitializer {
     private static Long paymentTypeMtnId;
     private static Long paymentTypeOrangeId;
     private static Long paymentTypeNokashId;
+    private static Long paymentTypeBankTransferId;
     private static Integer xafSavingsProductId;
     private static Long lpClientId;
     private static Long testUserClientId;
@@ -90,8 +91,9 @@ public final class FineractInitializer {
         paymentTypeMtnId = client.createPaymentType("MTN Mobile Money", 21);
         paymentTypeOrangeId = client.createPaymentType("Orange Money", 22);
         paymentTypeNokashId = client.createPaymentType("NOKASH", 23);
-        log.info("Created payment types: Asset Issuance={}, MTN={}, Orange={}, NOKASH={}",
-                paymentTypeId, paymentTypeMtnId, paymentTypeOrangeId, paymentTypeNokashId);
+        paymentTypeBankTransferId = client.createPaymentType("Bank Transfer", 24);
+        log.info("Created payment types: Asset Issuance={}, MTN={}, Orange={}, NOKASH={}, Bank Transfer={}",
+                paymentTypeId, paymentTypeMtnId, paymentTypeOrangeId, paymentTypeNokashId, paymentTypeBankTransferId);
 
         // 3. Register XAF currency
         client.registerCurrencies(List.of("XAF"));
@@ -177,6 +179,7 @@ public final class FineractInitializer {
     public static Long getPaymentTypeMtnId() { return paymentTypeMtnId; }
     public static Long getPaymentTypeOrangeId() { return paymentTypeOrangeId; }
     public static Long getPaymentTypeNokashId() { return paymentTypeNokashId; }
+    public static Long getPaymentTypeBankTransferId() { return paymentTypeBankTransferId; }
     public static Long getGlAssetInventoryId() { return glAssetInventoryId; }
     public static Long getGlCustomerHoldingsId() { return glCustomerHoldingsId; }
     public static Long getGlTransfersInSuspenseId() { return glTransfersInSuspenseId; }

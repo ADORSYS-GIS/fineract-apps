@@ -75,6 +75,8 @@ public class ResolvedGlAccounts {
     // --- Payment types ---
     /** Database ID of the asset issuance payment type. */
     private Long assetIssuancePaymentTypeId;
+    /** Database ID of the trade settlement payment type (used for BUY/SELL cash legs). */
+    private Long tradeSettlementPaymentTypeId;
 
     // --- Savings accounts ---
     /** Database ID of the platform-wide fee collection savings account (mandatory). */

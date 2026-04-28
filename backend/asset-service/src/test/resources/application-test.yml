@@ -43,5 +43,6 @@ asset-service:
     transfers-in-suspense: "48"
     income-from-interest: "87"
     asset-issuance-payment-type: "Asset Issuance"
+    trade-settlement-payment-type: "Bank Transfer"
     fee-income: "87"
     fund-source: "42"
