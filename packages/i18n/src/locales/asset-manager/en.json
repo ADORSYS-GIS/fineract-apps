@@ -1,0 +1,93 @@
+{
+	"translation": {
+		"assetManager": {
+			"appTitle": "Asset Manager",
+			"common": {
+				"actions": "Actions",
+				"back": "Back",
+				"cancel": "Cancel",
+				"close": "Close",
+				"confirm": "Confirm",
+				"create": "Create",
+				"delete": "Delete",
+				"edit": "Edit",
+				"loading": "Loading...",
+				"manage": "Manage",
+				"retry": "Retry",
+				"save": "Save",
+				"search": "Search",
+				"submit": "Submit",
+				"empty": "—"
+			},
+			"navbar": {
+				"welcome": "Welcome",
+				"toggleDarkMode": "Toggle dark mode",
+				"logout": "Logout"
+			},
+			"language": {
+				"label": "Language",
+				"english": "English",
+				"french": "Français"
+			},
+			"settings": {
+				"title": "Settings",
+				"applicationInfo": "Application Info",
+				"apiVersion": "API Version",
+				"releaseTag": "Release Tag",
+				"assetManager": "Asset Manager",
+				"assetService": "Asset Service"
+			},
+			"dashboard": {
+				"title": "Asset Catalog",
+				"market": "Market",
+				"marketOpen": "Open",
+				"marketClosed": "Closed",
+				"searchPlaceholder": "Search assets...",
+				"importAssets": "Import Assets",
+				"createAsset": "Create Asset",
+				"createFirstAsset": "Create your first asset",
+				"manageAsset": "Manage",
+				"filterByCategory": "Filter by category",
+				"settlementsPending": "{{count}} pending settlement(s)",
+				"settlementsApproved": "{{count}} approved and ready for execution",
+				"settlementsAwaitingApproval": "Awaiting approval",
+				"viewSettlements": "View Settlements",
+				"loadAssetsFailed": "Failed to load assets.",
+				"noAssets": "No assets found.",
+				"stats": {
+					"assets": "Assets",
+					"trading24h": "Trading (24h)",
+					"orderHealth": "Order Health",
+					"active": "active",
+					"pending": "{{count}} pending",
+					"halted": "{{count}} halted",
+					"total": "{{count}} total",
+					"investors": "{{count}} investors",
+					"trades": "trades",
+					"buy": "Buy {{volume}}",
+					"sell": "Sell {{volume}}",
+					"traders": "{{count}} traders",
+					"issues": "issues",
+					"stuck": "{{count}} stuck",
+					"failed": "{{count}} failed",
+					"allClear": "All clear"
+				},
+				"table": {
+					"name": "Name",
+					"symbol": "Symbol",
+					"priceXaf": "Price (XAF)",
+					"change24h": "24h Change",
+					"available": "Available",
+					"status": "Status",
+					"actions": "Actions",
+					"caption": "Asset catalog",
+					"region": "Asset catalog table"
+				}
+			},
+			"errors": {
+				"genericTitle": "Something went wrong",
+				"genericMessage": "Please try again or contact support if the issue persists."
+			}
+		}
+	}
+}
