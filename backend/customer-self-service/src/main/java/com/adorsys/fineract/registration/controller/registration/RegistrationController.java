@@ -2,9 +2,11 @@ package com.adorsys.fineract.registration.controller.registration;
 
 import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
 import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
+import com.adorsys.fineract.registration.dto.registration.CheckPhoneResponse;
 import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.ValidationException;
+import com.adorsys.fineract.registration.service.FineractService;
 import com.adorsys.fineract.registration.service.registration.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,6 +24,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+import java.util.regex.Pattern;
+
 
 @Slf4j
 @RestController
@@ -31,7 +36,11 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "bearer-jwt")
 public class RegistrationController {
 
+    /** Same regex as {@code RegistrationRequest#phone} so callers see consistent validation. */
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?\\d{9,15}$");
+
     private final RegistrationService registrationService;
+    private final FineractService fineractService;
 
     @PostMapping("/register")
     @Operation(summary = "Register a new customer and create a savings account",
@@ -48,6 +57,34 @@ public class RegistrationController {
         log.info("Received registration request for email: {}", request.getEmail());
         ClientAndAccountResponse response = registrationService.registerClientAndAccount(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/check-phone")
+    @Operation(summary = "Check whether a phone number is already linked to a Fineract client",
+            description = "Returns whether the supplied E.164-style phone is already registered. "
+                    + "Used by upstream registration flows to short-circuit before legal acceptance "
+                    + "and admin review when the phone is known to collide.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lookup completed",
+                    content = @Content(schema = @Schema(implementation = CheckPhoneResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Phone format invalid"),
+            @ApiResponse(responseCode = "401", description = "Unauthenticated"),
+            @ApiResponse(responseCode = "403", description = "Caller lacks ROLE_KYC_MANAGER")
+    })
+    @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
+    public ResponseEntity<CheckPhoneResponse> checkPhone(@RequestParam("phone") String phone) {
+        if (!StringUtils.hasText(phone) || !PHONE_PATTERN.matcher(phone).matches()) {
+            throw new ValidationException("Invalid phone number format", "phone");
+        }
+
+        Map<String, Object> existing = fineractService.getClientByMobileNo(phone);
+        if (existing == null || existing.isEmpty()) {
+            return ResponseEntity.ok(new CheckPhoneResponse(false, null));
+        }
+
+        Object externalIdValue = existing.get("externalId");
+        String externalId = externalIdValue == null ? null : externalIdValue.toString();
+        return ResponseEntity.ok(new CheckPhoneResponse(true, externalId));
     }
 
     @PostMapping("/approve-and-deposit")

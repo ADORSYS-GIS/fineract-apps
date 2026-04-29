@@ -5,8 +5,10 @@ import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
 import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.service.FineractService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +22,11 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,6 +44,9 @@ class RegistrationControllerTest {
 
     @MockBean
     private RegistrationService registrationService;
+
+    @MockBean
+    private FineractService fineractService;
 
     private RegistrationRequest validRequest;
 
@@ -176,6 +185,57 @@ class RegistrationControllerTest {
                     .content(objectMapper.writeValueAsString(depositRequest)))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.message").value("Funding failed"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Check Phone Tests")
+    class CheckPhoneTests {
+
+        @Test
+        void checkPhone_unauthorized_returns401() throws Exception {
+            mockMvc.perform(get("/api/registration/check-phone").param("phone", "+237699555444"))
+                    .andExpect(status().isUnauthorized());
+            verify(fineractService, never()).getClientByMobileNo(anyString());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_USER")
+        void checkPhone_forbidden_returns403() throws Exception {
+            mockMvc.perform(get("/api/registration/check-phone").param("phone", "+237699555444"))
+                    .andExpect(status().isForbidden());
+            verify(fineractService, never()).getClientByMobileNo(anyString());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_invalidFormat_returns400() throws Exception {
+            mockMvc.perform(get("/api/registration/check-phone").param("phone", "abc"))
+                    .andExpect(status().isBadRequest());
+            verify(fineractService, never()).getClientByMobileNo(anyString());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_notFound_returns200WithExistsFalse() throws Exception {
+            when(fineractService.getClientByMobileNo("+237699555444")).thenReturn(Map.of());
+
+            mockMvc.perform(get("/api/registration/check-phone").param("phone", "+237699555444"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.exists").value(false))
+                    .andExpect(jsonPath("$.externalId").doesNotExist());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_found_returns200WithExternalId() throws Exception {
+            when(fineractService.getClientByMobileNo("+237699555444")).thenReturn(
+                    Map.of("id", 99L, "externalId", "usr_existing_owner", "mobileNo", "+237699555444"));
+
+            mockMvc.perform(get("/api/registration/check-phone").param("phone", "+237699555444"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.exists").value(true))
+                    .andExpect(jsonPath("$.externalId").value("usr_existing_owner"));
         }
     }
 }
