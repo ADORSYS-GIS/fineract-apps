@@ -74,7 +74,11 @@ public class RateLimitConfig {
 
     // Paths to skip rate limiting
     private static final Set<String> SKIP_PATHS = Set.of(
-            "/actuator", "/swagger-ui", "/api-docs","/api/registration/register"
+            "/actuator", "/swagger-ui", "/api-docs",
+            "/api/registration/register",
+            // Called by the keybound-backend phone OTP flow on every verification — a
+            // single source IP would otherwise drain the 100/min general bucket.
+            "/api/registration/check-phone"
 
     );
 

@@ -2,11 +2,14 @@ package com.adorsys.fineract.registration.service.registration;
 
 import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
 import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
+import com.adorsys.fineract.registration.dto.registration.CheckPhoneRequest;
 import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
+import com.adorsys.fineract.registration.service.FineractService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +23,9 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -38,6 +44,9 @@ class RegistrationControllerTest {
 
     @MockBean
     private RegistrationService registrationService;
+
+    @MockBean
+    private FineractService fineractService;
 
     private RegistrationRequest validRequest;
 
@@ -176,6 +185,99 @@ class RegistrationControllerTest {
                     .content(objectMapper.writeValueAsString(depositRequest)))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.message").value("Funding failed"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Check Phone Tests")
+    class CheckPhoneTests {
+
+        private String body(String phone) throws Exception {
+            return objectMapper.writeValueAsString(new CheckPhoneRequest(phone));
+        }
+
+        @Test
+        void checkPhone_unauthorized_returns401() throws Exception {
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
+                    .andExpect(status().isUnauthorized());
+            verify(fineractService, never()).getClientByMobileNo(anyString());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_USER")
+        void checkPhone_forbidden_returns403() throws Exception {
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
+                    .andExpect(status().isForbidden());
+            verify(fineractService, never()).getClientByMobileNo(anyString());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_invalidFormat_returns400() throws Exception {
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("abc")))
+                    .andExpect(status().isBadRequest());
+            verify(fineractService, never()).getClientByMobileNo(anyString());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_blankPhone_returns400() throws Exception {
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("")))
+                    .andExpect(status().isBadRequest());
+            verify(fineractService, never()).getClientByMobileNo(anyString());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_notFound_returns200WithExistsFalse() throws Exception {
+            when(fineractService.getClientByMobileNo("+237699555444")).thenReturn(Map.of());
+
+            // @JsonInclude(NON_NULL) on the response DTO drops the externalId field when null,
+            // so the JSON body is just {"exists":false}.
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.exists").value(false))
+                    .andExpect(jsonPath("$.externalId").doesNotExist());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_found_returns200WithExternalId() throws Exception {
+            when(fineractService.getClientByMobileNo("+237699555444")).thenReturn(
+                    Map.of("id", 99L, "externalId", "usr_existing_owner", "mobileNo", "+237699555444"));
+
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.exists").value(true))
+                    .andExpect(jsonPath("$.externalId").value("usr_existing_owner"));
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_plusPrefixSurvivesEndToEnd() throws Exception {
+            // The reason this whole endpoint is POST + JSON instead of GET + ?phone=:
+            // Spring decodes a literal `+` in a raw GET query string as a space, breaking
+            // E.164 lookups. Locking in: the body-bound phone reaches the service intact.
+            when(fineractService.getClientByMobileNo("+237699555444")).thenReturn(Map.of());
+
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
+                    .andExpect(status().isOk());
+
+            verify(fineractService).getClientByMobileNo("+237699555444");
         }
     }
 }
