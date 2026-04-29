@@ -2,6 +2,7 @@ package com.adorsys.fineract.registration.service.registration;
 
 import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
 import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
+import com.adorsys.fineract.registration.dto.registration.CheckPhoneRequest;
 import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
 import com.adorsys.fineract.registration.exception.RegistrationException;
@@ -26,7 +27,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -192,9 +192,15 @@ class RegistrationControllerTest {
     @DisplayName("Check Phone Tests")
     class CheckPhoneTests {
 
+        private String body(String phone) throws Exception {
+            return objectMapper.writeValueAsString(new CheckPhoneRequest(phone));
+        }
+
         @Test
         void checkPhone_unauthorized_returns401() throws Exception {
-            mockMvc.perform(get("/api/registration/check-phone").param("phone", "+237699555444"))
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
                     .andExpect(status().isUnauthorized());
             verify(fineractService, never()).getClientByMobileNo(anyString());
         }
@@ -202,7 +208,9 @@ class RegistrationControllerTest {
         @Test
         @WithMockUser(authorities = "ROLE_USER")
         void checkPhone_forbidden_returns403() throws Exception {
-            mockMvc.perform(get("/api/registration/check-phone").param("phone", "+237699555444"))
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
                     .andExpect(status().isForbidden());
             verify(fineractService, never()).getClientByMobileNo(anyString());
         }
@@ -210,7 +218,19 @@ class RegistrationControllerTest {
         @Test
         @WithMockUser(authorities = "ROLE_KYC_MANAGER")
         void checkPhone_invalidFormat_returns400() throws Exception {
-            mockMvc.perform(get("/api/registration/check-phone").param("phone", "abc"))
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("abc")))
+                    .andExpect(status().isBadRequest());
+            verify(fineractService, never()).getClientByMobileNo(anyString());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_blankPhone_returns400() throws Exception {
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("")))
                     .andExpect(status().isBadRequest());
             verify(fineractService, never()).getClientByMobileNo(anyString());
         }
@@ -220,7 +240,11 @@ class RegistrationControllerTest {
         void checkPhone_notFound_returns200WithExistsFalse() throws Exception {
             when(fineractService.getClientByMobileNo("+237699555444")).thenReturn(Map.of());
 
-            mockMvc.perform(get("/api/registration/check-phone").param("phone", "+237699555444"))
+            // @JsonInclude(NON_NULL) on the response DTO drops the externalId field when null,
+            // so the JSON body is just {"exists":false}.
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.exists").value(false))
                     .andExpect(jsonPath("$.externalId").doesNotExist());
@@ -232,10 +256,28 @@ class RegistrationControllerTest {
             when(fineractService.getClientByMobileNo("+237699555444")).thenReturn(
                     Map.of("id", 99L, "externalId", "usr_existing_owner", "mobileNo", "+237699555444"));
 
-            mockMvc.perform(get("/api/registration/check-phone").param("phone", "+237699555444"))
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.exists").value(true))
                     .andExpect(jsonPath("$.externalId").value("usr_existing_owner"));
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_KYC_MANAGER")
+        void checkPhone_plusPrefixSurvivesEndToEnd() throws Exception {
+            // The reason this whole endpoint is POST + JSON instead of GET + ?phone=:
+            // Spring decodes a literal `+` in a raw GET query string as a space, breaking
+            // E.164 lookups. Locking in: the body-bound phone reaches the service intact.
+            when(fineractService.getClientByMobileNo("+237699555444")).thenReturn(Map.of());
+
+            mockMvc.perform(post("/api/registration/check-phone")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("+237699555444")))
+                    .andExpect(status().isOk());
+
+            verify(fineractService).getClientByMobileNo("+237699555444");
         }
     }
 }

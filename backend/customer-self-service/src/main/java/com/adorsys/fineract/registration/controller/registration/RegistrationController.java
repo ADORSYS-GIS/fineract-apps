@@ -2,6 +2,7 @@ package com.adorsys.fineract.registration.controller.registration;
 
 import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
 import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
+import com.adorsys.fineract.registration.dto.registration.CheckPhoneRequest;
 import com.adorsys.fineract.registration.dto.registration.CheckPhoneResponse;
 import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
@@ -25,7 +26,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.regex.Pattern;
 
 
 @Slf4j
@@ -35,9 +35,6 @@ import java.util.regex.Pattern;
 @Tag(name = "Registration", description = "Customer registration and status APIs")
 @SecurityRequirement(name = "bearer-jwt")
 public class RegistrationController {
-
-    /** Same regex as {@code RegistrationRequest#phone} so callers see consistent validation. */
-    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?\\d{9,15}$");
 
     private final RegistrationService registrationService;
     private final FineractService fineractService;
@@ -59,11 +56,13 @@ public class RegistrationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping("/check-phone")
+    @PostMapping("/check-phone")
     @Operation(summary = "Check whether a phone number is already linked to a Fineract client",
             description = "Returns whether the supplied E.164-style phone is already registered. "
                     + "Used by upstream registration flows to short-circuit before legal acceptance "
-                    + "and admin review when the phone is known to collide.")
+                    + "and admin review when the phone is known to collide. POST + JSON body so the "
+                    + "literal `+` in E.164 phones survives transit (a raw GET query would have "
+                    + "Spring decode `+` to space).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lookup completed",
                     content = @Content(schema = @Schema(implementation = CheckPhoneResponse.class))),
@@ -72,12 +71,9 @@ public class RegistrationController {
             @ApiResponse(responseCode = "403", description = "Caller lacks ROLE_KYC_MANAGER")
     })
     @PreAuthorize("hasAuthority('ROLE_KYC_MANAGER')")
-    public ResponseEntity<CheckPhoneResponse> checkPhone(@RequestParam("phone") String phone) {
-        if (!StringUtils.hasText(phone) || !PHONE_PATTERN.matcher(phone).matches()) {
-            throw new ValidationException("Invalid phone number format", "phone");
-        }
-
-        Map<String, Object> existing = fineractService.getClientByMobileNo(phone);
+    public ResponseEntity<CheckPhoneResponse> checkPhone(
+            @Valid @RequestBody CheckPhoneRequest request) {
+        Map<String, Object> existing = fineractService.getClientByMobileNo(request.getPhone());
         if (existing == null || existing.isEmpty()) {
             return ResponseEntity.ok(new CheckPhoneResponse(false, null));
         }
