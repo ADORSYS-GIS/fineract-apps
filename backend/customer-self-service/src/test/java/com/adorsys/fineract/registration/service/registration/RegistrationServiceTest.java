@@ -73,7 +73,9 @@ class RegistrationServiceTest {
             defaults.setLocale("en");
             defaults.setDateFormat("yyyy-MM-dd");
             defaults.setPaymentTypeId(1L);
-            when(fineractProperties.getDefaults()).thenReturn(defaults);
+            // Lenient because the duplicate-phone short-circuit test bails out
+            // before fineractProperties.getDefaults() is read.
+            lenient().when(fineractProperties.getDefaults()).thenReturn(defaults);
             when(fineractService.getClientByExternalId(anyString())).thenReturn(Collections.emptyMap());
         }
 
@@ -114,6 +116,30 @@ class RegistrationServiceTest {
             verify(registrationMetrics, times(1)).incrementRegistrationRequests();
             verify(registrationMetrics, times(1)).incrementRegistrationSuccess();
             verify(registrationMetrics, never()).incrementRegistrationFailure(anyString());
+        }
+
+        @Test
+        @DisplayName("When phone is already linked to another externalId, throws DUPLICATE_PHONE before sending batch")
+        void registerClientAndAccount_whenPhoneAlreadyLinked_throwsDuplicatePhone() {
+            // Arrange
+            registrationRequest.setPhone("+237699555444");
+            when(fineractService.getClientByMobileNo("+237699555444")).thenReturn(
+                    Map.of("id", 99L, "externalId", "other-external-id", "mobileNo", "+237699555444"));
+
+            // Act & Assert
+            RegistrationException exception = assertThrows(
+                    RegistrationException.class,
+                    () -> registrationService.registerClientAndAccount(registrationRequest));
+
+            assertEquals("DUPLICATE_PHONE", exception.getErrorCode());
+            assertEquals("phone", exception.getField());
+            assertEquals("Phone number is already linked to another account.", exception.getMessage());
+
+            // Crucially: we should NOT have sent the batch request at all.
+            verify(fineractBatchService, never()).sendBatchRequest(anyList());
+            verify(registrationMetrics, times(1)).incrementRegistrationRequests();
+            verify(registrationMetrics, times(1)).incrementRegistrationFailure("DUPLICATE_PHONE");
+            verify(registrationMetrics, never()).incrementRegistrationSuccess();
         }
 
         @Test

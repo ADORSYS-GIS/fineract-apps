@@ -64,6 +64,23 @@ public class RegistrationService {
             throw new RegistrationException("CONFLICT", "Client with externalId " + externalId + " already exists.");
         }
 
+        // Pre-check unique mobileNo: Fineract enforces it at the DB level and would
+        // otherwise return an opaque batch 403 that wedges the KYC flow.
+        String phone = request.getPhone();
+        if (phone != null && !phone.isBlank()) {
+            Map<String, Object> existingByPhone = fineractService.getClientByMobileNo(phone);
+            if (!existingByPhone.isEmpty()) {
+                Object existingExternalId = existingByPhone.get("externalId");
+                log.warn("Cannot register externalId={} — phone {} already linked to externalId={}",
+                        externalId, phone, existingExternalId);
+                registrationMetrics.incrementRegistrationFailure("DUPLICATE_PHONE");
+                throw new RegistrationException(
+                        "DUPLICATE_PHONE",
+                        "Phone number is already linked to another account.",
+                        "phone");
+            }
+        }
+
         List<BatchRequest> batchRequests = buildClientAndAccountBatchRequests(request);
         List<BatchResponse> batchResponses = fineractBatchService.sendBatchRequest(batchRequests);
 

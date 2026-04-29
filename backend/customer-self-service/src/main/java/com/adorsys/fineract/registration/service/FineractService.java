@@ -37,6 +37,10 @@ public class FineractService {
         return fineractClientService.getClientByExternalId(externalId);
     }
 
+    public Map<String, Object> getClientByMobileNo(String mobileNo) {
+        return fineractClientService.getClientByMobileNo(mobileNo);
+    }
+
     public List<Map<String, Object>> getSavingsAccountsByClientId(Long clientId) {
         return fineractAccountService.getSavingsAccountsByClientId(clientId);
     }

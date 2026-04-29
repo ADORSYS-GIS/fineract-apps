@@ -67,6 +67,27 @@ public class FineractClientService {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getClientByMobileNo(String mobileNo) {
+        try {
+            Map<String, Object> response = fineractRestClient.get()
+                    .uri("/fineract-provider/api/v1/clients?sqlSearch=c.mobile_no='{mobileNo}'", mobileNo)
+                    .retrieve()
+                    .body(Map.class);
+
+            if (response != null && response.containsKey(PAGE_ITEMS)) {
+                var pageItems = (List<Map<String, Object>>) response.get(PAGE_ITEMS);
+                if (!pageItems.isEmpty()) {
+                    return pageItems.get(0);
+                }
+            }
+            return Map.of();
+        } catch (Exception e) {
+            log.error("Failed to get client by mobileNo: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
     public ProfileUpdateResponse updateClient(Long clientId, ProfileUpdateRequest request) {
         log.info("Updating Fineract client ID: {}", clientId);
 
