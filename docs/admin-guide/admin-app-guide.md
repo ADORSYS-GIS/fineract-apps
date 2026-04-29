@@ -102,7 +102,7 @@ This will take you to the **Create User** form.
 **Step 3:** Click on the new user's row to navigate to their **User Details** page.
 **Step 4:** On the User Details page, click the **"Reset Password"** button.
 
-![The user details page of a newly created user, with an arrow pointing to the 'Reset Password' button.](./images/new-user-reset-password.png)
+![The user details page of a newly created user, with an arrow pointing to the 'Reset Password' button.](./images/reset-password-button.png)
 
 **Step 5:** Confirm the action in the dialog box. This will send an email to the new user's email address with a link for them to create their password.
 
