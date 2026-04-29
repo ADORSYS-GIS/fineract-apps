@@ -70,6 +70,8 @@ public class FineractClientService {
     @SuppressWarnings("unchecked")
     public Map<String, Object> getClientByMobileNo(String mobileNo) {
         try {
+            // TODO: replace sqlSearch once Fineract exposes a stable ?mobileNo= filter;
+            // 'c.mobile_no' is an internal column alias and could change between versions.
             Map<String, Object> response = fineractRestClient.get()
                     .uri("/fineract-provider/api/v1/clients?sqlSearch=c.mobile_no='{mobileNo}'", mobileNo)
                     .retrieve()
@@ -83,8 +85,8 @@ public class FineractClientService {
             }
             return Map.of();
         } catch (Exception e) {
-            log.error("Failed to get client by mobileNo: {}", e.getMessage());
-            return Map.of();
+            log.error("Failed to get client by mobileNo: {}", e.getMessage(), e);
+            throw new FineractApiException("Failed to look up client by mobileNo", e);
         }
     }
 

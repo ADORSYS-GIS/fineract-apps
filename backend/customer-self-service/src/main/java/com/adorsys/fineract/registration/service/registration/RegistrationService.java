@@ -68,6 +68,10 @@ public class RegistrationService {
         // otherwise return an opaque batch 403 that wedges the KYC flow.
         String phone = request.getPhone();
         if (phone != null && !phone.isBlank()) {
+            if (!phone.matches("\\+?[0-9]{7,15}")) {
+                registrationMetrics.incrementRegistrationFailure("INVALID_PHONE");
+                throw new RegistrationException("INVALID_PHONE", "Invalid phone number format.", "phone");
+            }
             Map<String, Object> existingByPhone = fineractService.getClientByMobileNo(phone);
             if (!existingByPhone.isEmpty()) {
                 Object existingExternalId = existingByPhone.get("externalId");

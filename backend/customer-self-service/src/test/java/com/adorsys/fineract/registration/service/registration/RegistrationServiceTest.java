@@ -6,6 +6,7 @@ import com.adorsys.fineract.registration.dto.deposit.DepositRequest;
 import com.adorsys.fineract.registration.dto.deposit.DepositResponse;
 import com.adorsys.fineract.registration.dto.registration.ClientAndAccountResponse;
 import com.adorsys.fineract.registration.dto.registration.RegistrationRequest;
+import com.adorsys.fineract.registration.exception.FineractApiException;
 import com.adorsys.fineract.registration.exception.RegistrationException;
 import com.adorsys.fineract.registration.metrics.RegistrationMetrics;
 import com.adorsys.fineract.registration.service.FineractService;
@@ -73,10 +74,10 @@ class RegistrationServiceTest {
             defaults.setLocale("en");
             defaults.setDateFormat("yyyy-MM-dd");
             defaults.setPaymentTypeId(1L);
-            // Lenient because the duplicate-phone short-circuit test bails out
-            // before fineractProperties.getDefaults() is read.
+            // Lenient because short-circuit tests bail before these are read.
             lenient().when(fineractProperties.getDefaults()).thenReturn(defaults);
             when(fineractService.getClientByExternalId(anyString())).thenReturn(Collections.emptyMap());
+            lenient().when(fineractService.getClientByMobileNo(anyString())).thenReturn(Collections.emptyMap());
         }
 
         @Test
@@ -140,6 +141,41 @@ class RegistrationServiceTest {
             verify(registrationMetrics, times(1)).incrementRegistrationRequests();
             verify(registrationMetrics, times(1)).incrementRegistrationFailure("DUPLICATE_PHONE");
             verify(registrationMetrics, never()).incrementRegistrationSuccess();
+        }
+
+        @Test
+        @DisplayName("When Fineract is unavailable during phone lookup, registration fails rather than proceeding silently")
+        void registerClientAndAccount_whenPhoneLookupFails_propagatesFineractApiException() {
+            // Arrange
+            registrationRequest.setPhone("+237699555444");
+            when(fineractService.getClientByMobileNo("+237699555444"))
+                    .thenThrow(new FineractApiException("Fineract unavailable"));
+
+            // Act & Assert
+            assertThrows(FineractApiException.class,
+                    () -> registrationService.registerClientAndAccount(registrationRequest));
+
+            // Must not attempt the batch — would produce the same opaque 403 this PR prevents.
+            verify(fineractBatchService, never()).sendBatchRequest(anyList());
+        }
+
+        @Test
+        @DisplayName("When phone format is invalid, throws INVALID_PHONE before contacting Fineract")
+        void registerClientAndAccount_whenPhoneFormatInvalid_throwsInvalidPhone() {
+            // Arrange
+            registrationRequest.setPhone("not-a-phone!");
+
+            // Act & Assert
+            RegistrationException exception = assertThrows(
+                    RegistrationException.class,
+                    () -> registrationService.registerClientAndAccount(registrationRequest));
+
+            assertEquals("INVALID_PHONE", exception.getErrorCode());
+            assertEquals("phone", exception.getField());
+
+            verify(fineractService, never()).getClientByMobileNo(anyString());
+            verify(fineractBatchService, never()).sendBatchRequest(anyList());
+            verify(registrationMetrics, times(1)).incrementRegistrationFailure("INVALID_PHONE");
         }
 
         @Test
