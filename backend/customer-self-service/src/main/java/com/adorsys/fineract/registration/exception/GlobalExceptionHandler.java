@@ -39,10 +39,10 @@ public class GlobalExceptionHandler {
                 .build();
 
         HttpStatus status = switch (ex.getErrorCode()) {
-            case "EMAIL_ALREADY_EXISTS", "PHONE_ALREADY_EXISTS", VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
+            case "EMAIL_ALREADY_EXISTS", "PHONE_ALREADY_EXISTS", "INVALID_PHONE", VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
             case "NOT_FOUND" -> HttpStatus.NOT_FOUND;
             case "FORBIDDEN" -> HttpStatus.FORBIDDEN;
-            case "CONFLICT" -> HttpStatus.CONFLICT;
+            case "CONFLICT", "DUPLICATE_PHONE" -> HttpStatus.CONFLICT;
             case "UNAUTHORIZED" -> HttpStatus.UNAUTHORIZED;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
