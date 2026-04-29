@@ -79,8 +79,12 @@ public class FineractClientService {
 
             if (response != null && response.containsKey(PAGE_ITEMS)) {
                 var pageItems = (List<Map<String, Object>>) response.get(PAGE_ITEMS);
-                if (!pageItems.isEmpty()) {
-                    return pageItems.get(0);
+                // sqlSearch may return false positives (Fineract doesn't always filter
+                // strictly); verify the mobileNo field of each candidate before returning.
+                for (var client : pageItems) {
+                    if (mobileNo.equals(client.get("mobileNo"))) {
+                        return client;
+                    }
                 }
             }
             return Map.of();
