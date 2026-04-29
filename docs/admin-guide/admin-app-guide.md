@@ -36,7 +36,7 @@ For security reasons, you must immediately reset your password after your first 
 
 **Step 4:** On your User Details page, click the **"Reset Password"** button located at the top-right of the page.
 
-![The user details page for the admin, with  the 'Reset Password' button.](./images/admin-user-details-reset-password.png)
+![The user details page for the admin, with  the 'Reset Password' button.](./images/reset-password-button.png)
 
 **Step 5:** A confirmation dialog will appear. Click "Confirm". An email will be sent to your registered email address.
 
@@ -165,7 +165,7 @@ If you suspect a user's account may be compromised, you can force them to change
 
 The next time the user tries to log in, they will be prompted to create a new password.
 
-![The 'Force Password Change' button on the user details page.](./images/![alt text](image.png))
+![The 'Force Password Change' button on the user details page.](./images/force-password-change-button.png)
 
 ---
 
