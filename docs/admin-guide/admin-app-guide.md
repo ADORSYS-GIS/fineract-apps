@@ -40,6 +40,8 @@ For security reasons, you must immediately reset your password after your first 
 
 **Step 5:** A confirmation dialog will appear. Click "Confirm". An email will be sent to your registered email address.
 
+![See.](./images/email-confirmation-dialogue.png)
+
 **Step 6:** Open the email and follow the instructions to set a new, secure password.
 
 ---
