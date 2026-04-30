@@ -9,11 +9,14 @@ import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class IncomeCalendarServiceTest {
 
     private static final Long USER_ID = 42L;
@@ -32,8 +36,16 @@ class IncomeCalendarServiceTest {
     @Mock private UserPositionRepository userPositionRepository;
     @Mock private AssetRepository assetRepository;
     @Mock private AssetPriceRepository assetPriceRepository;
+    @Mock private TaxService taxService;
 
     @InjectMocks private IncomeCalendarService service;
+
+    @BeforeEach
+    void stubDefaultIrcmRate() {
+        // Default: no IRCM withholding. Tests that care about taxed amounts can override.
+        when(taxService.getEffectiveIrcmRate(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(BigDecimal.ZERO);
+    }
 
     @Test
     void getCalendar_noPositions_returnsEmpty() {
