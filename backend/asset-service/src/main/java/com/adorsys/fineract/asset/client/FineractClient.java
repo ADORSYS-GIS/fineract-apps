@@ -1087,41 +1087,12 @@ public class FineractClient {
                                              Integer lsavProductId,
                                              Integer lspdProductId,
                                              Integer ltaxProductId) {
-        // requestIds 1,2,3 → LSAV; 4,5,6 → LSPD; 7,8,9 → LTAX
-        List<BatchOperation> ops = List.of(
-                new BatchCreateSavingsOp(lpClientId, lsavProductId),
-                new BatchApproveSavingsOp(1),
-                new BatchActivateSavingsOp(1),
-                new BatchCreateSavingsOp(lpClientId, lspdProductId),
-                new BatchApproveSavingsOp(4),
-                new BatchActivateSavingsOp(4),
-                new BatchCreateSavingsOp(lpClientId, ltaxProductId),
-                new BatchApproveSavingsOp(7),
-                new BatchActivateSavingsOp(7)
-        );
-
-        List<Map<String, Object>> responses = executeAtomicBatch(ops);
-
-        // Extract savingsId from create-operation responses (positions 0, 3, 6 → requestIds 1, 4, 7)
-        Long cashAccountId   = extractSavingsId(responses, 0);
-        Long spreadAccountId = extractSavingsId(responses, 3);
-        Long taxAccountId    = extractSavingsId(responses, 6);
-
-        log.info("Provisioned LP accounts atomically: lpClientId={}, cash={}, spread={}, tax={}",
+        Long cashAccountId   = provisionSavingsAccount(lpClientId, lsavProductId, null, null);
+        Long spreadAccountId = provisionSavingsAccount(lpClientId, lspdProductId, null, null);
+        Long taxAccountId    = provisionSavingsAccount(lpClientId, ltaxProductId, null, null);
+        log.info("Provisioned LP accounts: lpClientId={}, cash={}, spread={}, tax={}",
                 lpClientId, cashAccountId, spreadAccountId, taxAccountId);
         return new LpAccountIds(cashAccountId, spreadAccountId, taxAccountId);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Long extractSavingsId(List<Map<String, Object>> responses, int index) {
-        try {
-            Map<String, Object> resp = responses.get(index);
-            String bodyStr = resp.get("body") != null ? resp.get("body").toString() : "{}";
-            Map<String, Object> bodyMap = objectMapper.readValue(bodyStr, Map.class);
-            return ((Number) bodyMap.get("savingsId")).longValue();
-        } catch (Exception e) {
-            throw new AssetException("Failed to extract savingsId from batch response at index " + index, e);
-        }
     }
 
     /**
