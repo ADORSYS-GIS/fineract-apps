@@ -83,11 +83,11 @@ public class AdminAssetStepDefinitions {
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
-                lp_asset_account_id, lp_cash_account_id, fineract_product_id,
+                lp_asset_account_id, fineract_product_id,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
                 is_bvmac_listed, is_government_bond, ircm_exempt, tva_enabled,
                 trading_fee_percent, version, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 300, 10,
+            VALUES (?, ?, ?, ?, 'STOCKS', 'ACTIVE', 'MANUAL', 100, 1000, 0, 0, 1, 400, 10,
                 true, true, true, false, false, false, false,
                 0.005, 0, NOW(), NOW())
             """, "dup-" + symbol, symbol, symbol, "Duplicate " + symbol);

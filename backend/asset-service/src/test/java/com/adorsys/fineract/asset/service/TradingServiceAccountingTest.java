@@ -313,20 +313,19 @@ class TradingServiceAccountingTest {
         }
 
         @Test
+        @SuppressWarnings("unchecked")
         void sell_fallsBackToGlobalTaxWhenNoLpTax() throws Exception {
-            // No LTAX account: mock LP with null taxAccountId
             LiquidityProvider lpNoTax = new LiquidityProvider();
             lpNoTax.setClientId(1L);
             lpNoTax.setCashAccountId(LP_CASH);
             lpNoTax.setSpreadAccountId(LP_SPREAD);
             lpNoTax.setTaxAccountId(null);
-            when(lpRepository.findById(1L)).thenReturn(java.util.Optional.of(lpNoTax));
 
-            List<BatchOperation> ops = invoke(TradeSide.SELL,
-                    bd("95000"), bd("10"), bd("500"), bd("0"), bd("0"),
-                    bd("1900"), bd("0"), bd("0"));
+            List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
+                    TradeSide.SELL, testAsset, lpNoTax, USER_CASH, USER_ASSET,
+                    bd("95000"), bd("10"), bd("500"), bd("0"), bd("0"), FEE_COLLECT,
+                    bd("1900"), bd("0"), bd("0"), BigDecimal.ZERO);
 
-            // Should fall back to global tax authority
             BatchTransferOp regDutyLeg = findTransfer(ops, LP_CASH, TAX_REG_DUTY);
             assertNotNull(regDutyLeg, "Should fall back to global reg duty account");
             assertEquals(bd("1900"), regDutyLeg.amount());
