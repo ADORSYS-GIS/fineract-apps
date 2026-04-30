@@ -1519,6 +1519,9 @@ public class TradingService {
         Pageable stablePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), stable);
         Page<Order> orders;
         if (status != null) {
+            if (HIDDEN_FROM_USER_HISTORY.contains(status)) {
+                return Page.empty(stablePageable);
+            }
             List<OrderStatus> include = List.of(status);
             orders = assetId != null
                     ? orderRepository.findByUserIdAndAssetIdAndStatusIn(userId, assetId, include, stablePageable)

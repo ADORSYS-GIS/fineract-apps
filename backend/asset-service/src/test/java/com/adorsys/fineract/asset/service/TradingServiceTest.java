@@ -614,6 +614,18 @@ class TradingServiceTest {
     }
 
     @Test
+    void getUserOrders_withHiddenStatus_returnsEmptyPageWithoutHittingRepository() {
+        PageRequest pageable = PageRequest.of(0, 20);
+
+        var result = tradingService.getUserOrders(USER_ID, null, OrderStatus.CANCELLED, pageable);
+
+        assertTrue(result.getContent().isEmpty());
+        assertEquals(0, result.getTotalElements());
+        verify(orderRepository, never()).findByUserIdAndStatusIn(any(), anyCollection(), any());
+        verify(orderRepository, never()).findByUserIdAndStatusNotIn(any(), anyCollection(), any());
+    }
+
+    @Test
     void getUserOrders_mapsOrderFieldsCorrectly() {
         Instant createdAt = Instant.parse("2026-04-09T10:00:00Z");
         Order order = Order.builder()
