@@ -3,6 +3,8 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.client.FineractClient.BatchJournalEntryOp;
 import com.adorsys.fineract.asset.client.FineractClient.BatchOperation;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
@@ -25,7 +27,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import static java.util.stream.Collectors.*;
 
 /**
  * Settlement service for LP payouts, tax remittances, trust rebalancing,
@@ -43,6 +48,7 @@ public class SettlementService {
     private final ResolvedTaxAccounts resolvedTaxAccounts;
     private final AssetServiceConfig assetServiceConfig;
     private final com.adorsys.fineract.asset.repository.AssetRepository assetRepository;
+    private final LiquidityProviderRepository lpRepository;
 
     @Transactional
     public Settlement createSettlement(Settlement request) {
@@ -299,25 +305,30 @@ public class SettlementService {
                 .filter(a -> a.getLpClientId() != null)
                 .collect(java.util.stream.Collectors.groupingBy(com.adorsys.fineract.asset.entity.Asset::getLpClientId));
 
+        // Load all LP records in one query
+        Map<Long, LiquidityProvider> lpMap = lpRepository.findAllById(lpAssets.keySet())
+                .stream().collect(toMap(LiquidityProvider::getClientId, Function.identity()));
+
         List<Map<String, Object>> result = new ArrayList<>();
         for (var entry : lpAssets.entrySet()) {
             Long lpClientId = entry.getKey();
             var assetList = entry.getValue();
-            String lpName = assetList.get(0).getLpClientName();
+            LiquidityProvider lp = lpMap.get(lpClientId);
+            String lpName = lp != null ? lp.getClientName() : null;
 
             BigDecimal lsav = BigDecimal.ZERO;
             BigDecimal lspd = BigDecimal.ZERO;
             BigDecimal ltax = BigDecimal.ZERO;
 
-            for (var asset : assetList) {
-                if (asset.getLpCashAccountId() != null) {
-                    try { lsav = lsav.add(fineractClient.getAccountBalance(asset.getLpCashAccountId())); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
+            if (lp != null) {
+                if (lp.getCashAccountId() != null) {
+                    try { lsav = fineractClient.getAccountBalance(lp.getCashAccountId()); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
                 }
-                if (asset.getLpSpreadAccountId() != null) {
-                    try { lspd = lspd.add(fineractClient.getAccountBalance(asset.getLpSpreadAccountId())); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
+                if (lp.getSpreadAccountId() != null) {
+                    try { lspd = fineractClient.getAccountBalance(lp.getSpreadAccountId()); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
                 }
-                if (asset.getLpTaxAccountId() != null) {
-                    try { ltax = ltax.add(fineractClient.getAccountBalance(asset.getLpTaxAccountId())); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
+                if (lp.getTaxAccountId() != null) {
+                    try { ltax = fineractClient.getAccountBalance(lp.getTaxAccountId()); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
                 }
             }
 

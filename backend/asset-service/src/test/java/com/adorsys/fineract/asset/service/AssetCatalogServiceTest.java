@@ -36,6 +36,7 @@ class AssetCatalogServiceTest {
     @Mock private AssetPriceRepository assetPriceRepository;
     @Mock private TradeLogRepository tradeLogRepository;
     @Mock private com.adorsys.fineract.asset.storage.FileStorageService fileStorageService;
+    @Mock private com.adorsys.fineract.asset.repository.LiquidityProviderRepository lpRepository;
 
     @InjectMocks
     private AssetCatalogService assetCatalogService;
@@ -57,7 +58,6 @@ class AssetCatalogServiceTest {
                 .tradingFeePercent(new BigDecimal("0.005"))
                 .lpClientId(1L)
                 .lpAssetAccountId(200L)
-                .lpCashAccountId(300L)
                 .fineractProductId(10)
                 .createdAt(Instant.now())
                 .build();
@@ -83,6 +83,11 @@ class AssetCatalogServiceTest {
         Asset asset = buildAsset(ASSET_ID, "TST", AssetStatus.ACTIVE);
         AssetPrice price = buildAssetPrice(ASSET_ID, new BigDecimal("500"));
 
+        com.adorsys.fineract.asset.entity.LiquidityProvider lp = new com.adorsys.fineract.asset.entity.LiquidityProvider();
+        lp.setClientId(1L);
+        lp.setCashAccountId(300L);
+        when(lpRepository.findById(1L)).thenReturn(Optional.of(lp));
+
         when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(asset));
         when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(price));
 
@@ -96,11 +101,12 @@ class AssetCatalogServiceTest {
         assertEquals(AssetStatus.ACTIVE, response.status());
         assertEquals(0, new BigDecimal("500").compareTo(response.askPrice()));
         assertEquals(0, new BigDecimal("900").compareTo(response.availableSupply())); // 1000 - 100
-        assertEquals(200L, response.lpAssetAccountId());
-        assertEquals(300L, response.lpCashAccountId());
+        assertNotNull(response.lp());
+        assertEquals(200L, response.lp().assetAccountId());
+        assertEquals(300L, response.lp().cashAccountId());
         assertEquals(10, response.fineractProductId());
         assertEquals("Test TST Token", response.fineractProductName());
-        assertNull(response.lpClientName());
+        assertNull(response.lp().clientName());
 
         verify(assetRepository).findById(ASSET_ID);
         verify(assetPriceRepository).findById(ASSET_ID);

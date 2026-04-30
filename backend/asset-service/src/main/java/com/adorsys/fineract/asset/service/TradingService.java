@@ -51,6 +51,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.service.FineractOutboxService;
 
 import java.util.ArrayList;
@@ -104,6 +106,7 @@ public class TradingService {
     private final ObjectMapper objectMapper;
     private final AssetProjectionRepository assetProjectionRepository;
     private final FineractOutboxService outboxService;
+    private final LiquidityProviderRepository lpRepository;
 
     private static final List<OrderStatus> HIDDEN_FROM_USER_HISTORY = List.of(OrderStatus.CANCELLED);
 
@@ -194,7 +197,9 @@ public class TradingService {
         BigDecimal grossAmount = units.multiply(executionPrice).setScale(0, RoundingMode.HALF_UP);
         BigDecimal fee = grossAmount.multiply(feePercent).setScale(0, RoundingMode.FLOOR);
         BigDecimal lpMarginPerUnit = executionPrice.subtract(issuerPrice).abs();
-        BigDecimal spreadAmount = isSpreadEnabled(asset)
+        LiquidityProvider quoteLp = asset.getLpClientId() != null
+                ? lpRepository.findById(asset.getLpClientId()).orElse(null) : null;
+        BigDecimal spreadAmount = isSpreadEnabled(quoteLp)
                 ? lpMarginPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
@@ -251,8 +256,10 @@ public class TradingService {
             lockupService.validateLockup(asset, userId, units);
 
             // LP capital adequacy check — LP LSAV must cover: gross + spread + tax + accruedInterest (LP bears all on SELL)
-            if (asset.getLpCashAccountId() != null) {
-                BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+            LiquidityProvider sellLp = asset.getLpClientId() != null
+                    ? lpRepository.findById(asset.getLpClientId()).orElse(null) : null;
+            if (sellLp != null && sellLp.getCashAccountId() != null) {
+                BigDecimal lpCashBalance = fineractClient.getAccountBalance(sellLp.getCashAccountId());
                 BigDecimal totalLpRequired = grossAmount.add(spreadAmount).add(totalTax).add(accruedInterestAmount);
                 if (lpCashBalance.compareTo(totalLpRequired) < 0) {
                     String currency = assetServiceConfig.getSettlementCurrency();
@@ -879,11 +886,14 @@ public class TradingService {
     private Asset reVerifyAsset(TradeContext ctx) {
         Asset lockedAsset = assetRepository.findById(ctx.getAssetId())
                 .orElseThrow(() -> new AssetException("Asset not found: " + ctx.getAssetId()));
-        if (lockedAsset.getLpCashAccountId() == null || lockedAsset.getLpAssetAccountId() == null) {
+        LiquidityProvider lp = lockedAsset.getLpClientId() != null
+                ? lpRepository.findById(lockedAsset.getLpClientId()).orElse(null) : null;
+        if (lp == null || lp.getCashAccountId() == null || lockedAsset.getLpAssetAccountId() == null) {
             rejectOrder(ctx.getOrder(), "Asset LP accounts not configured");
             throw new TradingException(
                     "Asset is not fully configured for trading. Contact admin.", "CONFIG_ERROR");
         }
+        ctx.setLp(lp);
         if (resolvedGlAccounts.getClearingAccountId() == null) {
             rejectOrder(ctx.getOrder(), "GL clearing account not configured");
             throw new TradingException("Clearing account not configured. Contact admin.", "CONFIG_ERROR");
@@ -949,9 +959,10 @@ public class TradingService {
 
         // LP margin: directional spread (no .abs())
         BigDecimal issuerPrice = asset.getIssuerPrice() != null ? asset.getIssuerPrice() : lockedBasePrice;
+        LiquidityProvider lockLp = ctx.getLp();
         BigDecimal spreadAmount;
         BigDecimal buybackPremium;
-        if (!isSpreadEnabled(asset)) {
+        if (!isSpreadEnabled(lockLp)) {
             spreadAmount = BigDecimal.ZERO;
             buybackPremium = BigDecimal.ZERO;
         } else if (strategy.side() == TradeSide.BUY) {
@@ -1031,7 +1042,12 @@ public class TradingService {
         } else {
             // SELL: LP must have enough cash to cover all outflows (nominal + spread + fee + tax)
             Asset asset = ctx.getAsset();
-            BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+            LiquidityProvider lp = ctx.getLp();
+            if (lp == null || lp.getCashAccountId() == null) {
+                rejectOrder(ctx.getOrder(), "LP cash account not configured");
+                throw new TradingException("Asset LP cash account not configured. Contact admin.", "CONFIG_ERROR");
+            }
+            BigDecimal lpCashBalance = fineractClient.getAccountBalance(lp.getCashAccountId());
             BigDecimal spread = ctx.getSpreadAmount() != null ? ctx.getSpreadAmount() : BigDecimal.ZERO;
             BigDecimal regDuty = ctx.getRegistrationDutyAmount() != null ? ctx.getRegistrationDutyAmount() : BigDecimal.ZERO;
             BigDecimal cgt = ctx.getCapitalGainsTaxAmount() != null ? ctx.getCapitalGainsTaxAmount() : BigDecimal.ZERO;
@@ -1136,8 +1152,15 @@ public class TradingService {
         BigDecimal tvaAmount = ctx.getTvaAmount() != null ? ctx.getTvaAmount() : BigDecimal.ZERO;
         BigDecimal accruedInterestAmount = ctx.getAccruedInterestAmount() != null ? ctx.getAccruedInterestAmount() : BigDecimal.ZERO;
 
+        LiquidityProvider lp = ctx.getLp();
+        if (lp == null) {
+            lp = lockedAsset.getLpClientId() != null
+                    ? lpRepository.findById(lockedAsset.getLpClientId())
+                            .orElseThrow(() -> new AssetException("LP not found for asset: " + lockedAsset.getId()))
+                    : null;
+        }
         List<BatchOperation> batchOps = buildBatchOperations(
-                side, lockedAsset, ctx.getUserCashAccountId(), ctx.getUserAssetAccountId(),
+                side, lockedAsset, lp, ctx.getUserCashAccountId(), ctx.getUserAssetAccountId(),
                 ctx.getGrossAmount(), ctx.getUnits(), ctx.getFee(), ctx.getSpreadAmount(),
                 ctx.getBuybackPremium(), feeCollectionAccountId,
                 registrationDuty, capitalGainsTax, tvaAmount, accruedInterestAmount);
@@ -1272,12 +1295,16 @@ public class TradingService {
      * LP Cash net change is always ±(issuerPrice × units) when spread/premium is enabled.
      */
     private List<BatchOperation> buildBatchOperations(
-            TradeSide side, Asset asset,
+            TradeSide side, Asset asset, LiquidityProvider lp,
             Long userCashAccountId, Long userAssetAccountId,
             BigDecimal grossAmount, BigDecimal units, BigDecimal fee,
             BigDecimal spreadAmount, BigDecimal buybackPremium, Long feeCollectionAccountId,
             BigDecimal registrationDuty, BigDecimal capitalGainsTax, BigDecimal tvaAmount,
             BigDecimal accruedInterestAmount) {
+
+        Long lpCashAccountId = lp != null ? lp.getCashAccountId() : null;
+        Long lpSpreadAccountId = lp != null ? lp.getSpreadAccountId() : null;
+        Long lpTaxAccountId = lp != null ? lp.getTaxAccountId() : null;
 
         List<BatchOperation> ops = new ArrayList<>();
         BigDecimal totalTax = registrationDuty.add(capitalGainsTax).add(tvaAmount);
@@ -1304,12 +1331,12 @@ public class TradingService {
             // Leg 3: Clearing → LP Settlement (nominal = grossAmount - spread)
             BigDecimal nominalToLP = grossAmount.subtract(spreadAmount);
             ops.add(new BatchTransferOp(
-                    clearingAccountId, asset.getLpCashAccountId(),
+                    clearingAccountId, lpCashAccountId,
                     nominalToLP, "Settlement: " + asset.getSymbol()));
             // Leg 4: Clearing → LP Spread (LSPD)
-            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(lp)) {
                 ops.add(new BatchTransferOp(
-                        clearingAccountId, asset.getLpSpreadAccountId(),
+                        clearingAccountId, lpSpreadAccountId,
                         spreadAmount, "LP margin: BUY " + asset.getSymbol()));
             }
             // Leg 5: Clearing → Platform Fee Collection
@@ -1321,7 +1348,7 @@ public class TradingService {
             // Leg 5b: Clearing → LP Cash (accrued interest — LP held bond since last coupon)
             if (accruedInterest.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
-                        clearingAccountId, asset.getLpCashAccountId(),
+                        clearingAccountId, lpCashAccountId,
                         accruedInterest, "Accrued interest: BUY " + asset.getSymbol()));
             }
             // Leg 6 (tax): Clearing → Tax Authority (registration duty)
@@ -1350,15 +1377,15 @@ public class TradingService {
                     userAssetAccountId, asset.getLpAssetAccountId(),
                     units, "Asset sell: " + asset.getSymbol()));
             // Leg 2 (optional, internal): If bid > issuer, fund LP Cash premium from LP Spread
-            if (buybackPremium != null && buybackPremium.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
+            if (buybackPremium != null && buybackPremium.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(lp)) {
                 ops.add(new BatchTransferOp(
-                        asset.getLpSpreadAccountId(), asset.getLpCashAccountId(),
+                        lpSpreadAccountId, lpCashAccountId,
                         buybackPremium, "Buyback premium: SELL " + asset.getSymbol()));
             }
             // Leg 3: LP Cash pays proceeds to investor (gross - fee + accruedInterest) — LP bears tax separately
             BigDecimal sellProceeds = grossAmount.subtract(fee).add(accruedInterest);
             ops.add(new BatchSavingsWithdrawOp(
-                    asset.getLpCashAccountId(), sellProceeds, null,
+                    lpCashAccountId, sellProceeds, null,
                     resolvedGlAccounts.getSellPaymentTypeId()));
             ops.add(new BatchSavingsDepositOp(
                     userCashAccountId, sellProceeds, "Asset sale proceeds: " + asset.getSymbol(),
@@ -1366,40 +1393,40 @@ public class TradingService {
             // Leg 4 (internal): LP Cash sweeps fee to Fee Collection (mandatory)
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), feeCollectionAccountId,
+                        lpCashAccountId, feeCollectionAccountId,
                         fee, "Trading fee: SELL " + asset.getSymbol()));
             }
             // Leg 5 (internal): LP Cash sweeps spread to LP Spread (if bid < issuer)
-            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(asset)) {
+            if (spreadAmount.compareTo(BigDecimal.ZERO) > 0 && isSpreadEnabled(lp)) {
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), asset.getLpSpreadAccountId(),
+                        lpCashAccountId, lpSpreadAccountId,
                         spreadAmount, "LP margin: SELL " + asset.getSymbol()));
             }
             // Leg 6 (tax): LP pays registration duty — route to LP Tax account if available, else global
             if (registrationDuty.compareTo(BigDecimal.ZERO) > 0) {
-                Long taxDestination = asset.getLpTaxAccountId() != null
-                        ? asset.getLpTaxAccountId()
+                Long taxDestination = lpTaxAccountId != null
+                        ? lpTaxAccountId
                         : taxService.getRegistrationDutyAccountId();
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), taxDestination,
+                        lpCashAccountId, taxDestination,
                         registrationDuty, DESC_REGISTRATION_DUTY + " SELL " + asset.getSymbol()));
             }
             // Leg 7 (tax): LP pays capital gains tax — route to LP Tax account if available, else global
             if (capitalGainsTax.compareTo(BigDecimal.ZERO) > 0) {
-                Long taxDestination = asset.getLpTaxAccountId() != null
-                        ? asset.getLpTaxAccountId()
+                Long taxDestination = lpTaxAccountId != null
+                        ? lpTaxAccountId
                         : taxService.getCapitalGainsAccountId();
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), taxDestination,
+                        lpCashAccountId, taxDestination,
                         capitalGainsTax, DESC_CAPITAL_GAINS + " SELL " + asset.getSymbol()));
             }
             // Leg 8 (tax): LP pays TVA — route to LP Tax account if available, else global
             if (tvaAmount.compareTo(BigDecimal.ZERO) > 0) {
-                Long taxDestination = asset.getLpTaxAccountId() != null
-                        ? asset.getLpTaxAccountId()
+                Long taxDestination = lpTaxAccountId != null
+                        ? lpTaxAccountId
                         : taxService.getTvaAccountId();
                 ops.add(new BatchTransferOp(
-                        asset.getLpCashAccountId(), taxDestination,
+                        lpCashAccountId, taxDestination,
                         tvaAmount, DESC_TVA + " SELL " + asset.getSymbol()));
             }
 
@@ -1619,9 +1646,9 @@ public class TradingService {
 
     /**
      * Check if LP spread collection is enabled for this asset.
-     * In the LP model, each asset has its own spread account (per-asset).
+     * Spread is enabled when the LP has a configured spread account.
      */
-    private boolean isSpreadEnabled(Asset asset) {
-        return asset.getLpSpreadAccountId() != null && asset.getLpSpreadAccountId() > 0;
+    private boolean isSpreadEnabled(LiquidityProvider lp) {
+        return lp != null && lp.getSpreadAccountId() != null && lp.getSpreadAccountId() > 0;
     }
 }

@@ -4,11 +4,14 @@ import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.IncomeDistribution;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.event.IncomePaidEvent;
+import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.IncomeDistributionRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +46,7 @@ public class IncomeDistributionService {
     private final AssetServiceConfig assetServiceConfig;
     private final ApplicationEventPublisher eventPublisher;
     private final AssetMetrics assetMetrics;
+    private final LiquidityProviderRepository lpRepository;
 
     @Transactional
     public void processDistribution(Asset asset, LocalDate distributionDate) {
@@ -98,6 +102,13 @@ public class IncomeDistributionService {
 
     private boolean payHolder(Asset asset, UserPosition holder, String incomeType,
                                BigDecimal rate, BigDecimal cashAmount, LocalDate distributionDate) {
+        LiquidityProvider lp = asset.getLpClientId() != null
+                ? lpRepository.findById(asset.getLpClientId())
+                        .orElseThrow(() -> new AssetException("LP not found for asset: " + asset.getId()))
+                : null;
+        if (lp == null || lp.getCashAccountId() == null) {
+            throw new AssetException("LP cash account not configured for asset: " + asset.getSymbol());
+        }
         String currency = assetServiceConfig.getSettlementCurrency();
         IncomeDistribution.IncomeDistributionBuilder record = IncomeDistribution.builder()
                 .assetId(asset.getId())
@@ -118,7 +129,7 @@ public class IncomeDistributionService {
             String description = String.format("%s payment: %s %s%%",
                     incomeType, asset.getSymbol(), rate);
             Long transferId = fineractClient.createAccountTransfer(
-                    asset.getLpCashAccountId(), userCashAccountId,
+                    lp.getCashAccountId(), userCashAccountId,
                     cashAmount, description);
 
             record.fineractTransferId(transferId).status("SUCCESS");

@@ -5,6 +5,7 @@ import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.*;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.exception.AssetException;
@@ -48,6 +49,7 @@ class AssetProvisioningServiceTest {
     @Mock private ResolvedGlAccounts resolvedGlAccounts;
     @Mock private com.adorsys.fineract.asset.storage.FileStorageService fileStorageService;
     @Mock private CurrencyCodeGenerator currencyCodeGenerator;
+    @Mock private LiquidityProviderRepository lpRepository;
 
     @InjectMocks
     private AssetProvisioningService service;
@@ -72,6 +74,9 @@ class AssetProvisioningServiceTest {
 
         // Default: generator returns a code derived from the symbol (e.g. "TST" for symbol "TST")
         lenient().when(currencyCodeGenerator.generate(anyString(), any())).thenReturn("TST");
+
+        // LP is pre-registered
+        lenient().when(lpRepository.findById(LP_CLIENT_ID)).thenReturn(java.util.Optional.of(liquidityProvider()));
     }
 
     // -------------------------------------------------------------------------
@@ -84,23 +89,6 @@ class AssetProvisioningServiceTest {
 
         // No duplicate
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-
-        // Look up client display name
-        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test Company");
-
-        // Fineract: find LP savings products and provision accounts
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
-                .thenReturn(300L);  // LP settlement (LSAV)
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull()))
-                .thenReturn(350L);  // LP spread (LSPD)
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull()))
-                .thenReturn(360L);  // LP tax (LTAX)
 
         // Fineract: register currency, create product, provision account
         when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
@@ -123,9 +111,7 @@ class AssetProvisioningServiceTest {
         assertEquals(AssetStatus.PENDING, saved.getStatus());
         assertEquals(new BigDecimal("1000"), saved.getTotalSupply());
         assertEquals(BigDecimal.ZERO, saved.getCirculatingSupply());
-        assertEquals(300L, saved.getLpCashAccountId());
         assertEquals(400L, saved.getLpAssetAccountId());
-        assertEquals("Test Company", saved.getLpClientName());
 
         // Verify price saved (initialAskPrice from request = 110)
         verify(assetPriceRepository).save(priceCaptor.capture());
@@ -150,16 +136,6 @@ class AssetProvisioningServiceTest {
                 null, null);                                // tvaEnabled, tvaRate
 
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
         when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(10);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong())).thenReturn(400L);
         when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
@@ -197,16 +173,6 @@ class AssetProvisioningServiceTest {
                 null, null);                                // tvaEnabled, tvaRate
 
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
         when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), eq(0), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(10);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong())).thenReturn(400L);
         when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
@@ -350,16 +316,6 @@ class AssetProvisioningServiceTest {
         when(currencyCodeGenerator.generate(anyString(), any())).thenReturn("TSTA");
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
         when(fineractClient.createSavingsProduct(anyString(), eq("TSTA"), eq("TSTA"), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(10);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), any(), anyLong())).thenReturn(400L);
         when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
@@ -373,35 +329,18 @@ class AssetProvisioningServiceTest {
     }
 
     @Test
-    void createAsset_noSettlementProduct_throws() {
+    void createAsset_lpNotFound_throws() {
         CreateAssetRequest request = createAssetRequest();
-        when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-
-        // LP settlement product not found
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(null);
+        when(lpRepository.findById(LP_CLIENT_ID)).thenReturn(Optional.empty());
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
-        assertTrue(ex.getMessage().contains("LP settlement savings product"));
+        assertTrue(ex.getMessage().contains("LP not found"));
     }
 
     @Test
     void createAsset_productCreationFails_noRollbackNeeded() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
-                .thenReturn(300L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull()))
-                .thenReturn(350L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull()))
-                .thenReturn(360L);
 
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenThrow(new RuntimeException("Connection timeout"));
@@ -417,19 +356,6 @@ class AssetProvisioningServiceTest {
     void createAsset_accountProvisioningFails_rollsBackProductAndCurrency() {
         CreateAssetRequest request = createAssetRequest();
         when(assetRepository.findBySymbol("TST")).thenReturn(Optional.empty());
-
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull()))
-                .thenReturn(300L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull()))
-                .thenReturn(350L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull()))
-                .thenReturn(360L);
 
         when(fineractClient.createSavingsProduct(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
@@ -453,16 +379,6 @@ class AssetProvisioningServiceTest {
         when(fineractClient.findSavingsProductByShortName("TST")).thenReturn(77);  // orphan found by shortName
         when(assetRepository.existsByFineractProductId(77)).thenReturn(false);     // no local asset for it
 
-        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(77), eq(new BigDecimal("1000")), anyLong()))
                 .thenReturn(400L);
         when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
@@ -486,16 +402,6 @@ class AssetProvisioningServiceTest {
         when(fineractClient.getSavingsProductShortName(88)).thenReturn("TST"); // shortName matches → safe to adopt
         when(assetRepository.existsByFineractProductId(88)).thenReturn(false);
 
-        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(88), eq(new BigDecimal("1000")), anyLong()))
                 .thenReturn(400L);
         when(assetCatalogService.getAssetDetailAdmin(anyString())).thenReturn(stubDetailResponse());
@@ -516,16 +422,6 @@ class AssetProvisioningServiceTest {
         when(fineractClient.findSavingsProductByName("Test Asset Token")).thenReturn(88);
         when(fineractClient.getSavingsProductShortName(88)).thenReturn("XYZ"); // mismatch — different asset's product
 
-        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
         when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenReturn(10);
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(10), eq(new BigDecimal("1000")), anyLong()))
@@ -553,16 +449,6 @@ class AssetProvisioningServiceTest {
                 .thenReturn(99);
         when(assetRepository.existsByFineractProductId(99)).thenReturn(false);
 
-        when(fineractClient.getClientDisplayName(LP_CLIENT_ID)).thenReturn("Test LP");
-        when(assetServiceConfig.getLpSettlementProductShortName()).thenReturn("LSAV");
-        when(assetServiceConfig.getLpSpreadProductShortName()).thenReturn("LSPD");
-        when(assetServiceConfig.getLpTaxProductShortName()).thenReturn("LTAX");
-        when(fineractClient.findSavingsProductByShortName("LSAV")).thenReturn(50);
-        when(fineractClient.findSavingsProductByShortName("LSPD")).thenReturn(51);
-        when(fineractClient.findSavingsProductByShortName("LTAX")).thenReturn(52);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(50), isNull(), isNull())).thenReturn(300L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(51), isNull(), isNull())).thenReturn(350L);
-        when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(52), isNull(), isNull())).thenReturn(360L);
         when(fineractClient.createSavingsProduct(anyString(), eq("TST"), eq("TST"), anyInt(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong()))
                 .thenThrow(new AssetException("Failed to create savings product: data integrity issue"));
         when(fineractClient.provisionSavingsAccount(eq(LP_CLIENT_ID), eq(99), eq(new BigDecimal("1000")), anyLong()))
@@ -960,8 +846,9 @@ class AssetProvisioningServiceTest {
             null, null, null,                            // supply
             null, null,                                  // tradingFeePercent, decimalPlaces
             null, null, null,                            // issuerName, issuerPrice, faceValue
-            null, null, null, null, null, null,          // LP accounts + productId
-            null, null, null, null,                      // lpClientName, fineractProductName, margins
+            null,                                        // lp (LpInfo)
+            null, null,                                  // fineractProductId, fineractProductName
+            null, null,                                  // lpMarginPerUnit, lpMarginPercent
             null, null,                                  // createdAt, updatedAt
             null, null, null,                            // bondType, dayCountConvention, issuerCountry
             null, null, null, null, null, null, null, null, null, // bond fields (isinCode, maturityDate, issueDate, interestRate, currentYield, couponFrequencyMonths, nextCouponDate, residualDays, couponAmountPerUnit)

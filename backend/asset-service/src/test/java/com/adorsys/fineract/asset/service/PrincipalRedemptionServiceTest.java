@@ -10,9 +10,11 @@ import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository;
 import com.adorsys.fineract.asset.repository.ScheduledPaymentRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -43,16 +45,21 @@ class PrincipalRedemptionServiceTest {
     @Mock TaxService taxService;
     @Mock AssetMetrics assetMetrics;
     @Mock FineractOutboxService outboxService;
+    @Mock LiquidityProviderRepository lpRepository;
 
     @InjectMocks
     PrincipalRedemptionService service;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(lpRepository.findById(LP_CLIENT_ID)).thenReturn(Optional.of(liquidityProvider()));
+    }
 
     private Asset maturedBond() {
         Asset bond = activeDiscountBondAsset();
         bond.setStatus(AssetStatus.MATURED);
         bond.setFaceValue(new BigDecimal("1000000"));
         bond.setIssuerPrice(new BigDecimal("900000"));
-        bond.setLpCashAccountId(LP_CASH_ACCOUNT);
         bond.setLpAssetAccountId(LP_ASSET_ACCOUNT);
         bond.setMaturityDate(LocalDate.now().minusDays(1));
         return bond;

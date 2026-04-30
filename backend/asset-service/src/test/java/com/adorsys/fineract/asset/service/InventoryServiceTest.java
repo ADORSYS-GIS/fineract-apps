@@ -50,7 +50,6 @@ class InventoryServiceTest {
                 .tradingFeePercent(new BigDecimal("0.005"))
                 .lpClientId(1L)
                 .lpAssetAccountId(200L)
-                .lpCashAccountId(300L)
                 .fineractProductId(10)
                 .createdAt(Instant.now())
                 .build();

@@ -12,6 +12,8 @@ import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
 import com.adorsys.fineract.asset.event.CouponPaidEvent;
 import com.adorsys.fineract.asset.event.IncomePaidEvent;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
+import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +55,7 @@ public class ScheduledPaymentService {
     private final TaxService taxService;
     private final ResolvedGlAccounts resolvedGlAccounts;
     private final FineractOutboxService outboxService;
+    private final LiquidityProviderRepository lpRepository;
 
     // ── Create pending schedule ─────────────────────────────────────────────
 
@@ -190,7 +193,14 @@ public class ScheduledPaymentService {
             }
         }
 
-        BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+        LiquidityProvider lp = asset.getLpClientId() != null
+                ? lpRepository.findById(asset.getLpClientId())
+                        .orElseThrow(() -> new AssetException("LP not found for asset: " + asset.getId()))
+                : null;
+        if (lp == null || lp.getCashAccountId() == null) {
+            throw new AssetException("LP cash account not configured for asset: " + asset.getSymbol());
+        }
+        BigDecimal lpCashBalance = fineractClient.getAccountBalance(lp.getCashAccountId());
         if (lpCashBalance.compareTo(totalRequired) < 0) {
             throw new IllegalStateException(String.format(
                     "Insufficient LP cash balance: %s available, %s required for %d holders",
@@ -302,9 +312,12 @@ public class ScheduledPaymentService {
                 .toList();
 
         BigDecimal lpCashBalance = null;
-        if (asset != null && asset.getLpCashAccountId() != null) {
+        if (asset != null && asset.getLpClientId() != null) {
             try {
-                lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+                LiquidityProvider detailLp = lpRepository.findById(asset.getLpClientId()).orElse(null);
+                if (detailLp != null && detailLp.getCashAccountId() != null) {
+                    lpCashBalance = fineractClient.getAccountBalance(detailLp.getCashAccountId());
+                }
             } catch (Exception e) {
                 log.debug("Could not fetch LP cash balance for {}: {}", asset.getSymbol(), e.getMessage());
             }
@@ -550,17 +563,25 @@ public class ScheduledPaymentService {
             return false;
         }
 
+        LiquidityProvider bondLp = bond.getLpClientId() != null
+                ? lpRepository.findById(bond.getLpClientId())
+                        .orElseThrow(() -> new AssetException("LP not found for bond: " + bond.getId()))
+                : null;
+        if (bondLp == null || bondLp.getCashAccountId() == null) {
+            throw new AssetException("LP cash account not configured for bond: " + bond.getSymbol());
+        }
+
         // Build atomic batch: net payment + IRCM transfer
         String description = String.format("Coupon payment: %s %s%% (%dm) [net after IRCM]",
                 bond.getSymbol(), bond.getInterestRate(), bond.getCouponFrequencyMonths());
 
         List<BatchOperation> ops = new ArrayList<>();
-        ops.add(new BatchTransferOp(bond.getLpCashAccountId(), userCashAccountId, netPayment, description));
+        ops.add(new BatchTransferOp(bondLp.getCashAccountId(), userCashAccountId, netPayment, description));
 
         if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
             String ircmDesc = String.format("IRCM withholding: %s coupon (%s%%)",
                     bond.getSymbol(), ircmRate.multiply(new BigDecimal("100")));
-            ops.add(new BatchTransferOp(bond.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+            ops.add(new BatchTransferOp(bondLp.getCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
             // GL entry: debit tax expense (608), credit IRCM withholding payable (4013)
             ops.add(new BatchJournalEntryOp(
                     resolvedGlAccounts.getTaxExpenseIrcmId(),
@@ -661,16 +682,24 @@ public class ScheduledPaymentService {
             return false;
         }
 
+        LiquidityProvider incomeLp = asset.getLpClientId() != null
+                ? lpRepository.findById(asset.getLpClientId())
+                        .orElseThrow(() -> new AssetException("LP not found for asset: " + asset.getId()))
+                : null;
+        if (incomeLp == null || incomeLp.getCashAccountId() == null) {
+            throw new AssetException("LP cash account not configured for asset: " + asset.getSymbol());
+        }
+
         // Build atomic batch: net payment + IRCM transfer
         String description = String.format("%s payment: %s [net after IRCM]", incomeType, asset.getSymbol());
 
         List<BatchOperation> ops = new ArrayList<>();
-        ops.add(new BatchTransferOp(asset.getLpCashAccountId(), userCashAccountId, netPayment, description));
+        ops.add(new BatchTransferOp(incomeLp.getCashAccountId(), userCashAccountId, netPayment, description));
 
         if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
             String ircmDesc = String.format("IRCM withholding: %s %s (%s%%)",
                     asset.getSymbol(), incomeType, ircmRate.multiply(new BigDecimal("100")));
-            ops.add(new BatchTransferOp(asset.getLpCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
+            ops.add(new BatchTransferOp(incomeLp.getCashAccountId(), taxService.getIrcmAccountId(), ircmAmount, ircmDesc));
             // GL entry: debit tax expense (608), credit IRCM withholding payable (4013)
             ops.add(new BatchJournalEntryOp(
                     resolvedGlAccounts.getTaxExpenseIrcmId(),
@@ -845,9 +874,12 @@ public class ScheduledPaymentService {
 
     private ScheduledPaymentResponse toResponse(ScheduledPayment sp, Asset asset) {
         BigDecimal lpCashBalance = null;
-        if (asset != null && asset.getLpCashAccountId() != null) {
+        if (asset != null && asset.getLpClientId() != null) {
             try {
-                lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+                LiquidityProvider responseLp = lpRepository.findById(asset.getLpClientId()).orElse(null);
+                if (responseLp != null && responseLp.getCashAccountId() != null) {
+                    lpCashBalance = fineractClient.getAccountBalance(responseLp.getCashAccountId());
+                }
             } catch (Exception e) {
                 log.debug("Could not fetch LP cash balance for {}: {}", asset.getSymbol(), e.getMessage());
             }

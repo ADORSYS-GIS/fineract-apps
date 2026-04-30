@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScheduledPaymentsRouteImport } from './routes/scheduled-payments'
 import { Route as OrderResolutionRouteImport } from './routes/order-resolution'
 import { Route as MarketSettingsRouteImport } from './routes/market-settings'
+import { Route as LpManagementRouteImport } from './routes/lp-management'
 import { Route as LpPerformanceRouteImport } from './routes/lp-performance'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
@@ -52,6 +53,11 @@ const OrderResolutionRoute = OrderResolutionRouteImport.update({
 const MarketSettingsRoute = MarketSettingsRouteImport.update({
   id: '/market-settings',
   path: '/market-settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LpManagementRoute = LpManagementRouteImport.update({
+  id: '/lp-management',
+  path: '/lp-management',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LpPerformanceRoute = LpPerformanceRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/income-history': typeof IncomeHistoryRoute
   '/inventory': typeof InventoryRoute
   '/portfolio': typeof PortfolioRoute
+  '/lp-management': typeof LpManagementRoute
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/income-history': typeof IncomeHistoryRoute
   '/inventory': typeof InventoryRoute
   '/portfolio': typeof PortfolioRoute
+  '/lp-management': typeof LpManagementRoute
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/income-history': typeof IncomeHistoryRoute
   '/inventory': typeof InventoryRoute
   '/portfolio': typeof PortfolioRoute
+  '/lp-management': typeof LpManagementRoute
   '/lp-performance': typeof LpPerformanceRoute
   '/market-settings': typeof MarketSettingsRoute
   '/order-resolution': typeof OrderResolutionRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/income-calendar'
     | '/income-history'
     | '/inventory'
+    | '/lp-management'
     | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/income-calendar'
     | '/income-history'
     | '/inventory'
+    | '/lp-management'
     | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/income-calendar'
     | '/income-history'
     | '/inventory'
+    | '/lp-management'
     | '/lp-performance'
     | '/market-settings'
     | '/order-resolution'
@@ -268,6 +280,7 @@ export interface RootRouteChildren {
   IncomeHistoryRoute: typeof IncomeHistoryRoute
   InventoryRoute: typeof InventoryRoute
   PortfolioRoute: typeof PortfolioRoute
+  LpManagementRoute: typeof LpManagementRoute
   LpPerformanceRoute: typeof LpPerformanceRoute
   MarketSettingsRoute: typeof MarketSettingsRoute
   OrderResolutionRoute: typeof OrderResolutionRoute
@@ -314,6 +327,13 @@ declare module '@tanstack/react-router' {
       path: '/market-settings'
       fullPath: '/market-settings'
       preLoaderRoute: typeof MarketSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lp-management': {
+      id: '/lp-management'
+      path: '/lp-management'
+      fullPath: '/lp-management'
+      preLoaderRoute: typeof LpManagementRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lp-performance': {
@@ -428,6 +448,7 @@ const rootRouteChildren: RootRouteChildren = {
   IncomeHistoryRoute: IncomeHistoryRoute,
   InventoryRoute: InventoryRoute,
   PortfolioRoute: PortfolioRoute,
+  LpManagementRoute: LpManagementRoute,
   LpPerformanceRoute: LpPerformanceRoute,
   MarketSettingsRoute: MarketSettingsRoute,
   OrderResolutionRoute: OrderResolutionRoute,

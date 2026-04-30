@@ -184,6 +184,46 @@ export interface AssetResponse {
 	couponAmountPerUnit?: number;
 }
 
+export interface LpInfo {
+	clientId: number;
+	clientName?: string;
+	cashAccountId?: number;
+	cashAccountNo?: string;
+	spreadAccountId?: number;
+	spreadAccountNo?: string;
+	taxAccountId?: number;
+	taxAccountNo?: string;
+	assetAccountId?: number;
+}
+
+export interface LpDetailResponse {
+	lpClientId: number;
+	lpClientName: string;
+	cashAccountId: number;
+	cashAccountNo: string;
+	spreadAccountId: number;
+	spreadAccountNo: string;
+	taxAccountId: number;
+	taxAccountNo: string;
+}
+
+export interface LpShortfallEntry {
+	assetId: string;
+	symbol: string;
+	assetName: string;
+	obligation: number;
+	dueDate?: string;
+}
+
+export interface LpShortfallResponse {
+	lpClientId: number;
+	lpClientName: string;
+	cashBalance: number;
+	totalObligation: number;
+	totalShortfall: number;
+	assets: LpShortfallEntry[];
+}
+
 /** Full asset detail with Fineract IDs (matches backend AssetDetailResponse). */
 export interface AssetDetailResponse {
 	id: string;
@@ -208,13 +248,8 @@ export interface AssetDetailResponse {
 	tradingFeePercent?: number;
 	decimalPlaces: number;
 
-	lpClientId: number;
-	lpAssetAccountId?: number;
-	lpCashAccountId?: number;
-	lpSpreadAccountId?: number;
-	lpTaxAccountId?: number;
+	lp?: LpInfo;
 	fineractProductId?: number;
-	lpClientName?: string;
 	fineractProductName?: string;
 	createdAt: string;
 	updatedAt?: string;
@@ -1278,6 +1313,14 @@ export const assetApi = {
 	// Order Cancellation
 	cancelOrder: (orderId: string) =>
 		assetClient.post(`/trades/orders/${orderId}/cancel`),
+
+	// LP Management - Admin
+	createLp: (data: { lpClientId: number; lpClientName: string }) =>
+		assetClient.post<LpDetailResponse>("/admin/lp", data),
+	getLp: (lpClientId: number) =>
+		assetClient.get<LpDetailResponse>(`/admin/lp/${lpClientId}`),
+	getLpShortfalls: (lpClientId: number) =>
+		assetClient.get<LpShortfallResponse>(`/admin/lp/${lpClientId}/shortfalls`),
 
 	// LP Performance - Admin
 	getLPPerformance: () =>

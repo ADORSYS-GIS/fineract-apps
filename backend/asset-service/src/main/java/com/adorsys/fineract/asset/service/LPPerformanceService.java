@@ -3,7 +3,9 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.dto.LPPerformanceResponse;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -27,6 +28,7 @@ public class LPPerformanceService {
     private final TradeLogRepository tradeLogRepository;
     private final AssetRepository assetRepository;
     private final FineractClient fineractClient;
+    private final LiquidityProviderRepository lpRepository;
 
     @Transactional(readOnly = true)
     public LPPerformanceResponse getPerformanceSummary() {
@@ -72,14 +74,16 @@ public class LPPerformanceService {
                 .filter(a -> a.getLpClientId() != null)
                 .collect(Collectors.groupingBy(Asset::getLpClientId));
 
-        // Pre-fetch all account balances in bulk (reduces N+1 to single pass)
+        // Bulk-load all LP records (one query, not N per-asset)
+        Map<Long, LiquidityProvider> lpMap = lpRepository.findAllById(lpAssets.keySet()).stream()
+                .collect(Collectors.toMap(LiquidityProvider::getClientId, Function.identity()));
+
+        // Pre-fetch all account balances in bulk (one Fineract call per unique account)
         Set<Long> allAccountIds = new HashSet<>();
-        for (List<Asset> assetList : lpAssets.values()) {
-            for (Asset asset : assetList) {
-                if (asset.getLpCashAccountId() != null) allAccountIds.add(asset.getLpCashAccountId());
-                if (asset.getLpSpreadAccountId() != null) allAccountIds.add(asset.getLpSpreadAccountId());
-                if (asset.getLpTaxAccountId() != null) allAccountIds.add(asset.getLpTaxAccountId());
-            }
+        for (LiquidityProvider lp : lpMap.values()) {
+            if (lp.getCashAccountId() != null) allAccountIds.add(lp.getCashAccountId());
+            if (lp.getSpreadAccountId() != null) allAccountIds.add(lp.getSpreadAccountId());
+            if (lp.getTaxAccountId() != null) allAccountIds.add(lp.getTaxAccountId());
         }
         Map<Long, BigDecimal> balanceCache = new HashMap<>();
         for (Long accountId : allAccountIds) {
@@ -90,19 +94,15 @@ public class LPPerformanceService {
         for (Map.Entry<Long, List<Asset>> entry : lpAssets.entrySet()) {
             Long lpClientId = entry.getKey();
             List<Asset> lpAssetList = entry.getValue();
-            String lpName = lpAssetList.get(0).getLpClientName();
+            LiquidityProvider lp = lpMap.get(lpClientId);
+            String lpName = lp != null ? lp.getClientName() : null;
 
-            BigDecimal lsavTotal = BigDecimal.ZERO;
-            BigDecimal lspdTotal = BigDecimal.ZERO;
-            BigDecimal ltaxTotal = BigDecimal.ZERO;
-
-            for (Asset asset : lpAssetList) {
-                lsavTotal = lsavTotal.add(balanceCache.getOrDefault(asset.getLpCashAccountId(), BigDecimal.ZERO));
-                lspdTotal = lspdTotal.add(balanceCache.getOrDefault(asset.getLpSpreadAccountId(), BigDecimal.ZERO));
-                if (asset.getLpTaxAccountId() != null) {
-                    ltaxTotal = ltaxTotal.add(balanceCache.getOrDefault(asset.getLpTaxAccountId(), BigDecimal.ZERO));
-                }
-            }
+            BigDecimal lsavTotal = lp != null && lp.getCashAccountId() != null
+                    ? balanceCache.getOrDefault(lp.getCashAccountId(), BigDecimal.ZERO) : BigDecimal.ZERO;
+            BigDecimal lspdTotal = lp != null && lp.getSpreadAccountId() != null
+                    ? balanceCache.getOrDefault(lp.getSpreadAccountId(), BigDecimal.ZERO) : BigDecimal.ZERO;
+            BigDecimal ltaxTotal = lp != null && lp.getTaxAccountId() != null
+                    ? balanceCache.getOrDefault(lp.getTaxAccountId(), BigDecimal.ZERO) : BigDecimal.ZERO;
 
             BigDecimal unsettled = lsavTotal.add(lspdTotal).subtract(ltaxTotal);
             summaries.add(new LPPerformanceResponse.LPSummary(

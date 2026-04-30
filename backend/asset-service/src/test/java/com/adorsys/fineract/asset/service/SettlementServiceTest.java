@@ -8,6 +8,7 @@ import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.dto.RebalanceProposalResponse;
 import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.Settlement;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetRepository;
@@ -40,6 +41,7 @@ class SettlementServiceTest {
     @Mock private ResolvedTaxAccounts resolvedTaxAccounts;
     @Mock private AssetServiceConfig assetServiceConfig;
     @Mock private AssetRepository assetRepository;
+    @Mock private com.adorsys.fineract.asset.repository.LiquidityProviderRepository lpRepository;
 
     @InjectMocks
     private SettlementService settlementService;
@@ -391,15 +393,23 @@ class SettlementServiceTest {
         // proposal so that wire instructions can be attributed per liquidity partner.
         var asset1a = new com.adorsys.fineract.asset.entity.Asset();
         asset1a.setLpClientId(1L);
-        asset1a.setLpClientName("LP Alpha");
-        asset1a.setLpCashAccountId(100L);
 
         var asset2a = new com.adorsys.fineract.asset.entity.Asset();
         asset2a.setLpClientId(2L);
-        asset2a.setLpClientName("LP Beta");
-        asset2a.setLpCashAccountId(200L);
+
+        LiquidityProvider lp1 = new LiquidityProvider();
+        lp1.setClientId(1L);
+        lp1.setClientName("LP Alpha");
+        lp1.setCashAccountId(100L);
+
+        LiquidityProvider lp2 = new LiquidityProvider();
+        lp2.setClientId(2L);
+        lp2.setClientName("LP Beta");
+        lp2.setCashAccountId(200L);
 
         when(assetRepository.findAll()).thenReturn(List.of(asset1a, asset2a));
+        when(lpRepository.findById(1L)).thenReturn(java.util.Optional.of(lp1));
+        when(lpRepository.findById(2L)).thenReturn(java.util.Optional.of(lp2));
         // LP 1: LSAV balance = 500,000
         when(fineractClient.getAccountBalance(100L)).thenReturn(new BigDecimal("500000"));
         // LP 2: LSAV balance = 300,000

@@ -62,8 +62,8 @@ public record IncomeForecastResponse(
      */
     BigDecimal incomePerPeriod,
     /**
-     * Current XAF balance in the LP's dedicated treasury cash account for this asset
-     * ({@code lpCashAccountId}). Sourced from Fineract at query time.
+     * Current XAF balance in the LP's treasury cash account for this asset.
+     * Sourced from Fineract at query time via {@link com.adorsys.fineract.asset.entity.LiquidityProvider#getCashAccountId()}.
      */
     @Schema(description = "Balance of this asset's dedicated treasury cash account")
     BigDecimal lpCashBalance,

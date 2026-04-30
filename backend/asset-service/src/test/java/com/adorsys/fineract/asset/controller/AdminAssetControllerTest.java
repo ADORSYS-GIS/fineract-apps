@@ -119,6 +119,8 @@ class AdminAssetControllerTest {
                 false, null // tvaEnabled, tvaRate
         );
 
+        AssetDetailResponse.LpInfo lpInfo = new AssetDetailResponse.LpInfo(
+                1L, 200L, 300L, null, null, null, null, null, "Test Company");
         AssetDetailResponse response = new AssetDetailResponse(
                 "a1", "Test Asset", "TST", "TSTA", // id, name, symbol, currencyCode (auto-generated from symbol)
                 "A test asset", null, // description, imageUrl
@@ -128,8 +130,9 @@ class AdminAssetControllerTest {
                 new BigDecimal("0.005"), // tradingFeePercent
                 0, // decimalPlaces
                 null, new BigDecimal("500"), null, // issuerName, issuerPrice, faceValue
-                1L, 200L, 300L, null, null, 10, // lpClientId, lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, fineractProductId
-                "Test Company", "Test Asset Token", // lpClientName, fineractProductName
+                lpInfo, // lp (LpInfo)
+                10, // fineractProductId
+                "Test Asset Token", // fineractProductName
                 null, null, // lpMarginPerUnit, lpMarginPercent
                 Instant.now(), null, // createdAt, updatedAt
                 null, null, null, // bondType, dayCountConvention, issuerCountry

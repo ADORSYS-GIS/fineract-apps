@@ -941,11 +941,11 @@ function IntegrationCard({
 				</div>
 				<div>
 					<p className="text-gray-500 text-xs">Liquidity Partner</p>
-					<p className="font-medium">{asset.lpClientName ?? "—"}</p>
+					<p className="font-medium">{asset.lp?.clientName ?? "—"}</p>
 					<AccountLink
 						accountManagerUrl={accountManagerUrl}
 						path="client-details"
-						id={asset.lpClientId}
+						id={asset.lp?.clientId}
 					/>
 				</div>
 				<div>
@@ -954,26 +954,40 @@ function IntegrationCard({
 					<AccountLink
 						accountManagerUrl={accountManagerUrl}
 						path="savings-account-details"
-						id={asset.lpAssetAccountId}
+						id={asset.lp?.assetAccountId}
 					/>
 				</div>
 				<div>
 					<p className="text-gray-500 text-xs">LP Cash Account</p>
-					<p className="font-medium">Cash ({asset.currencyCode})</p>
+					<p className="font-medium">
+						Cash ({asset.currencyCode})
+						{asset.lp?.cashAccountNo && (
+							<span className="ml-1 text-xs text-gray-400">
+								#{asset.lp.cashAccountNo}
+							</span>
+						)}
+					</p>
 					<AccountLink
 						accountManagerUrl={accountManagerUrl}
 						path="savings-account-details"
-						id={asset.lpCashAccountId}
+						id={asset.lp?.cashAccountId}
 					/>
 				</div>
-				{asset.lpSpreadAccountId && (
+				{asset.lp?.spreadAccountId && (
 					<div>
 						<p className="text-gray-500 text-xs">LP Spread Account</p>
-						<p className="font-medium">Spread Revenue</p>
+						<p className="font-medium">
+							Spread Revenue
+							{asset.lp.spreadAccountNo && (
+								<span className="ml-1 text-xs text-gray-400">
+									#{asset.lp.spreadAccountNo}
+								</span>
+							)}
+						</p>
 						<AccountLink
 							accountManagerUrl={accountManagerUrl}
 							path="savings-account-details"
-							id={asset.lpSpreadAccountId}
+							id={asset.lp.spreadAccountId}
 						/>
 					</div>
 				)}
@@ -1198,9 +1212,9 @@ export const AssetDetailsView: FC<ReturnType<typeof useAssetDetails>> = ({
 						<p className="text-sm text-gray-500 mt-1">
 							{asset.symbol} | {asset.category} | ID: {asset.id}
 						</p>
-						{asset.lpClientName && (
+						{asset.lp?.clientName && (
 							<p className="text-xs text-gray-400 mt-0.5">
-								LP: {asset.lpClientName}
+								LP: {asset.lp.clientName}
 								{asset.issuerName ? ` | Issuer: ${asset.issuerName}` : ""}
 							</p>
 						)}

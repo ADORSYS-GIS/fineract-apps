@@ -127,4 +127,7 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
      */
     long countByStatus(AssetStatus status);
 
+    /** All assets managed by the given LP client ID. */
+    List<Asset> findByLpClientId(Long lpClientId);
+
 }

@@ -3,8 +3,10 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.dto.IncomeForecastResponse;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ public class IncomeForecastService {
     private final AssetRepository assetRepository;
     private final UserPositionRepository userPositionRepository;
     private final FineractClient fineractClient;
+    private final LiquidityProviderRepository lpRepository;
 
     public IncomeForecastResponse getForecast(String assetId) {
         Asset asset = assetRepository.findById(assetId)
@@ -55,7 +58,12 @@ public class IncomeForecastService {
 
         BigDecimal lpCashBalance = BigDecimal.ZERO;
         try {
-            lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+            if (asset.getLpClientId() != null) {
+                LiquidityProvider lp = lpRepository.findById(asset.getLpClientId()).orElse(null);
+                if (lp != null && lp.getCashAccountId() != null) {
+                    lpCashBalance = fineractClient.getAccountBalance(lp.getCashAccountId());
+                }
+            }
         } catch (Exception e) {
             log.warn("Could not fetch LP cash balance for asset {}: {}", asset.getSymbol(), e.getMessage());
         }

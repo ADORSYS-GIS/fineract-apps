@@ -10,11 +10,13 @@ import com.adorsys.fineract.asset.dto.RedemptionTriggerResponse;
 import com.adorsys.fineract.asset.dto.RedemptionTriggerResponse.HolderRedemptionDetail;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.PrincipalRedemption;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository;
 import com.adorsys.fineract.asset.repository.ScheduledPaymentRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
@@ -55,6 +57,7 @@ public class PrincipalRedemptionService {
     private final TaxService taxService;
     private final AssetMetrics assetMetrics;
     private final FineractOutboxService outboxService;
+    private final LiquidityProviderRepository lpRepository;
 
     /**
      * Redeem principal for all holders of a matured bond.
@@ -77,8 +80,15 @@ public class PrincipalRedemptionService {
                     + "Only MATURED bonds can be redeemed.");
         }
 
-        if (bond.getLpCashAccountId() == null || bond.getLpAssetAccountId() == null) {
-            throw new AssetException("Bond " + bond.getSymbol() + " is missing LP account configuration");
+        if (bond.getLpAssetAccountId() == null) {
+            throw new AssetException("Bond " + bond.getSymbol() + " is missing LP asset account configuration");
+        }
+        LiquidityProvider lp = bond.getLpClientId() != null
+                ? lpRepository.findById(bond.getLpClientId())
+                        .orElseThrow(() -> new AssetException("LP not found for bond: " + bond.getId()))
+                : null;
+        if (lp == null || lp.getCashAccountId() == null) {
+            throw new AssetException("LP cash account not configured for bond: " + bond.getSymbol());
         }
 
         // Block redemption when there are pending coupon schedules.
@@ -140,7 +150,7 @@ public class PrincipalRedemptionService {
 
         BigDecimal lpCashBalance = BigDecimal.ZERO;
         try {
-            lpCashBalance = fineractClient.getAccountBalance(bond.getLpCashAccountId());
+            lpCashBalance = fineractClient.getAccountBalance(lp.getCashAccountId());
         } catch (Exception e) {
             log.warn("Could not check LP cash balance for bond {}: {}", bond.getSymbol(), e.getMessage());
         }
@@ -247,17 +257,26 @@ public class PrincipalRedemptionService {
                         + " account for user " + holder.getUserId());
             }
 
+            // b. Load LP for batch ops
+            LiquidityProvider redeemLp = bond.getLpClientId() != null
+                    ? lpRepository.findById(bond.getLpClientId())
+                            .orElseThrow(() -> new AssetException("LP not found for bond: " + bond.getId()))
+                    : null;
+            if (redeemLp == null || redeemLp.getCashAccountId() == null) {
+                throw new AssetException("LP cash account not configured for bond: " + bond.getSymbol());
+            }
+
             // b. Build atomic batch: all 3 legs in one transaction
             List<BatchOperation> ops = new ArrayList<>();
             ops.add(new BatchTransferOp(
                     holder.getFineractSavingsAccountId(), bond.getLpAssetAccountId(),
                     units, "Principal redemption — asset return: " + bond.getSymbol()));
             ops.add(new BatchTransferOp(
-                    bond.getLpCashAccountId(), userCashAccountId,
+                    redeemLp.getCashAccountId(), userCashAccountId,
                     cashAmount, String.format("Principal redemption: %s (net of IRCM %s)", bond.getSymbol(), ircmAmount)));
             if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
                 ops.add(new BatchTransferOp(
-                        bond.getLpCashAccountId(), taxService.getIrcmAccountId(),
+                        redeemLp.getCashAccountId(), taxService.getIrcmAccountId(),
                         ircmAmount, "IRCM on BTA capital gain: " + bond.getSymbol() + " user=" + holder.getUserId()));
             }
 

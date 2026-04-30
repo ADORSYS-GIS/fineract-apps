@@ -21,7 +21,7 @@ import java.time.LocalDate;
  *   <li>Asset unit transfer — the holder's bond units are returned to the LP's asset account
  *       ({@link Asset#lpAssetAccountId}), reducing their {@link UserPosition}.</li>
  *   <li>Cash transfer — {@code units * faceValue} XAF is debited from the LP's cash account
- *       ({@link Asset#lpCashAccountId}) and credited to the holder's settlement account.</li>
+ *       (see {@link LiquidityProvider#getCashAccountId()}) and credited to the holder's settlement account.</li>
  * </ol>
  * No fee, spread, or tax is deducted from a principal redemption.
  * Cash amount formula: {@code cashAmount = units * faceValue}

@@ -10,8 +10,10 @@ import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.TradeSide;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.repository.AssetProjectionRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
@@ -60,6 +62,7 @@ class TradingServiceAccountingTest {
     @Mock private TaxService taxService;
     @Mock private AccruedInterestCalculator accruedInterestCalculator;
     @Mock private AssetProjectionRepository assetProjectionRepository;
+    @Mock private LiquidityProviderRepository lpRepository;
 
     @InjectMocks
     private TradingService tradingService;
@@ -85,11 +88,16 @@ class TradingServiceAccountingTest {
         testAsset = Asset.builder()
                 .id("asset-001")
                 .symbol("TST")
-                .lpCashAccountId(LP_CASH)
                 .lpAssetAccountId(LP_ASSET)
-                .lpSpreadAccountId(LP_SPREAD)
-                .lpTaxAccountId(LP_TAX)
+                .lpClientId(1L)
                 .build();
+
+        LiquidityProvider lp = new LiquidityProvider();
+        lp.setClientId(1L);
+        lp.setCashAccountId(LP_CASH);
+        lp.setSpreadAccountId(LP_SPREAD);
+        lp.setTaxAccountId(LP_TAX);
+        lenient().when(lpRepository.findById(1L)).thenReturn(java.util.Optional.of(lp));
 
         lenient().when(resolvedGlAccounts.getClearingAccountId()).thenReturn(CLEARING);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECT);
@@ -304,7 +312,13 @@ class TradingServiceAccountingTest {
 
         @Test
         void sell_fallsBackToGlobalTaxWhenNoLpTax() throws Exception {
-            testAsset.setLpTaxAccountId(null); // No LTAX account
+            // No LTAX account: mock LP with null taxAccountId
+            LiquidityProvider lpNoTax = new LiquidityProvider();
+            lpNoTax.setClientId(1L);
+            lpNoTax.setCashAccountId(LP_CASH);
+            lpNoTax.setSpreadAccountId(LP_SPREAD);
+            lpNoTax.setTaxAccountId(null);
+            when(lpRepository.findById(1L)).thenReturn(java.util.Optional.of(lpNoTax));
 
             List<BatchOperation> ops = invoke(TradeSide.SELL,
                     bd("95000"), bd("10"), bd("500"), bd("0"), bd("0"),

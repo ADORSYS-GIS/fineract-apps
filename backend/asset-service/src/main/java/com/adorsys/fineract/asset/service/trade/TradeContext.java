@@ -1,6 +1,7 @@
 package com.adorsys.fineract.asset.service.trade;
 
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.Order;
 import lombok.Builder;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class TradeContext {
 
     // -- Resolved during execution --
     private Asset asset;
+    private LiquidityProvider lp;
     private String externalId;
     private Long userId;
     private Long userCashAccountId;

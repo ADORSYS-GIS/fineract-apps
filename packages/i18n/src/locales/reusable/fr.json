@@ -24,6 +24,7 @@
 			"reconciliation": "Réconciliation",
 			"scheduledPayments": "Paiements programmés",
 			"lpPerformance": "Performance LP",
+			"lpManagement": "Gestion des PL",
 			"accounting": "Comptabilité",
 			"settlement": "Règlement",
 			"paymentDlq": "File d'attente DLQ"

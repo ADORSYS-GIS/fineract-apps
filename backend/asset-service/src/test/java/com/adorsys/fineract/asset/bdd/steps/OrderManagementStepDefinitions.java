@@ -83,10 +83,13 @@ public class OrderManagementStepDefinitions {
 
     @Given("the LP cash account for asset {string} has balance {string}")
     public void lpCashAccountHasBalance(String assetId, String balance) {
-        // Get the LP cash account ID for this asset
-        Long lpCashAccountId = jdbcTemplate.queryForObject(
-                "SELECT lp_cash_account_id FROM assets WHERE id = ?",
+        // Get the LP client ID from the asset, then look up the LP's cash account
+        Long lpClientId = jdbcTemplate.queryForObject(
+                "SELECT lp_client_id FROM assets WHERE id = ?",
                 Long.class, assetId);
+        Long lpCashAccountId = jdbcTemplate.queryForObject(
+                "SELECT cash_account_id FROM liquidity_providers WHERE client_id = ?",
+                Long.class, lpClientId);
 
         // Mock the Fineract balance check to return this balance
         when(fineractClient.getAccountBalance(lpCashAccountId))

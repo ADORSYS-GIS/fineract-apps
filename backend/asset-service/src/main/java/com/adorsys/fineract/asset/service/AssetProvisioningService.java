@@ -7,9 +7,11 @@ import com.adorsys.fineract.asset.config.TaxConfig;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.PriceHistoryRepository;
 import com.adorsys.fineract.asset.repository.PurchaseLotRepository;
 import com.adorsys.fineract.asset.repository.ScheduledPaymentRepository;
@@ -53,6 +55,7 @@ public class AssetProvisioningService {
     private final FileStorageService fileStorageService;
     private final TaxConfig taxConfig;
     private final CurrencyCodeGenerator currencyCodeGenerator;
+    private final LiquidityProviderRepository lpRepository;
 
     /**
      * Create a new asset with full Fineract provisioning.
@@ -61,6 +64,10 @@ public class AssetProvisioningService {
     @Transactional
     @PreAuthorize("@adminSecurity.isOpen() or hasRole('ASSET_MANAGER')")
     public AssetDetailResponse createAsset(CreateAssetRequest request) {
+        // LP fail-fast: verify LP is registered before provisioning any Fineract resources
+        LiquidityProvider lp = lpRepository.findById(request.lpClientId())
+                .orElseThrow(() -> new AssetException("LP not found. Register LP first via POST /admin/lp"));
+
         // Warn if caller still sends an explicit currencyCode (deprecated field)
         if (request.currencyCode() != null && !request.currencyCode().isBlank()) {
             log.warn("CreateAssetRequest.currencyCode is deprecated and will be ignored. " +
@@ -157,52 +164,10 @@ public class AssetProvisioningService {
         String assetId = UUID.randomUUID().toString();
         log.info("Creating asset: id={}, symbol={}, currency={}", assetId, request.symbol(), effectiveCurrencyCode);
 
-        // Look up LP client display name (best-effort, non-blocking)
-        String lpClientName = fineractClient.getClientDisplayName(request.lpClientId());
-
         Integer productId = null;
         Long lpAssetAccountId = null;
-        Long lpCashAccountId = null;
-        Long lpSpreadAccountId = null;
-        Long lpTaxAccountId = null;
 
         try {
-            // Step 1a: Create LP settlement account (LSAV product)
-            Integer lsavProductId = fineractClient.findSavingsProductByShortName(
-                    assetServiceConfig.getLpSettlementProductShortName());
-            if (lsavProductId == null) {
-                throw new AssetException("LP settlement savings product '"
-                        + assetServiceConfig.getLpSettlementProductShortName()
-                        + "' not found in Fineract. Please create it before provisioning assets.");
-            }
-            lpCashAccountId = fineractClient.provisionSavingsAccount(
-                    request.lpClientId(), lsavProductId, null, null);
-            log.info("Created LP settlement account (LSAV): {}", lpCashAccountId);
-
-            // Step 1b: Create LP spread collection account (LSPD product)
-            Integer lspdProductId = fineractClient.findSavingsProductByShortName(
-                    assetServiceConfig.getLpSpreadProductShortName());
-            if (lspdProductId == null) {
-                throw new AssetException("LP spread savings product '"
-                        + assetServiceConfig.getLpSpreadProductShortName()
-                        + "' not found in Fineract. Please create it before provisioning assets.");
-            }
-            lpSpreadAccountId = fineractClient.provisionSavingsAccount(
-                    request.lpClientId(), lspdProductId, null, null);
-            log.info("Created LP spread collection account (LSPD): {}", lpSpreadAccountId);
-
-            // Step 1c: Create LP tax withholding account (LTAX product)
-            Integer ltaxProductId = fineractClient.findSavingsProductByShortName(
-                    assetServiceConfig.getLpTaxProductShortName());
-            if (ltaxProductId == null) {
-                throw new AssetException("LP tax withholding savings product '"
-                        + assetServiceConfig.getLpTaxProductShortName()
-                        + "' not found in Fineract. Please create it before provisioning assets.");
-            }
-            lpTaxAccountId = fineractClient.provisionSavingsAccount(
-                    request.lpClientId(), ltaxProductId, null, null);
-            log.info("Created LP tax withholding account (LTAX): {}", lpTaxAccountId);
-
             // Step 2: Register custom currency in Fineract (idempotent — safe to call even if already registered)
             fineractClient.registerCurrencies(List.of(effectiveCurrencyCode));
             log.info("Registered currency: {}", effectiveCurrencyCode);
@@ -272,11 +237,11 @@ public class AssetProvisioningService {
             // When adopting an orphan, pass null productId so rollback does NOT delete the
             // pre-existing savings product — we didn't create it, so we must not destroy it.
             rollbackFineractResources(adoptingOrphan ? null : productId,
-                    effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
+                    effectiveCurrencyCode, lpAssetAccountId, assetId);
             throw e;
         } catch (Exception e) {
             rollbackFineractResources(adoptingOrphan ? null : productId,
-                    effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId, lpAssetAccountId, assetId);
+                    effectiveCurrencyCode, lpAssetAccountId, assetId);
             log.error("Fineract provisioning failed for asset {}: {}. productId={}.",
                     assetId, e.getMessage(), productId);
             throw new AssetException("Failed to provision asset in Fineract: " + e.getMessage(), e);
@@ -313,11 +278,7 @@ public class AssetProvisioningService {
                 .couponFrequencyMonths(request.couponFrequencyMonths())
                 .nextCouponDate(request.nextCouponDate())
                 .lpClientId(request.lpClientId())
-                .lpClientName(lpClientName)
                 .lpAssetAccountId(lpAssetAccountId)
-                .lpCashAccountId(lpCashAccountId)
-                .lpSpreadAccountId(lpSpreadAccountId)
-                .lpTaxAccountId(lpTaxAccountId)
                 .maxPositionPercent(request.maxPositionPercent())
                 .maxOrderSize(request.maxOrderSize())
                 .dailyTradeLimitXaf(request.dailyTradeLimitXaf())
@@ -366,8 +327,7 @@ public class AssetProvisioningService {
             assetPriceRepository.save(price);
         } catch (Exception e) {
             rollbackFineractResources(adoptingOrphan ? null : productId,
-                    effectiveCurrencyCode, lpCashAccountId, lpSpreadAccountId,
-                    lpTaxAccountId, lpAssetAccountId, assetId);
+                    effectiveCurrencyCode, lpAssetAccountId, assetId);
             log.error("DB persist failed for asset {} after Fineract provisioning: {}", assetId, e.getMessage());
             throw new AssetException("Failed to persist asset after Fineract provisioning: " + e.getMessage(), e);
         }
@@ -664,19 +624,7 @@ public class AssetProvisioningService {
             }
         }
 
-        // 3. Close LP cash account
-        if (asset.getLpCashAccountId() != null) {
-            try {
-                fineractClient.closeSavingsAccount(
-                        asset.getLpCashAccountId(),
-                        "Asset deletion: " + asset.getSymbol());
-            } catch (Exception e) {
-                log.warn("Failed to close LP cash account {} for asset {}: {}",
-                        asset.getLpCashAccountId(), asset.getSymbol(), e.getMessage());
-            }
-        }
-
-        // 4. Delete savings product
+        // 3. Delete savings product
         if (asset.getFineractProductId() != null) {
             try {
                 fineractClient.deleteSavingsProduct(asset.getFineractProductId());
@@ -752,30 +700,27 @@ public class AssetProvisioningService {
      * Follows the same pattern as RegistrationService.rollback().
      */
     private void rollbackFineractResources(Integer productId, String currencyCode,
-                                           Long lpCashAccountId, Long lpSpreadAccountId, Long lpTaxAccountId,
                                            Long lpAssetAccountId, String assetId) {
         log.info("Rolling back Fineract resources for asset {}...", assetId);
 
-        // Close LP accounts (best-effort, same pattern as cleanupFineractResources)
-        for (Long accountId : new Long[]{lpAssetAccountId, lpCashAccountId, lpSpreadAccountId, lpTaxAccountId}) {
-            if (accountId != null) {
-                try {
-                    BigDecimal balance = fineractClient.getAccountBalance(accountId);
-                    if (balance != null && balance.compareTo(BigDecimal.ZERO) > 0) {
-                        fineractClient.withdrawFromSavingsAccount(accountId, balance,
-                                "Rollback: withdraw for asset " + assetId);
-                    }
-                } catch (Exception e) {
-                    log.warn("Rollback: failed to withdraw from account {} for asset {}: {}",
-                            accountId, assetId, e.getMessage());
+        // Close LP asset account (best-effort, same pattern as cleanupFineractResources)
+        if (lpAssetAccountId != null) {
+            try {
+                BigDecimal balance = fineractClient.getAccountBalance(lpAssetAccountId);
+                if (balance != null && balance.compareTo(BigDecimal.ZERO) > 0) {
+                    fineractClient.withdrawFromSavingsAccount(lpAssetAccountId, balance,
+                            "Rollback: withdraw for asset " + assetId);
                 }
-                try {
-                    fineractClient.closeSavingsAccount(accountId,
-                            "Rollback: close account for asset " + assetId);
-                } catch (Exception e) {
-                    log.warn("Rollback: failed to close account {} for asset {}: {}",
-                            accountId, assetId, e.getMessage());
-                }
+            } catch (Exception e) {
+                log.warn("Rollback: failed to withdraw from account {} for asset {}: {}",
+                        lpAssetAccountId, assetId, e.getMessage());
+            }
+            try {
+                fineractClient.closeSavingsAccount(lpAssetAccountId,
+                        "Rollback: close account for asset " + assetId);
+            } catch (Exception e) {
+                log.warn("Rollback: failed to close account {} for asset {}: {}",
+                        lpAssetAccountId, assetId, e.getMessage());
             }
         }
 
