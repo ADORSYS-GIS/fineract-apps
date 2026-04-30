@@ -4,17 +4,17 @@ Welcome to the Account Manager App! This guide will walk you through everything 
 
 ---
 
-
 ## Table of Contents
 
 1.  [Getting Started: A Quick Look](#1-getting-started-a-quick-look)
 2.  [Logging Into Your Account](#2-logging-into-your-account)
 3.  [Your Home Base: The Client Dashboard](#3-your-home-base-the-client-dashboard)
 4.  [Adding a New Liquidity Provider](#4-adding-a-new-liquidity-provider)
-5.  [The Client Types Explained](#5-the-four-client-types-explained)
-6.  [Reading Transaction Histories](#7-reading-transaction-histories)
-7.  [Important: Actions You Can't Undo](#8-important-actions-you-cant-undo)
-8.  [Simple Definitions of Key Terms](#10-simple-definitions-of-key-terms)
+5.  [The Client Types Explained](#5-the-client-types-explained)
+6.  [Exploring a Client's Accounts](#6-exploring-a-clients-accounts)
+7.  [Reading Transaction Histories](#7-reading-transaction-histories)
+8.  [Important: Actions You Can't Undo](#8-important-actions-you-cant-undo)
+9.  [Simple Definitions of Key Terms](#9-simple-definitions-of-key-terms)
 
 ---
 
@@ -81,28 +81,27 @@ You can add new **Liquidity Providers** directly from your dashboard. This is th
 Find and click the "Create Client" button on the dashboard to open the form.
 
 **Step 2: Fill in the Details**
-Enter the new provider's information. You'll need ro select ClientType, Liquidity Provider  name, email, and phone number. You can also set the account to be active right away.
+Enter the new provider's information. You'll need to select the Client Type, and enter the Liquidity Provider's name, email, and phone number. You can also set the account to be active right away.
 
-**Step 3: Click "Create"**
-Once you've checked that the details are correct, click "Save" Buttone The new Liquidity Provider Client  will now appear on your client list.
+**Step 3: Click "Save"**
+Once you've checked that the details are correct, click the "Save" button. The new Liquidity Provider will now appear on your client list.
 
 ![Create Liquidity Partner](./images/create-client.png)
 
 ---
 
-## 5. The  Client Types Explained
+## 5. The Client Types Explained
 
- Here’s what  you need to know about the type of Clients and what they are able to do.
+Here’s what you need to know about the different types of clients and what they can do.
 
 ### 5.1. Liquidity Providers
 
-These are organizations or resellers that supply assets to the platform. The Liquidity Provider has four Accounts when created 
+These are organizations or resellers that supply assets to the platform. The Liquidity Provider has four accounts when created:
 
 *   **Treasury Account:** Holds their assets (like securities or tokens).
 *   **Cash Account:** Holds their cash from asset sales.
-*   **LPSpreadAccount:** Holds the Spread fee in XAF.
-*   **LPTaxWithHoldingAccount:** Hold the all Tax cash in XAF.
-
+*   **LPSpreadAccount:** Holds the spread fee in XAF.
+*   **LPTaxWithHoldingAccount:** Holds all tax cash in XAF.
 
 ![Liquidity Provider Accounts](./images/lpaccounts.png)
 
@@ -111,34 +110,17 @@ These are organizations or resellers that supply assets to the platform. The Liq
 These are the end-users who buy and sell assets using the mobile app. They appear on your dashboard automatically after they register, get approved, and make their first deposit.
 
 *   **Asset Savings Account:** Holds the assets they've bought.
-*   **Cash Savings Account:** Holds their cash for buying assets or from selling them.
+*   **Cash Savings Account:** Holds their cash for buying or selling assets.
 
 ![Customer Accounts](./images/clients.png)
 
-### 5.2.1 Exploring a Client's Accounts
-
-Here’s how to look into any client's accounts.
-
-**Step 1: Click on a Client**
-From the dashboard, click on any client's name to open their profile.
-
-**Step 2: Choose an Account**
-You'll see a list of their accounts Cash Account and Asset Account. Click the one you want to see.
-
-**Step 3: Review the Details**
-You can now see the account's balance and a full list of its transactions.
-
-![Client Profile](./images/clientsprofile.png)
-
-
 ### 5.3. Platform Fee Collector
 
-This is an automatic account that collects the service fees from transactions. It’s created by the system when a new asset is made available.
+This is an automatic account that collects service fees from transactions. It’s created by the system when a new asset is made available.
 
 ![Platform Fee](./images/platformfeecollector.png)
 
-
-*   **Cash Account:** Below show details of how the platform holds all the fees collected.
+*   **Cash Account:** The details below show how the platform holds all the fees collected.
 
 ![Platform Fee Account](./images/platform-fee-savings-details.png)
 
@@ -146,36 +128,51 @@ This is an automatic account that collects the service fees from transactions. I
 
 This is another automatic account that collects taxes from transactions. It’s also created by the system along with the Platform Fee Collector.
 
-![Platform Fee Account](./images/taxauthority.png)
+![Tax Authority](./images/taxauthority.png)
 
-*   **Cash Account:** Below show details of how the tax fees collected.
+*   **Cash Account:** The details below show how the tax fees are collected.
 
 ![Tax Authority Account](./images/taxaccount.png)
 
 ---
 
+## 6. Exploring a Client's Accounts
 
+Here’s how to look into any client's accounts.
 
-## 6. Reading Transaction Histories
+**Step 1: Click on a Client**
+From the dashboard, click on any client's name to open their profile.
+
+**Step 2: Choose an Account**
+You'll see a list of their accounts, such as a Cash Account and an Asset Account. Click the one you want to view.
+
+**Step 3: Review the Details**
+You can now see the account's balance and a full list of its transactions.
+
+![Client Profile](./images/clientsprofile.png)
+
+---
+
+## 7. Reading Transaction Histories
 
 Every account has a history of all the money or assets that have moved through it.
 
 *   **Credit:** Money or assets coming **INTO** the account.
 *   **Debit:** Money or assets going **OUT OF** the account.
 
-The transaction table shows you the date, a description of the transaction, the amount, and the running balance of a Customer showing how money id been deposited and withdrawed!
+The transaction table shows you the date, a description of the transaction, the amount, and the running balance, including all deposits and withdrawals.
 
 ![Transaction History](./images/clientcashaccount.png)
 
 ---
 
-## 7. Important: Actions You Can't Undo
+## 8. Important: Actions You Can't Undo
 
->  **READ THIS CAREFULLY**
+> **🔴 READ THIS CAREFULLY**
 
 There is one action in the app that is **permanent** and can have a big impact.
 
-###  Blocking an Account
+### ⛔ Blocking an Account
 
 Inside every savings account, there is a **"Block Account"** button.
 
@@ -190,11 +187,9 @@ This will instantly freeze the account. No money or assets can move in or out un
 **What to do if you click it by mistake:**
 Contact your system administrator right away.
 
-
-
 ---
 
-## 8. Simple Definitions of Key Terms
+## 9. Simple Definitions of Key Terms
 
 | Term | Definition |
 |---|---|
