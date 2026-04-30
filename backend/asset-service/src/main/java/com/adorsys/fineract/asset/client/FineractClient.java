@@ -991,14 +991,14 @@ public class FineractClient {
                     body.put("approvedOnDate", today);
                     body.put("locale", "en");
                     body.put("dateFormat", "dd MMMM yyyy");
-                    relativeUrl = "savingsaccounts/$." + a.referenceRequestId() + ".savingsId?command=approve";
+                    relativeUrl = "savingsaccounts/$.savingsId?command=approve";
                     reference = a.referenceRequestId();
                 }
                 case BatchActivateSavingsOp v -> {
                     body.put("activatedOnDate", today);
                     body.put("locale", "en");
                     body.put("dateFormat", "dd MMMM yyyy");
-                    relativeUrl = "savingsaccounts/$." + v.referenceRequestId() + ".savingsId?command=activate";
+                    relativeUrl = "savingsaccounts/$.savingsId?command=activate";
                     reference = v.referenceRequestId();
                 }
             }
