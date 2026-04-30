@@ -93,5 +93,25 @@ public record BondBenefitProjection(
      * Calendar days from today to the maturity date, clamped to zero if the maturity
      * date has already passed. Used to annualise the yield and display a countdown.
      */
-    long daysToMaturity
+    long daysToMaturity,
+    /**
+     * Projected IRCM withholding on the bond's projected income, in XAF, computed via
+     * {@link com.adorsys.fineract.asset.service.TaxService#getEffectiveIrcmRate}. Honours
+     * per-asset IRCM overrides, government-bond exemptions, and the BVMAC rate.
+     * <p>For COUPON (OTA) bonds: applied to {@code totalCouponIncome} (coupon income is
+     * the taxable distribution; principal at par is not taxed).
+     * <p>For DISCOUNT (BTA) bonds: applied to {@code max(netProjectedProfit, 0)} (the
+     * capital gain at maturity is the taxable event; principal at face is not taxed
+     * separately). Whether IRCM is actually withheld at BTA maturity is a backend
+     * policy decision (see PrincipalRedemptionService) — this is the projected value
+     * the buyer should plan around.
+     * <p>Null in portfolio (holding) context where {@code investmentCost} is also null.
+     */
+    BigDecimal projectedIrcm,
+    /**
+     * Projected net profit after IRCM withholding, in XAF:
+     * {@code netProjectedProfit - projectedIrcm}. The "you'll keep" headline number
+     * for buy-review screens. Null in portfolio context.
+     */
+    BigDecimal netProjectedProfitAfterIrcm
 ) {}

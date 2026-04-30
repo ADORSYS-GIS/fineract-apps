@@ -6,6 +6,7 @@ import com.adorsys.fineract.asset.dto.BondBenefitProjection;
 import com.adorsys.fineract.asset.entity.Asset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,14 +14,18 @@ import java.time.LocalDate;
 import static com.adorsys.fineract.asset.testutil.TestDataFactory.activeBondAsset;
 import static com.adorsys.fineract.asset.testutil.TestDataFactory.activeAsset;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 
 class BondBenefitServiceTest {
 
     private BondBenefitService service;
+    private TaxService taxService;
 
     @BeforeEach
     void setUp() {
-        service = new BondBenefitService(new AssetServiceConfig());
+        taxService = Mockito.mock(TaxService.class);
+        Mockito.when(taxService.getEffectiveIrcmRate(any())).thenReturn(BigDecimal.ZERO);
+        service = new BondBenefitService(new AssetServiceConfig(), taxService);
     }
 
     // ── Purchase preview tests ──────────────────────────────────────────
