@@ -12,7 +12,11 @@ function DashboardPage() {
 		queryFn: () => UsersService.getV1Users(),
 	});
 
-	const totalUsers = employees?.length ?? 0;
+	const totalUsers =
+		employees?.filter(
+			(employee) =>
+				!["interopUser", "mifos", "system"].includes(employee.username || ""),
+		).length ?? 0;
 
 	return (
 		<div className="p-6">
