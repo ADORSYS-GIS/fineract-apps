@@ -36,10 +36,15 @@ export const EditUserView = () => {
 	});
 
 	const roleOptions =
-		roles?.map((role) => ({
-			label: role.name || "",
-			value: role.id || 0,
-		})) || [];
+		roles
+			?.filter(
+				(role) =>
+					!["Super user", "Self Service User"].includes(role.name || ""),
+			)
+			.map((role) => ({
+				label: role.name || "",
+				value: role.id || 0,
+			})) || [];
 
 	const officeOptions =
 		offices?.map((office) => ({
