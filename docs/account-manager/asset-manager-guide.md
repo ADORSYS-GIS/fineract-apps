@@ -168,11 +168,11 @@ The transaction table shows you the date, a description of the transaction, the 
 
 ## 8. Important: Actions You Can't Undo
 
-> **🔴 READ THIS CAREFULLY**
+> ** READ THIS CAREFULLY**
 
 There is one action in the app that is **permanent** and can have a big impact.
 
-### ⛔ Blocking an Account
+###  Blocking an Account
 
 Inside every savings account, there is a **"Block Account"** button.
 
