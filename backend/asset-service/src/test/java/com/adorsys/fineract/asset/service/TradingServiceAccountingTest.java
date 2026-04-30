@@ -81,6 +81,7 @@ class TradingServiceAccountingTest {
     private static final Long TAX_CGT = 887L;
 
     private Asset testAsset;
+    private LiquidityProvider testLp;
     private Method buildBatchOps;
 
     @BeforeEach
@@ -92,12 +93,12 @@ class TradingServiceAccountingTest {
                 .lpClientId(1L)
                 .build();
 
-        LiquidityProvider lp = new LiquidityProvider();
-        lp.setClientId(1L);
-        lp.setCashAccountId(LP_CASH);
-        lp.setSpreadAccountId(LP_SPREAD);
-        lp.setTaxAccountId(LP_TAX);
-        lenient().when(lpRepository.findById(1L)).thenReturn(java.util.Optional.of(lp));
+        testLp = new LiquidityProvider();
+        testLp.setClientId(1L);
+        testLp.setCashAccountId(LP_CASH);
+        testLp.setSpreadAccountId(LP_SPREAD);
+        testLp.setTaxAccountId(LP_TAX);
+        lenient().when(lpRepository.findById(1L)).thenReturn(java.util.Optional.of(testLp));
 
         lenient().when(resolvedGlAccounts.getClearingAccountId()).thenReturn(CLEARING);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECT);
@@ -108,7 +109,8 @@ class TradingServiceAccountingTest {
         lenient().when(taxService.getTvaAccountId()).thenReturn(TAX_TVA);
 
         buildBatchOps = TradingService.class.getDeclaredMethod("buildBatchOperations",
-                TradeSide.class, Asset.class, Long.class, Long.class,
+                TradeSide.class, Asset.class, LiquidityProvider.class,
+                Long.class, Long.class,
                 BigDecimal.class, BigDecimal.class, BigDecimal.class,
                 BigDecimal.class, BigDecimal.class, Long.class,
                 BigDecimal.class, BigDecimal.class, BigDecimal.class,
@@ -128,7 +130,7 @@ class TradingServiceAccountingTest {
             BigDecimal fee, BigDecimal spread, BigDecimal buyback,
             BigDecimal regDuty, BigDecimal cgt, BigDecimal tva, BigDecimal accruedInterest) throws Exception {
         return (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                side, testAsset, USER_CASH, USER_ASSET,
+                side, testAsset, testLp, USER_CASH, USER_ASSET,
                 gross, units, fee, spread, buyback, FEE_COLLECT,
                 regDuty, cgt, tva, accruedInterest);
     }

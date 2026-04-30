@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.dto.LPPerformanceResponse;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +22,7 @@ class LPPerformanceServiceTest {
 
     @Mock private TradeLogRepository tradeLogRepository;
     @Mock private AssetRepository assetRepository;
+    @Mock private LiquidityProviderRepository lpRepository;
 
     @InjectMocks
     private LPPerformanceService lpPerformanceService;
