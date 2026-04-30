@@ -197,8 +197,8 @@ export interface LpInfo {
 }
 
 export interface LpDetailResponse {
-	lpClientId: number;
-	lpClientName: string;
+	clientId: number;
+	clientName: string;
 	cashAccountId: number;
 	cashAccountNo: string;
 	spreadAccountId: number;

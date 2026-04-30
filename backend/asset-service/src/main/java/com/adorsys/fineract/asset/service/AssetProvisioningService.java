@@ -66,7 +66,7 @@ public class AssetProvisioningService {
     public AssetDetailResponse createAsset(CreateAssetRequest request) {
         // LP fail-fast: verify LP is registered before provisioning any Fineract resources
         LiquidityProvider lp = lpRepository.findById(request.lpClientId())
-                .orElseThrow(() -> new AssetException("LP not found. Register LP first via POST /admin/lp"));
+                .orElseThrow(() -> new AssetException("LP " + request.lpClientId() + " not found. Register it first via POST /admin/lp"));
 
         // Warn if caller still sends an explicit currencyCode (deprecated field)
         if (request.currencyCode() != null && !request.currencyCode().isBlank()) {

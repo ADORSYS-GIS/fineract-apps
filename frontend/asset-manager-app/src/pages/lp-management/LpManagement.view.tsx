@@ -154,7 +154,7 @@ export const LpManagementView: FC<ReturnType<typeof useLpManagement>> = ({
 						{lpDetail && (
 							<Card className="p-4 mb-6">
 								<h2 className="text-base font-semibold text-gray-800 mb-4">
-									LP: {lpDetail.lpClientName} (ID: {lpDetail.lpClientId})
+									LP: {lpDetail.clientName} (ID: {lpDetail.clientId})
 								</h2>
 								<div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
 									<Field

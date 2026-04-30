@@ -22,12 +22,12 @@ SELECT DISTINCT ON (lp_client_id)
     lp_tax_account_id
 FROM assets
 WHERE lp_client_id IS NOT NULL
-ORDER BY lp_client_id, id ASC;
+ORDER BY lp_client_id, created_at ASC;
 
 -- Capture orphan account IDs (per-asset accounts that are no longer the LP's canonical accounts).
 -- The cleanup script reads this table to close them in Fineract after deployment.
 CREATE TABLE orphan_lp_accounts (
-    account_id   BIGINT,
+    account_id   BIGINT       PRIMARY KEY,
     product_type VARCHAR(4),
     lp_client_id BIGINT
 );

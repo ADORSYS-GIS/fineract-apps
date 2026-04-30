@@ -298,17 +298,28 @@ public class SettlementService {
      * Get per-LP unsettled balances for settlement creation.
      * Reuses LP Performance data to show LSAV/LSPD/LTAX balances.
      */
-    @Transactional(readOnly = true)
+    // No @Transactional — DB reads use their own per-query transactions; Fineract calls must
+    // not share a transaction with DB operations to avoid holding a connection open during HTTP.
     public List<Map<String, Object>> getLpBalances() {
+        // 1. Load all data from DB (each findAll/findAllById opens+commits its own TX)
         var assets = assetRepository.findAll();
         Map<Long, List<com.adorsys.fineract.asset.entity.Asset>> lpAssets = assets.stream()
                 .filter(a -> a.getLpClientId() != null)
                 .collect(java.util.stream.Collectors.groupingBy(com.adorsys.fineract.asset.entity.Asset::getLpClientId));
 
-        // Load all LP records in one query
         Map<Long, LiquidityProvider> lpMap = lpRepository.findAllById(lpAssets.keySet())
                 .stream().collect(toMap(LiquidityProvider::getClientId, Function.identity()));
 
+        // 2. Collect all account IDs across all LPs and batch-fetch balances in a single call.
+        List<Long> allAccountIds = new ArrayList<>();
+        for (LiquidityProvider lp : lpMap.values()) {
+            if (lp.getCashAccountId() != null)   allAccountIds.add(lp.getCashAccountId());
+            if (lp.getSpreadAccountId() != null) allAccountIds.add(lp.getSpreadAccountId());
+            if (lp.getTaxAccountId() != null)    allAccountIds.add(lp.getTaxAccountId());
+        }
+        Map<Long, BigDecimal> balances = fineractClient.getMultipleAccountBalances(allAccountIds);
+
+        // 3. Build result using batch-fetched balances.
         List<Map<String, Object>> result = new ArrayList<>();
         for (var entry : lpAssets.entrySet()) {
             Long lpClientId = entry.getKey();
@@ -316,21 +327,9 @@ public class SettlementService {
             LiquidityProvider lp = lpMap.get(lpClientId);
             String lpName = lp != null ? lp.getClientName() : null;
 
-            BigDecimal lsav = BigDecimal.ZERO;
-            BigDecimal lspd = BigDecimal.ZERO;
-            BigDecimal ltax = BigDecimal.ZERO;
-
-            if (lp != null) {
-                if (lp.getCashAccountId() != null) {
-                    try { lsav = fineractClient.getAccountBalance(lp.getCashAccountId()); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
-                }
-                if (lp.getSpreadAccountId() != null) {
-                    try { lspd = fineractClient.getAccountBalance(lp.getSpreadAccountId()); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
-                }
-                if (lp.getTaxAccountId() != null) {
-                    try { ltax = fineractClient.getAccountBalance(lp.getTaxAccountId()); } catch (Exception e) { log.warn("Failed to fetch balance for account: {}", e.getMessage()); }
-                }
-            }
+            BigDecimal lsav = lp != null && lp.getCashAccountId() != null   ? balances.getOrDefault(lp.getCashAccountId(),   BigDecimal.ZERO) : BigDecimal.ZERO;
+            BigDecimal lspd = lp != null && lp.getSpreadAccountId() != null ? balances.getOrDefault(lp.getSpreadAccountId(), BigDecimal.ZERO) : BigDecimal.ZERO;
+            BigDecimal ltax = lp != null && lp.getTaxAccountId() != null    ? balances.getOrDefault(lp.getTaxAccountId(),    BigDecimal.ZERO) : BigDecimal.ZERO;
 
             BigDecimal unsettled = lsav.add(lspd).subtract(ltax);
             result.add(Map.of(

@@ -632,6 +632,78 @@ public class FineractClient {
     }
 
     /**
+     * Batch-fetch available balances for multiple savings accounts in a single Fineract call.
+     * Uses GET batch (no enclosingTransaction — reads only).
+     * Returns a map of accountId → availableBalance. Any account that fails or is missing
+     * returns ZERO — errors are logged as warnings and do not abort the batch.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<Long, BigDecimal> getMultipleAccountBalances(java.util.Collection<Long> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+        List<Long> ids = new ArrayList<>(accountIds);
+        List<Map<String, Object>> batchRequests = new ArrayList<>();
+        for (int i = 0; i < ids.size(); i++) {
+            batchRequests.add(Map.of(
+                    "requestId", (long) (i + 1),
+                    "relativeUrl", "savingsaccounts/" + ids.get(i) + "?fields=id,summary",
+                    "method", "GET"
+            ));
+        }
+        // Initialize all to ZERO so missing/failed accounts get a safe default
+        java.util.Map<Long, BigDecimal> result = new java.util.LinkedHashMap<>();
+        for (Long id : ids) {
+            result.put(id, BigDecimal.ZERO);
+        }
+        try {
+            List<Map<String, Object>> responses = webClient.post()
+                    .uri("/fineract-provider/api/v1/batches?enclosingTransaction=false")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .header("Fineract-Platform-TenantId", config.getTenant())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(batchRequests)
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            if (responses != null) {
+                for (Map<String, Object> resp : responses) {
+                    int reqId = ((Number) resp.get("requestId")).intValue();
+                    if (reqId >= 1 && reqId <= ids.size()) {
+                        Long accountId = ids.get(reqId - 1);
+                        Integer status = (Integer) resp.get("statusCode");
+                        if (status != null && status >= 200 && status < 300 && resp.get("body") != null) {
+                            try {
+                                Map<String, Object> body = objectMapper.readValue(resp.get("body").toString(), Map.class);
+                                Map<String, Object> summary = (Map<String, Object>) body.get("summary");
+                                if (summary != null && summary.get("availableBalance") != null) {
+                                    result.put(accountId, new BigDecimal(summary.get("availableBalance").toString()));
+                                }
+                            } catch (Exception e) {
+                                log.warn("Failed to parse balance response for account {}: {}", accountId, e.getMessage());
+                            }
+                        } else {
+                            log.warn("Balance batch returned status {} for account {}", status, accountId);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Batch balance fetch failed, falling back to individual calls: {}", e.getMessage());
+            for (Long id : ids) {
+                try {
+                    result.put(id, getAccountBalance(id));
+                } catch (Exception ex) {
+                    log.warn("Failed to fetch balance for account {}: {}", id, ex.getMessage());
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * Get savings account details including balance.
      */
     @SuppressWarnings("unchecked")

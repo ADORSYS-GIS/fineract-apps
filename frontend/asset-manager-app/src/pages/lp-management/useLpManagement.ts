@@ -33,14 +33,14 @@ export const useLpManagement = () => {
 		onSuccess: (res) => {
 			const lp = res.data;
 			toast.success(
-				`LP ${lp.lpClientName} (ID: ${lp.lpClientId}) registered successfully`,
+				`LP ${lp.clientName} (ID: ${lp.clientId}) registered successfully`,
 			);
 			setShowRegisterForm(false);
 			setRegisterForm({ lpClientId: "", lpClientName: "" });
-			setSelectedLpId(lp.lpClientId);
-			queryClient.invalidateQueries({ queryKey: ["lp-detail", lp.lpClientId] });
+			setSelectedLpId(lp.clientId);
+			queryClient.invalidateQueries({ queryKey: ["lp-detail", lp.clientId] });
 			queryClient.invalidateQueries({
-				queryKey: ["lp-shortfalls", lp.lpClientId],
+				queryKey: ["lp-shortfalls", lp.clientId],
 			});
 		},
 		onError: (err: { response?: { data?: { message?: string } } }) => {

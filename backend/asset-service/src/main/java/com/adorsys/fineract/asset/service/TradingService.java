@@ -256,10 +256,8 @@ public class TradingService {
             lockupService.validateLockup(asset, userId, units);
 
             // LP capital adequacy check — LP LSAV must cover: gross + spread + tax + accruedInterest (LP bears all on SELL)
-            LiquidityProvider sellLp = asset.getLpClientId() != null
-                    ? lpRepository.findById(asset.getLpClientId()).orElse(null) : null;
-            if (sellLp != null && sellLp.getCashAccountId() != null) {
-                BigDecimal lpCashBalance = fineractClient.getAccountBalance(sellLp.getCashAccountId());
+            if (quoteLp != null && quoteLp.getCashAccountId() != null) {
+                BigDecimal lpCashBalance = fineractClient.getAccountBalance(quoteLp.getCashAccountId());
                 BigDecimal totalLpRequired = grossAmount.add(spreadAmount).add(totalTax).add(accruedInterestAmount);
                 if (lpCashBalance.compareTo(totalLpRequired) < 0) {
                     String currency = assetServiceConfig.getSettlementCurrency();

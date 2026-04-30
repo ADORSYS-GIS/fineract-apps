@@ -10,6 +10,7 @@ import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,41 +30,59 @@ public class AdminLpService {
     private final AssetServiceConfig config;
 
     // NOT @Transactional — Fineract calls happen outside DB TX; a DB rollback cannot reverse them.
+    // Duplicate-guard: we saveAndFlush a placeholder row first (PK = lpClientId).
+    // If two concurrent calls race, one will get DataIntegrityViolationException before any Fineract calls.
     public LpDetailResponse createLp(CreateLpRequest request) {
-        if (lpRepository.existsById(request.lpClientId())) {
+        // Step 1: Atomically reserve the LP slot in the DB.
+        // saveAndFlush opens its own transaction and commits immediately, so a concurrent
+        // duplicate hits the primary-key constraint before any Fineract provisioning begins.
+        LiquidityProvider placeholder = LiquidityProvider.builder()
+                .clientId(request.lpClientId())
+                .clientName(request.lpClientName())
+                .build();
+        try {
+            lpRepository.saveAndFlush(placeholder);
+        } catch (DataIntegrityViolationException e) {
             throw new AssetException("LP " + request.lpClientId() + " is already registered.");
         }
 
-        Integer lsavId = fineractClient.findSavingsProductByShortName(config.getLpSettlementProductShortName());
-        Integer lspdId = fineractClient.findSavingsProductByShortName(config.getLpSpreadProductShortName());
-        Integer ltaxId = fineractClient.findSavingsProductByShortName(config.getLpTaxProductShortName());
+        // Step 2: Provision 3 Fineract accounts. On failure, delete the placeholder so the LP
+        // can be re-registered after the underlying issue is resolved.
+        try {
+            Integer lsavId = fineractClient.findSavingsProductByShortName(config.getLpSettlementProductShortName());
+            Integer lspdId = fineractClient.findSavingsProductByShortName(config.getLpSpreadProductShortName());
+            Integer ltaxId = fineractClient.findSavingsProductByShortName(config.getLpTaxProductShortName());
 
-        if (lsavId == null) throw new AssetException("Savings product '" + config.getLpSettlementProductShortName() + "' not found in Fineract.");
-        if (lspdId == null) throw new AssetException("Savings product '" + config.getLpSpreadProductShortName() + "' not found in Fineract.");
-        if (ltaxId == null) throw new AssetException("Savings product '" + config.getLpTaxProductShortName() + "' not found in Fineract.");
+            if (lsavId == null) throw new AssetException("Savings product '" + config.getLpSettlementProductShortName() + "' not found in Fineract.");
+            if (lspdId == null) throw new AssetException("Savings product '" + config.getLpSpreadProductShortName() + "' not found in Fineract.");
+            if (ltaxId == null) throw new AssetException("Savings product '" + config.getLpTaxProductShortName() + "' not found in Fineract.");
 
-        FineractClient.LpAccountIds ids = fineractClient.provisionLpAccounts(
-                request.lpClientId(), lsavId, lspdId, ltaxId);
+            FineractClient.LpAccountIds ids = fineractClient.provisionLpAccounts(
+                    request.lpClientId(), lsavId, lspdId, ltaxId);
 
-        String cashNo   = fineractClient.getSavingsAccountNo(ids.cashAccountId());
-        String spreadNo = fineractClient.getSavingsAccountNo(ids.spreadAccountId());
-        String taxNo    = fineractClient.getSavingsAccountNo(ids.taxAccountId());
+            String cashNo   = fineractClient.getSavingsAccountNo(ids.cashAccountId());
+            String spreadNo = fineractClient.getSavingsAccountNo(ids.spreadAccountId());
+            String taxNo    = fineractClient.getSavingsAccountNo(ids.taxAccountId());
 
-        LiquidityProvider lp = LiquidityProvider.builder()
-                .clientId(request.lpClientId())
-                .clientName(request.lpClientName())
-                .cashAccountId(ids.cashAccountId())
-                .spreadAccountId(ids.spreadAccountId())
-                .taxAccountId(ids.taxAccountId())
-                .cashAccountNo(cashNo)
-                .spreadAccountNo(spreadNo)
-                .taxAccountNo(taxNo)
-                .build();
-        lpRepository.save(lp);
+            // Step 3: Update placeholder with the provisioned account IDs.
+            placeholder.setCashAccountId(ids.cashAccountId());
+            placeholder.setSpreadAccountId(ids.spreadAccountId());
+            placeholder.setTaxAccountId(ids.taxAccountId());
+            placeholder.setCashAccountNo(cashNo);
+            placeholder.setSpreadAccountNo(spreadNo);
+            placeholder.setTaxAccountNo(taxNo);
+            lpRepository.save(placeholder);
 
-        log.info("Registered LP {}: cash={}, spread={}, tax={}", request.lpClientId(),
-                ids.cashAccountId(), ids.spreadAccountId(), ids.taxAccountId());
-        return toResponse(lp);
+            log.info("Registered LP {}: cash={}, spread={}, tax={}", request.lpClientId(),
+                    ids.cashAccountId(), ids.spreadAccountId(), ids.taxAccountId());
+            return toResponse(placeholder);
+        } catch (Exception e) {
+            // Fineract provisioning failed — remove placeholder so registration can be retried.
+            lpRepository.deleteById(request.lpClientId());
+            log.error("Failed to provision Fineract accounts for LP {}: {}", request.lpClientId(), e.getMessage());
+            throw e instanceof AssetException ? (AssetException) e
+                    : new AssetException("Failed to provision LP accounts: " + e.getMessage(), e);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -71,7 +90,6 @@ public class AdminLpService {
         return toResponse(load(lpClientId));
     }
 
-    @Transactional(readOnly = true)
     public LpShortfallResponse getShortfalls(Long lpClientId) {
         LiquidityProvider lp = load(lpClientId);
         List<Asset> assets = assetRepository.findByLpClientId(lpClientId);
