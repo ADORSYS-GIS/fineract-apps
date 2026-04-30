@@ -1,6 +1,11 @@
 package com.adorsys.fineract.asset.service;
 
+import com.adorsys.fineract.asset.dto.BondType;
+import com.adorsys.fineract.asset.dto.RedemptionDetailResponse;
+import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.PrincipalRedemption;
 import com.adorsys.fineract.asset.entity.UserPosition;
+import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
 import com.adorsys.fineract.asset.repository.CategorySnapshotRepository;
@@ -8,6 +13,7 @@ import com.adorsys.fineract.asset.repository.IncomeDistributionRepository;
 import com.adorsys.fineract.asset.repository.InterestPaymentRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.PortfolioSnapshotRepository;
+import com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository;
 import com.adorsys.fineract.asset.repository.PurchaseLotRepository;
 import com.adorsys.fineract.asset.repository.ScheduledPaymentRepository;
 import com.adorsys.fineract.asset.repository.TaxTransactionRepository;
@@ -47,6 +53,7 @@ class PortfolioServiceTest {
     @Mock private ScheduledPaymentRepository scheduledPaymentRepository;
     @Mock private TaxTransactionRepository taxTransactionRepository;
     @Mock private TaxService taxService;
+    @Mock private PrincipalRedemptionRepository principalRedemptionRepository;
 
     @InjectMocks
     private PortfolioService portfolioService;
@@ -376,5 +383,99 @@ class PortfolioServiceTest {
 
         // Verify position was NOT saved
         verify(userPositionRepository, never()).save(any());
+    }
+
+    // -------------------------------------------------------------------------
+    // getRedemption — drives mobile screen 09b (BTA maturity confirmation).
+    // Authorization is load-bearing: a stranger must not be able to read another
+    // user's redemption breakdown by guessing a numeric ID.
+    // -------------------------------------------------------------------------
+
+    private static final Long REDEMPTION_ID = 99L;
+    private static final Long OTHER_USER_ID = 7L;
+
+    private PrincipalRedemption successRow() {
+        return PrincipalRedemption.builder()
+                .id(REDEMPTION_ID)
+                .assetId(ASSET_ID)
+                .userId(USER_ID)
+                .units(new BigDecimal("100"))
+                .faceValue(new BigDecimal("10000"))
+                .grossCashAmount(new BigDecimal("1000000"))
+                .avgPurchasePrice(new BigDecimal("9268"))
+                .capitalGain(new BigDecimal("73200"))
+                .ircmWithheld(new BigDecimal("12078"))
+                .cashAmount(new BigDecimal("987922"))
+                .realizedPnl(new BigDecimal("60000"))
+                .redemptionDate(java.time.LocalDate.of(2027, 4, 15))
+                .redeemedAt(Instant.parse("2027-04-15T00:20:00Z"))
+                .status("SUCCESS")
+                .build();
+    }
+
+    @Test
+    void getRedemption_happyPath_returnsBreakdownFromPersistedRow() {
+        Asset asset = new Asset();
+        asset.setId(ASSET_ID);
+        asset.setSymbol("BTA_2Y_2027");
+        asset.setName("BTA 2Y 2027");
+        asset.setBondType(BondType.DISCOUNT);
+        asset.setIsinCode("CM0000654321");
+
+        when(principalRedemptionRepository.findById(REDEMPTION_ID))
+                .thenReturn(Optional.of(successRow()));
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(asset));
+
+        RedemptionDetailResponse result = portfolioService.getRedemption(USER_ID, REDEMPTION_ID);
+
+        assertEquals(REDEMPTION_ID, result.id());
+        assertEquals("BTA_2Y_2027", result.assetSymbol());
+        assertEquals(BondType.DISCOUNT, result.bondType());
+        assertEquals(0, result.grossProceeds().compareTo(new BigDecimal("1000000")));
+        assertEquals(0, result.capitalGain().compareTo(new BigDecimal("73200")));
+        assertEquals(0, result.ircmWithheld().compareTo(new BigDecimal("12078")));
+        // F2 fix: netProceeds is the actual transferred amount (cashAmount), NOT
+        // the recomputed gross − ircm. They happen to match here, which is the point.
+        assertEquals(0, result.netProceeds().compareTo(new BigDecimal("987922")));
+    }
+
+    @Test
+    void getRedemption_wrongUser_throws_doesNotLeakOwnership() {
+        when(principalRedemptionRepository.findById(REDEMPTION_ID))
+                .thenReturn(Optional.of(successRow()));
+
+        AssetException ex = assertThrows(AssetException.class,
+                () -> portfolioService.getRedemption(OTHER_USER_ID, REDEMPTION_ID));
+        // Same message as the not-found case — prevents user enumeration.
+        assertTrue(ex.getMessage().contains("Redemption not found"));
+        // Asset lookup must not happen for an unauthorized request.
+        verify(assetRepository, never()).findById(any());
+    }
+
+    @Test
+    void getRedemption_failedStatus_throws_doesNotExposeFailureInternals() {
+        PrincipalRedemption failed = successRow();
+        failed.setStatus("FAILED");
+        failed.setFailureReason("Fineract batch returned 503");
+        when(principalRedemptionRepository.findById(REDEMPTION_ID))
+                .thenReturn(Optional.of(failed));
+
+        AssetException ex = assertThrows(AssetException.class,
+                () -> portfolioService.getRedemption(USER_ID, REDEMPTION_ID));
+        // Same opaque message — failureReason is admin-only and must not leak.
+        assertTrue(ex.getMessage().contains("Redemption not found"));
+        assertFalse(ex.getMessage().contains("503"));
+        assertFalse(ex.getMessage().contains("Fineract"));
+        verify(assetRepository, never()).findById(any());
+    }
+
+    @Test
+    void getRedemption_notFound_throws() {
+        when(principalRedemptionRepository.findById(REDEMPTION_ID))
+                .thenReturn(Optional.empty());
+
+        AssetException ex = assertThrows(AssetException.class,
+                () -> portfolioService.getRedemption(USER_ID, REDEMPTION_ID));
+        assertTrue(ex.getMessage().contains("Redemption not found"));
     }
 }

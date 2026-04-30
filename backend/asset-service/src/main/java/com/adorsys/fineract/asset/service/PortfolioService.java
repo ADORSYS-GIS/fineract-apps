@@ -224,7 +224,12 @@ public class PortfolioService {
                 : row.getCashAmount(); // legacy rows pre-V3
         BigDecimal ircm = row.getIrcmWithheld() != null ? row.getIrcmWithheld() : BigDecimal.ZERO;
         BigDecimal capitalGain = row.getCapitalGain() != null ? row.getCapitalGain() : BigDecimal.ZERO;
-        BigDecimal net = gross.subtract(ircm);
+        // Use the actual transferred amount as authoritative net rather than recomputing
+        // gross − ircm. cash_amount is NOT NULL in the schema and is exactly what landed
+        // in the holder's settlement account; this avoids a display/audit mismatch on
+        // any row where one of grossCashAmount or ircmWithheld is null but cash_amount
+        // is correct.
+        BigDecimal net = row.getCashAmount();
         return new RedemptionDetailResponse(
                 row.getId(),
                 row.getAssetId(),

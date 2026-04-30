@@ -216,11 +216,16 @@ public class PrincipalRedemptionService {
         BigDecimal units = holder.getTotalUnits();
         BigDecimal grossCashAmount = units.multiply(faceValue).setScale(0, RoundingMode.HALF_UP);
 
-        // For BTA discount bonds, compute IRCM on the capital gain (faceValue - avgPurchasePrice)
+        // For BTA discount bonds, compute IRCM on the capital gain (faceValue - avgPurchasePrice).
+        // Resolve the IRCM rate ONCE here; reuse the same value for both the cash-amount
+        // computation and the audit log via recordTaxTransaction so the recorded rate
+        // always equals ircmAmount / capitalGain (no audit drift if TaxService caching
+        // or rate resolution behaviour ever changes mid-batch).
         BigDecimal ircmAmount = BigDecimal.ZERO;
         BigDecimal capitalGain = BigDecimal.ZERO;
+        BigDecimal ircmRate = BigDecimal.ZERO;
         if (bond.getBondType() == BondType.DISCOUNT) {
-            BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
+            ircmRate = taxService.getEffectiveIrcmRate(bond);
             if (holder.getAvgPurchasePrice() != null) {
                 BigDecimal gainPerUnit = faceValue.subtract(holder.getAvgPurchasePrice());
                 if (gainPerUnit.compareTo(BigDecimal.ZERO) > 0) {
@@ -231,6 +236,8 @@ public class PrincipalRedemptionService {
                 }
             }
         }
+        // Effective rate for downstream audit. Final, captured once.
+        final BigDecimal effectiveIrcmRate = ircmRate;
         BigDecimal cashAmount = grossCashAmount.subtract(ircmAmount);
 
         PrincipalRedemption.PrincipalRedemptionBuilder record = PrincipalRedemption.builder()
@@ -293,9 +300,8 @@ public class PrincipalRedemptionService {
             assetRepository.adjustCirculatingSupply(bond.getId(), units.negate());
 
             if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
                 taxService.recordTaxTransaction(null, null, holder.getUserId(), bond.getId(),
-                        "IRCM", grossCashAmount, ircmRate, ircmAmount, null);
+                        "IRCM", grossCashAmount, effectiveIrcmRate, ircmAmount, null);
                 log.debug("IRCM withheld on BTA redemption: bond={}, user={}, gross={}, ircm={}, net={}",
                         bond.getSymbol(), holder.getUserId(), grossCashAmount, ircmAmount, cashAmount);
             }
@@ -352,7 +358,15 @@ public class PrincipalRedemptionService {
         // be absent on retries written by older versions — null-safe parse.
         Object avgRaw = payload.get("avgPurchasePrice");
         BigDecimal avgPurchasePrice = avgRaw != null ? new BigDecimal(avgRaw.toString()) : null;
-        // Capital gain may be absent on legacy payloads — recompute from faceValue and avgPurchasePrice.
+        // Capital gain may be absent on legacy payloads — recompute from faceValue and
+        // avgPurchasePrice. KNOWN INCONSISTENCY: if a payload was written by a version
+        // before commit fbda24f2, avgPurchasePrice will be null here, giving capitalGain=0
+        // even when ircmAmount > 0 (because ircmAmount is read directly from the payload).
+        // The resulting row will show IRCM withheld with no capital gain context. The
+        // window is bounded to the outbox retry interval — DISPATCHED entries written
+        // pre-fbda24f2 will still be in the queue. Acceptable: the row's cash_amount,
+        // ircm_withheld, and grossCashAmount are all authoritative; capital_gain is the
+        // only potentially-misleading column.
         BigDecimal capitalGain = (avgPurchasePrice != null)
                 ? faceValue.subtract(avgPurchasePrice).max(BigDecimal.ZERO)
                         .multiply(units).setScale(0, RoundingMode.HALF_UP)
