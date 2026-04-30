@@ -218,13 +218,16 @@ public class PrincipalRedemptionService {
 
         // For BTA discount bonds, compute IRCM on the capital gain (faceValue - avgPurchasePrice)
         BigDecimal ircmAmount = BigDecimal.ZERO;
+        BigDecimal capitalGain = BigDecimal.ZERO;
         if (bond.getBondType() == BondType.DISCOUNT) {
             BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
-            if (ircmRate.compareTo(BigDecimal.ZERO) > 0 && holder.getAvgPurchasePrice() != null) {
+            if (holder.getAvgPurchasePrice() != null) {
                 BigDecimal gainPerUnit = faceValue.subtract(holder.getAvgPurchasePrice());
                 if (gainPerUnit.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal totalGain = gainPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP);
-                    ircmAmount = totalGain.multiply(ircmRate).setScale(0, RoundingMode.HALF_UP);
+                    capitalGain = gainPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP);
+                    if (ircmRate.compareTo(BigDecimal.ZERO) > 0) {
+                        ircmAmount = capitalGain.multiply(ircmRate).setScale(0, RoundingMode.HALF_UP);
+                    }
                 }
             }
         }
@@ -236,6 +239,10 @@ public class PrincipalRedemptionService {
                 .units(units)
                 .faceValue(faceValue)
                 .cashAmount(cashAmount)
+                .grossCashAmount(grossCashAmount)
+                .avgPurchasePrice(holder.getAvgPurchasePrice())
+                .capitalGain(capitalGain)
+                .ircmWithheld(ircmAmount)
                 .redemptionDate(redemptionDate);
 
         try {
@@ -341,6 +348,15 @@ public class PrincipalRedemptionService {
         BigDecimal cashAmount   = new BigDecimal((String) payload.get("cashAmount"));
         BigDecimal ircmAmount   = new BigDecimal((String) payload.get("ircmAmount"));
         BigDecimal grossCash    = new BigDecimal((String) payload.get("grossCashAmount"));
+        // avgPurchasePrice was added to the payload by buildRedemptionPayload but may
+        // be absent on retries written by older versions — null-safe parse.
+        Object avgRaw = payload.get("avgPurchasePrice");
+        BigDecimal avgPurchasePrice = avgRaw != null ? new BigDecimal(avgRaw.toString()) : null;
+        // Capital gain may be absent on legacy payloads — recompute from faceValue and avgPurchasePrice.
+        BigDecimal capitalGain = (avgPurchasePrice != null)
+                ? faceValue.subtract(avgPurchasePrice).max(BigDecimal.ZERO)
+                        .multiply(units).setScale(0, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(userId, bondId, units, faceValue, null, null);
         assetRepository.adjustCirculatingSupply(bondId, units.negate());
@@ -353,7 +369,10 @@ public class PrincipalRedemptionService {
 
         PrincipalRedemption rec = PrincipalRedemption.builder()
                 .assetId(bondId).userId(userId).units(units).faceValue(faceValue)
-                .cashAmount(cashAmount).redemptionDate(java.time.LocalDate.now())
+                .cashAmount(cashAmount).grossCashAmount(grossCash)
+                .avgPurchasePrice(avgPurchasePrice).capitalGain(capitalGain)
+                .ircmWithheld(ircmAmount)
+                .redemptionDate(java.time.LocalDate.now())
                 .realizedPnl(realizedPnl).status("SUCCESS").build();
         principalRedemptionRepository.save(rec);
         outboxService.markConfirmed(entry.getId());
@@ -373,6 +392,9 @@ public class PrincipalRedemptionService {
         p.put("ircmAmount", ircmAmount.toPlainString());
         p.put("grossCashAmount", grossCashAmount.toPlainString());
         p.put("userCashAccountId", userCashAccountId);
+        if (holder.getAvgPurchasePrice() != null) {
+            p.put("avgPurchasePrice", holder.getAvgPurchasePrice().toPlainString());
+        }
         return p;
     }
 
