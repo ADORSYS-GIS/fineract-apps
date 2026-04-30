@@ -39,7 +39,13 @@ export const EditUserView = () => {
 		roles
 			?.filter(
 				(role) =>
-					!["Super user", "Self Service User"].includes(role.name || ""),
+					![
+						"Super user",
+						"Self Service User",
+						"Loan Officer",
+						"Branch Manager",
+						"Accountant",
+					].includes(role.name || ""),
 			)
 			.map((role) => ({
 				label: role.name || "",
