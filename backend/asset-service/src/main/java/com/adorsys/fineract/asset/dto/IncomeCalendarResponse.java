@@ -31,8 +31,8 @@ public record IncomeCalendarResponse(
      */
     List<MonthlyAggregate> monthlyTotals,
     /**
-     * Sum of all expected income across all events in XAF. Represents total projected
-     * cash inflows from the portfolio over the forecast horizon.
+     * Sum of all expected income across all events in XAF, before IRCM withholding.
+     * For the value the user will actually receive, see {@link #totalNetIncome}.
      */
     BigDecimal totalExpectedIncome,
     /**
@@ -40,7 +40,14 @@ public record IncomeCalendarResponse(
      * (e.g. "COUPON", "DIVIDEND", "RENT") and values are the total projected income
      * from that type. Useful for showing income source composition.
      */
-    Map<String, BigDecimal> totalByIncomeType
+    Map<String, BigDecimal> totalByIncomeType,
+    /**
+     * Sum of {@link IncomeEvent#netAmount} across all events in XAF — the total net
+     * cash that will land in the user's wallet after IRCM withholding over the forecast
+     * horizon. Display this rather than {@link #totalExpectedIncome} to give an honest
+     * "what you'll receive" headline.
+     */
+    BigDecimal totalNetIncome
 ) {
 
     /**
@@ -77,8 +84,36 @@ public record IncomeCalendarResponse(
          * The rate applied to compute {@code expectedAmount} for this event. For COUPON events
          * this is the annual coupon rate (e.g. 5.80). For income events this is the annual
          * income rate (e.g. 8.00). For PRINCIPAL_REDEMPTION this is null.
+         * <p><strong>This is NOT the IRCM rate.</strong> Multiplying it against
+         * {@code grossPerUnit} gives nonsensical IRCM amounts. Use {@code ircmPerUnit}
+         * (already withholding-adjusted) when displaying tax breakdowns.
          */
-        BigDecimal rateApplied
+        BigDecimal rateApplied,
+        /**
+         * Gross income per unit for this event in XAF, equal to
+         * {@code expectedAmount / units}. Server-side derivation so the frontend does not
+         * need to recompute it. Null only when {@code units} is null or zero.
+         */
+        BigDecimal grossPerUnit,
+        /**
+         * IRCM withholding per unit in XAF, computed as
+         * {@code grossPerUnit × TaxService.getEffectiveIrcmRate(asset)}. Honours per-asset
+         * IRCM overrides, government-bond exemptions, and the BVMAC rate, so the value
+         * represents what the asset-service will actually withhold at distribution time.
+         * Zero if IRCM is disabled or the asset is exempt.
+         */
+        BigDecimal ircmPerUnit,
+        /**
+         * Net income per unit credited to the holder, equal to
+         * {@code grossPerUnit - ircmPerUnit}. Display this as the "you'll receive" value.
+         */
+        BigDecimal netPerUnit,
+        /**
+         * Total net XAF amount the user will receive for this event after IRCM withholding,
+         * equal to {@code netPerUnit × units}. The headline number to show beside the
+         * payment date.
+         */
+        BigDecimal netAmount
     ) {}
 
     /**

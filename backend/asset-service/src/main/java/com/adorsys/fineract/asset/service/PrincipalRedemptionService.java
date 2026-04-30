@@ -216,18 +216,33 @@ public class PrincipalRedemptionService {
         BigDecimal units = holder.getTotalUnits();
         BigDecimal grossCashAmount = units.multiply(faceValue).setScale(0, RoundingMode.HALF_UP);
 
-        // For BTA discount bonds, compute IRCM on the capital gain (faceValue - avgPurchasePrice)
+        // For BTA discount bonds, compute IRCM on the capital gain (faceValue - avgPurchasePrice).
+        // Resolve the IRCM rate ONCE here; reuse the same value for both the cash-amount
+        // computation and the audit log via recordTaxTransaction so the recorded rate
+        // always equals ircmAmount / capitalGain (no audit drift if TaxService caching
+        // or rate resolution behaviour ever changes mid-batch).
         BigDecimal ircmAmount = BigDecimal.ZERO;
+        BigDecimal capitalGain = BigDecimal.ZERO;
+        BigDecimal ircmRate = BigDecimal.ZERO;
         if (bond.getBondType() == BondType.DISCOUNT) {
-            BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
-            if (ircmRate.compareTo(BigDecimal.ZERO) > 0 && holder.getAvgPurchasePrice() != null) {
+            ircmRate = taxService.getEffectiveIrcmRate(bond);
+            if (holder.getAvgPurchasePrice() != null) {
                 BigDecimal gainPerUnit = faceValue.subtract(holder.getAvgPurchasePrice());
                 if (gainPerUnit.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal totalGain = gainPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP);
-                    ircmAmount = totalGain.multiply(ircmRate).setScale(0, RoundingMode.HALF_UP);
+                    capitalGain = gainPerUnit.multiply(units).setScale(0, RoundingMode.HALF_UP);
+                    if (ircmRate.compareTo(BigDecimal.ZERO) > 0) {
+                        ircmAmount = capitalGain.multiply(ircmRate).setScale(0, RoundingMode.HALF_UP);
+                    }
                 }
             }
         }
+        // Effective rate for downstream audit. Final, captured once. Persisted only
+        // for DISCOUNT bonds — for OTA bonds, IRCM is not applied at maturity and
+        // null in the column means "not applicable", consistent with the field's
+        // documented contract (null = unknown / not applicable, non-null = the rate
+        // that drove the withholding).
+        final BigDecimal effectiveIrcmRate = ircmRate;
+        final BigDecimal persistedIrcmRate = bond.getBondType() == BondType.DISCOUNT ? ircmRate : null;
         BigDecimal cashAmount = grossCashAmount.subtract(ircmAmount);
 
         PrincipalRedemption.PrincipalRedemptionBuilder record = PrincipalRedemption.builder()
@@ -236,6 +251,11 @@ public class PrincipalRedemptionService {
                 .units(units)
                 .faceValue(faceValue)
                 .cashAmount(cashAmount)
+                .grossCashAmount(grossCashAmount)
+                .avgPurchasePrice(holder.getAvgPurchasePrice())
+                .capitalGain(capitalGain)
+                .ircmWithheld(ircmAmount)
+                .ircmRateApplied(persistedIrcmRate)
                 .redemptionDate(redemptionDate);
 
         try {
@@ -265,7 +285,8 @@ public class PrincipalRedemptionService {
             String idempotencyKey = "REDEEM-" + bond.getId() + "-" + holder.getUserId();
             FineractOutboxEntry outbox = outboxService.writePendingEntry(
                     "PRINCIPAL_REDEMPTION", "PRINCIPAL_REDEMPTION", bond.getId() + ":" + holder.getUserId(),
-                    idempotencyKey, buildRedemptionPayload(bond, holder, units, cashAmount, ircmAmount, grossCashAmount, userCashAccountId));
+                    idempotencyKey, buildRedemptionPayload(bond, holder, units, cashAmount, ircmAmount,
+                            grossCashAmount, userCashAccountId, effectiveIrcmRate));
 
             // d. Execute atomic batch
             List<Map<String, Object>> batchResult;
@@ -286,9 +307,8 @@ public class PrincipalRedemptionService {
             assetRepository.adjustCirculatingSupply(bond.getId(), units.negate());
 
             if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
                 taxService.recordTaxTransaction(null, null, holder.getUserId(), bond.getId(),
-                        "IRCM", grossCashAmount, ircmRate, ircmAmount, null);
+                        "IRCM", grossCashAmount, effectiveIrcmRate, ircmAmount, null);
                 log.debug("IRCM withheld on BTA redemption: bond={}, user={}, gross={}, ircm={}, net={}",
                         bond.getSymbol(), holder.getUserId(), grossCashAmount, ircmAmount, cashAmount);
             }
@@ -341,19 +361,58 @@ public class PrincipalRedemptionService {
         BigDecimal cashAmount   = new BigDecimal((String) payload.get("cashAmount"));
         BigDecimal ircmAmount   = new BigDecimal((String) payload.get("ircmAmount"));
         BigDecimal grossCash    = new BigDecimal((String) payload.get("grossCashAmount"));
+        // avgPurchasePrice was added to the payload by buildRedemptionPayload but may
+        // be absent on retries written by older versions — null-safe parse.
+        Object avgRaw = payload.get("avgPurchasePrice");
+        BigDecimal avgPurchasePrice = avgRaw != null ? new BigDecimal(avgRaw.toString()) : null;
+        // Capital gain may be absent on legacy payloads — recompute from faceValue and
+        // avgPurchasePrice. KNOWN INCONSISTENCY: if a payload was written by a version
+        // before commit fbda24f2, avgPurchasePrice will be null here, giving capitalGain=0
+        // even when ircmAmount > 0 (because ircmAmount is read directly from the payload).
+        // The resulting row will show IRCM withheld with no capital gain context. The
+        // window is bounded to the outbox retry interval — DISPATCHED entries written
+        // pre-fbda24f2 will still be in the queue. Acceptable: the row's cash_amount,
+        // ircm_withheld, and grossCashAmount are all authoritative; capital_gain is the
+        // only potentially-misleading column.
+        BigDecimal capitalGain = (avgPurchasePrice != null)
+                ? faceValue.subtract(avgPurchasePrice).max(BigDecimal.ZERO)
+                        .multiply(units).setScale(0, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(userId, bondId, units, faceValue, null, null);
         assetRepository.adjustCirculatingSupply(bondId, units.negate());
 
+        // Resolve the rate once for both the tax-transaction log and the persisted
+        // rate column (matches the F1 invariant in redeemHolder).
+        //
+        // KNOWN INCONSISTENCY on legacy fallback: payloads written before commit
+        // c3bacfe2 do not carry ircmRateApplied. The fallback below queries
+        // TaxService at retry-time, which can disagree with the original-redemption
+        // rate if the asset's IRCM config was reconfigured in the retry window.
+        // ircmAmount in the payload is frozen at original-redemption time, so a
+        // discrepancy between ircmAmount/grossCash and ircmRateApplied is possible
+        // for those legacy entries. Window is bounded to the outbox queue drain.
+        // Same trade-off as the capitalGain inconsistency documented above.
+        Object rateRaw = payload.get("ircmRateApplied");
+        BigDecimal ircmRateApplied = rateRaw != null
+                ? new BigDecimal(rateRaw.toString())
+                : taxService.getEffectiveIrcmRate(bond);
+        // Same OTA-vs-BTA semantic as redeemHolder: only persist a rate for BTA bonds.
+        BigDecimal persistedIrcmRate = bond.getBondType() == BondType.DISCOUNT
+                ? ircmRateApplied
+                : null;
         if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
             taxService.recordTaxTransaction(null, null, userId, bondId,
-                    "IRCM", grossCash, ircmRate, ircmAmount, null);
+                    "IRCM", grossCash, ircmRateApplied, ircmAmount, null);
         }
 
         PrincipalRedemption rec = PrincipalRedemption.builder()
                 .assetId(bondId).userId(userId).units(units).faceValue(faceValue)
-                .cashAmount(cashAmount).redemptionDate(java.time.LocalDate.now())
+                .cashAmount(cashAmount).grossCashAmount(grossCash)
+                .avgPurchasePrice(avgPurchasePrice).capitalGain(capitalGain)
+                .ircmWithheld(ircmAmount)
+                .ircmRateApplied(persistedIrcmRate)
+                .redemptionDate(java.time.LocalDate.now())
                 .realizedPnl(realizedPnl).status("SUCCESS").build();
         principalRedemptionRepository.save(rec);
         outboxService.markConfirmed(entry.getId());
@@ -363,7 +422,7 @@ public class PrincipalRedemptionService {
 
     private Map<String, Object> buildRedemptionPayload(Asset bond, UserPosition holder,
             BigDecimal units, BigDecimal cashAmount, BigDecimal ircmAmount,
-            BigDecimal grossCashAmount, Long userCashAccountId) {
+            BigDecimal grossCashAmount, Long userCashAccountId, BigDecimal ircmRateApplied) {
         Map<String, Object> p = new HashMap<>();
         p.put("bondId", bond.getId());
         p.put("userId", holder.getUserId());
@@ -373,6 +432,12 @@ public class PrincipalRedemptionService {
         p.put("ircmAmount", ircmAmount.toPlainString());
         p.put("grossCashAmount", grossCashAmount.toPlainString());
         p.put("userCashAccountId", userCashAccountId);
+        if (holder.getAvgPurchasePrice() != null) {
+            p.put("avgPurchasePrice", holder.getAvgPurchasePrice().toPlainString());
+        }
+        if (ircmRateApplied != null) {
+            p.put("ircmRateApplied", ircmRateApplied.toPlainString());
+        }
         return p;
     }
 

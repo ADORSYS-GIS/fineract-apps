@@ -38,6 +38,7 @@ public class AssetCatalogService {
     private final TradeLogRepository tradeLogRepository;
     private final FileStorageService fileStorageService;
     private final AccruedInterestCalculator accruedInterestCalculator;
+    private final TaxService taxService;
 
     /**
      * List active assets with optional category filter and search.
@@ -78,6 +79,10 @@ public class AssetCatalogService {
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(asset);
         BigDecimal askPrice = price != null ? price.getAskPrice() : null;
         BigDecimal currentYield = computeCurrentYield(asset, askPrice);
+        BigDecimal ircmRate = taxService.getEffectiveIrcmRate(asset);
+        BigDecimal impliedRate = computeBtaImpliedRate(asset);
+        BigDecimal accruedInterestPerUnit = computeAccruedInterestPerUnit(asset);
+        BigDecimal[] btaProjection = computeBtaProjectionPerUnit(asset, askPrice, ircmRate);
 
         return new AssetPublicDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
@@ -99,6 +104,12 @@ public class AssetCatalogService {
                 asset.getNextCouponDate(),
                 computeResidualDays(asset.getMaturityDate()),
                 couponAmountPerUnit,
+                ircmRate,
+                impliedRate,
+                accruedInterestPerUnit,
+                btaProjection[0],
+                btaProjection[1],
+                btaProjection[2],
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
                 asset.getMaxPositionPercent(), asset.getMaxOrderSize(),
@@ -108,6 +119,53 @@ public class AssetCatalogService {
                 asset.getIncomeType(), asset.getIncomeRate(),
                 asset.getDistributionFrequencyMonths(), asset.getNextDistributionDate()
         );
+    }
+
+    /**
+     * BTA implied annual yield: {@code (faceValue / issuerPrice - 1) × (360 / originalTotalDays)}.
+     * Mirrors the formula in {@link com.adorsys.fineract.asset.scheduler.BtaPriceAccretionScheduler}
+     * so the frontend can display the issuance discount yield without recomputing it.
+     */
+    private BigDecimal computeBtaImpliedRate(Asset asset) {
+        if (asset.getBondType() != BondType.DISCOUNT) return null;
+        BigDecimal face = asset.getFaceValue();
+        BigDecimal issuer = asset.getIssuerPrice();
+        if (face == null || issuer == null || issuer.signum() == 0) return null;
+        if (asset.getIssueDate() == null || asset.getMaturityDate() == null) return null;
+        long totalDays = ChronoUnit.DAYS.between(asset.getIssueDate(), asset.getMaturityDate());
+        if (totalDays <= 0) return null;
+        BigDecimal discount = face.divide(issuer, 10, java.math.RoundingMode.HALF_UP)
+                .subtract(BigDecimal.ONE);
+        return discount.multiply(new BigDecimal(360))
+                .divide(new BigDecimal(totalDays), 6, java.math.RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Per-unit accrued interest for OTA (coupon) bonds. Returns null for DISCOUNT bonds
+     * and non-bond assets. Delegates to {@link AccruedInterestCalculator} with units = 1.
+     */
+    private BigDecimal computeAccruedInterestPerUnit(Asset asset) {
+        if (asset.getCategory() != AssetCategory.BONDS) return null;
+        if (asset.getBondType() != BondType.COUPON) return null;
+        return accruedInterestCalculator.calculate(asset, BigDecimal.ONE);
+    }
+
+    /**
+     * BTA per-unit forward-looking capital-gain projection at maturity assuming the
+     * holder buys today at {@code askPrice}. Returns {@code [gross, ircm, net]} or
+     * {@code [null, null, null]} for non-BTA assets / missing inputs. The IRCM is
+     * capped at zero so a stale askPrice exceeding faceValue cannot produce a
+     * negative tax amount.
+     */
+    private BigDecimal[] computeBtaProjectionPerUnit(Asset asset, BigDecimal askPrice,
+                                                      BigDecimal ircmRate) {
+        if (asset.getBondType() != BondType.DISCOUNT) return new BigDecimal[] { null, null, null };
+        if (asset.getFaceValue() == null || askPrice == null) return new BigDecimal[] { null, null, null };
+        BigDecimal gross = asset.getFaceValue().subtract(askPrice).max(BigDecimal.ZERO);
+        BigDecimal effectiveRate = ircmRate != null ? ircmRate : BigDecimal.ZERO;
+        BigDecimal ircm = gross.multiply(effectiveRate).setScale(0, java.math.RoundingMode.HALF_UP);
+        BigDecimal net = gross.subtract(ircm);
+        return new BigDecimal[] { gross, ircm, net };
     }
 
     /**

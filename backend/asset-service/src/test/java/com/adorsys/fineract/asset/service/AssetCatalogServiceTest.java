@@ -36,6 +36,8 @@ class AssetCatalogServiceTest {
     @Mock private AssetPriceRepository assetPriceRepository;
     @Mock private TradeLogRepository tradeLogRepository;
     @Mock private com.adorsys.fineract.asset.storage.FileStorageService fileStorageService;
+    @Mock private AccruedInterestCalculator accruedInterestCalculator;
+    @Mock private TaxService taxService;
 
     @InjectMocks
     private AssetCatalogService assetCatalogService;
@@ -310,5 +312,136 @@ class AssetCatalogServiceTest {
         assertTrue(result.isEmpty());
 
         verify(tradeLogRepository).findTop20ByAssetIdOrderByExecutedAtDesc(ASSET_ID);
+    }
+
+    // -------------------------------------------------------------------------
+    // getAssetDetail — server-computed BTA per-unit projection (F5).
+    // The mobile asset-detail screen relies on these three fields; client-side
+    // recomputation was removed so any regression here surfaces as a null UI
+    // rather than wrong tax numbers.
+    // -------------------------------------------------------------------------
+
+    private Asset buildBtaAsset(BigDecimal faceValue, BigDecimal issuerPrice) {
+        return Asset.builder()
+                .id(ASSET_ID)
+                .symbol("BTA_2Y_2027")
+                .currencyCode("BTA")
+                .name("BTA 2Y 2027")
+                .category(AssetCategory.BONDS)
+                .bondType(BondType.DISCOUNT)
+                .status(AssetStatus.ACTIVE)
+                .priceMode(PriceMode.MANUAL)
+                .decimalPlaces(0)
+                .totalSupply(new BigDecimal("1000"))
+                .circulatingSupply(new BigDecimal("0"))
+                .tradingFeePercent(new BigDecimal("0.003"))
+                .faceValue(faceValue)
+                .issuerPrice(issuerPrice)
+                .issueDate(LocalDate.of(2025, 4, 15))
+                .maturityDate(LocalDate.of(2027, 4, 15))
+                .createdAt(Instant.now())
+                .build();
+    }
+
+    @Test
+    void getAssetDetail_btaWithGain_returnsServerProjection() {
+        Asset bta = buildBtaAsset(new BigDecimal("10000"), new BigDecimal("9000"));
+        AssetPrice price = new AssetPrice();
+        price.setAssetId(ASSET_ID);
+        price.setAskPrice(new BigDecimal("9268"));
+
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(bta));
+        when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(price));
+        when(taxService.getEffectiveIrcmRate(any())).thenReturn(new BigDecimal("0.165"));
+
+        AssetPublicDetailResponse result = assetCatalogService.getAssetDetail(ASSET_ID);
+
+        // gross = max(10000 − 9268, 0) = 732
+        assertEquals(0, result.btaGrossGainPerUnit().compareTo(new BigDecimal("732")));
+        // ircm = round(732 × 0.165) = round(120.78) = 121
+        assertEquals(0, result.btaIrcmPerUnit().compareTo(new BigDecimal("121")));
+        // net = 732 − 121 = 611
+        assertEquals(0, result.btaNetGainPerUnit().compareTo(new BigDecimal("611")));
+        assertEquals(0, result.ircmRate().compareTo(new BigDecimal("0.165")));
+    }
+
+    @Test
+    void getAssetDetail_btaIrcmExempt_grossAndNetEqual() {
+        Asset bta = buildBtaAsset(new BigDecimal("10000"), new BigDecimal("9000"));
+        AssetPrice price = new AssetPrice();
+        price.setAssetId(ASSET_ID);
+        price.setAskPrice(new BigDecimal("9500"));
+
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(bta));
+        when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(price));
+        // Asset is IRCM-exempt — TaxService returns zero.
+        when(taxService.getEffectiveIrcmRate(any())).thenReturn(BigDecimal.ZERO);
+
+        AssetPublicDetailResponse result = assetCatalogService.getAssetDetail(ASSET_ID);
+
+        // gross = 500, ircm = 0, net = 500
+        assertEquals(0, result.btaGrossGainPerUnit().compareTo(new BigDecimal("500")));
+        assertEquals(0, result.btaIrcmPerUnit().compareTo(BigDecimal.ZERO));
+        assertEquals(0, result.btaNetGainPerUnit().compareTo(new BigDecimal("500")));
+    }
+
+    @Test
+    void getAssetDetail_stalePriceAboveFaceValue_clampsGrossAtZero() {
+        Asset bta = buildBtaAsset(new BigDecimal("10000"), new BigDecimal("9000"));
+        AssetPrice price = new AssetPrice();
+        price.setAssetId(ASSET_ID);
+        // Stale ask above face value — clamp must prevent negative gross/IRCM.
+        price.setAskPrice(new BigDecimal("10500"));
+
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(bta));
+        when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(price));
+        when(taxService.getEffectiveIrcmRate(any())).thenReturn(new BigDecimal("0.165"));
+
+        AssetPublicDetailResponse result = assetCatalogService.getAssetDetail(ASSET_ID);
+
+        assertEquals(0, result.btaGrossGainPerUnit().compareTo(BigDecimal.ZERO));
+        assertEquals(0, result.btaIrcmPerUnit().compareTo(BigDecimal.ZERO));
+        assertEquals(0, result.btaNetGainPerUnit().compareTo(BigDecimal.ZERO));
+    }
+
+    @Test
+    void getAssetDetail_otaCouponBond_btaProjectionFieldsAllNull() {
+        Asset ota = Asset.builder()
+                .id(ASSET_ID)
+                .symbol("OTA_5Y_2030")
+                .currencyCode("OTA")
+                .name("OTA 5Y 2030")
+                .category(AssetCategory.BONDS)
+                .bondType(BondType.COUPON)
+                .status(AssetStatus.ACTIVE)
+                .priceMode(PriceMode.MANUAL)
+                .decimalPlaces(0)
+                .totalSupply(new BigDecimal("1000"))
+                .circulatingSupply(BigDecimal.ZERO)
+                .tradingFeePercent(new BigDecimal("0.003"))
+                .faceValue(new BigDecimal("10000"))
+                .interestRate(new BigDecimal("5.80"))
+                .couponFrequencyMonths(6)
+                .createdAt(Instant.now())
+                .build();
+        AssetPrice price = new AssetPrice();
+        price.setAssetId(ASSET_ID);
+        price.setAskPrice(new BigDecimal("9800"));
+
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(ota));
+        when(assetPriceRepository.findById(ASSET_ID)).thenReturn(Optional.of(price));
+        when(taxService.getEffectiveIrcmRate(any())).thenReturn(new BigDecimal("0.055"));
+        when(accruedInterestCalculator.calculate(any(), any())).thenReturn(BigDecimal.ZERO);
+
+        AssetPublicDetailResponse result = assetCatalogService.getAssetDetail(ASSET_ID);
+
+        // OTA: BTA projection fields are not applicable.
+        assertNull(result.btaGrossGainPerUnit());
+        assertNull(result.btaIrcmPerUnit());
+        assertNull(result.btaNetGainPerUnit());
+        // impliedRate (BTA-only) is also null for OTA.
+        assertNull(result.impliedRate());
+        // accruedInterestPerUnit is OTA-applicable.
+        assertNotNull(result.accruedInterestPerUnit());
     }
 }

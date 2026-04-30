@@ -3,6 +3,7 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.dto.AssetCategory;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.entity.AssetPrice;
 import com.adorsys.fineract.asset.entity.CategorySnapshot;
 import com.adorsys.fineract.asset.entity.IncomeDistribution;
@@ -61,6 +62,7 @@ public class PortfolioService {
     private final ScheduledPaymentRepository scheduledPaymentRepository;
     private final TaxTransactionRepository taxTransactionRepository;
     private final TaxService taxService;
+    private final com.adorsys.fineract.asset.repository.PrincipalRedemptionRepository principalRedemptionRepository;
 
     /**
      * Get full portfolio summary for a user including positions and holdings.
@@ -193,6 +195,60 @@ public class PortfolioService {
                 totalValue, totalCostBasis, totalUnrealizedPnl, totalUnrealizedPnlPercent,
                 totalRealizedPnl, totalFeesPaid, totalTaxesPaid,
                 positionResponses, allocations, estimatedAnnualYieldPercent, categoryValues.size()
+        );
+    }
+
+    /**
+     * Get a single redemption-event detail for the authenticated user. Used by the
+     * BTA maturity-redemption confirmation screen on mobile to display the four-line
+     * tax breakdown (gross / capital gain / IRCM / net) without recomputing.
+     *
+     * <p>Throws {@link AssetException} when the redemption row does not exist, was
+     * written for a different user, or did not complete successfully — failed
+     * redemptions are not surfaced to end users; admins see them via the admin API.
+     */
+    @Transactional(readOnly = true)
+    public RedemptionDetailResponse getRedemption(Long userId, Long redemptionId) {
+        com.adorsys.fineract.asset.entity.PrincipalRedemption row = principalRedemptionRepository
+                .findById(redemptionId)
+                .orElseThrow(() -> new AssetException("Redemption not found: " + redemptionId));
+        if (!row.getUserId().equals(userId)) {
+            throw new AssetException("Redemption not found: " + redemptionId);
+        }
+        if (!"SUCCESS".equals(row.getStatus())) {
+            throw new AssetException("Redemption not found: " + redemptionId);
+        }
+        Asset asset = assetRepository.findById(row.getAssetId()).orElse(null);
+        BigDecimal gross = row.getGrossCashAmount() != null
+                ? row.getGrossCashAmount()
+                : row.getCashAmount(); // legacy rows pre-V3
+        BigDecimal ircm = row.getIrcmWithheld() != null ? row.getIrcmWithheld() : BigDecimal.ZERO;
+        BigDecimal capitalGain = row.getCapitalGain() != null ? row.getCapitalGain() : BigDecimal.ZERO;
+        // Use the actual transferred amount as authoritative net rather than recomputing
+        // gross − ircm. cash_amount is NOT NULL in the schema and is exactly what landed
+        // in the holder's settlement account; this avoids a display/audit mismatch on
+        // any row where one of grossCashAmount or ircmWithheld is null but cash_amount
+        // is correct.
+        BigDecimal net = row.getCashAmount();
+        return new RedemptionDetailResponse(
+                row.getId(),
+                row.getAssetId(),
+                asset != null ? asset.getSymbol() : null,
+                asset != null ? asset.getName() : null,
+                asset != null ? asset.getBondType() : null,
+                asset != null ? asset.getIsinCode() : null,
+                row.getUnits(),
+                row.getFaceValue(),
+                row.getAvgPurchasePrice(),
+                gross,
+                capitalGain,
+                ircm,
+                row.getIrcmRateApplied(),
+                net,
+                row.getRealizedPnl(),
+                row.getRedemptionDate(),
+                row.getRedeemedAt(),
+                row.getStatus()
         );
     }
 

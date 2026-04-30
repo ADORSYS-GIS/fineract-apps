@@ -12,19 +12,30 @@ import java.time.LocalDate;
 
 /**
  * Audit record for the principal redemption paid to a single bond holder at maturity.
- * One row is created per user per asset by the MaturityRedemptionService when an admin
+ * One row is created per user per asset by PrincipalRedemptionService when an admin
  * triggers the maturity redemption batch for a bond whose {@link Asset#maturityDate}
  * has been reached.
  * <p>
- * Each row represents a pair of atomic Fineract transfers:
+ * Each row represents up to three atomic Fineract transfers in a single batch:
  * <ol>
  *   <li>Asset unit transfer — the holder's bond units are returned to the LP's asset account
  *       ({@link Asset#lpAssetAccountId}), reducing their {@link UserPosition}.</li>
- *   <li>Cash transfer — {@code units * faceValue} XAF is debited from the LP's cash account
- *       ({@link Asset#lpCashAccountId}) and credited to the holder's settlement account.</li>
+ *   <li>Cash transfer (net) — {@code (gross − ircmWithheld)} XAF is debited from the LP's
+ *       cash account ({@link Asset#lpCashAccountId}) and credited to the holder's
+ *       settlement account.</li>
+ *   <li>IRCM transfer (BTA only) — when the bond has a positive capital gain at maturity
+ *       and IRCM is enabled for the asset, {@code ircmWithheld} XAF is debited from the
+ *       LP's cash account and credited to the IRCM tax authority account
+ *       ({@code TaxService.getIrcmAccountId()}).</li>
  * </ol>
- * No fee, spread, or tax is deducted from a principal redemption.
- * Cash amount formula: {@code cashAmount = units * faceValue}
+ * Tax breakdown (BTA only — OTA principal payback is at par with no tax):
+ * <ul>
+ *   <li>{@code grossCashAmount = units × faceValue}</li>
+ *   <li>{@code capitalGain = max(units × (faceValue − avgPurchasePrice), 0)}</li>
+ *   <li>{@code ircmWithheld = capitalGain × TaxService.getEffectiveIrcmRate(asset)}</li>
+ *   <li>{@code cashAmount = grossCashAmount − ircmWithheld}</li>
+ * </ul>
+ * Capital losses (purchase price above face value) are not refunded — IRCM is clamped at zero.
  */
 @Data
 @Entity
@@ -59,9 +70,52 @@ public class PrincipalRedemption {
     @Column(name = "face_value", nullable = false, precision = 20, scale = 0)
     private BigDecimal faceValue;
 
-    /** Cash returned to holder: units * faceValue. */
+    /** Net cash returned to holder: grossCashAmount − ircmWithheld. */
     @Column(name = "cash_amount", nullable = false, precision = 20, scale = 0)
     private BigDecimal cashAmount;
+
+    /**
+     * Gross cash amount before IRCM withholding: {@code units × faceValue}. Equal to
+     * {@link #cashAmount} for OTA bonds and BTA bonds without taxable capital gain.
+     * Nullable for historical rows written before the V3 migration.
+     */
+    @Column(name = "gross_cash_amount", precision = 20, scale = 0)
+    private BigDecimal grossCashAmount;
+
+    /**
+     * Weighted-average cost basis per unit at redemption time, copied from
+     * {@code UserPosition.avgPurchasePrice}. Null for historical rows written before
+     * the V3 migration and for OTA bonds where IRCM does not apply at maturity.
+     */
+    @Column(name = "avg_purchase_price", precision = 20, scale = 8)
+    private BigDecimal avgPurchasePrice;
+
+    /**
+     * Capital gain on this BTA redemption: {@code max(units × (faceValue − avgPurchasePrice), 0)}.
+     * Zero when there is no gain (or for OTA bonds). Used as the IRCM tax base.
+     */
+    @Column(name = "capital_gain", precision = 20, scale = 0)
+    private BigDecimal capitalGain;
+
+    /**
+     * IRCM withholding amount transferred to the tax authority account in the same
+     * atomic batch as the user cash transfer: {@code capitalGain × TaxService.getEffectiveIrcmRate}.
+     * Zero when IRCM is exempt or there is no capital gain. Audited separately in
+     * {@code tax_transactions} via {@link com.adorsys.fineract.asset.service.TaxService#recordTaxTransaction}.
+     */
+    @Column(name = "ircm_withheld", precision = 20, scale = 0)
+    private BigDecimal ircmWithheld;
+
+    /**
+     * Effective IRCM rate applied at redemption time as a decimal (e.g.
+     * {@code 0.165} = 16.5%). Captured from
+     * {@link com.adorsys.fineract.asset.service.TaxService#getEffectiveIrcmRate}
+     * once per redemption so historical rows stay accurate even if the asset's
+     * IRCM config is later reconfigured. Null on legacy rows persisted before
+     * the V4 migration.
+     */
+    @Column(name = "ircm_rate_applied", precision = 10, scale = 8)
+    private BigDecimal ircmRateApplied;
 
     /** Realized P&L recorded on the position: cashAmount - costBasis. */
     @Column(name = "realized_pnl", precision = 20, scale = 0)

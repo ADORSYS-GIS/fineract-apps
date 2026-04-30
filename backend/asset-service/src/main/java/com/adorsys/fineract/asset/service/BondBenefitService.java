@@ -26,6 +26,23 @@ import java.time.temporal.ChronoUnit;
 public class BondBenefitService {
 
     private final AssetServiceConfig assetServiceConfig;
+    private final TaxService taxService;
+
+    /**
+     * Compute projected IRCM withholding on a bond's taxable income.
+     * <p>For OTA: ircm rate × totalCouponIncome (coupons are the taxable distribution).
+     * For BTA: ircm rate × max(netProjectedProfit, 0) (capital gain at maturity).
+     * Returns zero when the asset is IRCM-exempt or when the taxable amount is non-positive.
+     */
+    private BigDecimal computeProjectedIrcm(Asset asset, BondType bondType,
+                                             BigDecimal totalCouponIncome,
+                                             BigDecimal netProjectedProfit) {
+        BigDecimal taxable = (bondType == BondType.DISCOUNT)
+                ? (netProjectedProfit != null ? netProjectedProfit.max(BigDecimal.ZERO) : BigDecimal.ZERO)
+                : (totalCouponIncome != null ? totalCouponIncome : BigDecimal.ZERO);
+        BigDecimal rate = taxService.getEffectiveIrcmRate(asset);
+        return taxable.multiply(rate).setScale(0, RoundingMode.HALF_UP);
+    }
 
     /**
      * Calculate benefit projections for a prospective bond purchase.
@@ -99,6 +116,10 @@ public class BondBenefitService {
         BigDecimal netProjectedProfit = totalProjectedReturn.subtract(investmentCost);
         BigDecimal annualizedYield = computeAnnualizedYield(netProjectedProfit, investmentCost, daysToMaturity);
 
+        BigDecimal projectedIrcm = computeProjectedIrcm(asset, BondType.COUPON,
+                totalCouponIncome, netProjectedProfit);
+        BigDecimal netProjectedProfitAfterIrcm = netProjectedProfit.subtract(projectedIrcm);
+
         return new BondBenefitProjection(
                 BondType.COUPON,
                 faceValue, rate, freqMonths,
@@ -106,7 +127,8 @@ public class BondBenefitService {
                 couponPerPeriod, remainingPayments, totalCouponIncome,
                 principalAtMaturity, investmentCost,
                 totalProjectedReturn, netProjectedProfit, annualizedYield,
-                daysToMaturity
+                daysToMaturity,
+                projectedIrcm, netProjectedProfitAfterIrcm
         );
     }
 
@@ -161,7 +183,8 @@ public class BondBenefitService {
                 couponPerPeriod, remainingPayments, totalCouponIncome,
                 principalAtMaturity, null,
                 totalProjectedReturn, null, null,
-                daysToMaturity
+                daysToMaturity,
+                null, null
         );
     }
 
@@ -178,6 +201,10 @@ public class BondBenefitService {
         int basis = asset.getDayCountConvention() != null ? asset.getDayCountConvention().getBasis() : 360;
         BigDecimal annualizedYield = computeAnnualizedYield(netProjectedProfit, investmentCost, daysToMaturity, basis);
 
+        BigDecimal projectedIrcm = computeProjectedIrcm(asset, BondType.DISCOUNT,
+                BigDecimal.ZERO, netProjectedProfit);
+        BigDecimal netProjectedProfitAfterIrcm = netProjectedProfit.subtract(projectedIrcm);
+
         return new BondBenefitProjection(
                 BondType.DISCOUNT,
                 faceValue, null, null,
@@ -185,7 +212,8 @@ public class BondBenefitService {
                 BigDecimal.ZERO, 0, BigDecimal.ZERO,
                 principalAtMaturity, investmentCost,
                 totalProjectedReturn, netProjectedProfit, annualizedYield,
-                daysToMaturity
+                daysToMaturity,
+                projectedIrcm, netProjectedProfitAfterIrcm
         );
     }
 
@@ -204,7 +232,8 @@ public class BondBenefitService {
                 BigDecimal.ZERO, 0, BigDecimal.ZERO,
                 principalAtMaturity, null,
                 principalAtMaturity, null, null,
-                daysToMaturity
+                daysToMaturity,
+                null, null
         );
     }
 

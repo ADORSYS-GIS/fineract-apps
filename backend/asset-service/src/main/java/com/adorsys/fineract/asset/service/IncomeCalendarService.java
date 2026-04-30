@@ -28,6 +28,7 @@ public class IncomeCalendarService {
     private final UserPositionRepository userPositionRepository;
     private final AssetRepository assetRepository;
     private final AssetPriceRepository assetPriceRepository;
+    private final TaxService taxService;
 
     public IncomeCalendarResponse getCalendar(Long userId, int months) {
         List<UserPosition> positions = userPositionRepository.findByUserId(userId).stream()
@@ -35,7 +36,7 @@ public class IncomeCalendarService {
                 .toList();
 
         if (positions.isEmpty()) {
-            return new IncomeCalendarResponse(List.of(), List.of(), BigDecimal.ZERO, Map.of());
+            return new IncomeCalendarResponse(List.of(), List.of(), BigDecimal.ZERO, Map.of(), BigDecimal.ZERO);
         }
 
         LocalDate horizon = LocalDate.now().plusMonths(months);
@@ -59,6 +60,10 @@ public class IncomeCalendarService {
                 .map(IncomeEvent::expectedAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        BigDecimal totalNet = allEvents.stream()
+                .map(e -> e.netAmount() != null ? e.netAmount() : e.expectedAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         Map<String, BigDecimal> byType = allEvents.stream()
                 .collect(Collectors.groupingBy(
                         IncomeEvent::incomeType,
@@ -66,7 +71,42 @@ public class IncomeCalendarService {
 
         List<MonthlyAggregate> monthlyTotals = buildMonthlyAggregates(allEvents);
 
-        return new IncomeCalendarResponse(allEvents, monthlyTotals, totalExpected, byType);
+        return new IncomeCalendarResponse(allEvents, monthlyTotals, totalExpected, byType, totalNet);
+    }
+
+    /**
+     * Build an IncomeEvent with the per-unit / IRCM / net fields populated from the
+     * authoritative TaxService rate. Use this rather than the IncomeEvent constructor
+     * directly so frontend recomputation never drifts from the actual withholding logic.
+     *
+     * @param applyIrcm pass false for PRINCIPAL_REDEMPTION events — IRCM on the principal
+     *                  is handled by the redemption flow (capital-gains / IRCM tax decision
+     *                  is separate from ordinary income), and the principal itself is not
+     *                  taxed as income.
+     */
+    private IncomeEvent buildEvent(Asset asset, String incomeType, LocalDate paymentDate,
+                                    BigDecimal totalUnits, BigDecimal expectedAmount,
+                                    BigDecimal rateApplied, boolean applyIrcm) {
+        BigDecimal grossPerUnit = (totalUnits != null && totalUnits.signum() > 0)
+                ? expectedAmount.divide(totalUnits, 6, RoundingMode.HALF_UP)
+                : null;
+
+        BigDecimal ircmRate = applyIrcm ? taxService.getEffectiveIrcmRate(asset) : BigDecimal.ZERO;
+        BigDecimal ircmPerUnit = (grossPerUnit != null)
+                ? grossPerUnit.multiply(ircmRate).setScale(6, RoundingMode.HALF_UP)
+                : null;
+        BigDecimal netPerUnit = (grossPerUnit != null && ircmPerUnit != null)
+                ? grossPerUnit.subtract(ircmPerUnit)
+                : null;
+        BigDecimal netAmount = (netPerUnit != null && totalUnits != null)
+                ? netPerUnit.multiply(totalUnits).setScale(0, RoundingMode.HALF_UP)
+                : expectedAmount;
+
+        return new IncomeEvent(
+                asset.getId(), asset.getSymbol(), asset.getName(),
+                incomeType, paymentDate, expectedAmount,
+                totalUnits, rateApplied,
+                grossPerUnit, ircmPerUnit, netPerUnit, netAmount);
     }
 
     private List<IncomeEvent> projectBondEvents(Asset bond, UserPosition pos, LocalDate horizon) {
@@ -91,10 +131,8 @@ public class IncomeCalendarService {
                 if (cursor != null) {
                     while (!cursor.isAfter(limit)) {
                         if (!cursor.isBefore(LocalDate.now())) {
-                            events.add(new IncomeEvent(
-                                    bond.getId(), bond.getSymbol(), bond.getName(),
-                                    "COUPON", cursor, couponAmount,
-                                    pos.getTotalUnits(), rate));
+                            events.add(buildEvent(bond, "COUPON", cursor, pos.getTotalUnits(),
+                                    couponAmount, rate, true));
                         }
                         cursor = cursor.plusMonths(freqMonths);
                     }
@@ -102,14 +140,15 @@ public class IncomeCalendarService {
             }
         }
 
-        // Add principal redemption at maturity if within horizon
+        // Add principal redemption at maturity if within horizon. IRCM is NOT applied
+        // to the principal payback itself — any capital-gain tax on a BTA at maturity
+        // is handled separately (see PrincipalRedemptionService) and the OTA principal
+        // is simply face value returned at par.
         if (maturity != null && !maturity.isAfter(horizon) && !maturity.isBefore(LocalDate.now())) {
             BigDecimal principal = pos.getTotalUnits().multiply(faceValue)
                     .setScale(0, RoundingMode.HALF_UP);
-            events.add(new IncomeEvent(
-                    bond.getId(), bond.getSymbol(), bond.getName(),
-                    "PRINCIPAL_REDEMPTION", maturity, principal,
-                    pos.getTotalUnits(), BigDecimal.ZERO));
+            events.add(buildEvent(bond, "PRINCIPAL_REDEMPTION", maturity,
+                    pos.getTotalUnits(), principal, null, false));
         }
 
         return events;
@@ -134,10 +173,8 @@ public class IncomeCalendarService {
 
         while (!cursor.isAfter(horizon)) {
             if (!cursor.isBefore(LocalDate.now())) {
-                events.add(new IncomeEvent(
-                        asset.getId(), asset.getSymbol(), asset.getName(),
-                        asset.getIncomeType(), cursor, amount,
-                        pos.getTotalUnits(), rate));
+                events.add(buildEvent(asset, asset.getIncomeType(), cursor,
+                        pos.getTotalUnits(), amount, rate, true));
             }
             cursor = cursor.plusMonths(freqMonths);
         }
