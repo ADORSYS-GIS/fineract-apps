@@ -408,12 +408,10 @@ class SettlementServiceTest {
         lp2.setCashAccountId(200L);
 
         when(assetRepository.findAll()).thenReturn(List.of(asset1a, asset2a));
-        when(lpRepository.findById(1L)).thenReturn(java.util.Optional.of(lp1));
-        when(lpRepository.findById(2L)).thenReturn(java.util.Optional.of(lp2));
-        // LP 1: LSAV balance = 500,000
-        when(fineractClient.getAccountBalance(100L)).thenReturn(new BigDecimal("500000"));
-        // LP 2: LSAV balance = 300,000
-        when(fineractClient.getAccountBalance(200L)).thenReturn(new BigDecimal("300000"));
+        // Service uses findAllById (batch load) and getMultipleAccountBalances (batch fetch)
+        when(lpRepository.findAllById(anyCollection())).thenReturn(List.of(lp1, lp2));
+        when(fineractClient.getMultipleAccountBalances(anyCollection())).thenReturn(
+                Map.of(100L, new BigDecimal("500000"), 200L, new BigDecimal("300000")));
 
         // Stub GL and config so the rest of proposeRebalance runs without error
         var rebalanceCfg = mock(AssetServiceConfig.Rebalance.class);

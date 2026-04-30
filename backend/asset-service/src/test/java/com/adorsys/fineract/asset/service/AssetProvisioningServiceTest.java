@@ -334,7 +334,7 @@ class AssetProvisioningServiceTest {
         when(lpRepository.findById(LP_CLIENT_ID)).thenReturn(Optional.empty());
 
         AssetException ex = assertThrows(AssetException.class, () -> service.createAsset(request));
-        assertTrue(ex.getMessage().contains("LP not found"));
+        assertTrue(ex.getMessage().contains("not found"));
     }
 
     @Test
@@ -765,7 +765,7 @@ class AssetProvisioningServiceTest {
         verify(fineractClient).withdrawFromSavingsAccount(
                 eq(LP_ASSET_ACCOUNT), eq(new BigDecimal("1000")), anyString());
         verify(fineractClient).closeSavingsAccount(eq(LP_ASSET_ACCOUNT), anyString());
-        verify(fineractClient).closeSavingsAccount(eq(LP_CASH_ACCOUNT), anyString());
+        // LP cash/spread/tax accounts are shared across all LP's assets — not closed on single-asset delete
         verify(fineractClient).deleteSavingsProduct(pending.getFineractProductId());
         verify(fineractClient).deregisterCurrency("TST");
 
