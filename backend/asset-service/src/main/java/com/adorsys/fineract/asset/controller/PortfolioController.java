@@ -4,6 +4,7 @@ import com.adorsys.fineract.asset.dto.IncomeCalendarResponse;
 import com.adorsys.fineract.asset.dto.PortfolioHistoryResponse;
 import com.adorsys.fineract.asset.dto.PortfolioSummaryResponse;
 import com.adorsys.fineract.asset.dto.PositionResponse;
+import com.adorsys.fineract.asset.dto.RedemptionDetailResponse;
 import com.adorsys.fineract.asset.dto.UserIncomeHistoryResponse;
 import com.adorsys.fineract.asset.service.IncomeCalendarService;
 import com.adorsys.fineract.asset.service.PortfolioService;
@@ -42,6 +43,18 @@ public class PortfolioController {
                                                          @AuthenticationPrincipal Jwt jwt) {
         Long userId = userIdentityResolver.resolveUserId(jwt);
         return ResponseEntity.ok(portfolioService.getPosition(userId, assetId));
+    }
+
+    @GetMapping("/redemptions/{redemptionId}")
+    @Operation(summary = "Single principal-redemption event with tax breakdown",
+            description = "Returns the gross / capital-gain / IRCM-withheld / net breakdown for a "
+                    + "single PrincipalRedemption row owned by the authenticated user. Drives the "
+                    + "BTA maturity-redemption confirmation screen on mobile (mockup 09b). 404 when "
+                    + "the row belongs to a different user or did not finalise successfully.")
+    public ResponseEntity<RedemptionDetailResponse> getRedemption(@PathVariable Long redemptionId,
+                                                                   @AuthenticationPrincipal Jwt jwt) {
+        Long userId = userIdentityResolver.resolveUserId(jwt);
+        return ResponseEntity.ok(portfolioService.getRedemption(userId, redemptionId));
     }
 
     @GetMapping("/history")
