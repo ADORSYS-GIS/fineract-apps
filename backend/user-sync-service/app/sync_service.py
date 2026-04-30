@@ -171,9 +171,11 @@ def map_fineract_role_to_keycloak(fineract_role: str) -> str:
     # Map Fineract title-case roles to Keycloak lowercase hyphenated roles
     role_map = {
         # Exact mappings from Fineract to Keycloak
-        "Loan Officer": "loan-officer",
-        "Branch Manager": "branch-manager",
-        "Accountant": "accountant",
+        "Account Manager": "account-manager",
+        # NOTE: Branch Manager role commented out - not needed for now
+        # "Branch Manager": "branch-manager",
+        # NOTE: Accountant roles commented out - not needed for now
+        # "Accountant": "accountant",
         "System Administrator": "admin",
         "Cashier": "teller",
         "Super User": "Super User",  # Keycloak has this exact name
@@ -181,7 +183,10 @@ def map_fineract_role_to_keycloak(fineract_role: str) -> str:
         "Admin": "admin",
         "Manager": "Manager",  # Keycloak has this exact name
         "Viewer": "Viewer",  # Keycloak has this exact name
-        "Supervisor Accountant": "Supervisor Accountant",  # Keycloak has this exact name
+        # NOTE: Supervisor Accountant role commented out - not needed for now
+        # "Supervisor Accountant": "Supervisor Accountant",
+        "KYC Manager": "KYC_MANAGER",  # Keycloak uses uppercase with underscore
+        "Asset Manager": "ASSET_MANAGER",
     }
 
     # Normalize input: strip whitespace and handle case variations
@@ -340,23 +345,30 @@ def sync_user():
                 "Super User": "head-office",
 
                 # Branch and operations
-                "branch-manager": "branch-managers",
+                # NOTE: branch-manager group commented out - not needed for now
+                # "branch-manager": "branch-managers",
                 "operations-manager": "head-office",
 
-                # Loan and field operations
-                "loan-officer": "loan-officers",
-                "field-officer": "loan-officers",
+                # Account and field operations
+                "account-manager": "account-managers",
+                "field-officer": "account-managers",
 
                 # Cashier/Teller
                 "teller": "tellers",
 
-                # Accounting roles
-                "accountant": "head-office",
-                "Supervisor Accountant": "head-office",
+                # Accounting roles - NOTE: commented out - not needed for now
+                # "accountant": "head-office",
+                # "Supervisor Accountant": "head-office",
 
                 # Manager and viewer roles
                 "Manager": "head-office",
                 "Viewer": "head-office",
+
+                # KYC roles
+                "KYC_MANAGER": "head-office",
+
+                # Asset Manager roles
+                "ASSET_MANAGER": "head-office",
 
                 # Staff default (fallback for unmapped roles)
                 "staff": "head-office",
