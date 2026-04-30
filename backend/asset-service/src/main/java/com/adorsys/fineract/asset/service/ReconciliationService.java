@@ -5,12 +5,14 @@ import com.adorsys.fineract.asset.config.ResolvedTaxAccounts;
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.dto.ReconciliationReportResponse;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.ReconciliationReport;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.event.AdminAlertEvent;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.ReconciliationReportRepository;
 import com.adorsys.fineract.asset.repository.TaxTransactionRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
@@ -44,6 +46,7 @@ public class ReconciliationService {
     private final ResolvedTaxAccounts resolvedTaxAccounts;
     private final AssetMetrics assetMetrics;
     private final ApplicationEventPublisher eventPublisher;
+    private final LiquidityProviderRepository lpRepository;
 
     private static final BigDecimal POSITION_THRESHOLD = new BigDecimal("0.001");
 
@@ -100,6 +103,9 @@ public class ReconciliationService {
     public int reconcileAsset(Asset asset, LocalDate reportDate) {
         int discrepancies = 0;
 
+        LiquidityProvider lp = asset.getLpClientId() != null
+                ? lpRepository.findById(asset.getLpClientId()).orElse(null) : null;
+
         // 1. Supply mismatch: circulatingSupply vs (totalSupply - lpAssetBalance)
         try {
             BigDecimal lpAssetBalance = fineractClient.getAccountBalance(asset.getLpAssetAccountId());
@@ -137,9 +143,10 @@ public class ReconciliationService {
         }
 
         // 3. LP cash balance: verify non-negative
-        if (asset.getLpCashAccountId() != null) {
+        Long lpCashAccountId = lp != null ? lp.getCashAccountId() : null;
+        if (lpCashAccountId != null) {
             try {
-                BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+                BigDecimal lpCashBalance = fineractClient.getAccountBalance(lpCashAccountId);
                 if (lpCashBalance.compareTo(BigDecimal.ZERO) < 0) {
                     createReport(reportDate, "LP_CASH_NEGATIVE", asset.getId(), null,
                             BigDecimal.ZERO, lpCashBalance, lpCashBalance, "CRITICAL");
@@ -151,9 +158,10 @@ public class ReconciliationService {
         }
 
         // 4. LP spread account: verify non-negative (negative means more buyback premiums paid than spread earned)
-        if (asset.getLpSpreadAccountId() != null) {
+        Long lpSpreadAccountId = lp != null ? lp.getSpreadAccountId() : null;
+        if (lpSpreadAccountId != null) {
             try {
-                BigDecimal lpSpreadBalance = fineractClient.getAccountBalance(asset.getLpSpreadAccountId());
+                BigDecimal lpSpreadBalance = fineractClient.getAccountBalance(lpSpreadAccountId);
                 if (lpSpreadBalance.compareTo(BigDecimal.ZERO) < 0) {
                     createReport(reportDate, "LP_SPREAD_NEGATIVE", asset.getId(), null,
                             BigDecimal.ZERO, lpSpreadBalance, lpSpreadBalance, "WARNING");

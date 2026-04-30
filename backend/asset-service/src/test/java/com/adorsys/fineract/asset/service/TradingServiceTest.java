@@ -6,6 +6,7 @@ import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.Order;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.event.OrderStatusChangedEvent;
@@ -15,6 +16,7 @@ import com.adorsys.fineract.asset.exception.TradingException;
 import com.adorsys.fineract.asset.exception.TradingHaltedException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
@@ -75,6 +77,7 @@ class TradingServiceTest {
     @Mock private com.adorsys.fineract.asset.repository.AssetProjectionRepository assetProjectionRepository;
     @Mock private FineractOutboxService outboxService;
     @Mock private ObjectMapper objectMapper;
+    @Mock private LiquidityProviderRepository lpRepository;
 
     @InjectMocks
     private TradingService tradingService;
@@ -111,12 +114,13 @@ class TradingServiceTest {
                 .totalSupply(new BigDecimal("1000"))
                 .circulatingSupply(BigDecimal.ZERO)
                 .tradingFeePercent(new BigDecimal("0.005"))
-                .lpCashAccountId(LP_CASH_ACCOUNT)
                 .lpAssetAccountId(LP_ASSET_ACCOUNT)
-                .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
+                .lpClientId(1L)
                 .issuerPrice(new BigDecimal("100"))
                 .fineractProductId(10)
                 .build();
+
+        lenient().when(lpRepository.findById(1L)).thenReturn(java.util.Optional.of(buildLp(LP_CASH_ACCOUNT, LP_SPREAD_ACCOUNT)));
 
         // Default accounting config (spread enabled)
         AssetServiceConfig.Accounting accounting = new AssetServiceConfig.Accounting();
@@ -909,8 +913,9 @@ class TradingServiceTest {
         Order order = buildPendingOrder(TradeSide.BUY, units, askPrice, fee, BigDecimal.ZERO);
         stubExecutionDefaults(order);
 
-        // Disable spread: lpSpreadAccountId = null
-        activeAsset.setLpSpreadAccountId(null);
+        // Disable spread: mock LP with null spreadAccountId
+        LiquidityProvider lpNoSpread = buildLp(LP_CASH_ACCOUNT, null);
+        when(lpRepository.findById(1L)).thenReturn(Optional.of(lpNoSpread));
 
         when(userPositionRepository.findByUserIdAndAssetId(USER_ID, ASSET_ID)).thenReturn(Optional.empty());
         when(fineractClient.findClientSavingsAccountByCurrency(eq(USER_ID), eq("TST"))).thenReturn(USER_ASSET_ACCOUNT);
@@ -954,8 +959,9 @@ class TradingServiceTest {
         Order order = buildPendingOrder(TradeSide.BUY, units, new BigDecimal("110"), new BigDecimal("6"), new BigDecimal("100"));
         stubExecutionDefaults(order);
 
-        // LP Cash not configured
-        activeAsset.setLpCashAccountId(null);
+        // LP Cash not configured: mock LP with null cashAccountId
+        LiquidityProvider lpNoCash = buildLp(null, LP_SPREAD_ACCOUNT);
+        when(lpRepository.findById(1L)).thenReturn(Optional.of(lpNoCash));
 
         when(userPositionRepository.findByUserIdAndAssetId(USER_ID, ASSET_ID)).thenReturn(Optional.empty());
         when(fineractClient.findClientSavingsAccountByCurrency(eq(USER_ID), eq("TST"))).thenReturn(USER_ASSET_ACCOUNT);
@@ -1005,5 +1011,14 @@ class TradingServiceTest {
         assertEquals(expectedFrom, transfer.fromAccountId());
         assertEquals(expectedTo, transfer.toAccountId());
         assertEquals(expectedAmount, transfer.amount());
+    }
+
+    private static com.adorsys.fineract.asset.entity.LiquidityProvider buildLp(Long cashAccountId, Long spreadAccountId) {
+        com.adorsys.fineract.asset.entity.LiquidityProvider lp = new com.adorsys.fineract.asset.entity.LiquidityProvider();
+        lp.setClientId(1L);
+        lp.setCashAccountId(cashAccountId);
+        lp.setSpreadAccountId(spreadAccountId);
+        lp.setTaxAccountId(360L);
+        return lp;
     }
 }

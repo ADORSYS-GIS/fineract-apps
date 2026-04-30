@@ -3,9 +3,11 @@ package com.adorsys.fineract.asset.service;
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.AssetPrice;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import com.adorsys.fineract.asset.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class AssetCatalogService {
     private final TradeLogRepository tradeLogRepository;
     private final FileStorageService fileStorageService;
     private final AccruedInterestCalculator accruedInterestCalculator;
+    private final LiquidityProviderRepository lpRepository;
 
     /**
      * List active assets with optional category filter and search.
@@ -79,6 +82,10 @@ public class AssetCatalogService {
         BigDecimal askPrice = price != null ? price.getAskPrice() : null;
         BigDecimal currentYield = computeCurrentYield(asset, askPrice);
 
+        LiquidityProvider detailLp = asset.getLpClientId() != null
+                ? lpRepository.findById(asset.getLpClientId()).orElse(null) : null;
+        String lpName = detailLp != null ? detailLp.getClientName() : null;
+
         return new AssetPublicDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
                 asset.getDescription(), resolveImageUrl(asset.getImageUrl()), asset.getCategory(), asset.getStatus(),
@@ -92,7 +99,7 @@ public class AssetCatalogService {
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
                 asset.getCreatedAt(), asset.getUpdatedAt(),
-                asset.getIssuerName(), asset.getIssuerPrice(), asset.getFaceValue(), asset.getLpClientName(),
+                asset.getIssuerName(), asset.getIssuerPrice(), asset.getFaceValue(), lpName,
                 asset.getBondType(), asset.getDayCountConvention(), asset.getIssuerCountry(),
                 asset.getIsinCode(), asset.getMaturityDate(), asset.getIssueDate(),
                 asset.getInterestRate(), currentYield, asset.getCouponFrequencyMonths(),
@@ -132,6 +139,14 @@ public class AssetCatalogService {
 
         CurrentMarketData currentMarketData = buildCurrentMarketData(asset, price, currentYield);
 
+        LiquidityProvider adminLp = asset.getLpClientId() != null
+                ? lpRepository.findById(asset.getLpClientId()).orElse(null) : null;
+        AssetDetailResponse.LpInfo lpInfo = adminLp != null ? new AssetDetailResponse.LpInfo(
+                asset.getLpClientId(), asset.getLpAssetAccountId(),
+                adminLp.getCashAccountId(), adminLp.getSpreadAccountId(), adminLp.getTaxAccountId(),
+                adminLp.getCashAccountNo(), adminLp.getSpreadAccountNo(), adminLp.getTaxAccountNo(),
+                adminLp.getClientName()) : null;
+
         return new AssetDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
                 asset.getDescription(), resolveImageUrl(asset.getImageUrl()), asset.getCategory(), asset.getStatus(),
@@ -145,10 +160,9 @@ public class AssetCatalogService {
                 available, asset.getTradingFeePercent(),
                 asset.getDecimalPlaces(),
                 asset.getIssuerName(), asset.getIssuerPrice(), asset.getFaceValue(),
-                asset.getLpClientId(), asset.getLpAssetAccountId(),
-                asset.getLpCashAccountId(), asset.getLpSpreadAccountId(), asset.getLpTaxAccountId(),
+                lpInfo,
                 asset.getFineractProductId(),
-                asset.getLpClientName(), asset.getName() + " Token",
+                asset.getName() + " Token",
                 lpMarginPerUnit, lpMarginPercent,
                 asset.getCreatedAt(), asset.getUpdatedAt(),
                 asset.getBondType(), asset.getDayCountConvention(), asset.getIssuerCountry(),
@@ -227,11 +241,15 @@ public class AssetCatalogService {
         BigDecimal couponAmountPerUnit = computeCouponAmountPerUnit(a);
         BigDecimal currentYield = computeCurrentYield(a, askPrice);
 
+        LiquidityProvider listLp = a.getLpClientId() != null
+                ? lpRepository.findById(a.getLpClientId()).orElse(null) : null;
+        String listLpName = listLp != null ? listLp.getClientName() : null;
+
         return new AssetResponse(
                 a.getId(), a.getName(), a.getSymbol(), resolveImageUrl(a.getImageUrl()),
                 a.getCategory(), a.getStatus(), askPrice, change,
                 available, a.getTotalSupply(),
-                a.getIssuerName(), a.getLpClientName(), couponAmountPerUnit,
+                a.getIssuerName(), listLpName, couponAmountPerUnit,
                 a.getBondType(),
                 a.getIsinCode(), a.getMaturityDate(), a.getIssueDate(),
                 a.getInterestRate(), currentYield,

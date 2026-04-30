@@ -21,10 +21,9 @@ import java.time.LocalDate;
  * stock, crypto, or a fixed-income instrument (coupon bond / discount bill).
  * <p>
  * Each asset is paired with a Fineract savings product ({@code fineractProductId}) that
- * holds the unit balances for all holders. It also owns four Fineract savings accounts
- * on behalf of the liquidity partner: asset inventory ({@code lpAssetAccountId}), cash
- * settlement ({@code lpCashAccountId}), spread/margin ({@code lpSpreadAccountId}), and
- * tax holding ({@code lpTaxAccountId}).
+ * holds the unit balances for all holders. It also owns one Fineract savings account
+ * on behalf of the liquidity partner for asset inventory ({@code lpAssetAccountId}).
+ * Cash settlement, spread, and tax accounts are managed on the {@link LiquidityProvider} entity.
  * <p>
  * Key invariants:
  * <ul>
@@ -281,25 +280,9 @@ public class Asset {
     @Column(name = "lp_client_id", nullable = false)
     private Long lpClientId;
 
-    /** Display name of the liquidity partner in Fineract. Stored at creation time. */
-    @Column(name = "lp_client_name", length = 200)
-    private String lpClientName;
-
-    /** Fineract savings account ID where the LP holds asset units (inventory). */
+    /** Fineract savings account ID where the LP holds asset units (inventory). Per-asset. */
     @Column(name = "lp_asset_account_id")
     private Long lpAssetAccountId;
-
-    /** Fineract savings account ID where the LP holds settlement currency cash. */
-    @Column(name = "lp_cash_account_id")
-    private Long lpCashAccountId;
-
-    /** Fineract savings account ID where the LP collects spread (margin). */
-    @Column(name = "lp_spread_account_id")
-    private Long lpSpreadAccountId;
-
-    /** Fineract savings account ID where tax is withheld from the LP on sell transactions. */
-    @Column(name = "lp_tax_account_id")
-    private Long lpTaxAccountId;
 
     /** Whether TVA (VAT) is enabled for this asset. Default off — enabled explicitly per asset when applicable. */
     @Column(name = "tva_enabled")

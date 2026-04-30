@@ -2,11 +2,13 @@ package com.adorsys.fineract.asset.scheduler;
 
 import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.event.TreasuryShortfallEvent;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,7 @@ public class TreasuryShortfallScheduler {
     private final FineractClient fineractClient;
     private final ApplicationEventPublisher eventPublisher;
     private final AssetMetrics assetMetrics;
+    private final LiquidityProviderRepository lpRepository;
 
     private static final int LOOKAHEAD_DAYS = 7;
 
@@ -123,7 +126,13 @@ public class TreasuryShortfallScheduler {
 
         BigDecimal lpCashBalance;
         try {
-            lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+            LiquidityProvider lp = asset.getLpClientId() != null
+                    ? lpRepository.findById(asset.getLpClientId()).orElse(null) : null;
+            if (lp == null || lp.getCashAccountId() == null) {
+                log.warn("LP cash account not configured for asset {}", asset.getSymbol());
+                return;
+            }
+            lpCashBalance = fineractClient.getAccountBalance(lp.getCashAccountId());
         } catch (Exception e) {
             log.warn("Could not fetch LP cash balance for asset {}: {}", asset.getSymbol(), e.getMessage());
             return;
@@ -176,7 +185,13 @@ public class TreasuryShortfallScheduler {
         // Fetch LP cash balance
         BigDecimal lpCashBalance;
         try {
-            lpCashBalance = fineractClient.getAccountBalance(bond.getLpCashAccountId());
+            LiquidityProvider lp = bond.getLpClientId() != null
+                    ? lpRepository.findById(bond.getLpClientId()).orElse(null) : null;
+            if (lp == null || lp.getCashAccountId() == null) {
+                log.warn("LP cash account not configured for bond {}", bond.getSymbol());
+                return;
+            }
+            lpCashBalance = fineractClient.getAccountBalance(lp.getCashAccountId());
         } catch (Exception e) {
             log.warn("Could not fetch LP cash balance for bond {}: {}", bond.getSymbol(), e.getMessage());
             return;

@@ -70,13 +70,13 @@ public class BondStepDefinitions {
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
-                lp_asset_account_id, lp_cash_account_id, fineract_product_id, trading_fee_percent, version,
+                lp_asset_account_id, fineract_product_id, trading_fee_percent, version,
                 interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
                 bond_type, day_count_convention,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
                 is_bvmac_listed, is_government_bond, ircm_exempt, tva_enabled,
                 created_at, updated_at)
-            VALUES (?, ?, 'XAF', ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, 300, NULL, 0.005, 0,
+            VALUES (?, ?, 'XAF', ?, 'BONDS', 'ACTIVE', 'MANUAL', ?, 1000, 0, 0, 1, 400, NULL, 0.005, 0,
                 ?, ?, ?, ?,
                 'COUPON', 'ACT_365',
                 true, true, true, false, ?, ?, false,
@@ -321,13 +321,13 @@ public class BondStepDefinitions {
         jdbcTemplate.update("""
             INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
                 issuer_price, total_supply, circulating_supply, decimal_places, lp_client_id,
-                lp_asset_account_id, lp_cash_account_id, fineract_product_id, trading_fee_percent, version,
+                lp_asset_account_id, fineract_product_id, trading_fee_percent, version,
                 issuer_name, interest_rate, coupon_frequency_months, next_coupon_date, maturity_date,
                 bond_type, day_count_convention,
                 registration_duty_enabled, ircm_enabled, capital_gains_tax_enabled,
                 is_bvmac_listed, is_government_bond, ircm_exempt, tva_enabled,
                 created_at, updated_at)
-            VALUES (?, ?, 'XAF', ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, 300, NULL, 0.005, 0,
+            VALUES (?, ?, 'XAF', ?, 'BONDS', ?, 'MANUAL', 10000, 1000, 0, 0, 1, 400, NULL, 0.005, 0,
                 'Test Issuer', 5.80, 6, ?, ?,
                 'COUPON', 'ACT_365',
                 true, true, true, false, false, false, false,

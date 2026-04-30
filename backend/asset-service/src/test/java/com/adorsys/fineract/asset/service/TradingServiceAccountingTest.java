@@ -10,8 +10,10 @@ import com.adorsys.fineract.asset.config.ResolvedGlAccounts;
 import com.adorsys.fineract.asset.dto.TradeSide;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.repository.AssetProjectionRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.OrderRepository;
 import com.adorsys.fineract.asset.repository.TradeLogRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
@@ -60,6 +62,7 @@ class TradingServiceAccountingTest {
     @Mock private TaxService taxService;
     @Mock private AccruedInterestCalculator accruedInterestCalculator;
     @Mock private AssetProjectionRepository assetProjectionRepository;
+    @Mock private LiquidityProviderRepository lpRepository;
 
     @InjectMocks
     private TradingService tradingService;
@@ -78,6 +81,7 @@ class TradingServiceAccountingTest {
     private static final Long TAX_CGT = 887L;
 
     private Asset testAsset;
+    private LiquidityProvider testLp;
     private Method buildBatchOps;
 
     @BeforeEach
@@ -85,11 +89,16 @@ class TradingServiceAccountingTest {
         testAsset = Asset.builder()
                 .id("asset-001")
                 .symbol("TST")
-                .lpCashAccountId(LP_CASH)
                 .lpAssetAccountId(LP_ASSET)
-                .lpSpreadAccountId(LP_SPREAD)
-                .lpTaxAccountId(LP_TAX)
+                .lpClientId(1L)
                 .build();
+
+        testLp = new LiquidityProvider();
+        testLp.setClientId(1L);
+        testLp.setCashAccountId(LP_CASH);
+        testLp.setSpreadAccountId(LP_SPREAD);
+        testLp.setTaxAccountId(LP_TAX);
+        lenient().when(lpRepository.findById(1L)).thenReturn(java.util.Optional.of(testLp));
 
         lenient().when(resolvedGlAccounts.getClearingAccountId()).thenReturn(CLEARING);
         lenient().when(resolvedGlAccounts.getFeeCollectionAccountId()).thenReturn(FEE_COLLECT);
@@ -100,7 +109,8 @@ class TradingServiceAccountingTest {
         lenient().when(taxService.getTvaAccountId()).thenReturn(TAX_TVA);
 
         buildBatchOps = TradingService.class.getDeclaredMethod("buildBatchOperations",
-                TradeSide.class, Asset.class, Long.class, Long.class,
+                TradeSide.class, Asset.class, LiquidityProvider.class,
+                Long.class, Long.class,
                 BigDecimal.class, BigDecimal.class, BigDecimal.class,
                 BigDecimal.class, BigDecimal.class, Long.class,
                 BigDecimal.class, BigDecimal.class, BigDecimal.class,
@@ -120,7 +130,7 @@ class TradingServiceAccountingTest {
             BigDecimal fee, BigDecimal spread, BigDecimal buyback,
             BigDecimal regDuty, BigDecimal cgt, BigDecimal tva, BigDecimal accruedInterest) throws Exception {
         return (List<BatchOperation>) buildBatchOps.invoke(tradingService,
-                side, testAsset, USER_CASH, USER_ASSET,
+                side, testAsset, testLp, USER_CASH, USER_ASSET,
                 gross, units, fee, spread, buyback, FEE_COLLECT,
                 regDuty, cgt, tva, accruedInterest);
     }
@@ -303,14 +313,19 @@ class TradingServiceAccountingTest {
         }
 
         @Test
+        @SuppressWarnings("unchecked")
         void sell_fallsBackToGlobalTaxWhenNoLpTax() throws Exception {
-            testAsset.setLpTaxAccountId(null); // No LTAX account
+            LiquidityProvider lpNoTax = new LiquidityProvider();
+            lpNoTax.setClientId(1L);
+            lpNoTax.setCashAccountId(LP_CASH);
+            lpNoTax.setSpreadAccountId(LP_SPREAD);
+            lpNoTax.setTaxAccountId(null);
 
-            List<BatchOperation> ops = invoke(TradeSide.SELL,
-                    bd("95000"), bd("10"), bd("500"), bd("0"), bd("0"),
-                    bd("1900"), bd("0"), bd("0"));
+            List<BatchOperation> ops = (List<BatchOperation>) buildBatchOps.invoke(tradingService,
+                    TradeSide.SELL, testAsset, lpNoTax, USER_CASH, USER_ASSET,
+                    bd("95000"), bd("10"), bd("500"), bd("0"), bd("0"), FEE_COLLECT,
+                    bd("1900"), bd("0"), bd("0"), BigDecimal.ZERO);
 
-            // Should fall back to global tax authority
             BatchTransferOp regDutyLeg = findTransfer(ops, LP_CASH, TAX_REG_DUTY);
             assertNotNull(regDutyLeg, "Should fall back to global reg duty account");
             assertEquals(bd("1900"), regDutyLeg.amount());

@@ -7,12 +7,14 @@ import com.adorsys.fineract.asset.config.AssetServiceConfig;
 import com.adorsys.fineract.asset.dto.AssetStatus;
 import com.adorsys.fineract.asset.entity.Asset;
 import com.adorsys.fineract.asset.entity.FineractOutboxEntry;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.event.DelistingAnnouncedEvent;
 import com.adorsys.fineract.asset.exception.AssetException;
 import com.adorsys.fineract.asset.metrics.AssetMetrics;
 import com.adorsys.fineract.asset.repository.AssetPriceRepository;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import com.adorsys.fineract.asset.service.PortfolioService;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,7 @@ public class DelistingService {
     private final ApplicationEventPublisher eventPublisher;
     private final AssetMetrics assetMetrics;
     private final FineractOutboxService outboxService;
+    private final LiquidityProviderRepository lpRepository;
 
     /**
      * Initiate delisting for an asset. Sets status to DELISTING and notifies all holders.
@@ -135,12 +138,19 @@ public class DelistingService {
 
         // Pre-flight: check LP cash balance covers total obligation
         String currency = assetServiceConfig.getSettlementCurrency();
+        LiquidityProvider lp = asset.getLpClientId() != null
+                ? lpRepository.findById(asset.getLpClientId())
+                        .orElseThrow(() -> new AssetException("LP not found for asset: " + asset.getId()))
+                : null;
+        if (lp == null || lp.getCashAccountId() == null) {
+            throw new AssetException("LP cash account not configured for asset: " + asset.getSymbol());
+        }
         BigDecimal totalObligation = BigDecimal.ZERO;
         for (UserPosition h : holders) {
             totalObligation = totalObligation.add(
                     h.getTotalUnits().multiply(redemptionPrice).setScale(0, RoundingMode.HALF_UP));
         }
-        BigDecimal lpCashBalance = fineractClient.getAccountBalance(asset.getLpCashAccountId());
+        BigDecimal lpCashBalance = fineractClient.getAccountBalance(lp.getCashAccountId());
         if (lpCashBalance.compareTo(totalObligation) < 0) {
             log.error("Insufficient LP cash for delisting buyback of {}: available={}, required={}",
                     asset.getSymbol(), lpCashBalance, totalObligation);
@@ -172,7 +182,7 @@ public class DelistingService {
             payload.put("userId", String.valueOf(holder.getUserId()));
             payload.put("holderFineractSavingsAccountId", String.valueOf(holder.getFineractSavingsAccountId()));
             payload.put("lpAssetAccountId", String.valueOf(asset.getLpAssetAccountId()));
-            payload.put("lpCashAccountId", String.valueOf(asset.getLpCashAccountId()));
+            payload.put("lpCashAccountId", String.valueOf(lp.getCashAccountId()));
             payload.put("userCashAccountId", String.valueOf(userCashAccountId));
             payload.put("holderUnits", holderUnits.toPlainString());
             payload.put("cashAmount", cashAmount.toPlainString());
@@ -189,7 +199,7 @@ public class DelistingService {
             List<BatchOperation> ops = new ArrayList<>();
             ops.add(new BatchTransferOp(holder.getFineractSavingsAccountId(), asset.getLpAssetAccountId(),
                     holderUnits, "Delisting buyback: " + asset.getSymbol()));
-            ops.add(new BatchTransferOp(asset.getLpCashAccountId(), userCashAccountId,
+            ops.add(new BatchTransferOp(lp.getCashAccountId(), userCashAccountId,
                     cashAmount, "Delisting redemption: " + asset.getSymbol()));
 
             try {

@@ -3,6 +3,7 @@ import {
 	Banknote,
 	BarChart3,
 	BookOpen,
+	Building2,
 	CalendarCheck,
 	CheckCircle,
 	ClipboardCheck,
@@ -128,6 +129,12 @@ export const menuAssetManager: MenuItem[] = [
 		title: "sidebar.createAsset",
 		link: "/create-asset",
 		icon: PlusCircle,
+	},
+	{
+		name: "lp-management",
+		title: "sidebar.lpManagement",
+		link: "/lp-management",
+		icon: Building2,
 	},
 	{
 		name: "lp-performance",

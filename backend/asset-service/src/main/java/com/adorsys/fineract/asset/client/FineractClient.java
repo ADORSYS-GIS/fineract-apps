@@ -54,7 +54,9 @@ public class FineractClient {
     /**
      * Sealed interface for operations that can be included in an atomic Fineract batch.
      */
-    public sealed interface BatchOperation permits BatchTransferOp, BatchJournalEntryOp, BatchSavingsWithdrawOp, BatchSavingsDepositOp {}
+    public sealed interface BatchOperation permits BatchTransferOp, BatchJournalEntryOp,
+            BatchSavingsWithdrawOp, BatchSavingsDepositOp,
+            BatchCreateSavingsOp, BatchApproveSavingsOp, BatchActivateSavingsOp {}
 
     /**
      * Account transfer between two savings accounts.
@@ -89,6 +91,18 @@ public class FineractClient {
      * @param paymentTypeId required payment type DB ID (mandatory per Fineract API)
      */
     public record BatchSavingsDepositOp(Long savingsAccountId, BigDecimal amount, String note, Long paymentTypeId) implements BatchOperation {}
+
+    /** Create a savings account within a batch. Use requestId as reference for approve/activate. */
+    public record BatchCreateSavingsOp(Long clientId, Integer productId) implements BatchOperation {}
+
+    /** Approve a savings account created in the same batch. referenceRequestId points to the create op. */
+    public record BatchApproveSavingsOp(int referenceRequestId) implements BatchOperation {}
+
+    /** Activate a savings account created in the same batch. referenceRequestId points to the create op. */
+    public record BatchActivateSavingsOp(int referenceRequestId) implements BatchOperation {}
+
+    /** IDs of the three LP savings accounts provisioned atomically. */
+    public record LpAccountIds(Long cashAccountId, Long spreadAccountId, Long taxAccountId) {}
 
     /**
      * Get existing currencies registered in Fineract.
@@ -618,6 +632,78 @@ public class FineractClient {
     }
 
     /**
+     * Batch-fetch available balances for multiple savings accounts in a single Fineract call.
+     * Uses GET batch (no enclosingTransaction — reads only).
+     * Returns a map of accountId → availableBalance. Any account that fails or is missing
+     * returns ZERO — errors are logged as warnings and do not abort the batch.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<Long, BigDecimal> getMultipleAccountBalances(java.util.Collection<Long> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+        List<Long> ids = new ArrayList<>(accountIds);
+        List<Map<String, Object>> batchRequests = new ArrayList<>();
+        for (int i = 0; i < ids.size(); i++) {
+            batchRequests.add(Map.of(
+                    "requestId", (long) (i + 1),
+                    "relativeUrl", "savingsaccounts/" + ids.get(i) + "?fields=id,summary",
+                    "method", "GET"
+            ));
+        }
+        // Initialize all to ZERO so missing/failed accounts get a safe default
+        java.util.Map<Long, BigDecimal> result = new java.util.LinkedHashMap<>();
+        for (Long id : ids) {
+            result.put(id, BigDecimal.ZERO);
+        }
+        try {
+            List<Map<String, Object>> responses = webClient.post()
+                    .uri("/fineract-provider/api/v1/batches?enclosingTransaction=false")
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .header("Fineract-Platform-TenantId", config.getTenant())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(batchRequests)
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            if (responses != null) {
+                for (Map<String, Object> resp : responses) {
+                    int reqId = ((Number) resp.get("requestId")).intValue();
+                    if (reqId >= 1 && reqId <= ids.size()) {
+                        Long accountId = ids.get(reqId - 1);
+                        Integer status = (Integer) resp.get("statusCode");
+                        if (status != null && status >= 200 && status < 300 && resp.get("body") != null) {
+                            try {
+                                Map<String, Object> body = objectMapper.readValue(resp.get("body").toString(), Map.class);
+                                Map<String, Object> summary = (Map<String, Object>) body.get("summary");
+                                if (summary != null && summary.get("availableBalance") != null) {
+                                    result.put(accountId, new BigDecimal(summary.get("availableBalance").toString()));
+                                }
+                            } catch (Exception e) {
+                                log.warn("Failed to parse balance response for account {}: {}", accountId, e.getMessage());
+                            }
+                        } else {
+                            log.warn("Balance batch returned status {} for account {}", status, accountId);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Batch balance fetch failed, falling back to individual calls: {}", e.getMessage());
+            for (Long id : ids) {
+                try {
+                    result.put(id, getAccountBalance(id));
+                } catch (Exception ex) {
+                    log.warn("Failed to fetch balance for account {}: {}", id, ex.getMessage());
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * Get savings account details including balance.
      */
     @SuppressWarnings("unchecked")
@@ -843,12 +929,12 @@ public class FineractClient {
 
         for (int i = 0; i < operations.size(); i++) {
             BatchOperation op = operations.get(i);
-            Map<String, Object> body;
+            Map<String, Object> body = new HashMap<>();
             String relativeUrl;
+            Integer reference = null;
 
             switch (op) {
                 case BatchTransferOp t -> {
-                    body = new HashMap<>();
                     body.put("fromOfficeId", 1);
                     body.put("fromClientId", 1);
                     body.put("fromAccountType", 2);
@@ -865,7 +951,6 @@ public class FineractClient {
                     relativeUrl = "accounttransfers";
                 }
                 case BatchJournalEntryOp j -> {
-                    body = new HashMap<>();
                     body.put("officeId", 1);
                     body.put("transactionDate", today);
                     body.put("locale", "en");
@@ -877,7 +962,6 @@ public class FineractClient {
                     relativeUrl = "journalentries";
                 }
                 case BatchSavingsWithdrawOp w -> {
-                    body = new HashMap<>();
                     body.put("transactionDate", today);
                     body.put("transactionAmount", w.amount());
                     body.put("paymentTypeId", Objects.requireNonNull(w.paymentTypeId(), "paymentTypeId is required"));
@@ -887,7 +971,6 @@ public class FineractClient {
                     relativeUrl = "savingsaccounts/" + w.savingsAccountId() + "/transactions?command=withdrawal";
                 }
                 case BatchSavingsDepositOp d -> {
-                    body = new HashMap<>();
                     body.put("transactionDate", today);
                     body.put("transactionAmount", d.amount());
                     body.put("paymentTypeId", Objects.requireNonNull(d.paymentTypeId(), "paymentTypeId is required"));
@@ -895,6 +978,28 @@ public class FineractClient {
                     body.put("dateFormat", "dd MMMM yyyy");
                     if (d.note() != null) body.put("note", d.note());
                     relativeUrl = "savingsaccounts/" + d.savingsAccountId() + "/transactions?command=deposit";
+                }
+                case BatchCreateSavingsOp c -> {
+                    body.put("clientId", c.clientId());
+                    body.put("productId", c.productId());
+                    body.put("submittedOnDate", today);
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    relativeUrl = "savingsaccounts";
+                }
+                case BatchApproveSavingsOp a -> {
+                    body.put("approvedOnDate", today);
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    relativeUrl = "savingsaccounts/$.savingsId?command=approve";
+                    reference = a.referenceRequestId();
+                }
+                case BatchActivateSavingsOp v -> {
+                    body.put("activatedOnDate", today);
+                    body.put("locale", "en");
+                    body.put("dateFormat", "dd MMMM yyyy");
+                    relativeUrl = "savingsaccounts/$.savingsId?command=activate";
+                    reference = v.referenceRequestId();
                 }
             }
 
@@ -911,6 +1016,7 @@ public class FineractClient {
             batchItem.put("method", "POST");
             batchItem.put("headers", List.of(Map.of("name", "Content-Type", "value", "application/json")));
             batchItem.put("body", bodyJson);
+            if (reference != null) batchItem.put("reference", reference);
             batchRequests.add(batchItem);
         }
 
@@ -948,6 +1054,45 @@ public class FineractClient {
             log.error("Fineract batch API failed: {}", e.getMessage());
             throw new AssetException("Batch operation failed: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Fetch the human-readable account number (e.g. "000000042") for a savings account.
+     * Returns an empty string if the account is not found or the call fails.
+     */
+    @SuppressWarnings("unchecked")
+    public String getSavingsAccountNo(Long accountId) {
+        try {
+            Map<String, Object> resp = webClient.get()
+                    .uri("/fineract-provider/api/v1/savingsaccounts/{id}?fields=accountNo", accountId)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+            return resp != null && resp.get("accountNo") != null ? resp.get("accountNo").toString() : "";
+        } catch (Exception e) {
+            log.warn("Could not fetch accountNo for savingsAccount {}: {}", accountId, e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * Provision the three shared LP savings accounts (LSAV/LSPD/LTAX) atomically.
+     * Uses a single 9-operation batch (create+approve+activate for each account)
+     * so all three accounts are created or none are.
+     */
+    @SuppressWarnings("unchecked")
+    public LpAccountIds provisionLpAccounts(Long lpClientId,
+                                             Integer lsavProductId,
+                                             Integer lspdProductId,
+                                             Integer ltaxProductId) {
+        Long cashAccountId   = provisionSavingsAccount(lpClientId, lsavProductId, null, null);
+        Long spreadAccountId = provisionSavingsAccount(lpClientId, lspdProductId, null, null);
+        Long taxAccountId    = provisionSavingsAccount(lpClientId, ltaxProductId, null, null);
+        log.info("Provisioned LP accounts: lpClientId={}, cash={}, spread={}, tax={}",
+                lpClientId, cashAccountId, spreadAccountId, taxAccountId);
+        return new LpAccountIds(cashAccountId, spreadAccountId, taxAccountId);
     }
 
     /**

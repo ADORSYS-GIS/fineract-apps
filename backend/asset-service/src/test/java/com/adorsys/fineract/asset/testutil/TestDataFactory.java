@@ -2,6 +2,7 @@ package com.adorsys.fineract.asset.testutil;
 
 import com.adorsys.fineract.asset.dto.*;
 import com.adorsys.fineract.asset.entity.*;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -30,6 +31,19 @@ public final class TestDataFactory {
 
     private TestDataFactory() {}
 
+    public static LiquidityProvider liquidityProvider() {
+        LiquidityProvider lp = new LiquidityProvider();
+        lp.setClientId(LP_CLIENT_ID);
+        lp.setClientName("Test LP");
+        lp.setCashAccountId(LP_CASH_ACCOUNT);
+        lp.setSpreadAccountId(LP_SPREAD_ACCOUNT);
+        lp.setTaxAccountId(LP_TAX_ACCOUNT);
+        lp.setCashAccountNo("000000300");
+        lp.setSpreadAccountNo("000000500");
+        lp.setTaxAccountNo("000000360");
+        return lp;
+    }
+
     public static Asset activeAsset() {
         return Asset.builder()
                 .id(ASSET_ID)
@@ -45,10 +59,7 @@ public final class TestDataFactory {
                 .tradingFeePercent(new BigDecimal("0.003"))
                 .decimalPlaces(0)
                 .lpClientId(LP_CLIENT_ID)
-                .lpCashAccountId(LP_CASH_ACCOUNT)
                 .lpAssetAccountId(LP_ASSET_ACCOUNT)
-                .lpSpreadAccountId(LP_SPREAD_ACCOUNT)
-                .lpTaxAccountId(360L)
                 .tvaEnabled(false)
                 .registrationDutyEnabled(true)
                 .fineractProductId(10)

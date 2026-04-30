@@ -28,5 +28,12 @@ public class DatabaseCleanupHook {
         jdbcTemplate.execute("DELETE FROM user_favorites");
         jdbcTemplate.execute("DELETE FROM asset_prices");
         jdbcTemplate.execute("DELETE FROM assets");
+        jdbcTemplate.execute("DELETE FROM liquidity_providers");
+
+        // Seed LP 1 so all scenarios that create assets via API or direct JDBC work
+        jdbcTemplate.execute("""
+            INSERT INTO liquidity_providers (client_id, client_name, cash_account_id, spread_account_id, tax_account_id, cash_account_no, spread_account_no, tax_account_no)
+            VALUES (1, 'Test LP', 300, 350, 360, '000000300', '000000350', '000000360')
+            """);
     }
 }

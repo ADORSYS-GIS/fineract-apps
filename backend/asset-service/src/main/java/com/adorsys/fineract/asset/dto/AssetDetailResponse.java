@@ -107,40 +107,13 @@ public record AssetDetailResponse(
     // ── Liquidity Partner info ──
 
     /**
-     * Fineract client ID of the liquidity partner entity that holds this asset's inventory
-     * and acts as the counterparty for all trades.
+     * Nested LP info block: client ID, asset account, cash/spread/tax accounts, and display name.
+     * Null if the asset has no LP configured.
      */
-    Long lpClientId,
-    /**
-     * Fineract savings account ID where the LP holds the asset units (token inventory).
-     * Units are debited from here on BUY orders and credited here on SELL orders.
-     */
-    Long lpAssetAccountId,
-    /**
-     * Fineract savings account ID for the LP's XAF cash. Credited on BUY orders
-     * (user pays cash) and debited on SELL orders (user receives cash).
-     */
-    Long lpCashAccountId,
-    /**
-     * Fineract savings account ID where the LP accumulates bid-ask spread earnings.
-     * Null if spread collection is not configured for this asset.
-     */
-    @Schema(description = "LP spread collection account ID.", nullable = true)
-    Long lpSpreadAccountId,
-    /**
-     * Fineract savings account ID used to hold withheld taxes (IRCM, registration duty)
-     * before remittance. Null if tax withholding is not configured for this asset.
-     */
-    @Schema(description = "LP tax withholding account ID.", nullable = true)
-    Long lpTaxAccountId,
+    @Schema(description = "Liquidity partner accounts and identity.", nullable = true)
+    LpInfo lp,
     /** Fineract savings product ID that backs the user-facing token accounts for this asset. */
     Integer fineractProductId,
-    /**
-     * Display name of the liquidity partner in Fineract (e.g. "LP Cameroun SA").
-     * Populated via a Fineract client lookup at query time; null if the lookup fails.
-     */
-    @Schema(description = "Liquidity partner display name from Fineract.", nullable = true)
-    String lpClientName,
     /**
      * Name of the Fineract savings product associated with this asset, typically
      * derived as {@code "<asset name> Token"}. Null if the product lookup fails.
@@ -441,4 +414,28 @@ public record AssetDetailResponse(
      */
     @Schema(description = "Current market pricing snapshot. Null for non-bond assets.", nullable = true)
     CurrentMarketData currentMarketData
-) {}
+) {
+    /**
+     * Nested liquidity partner info block bundling all LP account identifiers and display name.
+     */
+    public record LpInfo(
+        /** Fineract client ID of the LP. */
+        Long clientId,
+        /** Fineract savings account ID where the LP holds token inventory. */
+        Long assetAccountId,
+        /** Fineract savings account ID for the LP's XAF cash. */
+        Long cashAccountId,
+        /** LP spread collection account ID. Null if spread not configured. */
+        @Schema(nullable = true) Long spreadAccountId,
+        /** LP tax withholding account ID. Null if tax withholding not configured. */
+        @Schema(nullable = true) Long taxAccountId,
+        /** LP cash account number (human-readable). Null if not set. */
+        @Schema(nullable = true) String cashAccountNo,
+        /** LP spread account number. Null if not set. */
+        @Schema(nullable = true) String spreadAccountNo,
+        /** LP tax account number. Null if not set. */
+        @Schema(nullable = true) String taxAccountNo,
+        /** Display name of the LP (e.g. "LP Cameroun SA"). */
+        @Schema(nullable = true) String clientName
+    ) {}
+}

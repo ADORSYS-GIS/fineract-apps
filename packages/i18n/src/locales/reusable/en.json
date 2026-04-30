@@ -24,6 +24,7 @@
 			"reconciliation": "Reconciliation",
 			"scheduledPayments": "Scheduled Payments",
 			"lpPerformance": "LP Performance",
+			"lpManagement": "LP Management",
 			"accounting": "Accounting",
 			"settlement": "Settlement",
 			"paymentDlq": "Payment DLQ"

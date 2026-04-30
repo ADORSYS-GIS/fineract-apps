@@ -11,19 +11,25 @@ DELETE FROM user_positions;
 DELETE FROM user_favorites;
 DELETE FROM asset_prices;
 DELETE FROM assets;
+DELETE FROM liquidity_providers;
+
+-- LP for integration tests (accounts now per-LP, not per-asset)
+INSERT INTO liquidity_providers (client_id, client_name, cash_account_id, spread_account_id, tax_account_id,
+    cash_account_no, spread_account_no, tax_account_no)
+VALUES (1, 'Test LP', 300, 350, 360, '000000300', '000000350', '000000360');
 
 -- Active asset for integration tests
 INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
     issuer_price, total_supply, circulating_supply, trading_fee_percent,
     decimal_places,
-    lp_client_id, lp_asset_account_id, lp_cash_account_id, lp_spread_account_id, lp_tax_account_id,
+    lp_client_id, lp_asset_account_id,
     fineract_product_id, version, created_at, updated_at,
     registration_duty_enabled, registration_duty_rate, ircm_enabled, ircm_rate_override,
     ircm_exempt, capital_gains_tax_enabled, capital_gains_rate, is_bvmac_listed, is_government_bond,
     tva_enabled, tva_rate)
 VALUES ('asset-001', 'TST', 'TST', 'Test Asset', 'STOCKS', 'ACTIVE', 'MANUAL',
     100.00, 1000, 0, 0.005, 0,
-    1, 400, 300, 350, 360, 10, 0, NOW(), NOW(),
+    1, 400, 10, 0, NOW(), NOW(),
     true, 0.0200, true, null, false, true, 0.1650, false, false,
     false, null);
 
@@ -31,14 +37,14 @@ VALUES ('asset-001', 'TST', 'TST', 'Test Asset', 'STOCKS', 'ACTIVE', 'MANUAL',
 INSERT INTO assets (id, symbol, currency_code, name, category, status, price_mode,
     issuer_price, total_supply, circulating_supply, trading_fee_percent,
     decimal_places,
-    lp_client_id, lp_asset_account_id, lp_cash_account_id, lp_spread_account_id, lp_tax_account_id,
+    lp_client_id, lp_asset_account_id,
     fineract_product_id, version, created_at, updated_at,
     registration_duty_enabled, registration_duty_rate, ircm_enabled, ircm_rate_override,
     ircm_exempt, capital_gains_tax_enabled, capital_gains_rate, is_bvmac_listed, is_government_bond,
     tva_enabled, tva_rate)
 VALUES ('asset-002', 'PND', 'PND', 'Pending Asset', 'COMMODITIES', 'PENDING', 'MANUAL',
     50.00, 500, 0, 0.01, 0,
-    1, 401, 301, 351, 361, 11, 0, NOW(), NOW(),
+    1, 401, 11, 0, NOW(), NOW(),
     true, 0.0200, true, null, false, true, 0.1650, false, false,
     false, null);
 

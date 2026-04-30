@@ -16,7 +16,7 @@ import java.time.LocalDate;
  * InterestPaymentScheduler confirms a COUPON-type {@link ScheduledPayment}.
  * <p>
  * Each row represents one Fineract cash transfer from the LP's treasury cash
- * account ({@link Asset#lpCashAccountId}) to the user's settlement currency account.
+ * account (see {@link LiquidityProvider#getCashAccountId()}) to the user's settlement currency account.
  * All input values are snapshotted at payment time so the row remains accurate
  * even if the asset's rate or face value changes later.
  * <p>

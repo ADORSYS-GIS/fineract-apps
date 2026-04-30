@@ -4,8 +4,10 @@ import com.adorsys.fineract.asset.client.FineractClient;
 import com.adorsys.fineract.asset.dto.BondType;
 import com.adorsys.fineract.asset.dto.CouponForecastResponse;
 import com.adorsys.fineract.asset.entity.Asset;
+import com.adorsys.fineract.asset.entity.LiquidityProvider;
 import com.adorsys.fineract.asset.entity.UserPosition;
 import com.adorsys.fineract.asset.repository.AssetRepository;
+import com.adorsys.fineract.asset.repository.LiquidityProviderRepository;
 import com.adorsys.fineract.asset.repository.UserPositionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ public class CouponForecastService {
     private final AssetRepository assetRepository;
     private final UserPositionRepository userPositionRepository;
     private final FineractClient fineractClient;
+    private final LiquidityProviderRepository lpRepository;
 
     public CouponForecastResponse getForecast(String assetId) {
         Asset bond = assetRepository.findById(assetId)
@@ -66,7 +69,12 @@ public class CouponForecastService {
 
         BigDecimal lpCashBalance = BigDecimal.ZERO;
         try {
-            lpCashBalance = fineractClient.getAccountBalance(bond.getLpCashAccountId());
+            if (bond.getLpClientId() != null) {
+                LiquidityProvider lp = lpRepository.findById(bond.getLpClientId()).orElse(null);
+                if (lp != null && lp.getCashAccountId() != null) {
+                    lpCashBalance = fineractClient.getAccountBalance(lp.getCashAccountId());
+                }
+            }
         } catch (Exception e) {
             log.warn("Could not fetch LP cash balance for bond {}: {}", bond.getSymbol(), e.getMessage());
         }
@@ -109,7 +117,12 @@ public class CouponForecastService {
 
         BigDecimal lpCashBalance = BigDecimal.ZERO;
         try {
-            lpCashBalance = fineractClient.getAccountBalance(bond.getLpCashAccountId());
+            if (bond.getLpClientId() != null) {
+                LiquidityProvider lp = lpRepository.findById(bond.getLpClientId()).orElse(null);
+                if (lp != null && lp.getCashAccountId() != null) {
+                    lpCashBalance = fineractClient.getAccountBalance(lp.getCashAccountId());
+                }
+            }
         } catch (Exception e) {
             log.warn("Could not fetch LP cash balance for bond {}: {}", bond.getSymbol(), e.getMessage());
         }

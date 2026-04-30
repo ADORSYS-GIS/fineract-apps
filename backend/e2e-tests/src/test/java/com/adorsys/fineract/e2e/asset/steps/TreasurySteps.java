@@ -77,7 +77,7 @@ public class TreasurySteps {
                 .baseUri("http://localhost:" + port)
                 .get("/api/v1/admin/assets/" + assetId);
 
-        Number cashAccountId = assetResp.jsonPath().get("lpCashAccountId");
+        Number cashAccountId = assetResp.jsonPath().get("lp.cashAccountId");
         if (cashAccountId != null) {
             BigDecimal cashBalance = fineractTestClient.getAccountBalance(
                     cashAccountId.longValue());
