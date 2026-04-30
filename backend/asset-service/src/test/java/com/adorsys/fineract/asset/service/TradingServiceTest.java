@@ -515,7 +515,7 @@ class TradingServiceTest {
         when(orderRepository.findByUserIdAndStatusNotIn(eq(USER_ID), anyCollection(), any()))
                 .thenReturn(new PageImpl<>(List.of(filled)));
 
-        var result = tradingService.getUserOrders(USER_ID, null, pageable);
+        var result = tradingService.getUserOrders(USER_ID, null, null, pageable);
 
         assertEquals(1, result.getTotalElements());
         assertEquals(OrderStatus.FILLED, result.getContent().get(0).status());
@@ -540,7 +540,7 @@ class TradingServiceTest {
         when(orderRepository.findByUserIdAndAssetIdAndStatusNotIn(eq(USER_ID), eq(ASSET_ID), anyCollection(), any()))
                 .thenReturn(new PageImpl<>(List.of(filled)));
 
-        var result = tradingService.getUserOrders(USER_ID, ASSET_ID, pageable);
+        var result = tradingService.getUserOrders(USER_ID, ASSET_ID, null, pageable);
 
         assertEquals(1, result.getTotalElements());
         assertEquals(OrderStatus.FILLED, result.getContent().get(0).status());
@@ -557,10 +557,60 @@ class TradingServiceTest {
         when(orderRepository.findByUserIdAndStatusNotIn(eq(USER_ID), anyCollection(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        var result = tradingService.getUserOrders(USER_ID, null, pageable);
+        var result = tradingService.getUserOrders(USER_ID, null, null, pageable);
 
         assertEquals(0, result.getTotalElements());
         assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    void getUserOrders_withStatusFilter_usesStatusInRepository() {
+        Order filled = Order.builder()
+                .id("order-filled").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.BUY).status(OrderStatus.FILLED)
+                .units(new BigDecimal("10")).executionPrice(new BigDecimal("110"))
+                .cashAmount(new BigDecimal("1100")).fee(new BigDecimal("0"))
+                .asset(activeAsset)
+                .build();
+
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndStatusIn(eq(USER_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of(filled)));
+
+        var result = tradingService.getUserOrders(USER_ID, null, OrderStatus.FILLED, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(OrderStatus.FILLED, result.getContent().get(0).status());
+        verify(orderRepository).findByUserIdAndStatusIn(
+                eq(USER_ID),
+                argThat((Collection<OrderStatus> s) -> s.contains(OrderStatus.FILLED)),
+                any());
+        verify(orderRepository, never()).findByUserIdAndStatusNotIn(any(), anyCollection(), any());
+    }
+
+    @Test
+    void getUserOrders_withStatusAndAssetFilter_usesStatusInWithAssetId() {
+        Order filled = Order.builder()
+                .id("order-filled").userId(USER_ID).assetId(ASSET_ID)
+                .side(TradeSide.SELL).status(OrderStatus.FILLED)
+                .units(new BigDecimal("5")).executionPrice(new BigDecimal("90"))
+                .cashAmount(new BigDecimal("450")).fee(new BigDecimal("0"))
+                .asset(activeAsset)
+                .build();
+
+        PageRequest pageable = PageRequest.of(0, 20);
+        when(orderRepository.findByUserIdAndAssetIdAndStatusIn(eq(USER_ID), eq(ASSET_ID), anyCollection(), any()))
+                .thenReturn(new PageImpl<>(List.of(filled)));
+
+        var result = tradingService.getUserOrders(USER_ID, ASSET_ID, OrderStatus.FILLED, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        verify(orderRepository).findByUserIdAndAssetIdAndStatusIn(
+                eq(USER_ID),
+                eq(ASSET_ID),
+                argThat((Collection<OrderStatus> s) -> s.contains(OrderStatus.FILLED)),
+                any());
+        verify(orderRepository, never()).findByUserIdAndAssetIdAndStatusNotIn(any(), any(), anyCollection(), any());
     }
 
     @Test
@@ -580,7 +630,7 @@ class TradingServiceTest {
         when(orderRepository.findByUserIdAndStatusNotIn(eq(USER_ID), anyCollection(), any()))
                 .thenReturn(new PageImpl<>(List.of(order)));
 
-        var result = tradingService.getUserOrders(USER_ID, null, pageable);
+        var result = tradingService.getUserOrders(USER_ID, null, null, pageable);
         var response = result.getContent().get(0);
 
         assertEquals("order-123", response.orderId());

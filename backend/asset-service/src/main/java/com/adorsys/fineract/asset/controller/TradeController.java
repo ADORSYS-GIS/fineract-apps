@@ -75,13 +75,14 @@ public class TradeController {
     // ──────────────────────────────────────────────────────────────────────
 
     @GetMapping("/orders")
-    @Operation(summary = "User's order history", description = "Paginated, filterable by asset")
+    @Operation(summary = "User's order history", description = "Paginated, filterable by asset and status")
     public ResponseEntity<Page<OrderResponse>> getOrders(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String assetId,
+            @RequestParam(required = false) OrderStatus status,
             Pageable pageable) {
         Long userId = userIdentityResolver.resolveUserId(jwt);
-        return ResponseEntity.ok(tradingService.getUserOrders(userId, assetId, pageable));
+        return ResponseEntity.ok(tradingService.getUserOrders(userId, assetId, status, pageable));
     }
 
     @GetMapping("/orders/{id}")

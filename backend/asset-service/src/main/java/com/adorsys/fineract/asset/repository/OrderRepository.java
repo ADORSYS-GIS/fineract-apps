@@ -26,6 +26,12 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     @EntityGraph(attributePaths = "asset")
     Page<Order> findByUserIdAndAssetIdAndStatusNotIn(Long userId, String assetId, Collection<OrderStatus> statuses, Pageable pageable);
 
+    @EntityGraph(attributePaths = "asset")
+    Page<Order> findByUserIdAndStatusIn(Long userId, Collection<OrderStatus> statuses, Pageable pageable);
+
+    @EntityGraph(attributePaths = "asset")
+    Page<Order> findByUserIdAndAssetIdAndStatusIn(Long userId, String assetId, Collection<OrderStatus> statuses, Pageable pageable);
+
     List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, Instant before);
 
     @EntityGraph(attributePaths = "asset")

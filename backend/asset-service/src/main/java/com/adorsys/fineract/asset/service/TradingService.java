@@ -1514,11 +1514,16 @@ public class TradingService {
      * Get user's order history.
      */
     @Transactional(readOnly = true)
-    public Page<OrderResponse> getUserOrders(Long userId, String assetId, Pageable pageable) {
+    public Page<OrderResponse> getUserOrders(Long userId, String assetId, OrderStatus status, Pageable pageable) {
         Sort stable = pageable.getSort().and(Sort.by("id"));
         Pageable stablePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), stable);
         Page<Order> orders;
-        if (assetId != null) {
+        if (status != null) {
+            List<OrderStatus> include = List.of(status);
+            orders = assetId != null
+                    ? orderRepository.findByUserIdAndAssetIdAndStatusIn(userId, assetId, include, stablePageable)
+                    : orderRepository.findByUserIdAndStatusIn(userId, include, stablePageable);
+        } else if (assetId != null) {
             orders = orderRepository.findByUserIdAndAssetIdAndStatusNotIn(userId, assetId, HIDDEN_FROM_USER_HISTORY, stablePageable);
         } else {
             orders = orderRepository.findByUserIdAndStatusNotIn(userId, HIDDEN_FROM_USER_HISTORY, stablePageable);
