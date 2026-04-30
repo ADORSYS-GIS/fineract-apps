@@ -13,15 +13,19 @@ export const useUserTable = () => {
 		queryFn: () => UsersService.getV1Users(),
 	});
 
-	const users: User[] = (data || []).map((user: GetUsersResponse) => ({
-		id: user.id ?? 0,
-		username: user.username ?? "",
-		firstname: user.firstname ?? "",
-		lastname: user.lastname ?? "",
-		email: user.email ?? "",
-		officeName: user.officeName ?? "",
-		available: true, // Assuming all employees are active
-	}));
+	const users: User[] = (data || [])
+		.map((user: GetUsersResponse) => ({
+			id: user.id ?? 0,
+			username: user.username ?? "",
+			firstname: user.firstname ?? "",
+			lastname: user.lastname ?? "",
+			email: user.email ?? "",
+			officeName: user.officeName ?? "",
+			available: true, // Assuming all employees are active
+		}))
+		.filter(
+			(user) => !["interopUser", "mifos", "system"].includes(user.username),
+		);
 
 	const filteredUsers = useMemo(
 		() =>
