@@ -215,6 +215,29 @@ public record AssetPublicDetailResponse(
      */
     @Schema(description = "OTA accrued interest per unit since last coupon. Null for DISCOUNT bonds.", nullable = true)
     BigDecimal accruedInterestPerUnit,
+    /**
+     * BTA forward-looking gross capital gain per unit at maturity, in XAF, assuming
+     * the holder buys today at the current ask price: {@code max(faceValue − askPrice, 0)}.
+     * Null for COUPON bonds and non-bond assets, and when the inputs are missing.
+     * Replaces client-side recomputation on the asset detail screen — frontends should
+     * read this and the per-unit IRCM/net pair below directly.
+     */
+    @Schema(description = "BTA gross gain per unit at maturity if bought now. Null for COUPON bonds.", nullable = true)
+    BigDecimal btaGrossGainPerUnit,
+    /**
+     * BTA forward-looking IRCM withholding per unit, computed as
+     * {@code btaGrossGainPerUnit × ircmRate}. Zero for IRCM-exempt assets. Null for
+     * COUPON bonds and non-bond assets.
+     */
+    @Schema(description = "BTA IRCM withholding per unit at maturity. Null for COUPON bonds.", nullable = true)
+    BigDecimal btaIrcmPerUnit,
+    /**
+     * BTA forward-looking net capital gain per unit at maturity:
+     * {@code btaGrossGainPerUnit − btaIrcmPerUnit}. The "you'll keep per unit"
+     * headline. Null for COUPON bonds and non-bond assets.
+     */
+    @Schema(description = "BTA net gain per unit at maturity. Null for COUPON bonds.", nullable = true)
+    BigDecimal btaNetGainPerUnit,
 
     // ── Bid/Ask prices ──
 

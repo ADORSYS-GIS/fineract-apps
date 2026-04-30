@@ -250,6 +250,7 @@ public class PrincipalRedemptionService {
                 .avgPurchasePrice(holder.getAvgPurchasePrice())
                 .capitalGain(capitalGain)
                 .ircmWithheld(ircmAmount)
+                .ircmRateApplied(effectiveIrcmRate)
                 .redemptionDate(redemptionDate);
 
         try {
@@ -279,7 +280,8 @@ public class PrincipalRedemptionService {
             String idempotencyKey = "REDEEM-" + bond.getId() + "-" + holder.getUserId();
             FineractOutboxEntry outbox = outboxService.writePendingEntry(
                     "PRINCIPAL_REDEMPTION", "PRINCIPAL_REDEMPTION", bond.getId() + ":" + holder.getUserId(),
-                    idempotencyKey, buildRedemptionPayload(bond, holder, units, cashAmount, ircmAmount, grossCashAmount, userCashAccountId));
+                    idempotencyKey, buildRedemptionPayload(bond, holder, units, cashAmount, ircmAmount,
+                            grossCashAmount, userCashAccountId, effectiveIrcmRate));
 
             // d. Execute atomic batch
             List<Map<String, Object>> batchResult;
@@ -375,10 +377,15 @@ public class PrincipalRedemptionService {
         BigDecimal realizedPnl = portfolioService.updatePositionAfterSell(userId, bondId, units, faceValue, null, null);
         assetRepository.adjustCirculatingSupply(bondId, units.negate());
 
+        // Resolve the rate once for both the tax-transaction log and the persisted
+        // rate column (matches the F1 invariant in redeemHolder).
+        Object rateRaw = payload.get("ircmRateApplied");
+        BigDecimal ircmRateApplied = rateRaw != null
+                ? new BigDecimal(rateRaw.toString())
+                : taxService.getEffectiveIrcmRate(bond);
         if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal ircmRate = taxService.getEffectiveIrcmRate(bond);
             taxService.recordTaxTransaction(null, null, userId, bondId,
-                    "IRCM", grossCash, ircmRate, ircmAmount, null);
+                    "IRCM", grossCash, ircmRateApplied, ircmAmount, null);
         }
 
         PrincipalRedemption rec = PrincipalRedemption.builder()
@@ -386,6 +393,7 @@ public class PrincipalRedemptionService {
                 .cashAmount(cashAmount).grossCashAmount(grossCash)
                 .avgPurchasePrice(avgPurchasePrice).capitalGain(capitalGain)
                 .ircmWithheld(ircmAmount)
+                .ircmRateApplied(ircmRateApplied)
                 .redemptionDate(java.time.LocalDate.now())
                 .realizedPnl(realizedPnl).status("SUCCESS").build();
         principalRedemptionRepository.save(rec);
@@ -396,7 +404,7 @@ public class PrincipalRedemptionService {
 
     private Map<String, Object> buildRedemptionPayload(Asset bond, UserPosition holder,
             BigDecimal units, BigDecimal cashAmount, BigDecimal ircmAmount,
-            BigDecimal grossCashAmount, Long userCashAccountId) {
+            BigDecimal grossCashAmount, Long userCashAccountId, BigDecimal ircmRateApplied) {
         Map<String, Object> p = new HashMap<>();
         p.put("bondId", bond.getId());
         p.put("userId", holder.getUserId());
@@ -408,6 +416,9 @@ public class PrincipalRedemptionService {
         p.put("userCashAccountId", userCashAccountId);
         if (holder.getAvgPurchasePrice() != null) {
             p.put("avgPurchasePrice", holder.getAvgPurchasePrice().toPlainString());
+        }
+        if (ircmRateApplied != null) {
+            p.put("ircmRateApplied", ircmRateApplied.toPlainString());
         }
         return p;
     }

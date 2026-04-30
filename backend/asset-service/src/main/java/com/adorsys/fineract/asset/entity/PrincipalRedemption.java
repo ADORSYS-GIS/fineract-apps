@@ -106,6 +106,17 @@ public class PrincipalRedemption {
     @Column(name = "ircm_withheld", precision = 20, scale = 0)
     private BigDecimal ircmWithheld;
 
+    /**
+     * Effective IRCM rate applied at redemption time as a decimal (e.g.
+     * {@code 0.165} = 16.5%). Captured from
+     * {@link com.adorsys.fineract.asset.service.TaxService#getEffectiveIrcmRate}
+     * once per redemption so historical rows stay accurate even if the asset's
+     * IRCM config is later reconfigured. Null on legacy rows persisted before
+     * the V4 migration.
+     */
+    @Column(name = "ircm_rate_applied", precision = 10, scale = 8)
+    private BigDecimal ircmRateApplied;
+
     /** Realized P&L recorded on the position: cashAmount - costBasis. */
     @Column(name = "realized_pnl", precision = 20, scale = 0)
     private BigDecimal realizedPnl;

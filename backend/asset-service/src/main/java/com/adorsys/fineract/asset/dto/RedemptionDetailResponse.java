@@ -59,6 +59,17 @@ public record RedemptionDetailResponse(
      */
     BigDecimal ircmWithheld,
     /**
+     * Effective IRCM rate that was applied at redemption time, as a decimal (e.g.
+     * {@code 0.165} = 16.5%). Captured from {@code TaxService.getEffectiveIrcmRate}
+     * once when the redemption was processed; remains historically accurate even if
+     * the asset's IRCM config is later reconfigured. Frontends should display this
+     * rather than reconstruct it from {@code ircmWithheld / capitalGain} (which can
+     * round-trip with a 0.1% drift on small capital gains). Null on legacy rows
+     * persisted before the V4 migration; the frontend may fall back to the derived
+     * ratio in that case.
+     */
+    BigDecimal ircmRate,
+    /**
      * Net cash credited to the holder's settlement account: {@code grossProceeds − ircmWithheld}.
      */
     BigDecimal netProceeds,

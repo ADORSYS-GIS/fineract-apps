@@ -243,6 +243,7 @@ public class PortfolioService {
                 gross,
                 capitalGain,
                 ircm,
+                row.getIrcmRateApplied(),
                 net,
                 row.getRealizedPnl(),
                 row.getRedemptionDate(),

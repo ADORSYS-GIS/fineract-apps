@@ -405,6 +405,7 @@ class PortfolioServiceTest {
                 .avgPurchasePrice(new BigDecimal("9268"))
                 .capitalGain(new BigDecimal("73200"))
                 .ircmWithheld(new BigDecimal("12078"))
+                .ircmRateApplied(new BigDecimal("0.16500000"))
                 .cashAmount(new BigDecimal("987922"))
                 .realizedPnl(new BigDecimal("60000"))
                 .redemptionDate(java.time.LocalDate.of(2027, 4, 15))
@@ -437,6 +438,9 @@ class PortfolioServiceTest {
         // F2 fix: netProceeds is the actual transferred amount (cashAmount), NOT
         // the recomputed gross − ircm. They happen to match here, which is the point.
         assertEquals(0, result.netProceeds().compareTo(new BigDecimal("987922")));
+        // F7 fix: ircmRate comes from the persisted ircm_rate_applied column,
+        // not reconstructed from ircmWithheld / capitalGain.
+        assertEquals(0, result.ircmRate().compareTo(new BigDecimal("0.16500000")));
     }
 
     @Test

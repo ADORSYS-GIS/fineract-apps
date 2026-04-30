@@ -82,6 +82,7 @@ public class AssetCatalogService {
         BigDecimal ircmRate = taxService.getEffectiveIrcmRate(asset);
         BigDecimal impliedRate = computeBtaImpliedRate(asset);
         BigDecimal accruedInterestPerUnit = computeAccruedInterestPerUnit(asset);
+        BigDecimal[] btaProjection = computeBtaProjectionPerUnit(asset, askPrice, ircmRate);
 
         return new AssetPublicDetailResponse(
                 asset.getId(), asset.getName(), asset.getSymbol(), asset.getCurrencyCode(),
@@ -106,6 +107,9 @@ public class AssetCatalogService {
                 ircmRate,
                 impliedRate,
                 accruedInterestPerUnit,
+                btaProjection[0],
+                btaProjection[1],
+                btaProjection[2],
                 price != null ? price.getBidPrice() : null,
                 price != null ? price.getAskPrice() : null,
                 asset.getMaxPositionPercent(), asset.getMaxOrderSize(),
@@ -144,6 +148,24 @@ public class AssetCatalogService {
         if (asset.getCategory() != AssetCategory.BONDS) return null;
         if (asset.getBondType() != BondType.COUPON) return null;
         return accruedInterestCalculator.calculate(asset, BigDecimal.ONE);
+    }
+
+    /**
+     * BTA per-unit forward-looking capital-gain projection at maturity assuming the
+     * holder buys today at {@code askPrice}. Returns {@code [gross, ircm, net]} or
+     * {@code [null, null, null]} for non-BTA assets / missing inputs. The IRCM is
+     * capped at zero so a stale askPrice exceeding faceValue cannot produce a
+     * negative tax amount.
+     */
+    private BigDecimal[] computeBtaProjectionPerUnit(Asset asset, BigDecimal askPrice,
+                                                      BigDecimal ircmRate) {
+        if (asset.getBondType() != BondType.DISCOUNT) return new BigDecimal[] { null, null, null };
+        if (asset.getFaceValue() == null || askPrice == null) return new BigDecimal[] { null, null, null };
+        BigDecimal gross = asset.getFaceValue().subtract(askPrice).max(BigDecimal.ZERO);
+        BigDecimal effectiveRate = ircmRate != null ? ircmRate : BigDecimal.ZERO;
+        BigDecimal ircm = gross.multiply(effectiveRate).setScale(0, java.math.RoundingMode.HALF_UP);
+        BigDecimal net = gross.subtract(ircm);
+        return new BigDecimal[] { gross, ircm, net };
     }
 
     /**
