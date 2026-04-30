@@ -49,7 +49,6 @@ class TradeControllerTest {
 
     @Test
     void getOrders_returns200() throws Exception {
-        // Arrange
         OrderResponse order = new OrderResponse(
                 "order-001", "asset-001", "TST",
                 TradeSide.BUY, new BigDecimal("10"),
@@ -59,13 +58,55 @@ class TradeControllerTest {
                 Instant.now(),
                 null, null, null, null
         );
-        when(tradingService.getUserOrders(eq(42L), any(), any(Pageable.class)))
+        when(tradingService.getUserOrders(eq(42L), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(order)));
 
         mockMvc.perform(get("/trades/orders")
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void getOrders_withStatusParam_passesStatusToService() throws Exception {
+        when(tradingService.getUserOrders(eq(42L), isNull(), eq(OrderStatus.FILLED), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/trades/orders")
+                        .param("status", "FILLED")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk());
+
+        verify(tradingService).getUserOrders(eq(42L), isNull(), eq(OrderStatus.FILLED), any(Pageable.class));
+    }
+
+    @Test
+    void getOrders_withoutStatusParam_passesNullStatusToService() throws Exception {
+        when(tradingService.getUserOrders(eq(42L), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/trades/orders")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk());
+
+        verify(tradingService).getUserOrders(eq(42L), isNull(), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void getOrders_withAssetIdAndStatus_forwardsBoothParams() throws Exception {
+        when(tradingService.getUserOrders(eq(42L), eq("asset-001"), eq(OrderStatus.FILLED), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/trades/orders")
+                        .param("assetId", "asset-001")
+                        .param("status", "FILLED")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk());
+
+        verify(tradingService).getUserOrders(eq(42L), eq("asset-001"), eq(OrderStatus.FILLED), any(Pageable.class));
     }
 
     // -------------------------------------------------------------------------
