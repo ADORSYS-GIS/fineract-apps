@@ -160,4 +160,99 @@ class PrincipalRedemptionServiceTest {
                 eq("IRCM"), any(), eq(new BigDecimal("0.165")),
                 eq(new BigDecimal("16500")), isNull());
     }
+
+    // -------------------------------------------------------------------------
+    // finalizeRedemptionFromOutbox legacy-payload path (F4).
+    // The most critical untested code path: handles at-least-once recovery for
+    // financial transfers when the original transaction was DISPATCHED but the
+    // DB finalisation hadn't completed before a crash. Pre-c3bacfe2 payloads
+    // are missing the new ircmRateApplied key.
+    // -------------------------------------------------------------------------
+
+    @Test
+    void finalizeRedemptionFromOutbox_legacyPayloadWithoutIrcmRate_fallsBackToTaxServiceAndPersists() {
+        // Arrange: legacy-shaped payload — has ircmAmount and grossCashAmount but no
+        // ircmRateApplied (the field hadn't been added to buildRedemptionPayload yet).
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("bondId", ASSET_ID);
+        payload.put("userId", USER_ID);
+        payload.put("units", "1");
+        payload.put("faceValue", "1000000");
+        payload.put("cashAmount", "983500");
+        payload.put("ircmAmount", "16500");
+        payload.put("grossCashAmount", "1000000");
+        payload.put("avgPurchasePrice", "900000");
+        // intentionally NO "ircmRateApplied" key
+
+        FineractOutboxEntry entry = new FineractOutboxEntry();
+        entry.setId(UUID.randomUUID());
+
+        Asset bond = maturedBond();
+
+        when(outboxService.parsePayload(entry)).thenReturn(payload);
+        when(principalRedemptionRepository.findByAssetId(ASSET_ID))
+                .thenReturn(java.util.Collections.emptyList());
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(bond));
+        when(taxService.getEffectiveIrcmRate(bond)).thenReturn(new BigDecimal("0.165"));
+        when(portfolioService.updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID), any(), any(), any(), any()))
+                .thenReturn(new BigDecimal("100000"));
+
+        // Act
+        service.finalizeRedemptionFromOutbox(entry);
+
+        // Assert: the fallback queried TaxService for the rate at retry time, and
+        // the recorded tax-transaction uses that rate. Persisted record carries
+        // it through (verified by the saved row's status==SUCCESS).
+        verify(taxService).getEffectiveIrcmRate(bond);
+        verify(taxService).recordTaxTransaction(
+                isNull(), isNull(), eq(USER_ID), eq(ASSET_ID),
+                eq("IRCM"), any(), eq(new BigDecimal("0.165")),
+                eq(new BigDecimal("16500")), isNull());
+        verify(principalRedemptionRepository).save(argThat(rec ->
+                rec != null
+                && "SUCCESS".equals(rec.getStatus())
+                && rec.getIrcmWithheld().compareTo(new BigDecimal("16500")) == 0
+                && rec.getIrcmRateApplied() != null
+                && rec.getIrcmRateApplied().compareTo(new BigDecimal("0.165")) == 0
+        ));
+        verify(outboxService).markConfirmed(entry.getId());
+    }
+
+    @Test
+    void finalizeRedemptionFromOutbox_modernPayloadCarriesIrcmRate_doesNotQueryTaxService() {
+        // Arrange: payload written post-c3bacfe2 carries ircmRateApplied so the
+        // service does NOT need to fall back to TaxService.
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("bondId", ASSET_ID);
+        payload.put("userId", USER_ID);
+        payload.put("units", "1");
+        payload.put("faceValue", "1000000");
+        payload.put("cashAmount", "983500");
+        payload.put("ircmAmount", "16500");
+        payload.put("grossCashAmount", "1000000");
+        payload.put("avgPurchasePrice", "900000");
+        payload.put("ircmRateApplied", "0.165");
+
+        FineractOutboxEntry entry = new FineractOutboxEntry();
+        entry.setId(UUID.randomUUID());
+
+        Asset bond = maturedBond();
+
+        when(outboxService.parsePayload(entry)).thenReturn(payload);
+        when(principalRedemptionRepository.findByAssetId(ASSET_ID))
+                .thenReturn(java.util.Collections.emptyList());
+        when(assetRepository.findById(ASSET_ID)).thenReturn(Optional.of(bond));
+        when(portfolioService.updatePositionAfterSell(eq(USER_ID), eq(ASSET_ID), any(), any(), any(), any()))
+                .thenReturn(new BigDecimal("100000"));
+
+        // Act
+        service.finalizeRedemptionFromOutbox(entry);
+
+        // Assert: the rate from the payload is used; TaxService is NOT consulted.
+        verify(taxService, never()).getEffectiveIrcmRate(any());
+        verify(taxService).recordTaxTransaction(
+                isNull(), isNull(), eq(USER_ID), eq(ASSET_ID),
+                eq("IRCM"), any(), eq(new BigDecimal("0.165")),
+                eq(new BigDecimal("16500")), isNull());
+    }
 }

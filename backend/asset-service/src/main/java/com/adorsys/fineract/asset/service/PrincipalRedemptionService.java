@@ -236,8 +236,13 @@ public class PrincipalRedemptionService {
                 }
             }
         }
-        // Effective rate for downstream audit. Final, captured once.
+        // Effective rate for downstream audit. Final, captured once. Persisted only
+        // for DISCOUNT bonds — for OTA bonds, IRCM is not applied at maturity and
+        // null in the column means "not applicable", consistent with the field's
+        // documented contract (null = unknown / not applicable, non-null = the rate
+        // that drove the withholding).
         final BigDecimal effectiveIrcmRate = ircmRate;
+        final BigDecimal persistedIrcmRate = bond.getBondType() == BondType.DISCOUNT ? ircmRate : null;
         BigDecimal cashAmount = grossCashAmount.subtract(ircmAmount);
 
         PrincipalRedemption.PrincipalRedemptionBuilder record = PrincipalRedemption.builder()
@@ -250,7 +255,7 @@ public class PrincipalRedemptionService {
                 .avgPurchasePrice(holder.getAvgPurchasePrice())
                 .capitalGain(capitalGain)
                 .ircmWithheld(ircmAmount)
-                .ircmRateApplied(effectiveIrcmRate)
+                .ircmRateApplied(persistedIrcmRate)
                 .redemptionDate(redemptionDate);
 
         try {
@@ -379,10 +384,23 @@ public class PrincipalRedemptionService {
 
         // Resolve the rate once for both the tax-transaction log and the persisted
         // rate column (matches the F1 invariant in redeemHolder).
+        //
+        // KNOWN INCONSISTENCY on legacy fallback: payloads written before commit
+        // c3bacfe2 do not carry ircmRateApplied. The fallback below queries
+        // TaxService at retry-time, which can disagree with the original-redemption
+        // rate if the asset's IRCM config was reconfigured in the retry window.
+        // ircmAmount in the payload is frozen at original-redemption time, so a
+        // discrepancy between ircmAmount/grossCash and ircmRateApplied is possible
+        // for those legacy entries. Window is bounded to the outbox queue drain.
+        // Same trade-off as the capitalGain inconsistency documented above.
         Object rateRaw = payload.get("ircmRateApplied");
         BigDecimal ircmRateApplied = rateRaw != null
                 ? new BigDecimal(rateRaw.toString())
                 : taxService.getEffectiveIrcmRate(bond);
+        // Same OTA-vs-BTA semantic as redeemHolder: only persist a rate for BTA bonds.
+        BigDecimal persistedIrcmRate = bond.getBondType() == BondType.DISCOUNT
+                ? ircmRateApplied
+                : null;
         if (ircmAmount.compareTo(BigDecimal.ZERO) > 0) {
             taxService.recordTaxTransaction(null, null, userId, bondId,
                     "IRCM", grossCash, ircmRateApplied, ircmAmount, null);
@@ -393,7 +411,7 @@ public class PrincipalRedemptionService {
                 .cashAmount(cashAmount).grossCashAmount(grossCash)
                 .avgPurchasePrice(avgPurchasePrice).capitalGain(capitalGain)
                 .ircmWithheld(ircmAmount)
-                .ircmRateApplied(ircmRateApplied)
+                .ircmRateApplied(persistedIrcmRate)
                 .redemptionDate(java.time.LocalDate.now())
                 .realizedPnl(realizedPnl).status("SUCCESS").build();
         principalRedemptionRepository.save(rec);
